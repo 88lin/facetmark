@@ -399,6 +399,13 @@ def eval_cmd(
     build: bool = typer.Option(True, "--build/--no-build",
                                help="Generate the corpus, or evaluate an existing db."),
     bootstrap: int = typer.Option(1000, "--bootstrap", help="Resamples for the CI."),
+    queries: Path | None = typer.Option(
+        None, "--queries",
+        help="JSONL of {text, qtype, target_url} to evaluate an existing library."),
+    concurrency: int = typer.Option(
+        1, "--concurrency",
+        help="Queries in flight per rung. >1 makes p50/p95 meaningless; use it for "
+             "the quality numbers and re-run at 1 on a subsample for latency."),
     out: Path | None = typer.Option(None, "--out", help="Write the full report as JSON."),
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
@@ -408,11 +415,16 @@ def eval_cmd(
     confidence intervals and McNemar tests between adjacent rungs. Always prints
     which provider and which reranker actually ran: under the mock provider the
     numbers are a plumbing check, not a quality measurement.
+
+    With ``--no-build --db LIB --queries FILE`` it measures a library you
+    already indexed, using whatever provider the environment names. That is the
+    mode that produces a number worth quoting.
     """
     from .eval import run_eval
 
     payload = asyncio.run(run_eval(
         db=db, ablation=ablation, size=size, build=build, bootstrap=bootstrap,
+        queries_path=queries, concurrency=concurrency,
         console=None if json_out else console,
     ))
     if out:

@@ -34,9 +34,11 @@ Three query types, matching the design document's evaluation plan:
 
 from __future__ import annotations
 
+import json
 import random
 import sqlite3
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Literal
 
 from ..config import Settings, get_settings
@@ -246,13 +248,16 @@ class Corpus:
     pages: list[Page] = field(default_factory=list)
     queries: list[EvalQuery] = field(default_factory=list)
     seed: int = 0
+    #: Set when the queries were bound to a library this process did not
+    #: generate, where ``pages`` is empty but the library is not.
+    library_pages: int = 0
 
     def by_type(self, qtype: QueryType) -> list[EvalQuery]:
         return [q for q in self.queries if q.qtype == qtype]
 
     @property
     def counts(self) -> dict[str, int]:
-        out = {"pages": len(self.pages)}
+        out = {"pages": len(self.pages) or self.library_pages}
         for t in ("q_content", "q_vague", "q_episodic"):
             out[t] = len(self.by_type(t))  # type: ignore[arg-type]
         return out
@@ -417,6 +422,72 @@ def load_corpus(
     return corpus
 
 
+# ---------------------------------------------------------------------------
+# queries for a library that already exists
+# ---------------------------------------------------------------------------
+
+
+class QueryFileError(ValueError):
+    """The query file is unusable, with a reason the caller can print."""
+
+
+def load_query_file(conn: sqlite3.Connection, path: str | Path) -> Corpus:
+    """Read ``{"text", "qtype", "target_url"}`` records and bind them to a library.
+
+    The synthetic generator knows its own answers; a real library does not, so
+    the answers arrive as a file and the target is named by **URL**, not by row
+    id. Ids depend on import order and would silently point at the wrong page
+    after a re-import -- which is the kind of bug that makes an evaluation look
+    like it succeeded.
+
+    A query whose target is not in this library is a hard error, not a skip.
+    Silently dropping unmatched queries would quietly change the denominator of
+    every recall number in the report.
+    """
+    path = Path(path)
+    rows: list[dict] = []
+    for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        line = line.strip()
+        if not line or line.startswith("//"):
+            continue
+        try:
+            rows.append(json.loads(line))
+        except json.JSONDecodeError as exc:
+            raise QueryFileError(f"{path}:{lineno}: {exc}") from exc
+    if not rows:
+        raise QueryFileError(f"{path}: no queries")
+
+    by_norm: dict[str, int] = {
+        r["url_norm"]: int(r["id"])
+        for r in conn.execute("SELECT id, url_norm FROM bookmark")
+    }
+
+    queries: list[EvalQuery] = []
+    missing: list[str] = []
+    for i, r in enumerate(rows):
+        qtype = r.get("qtype")
+        if qtype not in ("q_content", "q_vague", "q_episodic"):
+            raise QueryFileError(f"{path}: record {i} has qtype={qtype!r}")
+        text = (r.get("text") or "").strip()
+        if not text:
+            raise QueryFileError(f"{path}: record {i} has no text")
+        url = r.get("target_url") or ""
+        bid = by_norm.get(normalize_url(url).normalized)
+        if bid is None:
+            missing.append(url)
+            continue
+        queries.append(EvalQuery(text=text, qtype=qtype, target=i, target_id=bid,
+                                 note=r.get("note") or ""))
+    if missing:
+        raise QueryFileError(
+            f"{path}: {len(missing)} target url(s) are not in this library, "
+            f"first: {missing[0]}"
+        )
+
+    npages = int(conn.execute("SELECT COUNT(*) FROM bookmark WHERE indexable=1").fetchone()[0])
+    return Corpus(pages=[], queries=queries, seed=0, library_pages=npages)
+
+
 __all__ = [
     "DAY",
     "DOMAINS",
@@ -424,7 +495,9 @@ __all__ = [
     "Domain",
     "EvalQuery",
     "Page",
+    "QueryFileError",
     "QueryType",
     "generate_corpus",
     "load_corpus",
+    "load_query_file",
 ]

@@ -2,7 +2,15 @@
 
 from __future__ import annotations
 
-from .corpus import Corpus, EvalQuery, Page, generate_corpus, load_corpus
+from .corpus import (
+    Corpus,
+    EvalQuery,
+    Page,
+    QueryFileError,
+    generate_corpus,
+    load_corpus,
+    load_query_file,
+)
 from .harness import (
     PASS_MARGIN_PP,
     QUERY_TYPES,
@@ -27,10 +35,12 @@ __all__ = [
     "EvalQuery",
     "Outcome",
     "Page",
+    "QueryFileError",
     "bootstrap_ci",
     "build_bench",
     "generate_corpus",
     "load_corpus",
+    "load_query_file",
     "mcnemar",
     "run_demo",
     "run_eval",

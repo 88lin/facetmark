@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from facetmark.config import get_settings
 from facetmark.db import open_db
 from facetmark.eval import (
+    RUNGS,
     Outcome,
+    QueryFileError,
     bootstrap_ci,
     generate_corpus,
     load_corpus,
+    load_query_file,
     mcnemar,
     run_demo,
     run_eval,
@@ -159,3 +164,169 @@ class TestBench:
     async def test_no_build_without_a_database_is_refused(self):
         with pytest.raises(ValueError, match="--no-build"):
             await run_eval(build=False, db=None)
+
+
+class TestQueryFile:
+    """Judgements for a library the bench did not generate.
+
+    The synthetic corpus knows its own answers. A real library does not, so the
+    answers arrive as a file -- and every way that file can be wrong has to fail
+    loudly, because a silently dropped query changes the denominator of every
+    recall number in the report.
+    """
+
+    @staticmethod
+    def _library():
+        st = get_settings(use_mock_provider=True)
+        conn = open_db(":memory:")
+        c = generate_corpus(size=12, seed=5)
+        load_corpus(conn, c, settings=st)
+        return conn, c
+
+    @staticmethod
+    def _write(tmp_path, records):
+        p = tmp_path / "q.jsonl"
+        p.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in records),
+                     encoding="utf-8")
+        return p
+
+    def test_targets_are_bound_by_url_not_by_row_id(self, tmp_path):
+        conn, c = self._library()
+        page = c.pages[3]
+        f = self._write(tmp_path, [
+            {"text": "how do I do the thing", "qtype": "q_vague", "target_url": page.url},
+        ])
+        loaded = load_query_file(conn, f)
+        assert len(loaded.queries) == 1
+        assert loaded.queries[0].target_id == page.bookmark_id
+
+    def test_tracking_parameters_on_the_target_url_still_match(self, tmp_path):
+        """The judgement file is written by hand or by a script that copied a
+        URL out of a browser. It should not have to know about utm tags."""
+        conn, c = self._library()
+        page = c.pages[1]
+        f = self._write(tmp_path, [
+            {"text": "q", "qtype": "q_content",
+             "target_url": page.url + "?utm_source=newsletter"},
+        ])
+        assert load_query_file(conn, f).queries[0].target_id == page.bookmark_id
+
+    def test_a_target_outside_the_library_is_a_hard_error(self, tmp_path):
+        conn, c = self._library()
+        f = self._write(tmp_path, [
+            {"text": "q", "qtype": "q_content", "target_url": c.pages[0].url},
+            {"text": "q", "qtype": "q_content", "target_url": "https://nowhere.example/x"},
+        ])
+        with pytest.raises(QueryFileError, match="not in this library"):
+            load_query_file(conn, f)
+
+    @pytest.mark.parametrize("bad", [
+        {"text": "q", "qtype": "q_typo", "target_url": "U"},
+        {"text": "", "qtype": "q_content", "target_url": "U"},
+        {"qtype": "q_content", "target_url": "U"},
+    ])
+    def test_a_malformed_record_is_refused(self, tmp_path, bad):
+        conn, c = self._library()
+        bad = {**bad, "target_url": c.pages[0].url}
+        with pytest.raises(QueryFileError):
+            load_query_file(conn, self._write(tmp_path, [bad]))
+
+    def test_unparseable_json_names_the_line(self, tmp_path):
+        conn, _ = self._library()
+        p = tmp_path / "q.jsonl"
+        p.write_text('{"text": "ok"}\nnot json at all\n', encoding="utf-8")
+        with pytest.raises(QueryFileError, match=":2:"):
+            load_query_file(conn, p)
+
+    def test_blank_lines_and_comments_are_skipped(self, tmp_path):
+        conn, c = self._library()
+        p = tmp_path / "q.jsonl"
+        p.write_text(
+            "// generated 2026-08-02\n\n"
+            + json.dumps({"text": "q", "qtype": "q_vague",
+                          "target_url": c.pages[0].url}) + "\n\n",
+            encoding="utf-8")
+        assert len(load_query_file(conn, p).queries) == 1
+
+    def test_an_empty_file_is_refused(self, tmp_path):
+        conn, _ = self._library()
+        p = tmp_path / "q.jsonl"
+        p.write_text("\n\n", encoding="utf-8")
+        with pytest.raises(QueryFileError, match="no queries"):
+            load_query_file(conn, p)
+
+    def test_counts_report_the_library_size_not_zero_pages(self, tmp_path):
+        conn, c = self._library()
+        f = self._write(tmp_path, [
+            {"text": "q", "qtype": "q_vague", "target_url": c.pages[0].url},
+        ])
+        counts = load_query_file(conn, f).counts
+        assert counts["pages"] == 12
+        assert counts["q_vague"] == 1
+
+    async def test_no_build_without_a_query_file_is_refused(self, tmp_path):
+        with pytest.raises(ValueError, match="--queries"):
+            await run_eval(build=False, db=tmp_path / "x.db")
+
+    async def test_an_existing_library_can_be_measured_from_a_file(self, tmp_path):
+        """The end-to-end shape of the real-corpus run, on a mock library."""
+        st = get_settings(use_mock_provider=True, data_dir=str(tmp_path))
+        db = tmp_path / "lib.db"
+        conn = open_db(db)
+        c = generate_corpus(size=24, seed=6)
+        load_corpus(conn, c, settings=st)
+        from facetmark.providers import get_provider
+        from facetmark.service import index_all
+        prov = get_provider(st)
+        await index_all(conn, provider=prov, settings=st, fetch=False)
+        await prov.aclose()
+        conn.commit()
+        conn.close()
+
+        f = self._write(tmp_path, [
+            {"text": q.text, "qtype": q.qtype, "target_url": c.pages[q.target].url}
+            for q in c.queries[:12]
+        ])
+        rep = await run_eval(db=db, build=False, queries_path=f, bootstrap=50)
+        assert rep["corpus"]["pages"] == 24
+        assert rep["rungs"][0]["overall"]["n"] == 12
+        assert rep["queries_from"] == str(f)
+
+    async def test_the_report_carries_the_per_query_judgements(self, tmp_path):
+        """Aggregates alone cannot be re-cut by a slice the author missed.
+
+        The episodic reading in particular has to be split by how the time
+        phrase was written, which is a label the query file supplies in
+        ``note`` and no summary column knows about.
+        """
+        st = get_settings(use_mock_provider=True, data_dir=str(tmp_path))
+        db = tmp_path / "lib.db"
+        conn = open_db(db)
+        c = generate_corpus(size=24, seed=6)
+        load_corpus(conn, c, settings=st)
+        from facetmark.providers import get_provider
+        from facetmark.service import index_all
+        prov = get_provider(st)
+        await index_all(conn, provider=prov, settings=st, fetch=False)
+        await prov.aclose()
+        conn.commit()
+        conn.close()
+
+        f = self._write(tmp_path, [
+            {"text": q.text, "qtype": q.qtype, "target_url": c.pages[q.target].url,
+             "note": "subtype-x"}
+            for q in c.queries[:8]
+        ])
+        rep = await run_eval(db=db, build=False, queries_path=f, bootstrap=20,
+                             ablation=True)
+
+        assert [q["note"] for q in rep["queries"]] == ["subtype-x"] * 8
+        assert set(rep["outcomes"]) == set(RUNGS)
+        for key in RUNGS:
+            outs = rep["outcomes"][key]
+            # One judgement per query, in query order, so a slice of the query
+            # list indexes the same rows of every rung.
+            assert len(outs) == len(rep["queries"])
+            summary = next(r for r in rep["rungs"] if r["config"] == key)["overall"]
+            hits = sum(1 for o in outs if 0 < o["rank"] <= 5)
+            assert round(hits / len(outs), 4) == summary["recall@5"]

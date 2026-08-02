@@ -15,6 +15,7 @@ shows up immediately - but they are not a claim about retrieval quality.
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import math
 import random
@@ -30,7 +31,7 @@ from ..db import open_db
 from ..providers import get_provider
 from ..search.pipeline import CONFIGS, FULL, search
 from ..service import index_all
-from .corpus import Corpus, EvalQuery, generate_corpus, load_corpus
+from .corpus import Corpus, EvalQuery, generate_corpus, load_corpus, load_query_file
 
 #: Rungs in the order the report argues them, each adding one mechanism.
 RUNGS = ("A", "B", "C", "D", "E")
@@ -53,6 +54,23 @@ class Outcome:
 
     qtype: str
     rank: int  #: 1-based rank of the target, 0 when it never appeared
+    #: Wall time of the one search call, milliseconds. Only interpretable as
+    #: user-facing latency when the rung ran at concurrency 1; a concurrent
+    #: run reports queueing, not response time, which is why the report
+    #: records the concurrency next to the percentiles.
+    ms: float = 0.0
+    #: The target appeared in the one-hop expansion group. Expansion is
+    #: rendered under its own heading and is deliberately not interleaved with
+    #: ``hits``, so it cannot count towards Recall@k -- but rung D's graph
+    #: mechanism can *only* surface a target there, never in the main list.
+    #: Without this flag the ladder credits D with nothing for the one thing
+    #: graph expansion does, and the D-C reading is silently wrong about which
+    #: mechanism it measured.
+    expanded: bool = False
+
+    @property
+    def found_with_expansion(self) -> int:
+        return 1 if (self.hit5 or self.expanded) else 0
 
     @property
     def hit1(self) -> int:
@@ -71,16 +89,31 @@ class Outcome:
         return 1.0 / self.rank if 0 < self.rank <= 10 else 0.0
 
 
+def percentile(values: list[float], q: float) -> float:
+    """Nearest-rank percentile. No interpolation: with a few hundred samples
+    the interpolated value is a fiction the data does not support."""
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    idx = max(0, min(len(ordered) - 1, math.ceil(q * len(ordered)) - 1))
+    return ordered[idx]
+
+
 def summarise(outcomes: list[Outcome]) -> dict[str, float]:
     n = len(outcomes)
     if not n:
-        return {"n": 0, "recall@1": 0.0, "recall@5": 0.0, "recall@10": 0.0, "mrr@10": 0.0}
+        return {"n": 0, "recall@1": 0.0, "recall@5": 0.0, "recall@10": 0.0, "mrr@10": 0.0,
+                "recall@5+exp": 0.0, "p50_ms": 0.0, "p95_ms": 0.0}
+    lat = [o.ms for o in outcomes]
     return {
         "n": n,
         "recall@1": round(sum(o.hit1 for o in outcomes) / n, 4),
         "recall@5": round(sum(o.hit5 for o in outcomes) / n, 4),
         "recall@10": round(sum(o.hit10 for o in outcomes) / n, 4),
         "mrr@10": round(sum(o.rr for o in outcomes) / n, 4),
+        "recall@5+exp": round(sum(o.found_with_expansion for o in outcomes) / n, 4),
+        "p50_ms": round(percentile(lat, 0.50), 1),
+        "p95_ms": round(percentile(lat, 0.95), 1),
     }
 
 
@@ -172,21 +205,50 @@ async def build_bench(
 
 
 async def run_rung(
-    bench: Bench, config_key: str, queries: list[EvalQuery]
+    bench: Bench, config_key: str, queries: list[EvalQuery], *, concurrency: int = 1
 ) -> tuple[list[Outcome], str]:
+    """Answer every query under one rung.
+
+    ``concurrency`` exists because stage E calls the chat model once per query,
+    and a few hundred queries against a local CPU endpoint is hours of wall
+    time spent waiting on a socket. Results are written back by index, so the
+    outcome list is in query order regardless of completion order and the
+    pairing the bootstrap depends on survives.
+    """
     cfg = FULL if config_key == "full" else CONFIGS[config_key]
     prov = get_provider(bench.settings)
-    outcomes: list[Outcome] = []
+    outcomes: list[Outcome | None] = [None] * len(queries)
     reranker = ""
-    for q in queries:
-        resp = await search(bench.conn, q.text, limit=10, config=cfg,
-                            provider=prov, settings=bench.settings)
+    gate = asyncio.Semaphore(max(1, concurrency))
+
+    async def one(i: int, q: EvalQuery) -> None:
+        nonlocal reranker
+        async with gate:
+            t0 = time.perf_counter()
+            resp = await search(bench.conn, q.text, limit=10, config=cfg,
+                                provider=prov, settings=bench.settings)
+            ms = (time.perf_counter() - t0) * 1000.0
         reranker = resp.reranker or reranker
         ids = resp.ids
         rank = ids.index(q.target_id) + 1 if q.target_id in ids else 0
-        outcomes.append(Outcome(qtype=q.qtype, rank=rank))
+        expanded = any(h.bookmark_id == q.target_id for h in resp.expanded)
+        outcomes[i] = Outcome(qtype=q.qtype, rank=rank, ms=ms, expanded=expanded)
+
+    if concurrency <= 1:
+        for i, q in enumerate(queries):
+            await one(i, q)
+    else:
+        await asyncio.gather(*(one(i, q) for i, q in enumerate(queries)))
     await prov.aclose()
-    return outcomes, reranker
+    done = [o for o in outcomes if o is not None]
+    if len(done) != len(queries):
+        # Unreachable while ``one`` propagates its exceptions, and that is the
+        # point: a silently shorter list would shrink the recall denominator
+        # instead of failing, which is the failure mode an eval must not have.
+        raise RuntimeError(f"rung {config_key}: {len(queries) - len(done)} queries produced "
+                           "no outcome; the report would be computed on a different "
+                           "denominator than it claims")
+    return done, reranker
 
 
 # ---------------------------------------------------------------------------
@@ -203,27 +265,56 @@ async def run_eval(
     bootstrap: int = 1000,
     console=None,
     seed: int = 7,
+    queries_path: Path | None = None,
+    concurrency: int = 1,
 ) -> dict:
     """Run the bench and return a JSON-serialisable report."""
     if not build and db is None:
         raise ValueError("--no-build needs --db pointing at an indexed library")
+    if not build and queries_path is None:
+        raise ValueError(
+            "--no-build needs --queries: an existing library carries no relevance "
+            "judgements, so the (query, correct answer) pairs have to come from a file"
+        )
 
     t0 = time.perf_counter()
-    bench = await build_bench(size=size, db=db, seed=seed) if build else _attach(db)
+    bench = (await build_bench(size=size, db=db, seed=seed) if build
+             else _attach(db, queries_path))
     keys = list(RUNGS) if ablation else ["full"]
     queries = bench.corpus.queries
+    if not queries:
+        raise ValueError("no evaluation queries: nothing to measure")
 
     report: dict[str, Any] = {
         "provider": "mock" if bench.settings.use_mock_provider else bench.settings.chat_model,
         "embed_model": "mock-hash" if bench.settings.use_mock_provider
         else bench.settings.embed_model,
         "reranker": "",
+        "queries_from": str(queries_path) if queries_path else "generated",
         "corpus": bench.corpus.counts,
         "index": bench.index,
+        "concurrency": concurrency,
         "rungs": [],
         "deltas": [],
         "pass_margin_pp": PASS_MARGIN_PP,
+        # The raw judgements behind every aggregate below. A report that only
+        # ships means cannot be re-cut by any slice its author did not think
+        # of -- and the slice that matters most here (episodic queries split by
+        # how the time phrase was written) is exactly such a slice. ``note``
+        # carries whatever label the query file attached.
+        "queries": [
+            {"i": i, "qtype": q.qtype, "target_id": q.target_id, "note": q.note,
+             "text": q.text}
+            for i, q in enumerate(queries)
+        ],
+        "outcomes": {},
     }
+    if concurrency > 1:
+        report["latency_caveat"] = (
+            f"queries ran {concurrency}-at-a-time: p50_ms/p95_ms include queueing "
+            "against a shared endpoint and are not user-facing latency. Re-run with "
+            "concurrency 1 on a subsample for that number."
+        )
     if bench.settings.use_mock_provider:
         report["caveat"] = (
             "mock provider: embeddings are feature hashes over lexical tokens, so these "
@@ -233,7 +324,7 @@ async def run_eval(
     by_rung: dict[str, list[Outcome]] = {}
     try:
         for key in keys:
-            outs, reranker = await run_rung(bench, key, queries)
+            outs, reranker = await run_rung(bench, key, queries, concurrency=concurrency)
             by_rung[key] = outs
             report["reranker"] = reranker or report["reranker"]
             row = {
@@ -243,6 +334,10 @@ async def run_eval(
                             for t in QUERY_TYPES},
             }
             report["rungs"].append(row)
+            report["outcomes"][key] = [
+                {"rank": o.rank, "expanded": o.expanded, "ms": round(o.ms, 1)}
+                for o in outs
+            ]
             if console:
                 _print_rung(console, row)
 
@@ -320,10 +415,17 @@ async def run_demo(
     return payload
 
 
-def _attach(db: Path | None) -> Bench:  # pragma: no cover - exercised by CLI only
-    st = get_settings(use_mock_provider=True)
+def _attach(db: Path, queries: Path | None, settings: Settings | None = None) -> Bench:
+    """Evaluate a library that already exists, with the settings it was built under.
+
+    The old behaviour here forced the mock provider, which made ``--no-build``
+    useless for the only thing it is for: measuring a real index built with real
+    models. Whatever provider the environment names is the provider that runs,
+    and the report says which one it was.
+    """
+    st = settings or get_settings()
     conn = open_db(db)
-    corpus = Corpus()
+    corpus = load_query_file(conn, queries) if queries else Corpus()
     return Bench(corpus=corpus, conn=conn, settings=st, db_path=db)
 
 
@@ -337,7 +439,9 @@ def _print_rung(console, row: dict) -> None:
     console.print(
         f"[bold]{row['config']}[/bold]  n={o['n']:<4} "
         f"R@1 {o['recall@1']:.3f}  R@5 {o['recall@5']:.3f}  "
-        f"R@10 {o['recall@10']:.3f}  MRR {o['mrr@10']:.3f}"
+        f"R@5+exp {o['recall@5+exp']:.3f}  "
+        f"R@10 {o['recall@10']:.3f}  MRR {o['mrr@10']:.3f}  "
+        f"p50 {o.get('p50_ms', 0):.0f}ms  p95 {o.get('p95_ms', 0):.0f}ms"
     )
     for t in QUERY_TYPES:
         s = row["by_type"][t]
