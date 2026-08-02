@@ -24,6 +24,7 @@ extension never fetches anything the server did not ask for.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import sqlite3
 import time
 from contextlib import asynccontextmanager
@@ -34,9 +35,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from . import __version__
+from . import __version__, service
 from . import health as healthmod
-from . import service
 from .config import Settings, get_settings
 from .db import open_db
 from .fetch import store as fetchstore
@@ -81,10 +81,8 @@ class AppState:
         return self._provider
 
     def close(self) -> None:
-        try:
+        with contextlib.suppress(Exception):  # pragma: no cover
             self.conn.close()
-        except Exception:  # pragma: no cover
-            pass
 
 
 def get_state(request: Request) -> AppState:

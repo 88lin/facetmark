@@ -18,15 +18,13 @@ import asyncio
 import json
 import sys
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
-from . import __version__
+from . import __version__, service
 from . import health as healthmod
-from . import service
 from .config import Settings, get_settings
 from .db import open_db
 
@@ -45,7 +43,7 @@ err = Console(stderr=True)
 # ---------------------------------------------------------------------------
 
 
-def _settings(db: Optional[Path] = None, mock: bool = False) -> Settings:
+def _settings(db: Path | None = None, mock: bool = False) -> Settings:
     st = get_settings()
     over: dict = {}
     if db is not None:
@@ -95,7 +93,7 @@ def version() -> None:
 def import_cmd(
     path: Path = typer.Argument(..., exists=True, readable=True,
                                 help="Netscape bookmarks.html or Chrome Bookmarks JSON."),
-    db: Optional[Path] = typer.Option(None, "--db", help="Database file or data directory."),
+    db: Path | None = typer.Option(None, "--db", help="Database file or data directory."),
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Import a browser bookmark export. Never writes back to the browser."""
@@ -119,10 +117,10 @@ def import_cmd(
 
 @app.command()
 def index(
-    db: Optional[Path] = typer.Option(None, "--db"),
+    db: Path | None = typer.Option(None, "--db"),
     no_fetch: bool = typer.Option(False, "--no-fetch",
                                   help="Skip crawling. Index titles only."),
-    limit: Optional[int] = typer.Option(None, "--limit", help="Cap bookmarks per stage."),
+    limit: int | None = typer.Option(None, "--limit", help="Cap bookmarks per stage."),
     force: bool = typer.Option(False, "--force", help="Redo work already done."),
     mock: bool = typer.Option(False, "--mock", help="Offline deterministic provider."),
     json_out: bool = typer.Option(False, "--json"),
@@ -156,7 +154,7 @@ def index(
 
 @app.command()
 def reindex(
-    db: Optional[Path] = typer.Option(None, "--db"),
+    db: Path | None = typer.Option(None, "--db"),
     mock: bool = typer.Option(False, "--mock"),
 ) -> None:
     """Rebuild everything from scratch, keeping the bookmarks themselves."""
@@ -166,7 +164,7 @@ def reindex(
 @app.command()
 def search(
     query: str = typer.Argument(...),
-    db: Optional[Path] = typer.Option(None, "--db"),
+    db: Path | None = typer.Option(None, "--db"),
     limit: int = typer.Option(10, "-n", "--limit"),
     quick: bool = typer.Option(False, "--quick", help="Lexical only, no model call."),
     config: str = typer.Option("full", "--config", help="full or an ablation rung A-E."),
@@ -223,7 +221,7 @@ def search(
 @app.command()
 def show(
     bookmark_id: int = typer.Argument(...),
-    db: Optional[Path] = typer.Option(None, "--db"),
+    db: Path | None = typer.Option(None, "--db"),
     body: bool = typer.Option(False, "--body"),
 ) -> None:
     """Print one bookmark record as JSON."""
@@ -241,7 +239,7 @@ def show(
 
 @app.command()
 def sessions(
-    db: Optional[Path] = typer.Option(None, "--db"),
+    db: Path | None = typer.Option(None, "--db"),
     limit: int = typer.Option(20, "-n", "--limit"),
 ) -> None:
     """List reconstructed saving episodes."""
@@ -266,7 +264,7 @@ def sessions(
 
 @app.command()
 def health(
-    db: Optional[Path] = typer.Option(None, "--db"),
+    db: Path | None = typer.Option(None, "--db"),
     check: bool = typer.Option(False, "--check", help="Actually probe the network."),
     limit: int = typer.Option(50, "--limit"),
     no_external: bool = typer.Option(False, "--no-external",
@@ -307,7 +305,7 @@ def health(
 
 @app.command()
 def stats(
-    db: Optional[Path] = typer.Option(None, "--db"),
+    db: Path | None = typer.Option(None, "--db"),
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Index size and coverage."""
@@ -327,7 +325,7 @@ def stats(
 
 @app.command()
 def token(
-    db: Optional[Path] = typer.Option(None, "--db"),
+    db: Path | None = typer.Option(None, "--db"),
     rotate: bool = typer.Option(False, "--rotate", help="Invalidate the old token."),
 ) -> None:
     """Print the pairing token the browser extension needs."""
@@ -339,9 +337,9 @@ def token(
 
 @app.command()
 def serve(
-    db: Optional[Path] = typer.Option(None, "--db"),
-    host: Optional[str] = typer.Option(None, "--host"),
-    port: Optional[int] = typer.Option(None, "--port"),
+    db: Path | None = typer.Option(None, "--db"),
+    host: str | None = typer.Option(None, "--host"),
+    port: int | None = typer.Option(None, "--port"),
     mock: bool = typer.Option(False, "--mock"),
 ) -> None:
     """Run the local HTTP service the browser extension talks to."""
@@ -363,7 +361,7 @@ def serve(
 
 @app.command()
 def mcp(
-    db: Optional[Path] = typer.Option(None, "--db"),
+    db: Path | None = typer.Option(None, "--db"),
     mock: bool = typer.Option(False, "--mock"),
 ) -> None:
     """Run the MCP server on stdio, for Claude Desktop and other MCP clients."""
@@ -374,7 +372,7 @@ def mcp(
 
 @app.command()
 def demo(
-    db: Optional[Path] = typer.Option(None, "--db", help="Where to build the demo index."),
+    db: Path | None = typer.Option(None, "--db", help="Where to build the demo index."),
     size: int = typer.Option(60, "--size", help="Synthetic pages to generate."),
     keep: bool = typer.Option(False, "--keep", help="Leave the demo database in place."),
     json_out: bool = typer.Option(False, "--json"),
@@ -395,13 +393,13 @@ def demo(
 
 @app.command("eval")
 def eval_cmd(
-    db: Optional[Path] = typer.Option(None, "--db"),
+    db: Path | None = typer.Option(None, "--db"),
     ablation: bool = typer.Option(False, "--ablation", help="Run rungs A through E."),
     size: int = typer.Option(120, "--size", help="Synthetic corpus size when building."),
     build: bool = typer.Option(True, "--build/--no-build",
                                help="Generate the corpus, or evaluate an existing db."),
     bootstrap: int = typer.Option(1000, "--bootstrap", help="Resamples for the CI."),
-    out: Optional[Path] = typer.Option(None, "--out", help="Write the full report as JSON."),
+    out: Path | None = typer.Option(None, "--out", help="Write the full report as JSON."),
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Run the retrieval evaluation, optionally as an A-E ablation.

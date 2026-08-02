@@ -29,9 +29,8 @@ from typing import Annotated, Any
 
 from pydantic import Field
 
-from . import __version__
+from . import __version__, service
 from . import health as healthmod
-from . import service
 from .config import Settings, get_settings
 from .db import open_db
 from .edges import WEIGHTS as EDGE_WEIGHTS

@@ -20,6 +20,7 @@ Two contracts are enforced in this module and nowhere else:
 
 from __future__ import annotations
 
+import contextlib
 import json
 import re
 import secrets
@@ -72,10 +73,9 @@ def pairing_token(settings: Settings | None = None, *, create: bool = True) -> s
     st.ensure_dirs()
     tok = secrets.token_urlsafe(TOKEN_BYTES)
     path.write_text(tok, encoding="utf-8")
-    try:  # best effort; Windows ignores POSIX modes
+    # best effort; Windows ignores POSIX modes
+    with contextlib.suppress(OSError):  # pragma: no cover - platform dependent
         path.chmod(0o600)
-    except OSError:  # pragma: no cover - platform dependent
-        pass
     return tok
 
 
@@ -230,10 +230,10 @@ def session_record(conn: sqlite3.Connection, session_id: int) -> dict | None:
         return None
     members = conn.execute(
         "SELECT b.id, b.url, b.title, b.folder, b.domain, b.date_added, "
-        "       substr(COALESCE(e.summary,''),1,%d) AS summary "
+        f"       substr(COALESCE(e.summary,''),1,{SUMMARY_CHARS}) AS summary "
         "FROM bookmark_session bs JOIN bookmark b ON b.id = bs.bookmark_id "
         "LEFT JOIN enrichment e ON e.bookmark_id = b.id "
-        "WHERE bs.session_id = ? ORDER BY b.date_added" % SUMMARY_CHARS,
+        "WHERE bs.session_id = ? ORDER BY b.date_added",
         (session_id,),
     ).fetchall()
     return {
@@ -273,9 +273,9 @@ def related_records(
         r["id"]: r
         for r in conn.execute(
             "SELECT b.id, b.url, b.title, b.folder, b.domain, b.date_added, "
-            "       substr(COALESCE(e.summary,''),1,%d) AS summary "
+            f"       substr(COALESCE(e.summary,''),1,{SUMMARY_CHARS}) AS summary "
             "FROM bookmark b LEFT JOIN enrichment e ON e.bookmark_id = b.id "
-            "WHERE b.id IN (%s)" % (SUMMARY_CHARS, ",".join("?" * len(ids))),
+            f"WHERE b.id IN ({','.join('?' * len(ids))})",
             ids,
         ).fetchall()
     }

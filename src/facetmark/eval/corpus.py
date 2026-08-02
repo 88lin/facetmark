@@ -299,7 +299,7 @@ def generate_corpus(
         folder = f"{dom.name}/{project}" if not dom.cjk else f"{dom.name}/{project}"
         burst = size // n_sessions + (1 if s < size % n_sessions else 0)
         cursor += rng.randint(3, 21) * DAY + rng.randint(0, 6 * 3600)
-        for j in range(burst):
+        for _ in range(burst):
             if page_idx >= size:
                 break
             base = dom.signatures[page_idx % len(dom.signatures)]

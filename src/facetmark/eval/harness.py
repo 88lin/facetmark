@@ -15,6 +15,7 @@ shows up immediately - but they are not a claim about retrieval quality.
 
 from __future__ import annotations
 
+import contextlib
 import math
 import random
 import shutil
@@ -140,10 +141,8 @@ class Bench:
     tmp_dir: str = ""
 
     def close(self, *, keep: bool = False) -> None:
-        try:
+        with contextlib.suppress(Exception):  # pragma: no cover - defensive
             self.conn.close()
-        except Exception:  # pragma: no cover - defensive
-            pass
         if self.tmp_dir and not keep:
             shutil.rmtree(self.tmp_dir, ignore_errors=True)
 
