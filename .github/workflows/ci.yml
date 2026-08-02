@@ -1,0 +1,49 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  python:
+    # Windows is in the matrix because it is the primary target, and because the
+    # paths that break there (LOCALAPPDATA data dir, chmod on the token file,
+    # SQLite file locking) are exactly the ones a Linux-only CI would miss.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: install
+        run: uv pip install --system -e ".[dev]"
+      - name: lint
+        run: ruff check src tests
+      - name: test
+        run: pytest -q --cov=facetmark --cov-report=term-missing
+
+  extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci || npm install
+        working-directory: extension
+      - run: npx tsc --noEmit
+        working-directory: extension
+      - run: npm run build
+        working-directory: extension
+      - uses: actions/upload-artifact@v4
+        with:
+          name: facetmark-extension
+          path: extension/dist

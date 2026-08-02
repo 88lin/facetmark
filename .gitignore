@@ -1,0 +1,30 @@
+# python
+__pycache__/
+*.py[cod]
+.venv/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# node
+node_modules/
+extension/dist/
+extension/*.zip
+
+# local data - never commit a bookmark library or an index
+data/
+*.db
+*.db-wal
+*.db-shm
+*.html
+!extension/src/*.html
+pairing-token.txt
+
+# editors / os
+.vscode/
+.idea/
+.DS_Store

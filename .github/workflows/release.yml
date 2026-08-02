@@ -1,0 +1,50 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install
+        working-directory: extension
+      - run: npm run build
+        working-directory: extension
+      - name: zip
+        run: cd extension/dist && zip -qr ../../facetmark-extension.zip .
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: facetmark-extension.zip
+          generate_release_notes: true
+
+  pypi:
+    runs-on: ubuntu-latest
+    # Publishing needs a PYPI_API_TOKEN repository secret. Without it this job
+    # is skipped rather than failing the release, so the extension artifact
+    # still ships.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build twine
+      - run: python -m build
+      - name: publish
+        if: ${{ secrets.PYPI_API_TOKEN != '' }}
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload dist/*
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
