@@ -583,6 +583,7 @@ def library_stats(conn: sqlite3.Connection) -> dict:
         "edges": one("SELECT COUNT(*) FROM edge"),
         "domains": one("SELECT COUNT(DISTINCT domain) FROM bookmark WHERE domain <> ''"),
         "queue": fetchstore.queue_stats(conn),
+        "queue_waiting": fetchstore.queue_waiting(conn),
         "health": healthmod.summary(conn),
     }
     stats["vectors"] = dbmod.count_vectors(conn) if dbmod.vec_tables_exist(conn) else {}

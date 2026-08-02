@@ -27,6 +27,19 @@
   人可按 manifest 重抓复现。
 - `docs/eval-w1.md`：W1 评测报告（装置、语料、语料与真实库的五处偏离、查询集构造、
   泄漏探针、闸门判定）。
+- **schema 迁移机制**：`migrations.py` 里一条有序 `MIGRATIONS` 列表，第 N 项把库从
+  N−1 迁到 N；每项独立事务、最后一句写 `meta.schema_version`，中断只会停在最后一个
+  完整应用的版本上。`open_db()` 自动应用（可 `migrate=False` 关掉改为报错），首次迁移
+  前用 `VACUUM INTO` 留一份 `*.bak-v<旧版本>` 快照。库版本高于代码时拒绝打开而不是
+  猜——降级数据没法保证不丢行。新增 `facetmark migrate [--check] [--no-backup]`。
+  `SCHEMA_VERSION` 由迁移列表推导而非另行声明，且有一条测试逐列比对「全新库」与
+  「迁移后的库」，这两处漂移正是该机制要防的那类缺陷。
+- 浏览器队列退避重试：`fetch_queue.next_attempt_at`（本仓库第一条真实迁移，v1→v2）。
+  失败后按 5 分钟 → 30 分钟 → 2 小时递增等待，期间不再派发。新增
+  `queue_waiting()` 并在 `/queue/next`、`/queue/stats`、`facetmark stats` 中单列，
+  免得「pending 40 但租不到任何东西」看起来像 bug。
+- enrich 在回复被上下文窗口截断时用半长正文重试一次，次数记为
+  `EnrichReport.rescued_by_shorter_body`。
 
 ### 修复
 
@@ -39,6 +52,11 @@
   此前都解析不出。
 - `run_rung()` 原先用 `[o for o in outcomes if o is not None]` 静默过滤缺失结果，
   会缩小召回率的**分母**，把一次失败变成一个好看的数字。改为硬失败。
+- **静默的 schema 漂移。** `SCHEMA_SQL` 全是 `CREATE TABLE IF NOT EXISTS`，
+  `init_db()` 只在没有版本号时写一次、之后从不校验；旧版本写的库能干净地打开，直到
+  第一条用到新列的查询才炸，而那时报错点离原因已经很远。现在开库即校验。
+- `providers._post()` 重试耗尽时只打印 `failed after 3 attempts:`——httpx 的多个超时
+  异常 `str()` 为空。改为带上异常类名。
 
 ### 变更
 

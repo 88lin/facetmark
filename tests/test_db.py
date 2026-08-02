@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import json
 import math
 import sqlite3
 
 import pytest
 
 from facetmark.db import (
+    SCHEMA_VERSION,
     SchemaMismatch,
+    SchemaTooNew,
+    apply_pending,
+    connect,
     count_vectors,
     ensure_vec_tables,
     get_meta,
@@ -17,11 +22,13 @@ from facetmark.db import (
     knn_content,
     knn_intent,
     open_db,
+    schema_status,
     set_meta,
     upsert_content_vector,
     upsert_intent_vector,
     vec_tables_exist,
 )
+from facetmark.migrations import MIGRATIONS, backup_database
 
 DIM = 8
 
@@ -52,13 +59,13 @@ class TestSchema:
             assert t in names, f"missing table {t}"
 
     def test_schema_version_is_recorded(self, conn):
-        assert get_meta(conn, "schema_version") == "1"
+        assert get_meta(conn, "schema_version") == str(SCHEMA_VERSION)
 
     def test_init_is_idempotent(self, tmp_path):
         p = tmp_path / "a.db"
         open_db(p).close()
         c = open_db(p)  # second call must not raise
-        assert get_meta(c, "schema_version") == "1"
+        assert get_meta(c, "schema_version") == str(SCHEMA_VERSION)
         c.close()
 
     def test_foreign_keys_cascade(self, conn):
@@ -184,3 +191,193 @@ class TestJsonHelpers:
         assert jload("") == []
         assert jload("{not json") == []
         assert jload("{not json", default={}) == {}
+
+
+# ---------------------------------------------------------------------------
+# migrations
+# ---------------------------------------------------------------------------
+
+
+def _write_v1(path) -> None:
+    """A database as v1 wrote it: no ``next_attempt_at``, stamped ``1``.
+
+    Built by reversing migration v2 rather than by keeping a paste of the old
+    SCHEMA_SQL around, which would rot the first time anything unrelated
+    changed. What has to be true is only that the column genuinely is absent.
+    """
+    c = open_db(path)
+    c.execute("DROP INDEX IF EXISTS ix_fetch_queue_ready")
+    c.execute("ALTER TABLE fetch_queue DROP COLUMN next_attempt_at")
+    _add_bookmarks(c, 3)
+    c.execute(
+        "INSERT INTO fetch_queue(bookmark_id, reason, state, attempts, queued_at)"
+        " VALUES(1,'wall','pending',1,100)"
+    )
+    set_meta(c, "schema_version", "1")
+    c.close()
+
+
+def _shape(conn) -> dict:
+    """Every table's columns and indexes, as a comparable structure."""
+    tables = [
+        r[0] for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' "
+            "AND name NOT LIKE 'sqlite_%' ORDER BY name"
+        )
+    ]
+    out = {}
+    for t in tables:
+        cols = [(r[1], r[2], r[3], r[4], r[5]) for r in conn.execute(f"PRAGMA table_info({t})")]
+        idx = sorted(
+            r[0] for r in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name=? "
+                "AND name NOT LIKE 'sqlite_%'", (t,)
+            )
+        )
+        out[t] = {"columns": cols, "indexes": idx}
+    return out
+
+
+class TestMigrations:
+    def test_a_new_database_is_born_at_the_current_version(self, tmp_path):
+        c = open_db(tmp_path / "new.db")
+        st = schema_status(c)
+        assert st.found == SCHEMA_VERSION
+        assert st.current and not st.pending
+        c.close()
+
+    def test_an_old_database_reports_what_it_is_missing(self, tmp_path):
+        p = tmp_path / "old.db"
+        _write_v1(p)
+        c = connect(p)
+        st = schema_status(c)
+        assert st.found == 1
+        assert [m.version for m in st.pending] == [2]
+        assert not st.current
+        c.close()
+
+    def test_opening_an_old_database_upgrades_it(self, tmp_path):
+        p = tmp_path / "old.db"
+        _write_v1(p)
+        c = open_db(p)
+        assert get_meta(c, "schema_version") == str(SCHEMA_VERSION)
+        cols = {r[1] for r in c.execute("PRAGMA table_info(fetch_queue)")}
+        assert "next_attempt_at" in cols
+        c.close()
+
+    def test_the_upgrade_keeps_the_rows_it_found(self, tmp_path):
+        p = tmp_path / "old.db"
+        _write_v1(p)
+        c = open_db(p)
+        assert c.execute("SELECT COUNT(*) FROM bookmark").fetchone()[0] == 3
+        row = c.execute("SELECT state, attempts, next_attempt_at FROM fetch_queue").fetchone()
+        assert (row[0], row[1], row[2]) == ("pending", 1, None)
+        c.close()
+
+    def test_a_migrated_database_is_shaped_like_a_fresh_one(self, tmp_path):
+        """The guard against SCHEMA_SQL and the migration list drifting apart."""
+        old = tmp_path / "old.db"
+        _write_v1(old)
+        migrated = open_db(old)
+        fresh = open_db(tmp_path / "fresh.db")
+        assert _shape(migrated) == _shape(fresh)
+        migrated.close()
+        fresh.close()
+
+    def test_the_upgrade_leaves_the_old_file_behind(self, tmp_path):
+        p = tmp_path / "old.db"
+        _write_v1(p)
+        open_db(p).close()
+        saved = tmp_path / "old.db.bak-v1"
+        assert saved.exists()
+        c = connect(saved)
+        assert schema_status(c).found == 1
+        assert c.execute("SELECT COUNT(*) FROM bookmark").fetchone()[0] == 3
+        c.close()
+
+    def test_the_backup_can_be_declined(self, tmp_path):
+        p = tmp_path / "old.db"
+        _write_v1(p)
+        c = connect(p)
+        apply_pending(c, backup=False)
+        c.close()
+        assert not (tmp_path / "old.db.bak-v1").exists()
+
+    def test_a_database_from_the_future_is_refused(self, tmp_path):
+        p = tmp_path / "future.db"
+        c = open_db(p)
+        set_meta(c, "schema_version", str(SCHEMA_VERSION + 5))
+        c.close()
+        with pytest.raises(SchemaTooNew, match="Upgrade facetmark"):
+            open_db(p)
+
+    def test_migrating_can_be_refused_so_a_caller_can_decide(self, tmp_path):
+        p = tmp_path / "old.db"
+        _write_v1(p)
+        with pytest.raises(RuntimeError, match="facetmark migrate"):
+            open_db(p, migrate=False)
+        c = connect(p)
+        assert schema_status(c).found == 1  # untouched
+        c.close()
+
+    def test_applying_twice_is_a_no_op(self, tmp_path):
+        p = tmp_path / "old.db"
+        _write_v1(p)
+        c = open_db(p)
+        done, saved = apply_pending(c)
+        assert done == [] and saved is None
+        c.close()
+
+    def test_every_migration_lands_on_the_version_after_the_last(self):
+        seen = 1
+        for m in MIGRATIONS:
+            assert m.version == seen + 1, f"gap or reorder at v{m.version}"
+            assert m.note, "a migration with no note is unreviewable"
+            seen = m.version
+        assert seen == SCHEMA_VERSION
+
+    def test_an_in_memory_database_has_nothing_to_back_up(self, conn):
+        assert backup_database(conn, suffix="bak") is None
+
+
+class TestMigrateCommand:
+    def _run(self, *args):
+        from typer.testing import CliRunner
+
+        from facetmark.cli import app
+
+        return CliRunner().invoke(app, ["migrate", *args])
+
+    def test_check_reports_pending_and_exits_non_zero(self, tmp_path):
+        p = tmp_path / "old.db"
+        _write_v1(p)
+        r = self._run("--db", str(p), "--check")
+        assert r.exit_code == 1
+        assert "pending" in r.stdout
+        c = connect(p)
+        assert schema_status(c).found == 1  # --check changed nothing
+        c.close()
+
+    def test_check_on_a_current_database_exits_zero(self, tmp_path):
+        p = tmp_path / "new.db"
+        open_db(p).close()
+        r = self._run("--db", str(p), "--check")
+        assert r.exit_code == 0
+        assert "up to date" in r.stdout
+
+    def test_check_does_not_create_a_database(self, tmp_path):
+        p = tmp_path / "nothing-here.db"
+        r = self._run("--db", str(p), "--check")
+        assert r.exit_code == 0
+        assert not p.exists()
+
+    def test_it_upgrades_and_says_what_it_did(self, tmp_path):
+        p = tmp_path / "old.db"
+        _write_v1(p)
+        r = self._run("--db", str(p), "--no-backup", "--json")
+        assert r.exit_code == 0
+        payload = json.loads(r.stdout)
+        assert payload["from"] == 1
+        assert payload["to"] == SCHEMA_VERSION
+        assert [a["version"] for a in payload["applied"]] == [2]
+        assert payload["backup"] is None

@@ -36,6 +36,21 @@ LEASE_TTL_S = 300
 #: cycling forever. It stays in the table as evidence.
 MAX_BROWSER_ATTEMPTS = 3
 
+#: How long a failed item waits before it is offered again, by attempt number.
+#: The queue is polled by an extension that will happily ask every few seconds,
+#: so without this an item that failed because the host was rate-limiting burns
+#: all three of its attempts inside a minute and gets parked for a reason that
+#: would have gone away on its own. Growing 5m -> 30m -> 2h spans a browsing
+#: session, which is the timescale the transient failures actually live on.
+BROWSER_RETRY_BACKOFF_S: tuple[int, ...] = (300, 1_800, 7_200)
+
+
+def retry_delay_s(attempts: int) -> int:
+    """Seconds to wait after ``attempts`` failed tries (1-based)."""
+    if attempts < 1:
+        return BROWSER_RETRY_BACKOFF_S[0]
+    return BROWSER_RETRY_BACKOFF_S[min(attempts, len(BROWSER_RETRY_BACKOFF_S)) - 1]
+
 
 # ---------------------------------------------------------------------------
 # content rows
@@ -175,7 +190,8 @@ def enqueue_for_browser(conn: sqlite3.Connection, bookmark_id: int, *, reason: s
         INSERT INTO fetch_queue(bookmark_id, reason, state, attempts, queued_at)
         VALUES(?,?, 'pending', 0, ?)
         ON CONFLICT(bookmark_id) DO UPDATE SET
-            reason=excluded.reason, state='pending', leased_at=NULL
+            reason=excluded.reason, state='pending', leased_at=NULL,
+            next_attempt_at=NULL
         """,
         (bookmark_id, reason, now()),
     )
@@ -188,9 +204,12 @@ def lease_browser_batch(
     """Hand the extension up to ``n`` URLs and mark them leased.
 
     Expired leases are reclaimed first, so a tab that died mid-fetch does not
-    strand its bookmark.
+    strand its bookmark. A reclaimed lease is offered again immediately: a tab
+    that never reported back says nothing about whether the host is healthy,
+    which is the only thing the backoff deadline is about.
     """
-    cutoff = now() - ttl_s
+    ts = now()
+    cutoff = ts - ttl_s
     conn.execute(
         "UPDATE fetch_queue SET state='pending', leased_at=NULL "
         "WHERE state='leased' AND (leased_at IS NULL OR leased_at < ?)",
@@ -201,9 +220,10 @@ def lease_browser_batch(
         SELECT q.bookmark_id, q.reason, q.attempts, b.url, b.title
         FROM fetch_queue q JOIN bookmark b ON b.id = q.bookmark_id
         WHERE q.state='pending' AND b.indexable=1 AND b.privacy_skipped=0
+          AND (q.next_attempt_at IS NULL OR q.next_attempt_at <= ?)
         ORDER BY q.queued_at LIMIT ?
         """,
-        (n,),
+        (ts, n),
     ).fetchall()
     ids = [r["bookmark_id"] for r in rows]
     if ids:
@@ -240,9 +260,11 @@ def complete_browser_item(
     ).fetchone()
     attempts = row["attempts"] if row else MAX_BROWSER_ATTEMPTS
     state = "failed" if attempts >= MAX_BROWSER_ATTEMPTS else "pending"
+    retry_at = None if state == "failed" else now() + retry_delay_s(attempts)
     conn.execute(
-        "UPDATE fetch_queue SET state=?, leased_at=NULL, last_error=? WHERE bookmark_id=?",
-        (state, error or "empty body from extension", bookmark_id),
+        "UPDATE fetch_queue SET state=?, leased_at=NULL, last_error=?, next_attempt_at=? "
+        "WHERE bookmark_id=?",
+        (state, error or "empty body from extension", retry_at, bookmark_id),
     )
     record_failure(conn, bookmark_id, verdict=Verdict.EMPTY, final_url=final_url,
                    error=error or "empty body from extension", channel="b")
@@ -251,7 +273,8 @@ def complete_browser_item(
 
 def clear_queue_item(conn: sqlite3.Connection, bookmark_id: int, *, state: str = "done") -> None:
     conn.execute(
-        "UPDATE fetch_queue SET state=?, leased_at=NULL WHERE bookmark_id=?",
+        "UPDATE fetch_queue SET state=?, leased_at=NULL, next_attempt_at=NULL "
+        "WHERE bookmark_id=?",
         (state, bookmark_id),
     )
 
@@ -259,6 +282,21 @@ def clear_queue_item(conn: sqlite3.Connection, bookmark_id: int, *, state: str =
 def queue_stats(conn: sqlite3.Connection) -> dict[str, int]:
     rows = conn.execute("SELECT state, COUNT(*) n FROM fetch_queue GROUP BY state").fetchall()
     return {r["state"]: r["n"] for r in rows}
+
+
+def queue_waiting(conn: sqlite3.Connection, *, at: int | None = None) -> int:
+    """How many pending items are serving a backoff rather than ready to lease.
+
+    Reported separately from :func:`queue_stats` so ``pending: 40`` and an empty
+    lease response stop looking like a bug.
+    """
+    ts = now() if at is None else at
+    row = conn.execute(
+        "SELECT COUNT(*) FROM fetch_queue "
+        "WHERE state='pending' AND next_attempt_at IS NOT NULL AND next_attempt_at > ?",
+        (ts,),
+    ).fetchone()
+    return int(row[0])
 
 
 # ---------------------------------------------------------------------------

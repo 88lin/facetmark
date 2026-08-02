@@ -14,7 +14,7 @@ import httpx
 import pytest
 import respx
 
-from facetmark.db import open_db
+from facetmark.db import now, open_db
 from facetmark.fetch import (
     DEFER_TO_BROWSER,
     Extraction,
@@ -32,12 +32,18 @@ from facetmark.fetch import (
     meta_description,
     pending_targets,
     queue_stats,
+    queue_waiting,
     save_result,
     store_body,
 )
 from facetmark.fetch.client import SMALL_DOC_BYTES, _classify_exception, _verdict_for_status
 from facetmark.fetch.extract import MIN_USEFUL_CHARS
-from facetmark.fetch.store import LEASE_TTL_S, MAX_BROWSER_ATTEMPTS
+from facetmark.fetch.store import (
+    BROWSER_RETRY_BACKOFF_S,
+    LEASE_TTL_S,
+    MAX_BROWSER_ATTEMPTS,
+    retry_delay_s,
+)
 from facetmark.importers import import_bookmarks
 
 
@@ -641,8 +647,9 @@ class TestBrowserQueue:
         bid = _first_id(db)
         enqueue_for_browser(db, bid, reason="wall")
         for _ in range(MAX_BROWSER_ATTEMPTS):
-            lease_browser_batch(db, 1)
+            assert lease_browser_batch(db, 1), "the backoff should have expired by now"
             complete_browser_item(db, bid, body="", error="tab closed")
+            _end_the_wait(db, bid)
         assert queue_stats(db) == {"failed": 1}
         assert lease_browser_batch(db, 5) == []
         # And it stays parked rather than being silently re-queued.
@@ -707,3 +714,105 @@ class TestExtractionDataclass:
         assert Extraction("x" * MIN_USEFUL_CHARS, "t", "trafilatura").ok
         assert not Extraction("x" * (MIN_USEFUL_CHARS - 1), "t", "trafilatura").ok
         assert not Extraction("x" * MIN_USEFUL_CHARS, "t", "trafilatura", True).ok
+
+
+def _end_the_wait(db, bookmark_id: int) -> None:
+    """Pretend the backoff deadline has passed, without sleeping through it."""
+    db.execute("UPDATE fetch_queue SET next_attempt_at=NULL WHERE bookmark_id=?", (bookmark_id,))
+
+
+def _retry_at(db, bookmark_id: int) -> int | None:
+    row = db.execute(
+        "SELECT next_attempt_at FROM fetch_queue WHERE bookmark_id=?", (bookmark_id,)
+    ).fetchone()
+    return row["next_attempt_at"]
+
+
+class TestBrowserQueueBackoff:
+    """A failed item waits before it is offered again.
+
+    The extension polls; without a deadline an item that failed because the host
+    was rate-limiting would burn all three of its attempts inside a minute and
+    be parked for a reason that would have cleared on its own.
+    """
+
+    def _queued(self, db) -> int:
+        bid = _first_id(db)
+        enqueue_for_browser(db, bid, reason="wall")
+        return bid
+
+    def test_a_failure_is_not_handed_straight_back(self, db):
+        bid = self._queued(db)
+        lease_browser_batch(db, 1)
+        complete_browser_item(db, bid, body="", error="tab closed")
+        assert queue_stats(db) == {"pending": 1}  # still live, just not yet
+        assert lease_browser_batch(db, 5) == []
+
+    def test_it_comes_back_once_the_wait_is_over(self, db):
+        bid = self._queued(db)
+        lease_browser_batch(db, 1)
+        complete_browser_item(db, bid, body="", error="tab closed")
+        _end_the_wait(db, bid)
+        assert [b["bookmark_id"] for b in lease_browser_batch(db, 5)] == [bid]
+
+    def test_the_wait_gets_longer_with_every_attempt(self, db):
+        bid = self._queued(db)
+        waits = []
+        for _ in range(MAX_BROWSER_ATTEMPTS - 1):
+            lease_browser_batch(db, 1)
+            before = now()
+            complete_browser_item(db, bid, body="", error="tab closed")
+            waits.append(_retry_at(db, bid) - before)
+            _end_the_wait(db, bid)
+        assert waits == list(BROWSER_RETRY_BACKOFF_S[: MAX_BROWSER_ATTEMPTS - 1])
+        assert waits == sorted(waits) and waits[0] < waits[-1]
+
+    def test_the_last_wait_is_reused_if_there_are_more_attempts_than_steps(self):
+        assert retry_delay_s(len(BROWSER_RETRY_BACKOFF_S) + 3) == BROWSER_RETRY_BACKOFF_S[-1]
+        assert retry_delay_s(0) == BROWSER_RETRY_BACKOFF_S[0]
+
+    def test_a_parked_item_is_not_waiting_for_anything(self, db):
+        bid = self._queued(db)
+        for _ in range(MAX_BROWSER_ATTEMPTS):
+            lease_browser_batch(db, 1)
+            complete_browser_item(db, bid, body="", error="tab closed")
+            _end_the_wait(db, bid)
+        assert queue_stats(db) == {"failed": 1}
+        assert _retry_at(db, bid) is None
+        assert queue_waiting(db) == 0
+
+    def test_waiting_is_counted_apart_from_pending(self, db):
+        ids = [i for i, _, _ in pending_targets(db)][:2]
+        for i in ids:
+            enqueue_for_browser(db, i, reason="wall")
+        assert queue_waiting(db) == 0
+        lease_browser_batch(db, 1)
+        complete_browser_item(db, ids[0], body="", error="tab closed")
+        assert queue_stats(db)["pending"] == 2
+        assert queue_waiting(db) == 1  # one of the two is serving its wait
+
+    def test_asking_for_it_again_clears_the_wait(self, db):
+        bid = self._queued(db)
+        lease_browser_batch(db, 1)
+        complete_browser_item(db, bid, body="", error="tab closed")
+        assert _retry_at(db, bid) is not None
+        enqueue_for_browser(db, bid, reason="wall")  # a deliberate re-request
+        assert _retry_at(db, bid) is None
+        assert [b["bookmark_id"] for b in lease_browser_batch(db, 5)] == [bid]
+
+    def test_a_success_clears_the_wait(self, db):
+        bid = self._queued(db)
+        lease_browser_batch(db, 1)
+        complete_browser_item(db, bid, body="", error="tab closed")
+        _end_the_wait(db, bid)
+        lease_browser_batch(db, 1)
+        complete_browser_item(db, bid, body=PROSE, title="second time lucky")
+        assert queue_stats(db) == {"done": 1}
+        assert _retry_at(db, bid) is None
+
+    def test_a_dead_tab_is_retried_without_a_wait(self, db):
+        """An expired lease says nothing about the host, only about the tab."""
+        bid = self._queued(db)
+        lease_browser_batch(db, 1)
+        db.execute("UPDATE fetch_queue SET leased_at = leased_at - ?", (LEASE_TTL_S + 60,))
+        assert [b["bookmark_id"] for b in lease_browser_batch(db, 1)] == [bid]

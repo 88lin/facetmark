@@ -26,7 +26,7 @@ from rich.table import Table
 from . import __version__, service
 from . import health as healthmod
 from .config import Settings, get_settings
-from .db import open_db
+from .db import SCHEMA_VERSION, apply_pending, connect, open_db, schema_status
 
 app = typer.Typer(
     name="facetmark",
@@ -113,6 +113,67 @@ def import_cmd(
     console.print(t)
     for w in stats["warnings"][:10]:
         err.print(f"[yellow]warning[/yellow] {w}")
+
+
+@app.command()
+def migrate(
+    db: Path | None = typer.Option(None, "--db"),
+    check: bool = typer.Option(False, "--check",
+                               help="Report and exit non-zero if behind. Changes nothing."),
+    backup: bool = typer.Option(True, "--backup/--no-backup",
+                                help="Snapshot the file before the first migration."),
+    json_out: bool = typer.Option(False, "--json"),
+) -> None:
+    """Bring the database schema up to what this build expects.
+
+    Opening a database migrates it anyway; this command exists so the upgrade
+    can be done deliberately -- before a long index run rather than during one
+    -- and so ``--check`` can gate a deploy without touching the file.
+    """
+    st = _settings(db)
+    if check and not Path(st.db_path).exists():
+        # Do not create a file just to answer a question about it.
+        if not _emit({"found": None, "expected": SCHEMA_VERSION, "fresh": True,
+                      "current": True, "too_new": False, "pending": []}, json_out):
+            console.print("[dim]no database yet[/dim]")
+        return
+    conn = connect(st.db_path)
+    try:
+        status = schema_status(conn)
+        if status.too_new:
+            err.print(f"[red]database is at schema v{status.found}, this build knows "
+                      f"v{status.expected}. Upgrade facetmark.[/red]")
+            raise typer.Exit(2)
+        if check:
+            if _emit(status.as_dict(), json_out):
+                raise typer.Exit(1 if status.pending else 0)
+            if status.fresh:
+                console.print("[dim]no database yet[/dim]")
+            elif status.current:
+                console.print(f"schema v{status.found} [green]up to date[/green]")
+            else:
+                console.print(f"schema v{status.found}, [yellow]{len(status.pending)} "
+                              f"pending[/yellow] -> v{status.expected}")
+                for m in status.pending:
+                    console.print(f"  [dim]v{m.version}[/dim] {m.note}")
+            raise typer.Exit(1 if status.pending else 0)
+
+        done, saved = apply_pending(conn, backup=backup)
+        out = {"from": status.found, "to": schema_status(conn).found,
+               "applied": [{"version": m.version, "note": m.note} for m in done],
+               "backup": str(saved) if saved else None}
+    finally:
+        conn.close()
+    if _emit(out, json_out):
+        return
+    if not done:
+        console.print(f"schema v{out['to']} [green]up to date[/green]")
+        return
+    if saved:
+        console.print(f"[dim]backup {saved.name}[/dim]")
+    for m in done:
+        console.print(f"  [green]v{m.version}[/green] {m.note}")
+    console.print(f"schema v{out['from']} -> v{out['to']}")
 
 
 @app.command()

@@ -317,7 +317,8 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
         async with state.lock:
             items = fetchstore.lease_browser_batch(state.conn, n)
             state.conn.commit()
-        return {"items": items, "queue": fetchstore.queue_stats(state.conn)}
+        return {"items": items, "queue": fetchstore.queue_stats(state.conn),
+                "waiting": fetchstore.queue_waiting(state.conn)}
 
     @app.post("/queue/complete", dependencies=auth)
     async def queue_complete(
@@ -334,7 +335,8 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
 
     @app.get("/queue/stats", dependencies=auth)
     async def queue_status(state: AppState = Depends(get_state)) -> dict:
-        return fetchstore.queue_stats(state.conn)
+        return {**fetchstore.queue_stats(state.conn),
+                "waiting": fetchstore.queue_waiting(state.conn)}
 
     # ---------------- link health ----------------
 

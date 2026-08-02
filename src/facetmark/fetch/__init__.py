@@ -34,6 +34,7 @@ from .robots import (
     parse_robots,
 )
 from .store import (
+    BROWSER_RETRY_BACKOFF_S,
     LEASE_TTL_S,
     MAX_BROWSER_ATTEMPTS,
     CrawlReport,
@@ -45,6 +46,7 @@ from .store import (
     pending_targets,
     policy_from_settings,
     queue_stats,
+    queue_waiting,
     record_failure,
     save_result,
     store_body,
@@ -56,8 +58,9 @@ __all__ = [
     "MIN_USEFUL_CHARS", "WALL_MARKERS", "Extraction", "extract", "html_title",
     "looks_like_wall", "meta_description",
     "DEFAULT_ROBOTS_TOKEN", "RobotsCache", "RobotsFile", "parse_robots",
-    "LEASE_TTL_S", "MAX_BROWSER_ATTEMPTS", "CrawlReport", "SaveOutcome",
+    "BROWSER_RETRY_BACKOFF_S", "LEASE_TTL_S", "MAX_BROWSER_ATTEMPTS", "CrawlReport", "SaveOutcome",
     "complete_browser_item", "crawl", "enqueue_for_browser", "lease_browser_batch",
-    "pending_targets", "policy_from_settings", "queue_stats", "record_failure",
+    "pending_targets", "policy_from_settings", "queue_stats", "queue_waiting",
+    "record_failure",
     "save_result", "store_body",
 ]

@@ -22,7 +22,14 @@ from typing import Any
 
 import sqlite_vec
 
-SCHEMA_VERSION = 1
+# SCHEMA_VERSION is derived from the migration list, not declared here, so the
+# two cannot drift. Re-exported because callers have always imported it from db.
+from .migrations import (  # noqa: F401  (re-export)
+    SCHEMA_VERSION,
+    SchemaTooNew,
+    apply_pending,
+    schema_status,
+)
 
 # ---------------------------------------------------------------------------
 # Schema
@@ -164,9 +171,12 @@ CREATE TABLE IF NOT EXISTS fetch_queue (
     attempts    INTEGER NOT NULL DEFAULT 0,
     queued_at   INTEGER NOT NULL,
     leased_at   INTEGER,
-    last_error  TEXT
+    last_error  TEXT,
+    next_attempt_at INTEGER   -- NULL = ready now; else the backoff deadline
 );
 CREATE INDEX IF NOT EXISTS ix_fetch_queue_state ON fetch_queue(state, queued_at);
+CREATE INDEX IF NOT EXISTS ix_fetch_queue_ready
+    ON fetch_queue(state, next_attempt_at, queued_at);
 
 CREATE TABLE IF NOT EXISTS interaction (
     id          INTEGER PRIMARY KEY,
@@ -234,16 +244,42 @@ def connect(
     return conn
 
 
-def init_db(conn: sqlite3.Connection) -> None:
+def init_db(conn: sqlite3.Connection, *, migrate: bool = True, backup: bool = True) -> None:
+    """Create what is missing, upgrade what is behind, stamp what is new.
+
+    Order matters. Migrations run *before* ``SCHEMA_SQL``, because SCHEMA_SQL
+    describes the current schema -- an index over a column that migration v2
+    adds cannot be created on a v1 file. Running the upgrade first means the
+    ``CREATE ... IF NOT EXISTS`` pass that follows is always a no-op on an
+    existing database and a full build on a new one.
+    """
+    status = schema_status(conn)
+    if status.too_new:
+        raise SchemaTooNew(
+            f"database is at schema v{status.found} but this facetmark only knows "
+            f"v{status.expected}. Upgrade facetmark, or point at a different database."
+        )
+    if status.pending:
+        if not migrate:
+            versions = ", ".join(f"v{m.version}" for m in status.pending)
+            raise RuntimeError(
+                f"database is at schema v{status.found}, pending: {versions}. "
+                "Run `facetmark migrate`."
+            )
+        apply_pending(conn, backup=backup)
+
     conn.executescript(SCHEMA_SQL)
-    if get_meta(conn, "schema_version") is None:
+
+    if status.fresh:
         set_meta(conn, "schema_version", str(SCHEMA_VERSION))
         set_meta(conn, "created_at", str(int(time.time())))
 
 
-def open_db(db_path: str | Path, *, same_thread: bool = True) -> sqlite3.Connection:
+def open_db(
+    db_path: str | Path, *, same_thread: bool = True, migrate: bool = True
+) -> sqlite3.Connection:
     conn = connect(db_path, same_thread=same_thread)
-    init_db(conn)
+    init_db(conn, migrate=migrate)
     return conn
 
 
