@@ -55,6 +55,19 @@
 
 ### 修复
 
+- **扩展弹窗里每一次搜索都显示 `[object Object] ms`。** `SearchResponse.took_ms`
+  在服务端是分阶段耗时的字典（`understand` / `facets` / `total` …），扩展里却声明成
+  `number` 直接插进模板字符串。`request<T>` 是 `await res.json() as T`——一次不做
+  检查的强制转换，TypeScript 会相信任何写在那里的形状，所以 `tsc` 和 CI 的
+  `--noEmit` 全都是绿的。同一处强制转换还藏了两个字段谎报：`Hit.via` 声明为必有的
+  `string`，服务端只在**扩展组**的行上给 `via`，而且它是 `number`（来源书签 id）；
+  `Hit.badge` 服务端从不下发。结果条目下面那行「为什么命中」永远只有域名和文件夹，
+  RRF 特意保留的 `facets` 归属信息在最后一步被丢掉了。现在类型按服务端实际形状改写，
+  弹窗渲染 `took_ms.total` 与 `facets`（`content`→about、`intent`→asked as …）。
+- **一跳图扩展在扩展里根本没有渲染。** 服务端一直在返回 `expanded`（刻意与 `hits`
+  分开、不交织），弹窗只读 `hits`——图这一面在真实 UI 里完全不可见，与它在评测主
+  指标上恒为 0 是同一个形状的问题。现在扩展组以「saved around these」为标题单列，
+  每行用 `via_kind` 说明是靠哪种边到达的。
 - **Windows 上把搜索结果重定向到文件必崩。** Windows 控制台与 Python 之间说的是
   UTF-8，但**重定向**后的 stdout 用的是 ANSI 代码页；一条中文标题就让
   `facetmark search > hits.txt` 抛 `UnicodeEncodeError`，退出码 1，什么也拿不到。

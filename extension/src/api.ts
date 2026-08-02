@@ -51,30 +51,43 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await res.json()) as T;
 }
 
+// These mirror `SearchHit.as_dict` and `SearchResponse.as_dict` in
+// `search/pipeline.py`. `request<T>` is an unchecked cast -- the compiler will
+// believe anything written here -- so the boundary is pinned from the Python
+// side instead, by a test that reads this file and compares it against a real
+// response. Renaming a field there and not here is a caught error, not a
+// silent `undefined` on screen.
 export interface Hit {
   bookmark_id: number;
   url: string;
   title: string;
   score: number;
+  /** Which facets retrieved this row: the closest thing to "why am I seeing this". */
+  facets: string[];
   snippet: string;
   folder: string;
   domain: string;
-  date_added: number;
-  via: string;
-  badge?: string;
-  cold?: boolean;
+  date_added: number | null;
+  cold: boolean;
+  /** Expansion rows only: the bookmark id this one was reached from. */
+  via?: number;
+  via_kind?: string;
 }
 
 export interface SearchResponse {
   query: string;
   hits: Hit[];
-  took_ms: number;
-  stage: "quick" | "full";
-  understanding?: { labels: string[]; time_window?: [number, number] | null };
+  /** One-hop neighbours of the top hits. Its own group, never interleaved. */
+  expanded: Hit[];
+  /** A breakdown by stage, not a scalar: `understand`, `facets`, ..., `total`. */
+  took_ms: Record<string, number>;
+  config: string;
+  understanding?: { labels: string[]; time_window?: [number, number] | null } | null;
 }
 
 export const api = {
-  health: () => request<{ status: string; bookmarks: number }>("/health"),
+  health: () =>
+    request<{ ok: boolean; version: string; bookmarks: number; provider: string }>("/health"),
   stats: () => request<Record<string, unknown>>("/stats"),
   quick: (q: string, limit = 10) =>
     request<SearchResponse>(`/quick?q=${encodeURIComponent(q)}&limit=${limit}`),
@@ -95,8 +108,10 @@ export const api = {
     }),
   queueNext: (n = 3) =>
     request<{
-      items: { bookmark_id: number; url: string; reason: string }[];
+      items: { bookmark_id: number; url: string; title: string; reason: string;
+               attempt: number }[];
       queue: Record<string, number>;
+      waiting: number;
     }>(`/queue/next?n=${n}`),
   queueComplete: (body: {
     bookmark_id: number;
@@ -104,6 +119,12 @@ export const api = {
     title?: string;
     final_url?: string;
     error?: string;
-  }) => request<{ ok: boolean }>("/queue/complete", { method: "POST", body: JSON.stringify(body) }),
+  }) =>
+    request<{ bookmark_id: number; stored: boolean; changed: boolean;
+              queue: Record<string, number> }>("/queue/complete", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  // Only the states that have rows are present, plus `waiting`. Read with `??`.
   queueStats: () => request<Record<string, number>>("/queue/stats"),
 };

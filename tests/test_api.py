@@ -343,3 +343,93 @@ class TestMcpServer:
 
     async def test_the_instructions_tell_an_agent_that_nothing_is_deleted(self, srv):
         assert "never removed" in srv.instructions or "removed" in srv.instructions
+
+
+# ---------------------------------------------------------------------------
+# the extension boundary
+# ---------------------------------------------------------------------------
+
+
+def _ts_source() -> str:
+    from pathlib import Path
+
+    p = Path(__file__).resolve().parents[1] / "extension" / "src" / "api.ts"
+    if not p.exists():
+        pytest.skip("extension sources not in this tree")
+    return p.read_text(encoding="utf-8")
+
+
+def _ts_paths(src: str) -> set[str]:
+    """Every request path in the client, query strings stripped."""
+    import re
+
+    out = set()
+    for lit in re.findall(r"[\"`](/[^\"`]*)[\"`]", src):
+        out.add(lit.split("?", 1)[0])
+    return out
+
+
+def _ts_interface(src: str, name: str) -> dict[str, bool]:
+    """``{field: required}`` for the top level of one ``export interface``."""
+    import re
+
+    m = re.search(rf"export interface {name} \{{\n(.*?)\n\}}", src, re.S)
+    assert m, f"interface {name} not found -- rename?"
+    fields: dict[str, bool] = {}
+    depth = 0
+    for line in m.group(1).splitlines():
+        bare = line.strip()
+        if not bare.startswith(("//", "/*", "*")):
+            f = re.match(r"(\w+)(\??):", bare)
+            if depth == 0 and f:
+                fields[f.group(1)] = f.group(2) != "?"
+        depth += line.count("{") - line.count("}")
+    assert fields, f"parsed no fields out of {name}"
+    return fields
+
+
+class TestTheExtensionContract:
+    """The one boundary the type checker cannot see.
+
+    `request<T>` in the extension is `await res.json() as T` -- an unchecked
+    cast. TypeScript will believe any shape written there, so a field the
+    server renamed, or never sent, arrives as `undefined` and renders as an
+    empty string or `[object Object]`. Both have happened. These assertions run
+    on the Python side because that is where the truth is.
+    """
+
+    def test_every_path_the_extension_calls_is_a_real_route(self, client):
+        declared = _ts_paths(_ts_source())
+        routes = {r.path for r in client.app.routes}
+        assert declared, "parsed no paths out of api.ts"
+        assert declared <= routes, f"extension calls routes that do not exist: {declared - routes}"
+
+    def test_the_hit_type_describes_what_the_server_actually_sends(self, client, auth):
+        seed(client, "https://a.example/rust", "Rust ownership", body="borrow checker rust")
+        r = client.post("/search", json={"q": "rust", "limit": 5}, headers=auth)
+        assert r.status_code == 200 and r.json()["hits"]
+        actual = set(r.json()["hits"][0])
+        required = {k for k, req in _ts_interface(_ts_source(), "Hit").items() if req}
+        assert required <= actual, f"declared but never sent: {sorted(required - actual)}"
+
+    def test_the_response_type_describes_what_the_server_actually_sends(self, client, auth):
+        seed(client, "https://a.example/rust", "Rust ownership", body="borrow checker rust")
+        for r in (client.get("/quick?q=rust", headers=auth),
+                  client.post("/search", json={"q": "rust"}, headers=auth)):
+            actual = set(r.json())
+            required = {
+                k for k, req in _ts_interface(_ts_source(), "SearchResponse").items() if req
+            }
+            assert required <= actual, f"declared but never sent: {sorted(required - actual)}"
+
+    def test_took_ms_is_a_breakdown_and_the_client_is_told_so(self, client, auth):
+        """It was typed `number`. The popup printed `[object Object] ms`."""
+        seed(client, "https://a.example/rust", "Rust ownership", body="borrow checker rust")
+        took = client.post("/search", json={"q": "rust"}, headers=auth).json()["took_ms"]
+        assert isinstance(took, dict) and "total" in took
+        assert "took_ms: Record<string, number>" in _ts_source()
+
+    def test_the_expansion_group_is_part_of_the_response_the_client_declares(self, client, auth):
+        seed(client, "https://a.example/rust", "Rust ownership", body="borrow checker rust")
+        assert "expanded" in client.post("/search", json={"q": "rust"}, headers=auth).json()
+        assert "expanded" in _ts_interface(_ts_source(), "SearchResponse")
