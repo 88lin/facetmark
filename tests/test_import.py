@@ -17,7 +17,7 @@ from facetmark.importers import (
 
 
 def _year(ts: int) -> int:
-    return dt.datetime.fromtimestamp(ts, dt.UTC).year
+    return dt.datetime.fromtimestamp(ts, dt.timezone.utc).year
 
 
 def _rows(conn):
