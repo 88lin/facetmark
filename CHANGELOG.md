@@ -43,6 +43,16 @@
 
 ### 修复
 
+- **Windows 上把搜索结果重定向到文件必崩。** Windows 控制台与 Python 之间说的是
+  UTF-8，但**重定向**后的 stdout 用的是 ANSI 代码页；一条中文标题就让
+  `facetmark search > hits.txt` 抛 `UnicodeEncodeError`，退出码 1，什么也拿不到。
+  一个专门用来找中文收藏的工具，在中文标题上崩溃，这个缺陷的严重性高于它的修复难度。
+  现在 `facetmark.cli` 导入时会加固 stdout/stderr：非 UTF-8 的流升到 UTF-8（重定向的
+  目标是文件，文件本来就该是 UTF-8），显式设了 `PYTHONIOENCODING` 的按用户的选择保留、
+  只把错误处理从 raise 降级为 replace——标题糊了还能看出命中的是哪一条，堆栈什么都看不出。
+  同一缺陷在**没有 locale 的 POSIX 进程**（cron、systemd、容器）里一模一样，所以回归
+  测试在 Linux CI 上就能跑：子进程用 `LC_ALL=C` 起一个 ASCII stdout，先断言裸解释器
+  确实会崩，再断言只要 `import facetmark.cli` 就不崩。
 - **中文写法的绝对年份完全解析不出时间窗。** `understand._ABS_YEAR` 原为
   `\b(19[89]\d|20[0-4]\d)\s*年?\b`；Python 把 CJK 算作 `\w`，所以「2023年那会儿」
   末尾的 `\b` 永不成立。改用前后向断言，允许 CJK 邻接，仍拒绝 `es2015` / `2024px` /

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -27,6 +28,45 @@ from . import __version__, service
 from . import health as healthmod
 from .config import Settings, get_settings
 from .db import SCHEMA_VERSION, apply_pending, connect, open_db, schema_status
+
+_UTF8_ALIASES = frozenset({"utf-8", "utf8", "utf-8-sig", "utf8-sig", "cp65001"})
+
+
+def _harden_stream(stream: object) -> None:
+    """Stop one text stream from dying on a character the platform cannot spell.
+
+    A Windows console talks UTF-8 to Python, but a *redirected* stdout is opened
+    with the ANSI code page, so ``facetmark search > hits.txt`` on an en-US box
+    raises UnicodeEncodeError the moment a result has a Chinese title. The same
+    happens to any POSIX process started without a locale. A bookmark searcher
+    that crashes on the titles it exists to find is not a bookmark searcher.
+
+    Redirected output moves to UTF-8, which is what a file should hold anyway.
+    An explicit ``PYTHONIOENCODING`` is the user's decision and is kept, but it
+    is downgraded from raising to replacing: a mangled title still tells you
+    which bookmark matched, a traceback tells you nothing.
+    """
+    reconfigure = getattr(stream, "reconfigure", None)
+    if reconfigure is None:  # pytest capture, StringIO, an already-closed stream
+        return
+    encoding = (getattr(stream, "encoding", "") or "").lower().replace("_", "-")
+    forgiving = getattr(stream, "errors", None) not in (None, "strict", "surrogateescape")
+    try:
+        if encoding in _UTF8_ALIASES or os.environ.get("PYTHONIOENCODING"):
+            if not forgiving:
+                reconfigure(errors="replace")
+        else:
+            reconfigure(encoding="utf-8", errors="replace")
+    except (ValueError, OSError):  # detached, or a stream that only pretends to be one
+        return
+
+
+def _harden_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        _harden_stream(stream)
+
+
+_harden_stdio()
 
 app = typer.Typer(
     name="facetmark",
