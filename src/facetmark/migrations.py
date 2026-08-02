@@ -116,10 +116,42 @@ def _v3_content_vector_provenance(conn: sqlite3.Connection) -> None:
     )
 
 
+def _v4_intent_scored_marker(conn: sqlite3.Connection) -> None:
+    """Record *whether* a candidate query has been through the probe.
+
+    ``filter_intents`` had no way to ask that question. ``kept`` defaults to 0
+    and ``probe_rank`` is NULL when the source page did not come back at all, so
+    a query that was scored and correctly rejected is byte-identical to one that
+    has never been scored. With no marker the only safe default was to score
+    everything, which is why adding twenty bookmarks to a 2,376-page library
+    re-embedded and re-probed all ~19,000 candidates instead of the ~160 that
+    were new. The cost of an incremental index grew with the size of the library
+    rather than the size of the change.
+
+    Existing rows are only backfilled where the evidence is unambiguous: a row
+    that was kept, or that recorded a rank, was definitely scored. The rest are
+    left NULL and get scored once more, because this build cannot tell a
+    rejection from an omission and re-scoring a rejection is the harmless
+    direction to be wrong in.
+    """
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(intent_query)")}
+    if "scored_at" not in cols:
+        conn.execute("ALTER TABLE intent_query ADD COLUMN scored_at INTEGER")
+    conn.execute(
+        "UPDATE intent_query SET scored_at = COALESCE(created_at, 0) "
+        "WHERE scored_at IS NULL AND (kept = 1 OR probe_rank IS NOT NULL)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS ix_intent_unscored ON intent_query(scored_at)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(2, "browser queue remembers when a retry is allowed", _v2_browser_queue_backoff),
     Migration(3, "content vectors remember what they were built from",
               _v3_content_vector_provenance),
+    Migration(4, "intent candidates remember whether they have been probed",
+              _v4_intent_scored_marker),
 )
 
 #: What this build writes into a new database. Derived from the migration list

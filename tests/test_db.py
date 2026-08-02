@@ -203,17 +203,27 @@ def _write_v1(path) -> None:
 
     Built by reversing the later migrations rather than by keeping a paste of
     the old SCHEMA_SQL around, which would rot the first time anything
-    unrelated changed. What has to be true is only that what v2 and v3 add is
+    unrelated changed. What has to be true is only that what v2 onwards add is
     genuinely absent.
     """
     c = open_db(path)
     c.execute("DROP INDEX IF EXISTS ix_fetch_queue_ready")
     c.execute("ALTER TABLE fetch_queue DROP COLUMN next_attempt_at")
     c.execute("DROP TABLE IF EXISTS vec_content_meta")
+    c.execute("DROP INDEX IF EXISTS ix_intent_unscored")   # indexed columns cannot be dropped
+    c.execute("ALTER TABLE intent_query DROP COLUMN scored_at")
     _add_bookmarks(c, 3)
     c.execute(
         "INSERT INTO fetch_queue(bookmark_id, reason, state, attempts, queued_at)"
         " VALUES(1,'wall','pending',1,100)"
+    )
+    # The three cases v4 has to tell apart, written the way v1 wrote them.
+    c.executemany(
+        "INSERT INTO intent_query(bookmark_id, text, kept, probe_rank, created_at)"
+        " VALUES(?,?,?,?,500)",
+        [(1, "kept, so certainly probed", 1, 2),
+         (1, "rejected, but it recorded a rank", 0, 7),
+         (2, "no rank, no flag, no evidence", 0, None)],
     )
     set_meta(c, "schema_version", "1")
     c.close()
@@ -276,6 +286,20 @@ class TestMigrations:
         assert c.execute("SELECT COUNT(*) FROM bookmark").fetchone()[0] == 3
         row = c.execute("SELECT state, attempts, next_attempt_at FROM fetch_queue").fetchone()
         assert (row[0], row[1], row[2]) == ("pending", 1, None)
+        c.close()
+
+    def test_the_backfill_only_claims_what_it_can_prove(self, tmp_path):
+        """A rejection and an omission look identical, so only evidence counts."""
+        p = tmp_path / "old.db"
+        _write_v1(p)
+        c = open_db(p)
+        got = {
+            r["text"]: r["scored_at"]
+            for r in c.execute("SELECT text, scored_at FROM intent_query")
+        }
+        assert got["kept, so certainly probed"] == 500
+        assert got["rejected, but it recorded a rank"] == 500
+        assert got["no rank, no flag, no evidence"] is None
         c.close()
 
     def test_a_migrated_database_is_shaped_like_a_fresh_one(self, tmp_path):

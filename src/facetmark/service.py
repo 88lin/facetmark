@@ -660,9 +660,10 @@ async def index_all(
                            "dim": vc.dim, "model": vc.model}, t)
 
     t = time.perf_counter()
-    ir = await filter_intents(conn, provider=prov, settings=st)
+    ir = await filter_intents(conn, provider=prov, settings=st, force=force)
     note("filter_intents", {"candidates": ir.candidates, "kept": ir.kept,
                             "dropped": ir.dropped, "keep_rate": round(ir.keep_rate, 4),
+                            "already_scored": ir.already_scored,
                             "rank_histogram": ir.rank_histogram}, t)
 
     t = time.perf_counter()

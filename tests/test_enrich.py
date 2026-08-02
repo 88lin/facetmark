@@ -821,6 +821,109 @@ class TestIntentFilter:
         assert rep.candidates == 0 and rep.kept == 0
 
 
+class TestTheProbeIsBoughtOnce:
+    """The cost of an index run should track the change, not the library.
+
+    Probing is a model call per candidate; selecting the best `keep_n` of them
+    is a sort over numbers already in the file. Conflating the two made adding
+    twenty bookmarks to a 2,376-page library re-embed all ~19,000 candidates.
+    """
+
+    @pytest.fixture
+    async def scored(self, loaded, mock_settings):
+        await enrich_all(loaded, settings=mock_settings)
+        await embed_content(loaded, settings=mock_settings)
+        await filter_intents(loaded, settings=mock_settings)
+        return loaded
+
+    async def test_a_second_run_over_the_same_library_buys_nothing(
+        self, scored, mock_settings
+    ):
+        prov = MockProvider(mock_settings)
+        rep = await filter_intents(scored, provider=prov, settings=mock_settings)
+        assert rep.candidates > 0
+        assert rep.probed == 0
+        assert rep.already_scored == rep.candidates
+        assert prov.usage.calls == 0
+
+    async def test_only_the_candidates_that_arrived_since_are_probed(
+        self, scored, mock_settings
+    ):
+        bid = scored.execute("SELECT id FROM bookmark LIMIT 1").fetchone()["id"]
+        scored.executemany(
+            "INSERT INTO intent_query(bookmark_id, text, kept, created_at) VALUES(?,?,0,0)",
+            [(bid, "a query nobody has scored yet"),
+             (bid, "another one that just arrived")],
+        )
+        scored.commit()
+        before = scored.execute("SELECT COUNT(*) c FROM intent_query").fetchone()["c"]
+        rep = await filter_intents(scored, settings=mock_settings)
+        assert rep.probed == 2
+        assert rep.candidates == before
+        assert rep.already_scored == before - 2
+
+    async def test_force_pays_for_the_whole_library_again(self, scored, mock_settings):
+        # Not paranoia: a query that retrieved its own page out of 2,000
+        # competitors can lose against 20,000, so the rank does go stale.
+        rep = await filter_intents(scored, settings=mock_settings, force=True)
+        assert rep.probed == rep.candidates > 0
+        assert rep.already_scored == 0
+
+    async def test_a_bookmark_named_outright_is_still_only_probed_once(
+        self, scored, mock_settings
+    ):
+        """`ids` says where to look; `force` says whether to redo. Orthogonal."""
+        bid = scored.execute("SELECT id FROM bookmark LIMIT 1").fetchone()["id"]
+        rep = await filter_intents(scored, settings=mock_settings, ids=[bid])
+        assert rep.bookmarks == 1
+        assert rep.probed == 0
+        forced = await filter_intents(scored, settings=mock_settings, ids=[bid], force=True)
+        assert forced.probed == forced.candidates > 0
+
+    async def test_re_deciding_keep_n_costs_nothing(self, scored, mock_settings):
+        prov = MockProvider(mock_settings)
+        wide = await filter_intents(scored, provider=prov, settings=mock_settings, keep_n=6)
+        narrow = await filter_intents(scored, provider=prov, settings=mock_settings, keep_n=2)
+        assert narrow.kept < wide.kept
+        assert prov.usage.calls == 0
+
+    async def test_widening_keep_n_leaves_the_new_survivors_for_the_embed_step(
+        self, scored, mock_settings
+    ):
+        # The filter can only store vectors it happens to hold. Candidates
+        # promoted from a rank recorded on an earlier run were never embedded
+        # here, so `embed_intents` -- which runs next in `index_all` -- buys
+        # them. The invariant that matters is the one after both steps.
+        await filter_intents(scored, settings=mock_settings, keep_n=2)
+        await embed_intents(scored, settings=mock_settings)
+        await filter_intents(scored, settings=mock_settings, keep_n=6)
+        out = await embed_intents(scored, settings=mock_settings)
+        assert out.intent_written > 0
+        kept = scored.execute("SELECT COUNT(*) c FROM intent_query WHERE kept=1").fetchone()["c"]
+        assert count_vectors(scored)[1] == kept
+
+    async def test_an_unprobed_candidate_is_not_silently_treated_as_rejected(
+        self, scored, mock_settings
+    ):
+        # kept=0 with a NULL rank is what both a rejection and an omission look
+        # like. If the marker were ignored the new row would keep its default 0
+        # and never be looked at again.
+        bid = scored.execute("SELECT id FROM bookmark LIMIT 1").fetchone()["id"]
+        scored.execute("DELETE FROM intent_query WHERE bookmark_id=?", (bid,))
+        scored.execute(
+            "INSERT INTO intent_query(bookmark_id, text, kept, created_at) VALUES(?,?,0,0)",
+            (bid, scored.execute(
+                "SELECT title FROM bookmark WHERE id=?", (bid,)).fetchone()["title"]),
+        )
+        scored.commit()
+        await filter_intents(scored, settings=mock_settings)
+        row = scored.execute(
+            "SELECT kept, scored_at FROM intent_query WHERE bookmark_id=?", (bid,)
+        ).fetchone()
+        assert row["scored_at"] is not None
+        assert row["kept"] == 1
+
+
 # ---------------------------------------------------------------------------
 # lexical facet + fusion (used by the probe, exercised again in P4)
 # ---------------------------------------------------------------------------

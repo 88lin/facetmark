@@ -108,10 +108,12 @@ CREATE TABLE IF NOT EXISTS intent_query (
     text          TEXT    NOT NULL,
     kept          INTEGER NOT NULL DEFAULT 0,
     probe_rank    INTEGER,     -- rank of the source doc when probed with this query
-    created_at    INTEGER
+    created_at    INTEGER,
+    scored_at     INTEGER      -- NULL: never probed. `kept=0` alone cannot say.
 );
 CREATE INDEX IF NOT EXISTS ix_intent_bookmark ON intent_query(bookmark_id);
 CREATE INDEX IF NOT EXISTS ix_intent_kept     ON intent_query(kept);
+CREATE INDEX IF NOT EXISTS ix_intent_unscored ON intent_query(scored_at);
 
 -- Provenance for facet 1. `vec_content` is a vec0 virtual table and holds
 -- nothing but the vector, so what the vector was built from lives here. A row
