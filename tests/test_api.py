@@ -443,6 +443,27 @@ class TestTheExtensionContract:
         assert "expanded" in client.post("/search", json={"q": "rust"}, headers=auth).json()
         assert "expanded" in _ts_interface(_ts_source(), "SearchResponse")
 
+    def test_a_graph_neighbour_actually_reaches_the_client(self, client, auth):
+        """The key being present is not the same as the group being reachable.
+
+        Asserting on the key passed for as long as the expansion group was
+        empty on every query, which it was.
+        """
+        a = seed(client, "https://a.example/rust", "Rust ownership",
+                 body="borrow checker rust lifetimes")
+        b = seed(client, "https://b.example/cook", "Braising short ribs",
+                 body="low oven braise beef stock aromatics")
+        conn = client.app.state.fm.conn
+        conn.execute("INSERT OR REPLACE INTO edge(src,dst,kind,weight) "
+                     "VALUES(?,?,'session',1.0)", (a, b))
+        conn.commit()
+        body = client.post("/search", json={"q": "rust", "limit": 1},
+                           headers=auth).json()
+        assert [h["bookmark_id"] for h in body["hits"]] == [a]
+        assert [h["bookmark_id"] for h in body["expanded"]] == [b]
+        assert body["expanded"][0]["via"] == a
+        assert body["expanded"][0]["via_kind"] == "session"
+
     def test_the_queue_states_the_client_reads_are_the_ones_the_server_writes(self, client, auth):
         """``/queue/stats`` is a ``GROUP BY state``: a state nobody is in is absent.
 

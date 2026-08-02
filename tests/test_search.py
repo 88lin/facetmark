@@ -377,6 +377,20 @@ class TestExpansion:
     def test_no_seeds_means_no_expansion(self, graphdb):
         assert expand(graphdb, [], limit=5) == []
 
+    def test_a_hit_past_the_seed_cap_still_has_to_be_excluded_by_name(self, graphdb):
+        """``max_seeds`` caps who gets *walked*, not who gets *blocked*.
+
+        The pipeline shows up to ``limit`` hits but only seeds the first
+        ``DEFAULT_SEEDS`` of them. If it relied on the built-in seed blocking
+        to keep the expansion group disjoint from the result list, hit number
+        eleven could reappear one row below itself under a "related" heading.
+        """
+        walked = expand(graphdb, [(1, 1.0), (2, 0.9)], limit=10, max_seeds=1)
+        assert 2 in {e.doc_id for e in walked}         # unseeded, so not blocked
+        named = expand(graphdb, [(1, 1.0), (2, 0.9)], limit=10, max_seeds=1,
+                       exclude=[1, 2])
+        assert 2 not in {e.doc_id for e in named}
+
     def test_related_walks_one_hop_from_a_single_bookmark(self, graphdb):
         out = related(graphdb, 1, limit=10)
         assert {e.doc_id for e in out} >= {2, 3}
@@ -605,6 +619,26 @@ async def indexed(mock_settings):
     return conn, provider
 
 
+@pytest.fixture
+async def graphed(indexed):
+    """``indexed`` plus the edges that make a graph lane mean anything.
+
+    The base fixture is three pages on three unrelated domains, so the kinds it
+    builds -- same_domain, anchor_sibling, supersession -- produce an empty edge
+    table. Every assertion about the expansion group written against it was
+    therefore vacuously true, which is how a broken graph lane kept three green
+    tests.
+    """
+    conn, provider = indexed
+    conn.executemany(
+        "INSERT OR REPLACE INTO edge(src,dst,kind,weight) VALUES(?,?,?,?)",
+        [(1, 3, "session", 1.0), (3, 1, "session", 1.0),
+         (2, 3, "semantic", 0.8), (3, 2, "semantic", 0.8)],
+    )
+    conn.commit()
+    return conn, provider
+
+
 class TestQuickSearch:
     def test_the_first_paint_needs_no_model_and_finds_the_obvious_hit(self, indexed):
         conn, _ = indexed
@@ -667,36 +701,56 @@ class TestFullSearch:
         assert seen["C"] == seen["D"] == seen["E"]   # D and E add stages, not facets
 
     async def test_only_configs_d_and_up_produce_an_expansion_group(
-        self, indexed, mock_settings
+        self, graphed, mock_settings
     ):
-        conn, prov = indexed
-        b = await search(conn, "networking", config=CONFIGS["B"],
+        conn, prov = graphed
+        b = await search(conn, "networking", config=CONFIGS["B"], limit=2,
                          provider=prov, settings=mock_settings)
-        d = await search(conn, "networking", config=CONFIGS["D"],
+        d = await search(conn, "networking", config=CONFIGS["D"], limit=2,
                          provider=prov, settings=mock_settings)
         assert b.expanded == []
-        assert isinstance(d.expanded, list)
+        assert [h.bookmark_id for h in d.expanded] == [3]
 
     async def test_the_expansion_group_never_overlaps_the_main_results(
-        self, indexed, mock_settings
+        self, graphed, mock_settings
     ):
-        conn, prov = indexed
-        r = await search(conn, "infra", provider=prov, settings=mock_settings)
+        conn, prov = graphed
+        r = await search(conn, "infra", limit=2, provider=prov, settings=mock_settings)
+        assert r.expanded, "disjointness from an empty list proves nothing"
         assert {h.bookmark_id for h in r.expanded}.isdisjoint(r.ids)
 
     async def test_an_expanded_row_says_which_bookmark_it_came_from(
-        self, indexed, mock_settings
+        self, graphed, mock_settings
     ):
-        conn, prov = indexed
-        conn.execute(
-            "INSERT OR IGNORE INTO edge(src,dst,kind,weight) VALUES(1,3,'session',1.0)"
-        )
-        conn.commit()
-        r = await search(conn, "kubernetes networking", provider=prov, settings=mock_settings)
+        conn, prov = graphed
+        r = await search(conn, "kubernetes networking", limit=2,
+                         provider=prov, settings=mock_settings)
         exp = [h for h in r.expanded if h.bookmark_id == 3]
-        if exp:                                   # depends on 3 not already ranking
-            assert exp[0].via == 1
-            assert exp[0].via_kind
+        assert exp, "the graph neighbour of a hit never surfaced"
+        assert exp[0].via in {1, 2}
+        assert exp[0].via_kind in {"session", "semantic"}
+
+    async def test_a_neighbour_the_retriever_also_considered_is_still_expandable(
+        self, graphed, mock_settings
+    ):
+        """Exclude what the user *sees*, not what the retriever *weighed*.
+
+        Every vector facet hands back ``candidates_per_facet`` neighbours
+        whether or not any of them is any good, so the fused pool here is the
+        entire library. Excluding the pool -- which is what this used to do --
+        left the expansion group with only those documents that no facet
+        retrieved at all: on a small library that is the empty set, and on a
+        large one it is precisely the documents with the weakest claim to being
+        shown. A graph neighbour of a hit is *by construction* the sort of
+        document a vector facet also drags in, so the pool and the graph lane
+        overlap almost completely, and the exclusion ate the feature.
+        """
+        conn, prov = graphed
+        n = conn.execute("SELECT COUNT(*) AS c FROM bookmark").fetchone()["c"]
+        r = await search(conn, "kubernetes networking", config=CONFIGS["D"], limit=2,
+                         provider=prov, settings=mock_settings)
+        assert r.facet_sizes["content"] == n      # the pool really is everything
+        assert [h.bookmark_id for h in r.expanded] == [3]
 
     async def test_config_e_records_which_reranker_actually_ran(
         self, indexed, mock_settings

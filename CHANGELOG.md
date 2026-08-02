@@ -6,6 +6,12 @@
 
 ### 新增
 
+- `scripts/mcp_e2e.py`：把 MCP 服务端当成助手那样驱动一遍——真的 fork 一个子进程、
+  走 stdio 上的 JSON-RPC 握手、把九个工具全调一遍、把三个资源全读一遍，共 22 项检查。
+  进程内的 `create_server()` 测试查不出两类故障：导入链上任何一处 `print` 都会污染
+  协议流，以及 FastMCP 无法为某个返回标注生成 schema。两者都只在真管道上暴露。
+  用的是临时目录里的 mock 库，不联网、不需要模型。
+
 - `fetch/robots.py`：抓取前按 host 取一次 `robots.txt` 并遵守，命中 `Disallow` 记为
   `robots_disallowed` 并跳过，理由写进抓取存储；支持 `Crawl-delay`。默认开启
   （`respect_robots = True`）。开源的爬取组件缺这个不合格。
@@ -70,6 +76,31 @@
   变成沉默。16 条测试覆盖队列算术与整条 channel B 抓取循环的失败路径。
 
 ### 修复
+
+- **图扩展从来没有出过一行。** `search()` 把「已经展示过、不要重复」的排除表设成了
+  **整个融合候选池**（`exclude=[f.doc_id for f in fused]`），而不是**真正展示给用户的
+  那几条**。这两个集合差着一个数量级：每个向量面无论相不相关都会交回
+  `candidates_per_facet`（默认 50）个近邻，于是候选池是 50–150 篇，`hits` 只有 10 条。
+  更要命的是方向：一篇文档之所以是某条命中的图邻居（同一次会话存的、语义互为近邻），
+  恰恰意味着向量面也会把它捞进候选池——排除池和图通道几乎完全重合。小库上
+  `expanded` 恒为空集，大库上只剩下「没有任何面检索到」的那些，也就是最没有资格
+  被展示的那些。改为 `exclude=[h.bookmark_id for h in hits]`：要挡的是用户**看见**的，
+  不是检索器**掂量过**的。
+- **这个缺陷带着三条常绿测试活了下来。** `test_only_configs_d_and_up_produce_an_expansion_group`
+  断言的是 `isinstance(d.expanded, list)`（空表也是 list）；
+  `test_the_expansion_group_never_overlaps_the_main_results` 断言 `isdisjoint`
+  （空表与谁都不交）；`test_an_expanded_row_says_which_bookmark_it_came_from`
+  外面裹着 `if exp:`（空表就整段跳过）。而它们共用的 `indexed` fixture 是三篇分属三个
+  不同域名、彼此无关的页面，构建的 `same_domain` / `anchor_sibling` / `supersession`
+  三种边一条都建不出来——`edge` 表是空的。三条测试从来没有真正执行过这个功能。
+  现在新增 `graphed` fixture（显式插入 session 与 semantic 边），三条断言全部改成
+  会失败的形式，并补上 `test_a_neighbour_the_retriever_also_considered_is_still_expandable`
+  与 API 层的 `test_a_graph_neighbour_actually_reaches_the_client`，把回归钉死。
+- `expand()` 的 `max_seeds` 只限制**走哪几条命中**，不负责**挡住哪几条命中**。当
+  `limit > DEFAULT_SEEDS` 时，第 11 条以后的命中不在种子里、也就不会被自动屏蔽，
+  可能在「相关」分组里紧挨着自己再出现一次。新增
+  `test_a_hit_past_the_seed_cap_still_has_to_be_excluded_by_name` 说明为什么管线必须
+  显式传 `exclude`，而不能依赖种子屏蔽。
 
 - **扩展把队列里「等浏览器」的条数报错了。** 弹窗和选项页都把 `/queue/stats` 的
   `pending` 直接印成「waiting for the browser」。服务端的 `waiting` 是 `pending` 的
