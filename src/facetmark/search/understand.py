@@ -91,8 +91,40 @@ _RELATIVE: tuple[tuple[str, int, int], ...] = (
     (r"前年", 3 * _YEAR, int(1.7 * _YEAR)),
 )
 
+#: Spelled-out counts. "三个月前" is how the number is normally written in
+#: Chinese and "a couple of months ago" is how it is normally written in
+#: English; a digits-only pattern reads neither, which on a Chinese-first
+#: library means the commonest phrasing of the commonest time expression
+#: silently resolves to nothing.
+_CN_DIGIT = {"零": 0, "一": 1, "两": 2, "二": 2, "三": 3, "四": 4, "五": 5,
+             "六": 6, "七": 7, "八": 8, "九": 9}
+_EN_WORD_NUM = {
+    "a": 1, "an": 1, "one": 1, "couple": 2, "two": 2, "few": 3, "three": 3,
+    "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
+    "ten": 10, "eleven": 11, "twelve": 12,
+}
+_CN_NUM_RE = r"[零一两二三四五六七八九十]{1,3}"
+
+
+def _cn_to_int(text: str) -> int | None:
+    """Chinese numerals up to 99. Returns None on anything else."""
+    if not text or any(c not in _CN_DIGIT and c != "十" for c in text):
+        return None
+    if "十" not in text:
+        return _CN_DIGIT.get(text) if len(text) == 1 else None
+    head, _, tail = text.partition("十")
+    tens = 1 if head == "" else _CN_DIGIT.get(head, -1)
+    ones = 0 if tail == "" else _CN_DIGIT.get(tail, -1)
+    if tens < 0 or ones < 0:
+        return None
+    return tens * 10 + ones
+
+
 _N_AGO = re.compile(
-    r"(\d{1,3})\s*(?:个)?\s*(天|日|周|星期|月|年|day|days|week|weeks|month|months|year|years)\s*(?:前|ago)"
+    rf"(\d{{1,3}}|{_CN_NUM_RE}|\b(?:{'|'.join(_EN_WORD_NUM)})\b)"
+    r"(?:\s+of)?\s*(?:个)?\s*"
+    r"(天|日|周|星期|月|年|day|days|week|weeks|month|months|year|years)\s*(?:前|ago)",
+    re.IGNORECASE,
 )
 _UNIT_SECONDS = {
     "天": _DAY, "日": _DAY, "day": _DAY, "days": _DAY,
@@ -100,7 +132,12 @@ _UNIT_SECONDS = {
     "月": _MONTH, "month": _MONTH, "months": _MONTH,
     "年": _YEAR, "year": _YEAR, "years": _YEAR,
 }
-_ABS_YEAR = re.compile(r"\b(19[89]\d|20[0-4]\d)\s*年?\b")
+#: ``\b`` is useless here: Python treats CJK as word characters, so ``\b`` after
+#: the digits never fires in "2023年那会儿" and the commonest Chinese way to
+#: write a year resolved to no window at all. The guards below block an
+#: adjacent ASCII word character -- which is what ``\b`` was actually for,
+#: keeping "es2015" and "2015px" out -- while allowing a CJK neighbour.
+_ABS_YEAR = re.compile(r"(?<![0-9A-Za-z_])(19[89]\d|20[0-4]\d)\s*年?(?![0-9A-Za-z_])")
 
 
 @dataclass(slots=True)
@@ -147,7 +184,12 @@ def _resolve_time(query: str, now_ts: int) -> tuple[tuple[int, int] | None, str 
 
     m = _N_AGO.search(lowered)
     if m:
-        n = int(m.group(1))
+        raw = m.group(1)
+        n = (int(raw) if raw.isdigit()
+             else _EN_WORD_NUM.get(raw) if raw.isascii()
+             else _cn_to_int(raw))
+        if n is None or n <= 0:
+            n = 1
         unit = _UNIT_SECONDS[m.group(2)]
         centre = now_ts - n * unit
         half = max(unit // 2, _DAY)

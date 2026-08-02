@@ -113,6 +113,34 @@ class TestQueryUnderstanding:
         assert time.gmtime(lo).tm_year == 2023
         assert hi - lo > 360 * DAY
 
+    def test_a_year_glued_to_chinese_text_still_resolves(self):
+        # Python counts CJK as word characters, so the \b that used to close
+        # the year pattern never fired here and the commonest Chinese way of
+        # writing a year -- no space before 年, no space after it -- resolved
+        # to nothing at all.
+        for q in ("2023年的那篇文章", "2023年那会儿存的部署笔记", "看2023年存的"):
+            u = classify(q, now_ts=1_700_000_000)
+            assert u.time_window is not None, q
+            assert time.gmtime(u.time_window[0]).tm_year == 2023, q
+
+    def test_a_year_inside_an_identifier_is_not_a_date(self):
+        for q in ("es2015 modules", "port 2024px", "vue 2 教程", "abc2023def"):
+            assert classify(q, now_ts=1_700_000_000).time_window is None, q
+
+    def test_spelled_out_counts_resolve_like_digits(self):
+        now = 1_700_000_000
+        for q, months in (("三个月前存的", 3), ("a few months ago", 3),
+                          ("saved this two years ago", 24), ("两年前那个工具", 24)):
+            u = classify(q, now_ts=now)
+            assert u.time_window is not None, q
+            lo, hi = u.time_window
+            assert lo <= now - months * 30 * DAY <= hi, q
+
+    def test_chinese_teens_resolve(self):
+        now = 1_700_000_000
+        lo, hi = classify("十五天前", now_ts=now).time_window
+        assert lo <= now - 15 * DAY <= hi
+
     def test_a_vague_marker_is_episodic_but_carries_no_window(self):
         u = classify("配 Docker 那阵子存的东西")
         assert u.is_episodic
