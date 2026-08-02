@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Facetmark",
+  "version": "0.1.0",
+  "description": "Search your own bookmarks by what they were about, why you saved them, and when.",
+  "permissions": ["storage", "tabs", "scripting", "bookmarks", "alarms", "contextMenus"],
+  "host_permissions": ["http://127.0.0.1:8787/*", "http://localhost:8787/*"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_popup": "popup.html", "default_title": "Facetmark" },
+  "options_page": "options.html",
+  "omnibox": { "keyword": "fm" },
+  "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": { "default": "Ctrl+Shift+K", "mac": "Command+Shift+K" },
+      "description": "Open Facetmark search"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "facetmark-extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Facetmark browser extension: search your own bookmarks, save pages, and fetch what the server cannot reach.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "zip": "node build.mjs && cd dist && zip -qr ../facetmark-extension.zip ."
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0"
+  }
+}
