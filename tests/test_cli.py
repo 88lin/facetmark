@@ -9,6 +9,7 @@ and loses.
 from __future__ import annotations
 
 import io
+import json
 import os
 import subprocess
 import sys
@@ -146,6 +147,79 @@ class TestTheWholeProcessSurvivesTheRedirect:
         assert r.returncode == 0, r.stderr.decode("utf-8", "replace")
         assert r.stdout.decode("utf-8") == CJK
         assert r.stderr.decode("utf-8") == CJK
+
+
+class TestImportWithNoArgument:
+    """The Windows first run. Nobody types the AppData path from memory."""
+
+    def _runner(self):
+        from typer.testing import CliRunner
+
+        return CliRunner()
+
+    def _invoke(self, monkeypatch, found, args, tmp_path):
+        from facetmark import cli
+
+        monkeypatch.setattr(cli, "discover_bookmark_files", lambda: found)
+        monkeypatch.setattr(cli, "candidate_roots", lambda: [(Path("/nowhere"), "Chrome", "p")])
+        monkeypatch.setenv("FACETMARK_DATA_DIR", str(tmp_path / "data"))
+        return self._runner().invoke(cli.app, args)
+
+    def test_one_profile_is_imported_without_being_named(self, tmp_path, monkeypatch):
+        bm = tmp_path / "Bookmarks"
+        bm.write_text(
+            '{"roots":{"bookmark_bar":{"type":"folder","children":['
+            '{"type":"url","name":"' + CJK + '","url":"https://example.com/a",'
+            '"date_added":"13300000000000000"}]}}}',
+            encoding="utf-8",
+        )
+        r = self._invoke(monkeypatch, [(bm, "Chrome", "Default")], ["import"], tmp_path)
+        assert r.exit_code == 0, r.output
+        assert "inserted" in r.output
+
+    def test_two_profiles_are_not_guessed_between(self, tmp_path, monkeypatch):
+        found = [
+            (tmp_path / "a" / "Bookmarks", "Chrome", "Default"),
+            (tmp_path / "b" / "Bookmarks", "Edge", "Default"),
+        ]
+        r = self._invoke(monkeypatch, found, ["import"], tmp_path)
+        assert r.exit_code == 2
+        # every candidate is printed as a command the user can paste back
+        assert r.output.count("facetmark import ") >= 2
+
+    def test_no_profile_says_where_it_looked(self, tmp_path, monkeypatch):
+        r = self._invoke(monkeypatch, [], ["import"], tmp_path)
+        assert r.exit_code == 2
+        assert "/nowhere" in r.output
+
+    def test_an_explicit_path_never_touches_discovery(self, tmp_path, monkeypatch):
+        from facetmark import cli
+
+        def boom():
+            raise AssertionError("discovery ran even though a path was given")
+
+        bm = tmp_path / "bookmarks.html"
+        bm.write_text(
+            '<!DOCTYPE NETSCAPE-Bookmark-file-1><DL><p>'
+            f'<DT><A HREF="https://example.com/x" ADD_DATE="1690391875">{CJK}</A>'
+            "</DL><p>",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(cli, "discover_bookmark_files", boom)
+        monkeypatch.setenv("FACETMARK_DATA_DIR", str(tmp_path / "data"))
+        r = self._runner().invoke(cli.app, ["import", str(bm)])
+        assert r.exit_code == 0, r.output
+
+    def test_the_browsers_command_lists_what_was_found(self, tmp_path, monkeypatch):
+        found = [(tmp_path / "a" / "Bookmarks", "Brave", "Profile 2")]
+        r = self._invoke(monkeypatch, found, ["browsers", "--json"], tmp_path)
+        assert r.exit_code == 0
+        assert json.loads(r.stdout)[0]["browser"] == "Brave"
+
+    def test_the_browsers_command_is_honest_about_finding_nothing(self, tmp_path, monkeypatch):
+        r = self._invoke(monkeypatch, [], ["browsers"], tmp_path)
+        assert r.exit_code == 0
+        assert "/nowhere" in r.output
 
 
 @pytest.mark.parametrize("stream_name", ["stdout", "stderr"])

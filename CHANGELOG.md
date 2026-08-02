@@ -41,6 +41,18 @@
 - enrich 在回复被上下文窗口截断时用半长正文重试一次，次数记为
   `EnrichReport.rescued_by_shorter_body`。
 
+### 新增
+
+- **`facetmark import` 不带参数时自动定位浏览器实时配置文件**，新增 `facetmark browsers`
+  列出找到的配置。`discover_bookmark_files()` 此前写好了、注释里写着「Windows 是首要
+  目标平台」，但全仓库没有任何调用点——Windows 用户的第一条命令是手敲
+  `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Bookmarks`。找到多个配置时**不猜**：
+  列出候选并以退出码 2 要求明确指定，导入错人的收藏夹比多敲一条命令糟糕得多；一个都
+  没找到时打印**搜过哪些目录**，而不是一句「not found」。
+- 平台表拆到 `importers/discovery.py` 并补齐 Opera（Windows 上在漫游
+  `%APPDATA%` 而不是 `%LOCALAPPDATA%`，且 `Bookmarks` 直接放在渠道目录里、没有
+  `Default/` 一层——解析器的文档字符串一直声称支持 Opera，发现表里却没有它）。
+
 ### 修复
 
 - **Windows 上把搜索结果重定向到文件必崩。** Windows 控制台与 Python 之间说的是
