@@ -307,6 +307,9 @@ def policy_from_settings(settings: Settings | None = None) -> FetchPolicy:
         per_host_min_interval_s=s.fetch_per_host_min_interval,
         timeout_s=s.fetch_timeout,
         user_agent=s.user_agent,
+        respect_robots=s.respect_robots,
+        robots_on_error=s.robots_on_error,
+        max_crawl_delay_s=s.robots_max_crawl_delay,
     )
 
 

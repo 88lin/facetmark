@@ -81,6 +81,22 @@ All requests originate in the service worker, never in a content script. Chrome 
 
 ---
 
+## Crawling other people's servers
+
+Indexing a bookmark library means touching a few thousand hosts that never asked for the traffic. Channel A reads `/robots.txt` once per host and obeys it (RFC 9309: longest match wins, `Allow` breaks a tie, `*` and `$` supported, a group naming `facetmark` beats the `*` group), on top of a global concurrency cap, at most two in-flight requests per host, and a minimum interval between them. A published `Crawl-delay` raises that interval, capped so one host asking for 30 seconds cannot stall the sweep.
+
+A page that `robots.txt` disallows is recorded as `robots_denied` and stays title-only. It is **not** re-tried through the browser extension — channel B would succeed, because it is the user's own logged-in browser, and that is precisely the manoeuvre `robots.txt` exists to prevent. The same rule applies to link-health probes: a liveness check is still automated access, and the drift check reads the body.
+
+```bash
+FACETMARK_RESPECT_ROBOTS=false        # your servers, your call
+FACETMARK_ROBOTS_ON_ERROR=deny        # RFC 9309 reads an unreachable robots.txt as "disallow all"
+FACETMARK_ROBOTS_MAX_CRAWL_DELAY=5.0  # ceiling on an honoured Crawl-delay, seconds
+```
+
+The default for an *unreachable* `robots.txt` (5xx, timeout, reset) is `allow`, which deviates from the RFC on purpose. Applied literally, one flaky CDN silently drops a chunk of the user's own library out of the user's own index — and the user is not a search engine competing for crawl budget, they are re-reading pages they already opened in a browser. A *missing* `robots.txt` (404) means allow, as the RFC says. `deny` restores the strict reading.
+
+---
+
 ## MCP server
 
 ```bash

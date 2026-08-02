@@ -70,6 +70,15 @@ class Settings(BaseSettings):
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 facetmark/0.1"
     )
+    #: Read ``/robots.txt`` once per host and honour it. Turning this off is a
+    #: decision the operator makes about their own liability, not a default.
+    respect_robots: bool = True
+    #: ``allow`` or ``deny``: what an *unreachable* robots.txt means. RFC 9309
+    #: says deny; the default here is allow, because a 502 from one CDN should
+    #: not silently remove the user's own pages from the user's own index.
+    robots_on_error: str = "allow"
+    #: Upper bound on an honoured ``Crawl-delay``, in seconds.
+    robots_max_crawl_delay: float = 5.0
     #: Below this many characters the extraction is considered failed and the
     #: bookmark is queued for channel B (extension background tab).
     min_body_chars: int = 200

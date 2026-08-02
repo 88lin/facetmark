@@ -27,6 +27,12 @@ from .extract import (
     looks_like_wall,
     meta_description,
 )
+from .robots import (
+    DEFAULT_ROBOTS_TOKEN,
+    RobotsCache,
+    RobotsFile,
+    parse_robots,
+)
 from .store import (
     LEASE_TTL_S,
     MAX_BROWSER_ATTEMPTS,
@@ -49,6 +55,7 @@ __all__ = [
     "FetchPolicy", "FetchResult", "Verdict", "fetch_many", "fetch_one",
     "MIN_USEFUL_CHARS", "WALL_MARKERS", "Extraction", "extract", "html_title",
     "looks_like_wall", "meta_description",
+    "DEFAULT_ROBOTS_TOKEN", "RobotsCache", "RobotsFile", "parse_robots",
     "LEASE_TTL_S", "MAX_BROWSER_ATTEMPTS", "CrawlReport", "SaveOutcome",
     "complete_browser_item", "crawl", "enqueue_for_browser", "lease_browser_batch",
     "pending_targets", "policy_from_settings", "queue_stats", "record_failure",

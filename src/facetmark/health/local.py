@@ -43,6 +43,7 @@ from ..fetch.client import (
     _HostLimiter,
 )
 from ..fetch.extract import extract
+from ..fetch.robots import DEFAULT_ROBOTS_TOKEN, RobotsCache
 from ..normalize import body_hash, body_normalize_for_hash
 from ..text import CJK_RE
 from .verdicts import (
@@ -175,6 +176,7 @@ async def probe_one(
     known_hash: str = "",
     soft_gone_ratio: float = 0.30,
     title_hint: str = "",
+    robots: RobotsCache | None = None,
 ) -> LocalProbe:
     """One URL, one layer-1 conclusion.
 
@@ -201,6 +203,18 @@ async def probe_one(
 
     host = httpx.URL(url).host or ""
     headers = {"User-Agent": pol.user_agent or DEFAULT_UA}
+
+    # The same rule as crawling. A liveness probe is still an automated request,
+    # and the drift check reads the body -- calling it "only a health check"
+    # would be a distinction drawn for our convenience, not the host's.
+    if robots is not None and pol.respect_robots:
+        allowed, delay = await robots.allows(client, url)
+        if limiter is not None:
+            limiter.note_crawl_delay(host, delay)
+        if not allowed:
+            ev.append(Evidence("local", "robots_denied", f"{host}/robots.txt", now))
+            return done(LocalVerdict.SKIPPED, error="robots.txt disallows this path")
+
     sem = await limiter.acquire(host) if limiter else None
     try:
         try:
@@ -315,6 +329,11 @@ async def probe_many(
     pol = policy or FetchPolicy()
     items = list(targets)
     limiter = _HostLimiter(pol)
+    robots = RobotsCache(
+        DEFAULT_ROBOTS_TOKEN,
+        on_error=pol.robots_on_error,
+        fetch_user_agent=pol.user_agent,
+    ) if pol.respect_robots else None
     gate = asyncio.Semaphore(pol.concurrency)
     owned = client is None
     cl = client or httpx.AsyncClient(
@@ -333,6 +352,7 @@ async def probe_many(
                 known_hash=t.get("known_hash") or "",
                 soft_gone_ratio=soft_gone_ratio,
                 title_hint=t.get("title_hint") or "",
+                robots=robots,
             )
 
     try:

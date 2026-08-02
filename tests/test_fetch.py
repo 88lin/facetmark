@@ -416,9 +416,17 @@ class TestPoliteness:
 
     @respx.mock
     async def test_requests_to_one_host_are_spaced_apart(self):
+        """The one ``/robots.txt`` read per host is exempt: it happens once,
+        before the host limiter exists for that host, and it is the request the
+        host asked us to make."""
         stamps: list[float] = []
+        robots_hits = 0
 
         def handler(request):
+            nonlocal robots_hits
+            if request.url.path == "/robots.txt":
+                robots_hits += 1
+                return httpx.Response(404)
             stamps.append(time.monotonic())
             return httpx.Response(200, html=article_html())
 
@@ -426,6 +434,7 @@ class TestPoliteness:
         urls = [f"https://slow.example/{i}" for i in range(4)]
         await fetch_many(urls, policy=FetchPolicy(per_host_min_interval_s=0.05,
                                                   per_host_concurrency=1))
+        assert robots_hits == 1, robots_hits
         gaps = [b - a for a, b in zip(stamps, stamps[1:], strict=False)]
         assert all(g >= 0.04 for g in gaps), gaps
 
