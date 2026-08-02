@@ -24,15 +24,22 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from facetmark.config import Settings                       # noqa: E402
-from facetmark.db import count_vectors, open_db             # noqa: E402
-from facetmark.edges import build_edges                     # noqa: E402
+from facetmark.config import Settings  # noqa: E402
+from facetmark.db import count_vectors, open_db  # noqa: E402
+from facetmark.edges import build_edges  # noqa: E402
 from facetmark.enrich import embed_content, enrich_all, filter_intents  # noqa: E402
-from facetmark.enrich.vectors import embed_intents          # noqa: E402
-from facetmark.importers import import_bookmarks            # noqa: E402
-from facetmark.providers import MockProvider                # noqa: E402
-from facetmark.search import CONFIGS, FULL, build_context, classify, quick_search, search  # noqa: E402
-from facetmark.sessions import build_sessions               # noqa: E402
+from facetmark.enrich.vectors import embed_intents  # noqa: E402
+from facetmark.importers import import_bookmarks  # noqa: E402
+from facetmark.providers import MockProvider  # noqa: E402
+from facetmark.search import (  # noqa: E402
+    CONFIGS,
+    FULL,
+    build_context,
+    classify,
+    quick_search,
+    search,
+)
+from facetmark.sessions import build_sessions  # noqa: E402
 
 SRC = sys.argv[1]
 LIMIT = int(sys.argv[2]) if len(sys.argv) > 2 else 0

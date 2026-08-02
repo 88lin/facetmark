@@ -26,7 +26,7 @@ jobs:
       - name: install
         run: uv pip install --system -e ".[dev]"
       - name: lint
-        run: ruff check src tests
+        run: ruff check src tests scripts
       - name: test
         run: pytest -q --cov=facetmark --cov-report=term-missing
 

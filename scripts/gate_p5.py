@@ -25,17 +25,17 @@ from urllib.parse import urlsplit
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-import httpx                                                  # noqa: E402
+import httpx  # noqa: E402
 
-from facetmark.config import Settings                         # noqa: E402
-from facetmark.db import open_db                              # noqa: E402
-from facetmark.health import gather_external                  # noqa: E402
+from facetmark.config import Settings  # noqa: E402
+from facetmark.db import open_db  # noqa: E402
+from facetmark.health import gather_external  # noqa: E402
 from facetmark.health.store import due_for_check, retry_after_seconds  # noqa: E402
-from facetmark.health.verdicts import (                       # noqa: E402
+from facetmark.health.verdicts import (  # noqa: E402
     SOFT_404_PATTERNS,
     placeholder_hit,
 )
-from facetmark.importers import import_bookmarks              # noqa: E402
+from facetmark.importers import import_bookmarks  # noqa: E402
 
 SRC = sys.argv[1]
 LIMIT = int(sys.argv[2]) if len(sys.argv) > 2 else 0
