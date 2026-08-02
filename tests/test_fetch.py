@@ -710,6 +710,99 @@ class TestCrawl:
                                  "queued_for_browser": 0, "by_verdict": {}}
 
 
+class _Interrupted(Exception):
+    """Stands in for a Ctrl-C, without asking pytest to abort the session."""
+
+
+class TestCrawlPersistsAsItGoes:
+    """A crawl that dies at 95% must keep the 95%.
+
+    Fetching a real library is tens of minutes of somebody else's bandwidth.
+    Holding every body in memory until the last request returns means one
+    Ctrl-C, one OOM, or one unhandled error costs the whole run and re-spends
+    every one of those requests on the next attempt.
+    """
+
+    def _stored(self, db) -> int:
+        return db.execute(
+            "SELECT COUNT(*) c FROM content WHERE body_hash IS NOT NULL"
+        ).fetchone()["c"]
+
+    @respx.mock
+    async def test_each_body_is_committed_before_the_next_one_arrives(self, db):
+        targets = pending_targets(db)
+        for n, (_bid, url, _t) in enumerate(targets):
+            respx.get(url).mock(
+                return_value=httpx.Response(200, html=article_html(title=f"Doc {n}")))
+        counts: list[int] = []
+        open_txn: list[bool] = []
+
+        def watch(_res) -> None:
+            counts.append(self._stored(db))
+            open_txn.append(db.in_transaction)
+
+        await crawl(db, policy=FetchPolicy(per_host_min_interval_s=0.0), progress=watch)
+        # The old code wrote nothing until the batch was complete, which made
+        # this list all zeroes.
+        assert counts == list(range(1, len(targets) + 1))
+        # And each row is committed, not merely written: a crash one page later
+        # cannot take it back.
+        assert open_txn == [False] * len(targets)
+
+    async def test_an_interrupted_crawl_keeps_what_already_landed(self, tmp_path):
+        path = tmp_path / "library.db"
+        disk = open_db(path)
+        from tests.conftest import NETSCAPE_SAMPLE
+
+        import_bookmarks(disk, content=NETSCAPE_SAMPLE)
+        targets = pending_targets(disk)
+        assert len(targets) >= 3
+        seen = 0
+
+        def die_partway(_res) -> None:
+            nonlocal seen
+            seen += 1
+            if seen == 2:
+                raise _Interrupted("user gave up")
+
+        with respx.mock:
+            for _bid, url, _t in targets:
+                respx.get(url).mock(return_value=httpx.Response(200, html=article_html()))
+            with pytest.raises(_Interrupted):
+                await crawl(disk, policy=FetchPolicy(concurrency=1,
+                                                     per_host_min_interval_s=0.0),
+                            progress=die_partway)
+        disk.close()
+
+        # Reopened from the file, so this is what actually survived the process.
+        reopened = open_db(path)
+        landed = self._stored(reopened)
+        assert landed >= 2
+        assert len(pending_targets(reopened)) == len(targets) - landed
+
+        with respx.mock:
+            for _bid, url, _t in targets:
+                respx.get(url).mock(return_value=httpx.Response(200, html=article_html()))
+            rep = await crawl(reopened, policy=FetchPolicy(per_host_min_interval_s=0.0))
+        assert rep.attempted == len(targets) - landed
+        assert self._stored(reopened) == len(targets)
+        reopened.close()
+
+    @respx.mock
+    async def test_a_failure_mid_batch_still_counts_and_still_queues(self, db):
+        targets = pending_targets(db)
+        for n, (_bid, url, _t) in enumerate(targets):
+            respx.get(url).mock(return_value=httpx.Response(403) if n == 1
+                                else httpx.Response(200, html=article_html()))
+        rep = await crawl(db, policy=FetchPolicy(per_host_min_interval_s=0.0))
+        # Per-result accounting has to agree with the whole-batch tally it
+        # replaced: results arrive out of order, ids are matched by URL.
+        assert rep.stored == len(targets) - 1
+        assert rep.queued == 1
+        assert rep.as_dict()["by_verdict"] == {"ok": len(targets) - 1, "refused": 1}
+        assert self._stored(db) == len(targets) - 1
+
+
 class TestExtractionDataclass:
     def test_ok_requires_both_length_and_not_being_a_wall(self):
         assert Extraction("x" * MIN_USEFUL_CHARS, "t", "trafilatura").ok

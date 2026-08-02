@@ -16,6 +16,7 @@ Two things happen here that are easy to get wrong elsewhere:
 from __future__ import annotations
 
 import sqlite3
+from collections import defaultdict, deque
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
@@ -383,16 +384,37 @@ async def crawl(
         return CrawlReport(by_verdict={})
 
     pol = policy or policy_from_settings(settings)
-    batch: BatchResult = await fetch_many(
-        [t[1] for t in targets], policy=pol, client=client, on_result=progress
-    )
+    rep = CrawlReport(attempted=len(targets), by_verdict={})
 
-    rep = CrawlReport(attempted=len(targets), by_verdict=batch.by_verdict())
-    for (bid, _url, _title), res in zip(targets, batch.results, strict=True):
-        out = save_result(conn, bid, res)
-        rep.stored += int(out.stored)
-        rep.changed += int(out.changed)
-        rep.queued += int(out.queued_for_browser)
+    # Rows are written as their pages land, not after the last one does. A real
+    # library is tens of minutes of somebody else's bandwidth; a crawl that
+    # holds everything in memory until the end throws all of it away on a
+    # Ctrl-C at 95%, and re-spends those requests on the next run. The
+    # connection is in autocommit, so every saved body is durable the moment it
+    # is written, and ``pending_targets`` will not offer it again.
+    #
+    # Ids are matched to results by URL rather than by position, because
+    # ``on_result`` fires in completion order while ``batch.results`` stays in
+    # input order. A URL keeps a queue of ids rather than one id: the schema
+    # makes duplicates within a batch unlikely, not impossible.
+    waiting: dict[str, deque[int]] = defaultdict(deque)
+    for bid, url, _title in targets:
+        waiting[url].append(bid)
+
+    def persist(res: FetchResult) -> None:
+        queued_ids = waiting.get(res.url)
+        if queued_ids:
+            out = save_result(conn, queued_ids.popleft(), res)
+            rep.stored += int(out.stored)
+            rep.changed += int(out.changed)
+            rep.queued += int(out.queued_for_browser)
+        if progress is not None:
+            progress(res)
+
+    batch: BatchResult = await fetch_many(
+        [t[1] for t in targets], policy=pol, client=client, on_result=persist
+    )
+    rep.by_verdict = batch.by_verdict()
     conn.commit()
     return rep
 
