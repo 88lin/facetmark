@@ -57,6 +57,12 @@
   第一条用到新列的查询才炸，而那时报错点离原因已经很远。现在开库即校验。
 - `providers._post()` 重试耗尽时只打印 `failed after 3 attempts:`——httpx 的多个超时
   异常 `str()` 为空。改为带上异常类名。
+- **一页把提取器搞崩会连坐整批抓取。** `fetch_many` 用的是不带 `return_exceptions`
+  的 `asyncio.gather`，而 `extract()` 的异常在 `fetch_one` 里没有被接住——一个畸形
+  页面足以让同批已经抓好的结果全部丢掉，并且破坏调用方用来对齐 bookmark id 的
+  「结果按输入顺序返回」契约。现在提取失败记为 `empty`（请求是成功的，是我们的解析
+  器没解析出来，真浏览器有机会做得更好），批内任何未预料到的异常记为 `unreachable`
+  并留在原位。
 - **内容向量一旦写入就永不刷新。** `embed_content(force=False)` 的候选集条件是
   `b.id NOT IN (SELECT bookmark_id FROM vec_content)`，只问「有没有向量」，不问
   「向量是不是当前文本算出来的」。先 `index --no-fetch` 建库、之后再 `crawl` 补正文
