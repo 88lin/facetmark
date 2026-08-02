@@ -52,6 +52,14 @@
 - 平台表拆到 `importers/discovery.py` 并补齐 Opera（Windows 上在漫游
   `%APPDATA%` 而不是 `%LOCALAPPDATA%`，且 `Bookmarks` 直接放在渠道目录里、没有
   `Default/` 一层——解析器的文档字符串一直声称支持 Opera，发现表里却没有它）。
+- **`facetmark index` 现在整条链路都是增量的，并有端到端测试钉住这条保证**
+  （`TestIndexingTwiceIsNotPayingTwice`）：同一个库跑第二遍，模型调用数为 **0**——
+  不重新 enrich、不重算内容向量、不重打意图探针、不重嵌意图向量。计的是**文本条数**
+  而不是请求数，因为嵌入是批的，一次请求六十四条就是付了六十四条的钱。逐个阶段各自
+  增量与「整条命令增量」不是同一个命题：只要有一个阶段全量重扫，整条命令就退化成全量
+  重跑。原计划里的 `facetmark index --since` 因此**不做**——它要解决的问题已经不存在，
+  多一个标志只会多一个会和 `force` 语义打架的旋钮。（会话与边每次都整体重建，但那是
+  纯本地 SQL，不花模型调用。）
 - **扩展有测试了**（`extension/test/`，`npm test`，已进 CI）。不引入任何新依赖：
   用 node 22 自带的 `--test` 跑，用 `--experimental-strip-types` 直接加载**出厂的
   那份源码**而不是编译副本。代价是源码必须是「删掉类型就能跑」的子集，所以
