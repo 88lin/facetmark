@@ -91,14 +91,27 @@ async def main() -> None:
                 want_content=True, want_intent=True,
             )
             lists.update(vlists)
-        fused = [f.doc_id for f in rrf(lists, k=st.rrf_k, weights=DEFAULT_FACET_WEIGHTS)]
+        fused_obj = rrf(lists, k=st.rrf_k, weights=DEFAULT_FACET_WEIGHTS)
+        fused = [f.doc_id for f in fused_obj]
+        rank = rank_of(fused, tid)
+        # 上下文乘子最多把分数乘 MAX_BOOST。要进前 5，目标分数乘完必须不低于
+        # 当前第 5 名的分数——这里假设竞争者不被加权，因此算出来的是**所需
+        # 倍数的下界**：真实情况只会更难。
+        need = 0.0
+        if rank > 5 and len(fused_obj) >= 5:
+            s5 = fused_obj[4].score
+            st_ = fused_obj[rank - 1].score
+            need = s5 / st_ if st_ > 0 else 0.0
+        elif 0 < rank <= 5:
+            need = 1.0
         return {
             "qtype": r["qtype"],
             "subtype": r.get("subtype", ""),
             "text": r["text"],
             "target_url": r["target_url"],
-            "fused_rank": rank_of(fused, tid),
+            "fused_rank": rank,
             "fused_n": len(fused),
+            "need_boost": round(need, 3),
             "facet_rank": {f: rank_of(lists.get(f, []), tid) for f in FACETS},
             "has_window": u.time_window is not None,
             "episodic_confidence": round(u.episodic_confidence, 3),

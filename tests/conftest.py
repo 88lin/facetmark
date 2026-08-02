@@ -1,11 +1,27 @@
 from __future__ import annotations
 
+import os
 import sqlite3
 
 import pytest
 
 from facetmark.config import Settings
 from facetmark.db import open_db
+
+
+@pytest.fixture(autouse=True)
+def _no_ambient_config(monkeypatch):
+    """Run every test against a clean environment.
+
+    ``Settings`` reads ``FACETMARK_*`` from the process environment, so a
+    developer whose shell is configured to talk to a real endpoint -- or a
+    machine that is in the middle of indexing a real library -- gets different
+    test results from CI for reasons that have nothing to do with the code.
+    Strip the whole namespace before each test; anything a test needs, it
+    passes explicitly.
+    """
+    for key in [k for k in os.environ if k.startswith("FACETMARK_")]:
+        monkeypatch.delenv(key, raising=False)
 
 # ---------------------------------------------------------------------------
 # Bookmark file fixtures.

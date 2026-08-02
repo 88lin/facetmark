@@ -435,8 +435,21 @@ class TestPoliteness:
         await fetch_many(urls, policy=FetchPolicy(per_host_min_interval_s=0.05,
                                                   per_host_concurrency=1))
         assert robots_hits == 1, robots_hits
+        # The limiter *reserves* evenly spaced slots and each request sleeps
+        # until its own slot. A stopwatch inside the handler therefore also
+        # measures however long the event loop was busy elsewhere, so on a
+        # loaded machine one gap can come in short without the host having been
+        # treated rudely -- the following request is still pinned to its
+        # original reservation. Assert the contract that actually matters: the
+        # i-th request does not start before i intervals have passed. The loose
+        # per-gap floor stays, to catch a limiter that has stopped spacing at
+        # all rather than one that merely jittered.
+        assert len(stamps) == 4, stamps
+        elapsed = [t - stamps[0] for t in stamps]
+        for i, t in enumerate(elapsed):
+            assert t >= i * 0.05 - 0.02, (i, elapsed)
         gaps = [b - a for a, b in zip(stamps, stamps[1:], strict=False)]
-        assert all(g >= 0.04 for g in gaps), gaps
+        assert all(g >= 0.02 for g in gaps), gaps
 
     @respx.mock
     async def test_never_more_than_the_allowed_requests_in_flight_per_host(self):
