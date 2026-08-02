@@ -17,7 +17,10 @@ from facetmark.importers import (
 
 
 def _year(ts: int) -> int:
-    return dt.datetime.fromtimestamp(ts, dt.timezone.utc).year
+    # Not fromtimestamp: Windows raises OSError on negative values, and the
+    # 1601 assertions below depend on those working.
+    return (dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
+            + dt.timedelta(seconds=ts)).year
 
 
 def _rows(conn):

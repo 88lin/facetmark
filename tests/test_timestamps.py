@@ -19,7 +19,10 @@ REAL_WEBKIT_US = [13300000000000000, 13350000000000000, 13400000000000000]
 
 
 def _year(ts: int) -> int:
-    return dt.datetime.fromtimestamp(ts, dt.timezone.utc).year
+    # Not fromtimestamp: Windows raises OSError on negative values, and the
+    # 1601 assertions below depend on those working.
+    return (dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
+            + dt.timedelta(seconds=ts)).year
 
 
 class TestClassifyOne:

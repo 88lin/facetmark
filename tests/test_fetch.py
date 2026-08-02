@@ -458,11 +458,21 @@ class TestPoliteness:
 
         for i in range(6):
             respx.get(f"https://h{i}.example/p").mock(side_effect=handler)
+        urls = [f"https://h{i}.example/p" for i in range(6)]
+
         t0 = time.monotonic()
-        await fetch_many([f"https://h{i}.example/p" for i in range(6)],
-                         policy=FetchPolicy(concurrency=6, per_host_min_interval_s=0.0))
-        # Serial would be ~0.30s; parallel across hosts should be far under that.
-        assert time.monotonic() - t0 < 0.20
+        await fetch_many(urls, policy=FetchPolicy(concurrency=6,
+                                                  per_host_min_interval_s=0.0))
+        parallel = time.monotonic() - t0
+
+        t0 = time.monotonic()
+        await fetch_many(urls, policy=FetchPolicy(concurrency=1,
+                                                  per_host_min_interval_s=0.0))
+        serial = time.monotonic() - t0
+
+        # An absolute bound would only measure the runner. What matters is that
+        # six hosts overlap: the parallel pass must be well under the serial one.
+        assert parallel < serial * 0.7, (parallel, serial)
 
 
 # ---------------------------------------------------------------------------
