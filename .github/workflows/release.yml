@@ -29,6 +29,8 @@ jobs:
 
   pypi:
     runs-on: ubuntu-latest
+    env:
+      PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
     # Publishing needs a PYPI_API_TOKEN repository secret. Without it this job
     # is skipped rather than failing the release, so the extension artifact
     # still ships.
@@ -40,10 +42,10 @@ jobs:
       - run: pip install build twine
       - run: python -m build
       - name: publish
-        if: ${{ secrets.PYPI_API_TOKEN != '' }}
+        if: env.PYPI_TOKEN != ''
         env:
           TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+          TWINE_PASSWORD: ${{ env.PYPI_TOKEN }}
         run: twine upload dist/*
       - uses: softprops/action-gh-release@v2
         with:
