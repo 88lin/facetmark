@@ -388,6 +388,15 @@ def _ts_interface(src: str, name: str) -> dict[str, bool]:
     return fields
 
 
+def _ts_queue_keys(src: str) -> set[str]:
+    """Every ``/queue/stats`` key the client reads by name."""
+    import re
+
+    m = re.search(r"export function summarizeQueue\(.*?\n\}", src, re.S)
+    assert m, "summarizeQueue not found -- rename?"
+    return set(re.findall(r"n\(\"(\w+)\"\)", m.group(0)))
+
+
 class TestTheExtensionContract:
     """The one boundary the type checker cannot see.
 
@@ -433,3 +442,43 @@ class TestTheExtensionContract:
         seed(client, "https://a.example/rust", "Rust ownership", body="borrow checker rust")
         assert "expanded" in client.post("/search", json={"q": "rust"}, headers=auth).json()
         assert "expanded" in _ts_interface(_ts_source(), "SearchResponse")
+
+    def test_the_queue_states_the_client_reads_are_the_ones_the_server_writes(self, client, auth):
+        """``/queue/stats`` is a ``GROUP BY state``: a state nobody is in is absent.
+
+        So the client reads it key by key, and a state renamed on this side
+        arrives over there as a zero rather than as an error. Put one bookmark
+        in every state the store can write and check that the two vocabularies
+        are the same set.
+        """
+        conn = client.app.state.fm.conn
+        ids = [seed(client, f"https://q{i}.example/p", f"page {i}") for i in range(4)]
+        for bid in ids:
+            fetchstore.enqueue_for_browser(conn, bid, reason="wall")
+
+        fetchstore.complete_browser_item(conn, ids[0], body="a body long enough to keep")
+        conn.execute(
+            "UPDATE fetch_queue SET attempts=? WHERE bookmark_id=?",
+            (fetchstore.MAX_BROWSER_ATTEMPTS, ids[1]),
+        )
+        fetchstore.complete_browser_item(conn, ids[1], body="")
+        conn.execute("UPDATE fetch_queue SET attempts=1 WHERE bookmark_id=?", (ids[2],))
+        fetchstore.complete_browser_item(conn, ids[2], body="")  # back to pending, in backoff
+        leased = fetchstore.lease_browser_batch(conn, 10)
+        assert [r["bookmark_id"] for r in leased] == [ids[3]], "a backoff must not be leasable"
+
+        got = client.get("/queue/stats", headers=auth).json()
+        assert got == {"done": 1, "failed": 1, "pending": 1, "leased": 1, "waiting": 1}
+        assert set(got) == _ts_queue_keys(_ts_source())
+
+    def test_waiting_is_a_share_of_pending_and_the_client_subtracts_it(self, client, auth):
+        """`waiting` counts pending rows in backoff. Adding the two double-counts."""
+        conn = client.app.state.fm.conn
+        bid = seed(client, "https://slow.example/p", "slow")
+        fetchstore.enqueue_for_browser(conn, bid, reason="wall")
+        fetchstore.complete_browser_item(conn, bid, body="")  # first failure -> backoff
+
+        got = client.get("/queue/stats", headers=auth).json()
+        assert got["pending"] == 1 and got["waiting"] == 1
+        src = _ts_source()
+        assert "pending - waiting" in src, "the client must carve `waiting` out of `pending`"

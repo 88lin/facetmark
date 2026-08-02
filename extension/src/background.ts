@@ -7,7 +7,7 @@
 // does that in a background tab, three at a time, and it stops the moment the
 // user pauses it.
 
-import { ApiError, api, loadSettings, saveSettings } from "./api.js";
+import { ApiError, api, loadSettings, saveSettings } from "./api.ts";
 
 const QUIET_MS = 1500; // settle time after readyState=complete, for late renders
 const TAB_TIMEOUT_MS = 20000;
@@ -83,6 +83,7 @@ export async function drainQueue(): Promise<number> {
   if (!s.channelB || s.paused || draining) return 0;
   draining = true;
   let done = 0;
+  let unauthorized = false;
   try {
     const { items } = await api.queueNext(BATCH);
     for (const item of items) {
@@ -105,11 +106,16 @@ export async function drainQueue(): Promise<number> {
       done += 1;
       await progress(done, items.length);
     }
-  } catch {
-    /* server down: try again on the next alarm */
+  } catch (e) {
+    // A server that is simply not running is not worth a badge: the drain is a
+    // background activity and the next alarm will try again. A rejected pairing
+    // token is worth one, because it will never fix itself, and without a
+    // signal channel B is indistinguishable from channel B doing nothing.
+    unauthorized = e instanceof ApiError && e.status === 401;
   } finally {
     draining = false;
     await chrome.action.setBadgeText({ text: "" });
+    if (unauthorized) await badge("err", "pairing token rejected - open options");
   }
   return done;
 }
@@ -123,38 +129,70 @@ interface Rendered {
 function renderInTab(url: string): Promise<Rendered> {
   return new Promise((resolve, reject) => {
     let settled = false;
-    chrome.tabs.create({ url, active: false, pinned: true }, (tab) => {
-      const tabId = tab.id;
-      if (tabId === undefined) return reject(new Error("no tab id"));
+    let tabId: number | undefined;
+    let onUpdated: ((id: number, info: chrome.tabs.TabChangeInfo) => void) | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
-      const finish = async (fn: () => void) => {
-        if (settled) return;
-        settled = true;
-        chrome.tabs.onUpdated.removeListener(onUpdated);
-        clearTimeout(timer);
+    const finish = async (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      if (onUpdated) chrome.tabs.onUpdated.removeListener(onUpdated);
+      if (timer !== undefined) clearTimeout(timer);
+      if (tabId !== undefined) {
         try {
           await chrome.tabs.remove(tabId);
         } catch {
           /* already closed */
         }
-        fn();
-      };
+      }
+      fn();
+    };
 
-      const timer = setTimeout(
-        () => void finish(() => reject(new Error("timeout waiting for the page"))),
-        TAB_TIMEOUT_MS,
-      );
+    // Armed before the tab is asked for rather than after it arrives. The
+    // deadline used to start inside the `tabs.create` callback, which left the
+    // one case it most needed to cover uncovered: a `tabs.create` that never
+    // calls back at all. Every path out of here now has a clock on it.
+    timer = setTimeout(
+      () => void finish(() => reject(new Error("timeout waiting for the page"))),
+      TAB_TIMEOUT_MS,
+    );
 
-      const onUpdated = (id: number, info: chrome.tabs.TabChangeInfo) => {
-        if (id !== tabId || info.status !== "complete") return;
+    chrome.tabs.create({ url, active: false, pinned: true }, (tab) => {
+      // Chrome passes `undefined` here and sets `lastError` when the tab could
+      // not be opened. Reading `tab.id` in that case throws a TypeError inside
+      // a callback that no `try` can see and that the promise never hears
+      // about, so a single unopenable URL wedged `drainQueue` -- and with it
+      // the whole of channel B -- until the service worker happened to restart.
+      const err = chrome.runtime.lastError;
+      if (err || tab?.id === undefined) {
+        void finish(() =>
+          reject(new Error(err?.message ?? "the browser would not open a tab")),
+        );
+        return;
+      }
+      if (settled) {
+        // The deadline won the race. Do not leave the tab behind.
+        void chrome.tabs.remove(tab.id).catch(() => undefined);
+        return;
+      }
+      const id0 = tab.id;
+      tabId = id0;
+
+      onUpdated = (id: number, info: chrome.tabs.TabChangeInfo) => {
+        if (id !== id0 || info.status !== "complete") return;
         setTimeout(async () => {
           try {
             const [res] = await chrome.scripting.executeScript({
-              target: { tabId },
+              target: { tabId: id0 },
               func: extractFromPage,
             });
             const value = res?.result as Rendered | undefined;
-            if (!value || !value.text) throw new Error("page had no readable text");
+            // Trimmed, because that is the test the server applies before it
+            // decides whether a body counts (`complete_browser_item` strips
+            // first). Sending whitespace across and letting the far side reject
+            // it costs a round trip and replaces a reason the extension knows
+            // -- the page rendered nothing -- with a generic one it does not.
+            if (!value || !value.text.trim()) throw new Error("page had no readable text");
             await finish(() => resolve(value));
           } catch (e) {
             await finish(() => reject(e instanceof Error ? e : new Error(String(e))));

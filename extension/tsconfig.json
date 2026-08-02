@@ -10,7 +10,15 @@
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["chrome"]
+    // Imports name the file that is actually on disk (`./api.ts`), so the same
+    // source that esbuild bundles can also be run unmodified by `node
+    // --experimental-strip-types`. `erasableSyntaxOnly` keeps it that way: it
+    // rejects the handful of constructs -- enums, namespaces, constructor
+    // parameter properties -- that need a real compiler rather than a
+    // type-deleter, and which node refuses at load time.
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "types": ["chrome", "node"]
   },
-  "include": ["src/**/*.ts", "build.mjs"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "build.mjs"]
 }

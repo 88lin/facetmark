@@ -6,7 +6,7 @@
 // then replaces the list in place. Waiting for stage two before drawing
 // anything is what makes otherwise fast search feel slow.
 
-import { ApiError, api, type Hit } from "./api.js";
+import { ApiError, api, describeQueue, type Hit, summarizeQueue } from "./api.ts";
 
 const DEBOUNCE_MS = 150;
 
@@ -173,7 +173,7 @@ input.focus();
 void api
   .queueStats()
   .then((s) => {
-    const pending = Number(s.pending ?? 0);
-    if (pending > 0) $("#queue").textContent = `${pending} page(s) waiting for the browser`;
+    const line = describeQueue(summarizeQueue(s));
+    if (line) $("#queue").textContent = line;
   })
   .catch(() => undefined);

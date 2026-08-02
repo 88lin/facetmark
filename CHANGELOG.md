@@ -52,10 +52,42 @@
 - 平台表拆到 `importers/discovery.py` 并补齐 Opera（Windows 上在漫游
   `%APPDATA%` 而不是 `%LOCALAPPDATA%`，且 `Bookmarks` 直接放在渠道目录里、没有
   `Default/` 一层——解析器的文档字符串一直声称支持 Opera，发现表里却没有它）。
+- **扩展有测试了**（`extension/test/`，`npm test`，已进 CI）。不引入任何新依赖：
+  用 node 22 自带的 `--test` 跑，用 `--experimental-strip-types` 直接加载**出厂的
+  那份源码**而不是编译副本。代价是源码必须是「删掉类型就能跑」的子集，所以
+  `tsconfig.json` 打开 `erasableSyntaxOnly`（构造器参数属性、`enum`、`namespace`
+  这些 node 会当场拒绝的写法编译期就报错），`ApiError` 相应改写。`test/stub.ts` 是
+  一份手写的浏览器替身，只覆盖 service worker 真正调用的那几个 API——用不到的一律
+  不写，这样将来多出一处对浏览器的依赖会在测试里变成 `TypeError`，而不是在真机上
+  变成沉默。16 条测试覆盖队列算术与整条 channel B 抓取循环的失败路径。
 
 ### 修复
 
-- **扩展弹窗里每一次搜索都显示 `[object Object] ms`。** `SearchResponse.took_ms`
+- **扩展把队列里「等浏览器」的条数报错了。** 弹窗和选项页都把 `/queue/stats` 的
+  `pending` 直接印成「waiting for the browser」。服务端的 `waiting` 是 `pending` 的
+  **子集**（在退避窗口里、当下租不出去的那些），两个数分开报的理由就写在
+  `fetch/store.py` 的 docstring 里：免得「pending 40 却租不到任何东西」看起来像 bug。
+  扩展把这个区分丢掉，等于把服务端特意防住的困惑又装了回去——用户点「fetch queued
+  pages」，得到「processed 0 page(s)」，旁边的数字纹丝不动，而实际上什么都没坏。
+  改为 `summarizeQueue()` / `describeQueue()` 一对纯函数，把 `ready`（现在就能取）、
+  `waiting`（在等时钟）、`leased`（已派出去）、`failed`（不再重试）分开说。
+- **选项页那句「processed N page(s)」没有人看得见**：写完立刻 `await refresh()`，
+  下一行就把它覆盖掉了。`refresh(note)` 现在接住这句话并与状态行拼在一起；channel B
+  关着或暂停时不再发消息，直接说明是哪一种。
+- **一个打不开的标签页会把整条 channel B 卡死到 service worker 重启为止。**
+  `chrome.tabs.create` 失败时给回调传的是 `undefined` 并置 `chrome.runtime.lastError`，
+  而 `renderInTab` 上来就读 `tab.id`——`TypeError` 抛在一个 Promise 看不见的回调里，
+  于是那个 Promise 永远不 settle，`drainQueue` 的 `await` 永远不返回，`draining`
+  永远是 `true`。现在先查 `lastError`，并且把 20 秒的超时**在请求标签页之前**就装上
+  （原来装在回调里，恰好漏掉了「回调根本不来」这一种）。竞态输给超时时创建出来的
+  标签页也会被关掉。
+- **抓取失败时扩展不区分「服务端没开」和「配对令牌被拒」**，两者都被同一个空
+  `catch` 吞掉。前者下一次闹钟会自己好，不值得打扰；后者永远不会自己好，而没有任何
+  信号的 channel B 和「没活可干的 channel B」在屏幕上长得一模一样。令牌被拒现在会亮
+  角标。
+- 扩展判定「页面没读到正文」的口径与服务端不一致：客户端只看 `!text`，服务端看
+  `text.strip()`。整页空白会白跑一个来回，并且把扩展本来知道的原因（页面没渲染出
+  东西）换成服务端的泛化原因。客户端改为同样先 `trim()`。 `SearchResponse.took_ms`
   在服务端是分阶段耗时的字典（`understand` / `facets` / `total` …），扩展里却声明成
   `number` 直接插进模板字符串。`request<T>` 是 `await res.json() as T`——一次不做
   检查的强制转换，TypeScript 会相信任何写在那里的形状，所以 `tsc` 和 CI 的
