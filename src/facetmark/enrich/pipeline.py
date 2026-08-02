@@ -40,6 +40,11 @@ class EnrichReport:
     skipped_unchanged: int = 0
     failed: int = 0
     queries_generated: int = 0
+    #: Pages the first call failed on and a half-length body recovered. Worth a
+    #: field rather than a log line: a number that climbs means the configured
+    #: ``body_truncate_chars`` does not fit the endpoint's per-slot context,
+    #: and every one of these cost two calls instead of one.
+    rescued_by_shorter_body: int = 0
     errors: list[str] = field(default_factory=list)
     usage: dict[str, int] = field(default_factory=dict)
 
@@ -48,6 +53,7 @@ class EnrichReport:
             "considered": self.considered, "enriched": self.enriched,
             "skipped_unchanged": self.skipped_unchanged, "failed": self.failed,
             "queries_generated": self.queries_generated,
+            "rescued_by_shorter_body": self.rescued_by_shorter_body,
             "errors": self.errors[:10], "usage": self.usage,
         }
 
@@ -185,27 +191,45 @@ async def enrich_all(
 
     gate = asyncio.Semaphore(concurrency)
 
-    async def one(t: Target) -> tuple[Target, Enrichment | None, str]:
+    async def attempt(t: Target, budget: int) -> Enrichment:
         prompt = build_user_prompt(
             title=t.title, url=t.url, folder=t.folder,
-            body=truncate_head_tail(t.body, s.body_truncate_chars),
+            body=truncate_head_tail(t.body, budget),
             n_queries=s.intent_generate_n,
         )
+        payload = await prov.chat_json(SYSTEM, prompt)
+        return coerce(payload, max_queries=s.intent_generate_n)
+
+    async def one(t: Target) -> tuple[Target, Enrichment | None, str, bool]:
         async with gate:
             try:
-                payload = await prov.chat_json(SYSTEM, prompt)
-                return t, coerce(payload, max_queries=s.intent_generate_n), ""
-            except (ProviderError, EnrichmentInvalid) as exc:
-                return t, None, f"{t.url}: {exc}"
+                return t, await attempt(t, s.body_truncate_chars), "", False
+            except (ProviderError, EnrichmentInvalid) as first:
+                # Nearly every failure observed on a 2,376-page run was the
+                # reply running out of room mid-object: the server's per-slot
+                # context has to hold prompt *and* completion, and a CJK page
+                # at the full truncation budget can spend 4,000+ tokens of it
+                # on the prompt alone. A client cannot see the server's slot
+                # size, so it cannot compute the right budget -- but halving
+                # the body is a cheap, provider-agnostic way to find out. It
+                # also helps the read timeouts, since prefill dominates.
+                shorter = max(600, s.body_truncate_chars // 2)
+                if shorter >= s.body_truncate_chars or not t.body:
+                    return t, None, f"{t.url}: {first}", False
+                try:
+                    return t, await attempt(t, shorter), "", True
+                except (ProviderError, EnrichmentInvalid) as second:
+                    return t, None, f"{t.url}: {first} | retry@{shorter}: {second}", False
 
     for coro in asyncio.as_completed([one(t) for t in todo]):
-        t, enr, err = await coro
+        t, enr, err, shortened = await coro
         if enr is None:
             rep.failed += 1
             rep.errors.append(err)
         else:
             rep.queries_generated += store_enrichment(conn, t, enr, model=s.chat_model)
             rep.enriched += 1
+            rep.rescued_by_shorter_body += int(shortened)
         if progress is not None:
             progress(t, enr, err)
     conn.commit()

@@ -231,7 +231,15 @@ class OpenAICompatibleProvider(Provider):
                     raise ProviderError(f"{path} -> HTTP {r.status_code}: {r.text[:300]}")
                 last = ProviderError(f"HTTP {r.status_code}")
             await asyncio.sleep(min(2 ** attempt, 8) * 0.5)
-        raise ProviderError(f"{path} failed after {self.settings.max_retries} attempts: {last}")
+        # Name the exception *class*. httpx raises several of its timeout and
+        # protocol errors with an empty message, so interpolating only ``last``
+        # produces "failed after 3 attempts: " -- which was, for one full
+        # indexing run, the entire diagnostic available for every third
+        # failure.
+        detail = f"{type(last).__name__}: {last}" if last else "no attempt was made"
+        raise ProviderError(
+            f"{path} failed after {self.settings.max_retries} attempts: {detail}"
+        )
 
     async def chat_json(self, system: str, user: str) -> dict:
         data = await self._post("/chat/completions", {

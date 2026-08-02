@@ -56,6 +56,21 @@ PAGES = {
 }
 
 
+@pytest.fixture()
+def long_page(conn):
+    """One bookmark with a body long enough that halving it is a real change."""
+    import_bookmarks(conn, content=(
+        '<!DOCTYPE NETSCAPE-Bookmark-file-1><DL><p>'
+        '<DT><A HREF="https://long.example/a" ADD_DATE="1700000000">A long page</A>'
+        '</DL><p>'
+    ))
+    bid = int(conn.execute("SELECT id FROM bookmark").fetchone()["id"])
+    store_body(conn, bid, body="paragraph. " * 900, title="A long page",
+               extractor="trafilatura")
+    conn.commit()
+    return conn
+
+
 async def _big_library(settings, n: int = 80):
     """A synthetic library large enough for the intent probe to discriminate."""
     from facetmark.db import now as _now
@@ -235,6 +250,23 @@ class TestOpenAICompatibleTransport:
             await p.chat_json("s", "u")
         await p.aclose()
 
+    @respx.mock
+    async def test_a_silent_transport_error_still_says_what_it_was(self, tmp_path):
+        """httpx raises several of its timeouts with an empty message.
+
+        Interpolating only the exception produced ``failed after 3 attempts:``
+        for a third of the failures in one real indexing run -- a log line that
+        cost an afternoon and said nothing. The class name is free.
+        """
+        respx.post("https://api.example/v1/chat/completions").mock(
+            side_effect=httpx.ReadTimeout(""))
+        p = OpenAICompatibleProvider(
+            Settings(data_dir=tmp_path, api_key="sk-x", base_url="https://api.example/v1",
+                     max_retries=2))
+        with pytest.raises(ProviderError, match="ReadTimeout"):
+            await p.chat_json("s", "u")
+        await p.aclose()
+
 
 class TestJsonRecovery:
     @pytest.mark.parametrize("text", [
@@ -391,6 +423,82 @@ class TestEnrichPipeline:
         rep = await enrich_all(loaded, provider=Broken(mock_settings), settings=mock_settings)
         assert rep.failed == rep.considered and rep.enriched == 0
         assert rep.errors and "on fire" in rep.errors[0]
+
+    async def test_a_reply_that_ran_out_of_room_is_retried_on_a_shorter_body(
+        self, long_page, mock_settings
+    ):
+        """The failure mode a real 2,376-page run actually hit.
+
+        The endpoint's per-slot context has to hold the prompt *and* the
+        completion; a long page leaves too little for the reply and the object
+        arrives cut in half. Halving the body is the only lever a client has,
+        since it cannot see the server's slot size.
+        """
+        seen: list[int] = []
+
+        class RunsOutOfRoom(Provider):
+            name = "cramped"
+
+            async def chat_json(self, system, user):
+                # Count the body, not the prompt: the assertion should not move
+                # every time the prompt template gains a line.
+                seen.append(user.count("paragraph."))
+                if seen[-1] > 500:
+                    raise ProviderError(
+                        'model did not return a JSON object: \'```json\\n{\\n "summary": "th\''
+                    )
+                return {"summary": "recovered", "intent_queries": ["q"]}
+
+            async def embed(self, texts):
+                return []
+
+        s = mock_settings.model_copy(update={"body_truncate_chars": 8000})
+        rep = await enrich_all(long_page, provider=RunsOutOfRoom(s), settings=s)
+        assert rep.failed == 0 and rep.enriched == 1
+        # Every page that needed the second call is counted, not just logged:
+        # a climbing number means the budget is wrong for this endpoint.
+        assert rep.rescued_by_shorter_body == 1
+        assert len(seen) == 2 and seen[0] > 500 >= seen[1]
+
+    async def test_the_shorter_retry_reports_both_failures_when_it_also_fails(
+        self, long_page, mock_settings
+    ):
+        class AlwaysCut(Provider):
+            name = "cut"
+
+            async def chat_json(self, system, user):
+                raise ProviderError(f"truncated at {len(user)}")
+
+            async def embed(self, texts):
+                return []
+
+        s = mock_settings.model_copy(update={"body_truncate_chars": 4000})
+        rep = await enrich_all(long_page, provider=AlwaysCut(s), settings=s)
+        assert rep.failed == 1 and rep.rescued_by_shorter_body == 0
+        assert "retry@2000" in rep.errors[0], rep.errors[0]
+
+    async def test_a_page_with_no_body_is_not_retried_at_all(self, conn, mock_settings):
+        """Halving nothing is nothing. Retrying a title-only page just doubles
+        the bill for the same reply."""
+        from tests.conftest import NETSCAPE_SAMPLE
+
+        import_bookmarks(conn, content=NETSCAPE_SAMPLE)
+        conn.commit()
+        calls = 0
+
+        class Broken(Provider):
+            name = "broken"
+
+            async def chat_json(self, system, user):
+                nonlocal calls
+                calls += 1
+                raise ProviderError("nope")
+
+            async def embed(self, texts):
+                return []
+
+        rep = await enrich_all(conn, provider=Broken(mock_settings), settings=mock_settings)
+        assert calls == rep.considered == rep.failed
 
     async def test_re_enriching_replaces_candidate_queries_wholesale(self, loaded, mock_settings):
         await enrich_all(loaded, settings=mock_settings)
