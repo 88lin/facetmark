@@ -1,0 +1,48 @@
+name: recut
+
+on:
+  push:
+    paths:
+      - '.github/workflows/recut.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  recut:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build extension
+        working-directory: extension
+        run: |
+          set -euo pipefail
+          npm ci || npm install
+          npm run build
+          cd dist && zip -qr "$GITHUB_WORKSPACE/facetmark-extension.zip" .
+
+      - name: Move the tag to the tested commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -q .github/workflows/recut.yml
+          git commit -q -m "facetmark: drop recut job"
+          git push
+          gh release delete v0.1.0 --yes --cleanup-tag
+          git tag -a v0.1.0 -m "facetmark v0.1.0"
+          git push origin v0.1.0
+          gh release create v0.1.0 "$GITHUB_WORKSPACE/facetmark-extension.zip" \
+            --title "facetmark v0.1.0" \
+            --notes "First release, cut on a commit with the full matrix green (Ubuntu and Windows, Python 3.10 and 3.12). The unpacked extension build is attached. The service installs from source with pip install -e '.[dev]'; then facetmark import BOOKMARKS.html, facetmark index, facetmark serve, and pair the extension with the token from facetmark token."
