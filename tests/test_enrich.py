@@ -14,7 +14,14 @@ import pytest
 import respx
 
 from facetmark.config import Settings
-from facetmark.db import count_vectors, ensure_vec_tables, jload, knn_content, open_db
+from facetmark.db import (
+    count_vectors,
+    ensure_vec_tables,
+    jload,
+    knn_content,
+    open_db,
+    upsert_content_vector,
+)
 from facetmark.enrich import (
     coerce,
     embed_content,
@@ -22,6 +29,8 @@ from facetmark.enrich import (
     enrich_all,
     filter_intents,
     probe,
+    stale_content_count,
+    vectors,
 )
 from facetmark.enrich.pipeline import targets, title_only_hash
 from facetmark.enrich.schema import SUMMARY_MAX, EnrichmentInvalid
@@ -568,6 +577,128 @@ class TestVectors:
             ensure_vec_tables(loaded, mock_settings.embed_dim, "some-other-model")
         with pytest.raises(SchemaMismatch):
             ensure_vec_tables(loaded, 999, mock_settings.embed_model)
+
+
+class TestContentVectorFreshness:
+    """A vector that exists is not the same as a vector that is right.
+
+    The original rule -- embed the bookmarks that have no vector -- is correct
+    exactly once. Index a library before its pages are fetched and every vector
+    is a title-only embedding that no later pass will ever revisit: the body
+    arrives, the summary arrives, and the thing search ranks on does not move.
+    """
+
+    @staticmethod
+    def _blob(conn, bid: int) -> bytes:
+        return conn.execute(
+            "SELECT embedding FROM vec_content WHERE bookmark_id=?", (bid,)
+        ).fetchone()[0]
+
+    @staticmethod
+    async def _titles_only(conn, settings):
+        from tests.conftest import NETSCAPE_SAMPLE
+
+        import_bookmarks(conn, content=NETSCAPE_SAMPLE)
+        conn.commit()
+        await embed_content(conn, settings=settings)
+        return conn
+
+    async def test_a_body_arriving_later_rebuilds_the_vector(self, conn, mock_settings):
+        await self._titles_only(conn, mock_settings)
+        bid = conn.execute("SELECT id FROM bookmark WHERE indexable=1 ORDER BY id").fetchone()["id"]
+        before = self._blob(conn, bid)
+
+        title, body = next(iter(PAGES.values()))
+        conn.execute("UPDATE bookmark SET title=? WHERE id=?", (title, bid))
+        store_body(conn, bid, body=body, title=title, extractor="trafilatura")
+        conn.commit()
+
+        rep = await embed_content(conn, settings=mock_settings)
+        assert rep.content_written >= 1
+        assert self._blob(conn, bid) != before
+
+    async def test_enrichment_arriving_later_rebuilds_the_vector(self, loaded, mock_settings):
+        await embed_content(loaded, settings=mock_settings)
+        bid = loaded.execute("SELECT id FROM bookmark ORDER BY id LIMIT 1").fetchone()["id"]
+        before = self._blob(loaded, bid)
+        await enrich_all(loaded, settings=mock_settings)
+        rep = await embed_content(loaded, settings=mock_settings)
+        assert rep.content_written >= 1
+        assert self._blob(loaded, bid) != before
+
+    async def test_nothing_changed_means_nothing_is_re_embedded(self, loaded, mock_settings):
+        await enrich_all(loaded, settings=mock_settings)
+        await embed_content(loaded, settings=mock_settings)
+        prov = MockProvider(mock_settings)
+        rep = await embed_content(loaded, provider=prov, settings=mock_settings)
+        assert rep.content_written == 0 and prov.usage.calls == 0
+        assert rep.content_current == count_vectors(loaded)[0]
+
+    async def test_a_vector_of_unknown_provenance_counts_as_stale(self, loaded, mock_settings):
+        await enrich_all(loaded, settings=mock_settings)
+        await embed_content(loaded, settings=mock_settings)
+        loaded.execute("DELETE FROM vec_content_meta")
+        loaded.commit()
+        assert stale_content_count(loaded) == count_vectors(loaded)[0]
+
+    async def test_a_provenance_row_without_its_vector_is_not_current(self, loaded, mock_settings):
+        """The hand-repair we actually performed: `DELETE FROM vec_content`."""
+        await enrich_all(loaded, settings=mock_settings)
+        await embed_content(loaded, settings=mock_settings)
+        n = count_vectors(loaded)[0]
+        loaded.execute("DELETE FROM vec_content")
+        loaded.commit()
+        assert loaded.execute("SELECT COUNT(*) c FROM vec_content_meta").fetchone()["c"] == n
+        rep = await embed_content(loaded, settings=mock_settings)
+        assert rep.content_written == n
+
+    async def test_changing_the_recipe_invalidates_every_vector(
+        self, loaded, mock_settings, monkeypatch
+    ):
+        await enrich_all(loaded, settings=mock_settings)
+        n = (await embed_content(loaded, settings=mock_settings)).content_written
+        monkeypatch.setattr(vectors, "CONTENT_RECIPE", "99")
+        assert stale_content_count(loaded) == n
+
+    async def test_writing_a_vector_without_saying_what_it_encodes_drops_provenance(
+        self, loaded, mock_settings
+    ):
+        await enrich_all(loaded, settings=mock_settings)
+        await embed_content(loaded, settings=mock_settings)
+        bid = loaded.execute("SELECT bookmark_id FROM vec_content LIMIT 1").fetchone()[0]
+        upsert_content_vector(loaded, bid, [0.0] * (mock_settings.embed_dim - 1) + [1.0])
+        assert loaded.execute(
+            "SELECT COUNT(*) c FROM vec_content_meta WHERE bookmark_id=?", (bid,)
+        ).fetchone()["c"] == 0
+        assert stale_content_count(loaded) >= 1
+
+    async def test_deleting_the_bookmark_takes_the_provenance_with_it(
+        self, loaded, mock_settings
+    ):
+        await enrich_all(loaded, settings=mock_settings)
+        await embed_content(loaded, settings=mock_settings)
+        bid = loaded.execute("SELECT bookmark_id FROM vec_content LIMIT 1").fetchone()[0]
+        loaded.execute("DELETE FROM bookmark WHERE id=?", (bid,))
+        loaded.commit()
+        assert loaded.execute(
+            "SELECT COUNT(*) c FROM vec_content_meta WHERE bookmark_id=?", (bid,)
+        ).fetchone()["c"] == 0
+
+    async def test_force_re_embeds_even_what_is_current(self, loaded, mock_settings):
+        await enrich_all(loaded, settings=mock_settings)
+        n = (await embed_content(loaded, settings=mock_settings)).content_written
+        rep = await embed_content(loaded, settings=mock_settings, force=True)
+        assert rep.content_written == n and rep.content_current == 0
+
+    async def test_the_library_report_names_the_stale_count(self, loaded, mock_settings):
+        from facetmark import service
+
+        await enrich_all(loaded, settings=mock_settings)
+        await embed_content(loaded, settings=mock_settings)
+        assert service.library_stats(loaded)["content_vectors_stale"] == 0
+        loaded.execute("DELETE FROM vec_content_meta")
+        loaded.commit()
+        assert service.library_stats(loaded)["content_vectors_stale"] > 0
 
 
 # ---------------------------------------------------------------------------

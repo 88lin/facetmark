@@ -16,16 +16,19 @@ configured.
 
 from __future__ import annotations
 
+import hashlib
 import sqlite3
 from collections.abc import Sequence
 from dataclasses import dataclass
 
 from ..config import Settings, get_settings
 from ..db import (
+    content_vector_hashes,
     ensure_vec_tables,
     jload,
     upsert_content_vector,
     upsert_intent_vector,
+    vec_tables_exist,
 )
 from ..providers import Provider, get_provider
 from ..text import truncate_head_tail
@@ -39,12 +42,19 @@ BATCH = 64
 #: roughly this length the vector drifts toward the page's boilerplate.
 CONTENT_BODY_CHARS = 2000
 
+#: Bump when :func:`content_text` changes what it feeds the encoder. It is
+#: mixed into the fingerprint, so the change alone marks every stored vector
+#: stale -- otherwise a recipe change would leave the old vectors in place and
+#: only new bookmarks would get the new one.
+CONTENT_RECIPE = "1"
+
 
 @dataclass(slots=True)
 class VectorReport:
     content_written: int = 0
     intent_written: int = 0
     content_skipped: int = 0
+    content_current: int = 0
     dim: int = 0
     model: str = ""
 
@@ -53,6 +63,7 @@ class VectorReport:
             "content_written": self.content_written,
             "intent_written": self.intent_written,
             "content_skipped": self.content_skipped,
+            "content_current": self.content_current,
             "dim": self.dim, "model": self.model,
         }
 
@@ -76,14 +87,21 @@ def content_text(
     return "\n".join(p for p in parts if p)
 
 
-def _content_rows(conn: sqlite3.Connection, force: bool, ids: Sequence[int] | None):
+def content_fingerprint(text: str) -> str:
+    """Identify the exact text a stored vector was built from."""
+    h = hashlib.sha256()
+    h.update(CONTENT_RECIPE.encode("ascii"))
+    h.update(b"\x00")
+    h.update(text.encode("utf-8"))
+    return h.hexdigest()
+
+
+def _content_rows(conn: sqlite3.Connection, ids: Sequence[int] | None):
     where = ["b.indexable=1", "b.privacy_skipped=0"]
     params: list[object] = []
     if ids:
         where.append(f"b.id IN ({','.join('?' * len(ids))})")
         params.extend(ids)
-    if not force:
-        where.append("b.id NOT IN (SELECT bookmark_id FROM vec_content)")
     sql = (
         "SELECT b.id, b.title, c.body_text, e.summary, e.topics, e.entities "
         "FROM bookmark b "
@@ -92,6 +110,46 @@ def _content_rows(conn: sqlite3.Connection, force: bool, ids: Sequence[int] | No
         f"WHERE {' AND '.join(where)} ORDER BY b.id"
     )
     return conn.execute(sql, params).fetchall()
+
+
+def content_work(
+    conn: sqlite3.Connection, *, force: bool = False, ids: Sequence[int] | None = None
+) -> tuple[list[tuple[int, str, str]], int, int]:
+    """Decide what actually needs embedding.
+
+    Returns ``(pending, empty, current)`` where *pending* is
+    ``(bookmark_id, text, fingerprint)``. Staleness is decided by rebuilding the
+    text and comparing fingerprints, not by asking whether a vector exists --
+    the whole point is that a vector can exist and be wrong.
+
+    Building every candidate's text costs string work proportional to the
+    library, which is nothing next to the embedding call it avoids.
+    """
+    stored = {} if force else content_vector_hashes(conn)
+    pending: list[tuple[int, str, str]] = []
+    empty = current = 0
+    for r in _content_rows(conn, ids):
+        text = content_text(
+            title=r["title"] or "", summary=r["summary"] or "",
+            topics=jload(r["topics"], []), entities=jload(r["entities"], []),
+            body=r["body_text"] or "",
+        )
+        if not text.strip():
+            empty += 1
+            continue
+        fp = content_fingerprint(text)
+        if stored.get(r["id"]) == fp:
+            current += 1
+            continue
+        pending.append((r["id"], text, fp))
+    return pending, empty, current
+
+
+def stale_content_count(conn: sqlite3.Connection) -> int:
+    """How many content vectors no longer match the text they claim to encode."""
+    if not vec_tables_exist(conn):
+        return 0
+    return len(content_work(conn)[0])
 
 
 async def embed_content(
@@ -108,24 +166,15 @@ async def embed_content(
     ensure_vec_tables(conn, s.embed_dim, s.embed_model)
     rep = VectorReport(dim=s.embed_dim, model=s.embed_model)
 
-    rows = _content_rows(conn, force, ids)
-    pending: list[tuple[int, str]] = []
-    for r in rows:
-        text = content_text(
-            title=r["title"] or "", summary=r["summary"] or "",
-            topics=jload(r["topics"], []), entities=jload(r["entities"], []),
-            body=r["body_text"] or "",
-        )
-        if text.strip():
-            pending.append((r["id"], text))
-        else:
-            rep.content_skipped += 1
+    pending, rep.content_skipped, rep.content_current = content_work(
+        conn, force=force, ids=ids
+    )
 
     for i in range(0, len(pending), BATCH):
         chunk = pending[i:i + BATCH]
-        vecs = await prov.embed([t for _, t in chunk])
-        for (bid, _), vec in zip(chunk, vecs, strict=True):
-            upsert_content_vector(conn, bid, vec)
+        vecs = await prov.embed([t for _, t, _ in chunk])
+        for (bid, _, fp), vec in zip(chunk, vecs, strict=True):
+            upsert_content_vector(conn, bid, vec, text_hash=fp)
         rep.content_written += len(chunk)
         if progress is not None:
             progress("content", rep.content_written, len(pending))

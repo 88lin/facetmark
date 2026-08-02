@@ -57,6 +57,16 @@
   第一条用到新列的查询才炸，而那时报错点离原因已经很远。现在开库即校验。
 - `providers._post()` 重试耗尽时只打印 `failed after 3 attempts:`——httpx 的多个超时
   异常 `str()` 为空。改为带上异常类名。
+- **内容向量一旦写入就永不刷新。** `embed_content(force=False)` 的候选集条件是
+  `b.id NOT IN (SELECT bookmark_id FROM vec_content)`，只问「有没有向量」，不问
+  「向量是不是当前文本算出来的」。先 `index --no-fetch` 建库、之后再 `crawl` 补正文
+  的用户，内容向量会永远停在只有标题的那一版，而搜索排的正是这个向量；`reindex`
+  走 `force=True` 能救，增量路径救不了，也没有任何地方会说它过期了。
+  迁移 v3 新增 `vec_content_meta`，记下每条向量所嵌入文本的 sha256；`force=False`
+  现在比对指纹，不一致就重算，`facetmark stats` 报 `content_vectors_stale`。
+  指纹里混入 `CONTENT_RECIPE`，所以改动 `content_text()` 的拼法本身就会让全部旧向量
+  作废。库里已有的向量来源不明，迁移刻意不做回填——它们记为过期，下一次 `index`
+  重建，这是这个版本唯一诚实的答案。
 
 ### 变更
 

@@ -92,8 +92,34 @@ def _v2_browser_queue_backoff(conn: sqlite3.Connection) -> None:
     )
 
 
+def _v3_content_vector_provenance(conn: sqlite3.Connection) -> None:
+    """Record *what text* each content vector was built from.
+
+    ``embed_content`` used to decide what needed embedding by asking whether a
+    bookmark had a vector at all. A library indexed before its pages were
+    fetched therefore kept its title-only vectors forever: the body arrived, the
+    summary arrived, and the vector -- the thing search actually ranks on --
+    never moved. Only ``facetmark reindex`` rebuilt it, and nothing told the
+    user it was out of date.
+
+    Vectors already in the file have unknown provenance, so this deliberately
+    backfills nothing. They land as stale and get rebuilt by the next
+    ``facetmark index``, which is the honest answer: this build cannot know what
+    text produced them.
+    """
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS vec_content_meta ("
+        "  bookmark_id INTEGER PRIMARY KEY REFERENCES bookmark(id) ON DELETE CASCADE,"
+        "  text_hash   TEXT NOT NULL,"
+        "  updated_at  INTEGER NOT NULL"
+        ")"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(2, "browser queue remembers when a retry is allowed", _v2_browser_queue_backoff),
+    Migration(3, "content vectors remember what they were built from",
+              _v3_content_vector_provenance),
 )
 
 #: What this build writes into a new database. Derived from the migration list

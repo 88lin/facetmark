@@ -199,15 +199,17 @@ class TestJsonHelpers:
 
 
 def _write_v1(path) -> None:
-    """A database as v1 wrote it: no ``next_attempt_at``, stamped ``1``.
+    """A database as v1 wrote it, stamped ``1``.
 
-    Built by reversing migration v2 rather than by keeping a paste of the old
-    SCHEMA_SQL around, which would rot the first time anything unrelated
-    changed. What has to be true is only that the column genuinely is absent.
+    Built by reversing the later migrations rather than by keeping a paste of
+    the old SCHEMA_SQL around, which would rot the first time anything
+    unrelated changed. What has to be true is only that what v2 and v3 add is
+    genuinely absent.
     """
     c = open_db(path)
     c.execute("DROP INDEX IF EXISTS ix_fetch_queue_ready")
     c.execute("ALTER TABLE fetch_queue DROP COLUMN next_attempt_at")
+    c.execute("DROP TABLE IF EXISTS vec_content_meta")
     _add_bookmarks(c, 3)
     c.execute(
         "INSERT INTO fetch_queue(bookmark_id, reason, state, attempts, queued_at)"
@@ -252,7 +254,9 @@ class TestMigrations:
         c = connect(p)
         st = schema_status(c)
         assert st.found == 1
-        assert [m.version for m in st.pending] == [2]
+        assert [m.version for m in st.pending] == [
+            m.version for m in MIGRATIONS if m.version > 1
+        ]
         assert not st.current
         c.close()
 
@@ -379,5 +383,7 @@ class TestMigrateCommand:
         payload = json.loads(r.stdout)
         assert payload["from"] == 1
         assert payload["to"] == SCHEMA_VERSION
-        assert [a["version"] for a in payload["applied"]] == [2]
+        assert [a["version"] for a in payload["applied"]] == [
+            m.version for m in MIGRATIONS if m.version > 1
+        ]
         assert payload["backup"] is None

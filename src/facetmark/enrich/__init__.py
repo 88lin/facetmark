@@ -13,15 +13,18 @@ from .pipeline import EnrichReport, Target, enrich_all, store_enrichment, target
 from .schema import Enrichment, EnrichmentInvalid, coerce
 from .vectors import (
     VectorReport,
+    content_fingerprint,
     content_text,
     embed_content,
     embed_intents,
     embed_query,
+    stale_content_count,
 )
 
 __all__ = [
     "IntentReport", "filter_intents", "probe",
     "EnrichReport", "Target", "enrich_all", "store_enrichment", "targets",
     "Enrichment", "EnrichmentInvalid", "coerce",
-    "VectorReport", "content_text", "embed_content", "embed_intents", "embed_query",
+    "VectorReport", "content_text", "content_fingerprint", "embed_content",
+    "embed_intents", "embed_query", "stale_content_count",
 ]

@@ -34,7 +34,13 @@ from . import edges as edgemod
 from . import health as healthmod
 from . import sessions as sessmod
 from .config import Settings, get_settings
-from .enrich import embed_content, embed_intents, enrich_all, filter_intents
+from .enrich import (
+    embed_content,
+    embed_intents,
+    enrich_all,
+    filter_intents,
+    stale_content_count,
+)
 from .fetch import store as fetchstore
 from .importers import import_bookmarks
 from .normalize import host_excluded, normalize_url, registrable_domain
@@ -587,6 +593,7 @@ def library_stats(conn: sqlite3.Connection) -> dict:
         "health": healthmod.summary(conn),
     }
     stats["vectors"] = dbmod.count_vectors(conn) if dbmod.vec_tables_exist(conn) else {}
+    stats["content_vectors_stale"] = stale_content_count(conn)
     stats["edges_by_kind"] = {
         r["kind"]: r["n"]
         for r in conn.execute("SELECT kind, COUNT(*) n FROM edge GROUP BY kind").fetchall()
@@ -649,6 +656,7 @@ async def index_all(
     t = time.perf_counter()
     vc = await embed_content(conn, provider=prov, settings=st, force=force)
     note("embed_content", {"embedded": vc.content_written, "skipped": vc.content_skipped,
+                           "current": vc.content_current,
                            "dim": vc.dim, "model": vc.model}, t)
 
     t = time.perf_counter()
