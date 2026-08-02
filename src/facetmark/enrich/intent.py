@@ -34,7 +34,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from ..config import Settings, get_settings
-from ..db import ensure_vec_tables, knn_content
+from ..db import ensure_vec_tables, knn_content, upsert_intent_vector
 from ..providers import Provider, get_provider
 from ..search.lexical import lexical_lists
 from ..search.rrf import rrf
@@ -54,6 +54,9 @@ class IntentReport:
     bookmarks_with_none_kept: int = 0
     probe_top_k: int = 0
     keep_n: int = 0
+    #: Vectors stored straight from the probe, so `embed_intents` finds nothing
+    #: left to pay for.
+    vectors_written: int = 0
     rank_histogram: dict[str, int] = field(default_factory=dict)
 
     @property
@@ -67,6 +70,7 @@ class IntentReport:
             "keep_rate": round(self.keep_rate, 4),
             "bookmarks_with_none_kept": self.bookmarks_with_none_kept,
             "probe_top_k": self.probe_top_k, "keep_n": self.keep_n,
+            "vectors_written": self.vectors_written,
             "rank_histogram": self.rank_histogram,
         }
 
@@ -137,14 +141,25 @@ async def filter_intents(
     from .vectors import BATCH
 
     ranks: dict[int, int | None] = {}
+    # The vector computed to probe with is the same vector the intent facet will
+    # later search against -- same text, same model. Letting it fall out of
+    # scope means `embed_intents` pays for every kept query a second time: on a
+    # 2,376-page library that is ~9,500 redundant embedding calls, half again on
+    # top of what the filter itself costs. Only candidates that could still be
+    # kept are held, so the peak is bounded by the passing set, not by the
+    # candidate set.
+    passing_vecs: dict[int, Sequence[float]] = {}
     for i in range(0, len(rows), BATCH):
         chunk = rows[i:i + BATCH]
         vecs = await prov.embed([r["text"] for r in chunk])
         for r, vec in zip(chunk, vecs, strict=True):
             ordering = probe(conn, r["text"], vec, top_k=top_k)
-            ranks[r["id"]] = (
+            rank = (
                 ordering.index(r["bookmark_id"]) + 1 if r["bookmark_id"] in ordering else None
             )
+            ranks[r["id"]] = rank
+            if rank is not None and rank <= top_k:
+                passing_vecs[r["id"]] = vec
         if progress is not None:
             progress(min(i + BATCH, len(rows)), len(rows))
 
@@ -171,6 +186,10 @@ async def filter_intents(
     conn.executemany(
         "UPDATE intent_query SET kept=?, probe_rank=? WHERE id=?", updates
     )
+    for kept_flag, _rank, cid in updates:
+        if kept_flag and cid in passing_vecs:
+            upsert_intent_vector(conn, cid, passing_vecs[cid])
+            rep.vectors_written += 1
     # Anything that just lost its `kept` flag must lose its vector too, or the
     # intent facet keeps answering with a query the filter rejected.
     conn.execute(

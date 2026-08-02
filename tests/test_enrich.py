@@ -881,6 +881,71 @@ class TestRRF:
         assert rrf({}) == [] and rrf({"a": []}) == []
 
 
+class TestTheFilterKeepsTheVectorsItPaidFor:
+    """Probing and storing are the same embedding, so buy it once.
+
+    `filter_intents` embeds every candidate to probe with; `embed_intents` used
+    to embed the survivors all over again. Same text, same model, twice the
+    bill -- on a real library that is thousands of redundant calls against a
+    metered endpoint.
+    """
+
+    @pytest.fixture
+    async def filtered(self, loaded, mock_settings):
+        await enrich_all(loaded, settings=mock_settings)
+        await embed_content(loaded, settings=mock_settings)
+        return loaded, await filter_intents(loaded, settings=mock_settings)
+
+    async def test_survivors_come_out_of_the_filter_already_embedded(self, filtered):
+        conn, rep = filtered
+        assert rep.kept > 0
+        missing = conn.execute(
+            "SELECT COUNT(*) c FROM intent_query q WHERE q.kept=1 "
+            "AND q.id NOT IN (SELECT intent_id FROM vec_intent)"
+        ).fetchone()["c"]
+        assert missing == 0
+        assert rep.vectors_written == rep.kept
+
+    async def test_the_dropped_ones_are_not_paid_for(self, filtered):
+        conn, rep = filtered
+        assert rep.dropped > 0
+        stray = conn.execute(
+            "SELECT COUNT(*) c FROM vec_intent WHERE intent_id IN "
+            "(SELECT id FROM intent_query WHERE kept=0)"
+        ).fetchone()["c"]
+        assert stray == 0
+
+    async def test_the_embed_step_after_it_makes_no_calls(self, filtered, mock_settings):
+        conn, rep = filtered
+        prov = MockProvider(mock_settings)
+        before = dict(prov.usage.as_dict())
+        out = await embed_intents(conn, provider=prov, settings=mock_settings)
+        assert out.intent_written == 0
+        assert prov.usage.as_dict() == before
+
+    async def test_a_forced_re_embed_still_works(self, filtered, mock_settings):
+        conn, rep = filtered
+        out = await embed_intents(conn, settings=mock_settings, force=True)
+        assert out.intent_written == rep.kept
+
+    async def test_the_stored_vector_is_the_one_that_was_probed_with(
+        self, filtered, mock_settings
+    ):
+        conn, _rep = filtered
+        row = conn.execute(
+            "SELECT id, text FROM intent_query WHERE kept=1 ORDER BY id LIMIT 1"
+        ).fetchone()
+        prov = MockProvider(mock_settings)
+        expected = (await prov.embed([row["text"]]))[0]
+        stored = conn.execute(
+            "SELECT embedding FROM vec_intent WHERE intent_id=?", (row["id"],)
+        ).fetchone()["embedding"]
+        import struct
+        got = list(struct.unpack(f"{len(stored) // 4}f", stored))
+        norm = sum(v * v for v in expected) ** 0.5
+        assert got == pytest.approx([v / norm for v in expected], abs=1e-6)
+
+
 class TestFullIndexingPass:
     async def test_the_documented_order_runs_end_to_end_offline(self, loaded, mock_settings):
         e = await enrich_all(loaded, settings=mock_settings)
@@ -889,7 +954,10 @@ class TestFullIndexingPass:
         i = await embed_intents(loaded, settings=mock_settings)
         assert e.enriched == c.content_written > 0
         assert f.candidates == e.queries_generated
-        assert i.intent_written == f.kept
+        # The filter already stored the vectors it probed with, so the embed
+        # step that follows it has nothing left to buy.
+        assert f.vectors_written == f.kept
+        assert i.intent_written == 0
         n_content, n_intent = count_vectors(loaded)
         assert n_content == c.content_written and n_intent == f.kept
 
