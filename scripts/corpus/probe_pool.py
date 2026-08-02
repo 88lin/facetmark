@@ -29,6 +29,7 @@ from facetmark.config import get_settings
 from facetmark.db import open_db
 from facetmark.normalize import normalize_url
 from facetmark.providers import get_provider
+from facetmark.search.context import MAX_BOOST
 from facetmark.search.lexical import lexical_lists
 from facetmark.search.pipeline import DEFAULT_FACET_WEIGHTS
 from facetmark.search.rrf import rrf
@@ -145,6 +146,23 @@ async def main() -> None:
         n = len(gs)
         print(f"{g:<26}" + "".join(
             f"{sum(1 for o in gs if o['facet_rank'][f] > 0) / n:>10.2f}" for f in FACETS))
+
+    # 上下文乘子的天花板是 MAX_BOOST=1.60，且只作用于已在融合列表里的条目。
+    # need_boost 是"要挤进前 5 所需倍数"的下界（假设竞争者不被加权），所以
+    # need_boost > 1.60 的目标，D 档在结构上救不动——这一列区分"情境面无效"
+    # 和"召回本来就没把它捞进来"。
+    print("\n上下文乘子够不够得着（need_boost = 第5名分数 / 目标分数，下界）")
+    print(f"{'group':<26}{'n':>5}{'已在前5':>9}{'<=1.60':>9}{'>1.60':>8}{'池外':>7}{'p50':>9}")
+    for g, gs in sorted(groups.items()):
+        n = len(gs)
+        top5 = [o for o in gs if 0 < o["fused_rank"] <= 5]
+        reach = [o for o in gs if o["fused_rank"] > 5 and 0 < o["need_boost"] <= MAX_BOOST]
+        far = [o for o in gs if o["fused_rank"] > 5 and o["need_boost"] > MAX_BOOST]
+        outp = [o for o in gs if o["fused_rank"] == 0]
+        needs = [o["need_boost"] for o in gs if o["fused_rank"] > 5 and o["need_boost"] > 0]
+        print(f"{g:<26}{n:>5}{len(top5) / n:>9.2f}{len(reach) / n:>9.2f}"
+              f"{len(far) / n:>8.2f}{len(outp) / n:>7.2f}"
+              f"{(statistics.median(needs) if needs else 0):>9.2f}")
 
     only = Counter()
     for o in out:

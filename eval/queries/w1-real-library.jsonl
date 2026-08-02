@@ -1,0 +1,482 @@
+// generated 2026-08-02T09:07:08.671062+00:00 from /workspace/eval-data/facetmark.db
+// targets=260 rare_df_cut=23 ndocs=2376 title_overlap_max=0.5 content_overlap_max=0.6 episodic_mix=0.55,0.25,0.20
+// finalised from /workspace/corpus/queries.jsonl against /workspace/eval-data/facetmark.db
+{"text": "coding agents help with less used languages", "qtype": "q_content", "target_url": "https://simonwillison.net/2026/Mar/9/not-so-boring/", "target_id": 577}
+{"text": "coding assistant for niche tools", "qtype": "q_vague", "target_url": "https://simonwillison.net/2026/Mar/9/not-so-boring/", "target_id": 577}
+{"text": "working on a new project with unfamiliar libraries in 2026", "qtype": "q_episodic", "target_url": "https://simonwillison.net/2026/Mar/9/not-so-boring/", "subtype": "year", "note": "year", "target_id": 577}
+{"text": "白掌长臂猿和北白颊长臂猿野外灭绝", "qtype": "q_content", "target_url": "https://news.sciencenet.cn/htmlnews/2022/9/485754.shtm", "target_id": 1175}
+{"text": "next js desktop support", "qtype": "q_content", "target_url": "https://www.dolthub.com/blog/2025-11-13-electron-vs-tauri/", "target_id": 1715}
+{"text": "problems with building desktop apps", "qtype": "q_vague", "target_url": "https://www.dolthub.com/blog/2025-11-13-electron-vs-tauri/", "target_id": 1715}
+{"text": "exploring different frameworks for app development sometime in 2025", "qtype": "q_episodic", "target_url": "https://www.dolthub.com/blog/2025-11-13-electron-vs-tauri/", "subtype": "year", "note": "year", "target_id": 1715}
+{"text": "如何查看浏览器历史记录", "qtype": "q_content", "target_url": "https://varun.ch/history", "target_id": 1133}
+{"text": "查看访问历史的方法", "qtype": "q_vague", "target_url": "https://varun.ch/history", "target_id": 1133}
+{"text": "大概2022年正在学习网页编程存的", "qtype": "q_episodic", "target_url": "https://varun.ch/history", "subtype": "year", "note": "year", "target_id": 1133}
+{"text": "what the molmo web can do", "qtype": "q_content", "target_url": "https://allenai.org/blog/molmoweb", "target_id": 968}
+{"text": "how to automate web tasks", "qtype": "q_vague", "target_url": "https://allenai.org/blog/molmoweb", "target_id": 968}
+{"text": "working with ai models in 2026", "qtype": "q_episodic", "target_url": "https://allenai.org/blog/molmoweb", "subtype": "year", "note": "year", "target_id": 968}
+{"text": "创造美丽的购物街道", "qtype": "q_content", "target_url": "https://worksinprogress.co/issue/fixing-retail-with-land-value-capture/", "target_id": 521}
+{"text": "大概2026年正在寻找有趣的街区存的", "qtype": "q_episodic", "target_url": "https://worksinprogress.co/issue/fixing-retail-with-land-value-capture/", "subtype": "year", "note": "year", "target_id": 521}
+{"text": "elysia framework", "qtype": "q_content", "target_url": "https://elysiajs.com", "target_id": 2209}
+{"text": "simplifying server-side development", "qtype": "q_vague", "target_url": "https://elysiajs.com", "target_id": 2209}
+{"text": "building a web app back in 2026", "qtype": "q_episodic", "target_url": "https://elysiajs.com", "subtype": "year", "note": "year", "target_id": 2209}
+{"text": "小说中用加密货币证明钱是虚拟的", "qtype": "q_content", "target_url": "https://decrypt.co/344099/nobel-laureate-story-crypto-best-proof-money-virtual", "target_id": 419}
+{"text": "2025年那会儿阅读关于诺贝尔文学奖的新闻收的", "qtype": "q_episodic", "target_url": "https://decrypt.co/344099/nobel-laureate-story-crypto-best-proof-money-virtual", "subtype": "year", "note": "year", "target_id": 419}
+{"text": "城市起诉汽车制造商", "qtype": "q_content", "target_url": "https://www.thebaltimorebanner.com/community/criminal-justice/baltimore-lawsuit-hyundai-kia-thefts-WQ74KXUXTBGB3JOTHQHEGIPT6M/", "target_id": 97}
+{"text": "short-lived integrity tokens", "qtype": "q_content", "target_url": "https://uattest.net/", "target_id": 1926}
+{"text": "easy to integrate alternative", "qtype": "q_vague", "target_url": "https://uattest.net/", "target_id": 1926}
+{"text": "around the time Nvidia's Groq Plot", "qtype": "q_episodic", "target_url": "https://uattest.net/", "subtype": "anchor", "note": "anchor", "target_id": 1926}
+{"text": "前端开发的流程和乐趣", "qtype": "q_content", "target_url": "https://windliang.wang/2026/03/31/%E6%9D%80%E6%AD%BB%E9%82%A3%E4%B8%AA%E5%86%99%E4%BB%A3%E7%A0%81%E7%9A%84%E4%BA%BA/", "target_id": 615}
+{"text": "我对生命的思考和有限的时间", "qtype": "q_content", "target_url": "https://doc.searls.com/2025/10/06/leavings/", "target_id": 436}
+{"text": "那阵子空间头像 语言无关的编程存的那篇", "qtype": "q_episodic", "target_url": "https://doc.searls.com/2025/10/06/leavings/", "subtype": "anchor", "note": "anchor", "target_id": 436}
+{"text": "关于如何构建软件", "qtype": "q_vague", "target_url": "https://blog.cloudflare.com/emdash-wordpress/", "target_id": 614}
+{"text": "games of mind alone", "qtype": "q_content", "target_url": "https://www.eblong.com/zarf/essays/mindgame.html", "target_id": 651}
+{"text": "understanding complex social interactions", "qtype": "q_vague", "target_url": "https://www.eblong.com/zarf/essays/mindgame.html", "target_id": 651}
+{"text": "around the time Cisco acquires Galileo", "qtype": "q_episodic", "target_url": "https://www.eblong.com/zarf/essays/mindgame.html", "subtype": "anchor", "note": "anchor", "target_id": 651}
+{"text": "前年正在寻找有趣的家具设计存的", "qtype": "q_episodic", "target_url": "https://www.core77.com/posts/132116/An-Unusual-Furniture-Design-Niche-Behind-the-Sofa-Consoles", "subtype": "relative", "note": "relative", "target_id": 189}
+{"text": "cpp linting commands", "qtype": "q_content", "target_url": "https://cpp-linter.github.io/", "target_id": 466}
+{"text": "automate c++ code checking", "qtype": "q_vague", "target_url": "https://cpp-linter.github.io/", "target_id": 466}
+{"text": "coding in c++ for work in 2025", "qtype": "q_episodic", "target_url": "https://cpp-linter.github.io/", "subtype": "relative", "note": "relative", "target_id": 466}
+{"text": "如何衡量科学家的创新能力", "qtype": "q_content", "target_url": "https://nautil.us/is-this-why-science-advances-one-funeral-at-a-time-1280650", "target_id": 720}
+{"text": "科学家的创新周期", "qtype": "q_vague", "target_url": "https://nautil.us/is-this-why-science-advances-one-funeral-at-a-time-1280650", "target_id": 720}
+{"text": "time tracking software", "qtype": "q_content", "target_url": "https://toggl.com/", "target_id": 661}
+{"text": "maximize productivity", "qtype": "q_vague", "target_url": "https://toggl.com/", "target_id": 661}
+{"text": "looking for a way to track team hours this year", "qtype": "q_episodic", "target_url": "https://toggl.com/", "subtype": "relative", "note": "relative", "target_id": 661}
+{"text": "city walk tourist guide", "qtype": "q_content", "target_url": "https://www.citywalki.com", "target_id": 1640}
+{"text": "traveling with friends in 2025", "qtype": "q_episodic", "target_url": "https://www.citywalki.com", "subtype": "year", "note": "year", "target_id": 1640}
+{"text": "what are the features of luvvoice", "qtype": "q_content", "target_url": "https://luvvoice.com/", "target_id": 1412}
+{"text": "text to speech tool", "qtype": "q_vague", "target_url": "https://luvvoice.com/", "target_id": 1412}
+{"text": "i was trying to find a text to speech tool sometime in 2024", "qtype": "q_episodic", "target_url": "https://luvvoice.com/", "subtype": "relative", "note": "relative", "target_id": 1412}
+{"text": "curious about new verification requirements for students sometime in 2026", "qtype": "q_episodic", "target_url": "https://appleinsider.com/articles/26/05/08/apple-store-education-purchase-verification-process-expands-to-us", "subtype": "year", "note": "year", "target_id": 706}
+{"text": "工作时把门打开沟通方式", "qtype": "q_content", "target_url": "https://notes.andymatuschak.org/Work_with_the_garage_door_up", "target_id": 676}
+{"text": "关于创意人如何交流", "qtype": "q_vague", "target_url": "https://notes.andymatuschak.org/Work_with_the_garage_door_up", "target_id": 676}
+{"text": "大概2026年喜欢的创意人工作方式收的", "qtype": "q_episodic", "target_url": "https://notes.andymatuschak.org/Work_with_the_garage_door_up", "subtype": "year", "note": "year", "target_id": 676}
+{"text": "学习如何使用本地 AI", "qtype": "q_vague", "target_url": "https://anthonylewis.com/2025/06/01/run-your-own-ai/", "target_id": 356}
+{"text": "2025年那会儿正在学习如何在本地运行 AI 模型存的", "qtype": "q_episodic", "target_url": "https://anthonylewis.com/2025/06/01/run-your-own-ai/", "subtype": "year", "note": "year", "target_id": 356}
+{"text": "trust in ai monitoring", "qtype": "q_vague", "target_url": "https://siliconangle.com/2026/04/09/cisco-buys-galileo-strengthen-splunks-agentic-monitoring-capabilities/", "target_id": 975}
+{"text": "working with ai models in office sometime in 2026", "qtype": "q_episodic", "target_url": "https://siliconangle.com/2026/04/09/cisco-buys-galileo-strengthen-splunks-agentic-monitoring-capabilities/", "subtype": "year", "note": "year", "target_id": 975}
+{"text": "AI影响乐高社区", "qtype": "q_content", "target_url": "https://bricknerd.com/home/the-ai-revolution-how-artificial-intelligence-is-impacting-the-lego-community-11-7-23", "target_id": 880}
+{"text": "关于AI对乐高社区的影响", "qtype": "q_vague", "target_url": "https://bricknerd.com/home/the-ai-revolution-how-artificial-intelligence-is-impacting-the-lego-community-11-7-23", "target_id": 880}
+{"text": "当时老外的文章; AI 生成涂色书存的", "qtype": "q_episodic", "target_url": "https://bricknerd.com/home/the-ai-revolution-how-artificial-intelligence-is-impacting-the-lego-community-11-7-23", "subtype": "anchor", "note": "anchor", "target_id": 880}
+{"text": "点击house的AI编程实践", "qtype": "q_content", "target_url": "https://clickhouse.com/blog/agentic-coding", "target_id": 979}
+{"text": "合同软件开发的糟糕现状", "qtype": "q_vague", "target_url": "https://clickhouse.com/blog/agentic-coding", "target_id": 979}
+{"text": "CSS设计的力量", "qtype": "q_content", "target_url": "https://csszengarden.com/", "target_id": 2274}
+{"text": "展示 CSS 力量", "qtype": "q_vague", "target_url": "https://csszengarden.com/", "target_id": 2274}
+{"text": "open claw cloud deployment", "qtype": "q_content", "target_url": "https://www.clawnow.ai/", "target_id": 1836}
+{"text": "cloud ai assistant", "qtype": "q_vague", "target_url": "https://www.clawnow.ai/", "target_id": 1836}
+{"text": "building own ai assistant back in 2026", "qtype": "q_episodic", "target_url": "https://www.clawnow.ai/", "subtype": "year", "note": "year", "target_id": 1836}
+{"text": "apple的设计转变", "qtype": "q_content", "target_url": "https://omc345.substack.com/p/from-skeuomorphic-to-liquid-glass", "target_id": 1589}
+{"text": "去年寻找新的用户界面存的那篇", "qtype": "q_episodic", "target_url": "https://omc345.substack.com/p/from-skeuomorphic-to-liquid-glass", "subtype": "relative", "note": "relative", "target_id": 1589}
+{"text": "sikuli automation tools", "qtype": "q_content", "target_url": "https://github.com/RaiMan/SikuliX1", "target_id": 1118}
+{"text": "automate gui interactions", "qtype": "q_vague", "target_url": "https://github.com/RaiMan/SikuliX1", "target_id": 1118}
+{"text": "around the time airpod counting app", "qtype": "q_episodic", "target_url": "https://github.com/RaiMan/SikuliX1", "subtype": "anchor", "note": "anchor", "target_id": 1118}
+{"text": "what is project amplify nike", "qtype": "q_content", "target_url": "https://www.npr.org/2026/02/10/nx-s1-5698195/nike-amplify-bionic-sneakers", "target_id": 533}
+{"text": "what purpose did this page serve", "qtype": "q_vague", "target_url": "https://www.npr.org/2026/02/10/nx-s1-5698195/nike-amplify-bionic-sneakers", "target_id": 533}
+{"text": "back when lines of markdown just triggered a $285B sell-off", "qtype": "q_episodic", "target_url": "https://www.npr.org/2026/02/10/nx-s1-5698195/nike-amplify-bionic-sneakers", "subtype": "anchor", "note": "anchor", "target_id": 533}
+{"text": "2023年那会儿开发多核CPU应用存的那篇", "qtype": "q_episodic", "target_url": "https://wasmer.io/posts/announcing-wasmer-3.0", "subtype": "relative", "note": "relative", "target_id": 1274}
+{"text": "休息是为了恢复精力", "qtype": "q_content", "target_url": "https://theconvivialsociety.substack.com/p/you-cant-optimize-for-rest", "target_id": 110}
+{"text": "有效笔记的三个原则", "qtype": "q_vague", "target_url": "https://theconvivialsociety.substack.com/p/you-cant-optimize-for-rest", "target_id": 110}
+{"text": "2023年如何应对工作压力收的", "qtype": "q_episodic", "target_url": "https://theconvivialsociety.substack.com/p/you-cant-optimize-for-rest", "subtype": "year", "note": "year", "target_id": 110}
+{"text": "how to avoid database locked errors", "qtype": "q_content", "target_url": "https://chatml.com/blog/sqlite-concurrency-in-go-desktop-ai-ide", "target_id": 949}
+{"text": "how to avoid database locked errors", "qtype": "q_vague", "target_url": "https://chatml.com/blog/sqlite-concurrency-in-go-desktop-ai-ide", "target_id": 949}
+{"text": "working on a new ai project sometime in 2026", "qtype": "q_episodic", "target_url": "https://chatml.com/blog/sqlite-concurrency-in-go-desktop-ai-ide", "subtype": "year", "note": "year", "target_id": 949}
+{"text": "how to choose gguf model for llm", "qtype": "q_content", "target_url": "https://kaitchup.substack.com/p/choosing-a-gguf-model-k-quants-i", "target_id": 1765}
+{"text": "finding the right llm model", "qtype": "q_vague", "target_url": "https://kaitchup.substack.com/p/choosing-a-gguf-model-k-quants-i", "target_id": 1765}
+{"text": "picking llm for project this year", "qtype": "q_episodic", "target_url": "https://kaitchup.substack.com/p/choosing-a-gguf-model-k-quants-i", "subtype": "relative", "note": "relative", "target_id": 1765}
+{"text": "如何计算小圆滚动大圆的转数", "qtype": "q_content", "target_url": "https://plus.maths.org/content/circles-rolling-circles", "target_id": 1264}
+{"text": "供应链服务帮助商家", "qtype": "q_content", "target_url": "https://press.aboutamazon.com/2026/5/amazon-launches-amazon-supply-chain-services-opening-its-logistics-network-to-all-businesses", "target_id": 728}
+{"text": "最近寻找新的物流解决方案收的", "qtype": "q_episodic", "target_url": "https://press.aboutamazon.com/2026/5/amazon-launches-amazon-supply-chain-services-opening-its-logistics-network-to-all-businesses", "subtype": "relative", "note": "relative", "target_id": 728}
+{"text": "understanding lab automation", "qtype": "q_vague", "target_url": "https://www.owlposting.com/p/heuristics-for-lab-robotics-and-where", "target_id": 549}
+{"text": "working on a project in a neuroscience lab sometime in 2026", "qtype": "q_episodic", "target_url": "https://www.owlposting.com/p/heuristics-for-lab-robotics-and-where", "subtype": "year", "note": "year", "target_id": 549}
+{"text": "google编程竞赛数据", "qtype": "q_content", "target_url": "https://zibada.guru/gcj/", "target_id": 130}
+{"text": "how to connect firetiger to private postgres database", "qtype": "q_content", "target_url": "https://blog.firetiger.com/networking-with-agents-how-to-put-them-in-the-right-conversations/", "target_id": 952}
+{"text": "securely connect private databases", "qtype": "q_vague", "target_url": "https://blog.firetiger.com/networking-with-agents-how-to-put-them-in-the-right-conversations/", "target_id": 952}
+{"text": "working with a private Postgres in 2026", "qtype": "q_episodic", "target_url": "https://blog.firetiger.com/networking-with-agents-how-to-put-them-in-the-right-conversations/", "subtype": "year", "note": "year", "target_id": 952}
+{"text": "what is dark ages", "qtype": "q_content", "target_url": "https://robinrendle.com/notes/people-not-people/", "target_id": 1771}
+{"text": "understanding of dark ages", "qtype": "q_vague", "target_url": "https://robinrendle.com/notes/people-not-people/", "target_id": 1771}
+{"text": "privacy first bot protection", "qtype": "q_content", "target_url": "https://altcha.org/captcha/", "target_id": 762}
+{"text": "website security", "qtype": "q_vague", "target_url": "https://altcha.org/captcha/", "target_id": 762}
+{"text": "span of control and team size tradeoffs", "qtype": "q_content", "target_url": "https://www.rubick.com/span-of-control/", "target_id": 2176}
+{"text": "understanding team sizes and manager responsibilities", "qtype": "q_vague", "target_url": "https://www.rubick.com/span-of-control/", "target_id": 2176}
+{"text": "back when joining the party brigade at the Firefi", "qtype": "q_episodic", "target_url": "https://www.rubick.com/span-of-control/", "subtype": "anchor", "note": "anchor", "target_id": 2176}
+{"text": "online economy devastated by internet shutdown", "qtype": "q_content", "target_url": "https://www.indexbox.io/blog/irans-internet-blackout-devastates-online-economy-and-small-businesses/", "target_id": 2023}
+{"text": "back when WebRTC vs. MoQ by Use Case", "qtype": "q_episodic", "target_url": "https://www.indexbox.io/blog/irans-internet-blackout-devastates-online-economy-and-small-businesses/", "subtype": "anchor", "note": "anchor", "target_id": 2023}
+{"text": "大概2026年研究 AI 模型存的那篇", "qtype": "q_episodic", "target_url": "https://decrypt.co/360596/benchmark-test-measures-ai-bullshit-most-models-fail", "subtype": "year", "note": "year", "target_id": 941}
+{"text": "simple css for web", "qtype": "q_vague", "target_url": "https://concrete.style/", "target_id": 2263}
+{"text": "working on a new website in 2024", "qtype": "q_episodic", "target_url": "https://concrete.style/", "subtype": "year", "note": "year", "target_id": 2263}
+{"text": "programming sucks most of us are worried about ai taking jobs", "qtype": "q_content", "target_url": "https://www.stvn.sh/writing/programming-still-sucks-fqffhyp", "target_id": 2008}
+{"text": "tech people worried about ai replacing jobs", "qtype": "q_vague", "target_url": "https://www.stvn.sh/writing/programming-still-sucks-fqffhyp", "target_id": 2008}
+{"text": "tech party conversation sometime in 2026", "qtype": "q_episodic", "target_url": "https://www.stvn.sh/writing/programming-still-sucks-fqffhyp", "subtype": "year", "note": "year", "target_id": 2008}
+{"text": "研究中关于章鱼的研究", "qtype": "q_vague", "target_url": "https://www.discoverwildlife.com/animal-facts/marine-animals/octopus-arm-flexibility-helps-complex-behaviours", "target_id": 1654}
+{"text": "2025年寻找有趣的科技文章收的", "qtype": "q_episodic", "target_url": "https://www.discoverwildlife.com/animal-facts/marine-animals/octopus-arm-flexibility-helps-complex-behaviours", "subtype": "year", "note": "year", "target_id": 1654}
+{"text": "ulid alternative uuid", "qtype": "q_content", "target_url": "https://github.com/ulid/spec", "target_id": 4}
+{"text": "unique identifier system", "qtype": "q_vague", "target_url": "https://github.com/ulid/spec", "target_id": 4}
+{"text": "working with data structures sometime in 2022", "qtype": "q_episodic", "target_url": "https://github.com/ulid/spec", "subtype": "year", "note": "year", "target_id": 4}
+{"text": "vibe 编程 生成代码 非工程师 无法 看到 运行 系统", "qtype": "q_content", "target_url": "https://phroneses.com/articles/build/notes/vibe-coding-is-not-engineering.html", "target_id": 752}
+{"text": "今年寒冷地区的船只维护存的", "qtype": "q_episodic", "target_url": "https://eugene.kaspersky.com/2022/04/26/how-to-repair-the-underside-of-a-ships-hull-still-in-the-river-in-50%CB%9Ac-yakutsk/", "subtype": "relative", "note": "relative", "target_id": 1732}
+{"text": "健康检查的复杂性", "qtype": "q_content", "target_url": "https://singh-sanjay.com/2026/01/12/health-checks-client-vs-server-side-lb.html", "target_id": 755}
+{"text": "最近寻找问题的笔记本电脑用户存的", "qtype": "q_episodic", "target_url": "https://singh-sanjay.com/2026/01/12/health-checks-client-vs-server-side-lb.html", "subtype": "relative", "note": "relative", "target_id": 755}
+{"text": "选择设计时的考虑因素", "qtype": "q_vague", "target_url": "https://lawsofux.com/", "target_id": 2045}
+{"text": "今年优化用户体验的技巧收的", "qtype": "q_episodic", "target_url": "https://lawsofux.com/", "subtype": "relative", "note": "relative", "target_id": 2045}
+{"text": "软件开发过多功能", "qtype": "q_content", "target_url": "https://www.lukew.com/ff/entry.asp?2046", "target_id": 233}
+{"text": "软件开发的那些功能", "qtype": "q_vague", "target_url": "https://www.lukew.com/ff/entry.asp?2046", "target_id": 233}
+{"text": "surety industry digitize bonds", "qtype": "q_content", "target_url": "https://www.suretybondquarterly.org/2022/09/16/surety-industry-makes-progress-in-reaching-goal-of-digitized-bonding/", "target_id": 1840}
+{"text": "这篇文章讲如何积累技术", "qtype": "q_vague", "target_url": "https://simonwillison.net/guides/agentic-engineering-patterns/hoard-things-you-know-how-to-do/", "target_id": 562}
+{"text": "what every python developer should know about cpython ab", "qtype": "q_content", "target_url": "https://soullessmusic.com/", "target_id": 1017}
+{"text": "i was learning python last month", "qtype": "q_episodic", "target_url": "https://soullessmusic.com/", "subtype": "relative", "note": "relative", "target_id": 1017}
+{"text": "django migrations", "qtype": "q_content", "target_url": "https://jmduke.com/posts/post/django/", "target_id": 1672}
+{"text": "working on new project last year", "qtype": "q_episodic", "target_url": "https://jmduke.com/posts/post/django/", "subtype": "relative", "note": "relative", "target_id": 1672}
+{"text": "benchmarking culture machine learning", "qtype": "q_content", "target_url": "https://www.argmin.net/p/benchmarking-culture", "target_id": 1911}
+{"text": "how to prove machine learning works", "qtype": "q_vague", "target_url": "https://www.argmin.net/p/benchmarking-culture", "target_id": 1911}
+{"text": "working on a presentation back in 2026", "qtype": "q_episodic", "target_url": "https://www.argmin.net/p/benchmarking-culture", "subtype": "year", "note": "year", "target_id": 1911}
+{"text": "cleanly separate perceptual properties of colours", "qtype": "q_content", "target_url": "https://github.com/nealmckee/penumbra", "target_id": 147}
+{"text": "working on data visualization project in 2023", "qtype": "q_episodic", "target_url": "https://github.com/nealmckee/penumbra", "subtype": "year", "note": "year", "target_id": 147}
+{"text": "玩转古今时尚搭配", "qtype": "q_vague", "target_url": "https://www.itsnicethat.com/articles/leo-caillard-hipster-in-stone", "target_id": 1639}
+{"text": "2025年那会儿正在寻找复古元素与现代潮流结合的灵感存的那篇", "qtype": "q_episodic", "target_url": "https://www.itsnicethat.com/articles/leo-caillard-hipster-in-stone", "subtype": "year", "note": "year", "target_id": 1639}
+{"text": "2023年那会儿想看关于宇宙的名言收的", "qtype": "q_episodic", "target_url": "https://www.goodreads.com/quotes/190741-we-are-like-butterflies-who-flutter-for-a-day-and", "subtype": "year", "note": "year", "target_id": 1212}
+{"text": "what happens to the best tech talent in europe", "qtype": "q_content", "target_url": "https://andrulis.de/blog/20260429_management.html", "target_id": 2032}
+{"text": "problems with exceptional tech contributors in europe", "qtype": "q_vague", "target_url": "https://andrulis.de/blog/20260429_management.html", "target_id": 2032}
+{"text": "around the time web rtc vs moq by use case", "qtype": "q_episodic", "target_url": "https://andrulis.de/blog/20260429_management.html", "subtype": "anchor", "note": "anchor", "target_id": 2032}
+{"text": "single-turn evaluations", "qtype": "q_content", "target_url": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents", "target_id": 472}
+{"text": "test for ai system", "qtype": "q_vague", "target_url": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents", "target_id": 472}
+{"text": "working on AI agent development sometime in 2026", "qtype": "q_episodic", "target_url": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents", "subtype": "year", "note": "year", "target_id": 472}
+{"text": "observability mobile web teams", "qtype": "q_content", "target_url": "https://embrace.io/guides/ai-observability-gap-report/", "target_id": 1013}
+{"text": "ai observability for developers last month", "qtype": "q_episodic", "target_url": "https://embrace.io/guides/ai-observability-gap-report/", "subtype": "relative", "note": "relative", "target_id": 1013}
+{"text": "TCP 快速打开优化", "qtype": "q_content", "target_url": "https://dbwu.tech/posts/network/what-is-tcp-fast-open/", "target_id": 240}
+{"text": "performance based assessment concrete reuse circular economy", "qtype": "q_content", "target_url": "https://link.springer.com/article/10.1617/s11527-025-02914-4", "target_id": 1849}
+{"text": "how to reuse old concrete structures", "qtype": "q_vague", "target_url": "https://link.springer.com/article/10.1617/s11527-025-02914-4", "target_id": 1849}
+{"text": "looking for ways to repurpose old concrete structures in 2026", "qtype": "q_episodic", "target_url": "https://link.springer.com/article/10.1617/s11527-025-02914-4", "subtype": "year", "note": "year", "target_id": 1849}
+{"text": "vinext experimental nextjs", "qtype": "q_content", "target_url": "https://vinext.io/", "target_id": 1898}
+{"text": "quickly build next js app", "qtype": "q_vague", "target_url": "https://vinext.io/", "target_id": 1898}
+{"text": "working on modern web app back in 2026", "qtype": "q_episodic", "target_url": "https://vinext.io/", "subtype": "year", "note": "year", "target_id": 1898}
+{"text": "AI公司算法优化", "qtype": "q_content", "target_url": "https://danielmiessler.com/blog/companies-graph-of-algorithms", "target_id": 2077}
+{"text": "最近思考未来公司运作存的", "qtype": "q_episodic", "target_url": "https://danielmiessler.com/blog/companies-graph-of-algorithms", "subtype": "relative", "note": "relative", "target_id": 2077}
+{"text": "手机摄像头拍出辐射噪音", "qtype": "q_content", "target_url": "https://www.yystv.cn/p/10117", "target_id": 1180}
+{"text": "软件项目运行方式", "qtype": "q_content", "target_url": "https://www.bozemanpass.com/everythings-a-bug-or-an-issue/", "target_id": 1587}
+{"text": "关于软件开发的故事", "qtype": "q_vague", "target_url": "https://www.bozemanpass.com/everythings-a-bug-or-an-issue/", "target_id": 1587}
+{"text": "去年第一次硅谷工作经历存的那篇", "qtype": "q_episodic", "target_url": "https://www.bozemanpass.com/everythings-a-bug-or-an-issue/", "subtype": "relative", "note": "relative", "target_id": 1587}
+{"text": "worst practices spread more quickly because they require more attention", "qtype": "q_content", "target_url": "https://www.haskellforall.com/2014/04/worst-practices-are-viral-for-wrong.html", "target_id": 1127}
+{"text": "understanding why bad coding habits are more common", "qtype": "q_vague", "target_url": "https://www.haskellforall.com/2014/04/worst-practices-are-viral-for-wrong.html", "target_id": 1127}
+{"text": "trying to improve my own coding skills in 2022", "qtype": "q_episodic", "target_url": "https://www.haskellforall.com/2014/04/worst-practices-are-viral-for-wrong.html", "subtype": "relative", "note": "relative", "target_id": 1127}
+{"text": "2023年那会儿正在寻找手机摄像头技术的评测存的", "qtype": "q_episodic", "target_url": "https://www.huaweicentral.com/xiaomi-13-ultra-variable-aperture-huawei-p60-pro/", "subtype": "year", "note": "year", "target_id": 91}
+{"text": "c programming uninitialized variables", "qtype": "q_content", "target_url": "https://kristerw.github.io/2026/04/10/uninitialized-memory/", "target_id": 1972}
+{"text": "how to handle unassigned values in c", "qtype": "q_vague", "target_url": "https://kristerw.github.io/2026/04/10/uninitialized-memory/", "target_id": 1972}
+{"text": "learning about memory management in c this year", "qtype": "q_episodic", "target_url": "https://kristerw.github.io/2026/04/10/uninitialized-memory/", "subtype": "relative", "note": "relative", "target_id": 1972}
+{"text": "关于浏览器的法规", "qtype": "q_vague", "target_url": "https://p.ocmatos.com/blog/jsse-a-javascript-engine-built-by-an-agent.html", "target_id": 962}
+{"text": "大概2026年在聊天室讨论AGI收的", "qtype": "q_episodic", "target_url": "https://p.ocmatos.com/blog/jsse-a-javascript-engine-built-by-an-agent.html", "subtype": "year", "note": "year", "target_id": 962}
+{"text": "how to get started with microsoft store", "qtype": "q_vague", "target_url": "https://blogs.windows.com/windowsdeveloper/2025/09/10/free-developer-registration-for-individual-developers-on-microsoft-store/", "target_id": 1649}
+{"text": "around the time browser fingerprinting", "qtype": "q_episodic", "target_url": "https://blogs.windows.com/windowsdeveloper/2025/09/10/free-developer-registration-for-individual-developers-on-microsoft-store/", "subtype": "anchor", "note": "anchor", "target_id": 1649}
+{"text": "softbank shares dropping", "qtype": "q_content", "target_url": "https://om.co/2026/03/09/the-debt-beneath-the-dream/", "target_id": 1921}
+{"text": "following financial news in 2026", "qtype": "q_episodic", "target_url": "https://om.co/2026/03/09/the-debt-beneath-the-dream/", "subtype": "year", "note": "year", "target_id": 1921}
+{"text": "教授教算法，我教编程", "qtype": "q_content", "target_url": "https://mathspp.com/blog/teaching-the-worlds-largest-programming-lesson", "target_id": 250}
+{"text": "学习编程的小课堂", "qtype": "q_vague", "target_url": "https://mathspp.com/blog/teaching-the-worlds-largest-programming-lesson", "target_id": 250}
+{"text": "2024年那会儿参加编程记录挑战收的", "qtype": "q_episodic", "target_url": "https://mathspp.com/blog/teaching-the-worlds-largest-programming-lesson", "subtype": "year", "note": "year", "target_id": 250}
+{"text": "cozy journal mac windows", "qtype": "q_content", "target_url": "https://cozyjournal.app/", "target_id": 816}
+{"text": "local journal app for mac", "qtype": "q_vague", "target_url": "https://cozyjournal.app/", "target_id": 816}
+{"text": "back when macos money back guarantee", "qtype": "q_episodic", "target_url": "https://cozyjournal.app/", "subtype": "anchor", "note": "anchor", "target_id": 816}
+{"text": "文章解释项目萨拉", "qtype": "q_vague", "target_url": "https://stratechery.com/2026/the-iphones-last-stand/", "target_id": 2162}
+{"text": "错误的网址导致购买域名", "qtype": "q_content", "target_url": "https://www.bluewin.ch/en/news/switzerland/basel-has-to-buy-internet-address-in-bahamas-after-breakdown-2541936.html", "target_id": 293}
+{"text": "关于税务和巴哈马的错误信息", "qtype": "q_vague", "target_url": "https://www.bluewin.ch/en/news/switzerland/basel-has-to-buy-internet-address-in-bahamas-after-breakdown-2541936.html", "target_id": 293}
+{"text": "去年在税务文件上看到错误信息存的", "qtype": "q_episodic", "target_url": "https://www.bluewin.ch/en/news/switzerland/basel-has-to-buy-internet-address-in-bahamas-after-breakdown-2541936.html", "subtype": "relative", "note": "relative", "target_id": 293}
+{"text": "fighting against powerful ai feeling underpowered", "qtype": "q_content", "target_url": "https://probablydance.com/2026/03/07/im-getting-a-whiff-of-iain-banks-culture/", "target_id": 1895}
+{"text": "understanding what it feels like to fight strong ai", "qtype": "q_vague", "target_url": "https://probablydance.com/2026/03/07/im-getting-a-whiff-of-iain-banks-culture/", "target_id": 1895}
+{"text": "持续努力和坚持的定义", "qtype": "q_content", "target_url": "https://kupajo.com/stamina-is-a-quiet-advantage/", "target_id": 1537}
+{"text": "关于持续努力的用途", "qtype": "q_vague", "target_url": "https://kupajo.com/stamina-is-a-quiet-advantage/", "target_id": 1537}
+{"text": "大概2025年工作中的团队项目存的那篇", "qtype": "q_episodic", "target_url": "https://kupajo.com/stamina-is-a-quiet-advantage/", "subtype": "year", "note": "year", "target_id": 1537}
+{"text": "high-level explanation of project", "qtype": "q_content", "target_url": "https://blog.plover.com/2026/03/09/#documentation-wins-2", "target_id": 764}
+{"text": "record project progress", "qtype": "q_vague", "target_url": "https://blog.plover.com/2026/03/09/#documentation-wins-2", "target_id": 764}
+{"text": "working on software project back in 2026", "qtype": "q_episodic", "target_url": "https://blog.plover.com/2026/03/09/#documentation-wins-2", "subtype": "year", "note": "year", "target_id": 764}
+{"text": "sse 简单的事件推送", "qtype": "q_content", "target_url": "https://igorstechnoclub.com/server-sent-events-sse-are-underrated/", "target_id": 2346}
+{"text": "简化服务器通知方式", "qtype": "q_vague", "target_url": "https://igorstechnoclub.com/server-sent-events-sse-are-underrated/", "target_id": 2346}
+{"text": "2025年那会儿正在学习 web 开发技术收的", "qtype": "q_episodic", "target_url": "https://igorstechnoclub.com/server-sent-events-sse-are-underrated/", "subtype": "year", "note": "year", "target_id": 2346}
+{"text": "依赖冷却时间的作用机制", "qtype": "q_content", "target_url": "https://calpaterson.com/deps.html", "target_id": 655}
+{"text": "合同软件开发的糟糕现状", "qtype": "q_vague", "target_url": "https://calpaterson.com/deps.html", "target_id": 655}
+{"text": "今年关注软件开发问题收的", "qtype": "q_episodic", "target_url": "https://calpaterson.com/deps.html", "subtype": "relative", "note": "relative", "target_id": 655}
+{"text": "free peeps vector library", "qtype": "q_content", "target_url": "https://www.openpeeps.com/", "target_id": 1337}
+{"text": "what the library does for designers", "qtype": "q_vague", "target_url": "https://www.openpeeps.com/", "target_id": 1337}
+{"text": "creating characters for marketing projects in 2024", "qtype": "q_episodic", "target_url": "https://www.openpeeps.com/", "subtype": "year", "note": "year", "target_id": 1337}
+{"text": "tls证书如何通过ACME协议获取", "qtype": "q_content", "target_url": "https://hsm.tunnel53.net/article/dns-for-acme-challenges/", "target_id": 2198}
+{"text": "获取 tls 证书的方法", "qtype": "q_vague", "target_url": "https://hsm.tunnel53.net/article/dns-for-acme-challenges/", "target_id": 2198}
+{"text": "上个月搭建内部网络服务收的", "qtype": "q_episodic", "target_url": "https://hsm.tunnel53.net/article/dns-for-acme-challenges/", "subtype": "relative", "note": "relative", "target_id": 2198}
+{"text": "千年经典 如是我闻 AI 时代重现光明", "qtype": "q_content", "target_url": "https://rushiwowen.co", "target_id": 1555}
+{"text": "无人机被乌鸦袭击暂停送货", "qtype": "q_content", "target_url": "https://www.abc.net.au/news/2021-12-11/wing-resumes-drone-deliveries-after-raven-attacks/100689690", "target_id": 1109}
+{"text": "积雪乐高 建造积雪堡垒", "qtype": "q_content", "target_url": "https://www.verandavikings.com/blog/building-lego-iglos", "target_id": 1481}
+{"text": "美国广告遍布高速公路", "qtype": "q_content", "target_url": "https://taylor.town/cyberpunk-bathroom", "target_id": 1353}
+{"text": "2024年在洛杉矶和拉斯维加斯之间存的那篇", "qtype": "q_episodic", "target_url": "https://taylor.town/cyberpunk-bathroom", "subtype": "year", "note": "year", "target_id": 1353}
+{"text": "visually隐藏内容是否还有必要", "qtype": "q_content", "target_url": "https://dbushell.com/2026/02/20/visually-hidden/", "target_id": 1819}
+{"text": "网页的无障碍设计", "qtype": "q_vague", "target_url": "https://dbushell.com/2026/02/20/visually-hidden/", "target_id": 1819}
+{"text": "今年优化网页加载速度存的那篇", "qtype": "q_episodic", "target_url": "https://dbushell.com/2026/02/20/visually-hidden/", "subtype": "relative", "note": "relative", "target_id": 1819}
+{"text": "25年有趣的想法", "qtype": "q_content", "target_url": "https://www.derekthompson.org/p/the-25-most-interesting-ideas-ive", "target_id": 1660}
+{"text": "保存了各种有趣的内容", "qtype": "q_vague", "target_url": "https://www.derekthompson.org/p/the-25-most-interesting-ideas-ive", "target_id": 1660}
+{"text": "去年超音速厨师刀和粘土电路板同时保存存的", "qtype": "q_episodic", "target_url": "https://www.derekthompson.org/p/the-25-most-interesting-ideas-ive", "subtype": "relative", "note": "relative", "target_id": 1660}
+{"text": "benedict ai doctrine fidelity", "qtype": "q_content", "target_url": "https://firstthings.com/beware-the-benedict-bot/", "target_id": 2131}
+{"text": "reading about new language models back in 2026", "qtype": "q_episodic", "target_url": "https://firstthings.com/beware-the-benedict-bot/", "subtype": "year", "note": "year", "target_id": 2131}
+{"text": "tsidp自动登录尾网", "qtype": "q_content", "target_url": "https://runtimeterror.dev/pocket-id-easy-passkey-authentication/", "target_id": 558}
+{"text": "cosmic custom theming", "qtype": "q_content", "target_url": "https://system76.com/cosmic", "target_id": 456}
+{"text": "为什么手机能用大模型", "qtype": "q_vague", "target_url": "https://www.doc.cc/articles/a-brief-history-of-the-numeric-keypad", "target_id": 343}
+{"text": "最近正在学习构建数据库收的", "qtype": "q_episodic", "target_url": "https://shipthatcode.com/courses/build-redis", "subtype": "relative", "note": "relative", "target_id": 2302}
+{"text": "free ip geolocation database", "qtype": "q_content", "target_url": "https://ip66.dev/", "target_id": 733}
+{"text": "ip information lookup tool", "qtype": "q_vague", "target_url": "https://ip66.dev/", "target_id": 733}
+{"text": "looking up ip addresses for a project sometime in 2026", "qtype": "q_episodic", "target_url": "https://ip66.dev/", "subtype": "year", "note": "year", "target_id": 733}
+{"text": "technitium dns server privacy", "qtype": "q_content", "target_url": "https://technitium.com/dns/", "target_id": 186}
+{"text": "dns server for security", "qtype": "q_vague", "target_url": "https://technitium.com/dns/", "target_id": 186}
+{"text": "flet build cross platform apps", "qtype": "q_content", "target_url": "https://flet.dev/", "target_id": 1402}
+{"text": "how to build apps without coding experience", "qtype": "q_vague", "target_url": "https://flet.dev/", "target_id": 1402}
+{"text": "working with mobile app development sometime in 2024", "qtype": "q_episodic", "target_url": "https://flet.dev/", "subtype": "year", "note": "year", "target_id": 1402}
+{"text": "3-30-300测试", "qtype": "q_content", "target_url": "https://www.not-ship.com/can-you-see-three-trees/", "target_id": 2089}
+{"text": "我宣布下一个人提到AI就给我整脖子", "qtype": "q_content", "target_url": "https://ludic.mataroa.blog/blog/i-will-fucking-piledrive-you-if-you-mention-ai-again/", "target_id": 869}
+{"text": "那篇文章讲的是AI的", "qtype": "q_vague", "target_url": "https://ludic.mataroa.blog/blog/i-will-fucking-piledrive-you-if-you-mention-ai-again/", "target_id": 869}
+{"text": "大概2024年我对AI感到失望存的那篇", "qtype": "q_episodic", "target_url": "https://ludic.mataroa.blog/blog/i-will-fucking-piledrive-you-if-you-mention-ai-again/", "subtype": "year", "note": "year", "target_id": 869}
+{"text": "解决内存管理问题", "qtype": "q_vague", "target_url": "https://vorpus.org/blog/why-does-calloc-exist/", "target_id": 1195}
+{"text": "大概2023年正在寻找内存分配相关文章存的那篇", "qtype": "q_episodic", "target_url": "https://vorpus.org/blog/why-does-calloc-exist/", "subtype": "year", "note": "year", "target_id": 1195}
+{"text": "amber programming language", "qtype": "q_content", "target_url": "https://amber-lang.com/", "target_id": 2200}
+{"text": "how to write a weather fetching function", "qtype": "q_vague", "target_url": "https://amber-lang.com/", "target_id": 2200}
+{"text": "working on a new project last month", "qtype": "q_episodic", "target_url": "https://amber-lang.com/", "subtype": "relative", "note": "relative", "target_id": 2200}
+{"text": "template haskell code generation issues", "qtype": "q_content", "target_url": "https://www.parsonsmatt.org/2026/03/10/teaching_claude_to_be_lazy.html", "target_id": 943}
+{"text": "AI tool for debugging code", "qtype": "q_vague", "target_url": "https://www.parsonsmatt.org/2026/03/10/teaching_claude_to_be_lazy.html", "target_id": 943}
+{"text": "around the time Nasal spray protects mice", "qtype": "q_episodic", "target_url": "https://www.parsonsmatt.org/2026/03/10/teaching_claude_to_be_lazy.html", "subtype": "anchor", "note": "anchor", "target_id": 943}
+{"text": "载人飞艇商业飞行", "qtype": "q_content", "target_url": "http://news.cnhubei.com/content/2026-01/11/content_19769355.html", "target_id": 1737}
+{"text": "orms are obsolete now ai can generate sql", "qtype": "q_content", "target_url": "https://maho.dev/2026/03/ai-is-making-libraries-obsolete/", "target_id": 945}
+{"text": "ai made writing sql easier", "qtype": "q_vague", "target_url": "https://maho.dev/2026/03/ai-is-making-libraries-obsolete/", "target_id": 945}
+{"text": "working with databases in 2026", "qtype": "q_episodic", "target_url": "https://maho.dev/2026/03/ai-is-making-libraries-obsolete/", "subtype": "year", "note": "year", "target_id": 945}
+{"text": "生物学家描述城市鸟类的聪明行为", "qtype": "q_content", "target_url": "https://www.naturalis.nl/en/about-us/media/press-releases/rebellious-birds-make-nests-out-of-anti-bird-pins", "target_id": 1319}
+{"text": "关于城市鸟类的有趣发现", "qtype": "q_vague", "target_url": "https://www.naturalis.nl/en/about-us/media/press-releases/rebellious-birds-make-nests-out-of-anti-bird-pins", "target_id": 1319}
+{"text": "2023年研究城市鸟类行为存的", "qtype": "q_episodic", "target_url": "https://www.naturalis.nl/en/about-us/media/press-releases/rebellious-birds-make-nests-out-of-anti-bird-pins", "subtype": "relative", "note": "relative", "target_id": 1319}
+{"text": "weather forecasts australia", "qtype": "q_content", "target_url": "https://www.bom.gov.au/", "target_id": 445}
+{"text": "understand weather patterns", "qtype": "q_vague", "target_url": "https://www.bom.gov.au/", "target_id": 445}
+{"text": "studying climate change impacts sometime in 2025", "qtype": "q_episodic", "target_url": "https://www.bom.gov.au/", "subtype": "year", "note": "year", "target_id": 445}
+{"text": "optimize resource usage", "qtype": "q_vague", "target_url": "https://commandmasters.com/commands/systemd-socket-activate-linux/", "target_id": 1530}
+{"text": "optimizing system resource usage back in 2025", "qtype": "q_episodic", "target_url": "https://commandmasters.com/commands/systemd-socket-activate-linux/", "subtype": "year", "note": "year", "target_id": 1530}
+{"text": "ghuntley tokens per codebase", "qtype": "q_content", "target_url": "https://ghuntley.com/dothings/", "target_id": 289}
+{"text": "what software engineering will be like in 2026", "qtype": "q_vague", "target_url": "https://ghuntley.com/dothings/", "target_id": 289}
+{"text": "looking for new software development process sometime in 2025", "qtype": "q_episodic", "target_url": "https://ghuntley.com/dothings/", "subtype": "year", "note": "year", "target_id": 289}
+{"text": "纸板支架回收纸制作", "qtype": "q_content", "target_url": "https://www.core77.com/posts/134948/A-Laptop-Stand-Made-from-a-Single-Sheet-of-Recycled-Paper", "target_id": 1491}
+{"text": "type script types", "qtype": "q_content", "target_url": "https://github.com/type-challenges/type-challenges/blob/main/README.zh-CN.md", "target_id": 1137}
+{"text": "understanding typescript", "qtype": "q_vague", "target_url": "https://github.com/type-challenges/type-challenges/blob/main/README.zh-CN.md", "target_id": 1137}
+{"text": "working with typescript back in 2022", "qtype": "q_episodic", "target_url": "https://github.com/type-challenges/type-challenges/blob/main/README.zh-CN.md", "subtype": "year", "note": "year", "target_id": 1137}
+{"text": "编程工作改变后的感受", "qtype": "q_vague", "target_url": "https://jacob.gold/posts/programmers-need-to-start-meditating-now/", "target_id": 797}
+{"text": "2026年工作方式转变后的困惑存的", "qtype": "q_episodic", "target_url": "https://jacob.gold/posts/programmers-need-to-start-meditating-now/", "subtype": "year", "note": "year", "target_id": 797}
+{"text": "全篇关于人为什么总是不安", "qtype": "q_content", "target_url": "https://philosophy.stackexchange.com/questions/69487/why-did-pascal-think-all-of-humanity-s-problems-stem-from-man-s-inability-to-s", "target_id": 1482}
+{"text": "大概2025年想了解AI新法规存的那篇", "qtype": "q_episodic", "target_url": "https://philosophy.stackexchange.com/questions/69487/why-did-pascal-think-all-of-humanity-s-problems-stem-from-man-s-inability-to-s", "subtype": "year", "note": "year", "target_id": 1482}
+{"text": "hamburger menu hiding side panel", "qtype": "q_content", "target_url": "https://www.datagubbe.se/dimburger/", "target_id": 1615}
+{"text": "how to hide side panel in chrome", "qtype": "q_vague", "target_url": "https://www.datagubbe.se/dimburger/", "target_id": 1615}
+{"text": "trying to read pdf in chrome back in 2025", "qtype": "q_episodic", "target_url": "https://www.datagubbe.se/dimburger/", "subtype": "year", "note": "year", "target_id": 1615}
+{"text": "微软浏览器Edge的搜索欺骗", "qtype": "q_content", "target_url": "https://www.pcworld.com/article/2568916/microsoft-disguises-bing-as-google-to-fool-inattentive-searchers.html", "target_id": 2265}
+{"text": "去年正在使用 Edge 浏览器存的那篇", "qtype": "q_episodic", "target_url": "https://www.pcworld.com/article/2568916/microsoft-disguises-bing-as-google-to-fool-inattentive-searchers.html", "subtype": "relative", "note": "relative", "target_id": 2265}
+{"text": "当时150行 Python 代码构建全文搜索引擎收的", "qtype": "q_episodic", "target_url": "https://blog.algomaster.io/p/scaling-a-system-from-0-to-10-million-users", "subtype": "anchor", "note": "anchor", "target_id": 1805}
+{"text": "优化价格促销折扣", "qtype": "q_content", "target_url": "https://www.bright.cn/products/insights/?utm_source=organic-social-cn&utm_campaign=influencer_yuanyifeng&cam=tb_yuanyifeng", "target_id": 1246}
+{"text": "关于虚拟化身的介绍", "qtype": "q_vague", "target_url": "https://www.cnet.com/tech/computing/apple-talks-to-me-about-vision-pro-personas-where-is-our-virtual-presence-headed/", "target_id": 434}
+{"text": "2025年研究虚拟现实技术存的", "qtype": "q_episodic", "target_url": "https://www.cnet.com/tech/computing/apple-talks-to-me-about-vision-pro-personas-where-is-our-virtual-presence-headed/", "subtype": "year", "note": "year", "target_id": 434}
+{"text": "what is open claw", "qtype": "q_content", "target_url": "https://www.josecasanova.com/blog/openclaw-daily-intel-report", "target_id": 1847}
+{"text": "daily financial summary", "qtype": "q_vague", "target_url": "https://www.josecasanova.com/blog/openclaw-daily-intel-report", "target_id": 1847}
+{"text": "around the time lines of markdown just triggered a 285b sell-off", "qtype": "q_episodic", "target_url": "https://www.josecasanova.com/blog/openclaw-daily-intel-report", "subtype": "anchor", "note": "anchor", "target_id": 1847}
+{"text": "markdown file caused big stock drops", "qtype": "q_content", "target_url": "https://natesnewsletter.substack.com/p/200-lines-of-markdown-just-triggered", "target_id": 1835}
+{"text": "explaining software and finance sell-off", "qtype": "q_vague", "target_url": "https://natesnewsletter.substack.com/p/200-lines-of-markdown-just-triggered", "target_id": 1835}
+{"text": "working on legal contracts in 2026", "qtype": "q_episodic", "target_url": "https://natesnewsletter.substack.com/p/200-lines-of-markdown-just-triggered", "subtype": "year", "note": "year", "target_id": 1835}
+{"text": "create tailored pdp", "qtype": "q_content", "target_url": "https://www.fudge.ai/", "target_id": 484}
+{"text": "create product detail page", "qtype": "q_vague", "target_url": "https://www.fudge.ai/", "target_id": 484}
+{"text": "creating new product page in 2026", "qtype": "q_episodic", "target_url": "https://www.fudge.ai/", "subtype": "year", "note": "year", "target_id": 484}
+{"text": "don't want email newsletter", "qtype": "q_content", "target_url": "https://matduggan.com/you-can-absolutely-have-an-rss-dependent-website-in-2026/", "target_id": 1979}
+{"text": "avoid having email list", "qtype": "q_vague", "target_url": "https://matduggan.com/you-can-absolutely-have-an-rss-dependent-website-in-2026/", "target_id": 1979}
+{"text": "decided not to offer subscription back in 2026", "qtype": "q_episodic", "target_url": "https://matduggan.com/you-can-absolutely-have-an-rss-dependent-website-in-2026/", "subtype": "year", "note": "year", "target_id": 1979}
+{"text": "what is offgrid living", "qtype": "q_content", "target_url": "https://blog.freira.dev/@mateusfreira-2026-06-07-i-am-fully-off-grid-now/", "target_id": 2188}
+{"text": "helpful guide to living without electricity", "qtype": "q_vague", "target_url": "https://blog.freira.dev/@mateusfreira-2026-06-07-i-am-fully-off-grid-now/", "target_id": 2188}
+{"text": "I was looking for a way to reduce my carbon footprint back in 2026", "qtype": "q_episodic", "target_url": "https://blog.freira.dev/@mateusfreira-2026-06-07-i-am-fully-off-grid-now/", "subtype": "year", "note": "year", "target_id": 2188}
+{"text": "PKI公钥基础设施", "qtype": "q_content", "target_url": "https://blog.apnic.net/2026/04/24/revocation-of-x-509-certificates/", "target_id": 731}
+{"text": "关于 npm 的网站", "qtype": "q_vague", "target_url": "https://nesbitt.io/2026/04/16/features-everyone-should-steal-from-npmx.html", "target_id": 664}
+{"text": "2026年那会儿正在构建包注册表网站存的", "qtype": "q_episodic", "target_url": "https://nesbitt.io/2026/04/16/features-everyone-should-steal-from-npmx.html", "subtype": "year", "note": "year", "target_id": 664}
+{"text": "milligram css framework", "qtype": "q_content", "target_url": "https://milligram.io/", "target_id": 231}
+{"text": "designing fast websites", "qtype": "q_vague", "target_url": "https://milligram.io/", "target_id": 231}
+{"text": "working on a website project back in 2024", "qtype": "q_episodic", "target_url": "https://milligram.io/", "subtype": "year", "note": "year", "target_id": 231}
+{"text": "what is a minimal bacterial cell", "qtype": "q_content", "target_url": "https://news.illinois.edu/team-simulates-a-living-cell-that-grows-and-divides/", "target_id": 1904}
+{"text": "how to simulate a cell cycle", "qtype": "q_vague", "target_url": "https://news.illinois.edu/team-simulates-a-living-cell-that-grows-and-divides/", "target_id": 1904}
+{"text": "I was trying to understand how cells grow and divide this year", "qtype": "q_episodic", "target_url": "https://news.illinois.edu/team-simulates-a-living-cell-that-grows-and-divides/", "subtype": "relative", "note": "relative", "target_id": 1904}
+{"text": "前年关注健康状况的用户存的那篇", "qtype": "q_episodic", "target_url": "https://www.apple.com/newsroom/2024/09/apple-introduces-groundbreaking-health-features/", "subtype": "relative", "note": "relative", "target_id": 1436}
+{"text": "了解文件上传效率", "qtype": "q_vague", "target_url": "https://blog.adamchalmers.com/multipart/", "target_id": 1241}
+{"text": "ai订阅费的真实成本", "qtype": "q_content", "target_url": "https://steipete.me/posts/2025/stop-overthinking-ai-subscriptions", "target_id": 940}
+{"text": "今年工作中的ai工具存的", "qtype": "q_episodic", "target_url": "https://steipete.me/posts/2025/stop-overthinking-ai-subscriptions", "subtype": "relative", "note": "relative", "target_id": 940}
+{"text": "库布其光伏治沙项目", "qtype": "q_content", "target_url": "http://www.nengyuanjie.net/article/84188.html", "target_id": 1312}
+{"text": "2023年关注环保和新能源的存的那篇", "qtype": "q_episodic", "target_url": "http://www.nengyuanjie.net/article/84188.html", "subtype": "year", "note": "year", "target_id": 1312}
+{"text": "LLM 书签收藏摘要和全文索引", "qtype": "q_content", "target_url": "https://nekonull.me/posts/llm_x_bookmark/", "target_id": 874}
+{"text": "保存有用的网页链接", "qtype": "q_vague", "target_url": "https://nekonull.me/posts/llm_x_bookmark/", "target_id": 874}
+{"text": "5G 玻璃天线 高频段 覆盖范围", "qtype": "q_content", "target_url": "https://spectrum.ieee.org/5g-antenna-transparent-window", "target_id": 1443}
+{"text": "那阵子马斯克说；百大年度照片收的", "qtype": "q_episodic", "target_url": "https://sufy.com/zh-CN/services/ai-inference/models", "subtype": "anchor", "note": "anchor", "target_id": 1710}
+{"text": "如何在新环境中学习规则", "qtype": "q_vague", "target_url": "https://buttondown.com/monteiro/archive/how-to-leave-the-house/", "target_id": 1609}
+{"text": "2025年那会儿寻找社交方式和朋友存的", "qtype": "q_episodic", "target_url": "https://buttondown.com/monteiro/archive/how-to-leave-the-house/", "subtype": "year", "note": "year", "target_id": 1609}
+{"text": "虚拟地图的绘制过程", "qtype": "q_content", "target_url": "https://www.jerrysmap.com/the-map", "target_id": 743}
+{"text": "2026年那会儿在寻找新的编程项目灵感存的", "qtype": "q_episodic", "target_url": "https://www.jerrysmap.com/the-map", "subtype": "year", "note": "year", "target_id": 743}
+{"text": "2025年那会儿浏览器大战中的技术比较收的", "qtype": "q_episodic", "target_url": "https://tim.dierks.org/2014/05/security-standards-and-name-changes-in.html", "subtype": "year", "note": "year", "target_id": 361}
+{"text": "网页设计中的数字变化", "qtype": "q_vague", "target_url": "https://css-tricks.com/animating-number-counters/", "target_id": 2277}
+{"text": "Podwise 转换播客成摘要", "qtype": "q_content", "target_url": "https://podwise.ai/", "target_id": 2361}
+{"text": "前年研究 AI 影响收的", "qtype": "q_episodic", "target_url": "https://podwise.ai/", "subtype": "relative", "note": "relative", "target_id": 2361}
+{"text": "产品和设计的新瓶颈", "qtype": "q_content", "target_url": "https://www.jampa.dev/p/the-rise-of-one-pizza-engineering", "target_id": 1825}
+{"text": "产品设计的新限制", "qtype": "q_vague", "target_url": "https://www.jampa.dev/p/the-rise-of-one-pizza-engineering", "target_id": 1825}
+{"text": "大概2026年正在研究如何优化团队结构收的", "qtype": "q_episodic", "target_url": "https://www.jampa.dev/p/the-rise-of-one-pizza-engineering", "subtype": "year", "note": "year", "target_id": 1825}
+{"text": "what is superfile", "qtype": "q_content", "target_url": "https://superfile.dev/", "target_id": 2173}
+{"text": "file operations in terminal", "qtype": "q_vague", "target_url": "https://superfile.dev/", "target_id": 2173}
+{"text": "terminal work for developers sometime in 2026", "qtype": "q_episodic", "target_url": "https://superfile.dev/", "subtype": "year", "note": "year", "target_id": 2173}
+{"text": "what is thread dump in java", "qtype": "q_content", "target_url": "https://www.threadanalyzer.online/", "target_id": 320}
+{"text": "analysis of java threads", "qtype": "q_vague", "target_url": "https://www.threadanalyzer.online/", "target_id": 320}
+{"text": "working with qr code generator last year", "qtype": "q_episodic", "target_url": "https://www.threadanalyzer.online/", "subtype": "relative", "note": "relative", "target_id": 320}
+{"text": "2024年郊外露营时找不到手机存的", "qtype": "q_episodic", "target_url": "https://manas.tech/blog/2023/10/25/approaching-unconventional-problems/", "subtype": "year", "note": "year", "target_id": 162}
+{"text": "reset codex bar usage", "qtype": "q_content", "target_url": "https://codexbar.app/", "target_id": 735}
+{"text": "manage ai usage for codex", "qtype": "q_vague", "target_url": "https://codexbar.app/", "target_id": 735}
+{"text": "back when monitor ai credits", "qtype": "q_episodic", "target_url": "https://codexbar.app/", "subtype": "anchor", "note": "anchor", "target_id": 735}
+{"text": "企业软件的性能问题", "qtype": "q_vague", "target_url": "https://www.mailbox.my/blog/posts/why-enterprise-software-is-bloated/", "target_id": 10}
+{"text": "2022年那会儿正在寻找更高效的办公软件存的", "qtype": "q_episodic", "target_url": "https://www.mailbox.my/blog/posts/why-enterprise-software-is-bloated/", "subtype": "year", "note": "year", "target_id": 10}
+{"text": "36 mechanical keyboards and switches", "qtype": "q_content", "target_url": "https://sheets.works/data-viz/keyboard-sounds", "target_id": 675}
+{"text": "listen to different keyboard sounds", "qtype": "q_vague", "target_url": "https://sheets.works/data-viz/keyboard-sounds", "target_id": 675}
+{"text": "around the time IBM Model M keyboard", "qtype": "q_episodic", "target_url": "https://sheets.works/data-viz/keyboard-sounds", "subtype": "anchor", "note": "anchor", "target_id": 675}
+{"text": "turn openapi specs into skills", "qtype": "q_content", "target_url": "https://neutree.ai/projects/openapi-to-skills", "target_id": 530}
+{"text": "manage api calls for ai agents", "qtype": "q_vague", "target_url": "https://neutree.ai/projects/openapi-to-skills", "target_id": 530}
+{"text": "working with github api sometime in 2026", "qtype": "q_episodic", "target_url": "https://neutree.ai/projects/openapi-to-skills", "subtype": "year", "note": "year", "target_id": 530}
+{"text": "what is phantompulse remote access trojan", "qtype": "q_content", "target_url": "https://cyber.netsecops.io/articles/obsidian-plugin-abused-in-campaign-to-deploy-phantom-pulse-rat/", "target_id": 2034}
+{"text": "working with financial professionals back in 2026", "qtype": "q_episodic", "target_url": "https://cyber.netsecops.io/articles/obsidian-plugin-abused-in-campaign-to-deploy-phantom-pulse-rat/", "subtype": "year", "note": "year", "target_id": 2034}
+{"text": "PHP数组奇怪用法", "qtype": "q_content", "target_url": "https://flowtwo.io/post/php's-oddities", "target_id": 2075}
+{"text": "关于 PHP 的奇怪特性", "qtype": "q_vague", "target_url": "https://flowtwo.io/post/php's-oddities", "target_id": 2075}
+{"text": "2026年那会儿工作中的PHP编码经验收的", "qtype": "q_episodic", "target_url": "https://flowtwo.io/post/php's-oddities", "subtype": "year", "note": "year", "target_id": 2075}
+{"text": "2025年学习编程遇到的问题存的", "qtype": "q_episodic", "target_url": "https://blogs.gentoo.org/mgorny/2024/09/23/overview-of-cross-architecture-portability-problems/", "subtype": "year", "note": "year", "target_id": 285}
+{"text": "迪士尼星际游轮体验", "qtype": "q_content", "target_url": "https://www.theverge.com/22949905/star-wars-galactic-starcruiser-hotel-interactive-disney-world-photos-price", "target_id": 28}
+{"text": "那段时间内容目录; Demo存的", "qtype": "q_episodic", "target_url": "https://www.theverge.com/22949905/star-wars-galactic-starcruiser-hotel-interactive-disney-world-photos-price", "subtype": "anchor", "note": "anchor", "target_id": 28}
+{"text": "Deno 避免配置文件", "qtype": "q_content", "target_url": "https://hackers.pub/@hongminhee/2026/i-wish-deno-would-keep-doing-what-it-does-best", "target_id": 2108}
+{"text": "最糟糕的程序员导致项目失败", "qtype": "q_content", "target_url": "http://mikhailian.mova.org/node/284", "target_id": 171}
+{"text": "程序员导致项目失败", "qtype": "q_vague", "target_url": "http://mikhailian.mova.org/node/284", "target_id": 171}
+{"text": "前年团队在开发一个项目存的", "qtype": "q_episodic", "target_url": "http://mikhailian.mova.org/node/284", "subtype": "relative", "note": "relative", "target_id": 171}
+{"text": "关于阿耳忒弥斯的图片", "qtype": "q_vague", "target_url": "https://artemistimeline.com", "target_id": 2011}
+{"text": "大概2026年关注月球任务的摄影师存的那篇", "qtype": "q_episodic", "target_url": "https://artemistimeline.com", "subtype": "year", "note": "year", "target_id": 2011}
+{"text": "现代高楼取代老建筑", "qtype": "q_content", "target_url": "https://en.wikipedia.org/wiki/Brusselization", "target_id": 1213}
+{"text": "城市改造混乱无序", "qtype": "q_vague", "target_url": "https://en.wikipedia.org/wiki/Brusselization", "target_id": 1213}
+{"text": "2023年想给老城区添新建筑收的", "qtype": "q_episodic", "target_url": "https://en.wikipedia.org/wiki/Brusselization", "subtype": "year", "note": "year", "target_id": 1213}
+{"text": "bento编辑器本地存储", "qtype": "q_content", "target_url": "https://bento.page/", "target_id": 2285}
+{"text": "网页滚动的动画效果", "qtype": "q_vague", "target_url": "https://bento.page/", "target_id": 2285}
+{"text": "2026年正在学习前端技术存的", "qtype": "q_episodic", "target_url": "https://bento.page/", "subtype": "year", "note": "year", "target_id": 2285}
+{"text": "学习如何用新的HTML标签", "qtype": "q_vague", "target_url": "https://maurycyz.com/misc/make-up-tags/", "target_id": 2283}
+{"text": "2026年那会儿正在学习前端开发收的", "qtype": "q_episodic", "target_url": "https://maurycyz.com/misc/make-up-tags/", "subtype": "year", "note": "year", "target_id": 2283}
+{"text": "65岁退休的飞行员延长到67岁", "qtype": "q_content", "target_url": "https://www.flyingmag.com/house-committee-votes-to-push-back-pilot-retirement-age-2-years/", "target_id": 1308}
+{"text": "2023年那会儿关注航空业的最新动态收的", "qtype": "q_episodic", "target_url": "https://www.flyingmag.com/house-committee-votes-to-push-back-pilot-retirement-age-2-years/", "subtype": "relative", "note": "relative", "target_id": 1308}
+{"text": "了解AI如何解决复杂问题", "qtype": "q_vague", "target_url": "https://www.nibzard.com/berghain/", "target_id": 409}
+{"text": "high performance screenshot generator", "qtype": "q_content", "target_url": "https://screenshotsnap.com/", "target_id": 1780}
+{"text": "fast website screenshot tool", "qtype": "q_vague", "target_url": "https://screenshotsnap.com/", "target_id": 1780}
+{"text": "working on website analytics back in 2026", "qtype": "q_episodic", "target_url": "https://screenshotsnap.com/", "subtype": "year", "note": "year", "target_id": 1780}
+{"text": "intuitive signup flows on favorite devices", "qtype": "q_content", "target_url": "https://netflixtechblog.medium.com/streamlining-contract-management-in-revenue-infrastructure-38340f3ec4b9", "target_id": 1469}
+{"text": "how to make customer touchpoints reliable", "qtype": "q_vague", "target_url": "https://netflixtechblog.medium.com/streamlining-contract-management-in-revenue-infrastructure-38340f3ec4b9", "target_id": 1469}
+{"text": "working on new business models for streaming services in 2024", "qtype": "q_episodic", "target_url": "https://netflixtechblog.medium.com/streamlining-contract-management-in-revenue-infrastructure-38340f3ec4b9", "subtype": "year", "note": "year", "target_id": 1469}
+{"text": "web 网页 如何 链接 电话", "qtype": "q_content", "target_url": "https://sethmlarson.dev/mobile-browsers-and-telephone-numbers", "target_id": 750}
+{"text": "what is the purpose of regular expressions", "qtype": "q_content", "target_url": "https://shkspr.mobi/blog/2023/02/regular-expressions-make-me-feel-like-a-powerful-wizard-and-thats-not-a-good-thing/", "target_id": 1326}
+{"text": "getting frustrated while debugging code", "qtype": "q_vague", "target_url": "https://shkspr.mobi/blog/2023/02/regular-expressions-make-me-feel-like-a-powerful-wizard-and-thats-not-a-good-thing/", "target_id": 1326}
+{"text": "initialize mock database users", "qtype": "q_content", "target_url": "https://root-ai.beehiiv.com/p/build-a-deep-data-mcp-server-to-connect-llms-to-your-local-database-in-10min", "target_id": 950}
+{"text": "teaching ai access local db", "qtype": "q_vague", "target_url": "https://root-ai.beehiiv.com/p/build-a-deep-data-mcp-server-to-connect-llms-to-your-local-database-in-10min", "target_id": 950}
+{"text": "working with ai models back in 2026", "qtype": "q_episodic", "target_url": "https://root-ai.beehiiv.com/p/build-a-deep-data-mcp-server-to-connect-llms-to-your-local-database-in-10min", "subtype": "year", "note": "year", "target_id": 950}
+{"text": "2025年那会儿等待明天上班的晚上存的", "qtype": "q_episodic", "target_url": "https://www.windowslatest.com/2025/11/02/update-and-shut-down-no-longer-restarts-pc-as-windows-11-25h2-patch-addresses-a-decades-old-bug/", "subtype": "year", "note": "year", "target_id": 427}
+{"text": "南韩税务局泄露冷钱包口令", "qtype": "q_content", "target_url": "https://www.bleepingcomputer.com/news/security/48m-in-crypto-stolen-after-korean-tax-agency-exposes-wallet-seed/", "target_id": 1067}
+{"text": "regresql postgresql planner statistics", "qtype": "q_content", "target_url": "https://boringsql.com/posts/portable-stats/", "target_id": 581}
+{"text": "catch query plan differences", "qtype": "q_vague", "target_url": "https://boringsql.com/posts/portable-stats/", "target_id": 581}
+{"text": "database upgrade process this year", "qtype": "q_episodic", "target_url": "https://boringsql.com/posts/portable-stats/", "subtype": "relative", "note": "relative", "target_id": 581}
+{"text": "水和杯子的温度变化", "qtype": "q_content", "target_url": "https://dynomight.net/coffee/", "target_id": 606}
+{"text": "2026年那会儿学习大模型物理实验存的", "qtype": "q_episodic", "target_url": "https://dynomight.net/coffee/", "subtype": "year", "note": "year", "target_id": 606}
+{"text": "f2 命令行工具", "qtype": "q_content", "target_url": "https://simonwillison.net/2025/May/24/f2/", "target_id": 1581}
+{"text": "怎样批量重命名文件", "qtype": "q_vague", "target_url": "https://simonwillison.net/2025/May/24/f2/", "target_id": 1581}
+{"text": "what age is best to start a business", "qtype": "q_content", "target_url": "https://www.computerworld.com/article/3708213/youre-never-too-old-to-start-a-business.html", "target_id": 2360}
+{"text": "what is the purpose of this page", "qtype": "q_vague", "target_url": "https://www.computerworld.com/article/3708213/youre-never-too-old-to-start-a-business.html", "target_id": 2360}
+{"text": "wondering if people my age can start businesses sometime in 2023", "qtype": "q_episodic", "target_url": "https://www.computerworld.com/article/3708213/youre-never-too-old-to-start-a-business.html", "subtype": "year", "note": "year", "target_id": 2360}
+{"text": "report synthetic content spotify", "qtype": "q_content", "target_url": "https://www.honest-broker.com/p/is-spotify-enabling-massive-impersonation", "target_id": 595}
+{"text": "report fake music on streaming service", "qtype": "q_vague", "target_url": "https://www.honest-broker.com/p/is-spotify-enabling-massive-impersonation", "target_id": 595}
+{"text": "free software fsf tech team", "qtype": "q_content", "target_url": "https://www.fsf.org/blogs/community/2026-values-into-practice", "target_id": 1756}
+{"text": "helping free software community", "qtype": "q_vague", "target_url": "https://www.fsf.org/blogs/community/2026-values-into-practice", "target_id": 1756}
+{"text": "looking for free software to use sometime in 2026", "qtype": "q_episodic", "target_url": "https://www.fsf.org/blogs/community/2026-values-into-practice", "subtype": "year", "note": "year", "target_id": 1756}
+{"text": "数据库和消息队列的区别", "qtype": "q_content", "target_url": "https://www.cloudamqp.com/blog/message-queues-exaplined-with-analogies.html", "target_id": 469}
+{"text": "大概2026年学习如何管理数据流存的", "qtype": "q_episodic", "target_url": "https://www.cloudamqp.com/blog/message-queues-exaplined-with-analogies.html", "subtype": "year", "note": "year", "target_id": 469}
+{"text": "2026年那会儿学习新的数据库管理存的那篇", "qtype": "q_episodic", "target_url": "https://dev.to/polliog/i-replaced-redis-with-postgresql-and-its-faster-4942", "subtype": "year", "note": "year", "target_id": 2294}
+{"text": "世界是互联网的新标准", "qtype": "q_content", "target_url": "https://worldcoin.org/", "target_id": 1225}
+{"text": "关于互联网的信任标准", "qtype": "q_vague", "target_url": "https://worldcoin.org/", "target_id": 1225}
+{"text": "大概2023年我在寻找一种新的互联网标准存的那篇", "qtype": "q_episodic", "target_url": "https://worldcoin.org/", "subtype": "year", "note": "year", "target_id": 1225}
+{"text": "build practical node js apps", "qtype": "q_content", "target_url": "https://sailsjs.com/", "target_id": 1227}
+{"text": "building apps quickly", "qtype": "q_vague", "target_url": "https://sailsjs.com/", "target_id": 1227}
+{"text": "working on a new project in 2023", "qtype": "q_episodic", "target_url": "https://sailsjs.com/", "subtype": "relative", "note": "relative", "target_id": 1227}
+{"text": "niantic spatial world model", "qtype": "q_content", "target_url": "https://www.technologyreview.com/2026/03/10/1134099/how-pokemon-go-is-helping-robots-deliver-pizza-on-time/", "target_id": 1930}
+{"text": "world model from pokemon go", "qtype": "q_vague", "target_url": "https://www.technologyreview.com/2026/03/10/1134099/how-pokemon-go-is-helping-robots-deliver-pizza-on-time/", "target_id": 1930}
+{"text": "looking for perfect delivery view this year", "qtype": "q_episodic", "target_url": "https://www.technologyreview.com/2026/03/10/1134099/how-pokemon-go-is-helping-robots-deliver-pizza-on-time/", "subtype": "relative", "note": "relative", "target_id": 1930}
+{"text": "spacex study on covid antibodies", "qtype": "q_content", "target_url": "https://www.hcamag.com/us/specialization/workplace-health-and-safety/elon-musk-spacex-lead-workers-covid-19-antibody-study/247174", "target_id": 2241}
+{"text": "elon musk space x research", "qtype": "q_vague", "target_url": "https://www.hcamag.com/us/specialization/workplace-health-and-safety/elon-musk-spacex-lead-workers-covid-19-antibody-study/247174", "target_id": 2241}
+{"text": "I was reading about space companies and covid sometime in 2026", "qtype": "q_episodic", "target_url": "https://www.hcamag.com/us/specialization/workplace-health-and-safety/elon-musk-spacex-lead-workers-covid-19-antibody-study/247174", "subtype": "year", "note": "year", "target_id": 2241}
+{"text": "determine which oauth flow for machine-to-machine", "qtype": "q_content", "target_url": "https://nimblesa.com/2025/09/04/which-auth-flow/", "target_id": 1651}
+{"text": "authentication and authorization scenarios", "qtype": "q_vague", "target_url": "https://nimblesa.com/2025/09/04/which-auth-flow/", "target_id": 1651}
+{"text": "working with machine-to-machine access back in 2025", "qtype": "q_episodic", "target_url": "https://nimblesa.com/2025/09/04/which-auth-flow/", "subtype": "year", "note": "year", "target_id": 1651}
+{"text": "back when show hn kitted local inventory production management f", "qtype": "q_episodic", "target_url": "https://arstechnica.com/tech-policy/2026/04/dad-stuck-in-support-nightmare-after-teen-lied-about-age-on-discord/", "subtype": "anchor", "note": "anchor", "target_id": 644}
+{"text": "在线动漫转换滤镜", "qtype": "q_content", "target_url": "https://www.animefilter.online/", "target_id": 174}
+{"text": "大概2024年想给朋友发动漫风格的照片存的那篇", "qtype": "q_episodic", "target_url": "https://www.animefilter.online/", "subtype": "year", "note": "year", "target_id": 174}
+{"text": "关于编程语言的文档", "qtype": "q_vague", "target_url": "https://stevelosh.com/blog/2013/09/teach-dont-tell/", "target_id": 1788}
+{"text": "AI开发工具真的能提高效率吗？", "qtype": "q_content", "target_url": "https://boristane.com/blog/the-software-development-lifecycle-is-dead/", "target_id": 1098}
+{"text": "AI开发工具的作用", "qtype": "q_vague", "target_url": "https://boristane.com/blog/the-software-development-lifecycle-is-dead/", "target_id": 1098}
+{"text": "2026年那会儿正在学习新的编程语言存的那篇", "qtype": "q_episodic", "target_url": "https://boristane.com/blog/the-software-development-lifecycle-is-dead/", "subtype": "year", "note": "year", "target_id": 1098}
+{"text": "firefox的插件如何生成页面截图", "qtype": "q_content", "target_url": "https://www.stefanjudis.com/a-firefox-only-minimap/", "target_id": 121}
+{"text": "2023年阅读《成绩膨胀》收的", "qtype": "q_episodic", "target_url": "https://www.stefanjudis.com/a-firefox-only-minimap/", "subtype": "relative", "note": "relative", "target_id": 121}
+{"text": "AI模型预测餐后血糖", "qtype": "q_content", "target_url": "https://www.diabettech.com/i-asked-ai-to-count-my-carbs-27000-times-it-couldnt-give-me-the-same-answer-twice/", "target_id": 2053}
+{"text": "当时保存了关于糖尿病的数据存的那篇", "qtype": "q_episodic", "target_url": "https://www.diabettech.com/i-asked-ai-to-count-my-carbs-27000-times-it-couldnt-give-me-the-same-answer-twice/", "subtype": "anchor", "note": "anchor", "target_id": 2053}
+{"text": "2026年寻找隐私保护技术存的", "qtype": "q_episodic", "target_url": "https://www.cloudflare.com/press/press-releases/2026/cloudflare-collaborates-with-leading-browsers-to-develop-a-privacy-first-protocol-for-the-global-internet/", "subtype": "year", "note": "year", "target_id": 2091}
+{"text": "ragged left edge arabic typography", "qtype": "q_content", "target_url": "https://lr0.org/blog/p/arabic/", "target_id": 2117}
+{"text": "understanding rendering issues", "qtype": "q_vague", "target_url": "https://lr0.org/blog/p/arabic/", "target_id": 2117}
+{"text": "around the time benchmark google dictation model", "qtype": "q_episodic", "target_url": "https://lr0.org/blog/p/arabic/", "subtype": "anchor", "note": "anchor", "target_id": 2117}
+{"text": "何时程序员选择退休", "qtype": "q_content", "target_url": "https://thecodist.com/how-to-know-when-its-time-to-go/", "target_id": 1097}
+{"text": "最近寻找编程工作的程序员存的", "qtype": "q_episodic", "target_url": "https://thecodist.com/how-to-know-when-its-time-to-go/", "subtype": "relative", "note": "relative", "target_id": 1097}
+{"text": "那段时间世界最高的向日葵存的那篇", "qtype": "q_episodic", "target_url": "https://css-tricks.com/the-most-hated-css-feature-cos-and-sin/", "subtype": "anchor", "note": "anchor", "target_id": 2275}
+{"text": "what is a shadow admin in ai", "qtype": "q_content", "target_url": "https://sharetxt.live/blog/the-shadow-admin-threat-how-autonomous-ai-agents-could-introduce-undetectable-system-backdoors", "target_id": 983}
+{"text": "how to secure ai agents", "qtype": "q_vague", "target_url": "https://sharetxt.live/blog/the-shadow-admin-threat-how-autonomous-ai-agents-could-introduce-undetectable-system-backdoors", "target_id": 983}
+{"text": "optimizing cloud costs for enterprise recently", "qtype": "q_episodic", "target_url": "https://sharetxt.live/blog/the-shadow-admin-threat-how-autonomous-ai-agents-could-introduce-undetectable-system-backdoors", "subtype": "relative", "note": "relative", "target_id": 983}
+{"text": "build q a platform with apache answer", "qtype": "q_content", "target_url": "https://answer.apache.org/", "target_id": 154}
+{"text": "create a q a system", "qtype": "q_vague", "target_url": "https://answer.apache.org/", "target_id": 154}
+{"text": "working on a project management tool in 2024", "qtype": "q_episodic", "target_url": "https://answer.apache.org/", "subtype": "year", "note": "year", "target_id": 154}
+{"text": "光模式的平均亮度变化", "qtype": "q_content", "target_url": "https://willhbr.net/2025/10/20/light-mode-infffffflation/", "target_id": 503}
+{"text": "大概2026年对比不同版本的光模式收的", "qtype": "q_episodic", "target_url": "https://willhbr.net/2025/10/20/light-mode-infffffflation/", "subtype": "year", "note": "year", "target_id": 503}
+{"text": "creating brick set images", "qtype": "q_content", "target_url": "https://www.brickcenter.net", "target_id": 182}
+{"text": "开发者的桌面布局", "qtype": "q_content", "target_url": "https://www.ssp.sh/brain/computer-desk-setup-monitor-workflow/", "target_id": 1814}
+{"text": "世界第一个网站的内容", "qtype": "q_vague", "target_url": "https://www.ssp.sh/brain/computer-desk-setup-monitor-workflow/", "target_id": 1814}
+{"text": "what is tokenspeed", "qtype": "q_content", "target_url": "https://mikeveerman.github.io/tokenspeed/", "target_id": 2055}
+{"text": "understanding token throughput of llms", "qtype": "q_vague", "target_url": "https://mikeveerman.github.io/tokenspeed/", "target_id": 2055}
+{"text": "back when DataCenter.fm; @RealRichomie", "qtype": "q_episodic", "target_url": "https://mikeveerman.github.io/tokenspeed/", "subtype": "anchor", "note": "anchor", "target_id": 2055}
+{"text": "mathematical problem solving", "qtype": "q_content", "target_url": "https://mathnet.mit.edu/", "target_id": 2041}
+{"text": "math challenges", "qtype": "q_vague", "target_url": "https://mathnet.mit.edu/", "target_id": 2041}
+{"text": "studying for a math competition in 2026", "qtype": "q_episodic", "target_url": "https://mathnet.mit.edu/", "subtype": "year", "note": "year", "target_id": 2041}
+{"text": "what is the age of the whale graveyard discovered", "qtype": "q_content", "target_url": "https://www.bbc.com/news/articles/c75ylx4xn10o", "target_id": 2141}
+{"text": "what they type remembering only what the page was FOR", "qtype": "q_vague", "target_url": "https://www.bbc.com/news/articles/c75ylx4xn10o", "target_id": 2141}
+{"text": "back when on-device AI is a margin decision", "qtype": "q_episodic", "target_url": "https://www.bbc.com/news/articles/c75ylx4xn10o", "subtype": "anchor", "note": "anchor", "target_id": 2141}
+{"text": "how to fake identity online", "qtype": "q_vague", "target_url": "https://kalilinuxtutorials.com/sock-puppets-osint-guide/", "target_id": 2239}
+{"text": "working with fake social media accounts sometime in 2025", "qtype": "q_episodic", "target_url": "https://kalilinuxtutorials.com/sock-puppets-osint-guide/", "subtype": "year", "note": "year", "target_id": 2239}
+{"text": "real per-profile fingerprints", "qtype": "q_content", "target_url": "https://donutbrowser.com/", "target_id": 357}
+{"text": "anti-detect browser", "qtype": "q_vague", "target_url": "https://donutbrowser.com/", "target_id": 357}
+{"text": "如何通过赞助支持SerenityOS项目", "qtype": "q_content", "target_url": "https://awesomekling.github.io/How-I-make-a-living-working-on-SerenityOS/", "target_id": 1207}
+{"text": "2023年正在寻找开源项目资金存的那篇", "qtype": "q_episodic", "target_url": "https://awesomekling.github.io/How-I-make-a-living-working-on-SerenityOS/", "subtype": "relative", "note": "relative", "target_id": 1207}
+{"text": "解决票务问题的方法", "qtype": "q_vague", "target_url": "https://behind.pretix.eu/2025/05/23/captchas-are-over/", "target_id": 353}
+{"text": "那阵子人形机器人格斗赛收的", "qtype": "q_episodic", "target_url": "https://behind.pretix.eu/2025/05/23/captchas-are-over/", "subtype": "anchor", "note": "anchor", "target_id": 353}
+{"text": "大概2024年科技爱好者关注人工智能存的那篇", "qtype": "q_episodic", "target_url": "https://www.humanityredefined.com/p/superintelligence10-years-later", "subtype": "year", "note": "year", "target_id": 1458}
+{"text": "自动调整文本框高度", "qtype": "q_content", "target_url": "https://www.amitmerchant.com/textarea-auto-increase-height/", "target_id": 138}
+{"text": "2023年那会儿学习新 CSS 功能存的那篇", "qtype": "q_episodic", "target_url": "https://www.amitmerchant.com/textarea-auto-increase-height/", "subtype": "year", "note": "year", "target_id": 138}
+{"text": "roussseau essay contest", "qtype": "q_content", "target_url": "https://astralcodexten.substack.com/p/your-book-review-the-dawn-of-everything", "target_id": 1145}
+{"text": "reading about history of ideas back in 2022", "qtype": "q_episodic", "target_url": "https://astralcodexten.substack.com/p/your-book-review-the-dawn-of-everything", "subtype": "relative", "note": "relative", "target_id": 1145}
+{"text": "语法高亮手写代码", "qtype": "q_content", "target_url": "https://blog.glyphdrawing.club/font-with-built-in-syntax-highlighting/", "target_id": 1430}
+{"text": "手写网页的代码问题", "qtype": "q_vague", "target_url": "https://blog.glyphdrawing.club/font-with-built-in-syntax-highlighting/", "target_id": 1430}
+{"text": "real-time dashboard", "qtype": "q_content", "target_url": "https://www.ignition.sh/", "target_id": 2329}
+{"text": "I was setting up a new server back in 2026", "qtype": "q_episodic", "target_url": "https://www.ignition.sh/", "subtype": "year", "note": "year", "target_id": 2329}
+{"text": "fable burning tokens", "qtype": "q_content", "target_url": "https://www.kevinlondon.com/2026/07/07/burning-the-3-40-am-window/", "target_id": 2178}
+{"text": "burning through subscription limits", "qtype": "q_vague", "target_url": "https://www.kevinlondon.com/2026/07/07/burning-the-3-40-am-window/", "target_id": 2178}
+{"text": "working on code audit sometime in 2026", "qtype": "q_episodic", "target_url": "https://www.kevinlondon.com/2026/07/07/burning-the-3-40-am-window/", "subtype": "year", "note": "year", "target_id": 2178}
+{"text": "一个人就能创立十亿美金公司", "qtype": "q_content", "target_url": "https://fortune.com/2024/02/04/sam-altman-one-person-unicorn-silicon-valley-founder-myth/", "target_id": 1388}
+{"text": "那阵子中国最受欢迎的汽车颜色存的", "qtype": "q_episodic", "target_url": "https://fortune.com/2024/02/04/sam-altman-one-person-unicorn-silicon-valley-founder-myth/", "subtype": "anchor", "note": "anchor", "target_id": 1388}
+{"text": "what was the fentanyl king doing in houston", "qtype": "q_content", "target_url": "https://www.wired.com/story/on-the-trail-of-the-fentanyl-king/", "target_id": 1221}
+{"text": "working with web APIs in 2023", "qtype": "q_episodic", "target_url": "https://www.wired.com/story/on-the-trail-of-the-fentanyl-king/", "subtype": "year", "note": "year", "target_id": 1221}
+{"text": "how pair prompting could mitigate AI risks", "qtype": "q_content", "target_url": "https://www.gethopp.app/blog/pair-prompting", "target_id": 924}
+{"text": "lines of markdown triggered sell-off", "qtype": "q_vague", "target_url": "https://www.gethopp.app/blog/pair-prompting", "target_id": 924}
+{"text": "working on AI risks and skill development in 2026", "qtype": "q_episodic", "target_url": "https://www.gethopp.app/blog/pair-prompting", "subtype": "year", "note": "year", "target_id": 924}
+{"text": "BullshitBench detection rate", "qtype": "q_content", "target_url": "https://petergpt.github.io/bullshit-benchmark/viewer/index.v2.html", "target_id": 575}
+{"text": "benchmarking AI models", "qtype": "q_vague", "target_url": "https://petergpt.github.io/bullshit-benchmark/viewer/index.v2.html", "target_id": 575}
+{"text": "back when OpenAI model comparison", "qtype": "q_episodic", "target_url": "https://petergpt.github.io/bullshit-benchmark/viewer/index.v2.html", "subtype": "anchor", "note": "anchor", "target_id": 575}
+{"text": "programming ability is not the issue at large companies", "qtype": "q_content", "target_url": "https://philipotoole.com/common-misunderstandings-about-large-software-companies/", "target_id": 491}
+{"text": "understanding of large companies", "qtype": "q_vague", "target_url": "https://philipotoole.com/common-misunderstandings-about-large-software-companies/", "target_id": 491}
+{"text": "working at large firms during career this year", "qtype": "q_episodic", "target_url": "https://philipotoole.com/common-misunderstandings-about-large-software-companies/", "subtype": "relative", "note": "relative", "target_id": 491}
+{"text": "长期价格变化对资源的影响", "qtype": "q_content", "target_url": "https://ourworldindata.org/simon-ehrlich-bet", "target_id": 1799}
+{"text": "2026年在资源短缺时的经济问题存的", "qtype": "q_episodic", "target_url": "https://ourworldindata.org/simon-ehrlich-bet", "subtype": "year", "note": "year", "target_id": 1799}
+{"text": "private photo anonymization", "qtype": "q_content", "target_url": "https://www.faceblurify.com/en/", "target_id": 377}
+{"text": "protecting privacy with blurred faces", "qtype": "q_vague", "target_url": "https://www.faceblurify.com/en/", "target_id": 377}
+{"text": "working on a project involving sensitive images sometime in 2025", "qtype": "q_episodic", "target_url": "https://www.faceblurify.com/en/", "subtype": "year", "note": "year", "target_id": 377}
+{"text": "what the bolt ai agent does", "qtype": "q_content", "target_url": "https://bolt.new/", "target_id": 247}
+{"text": "building apps with ai", "qtype": "q_vague", "target_url": "https://bolt.new/", "target_id": 247}
+{"text": "around the time hacker news readers", "qtype": "q_episodic", "target_url": "https://bolt.new/", "subtype": "anchor", "note": "anchor", "target_id": 247}
