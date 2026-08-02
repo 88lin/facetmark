@@ -171,11 +171,12 @@ async def enrich_all(
     limit: int | None = None,
     force: bool = False,
     ids: Sequence[int] | None = None,
-    concurrency: int = 4,
+    concurrency: int | None = None,
     progress=None,
 ) -> EnrichReport:
     s = settings or get_settings()
     prov = provider or get_provider(s)
+    concurrency = concurrency if concurrency is not None else s.enrich_concurrency
     todo = targets(conn, limit=limit, force=force, ids=ids)
     rep = EnrichReport(considered=len(todo), skipped_unchanged=count_unchanged(conn))
     if not todo:

@@ -86,6 +86,12 @@ class Settings(BaseSettings):
     body_truncate_chars: int = 6000
 
     # ---------- enrichment / intent ----------
+    #: In-flight enrichment calls. The right value is a property of the backend,
+    #: not of facetmark: a hosted API rations by tokens-per-minute and punishes
+    #: bursts, while a self-hosted llama.cpp with continuous batching gets
+    #: *faster* per token as the batch grows. 4 is a safe hosted default;
+    #: a local server with N parallel slots wants N.
+    enrich_concurrency: int = 4
     intent_generate_n: int = 8
     intent_keep_n: int = 4
     """How many self-consistent intent queries to keep. Report's ablation should
