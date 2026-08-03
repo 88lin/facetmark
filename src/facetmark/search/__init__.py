@@ -21,7 +21,9 @@ from .decay import apply_decay, cold_bookmark_ids, decay_hits
 from .graph import Expansion, expand, related
 from .lexical import lexical_lists, lexical_search
 from .pipeline import (
+    ALL_CONFIGS,
     CONFIGS,
+    EXPLORATORY,
     FULL,
     Config,
     SearchHit,
@@ -36,7 +38,9 @@ from .understand import QueryUnderstanding, classify, classify_assisted
 from .vectors import content_list, intent_list, vector_lists
 
 __all__ = [
+    "ALL_CONFIGS",
     "CONFIGS",
+    "EXPLORATORY",
     "DEFAULT_K",
     "FULL",
     "Config",

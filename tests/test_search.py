@@ -940,3 +940,77 @@ class TestLexicalFacet:
         from facetmark.search.lexical import _run
 
         assert _run(lexdb, "fts_seg", 'NEAR("a"', (1, 1, 1, 1), 10) == []
+
+
+class TestTheAblationLadderAndItsComplements:
+    """The pre-registered ladder is a scientific record, not a config file.
+
+    W1's gate came back negative in a direction nobody planned for: rung A beat
+    every rung above it on the primary metric. The natural follow-up -- "what if
+    we remove the facets that hurt?" -- cannot be asked of an additive ladder,
+    so leave-one-out rungs were added alongside it. These tests exist to keep
+    the two things from blurring into each other: the ladder must stay byte-for-
+    byte what was pre-registered, and the complements must be reachable by the
+    harness without being mistaken for pre-registered rungs.
+    """
+
+    def test_the_pre_registered_ladder_is_still_exactly_what_was_pre_registered(self):
+        from facetmark.search.pipeline import ALL_FACETS
+
+        assert set(CONFIGS) == {"A", "B", "C", "D", "E"}
+        assert CONFIGS["A"].facets == frozenset({"content"})
+        assert CONFIGS["B"].facets == frozenset({"content", "lex_seg", "lex_tri"})
+        assert CONFIGS["C"].facets == ALL_FACETS
+        assert CONFIGS["D"].facets == ALL_FACETS
+        assert CONFIGS["E"].facets == ALL_FACETS
+        # Each rung adds exactly one mechanism to the one below it.
+        mechanisms = [
+            (c.context, c.graph, c.rerank, c.decay) for c in
+            (CONFIGS["A"], CONFIGS["B"], CONFIGS["C"], CONFIGS["D"], CONFIGS["E"])
+        ]
+        assert mechanisms == [
+            (False, False, False, False),
+            (False, False, False, False),
+            (False, False, False, False),
+            (True, True, False, False),
+            (True, True, True, False),
+        ]
+
+    def test_every_exploratory_rung_drops_the_lexical_facets_and_nothing_else(self):
+        from facetmark.search.pipeline import EXPLORATORY, LEXICAL_FACETS
+
+        assert EXPLORATORY, "the complements are the point of this dict"
+        for name, cfg in EXPLORATORY.items():
+            assert not (cfg.facets & LEXICAL_FACETS), f"{name} still carries a lexical facet"
+            assert "content" in cfg.facets, f"{name} has to retrieve something"
+            assert cfg.name == name, f"{name} reports itself as {cfg.name}"
+            assert not cfg.rerank, f"{name} must stay cheap enough to re-run"
+
+    def test_a_complement_pairs_with_a_pre_registered_rung_on_everything_but_facets(self):
+        from facetmark.search.pipeline import EXPLORATORY
+
+        pairs = {"C_nolex": "C", "D_nolex": "D"}
+        for lo, hi in pairs.items():
+            a, b = EXPLORATORY[lo], CONFIGS[hi]
+            assert (a.context, a.graph, a.decay) == (b.context, b.graph, b.decay), (
+                f"{lo} differs from {hi} by more than the lexical facets, so the "
+                f"difference between them is no longer attributable"
+            )
+
+    def test_the_harness_can_reach_a_complement_by_name(self):
+        from facetmark.eval.harness import ALL_CONFIGS
+        from facetmark.search.pipeline import EXPLORATORY
+
+        for key in list(CONFIGS) + list(EXPLORATORY):
+            assert key in ALL_CONFIGS
+        # And the merge did not let a complement shadow a pre-registered rung.
+        for key, cfg in CONFIGS.items():
+            assert ALL_CONFIGS[key] is cfg
+
+    def test_the_shipped_default_is_not_silently_one_of_the_rungs(self):
+        # FULL is deliberately outside the ladder (it adds metabolism). If a
+        # future edit makes it identical to a rung, the ladder stops describing
+        # what ships and this test should be the thing that notices.
+        assert FULL.name == "full"
+        assert FULL.decay is True
+        assert all(c.decay is False for c in CONFIGS.values())

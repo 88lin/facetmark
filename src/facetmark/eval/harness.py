@@ -29,7 +29,7 @@ from typing import Any
 from ..config import Settings, get_settings
 from ..db import open_db
 from ..providers import get_provider
-from ..search.pipeline import CONFIGS, FULL, search
+from ..search.pipeline import ALL_CONFIGS, FULL, search
 from ..service import index_all
 from .corpus import Corpus, EvalQuery, generate_corpus, load_corpus, load_query_file
 
@@ -215,7 +215,7 @@ async def run_rung(
     outcome list is in query order regardless of completion order and the
     pairing the bootstrap depends on survives.
     """
-    cfg = FULL if config_key == "full" else CONFIGS[config_key]
+    cfg = FULL if config_key == "full" else ALL_CONFIGS[config_key]
     prov = get_provider(bench.settings)
     outcomes: list[Outcome | None] = [None] * len(queries)
     reranker = ""

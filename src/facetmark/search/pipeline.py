@@ -84,6 +84,28 @@ CONFIGS: dict[str, Config] = {
     "E": Config("E", ALL_FACETS, context=True, graph=True, rerank=True),
 }
 
+#: Rungs the design document never asked for, added after the W1 gate came back
+#: negative in an unexpected direction: A beat every rung above it on the primary
+#: metric, and the single largest regression in the whole table was A->B, the
+#: step that introduces the lexical facets. The ladder is additive by
+#: construction, so it can isolate "what does adding X do on top of everything
+#: below it" but never "what does *removing* X do". These are the leave-one-out
+#: complements needed to answer the second question, kept in a separate dict so
+#: the pre-registered ladder above stays exactly as it was pre-registered.
+EXPLORATORY: dict[str, Config] = {
+    # C minus the lexical facets: does the intent facet stand on its own?
+    "C_nolex": Config("C_nolex", VECTOR_FACETS),
+    # D minus the lexical facets: keeps D's context/graph, drops the suspect.
+    "D_nolex": Config("D_nolex", VECTOR_FACETS, context=True, graph=True),
+    # A plus context/graph only: the cheapest thing that could still work.
+    "A_ctx": Config("A_ctx", frozenset({"content"}), context=True, graph=True),
+}
+
+#: Every config the harness can be asked to run, pre-registered or not. Callers
+#: that report results must say which dict a rung came from; an exploratory rung
+#: measured on the same queries that motivated it is a hypothesis, not a result.
+ALL_CONFIGS: dict[str, Config] = {**CONFIGS, **EXPLORATORY}
+
 #: What ``facetmark search`` and the API actually run: stage E plus metabolism.
 #: Metabolism is deliberately outside the ladder -- it is a library-hygiene
 #: feature, and leaving it on during ablation would let a cold-start synthetic
