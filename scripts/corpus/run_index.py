@@ -53,6 +53,8 @@ async def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--chunk", type=int, default=200)
     ap.add_argument("--snap", type=int, default=3, help="snapshot every N chunks")
+    ap.add_argument("--stall-rounds", type=int, default=3,
+                    help="give up on enrich after N rounds with nothing enriched")
     ap.add_argument("--stages", default="enrich,embed,intents,sessions,edges")
     args = ap.parse_args()
     stages = set(args.stages.split(","))
@@ -69,6 +71,7 @@ async def main() -> None:
         print(f"enrich: {total0} pending, chunk={args.chunk}, "
               f"concurrency={st.enrich_concurrency}", flush=True)
         rnd = 0
+        stalled = 0
         done = 0
         t0 = time.monotonic()
         while True:
@@ -82,6 +85,23 @@ async def main() -> None:
             n = int(d["enriched"]) + int(d["failed"])
             if n == 0:
                 break
+            # A failure is not progress. enrich_all re-selects whatever is still
+            # unenriched, so a page that fails deterministically -- one whose
+            # prompt simply will not fit the context -- comes back every round
+            # forever. Counting it as work spun this loop for fourteen hours on a
+            # single page. Give transient failures a few rounds to clear, then
+            # stop and name what is stuck.
+            if int(d["enriched"]) == 0:
+                stalled += 1
+                if stalled >= args.stall_rounds:
+                    print(f"[enrich {rnd:>3}] {stalled} rounds without a single "
+                          f"page enriched; {d['failed']} still failing. stopping "
+                          f"so the remaining stages can run.", flush=True)
+                    for err in d["errors"][:10]:
+                        print(f"    stuck: {err}", flush=True)
+                    break
+            else:
+                stalled = 0
             done += int(d["enriched"])
             el = time.monotonic() - t0
             left = max(total0 - done, 0)
