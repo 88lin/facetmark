@@ -256,3 +256,76 @@ class TestOrchestration:
         build_edges(db, kinds=["anchor_sibling"])
         out = neighbours(db, ids["https://github.com/o/r1/a"])
         assert [x[0] for x in out] == [ids["https://github.com/o/r1/b"]]
+
+
+class TestTheStatsMustDescribeTheTableAndNotTheIntention:
+    """``EdgeStats`` used to report rows *offered*, which is not a measurement.
+
+    The W1 index log said 19,763 edges; the library snapshot published with the
+    report holds 19,648. Rebuilding the graph on that same snapshot reproduces
+    19,763, so the graph definition was right and the *count* was the thing that
+    could not be checked -- it was ``len(pairs)``, not a query. A count that
+    cannot disagree with the writer is not evidence that the write happened.
+    """
+
+    def test_the_reported_total_equals_what_the_table_holds(self, db):
+        _load(db, _a("https://github.com/o/r/a", "one", 1700000000)
+                  + _a("https://github.com/o/r/b", "two", 1700000060)
+                  + _a("https://github.com/o/r/c", "three", 1700000120))
+        build_sessions(db, eps=1800)
+        stats = build_edges(db)
+        assert stats.total == db.execute("SELECT count(*) FROM edge").fetchone()[0]
+        for kind, n in stats.counts.items():
+            assert n == db.execute(
+                "SELECT count(*) FROM edge WHERE kind=?", (kind,)
+            ).fetchone()[0], kind
+
+    def test_a_pair_offered_twice_is_counted_once(self, db):
+        from facetmark.edges import _insert
+
+        ids = _load(db, _a("https://a.com/1", "x", 1700000000)
+                        + _a("https://b.com/2", "y", 1700000060))
+        a, b = ids["https://a.com/1"], ids["https://b.com/2"]
+        pairs = [(a, b, 1.0), (a, b, 0.5), (b, a, 1.0)]
+        assert _insert(db, "session", pairs) == 2, "three offered, two rows"
+        assert db.execute("SELECT count(*) FROM edge").fetchone()[0] == 2
+        assert db.execute(
+            "SELECT weight FROM edge WHERE src=? AND dst=?", (a, b)
+        ).fetchone()[0] == 0.5, "last write still wins"
+
+
+class TestTheSemanticFloorIsTheOneThatWasEvaluated:
+    """The shipped default must be the value the W1 report measured.
+
+    It was not. The report recalibrated the floor under a rule fixed before
+    seeing the outcome (1st percentile of random document-pair distance, two
+    decimals -> 0.93) and rebuilt the graph, taking semantic coverage from 1.4%
+    to 79.4%; every number in §5 and §9.1 was measured on that graph. The
+    constant in the source stayed at 0.60, so a fresh install reproduced the
+    report's prose and not its configuration.
+    """
+
+    def test_the_default_is_the_preregistered_value(self):
+        from facetmark.edges import SEMANTIC_MAX_DISTANCE
+
+        assert SEMANTIC_MAX_DISTANCE == 0.93, (
+            "0.93 is p1 of the random-pair distance distribution on bge-m3 "
+            "(post_index.json). Changing it means re-deriving it under the "
+            "same rule on the new embedding model, not picking a nicer number."
+        )
+
+    def test_the_module_level_knob_can_actually_be_turned(self, db, monkeypatch):
+        # It could not: max_distance was a default argument, bound at import,
+        # so setting the constant did nothing and said nothing.
+        import facetmark.edges as E
+
+        ids = TestSemanticEdges._seed(
+            TestSemanticEdges(), db, [[1, 0, 0, 0], [0.9, 0.436, 0, 0]]
+        )
+        monkeypatch.setattr(E, "SEMANTIC_MAX_DISTANCE", 0.01)
+        assert E.build_semantic_edges(db) == 0, "a tight floor must exclude"
+        monkeypatch.setattr(E, "SEMANTIC_MAX_DISTANCE", 1.5)
+        assert E.build_semantic_edges(db) == 2, "a loose floor must include"
+        assert db.execute(
+            "SELECT count(*) FROM edge WHERE kind='semantic' AND src=?", (ids[0],)
+        ).fetchone()[0] == 1

@@ -63,7 +63,21 @@ SUPERSESSION_MIN_GAP_S = 86_400
 
 #: Neighbours per bookmark for the semantic kind.
 SEMANTIC_K = 8
-SEMANTIC_MAX_DISTANCE = 0.60  # L2 on unit vectors; ~cosine 0.82
+
+#: Distance ceiling for the semantic kind, L2 between unit vectors.
+#:
+#: This was 0.60 (~cosine 0.82), a number nobody measured, and on bge-m3 it gave
+#: semantic edges to 1.4% of the library -- the graph was effectively session and
+#: same-domain edges only. The W1 evaluation replaced it under a rule fixed
+#: *before* looking at the result -- the 1st percentile of the random
+#: document-pair distance distribution, two decimals -- which on 2,821,500
+#: sampled pairs came out at 0.9342, so 0.93. Coverage went 1.4% -> 79.4% and
+#: semantic edges 80 -> 7,014 (``post_index.json`` ships the calibration).
+#:
+#: The number is a property of the embedding model, not of this package: it is
+#: where *unrelated* documents start on bge-m3. Swap the model and re-derive it
+#: with the same rule rather than keeping this value.
+SEMANTIC_MAX_DISTANCE = 0.93
 
 
 @dataclass(slots=True)
@@ -76,15 +90,30 @@ class EdgeStats:
         return sum(self.counts.values())
 
 
+def _rows(conn: sqlite3.Connection, kind: str) -> int:
+    return int(conn.execute("SELECT count(*) FROM edge WHERE kind = ?", (kind,)).fetchone()[0])
+
+
 def _insert(conn: sqlite3.Connection, kind: str, pairs: list[tuple[int, int, float]]) -> int:
+    """Write ``pairs`` and return how many rows that actually *added*.
+
+    Not ``len(pairs)``. ``ON CONFLICT DO UPDATE`` silently collapses a pair
+    offered twice into one row, so the two numbers can differ, and reporting
+    the offered count means the stats can claim edges the table does not hold.
+    That is not hypothetical: the W1 index log reported 19,763 edges, and the
+    published snapshot of that library holds 19,648. A rebuild reproduces
+    19,763, so the log was right about the graph and wrong about what it had
+    verified -- it had counted its own intentions. Count the table instead.
+    """
     if not pairs:
         return 0
+    before = _rows(conn, kind)
     conn.executemany(
         "INSERT INTO edge(src, dst, kind, weight) VALUES(?,?,?,?)"
         " ON CONFLICT(src, dst, kind) DO UPDATE SET weight=excluded.weight",
         [(s, d, kind, w) for s, d, w in pairs],
     )
-    return len(pairs)
+    return _rows(conn, kind) - before
 
 
 def _both_ways(a: int, b: int, w: float) -> list[tuple[int, int, float]]:
@@ -243,15 +272,21 @@ def build_semantic_edges(
     *,
     weight: float | None = None,
     k: int = SEMANTIC_K,
-    max_distance: float = SEMANTIC_MAX_DISTANCE,
+    max_distance: float | None = None,
 ) -> int:
     """k-NN over content vectors, kept only where both directions agree.
 
     Mutual k-NN rather than plain k-NN: without it, a bookmark whose vector sits
     in a dense region collects inbound edges from the whole neighbourhood and
     becomes a semantic hub that pollutes every expansion.
+
+    ``max_distance`` defaults to :data:`SEMANTIC_MAX_DISTANCE` *at call time*.
+    It used to be a default argument, which bound the constant at import and
+    made the module-level knob unturnable -- setting
+    ``edges.SEMANTIC_MAX_DISTANCE`` had no effect whatsoever, silently.
     """
     w = WEIGHTS["semantic"] if weight is None else weight
+    max_distance = SEMANTIC_MAX_DISTANCE if max_distance is None else max_distance
     if not vec_tables_exist(conn):
         return 0
     rows = conn.execute(
