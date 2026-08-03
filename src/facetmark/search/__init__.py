@@ -16,10 +16,11 @@ by the *indexing* side (the intent filter probes the half-built library) without
 dragging in the full query pipeline and its provider dependency.
 """
 
+from . import abstain
 from .context import ContextSignals, anchor_window, build_context, window_filter
 from .decay import apply_decay, cold_bookmark_ids, decay_hits
 from .graph import Expansion, expand, related
-from .lexical import lexical_lists, lexical_search
+from .lexical import lexical_lists, lexical_lists_scored, lexical_search
 from .pipeline import (
     ALL_CONFIGS,
     CONFIGS,
@@ -38,7 +39,14 @@ from .pipeline import (
 from .rerank import LLMReranker, OverlapReranker, RerankDoc, Reranker, get_reranker
 from .rrf import DEFAULT_K, Fused, rank_of, rrf
 from .understand import QueryUnderstanding, classify, classify_assisted
-from .vectors import content_list, intent_list, vector_lists
+from .vectors import (
+    content_list,
+    content_list_scored,
+    intent_list,
+    intent_list_scored,
+    vector_lists,
+    vector_lists_scored,
+)
 
 __all__ = [
     "ALL_CONFIGS",
@@ -60,6 +68,7 @@ __all__ = [
     "Reranker",
     "SearchHit",
     "SearchResponse",
+    "abstain",
     "anchor_window",
     "apply_decay",
     "build_context",
@@ -67,12 +76,15 @@ __all__ = [
     "classify_assisted",
     "cold_bookmark_ids",
     "content_list",
+    "content_list_scored",
     "decay_hits",
     "expand",
     "get_reranker",
     "hydrate",
     "intent_list",
+    "intent_list_scored",
     "lexical_lists",
+    "lexical_lists_scored",
     "lexical_search",
     "quick_search",
     "rank_of",
@@ -80,5 +92,6 @@ __all__ = [
     "rrf",
     "search",
     "vector_lists",
+    "vector_lists_scored",
     "window_filter",
 ]

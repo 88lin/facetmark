@@ -1183,3 +1183,168 @@ class TestTheTwoKnobsW2HasToFit:
         gated = await search(conn, "kubernetes", config=ALL_CONFIGS["A_gatedctx"], **kw)
         assert [h.bookmark_id for h in gated.hits] == [h.bookmark_id for h in plain.hits]
         assert gated.context is None, "the gate should not have built context signals"
+
+
+class TestAFacetThatKnowsItHasNoOpinion:
+    """The third repair: let a weak facet decline to vote.
+
+    `docs/gate-w1.md` §4.1 measured the cost of fusing any weaker facet into a
+    strong content vector at 5-6pp of Recall@5. The coincidence that does the
+    damage sits at rank 1 of the weak facets, which is why truncating candidate
+    lists -- the intuitive fix -- cannot touch it.
+    """
+
+    def test_a_clear_winner_reports_confidence_and_a_flat_list_reports_none(self):
+        from facetmark.search.abstain import confidence
+
+        assert confidence([10.0, 1.0, 1.0, 1.0, 1.0]) == pytest.approx(1.0)
+        assert confidence([5.0, 5.0, 5.0, 5.0, 5.0]) == 0.0
+        # A plateau at the top with a tail: the facet cannot tell its own best
+        # four results apart, so its rank-1 is arbitrary.
+        assert confidence([5.0, 5.0, 5.0, 5.0, 0.0]) == pytest.approx(0.0)
+        assert confidence([5.0, 4.0, 3.0, 2.0, 1.0]) == pytest.approx(0.5)
+
+    def test_confidence_survives_the_units_the_facet_happens_to_use(self):
+        from facetmark.search.abstain import confidence
+
+        base = [9.0, 4.0, 3.0, 2.0, 1.0]
+        shifted = [x - 100.0 for x in base]      # bm25 lives below zero
+        scaled = [x * 0.017 for x in base]       # cosine lives near zero
+        both = [x * 3.5 - 12.0 for x in base]
+        for other in (shifted, scaled, both):
+            assert confidence(other) == pytest.approx(confidence(base))
+
+    def test_a_facet_with_almost_nothing_to_say_is_never_silenced_for_saying_it(self):
+        from facetmark.search.abstain import MIN_SAMPLE, confidence
+
+        assert MIN_SAMPLE == 3
+        assert confidence([1.0]) == 1.0
+        assert confidence([1.0, 1.0]) == 1.0
+        # One match may be the only answer to the query. Silencing it turns a
+        # correct narrow result into an empty page.
+
+    def test_abstention_drops_the_quiet_facets_and_keeps_the_confident_one(self):
+        from facetmark.search import abstain
+
+        scored = {
+            "content": [(1, 0.9), (2, 0.2), (3, 0.1), (4, 0.05)],   # confident
+            "lex_seg": [(5, 0.5), (6, 0.5), (7, 0.5), (8, 0.1)],    # no opinion
+        }
+        keep, conf = abstain.apply(scored, 0.25)
+        assert set(keep) == {"content"}
+        assert conf["lex_seg"] < 0.25 <= conf["content"]
+        assert set(conf) == {"content", "lex_seg"}, "the silenced facet still reports"
+
+    def test_abstention_never_turns_a_hard_query_into_an_empty_page(self):
+        from facetmark.search import abstain
+
+        scored = {
+            # A shallow but real gradient: the best score stands above the
+            # facet's own middle, just not by much.
+            "lex_seg": [(1, 1.0), (2, 0.6), (3, 0.5), (4, 0.4)],
+            # Four exact ties: this facet is enumerating, not ranking.
+            "lex_tri": [(9, 1.0), (8, 1.0), (7, 1.0), (6, 1.0)],
+        }
+        keep, conf = abstain.apply(scored, 0.99)
+        assert conf["lex_tri"] == 0.0
+        assert 0.0 < conf["lex_seg"] < 0.99, "the premise of this test"
+        assert len(keep) == 1, "a weak answer beats no answer"
+        assert next(iter(keep)) == "lex_seg", "the least bad facet survives"
+        assert abstain.apply({}, 0.5) == ({}, {})
+
+    def test_the_all_tied_rescue_is_arbitrary_and_says_so(self):
+        # Two facets that are equally, exactly useless both score 0.0, so the
+        # rescue has nothing to rank them by and falls back to the facet name.
+        # That is arbitrary. It is documented here so that a future change to
+        # the tie-break is a deliberate one and not a silent reordering.
+        from facetmark.search import abstain
+
+        scored = {
+            "lex_seg": [(1, 0.5), (2, 0.5), (3, 0.5)],
+            "lex_tri": [(9, 1.0), (8, 1.0), (7, 1.0)],
+        }
+        keep, conf = abstain.apply(scored, 0.99)
+        assert conf == {"lex_seg": 0.0, "lex_tri": 0.0}
+        assert list(keep) == ["lex_tri"], "ties break on the name, high to low"
+        flipped, _ = abstain.apply(dict(reversed(scored.items())), 0.99)
+        assert list(flipped) == ["lex_tri"], "and not on insertion order"
+
+    def test_it_repairs_the_exact_arithmetic_the_report_blames(self):
+        from facetmark.search import abstain
+        from facetmark.search.pipeline import DEFAULT_FACET_WEIGHTS as W
+
+        # A wrong document ranked first by both lexical facets, the right one
+        # ranked first by content. 1/61 + 0.7/61 = 0.0279 beats 1/61 = 0.0164.
+        conf_scores = [0.9] + [0.1] * 49
+        flat_scores = [0.5] * 50
+        scored = {
+            "content": list(zip([1] + [800 + i for i in range(49)], conf_scores, strict=True)),
+            "lex_seg": list(zip([2] + [900 + i for i in range(49)], flat_scores, strict=True)),
+            "lex_tri": list(zip([2] + [950 + i for i in range(49)], flat_scores, strict=True)),
+        }
+        naive = {n: [i for i, _ in rows] for n, rows in scored.items()}
+        assert rrf(naive, weights=W)[0].doc_id == 2, "the documented failure"
+
+        # Truncating candidate lists cannot help: the offenders are at rank 1.
+        capped = {n: (v[:10] if n.startswith("lex") else v) for n, v in naive.items()}
+        assert rrf(capped, weights=W)[0].doc_id == 2, "depth is the wrong lever"
+
+        # Abstention can, because it removes the vote rather than the tail.
+        kept, _ = abstain.apply(scored, 0.25)
+        assert set(kept) == {"content"}
+        assert rrf(kept, weights=W)[0].doc_id == 1
+
+    def test_the_new_machinery_is_reachable_from_the_package_root(self):
+        import facetmark.search as pkg
+
+        for name in ("abstain", "lexical_lists_scored", "vector_lists_scored"):
+            assert name in pkg.__all__, f"{name} is public but not exported"
+        missing = [n for n in pkg.__all__ if not hasattr(pkg, n)]
+        assert not missing, f"__all__ names nothing can import: {missing}"
+
+    def test_nothing_that_ships_or_was_pre_registered_abstains(self):
+        from facetmark.search.pipeline import ALL_CONFIGS
+
+        for name, cfg in ALL_CONFIGS.items():
+            if name == "C_abstain":
+                assert cfg.abstain_margin > 0.0
+            else:
+                assert cfg.abstain_margin == 0.0, f"{name} turned abstention on"
+
+    def test_the_scored_retrievers_rank_identically_to_the_ones_they_replaced(
+        self, indexed
+    ):
+        from facetmark.search.lexical import lexical_lists, lexical_lists_scored
+
+        conn, _prov = indexed
+        plain = lexical_lists(conn, "kubernetes", limit=20)
+        scored = lexical_lists_scored(conn, "kubernetes", limit=20)
+        assert set(plain) == set(scored)
+        for name, ids in plain.items():
+            assert ids == [i for i, _ in scored[name]], f"{name} reordered"
+            # bm25 is negated on the way out; better matches must sort first.
+            vals = [v for _, v in scored[name]]
+            assert vals == sorted(vals, reverse=True), f"{name} is not best-first"
+
+    async def test_the_default_path_is_untouched_by_a_mechanism_it_never_runs(
+        self, indexed
+    ):
+        conn, prov = indexed
+        kw = {"limit": 5, "provider": prov, "settings": prov.settings}
+        r = await search(conn, "kubernetes", config=CONFIGS["C"], **kw)
+        assert r.facet_confidence == {}, "no scores computed when margin is 0"
+        assert r.hits
+
+    async def test_an_abstaining_search_says_which_facets_it_silenced(self, indexed):
+        from facetmark.search.pipeline import ALL_CONFIGS
+
+        conn, prov = indexed
+        r = await search(
+            conn, "kubernetes", limit=5, provider=prov,
+            settings=prov.settings, config=ALL_CONFIGS["C_abstain"],
+        )
+        assert r.facet_confidence, "the whole point is to be able to fit this"
+        assert set(r.facet_sizes) <= set(r.facet_confidence)
+        assert all(0.0 <= c <= 1.0 for c in r.facet_confidence.values())
+        assert r.hits, "abstention must never empty the page"
+        assert "facet_confidence" in r.as_dict()

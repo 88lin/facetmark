@@ -28,14 +28,15 @@ from dataclasses import dataclass, field
 from ..config import Settings, get_settings
 from ..db import jload
 from ..providers import MockProvider, Provider, get_provider
+from . import abstain
 from .context import ContextSignals, build_context, window_filter
 from .decay import cold_bookmark_ids, decay_hits
 from .graph import Expansion, expand
-from .lexical import lexical_lists
+from .lexical import lexical_lists, lexical_lists_scored
 from .rerank import RerankDoc, Reranker, get_reranker, reorder
 from .rrf import DEFAULT_K, Fused, rrf
 from .understand import QueryUnderstanding, classify, classify_assisted
-from .vectors import vector_lists
+from .vectors import vector_lists, vector_lists_scored
 
 #: Per-facet fusion weights. Three of the four are 1.0 -- RRF's whole appeal is
 #: that it does not need tuning, and weighting facets is the first step back
@@ -79,6 +80,12 @@ class Config:
     #: reporting the gain would be fitting to the test set. This knob exists so
     #: W2 can fit it on a *new* query set. Nothing ships with it set.
     weight_overrides: tuple[tuple[str, float], ...] = ()
+    #: Silence a facet whose own score distribution says it has no opinion.
+    #: 0.0 disables it entirely, which is the shipped state. See
+    #: :mod:`facetmark.search.abstain` for why the threshold is measured
+    #: within a facet rather than across facets, and why no value for it has
+    #: been fitted.
+    abstain_margin: float = 0.0
     #: Apply the contextual multiplier only when the query looks episodic.
     #:
     #: A vs A_ctx: +8.14pp on episodic queries, -9.94pp on content queries, both
@@ -105,7 +112,7 @@ class Config:
             "name": self.name, "facets": sorted(self.facets), "context": self.context,
             "graph": self.graph, "rerank": self.rerank, "decay": self.decay,
             "weight_overrides": dict(self.weight_overrides),
-            "context_gate": self.context_gate,
+            "context_gate": self.context_gate, "abstain_margin": self.abstain_margin,
         }
 
 
@@ -164,6 +171,13 @@ EXPLORATORY: dict[str, Config] = {
     "C_lowlex": Config(
         "C_lowlex", ALL_FACETS, weight_overrides=(("lex_seg", 0.3), ("lex_tri", 0.2))
     ),
+    # C with abstention instead of damping. Damping says "this facet is always
+    # worth less"; abstention says "this facet is worth nothing on the queries
+    # where it cannot tell its own results apart". They are different claims
+    # and the ladder should be able to separate them, so they get one rung
+    # each. 0.25 is a placeholder -- a facet has to clear a quarter of its own
+    # score range to be heard -- and it has not been fitted on anything.
+    "C_abstain": Config("C_abstain", ALL_FACETS, abstain_margin=0.25),
 }
 
 #: What shipped before the W1 gate: stage E plus metabolism. Kept reachable by
@@ -288,6 +302,11 @@ class SearchResponse:
     understanding: QueryUnderstanding | None = None
     config: str = "full"
     facet_sizes: dict[str, int] = field(default_factory=dict)
+    #: Per-facet self-confidence, populated only when abstention is enabled.
+    #: A facet that was silenced still appears here, with the score that
+    #: silenced it -- otherwise fitting a threshold would mean guessing at the
+    #: distribution of the thing you are thresholding.
+    facet_confidence: dict[str, float] = field(default_factory=dict)
     context: dict | None = None
     #: True when the cold-layer demotion was lifted because nothing hot scored.
     rescued: bool = False
@@ -302,6 +321,7 @@ class SearchResponse:
             "understanding": self.understanding.as_dict() if self.understanding else None,
             "config": self.config,
             "facet_sizes": self.facet_sizes,
+            "facet_confidence": self.facet_confidence,
             "context": self.context,
             "rescued": self.rescued,
             "reranker": self.reranker,
@@ -427,23 +447,51 @@ async def search(
     per_facet = max(s.candidates_per_facet, limit)
 
     # --- 2. facets --------------------------------------------------------
-    t0 = time.perf_counter()
+    # Two paths. The default one takes ranked ids and throws the scores away,
+    # because RRF is deliberately rank-only. The abstention path keeps them,
+    # because deciding whether a facet has an opinion requires looking at the
+    # shape of its score distribution -- see `facetmark.search.abstain`.
     lists: dict[str, list[int]] = {}
-    if config.facets & LEXICAL_FACETS:
-        for name, ids in lexical_lists(conn, query, limit=per_facet).items():
-            if name in config.facets:
-                lists[name] = ids
-    mark("lexical", t0)
+    facet_confidence: dict[str, float] = {}
+    if config.abstain_margin > 0.0:
+        t0 = time.perf_counter()
+        scored: dict[str, list[tuple[int, float]]] = {}
+        if config.facets & LEXICAL_FACETS:
+            for name, rows in lexical_lists_scored(conn, query, limit=per_facet).items():
+                if name in config.facets:
+                    scored[name] = rows
+        mark("lexical", t0)
 
-    t0 = time.perf_counter()
-    if config.facets & VECTOR_FACETS:
-        vlists, _vec = await vector_lists(
-            conn, query, provider=prov, settings=s, limit=per_facet,
-            want_content="content" in config.facets,
-            want_intent="intent" in config.facets,
-        )
-        lists.update(vlists)
-    mark("vectors", t0)
+        t0 = time.perf_counter()
+        if config.facets & VECTOR_FACETS:
+            vrows, _vec = await vector_lists_scored(
+                conn, query, provider=prov, settings=s, limit=per_facet,
+                want_content="content" in config.facets,
+                want_intent="intent" in config.facets,
+            )
+            scored.update(vrows)
+        mark("vectors", t0)
+
+        t0 = time.perf_counter()
+        lists, facet_confidence = abstain.apply(scored, config.abstain_margin)
+        mark("abstain", t0)
+    else:
+        t0 = time.perf_counter()
+        if config.facets & LEXICAL_FACETS:
+            for name, ids in lexical_lists(conn, query, limit=per_facet).items():
+                if name in config.facets:
+                    lists[name] = ids
+        mark("lexical", t0)
+
+        t0 = time.perf_counter()
+        if config.facets & VECTOR_FACETS:
+            vlists, _vec = await vector_lists(
+                conn, query, provider=prov, settings=s, limit=per_facet,
+                want_content="content" in config.facets,
+                want_intent="intent" in config.facets,
+            )
+            lists.update(vlists)
+        mark("vectors", t0)
 
     # --- 3. fusion --------------------------------------------------------
     t0 = time.perf_counter()
@@ -555,6 +603,7 @@ async def search(
     return SearchResponse(
         query=query, hits=hits, expanded=expanded, understanding=understanding,
         config=config.name, facet_sizes={k: len(v) for k, v in lists.items()},
+        facet_confidence=facet_confidence,
         context=ctx.as_dict() if ctx else None, rescued=rescued,
         reranker=rr_name, took_ms=timings,
     )
