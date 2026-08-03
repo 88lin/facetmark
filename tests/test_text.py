@@ -11,6 +11,7 @@ import sqlite3
 import pytest
 
 from facetmark.text import (
+    TRI_MAX_TERMS,
     build_fts_query,
     detect_lang,
     drop_fts,
@@ -129,6 +130,46 @@ class TestFtsQueryBuilding:
 
     def test_short_terms_are_kept_on_the_segmented_path(self):
         assert build_fts_query("学习", segmented=True) == '"学习"'
+
+    def test_a_cjk_sentence_becomes_overlapping_trigrams(self):
+        """The regression that made lex_tri absent on 88% of Chinese queries.
+
+        A CJK run has no spaces, so it used to arrive as one quoted term and ask
+        the trigram index for the user's whole sentence, verbatim.
+        """
+        q = build_fts_query("如何查看浏览器历史记录", segmented=False)
+        terms = q.split(" OR ")
+        assert '"如何查看浏览器历史记录"' not in terms
+        assert terms[0] == '"如何查"' and terms[1] == '"何查看"'
+        assert all(len(t) == 5 for t in terms)  # three chars plus two quotes
+        assert len(terms) == len("如何查看浏览器历史记录") - 2
+
+    def test_trigrams_actually_match_a_document(self, conn):
+        """Whole-sentence quoting matched nothing; trigrams find the page."""
+        _load(conn)
+        # A question, not a substring of any title -- the shape a user types.
+        assert _hits(conn, "fts_tri", "有没有读机器学习论文的工具", segmented=False) == {2}
+        # the pre-fix expression, kept literal, to show it really was a dead end
+        dead = conn.execute(
+            "SELECT rowid FROM fts_tri WHERE fts_tri MATCH ?", ('"有没有读机器学习论文的工具"',)
+        ).fetchall()
+        assert dead == []
+
+    def test_latin_words_are_not_shredded(self):
+        # "compar" already matches "comparison" through the trigram tokenizer;
+        # cutting latin into 3-grams would only add noise.
+        assert build_fts_query("comparison runtime", segmented=False) == (
+            '"comparison" OR "runtime"'
+        )
+
+    def test_trigram_expansion_is_capped(self):
+        long_cjk = "".join(chr(0x4E00 + i) for i in range(400))
+        q = build_fts_query(long_cjk, segmented=False)
+        assert len(q.split(" OR ")) == TRI_MAX_TERMS
+
+    def test_mixed_script_keeps_latin_whole_and_cuts_cjk(self):
+        terms = build_fts_query("sqlite 向量检索", segmented=False).split(" OR ")
+        assert terms == ['"sqlite"', '"向量检"', '"量检索"']
 
     def test_empty_and_punctuation_only_input(self):
         assert build_fts_query("", segmented=True) is None

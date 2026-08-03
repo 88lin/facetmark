@@ -31,6 +31,10 @@ _WS_RE = re.compile(r"\s+")
 #: FTS5 syntax characters. We quote every term instead of trying to escape
 #: these individually, which is both simpler and safer.
 _FTS_STRIP_RE = re.compile(r'["*():^\-]+')
+#: Ceiling on the number of terms the trigram path may emit for one query. A CJK
+#: sentence expands to roughly one trigram per character, so a pasted paragraph
+#: would otherwise build an OR expression with hundreds of clauses.
+TRI_MAX_TERMS = 48
 
 
 def has_cjk(text: str) -> bool:
@@ -75,6 +79,14 @@ def build_fts_query(query: str, *, segmented: bool) -> str | None:
     Returns ``None`` -- never ``""`` -- when nothing searchable survives, which
     is routine on the trigram path for short CJK queries. An empty string passed
     to ``MATCH`` raises ``fts5: syntax error``, so the caller is forced to check.
+
+    The trigram path cuts CJK runs into overlapping 3-grams. It has to: a CJK
+    sentence contains no spaces, so the whole run arrives here as one "term", and
+    quoting it whole asks the trigram index for that exact 12-character string.
+    A real page never contains a user's whole sentence verbatim, so the clause
+    was a guaranteed miss -- measured on the W1 query set, ``lex_tri`` returned
+    nothing for 186 of 211 Chinese queries, i.e. the facet whose entire
+    justification is the CJK blind spot was absent on 88% of CJK queries.
     """
     src = segment_query(query) if segmented else query
     raw_terms = [t for t in _WS_RE.split(src.strip()) if t]
@@ -89,16 +101,29 @@ def build_fts_query(query: str, *, segmented: bool) -> str | None:
         for piece in _WS_RE.split(cleaned):
             if not piece:
                 continue
-            if not segmented and len(piece) < 3:
-                # trigram path: a sub-3-character term can never match, and
-                # leaving it in would turn the whole OR expression into a
-                # guaranteed miss for that clause.
-                continue
-            quoted = f'"{piece}"'
-            if quoted not in terms:
-                terms.append(quoted)
+            if segmented:
+                candidates = [piece]
+            elif has_cjk(piece):
+                # Overlapping 3-grams, which is what a trigram index indexes.
+                # Latin pieces are left whole on purpose: quoting "compar"
+                # already matches "comparison" through the same tokenizer, and
+                # shredding words would only add noise.
+                candidates = [piece[i : i + 3] for i in range(len(piece) - 2)]
+            else:
+                candidates = [piece]
+            for cand in candidates:
+                if not segmented and len(cand) < 3:
+                    # trigram path: a sub-3-character term can never match, and
+                    # leaving it in would turn the whole OR expression into a
+                    # guaranteed miss for that clause.
+                    continue
+                quoted = f'"{cand}"'
+                if quoted not in terms:
+                    terms.append(quoted)
     if not terms:
         return None
+    if not segmented:
+        terms = terms[:TRI_MAX_TERMS]
     return " OR ".join(terms)
 
 

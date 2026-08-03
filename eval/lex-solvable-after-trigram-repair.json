@@ -1,0 +1,211 @@
+{
+  "thresholds": {
+    "q_content_r5_substantially_lexical": 0.6,
+    "q_vague_r5_gate_failed": 0.3,
+    "lex_only_wins_share_worth_fixing_fusion": 0.05
+  },
+  "config": {
+    "name": "lex_only",
+    "facets": [
+      "lex_seg",
+      "lex_tri"
+    ],
+    "context": false,
+    "graph": false,
+    "rerank": false,
+    "decay": false,
+    "weight_overrides": {},
+    "context_gate": false,
+    "abstain_margin": 0.0
+  },
+  "n_queries": 479,
+  "overall": {
+    "lex_only": {
+      "r1": 0.36325678496868474,
+      "r5": 0.4801670146137787
+    },
+    "A": {
+      "r1": 0.5052192066805845,
+      "r5": 0.6430062630480167
+    }
+  },
+  "by_type": {
+    "q_content": {
+      "n": 171,
+      "lex_only_r1": 0.6900584795321637,
+      "lex_only_r5": 0.8011695906432749,
+      "A_r1": 0.8713450292397661,
+      "A_r5": 0.9590643274853801
+    },
+    "q_episodic": {
+      "n": 172,
+      "lex_only_r1": 0.09883720930232558,
+      "lex_only_r5": 0.1686046511627907,
+      "A_r1": 0.13953488372093023,
+      "A_r5": 0.27906976744186046
+    },
+    "q_vague": {
+      "n": 136,
+      "lex_only_r1": 0.2867647058823529,
+      "lex_only_r5": 0.47058823529411764,
+      "A_r1": 0.5073529411764706,
+      "A_r5": 0.7058823529411765
+    }
+  },
+  "complement": {
+    "all": {
+      "n": 479,
+      "both": 200,
+      "neither": 141,
+      "lex_only": 30,
+      "vector_only": 108,
+      "lex_only_share": 0.0626
+    },
+    "q_content": {
+      "n": 171,
+      "both": 132,
+      "lex_only": 5,
+      "vector_only": 32,
+      "neither": 2,
+      "lex_only_share": 0.0292
+    },
+    "q_episodic": {
+      "n": 172,
+      "both": 15,
+      "lex_only": 14,
+      "neither": 110,
+      "vector_only": 33,
+      "lex_only_share": 0.0814
+    },
+    "q_vague": {
+      "n": 136,
+      "neither": 29,
+      "lex_only": 11,
+      "both": 53,
+      "vector_only": 43,
+      "lex_only_share": 0.0809
+    }
+  },
+  "examples_lex_only": [
+    {
+      "i": 4,
+      "qtype": "q_content",
+      "text": "next js desktop support",
+      "lex_rank": 1
+    },
+    {
+      "i": 5,
+      "qtype": "q_vague",
+      "text": "problems with building desktop apps",
+      "lex_rank": 1
+    },
+    {
+      "i": 6,
+      "qtype": "q_episodic",
+      "text": "exploring different frameworks for app development sometime in 2025",
+      "lex_rank": 3
+    },
+    {
+      "i": 22,
+      "qtype": "q_vague",
+      "text": "easy to integrate alternative",
+      "lex_rank": 1
+    },
+    {
+      "i": 24,
+      "qtype": "q_content",
+      "text": "前端开发的流程和乐趣",
+      "lex_rank": 1
+    },
+    {
+      "i": 34,
+      "qtype": "q_episodic",
+      "text": "coding in c++ for work in 2025",
+      "lex_rank": 1
+    },
+    {
+      "i": 38,
+      "qtype": "q_vague",
+      "text": "maximize productivity",
+      "lex_rank": 1
+    },
+    {
+      "i": 52,
+      "qtype": "q_episodic",
+      "text": "working with ai models in office sometime in 2026",
+      "lex_rank": 1
+    },
+    {
+      "i": 89,
+      "qtype": "q_episodic",
+      "text": "working with a private Postgres in 2026",
+      "lex_rank": 2
+    },
+    {
+      "i": 93,
+      "qtype": "q_vague",
+      "text": "website security",
+      "lex_rank": 3
+    },
+    {
+      "i": 104,
+      "qtype": "q_episodic",
+      "text": "tech party conversation sometime in 2026",
+      "lex_rank": 5
+    },
+    {
+      "i": 125,
+      "qtype": "q_vague",
+      "text": "how to prove machine learning works",
+      "lex_rank": 1
+    },
+    {
+      "i": 171,
+      "qtype": "q_episodic",
+      "text": "back when macos money back guarantee",
+      "lex_rank": 1
+    },
+    {
+      "i": 192,
+      "qtype": "q_episodic",
+      "text": "creating characters for marketing projects in 2024",
+      "lex_rank": 1
+    },
+    {
+      "i": 214,
+      "qtype": "q_vague",
+      "text": "ip information lookup tool",
+      "lex_rank": 1
+    },
+    {
+      "i": 225,
+      "qtype": "q_vague",
+      "text": "解决内存管理问题",
+      "lex_rank": 3
+    },
+    {
+      "i": 244,
+      "qtype": "q_episodic",
+      "text": "optimizing system resource usage back in 2025",
+      "lex_rank": 1
+    },
+    {
+      "i": 258,
+      "qtype": "q_episodic",
+      "text": "trying to read pdf in chrome back in 2025",
+      "lex_rank": 1
+    },
+    {
+      "i": 312,
+      "qtype": "q_episodic",
+      "text": "terminal work for developers sometime in 2026",
+      "lex_rank": 3
+    },
+    {
+      "i": 329,
+      "qtype": "q_episodic",
+      "text": "working with financial professionals back in 2026",
+      "lex_rank": 1
+    }
+  ]
+}
