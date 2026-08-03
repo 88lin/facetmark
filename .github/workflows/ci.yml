@@ -30,6 +30,16 @@ jobs:
       - name: test
         run: pytest -q --cov=facetmark --cov-report=term-missing
 
+      # The in-process create_server() tests cannot see two whole classes of
+      # failure: a stray print anywhere on the import chain corrupts the JSON-RPC
+      # stream, and FastMCP silently declines to build a schema for some return
+      # annotations. Both only show up on a real pipe. One shard is enough --
+      # this forks a subprocess and speaks stdio to it, so it is the slowest
+      # thing in the matrix and it is not OS-specific.
+      - name: mcp end-to-end over a real stdio pipe
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: python scripts/mcp_e2e.py
+
   extension:
     runs-on: ubuntu-latest
     steps:
