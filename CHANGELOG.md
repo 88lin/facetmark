@@ -4,6 +4,25 @@
 
 ## [1.0.0] - 2026-08-03
 
+### 新增（W2 的两个开关，默认关闭）
+
+- **`Config.weight_overrides` 与 `Config.context_gate`。** W1 报告 §9.4 列的前两条待办
+  各需要一处结构改动，现已落地并有测试守卫，但**默认值一律保持关闭**：验证它们的
+  证据只能来自没有提出过这两个假说的查询集，而现有 479 条已经用掉了。
+
+  `weight_overrides` 是 `tuple[tuple[str, float], ...]` 而不是字典——`Config` 是
+  `frozen=True` 的 dataclass，字典字段会让 `hash()` 抛异常。属性 `facet_weights`
+  把覆盖值叠在 `DEFAULT_FACET_WEIGHTS` 上；`search()` 的融合调用改读它，未设覆盖时
+  与原来逐位相同。`context_gate` 走 `Config.wants_context(understanding)`，只有在
+  `context=True` 且查询被判为情景型时才应用上下文乘子。
+
+- **三个探索性档位**：`A_gatedctx`（A_ctx + 门控）、`D_gated`（D + 门控）、
+  `C_lowlex`（C，`lex_seg` 0.3 / `lex_tri` 0.2）。可用 `--config` 直接调用。
+  **本版本不给这三档的任何实测结论**，权重值是拍的不是拟合的。
+
+- `Config.as_dict()` 现在带上 `weight_overrides` 与 `context_gate` 两个字段。
+
+
 ### 变更（行为改动，影响调用方）
 
 - **默认检索配置从「四面融合 + 上下文 + 图 + 重排」改为「内容面 + 图扩展 + 时间衰减」。**

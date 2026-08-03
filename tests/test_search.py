@@ -976,15 +976,24 @@ class TestTheAblationLadderAndItsComplements:
             (True, True, True, False),
         ]
 
-    def test_every_exploratory_rung_drops_the_lexical_facets_and_nothing_else(self):
-        from facetmark.search.pipeline import EXPLORATORY, LEXICAL_FACETS
+    def test_every_exploratory_rung_stays_cheap_and_stays_out_of_the_ladder(self):
+        from facetmark.search.pipeline import EXPLORATORY
 
         assert EXPLORATORY, "the complements are the point of this dict"
         for name, cfg in EXPLORATORY.items():
-            assert not (cfg.facets & LEXICAL_FACETS), f"{name} still carries a lexical facet"
             assert "content" in cfg.facets, f"{name} has to retrieve something"
             assert cfg.name == name, f"{name} reports itself as {cfg.name}"
+            # 45 s/query at p50 makes a rung unusable for the repeated sweeps
+            # these exist for; the reranker stays behind rung E.
             assert not cfg.rerank, f"{name} must stay cheap enough to re-run"
+            assert name not in CONFIGS, f"{name} shadows a pre-registered rung"
+
+    def test_the_leave_one_out_complements_are_the_ones_that_drop_a_facet(self):
+        from facetmark.search.pipeline import EXPLORATORY, LEXICAL_FACETS
+
+        for name in ("C_nolex", "D_nolex", "A_ctx", "A_graph"):
+            cfg = EXPLORATORY[name]
+            assert not (cfg.facets & LEXICAL_FACETS), f"{name} still carries a lexical facet"
 
     def test_a_complement_pairs_with_a_pre_registered_rung_on_everything_but_facets(self):
         from facetmark.search.pipeline import EXPLORATORY
@@ -1060,3 +1069,117 @@ class TestWhatThisDeploymentActuallyShips:
         # the rung that actually ran, not the rung the caller asked for.
         assert r.config == "fused"
         assert r.hits
+
+
+class TestTheTwoKnobsW2HasToFit:
+    """Both W1 losses have an obvious repair. Neither repair is believed yet.
+
+    The evidence that suggests each one came out of the same 479 queries any
+    A/B would score on, so a win measured here would be a win measured on the
+    training set. These tests fix the *mechanics* -- that the knob does what it
+    says -- so W2 only has to supply new queries, not new plumbing.
+    """
+
+    def test_a_frozen_config_stays_hashable_with_weights_attached(self):
+        from facetmark.search.pipeline import Config
+
+        a = Config("x", frozenset({"content"}), weight_overrides=(("lex_tri", 0.2),))
+        b = Config("x", frozenset({"content"}), weight_overrides=(("lex_tri", 0.2),))
+        # A dict field here would raise on hash and silently break any code
+        # that puts configurations in a set or memoises on them.
+        assert hash(a) == hash(b)
+        assert a == b
+        assert len({a, b}) == 1
+
+    def test_overrides_layer_over_the_defaults_instead_of_replacing_them(self):
+        from facetmark.search.pipeline import ALL_FACETS, DEFAULT_FACET_WEIGHTS, Config
+
+        cfg = Config("x", ALL_FACETS, weight_overrides=(("lex_seg", 0.3),))
+        assert cfg.facet_weights["lex_seg"] == 0.3
+        assert cfg.facet_weights["content"] == DEFAULT_FACET_WEIGHTS["content"]
+        assert set(cfg.facet_weights) == set(DEFAULT_FACET_WEIGHTS)
+        # And the module-level defaults are not mutated by reading a config.
+        assert DEFAULT_FACET_WEIGHTS["lex_seg"] == 1.0
+
+    def test_no_overrides_means_bit_identical_fusion_to_the_shipped_default(self):
+        from facetmark.search.pipeline import ALL_CONFIGS, DEFAULT_FACET_WEIGHTS
+
+        for name, cfg in ALL_CONFIGS.items():
+            if name == "C_lowlex":
+                continue
+            assert cfg.facet_weights == DEFAULT_FACET_WEIGHTS, f"{name} moved a weight"
+
+    def test_damping_a_facet_changes_who_wins_a_tie(self):
+        from facetmark.search.pipeline import ALL_FACETS, Config
+
+        lists = {"content": [1], "lex_seg": [2], "lex_tri": [2]}
+        loud = rrf(lists, weights=Config("a", ALL_FACETS).facet_weights)
+        quiet = rrf(
+            lists,
+            weights=Config(
+                "b", ALL_FACETS, weight_overrides=(("lex_seg", 0.3), ("lex_tri", 0.2))
+            ).facet_weights,
+        )
+        # Flat weights: two coincidences on weak facets (1.0 + 0.7) outvote one
+        # confident hit on the strong one. That is the -5.43pp mechanism.
+        assert loud[0].doc_id == 2
+        assert quiet[0].doc_id == 1
+
+    def test_the_gate_is_inert_unless_context_is_on(self):
+        from facetmark.search.pipeline import ALL_CONFIGS, Config
+        from facetmark.search.understand import classify
+
+        plain = classify("kubernetes networking")
+        cfg = Config("x", frozenset({"content"}), context=False, context_gate=True)
+        assert cfg.wants_context(plain) is False
+        # Nothing shipped or pre-registered turns the gate on.
+        for name in ("A", "B", "C", "D", "E", "full", "fused"):
+            assert ALL_CONFIGS[name].context_gate is False, f"{name} enabled the gate"
+
+    def test_the_gate_admits_episodic_queries_and_turns_the_rest_away(self):
+        from facetmark.search.pipeline import ALL_CONFIGS
+        from facetmark.search.understand import QueryUnderstanding
+
+        gated = ALL_CONFIGS["A_gatedctx"]
+        ungated = ALL_CONFIGS["A_ctx"]
+        episodic = QueryUnderstanding(query="上个月存的那些", labels={"episodic"})
+        topical = QueryUnderstanding(query="kubernetes", labels={"content"})
+
+        assert gated.wants_context(episodic) is True
+        assert gated.wants_context(topical) is False
+        # A_ctx is the unconditional version: +8.14pp episodic, -9.94pp content.
+        assert ungated.wants_context(episodic) is True
+        assert ungated.wants_context(topical) is True
+
+    def test_the_w2_candidates_are_the_two_repairs_and_nothing_else(self):
+        from facetmark.search.pipeline import ALL_CONFIGS, ALL_FACETS
+
+        gated = ALL_CONFIGS["D_gated"]
+        d = CONFIGS["D"]
+        assert (gated.facets, gated.context, gated.graph) == (d.facets, d.context, d.graph)
+        assert gated.context_gate is True and d.context_gate is False
+
+        low = ALL_CONFIGS["C_lowlex"]
+        assert low.facets == ALL_FACETS, "C_lowlex damps the lexical facets, it keeps them"
+        assert low.facet_weights["lex_seg"] < low.facet_weights["content"]
+        assert low.facet_weights["lex_tri"] < low.facet_weights["lex_seg"]
+
+    def test_the_configuration_reports_both_knobs_when_asked_what_it_is(self):
+        from facetmark.search.pipeline import ALL_CONFIGS
+
+        d = ALL_CONFIGS["C_lowlex"].as_dict()
+        assert d["weight_overrides"] == {"lex_seg": 0.3, "lex_tri": 0.2}
+        assert d["context_gate"] is False
+        assert ALL_CONFIGS["A_gatedctx"].as_dict()["context_gate"] is True
+
+    async def test_the_gate_leaves_a_topical_query_ranked_exactly_as_plain_a_did(
+        self, indexed
+    ):
+        from facetmark.search.pipeline import ALL_CONFIGS
+
+        conn, prov = indexed
+        kw = {"limit": 5, "provider": prov, "settings": prov.settings}
+        plain = await search(conn, "kubernetes", config=ALL_CONFIGS["A_graph"], **kw)
+        gated = await search(conn, "kubernetes", config=ALL_CONFIGS["A_gatedctx"], **kw)
+        assert [h.bookmark_id for h in gated.hits] == [h.bookmark_id for h in plain.hits]
+        assert gated.context is None, "the gate should not have built context signals"

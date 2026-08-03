@@ -66,11 +66,46 @@ class Config:
     graph: bool = False
     rerank: bool = False
     decay: bool = False
+    #: Per-facet fusion weights layered over :data:`DEFAULT_FACET_WEIGHTS`. A
+    #: tuple of pairs rather than a dict because the dataclass is frozen and
+    #: therefore hashable, and a dict field would make hashing raise.
+    #:
+    #: The W1 leave-one-out result says flat-weight RRF is what costs 5-6pp of
+    #: Recall@5: a coincidence on a weak facet (1/61 + 0.7/61 = 0.0279) outvotes
+    #: confidence on a strong one (1/61 = 0.0164). Down-weighting the weak
+    #: facets is the obvious repair, but "obvious" is not "measured" -- the
+    #: numbers that suggested it came from the 479 queries in
+    #: ``eval/queries/w1-real-library.jsonl``, so fitting weights on those and
+    #: reporting the gain would be fitting to the test set. This knob exists so
+    #: W2 can fit it on a *new* query set. Nothing ships with it set.
+    weight_overrides: tuple[tuple[str, float], ...] = ()
+    #: Apply the contextual multiplier only when the query looks episodic.
+    #:
+    #: A vs A_ctx: +8.14pp on episodic queries, -9.94pp on content queries, both
+    #: p<0.001. That is not a weak mechanism, it is a strong one pointed at the
+    #: wrong queries. Requires ``context=True`` to do anything. Also unshipped
+    #: and unvalidated for the same reason as ``weight_overrides``.
+    context_gate: bool = False
+
+    @property
+    def facet_weights(self) -> dict[str, float]:
+        """Fusion weights for this configuration, defaults plus overrides."""
+        w = dict(DEFAULT_FACET_WEIGHTS)
+        w.update(self.weight_overrides)
+        return w
+
+    def wants_context(self, understanding) -> bool:
+        """Whether the contextual multiplier should run for this query."""
+        if not self.context:
+            return False
+        return understanding.is_episodic if self.context_gate else True
 
     def as_dict(self) -> dict:
         return {
             "name": self.name, "facets": sorted(self.facets), "context": self.context,
             "graph": self.graph, "rerank": self.rerank, "decay": self.decay,
+            "weight_overrides": dict(self.weight_overrides),
+            "context_gate": self.context_gate,
         }
 
 
@@ -104,6 +139,31 @@ EXPLORATORY: dict[str, Config] = {
     # for itself" from "the context multiplier reorders the page", which A_ctx
     # bundles together and therefore cannot attribute.
     "A_graph": Config("A_graph", frozenset({"content"}), graph=True),
+    # --- W2 candidates ---------------------------------------------------
+    # The three rungs below exist so the two W1 repairs are *runnable* before
+    # they are believed. They are not defaults and they carry no claim: the
+    # evidence that motivated each one comes from the same 479 queries any
+    # A/B against them would use, so a win here measures nothing but the
+    # circularity. They ship so W2 can point them at a query set that has not
+    # seen them.
+    #
+    # A_ctx, but the multiplier only fires when the query looks episodic.
+    # A_ctx is +8.14pp episodic / -9.94pp content; if the gate works the
+    # second number should go to roughly zero and the first should survive.
+    "A_gatedctx": Config(
+        "A_gatedctx", frozenset({"content"}), context=True, graph=True, context_gate=True
+    ),
+    # D with the same gate: the full fusion stack, contextual multiplier
+    # restricted to the queries it helped.
+    "D_gated": Config(
+        "D_gated", ALL_FACETS, context=True, graph=True, decay=False, context_gate=True
+    ),
+    # C with the lexical facets damped instead of removed. C_nolex showed that
+    # *deleting* a weak facet does not recover the loss (-5.43pp either way);
+    # this asks whether *quieting* it does. 0.3/0.2 is a guess, not a fit.
+    "C_lowlex": Config(
+        "C_lowlex", ALL_FACETS, weight_overrides=(("lex_seg", 0.3), ("lex_tri", 0.2))
+    ),
 }
 
 #: What shipped before the W1 gate: stage E plus metabolism. Kept reachable by
@@ -387,7 +447,7 @@ async def search(
 
     # --- 3. fusion --------------------------------------------------------
     t0 = time.perf_counter()
-    fused = rrf(lists, k=s.rrf_k, weights=DEFAULT_FACET_WEIGHTS)
+    fused = rrf(lists, k=s.rrf_k, weights=config.facet_weights)
     mark("fuse", t0)
 
     # A purely episodic query ("上个月存的那些") has no topic for any facet to
@@ -398,7 +458,7 @@ async def search(
         lists["episodic_window"] = ids
 
     ctx: ContextSignals | None = None
-    if config.context and fused:
+    if fused and config.wants_context(understanding):
         t0 = time.perf_counter()
         head = [f.doc_id for f in fused[:200]]
         ctx = build_context(

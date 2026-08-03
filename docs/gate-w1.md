@@ -380,3 +380,33 @@ W2 该修的是**融合权重与候选门控**（弱面凭什么无条件交 50 
    可能怎么问」这个理念本身不成立。
 
 三件事都必须在**新的查询集**上做。这 479 条已经用掉了。
+
+### 9.5 前两条待办的开关已经落在代码里，但没有打开
+
+W2 的第 1、2 条待办各自需要一处结构改动。改动本身已经做完并有测试守卫，
+默认值一律保持关闭——**因为验证它们的证据不存在**。
+
+| 待办 | 开关 | 位置 | 默认 |
+|---|---|---|---|
+| 修融合权重 | `Config.weight_overrides: tuple[tuple[str, float], ...]` | `search/pipeline.py` | `()`（等价于 `DEFAULT_FACET_WEIGHTS`） |
+| 上下文按类型门控 | `Config.context_gate: bool` | `search/pipeline.py` | `False` |
+
+`weight_overrides` 用元组而不是字典：`Config` 是 `frozen=True` 的 dataclass，
+因此可哈希，而字典字段会让 `hash()` 直接抛异常。属性 `facet_weights` 把覆盖值
+叠在 `DEFAULT_FACET_WEIGHTS` 上返回；`search()` 的融合调用现在读它而不是读常量。
+`context_gate` 走 `Config.wants_context(understanding)`：`context=False` 时恒假，
+`context_gate=False` 时退化成原来的无条件行为，两者都开时只在
+`understanding.is_episodic` 为真时才乘。
+
+配套三个探索性档位，可直接 `--config` 调用：
+
+| 档位 | 组成 | 想问的问题 |
+|---|---|---|
+| `A_gatedctx` | A_ctx + 门控 | §9.2 的 −9.94pp 会不会归零，而 +8.14pp 还在？ |
+| `D_gated` | D + 门控 | 同一个门控放在四面融合后的分数上还剩多少？ |
+| `C_lowlex` | C，`lex_seg` 0.3 / `lex_tri` 0.2 | §9.3 说「删掉弱面」没用；「压低弱面」有用吗？ |
+
+**这三档没有任何实测结论，本报告也不给。** 0.3/0.2 是拍的，不是拟合的；
+拟合它的数据只能来自没有提出过这个假说的查询集。在这 479 条上跑出来的任何
+胜负都只是在测量循环论证本身。开关存在的意义是：W2 只需要准备新查询，
+不需要再改一次管线。

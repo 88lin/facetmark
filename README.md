@@ -172,7 +172,7 @@ src/facetmark/
 extension/     MV3, TypeScript, esbuild
 ```
 
-794 tests, no network access required to run them.
+804 tests, no network access required to run them.
 
 ---
 
