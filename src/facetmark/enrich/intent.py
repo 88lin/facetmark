@@ -34,7 +34,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from ..config import Settings, get_settings
-from ..db import ensure_vec_tables, knn_content
+from ..db import ensure_vec_tables, knn_content, now, upsert_intent_vector
 from ..providers import Provider, get_provider
 from ..search.lexical import lexical_lists
 from ..search.rrf import rrf
@@ -54,6 +54,16 @@ class IntentReport:
     bookmarks_with_none_kept: int = 0
     probe_top_k: int = 0
     keep_n: int = 0
+    #: Vectors stored straight from the probe, so `embed_intents` finds nothing
+    #: left to pay for.
+    vectors_written: int = 0
+    #: Candidates that cost an embedding and a probe on this run. The number an
+    #: incremental index is supposed to make small.
+    probed: int = 0
+    #: Candidates whose rank came out of the database because an earlier run
+    #: already paid for it. The complement of `probed`, and the number an
+    #: incremental index is supposed to make large.
+    already_scored: int = 0
     rank_histogram: dict[str, int] = field(default_factory=dict)
 
     @property
@@ -67,6 +77,8 @@ class IntentReport:
             "keep_rate": round(self.keep_rate, 4),
             "bookmarks_with_none_kept": self.bookmarks_with_none_kept,
             "probe_top_k": self.probe_top_k, "keep_n": self.keep_n,
+            "vectors_written": self.vectors_written,
+            "probed": self.probed, "already_scored": self.already_scored,
             "rank_histogram": self.rank_histogram,
         }
 
@@ -109,9 +121,38 @@ async def filter_intents(
     settings: Settings | None = None,
     ids: Sequence[int] | None = None,
     keep_n: int | None = None,
+    force: bool = False,
     progress=None,
 ) -> IntentReport:
-    """Score every candidate query, keep the ones that find their own page."""
+    """Score candidate queries, keep the ones that find their own page.
+
+    Two things happen here and they cost wildly different amounts. *Probing* --
+    embed the candidate, search the library, record where the page it was
+    written for landed -- is a model call per candidate. *Selecting* -- take the
+    best ``keep_n`` probe ranks per bookmark -- is a sort. Only the first is
+    worth avoiding, and a rank that is already in the database never needs to be
+    bought again, so probing is incremental and selection always runs.
+
+    That split is what makes the knobs behave. Adding twenty bookmarks to a
+    library of two thousand probes a hundred and sixty candidates rather than
+    nineteen thousand. Changing ``keep_n`` re-decides every bookmark for free,
+    because the ranks the decision reads were already paid for. ``force=True``
+    re-probes the lot, which is a real operation rather than a paranoid one: the
+    probe asks whether a query still retrieves its own page *out of the current
+    library*, and a query that won against 2,000 competitors can lose against
+    20,000.
+
+    ``ids`` narrows the scope; ``force`` decides whether work already done is
+    redone. They are independent, and selection respects the scope because the
+    ``keep_n`` cap is per bookmark -- re-deciding half a page's candidates
+    against a cap sized for all of them is the kind of bug that surfaces much
+    later as a slightly wrong number.
+
+    Candidates that pass are stored with the vector the probe used. Candidates
+    that pass on a *later* run without being re-probed have no vector in hand,
+    so `embed_intents` -- which runs next in `index_all` -- buys those. Widening
+    ``keep_n`` without it leaves survivors unindexed.
+    """
     s = settings or get_settings()
     prov = provider or get_provider(s)
     ensure_vec_tables(conn, s.embed_dim, s.embed_model)
@@ -125,7 +166,8 @@ async def filter_intents(
         where = f" WHERE bookmark_id IN ({','.join('?' * len(ids))})"
         params = list(ids)
     rows = conn.execute(
-        f"SELECT id, bookmark_id, text FROM intent_query{where} ORDER BY bookmark_id, id",
+        "SELECT id, bookmark_id, text, kept, probe_rank, scored_at"
+        f" FROM intent_query{where} ORDER BY bookmark_id, id",
         params,
     ).fetchall()
     if not rows:
@@ -134,19 +176,38 @@ async def filter_intents(
     rep.candidates = len(rows)
     rep.bookmarks = len({r["bookmark_id"] for r in rows})
 
-    from .vectors import BATCH
+    # `kept=0` and `probe_rank IS NULL` are what a rejected candidate and a
+    # never-seen one both look like. `scored_at` is the only thing that tells
+    # them apart, which is why v4 added it.
+    todo = rows if force else [r for r in rows if r["scored_at"] is None]
+    rep.probed = len(todo)
+    rep.already_scored = len(rows) - len(todo)
 
-    ranks: dict[int, int | None] = {}
-    for i in range(0, len(rows), BATCH):
-        chunk = rows[i:i + BATCH]
-        vecs = await prov.embed([r["text"] for r in chunk])
-        for r, vec in zip(chunk, vecs, strict=True):
-            ordering = probe(conn, r["text"], vec, top_k=top_k)
-            ranks[r["id"]] = (
-                ordering.index(r["bookmark_id"]) + 1 if r["bookmark_id"] in ordering else None
-            )
-        if progress is not None:
-            progress(min(i + BATCH, len(rows)), len(rows))
+    ranks: dict[int, int | None] = {r["id"]: r["probe_rank"] for r in rows}
+    # The vector computed to probe with is the same vector the intent facet will
+    # later search against -- same text, same model. Letting it fall out of
+    # scope means `embed_intents` pays for every kept query a second time: on a
+    # 2,376-page library that is ~9,500 redundant embedding calls, half again on
+    # top of what the filter itself costs. Only candidates that could still be
+    # kept are held, so the peak is bounded by the passing set, not by the
+    # candidate set.
+    passing_vecs: dict[int, Sequence[float]] = {}
+    if todo:
+        from .vectors import BATCH
+
+        for i in range(0, len(todo), BATCH):
+            chunk = todo[i:i + BATCH]
+            vecs = await prov.embed([r["text"] for r in chunk])
+            for r, vec in zip(chunk, vecs, strict=True):
+                ordering = probe(conn, r["text"], vec, top_k=top_k)
+                rank = (
+                    ordering.index(r["bookmark_id"]) + 1 if r["bookmark_id"] in ordering else None
+                )
+                ranks[r["id"]] = rank
+                if rank is not None and rank <= top_k:
+                    passing_vecs[r["id"]] = vec
+            if progress is not None:
+                progress(min(i + BATCH, len(todo)), len(todo))
 
     by_bookmark: dict[int, list[sqlite3.Row]] = {}
     for r in rows:
@@ -168,9 +229,23 @@ async def filter_intents(
         for rank, cid in scored:
             updates.append((1 if cid in keep_ids else 0, rank, cid))
 
+    stamp = now()
+    probed_ids = {r["id"] for r in todo}
     conn.executemany(
-        "UPDATE intent_query SET kept=?, probe_rank=? WHERE id=?", updates
+        "UPDATE intent_query SET kept=?, probe_rank=?, scored_at=? WHERE id=?",
+        [(k, r, stamp, cid) for k, r, cid in updates if cid in probed_ids],
     )
+    # Untouched candidates keep their rank *and* their timestamp: stamping them
+    # again would claim work that was not done, and the timestamp is the only
+    # record of when the rank was earned.
+    conn.executemany(
+        "UPDATE intent_query SET kept=? WHERE id=? AND kept IS NOT ?",
+        [(k, cid, k) for k, _r, cid in updates if cid not in probed_ids],
+    )
+    for kept_flag, _rank, cid in updates:
+        if kept_flag and cid in passing_vecs:
+            upsert_intent_vector(conn, cid, passing_vecs[cid])
+            rep.vectors_written += 1
     # Anything that just lost its `kept` flag must lose its vector too, or the
     # intent facet keeps answering with a query the filter rejected.
     conn.execute(

@@ -399,3 +399,97 @@ class TestIndexAll:
         put(conn, "https://ix.example/x", "solo", body="text " * 60)
         rep = await service.index_all(conn, settings=st, fetch=False)
         assert "fetch" not in rep.steps
+
+
+class _Ledger(MockProvider):
+    """A ``MockProvider`` that remembers every call it was asked to make.
+
+    Counting *texts* rather than requests, because the embedding stages batch:
+    one request for sixty-four strings is sixty-four things paid for.
+    """
+
+    name = "ledger"
+
+    def __init__(self, settings):
+        super().__init__(settings)
+        self.chats = 0
+        self.embedded: list[str] = []
+
+    async def chat_json(self, system: str, user: str) -> dict:
+        self.chats += 1
+        return await super().chat_json(system, user)
+
+    async def embed(self, texts: list[str]) -> list[list[float]]:
+        self.embedded.extend(texts)
+        return await super().embed(texts)
+
+    def reset(self) -> None:
+        self.chats = 0
+        self.embedded.clear()
+
+
+class TestIndexingTwiceIsNotPayingTwice:
+    """`facetmark index` is the command a user runs after every import.
+
+    Every stage inside it is separately incremental, which is not the same
+    claim as the pipeline being incremental: one stage that re-reads the whole
+    library makes the whole command cost a full pass. On a real library that is
+    the difference between twenty new pages and nineteen thousand model calls,
+    and it is the reason a `--since` flag looked necessary. Asserted here
+    end-to-end rather than stage by stage, because it is the composition that
+    the user pays for.
+    """
+
+    async def test_a_second_pass_over_an_unchanged_library_buys_nothing(self, conn, st):
+        for i in range(5):
+            put(conn, f"https://twice.example/{i}", f"page {i} on vector search",
+                body=f"page {i} discusses vector search, sqlite storage and rank fusion " * 6)
+        prov = _Ledger(st)
+        await service.index_all(conn, provider=prov, settings=st, fetch=False)
+        assert prov.chats >= 5 and prov.embedded, "the first pass has to actually cost something"
+
+        prov.reset()
+        rep = await service.index_all(conn, provider=prov, settings=st, fetch=False)
+
+        assert prov.chats == 0, "nothing was re-enriched"
+        assert prov.embedded == [], "nothing was re-embedded, for content or for intents"
+        assert rep.steps["enrich"]["enriched"] == 0
+        assert rep.steps["embed_content"]["embedded"] == 0
+        assert rep.steps["embed_intents"]["embedded"] == 0
+        assert rep.steps["filter_intents"]["already_scored"] == rep.steps["filter_intents"][
+            "candidates"
+        ]
+
+    async def test_one_new_bookmark_costs_one_new_bookmark(self, conn, st):
+        for i in range(5):
+            put(conn, f"https://twice.example/{i}", f"page {i} on vector search",
+                body=f"page {i} discusses vector search, sqlite storage and rank fusion " * 6)
+        prov = _Ledger(st)
+        await service.index_all(conn, provider=prov, settings=st, fetch=False)
+        prov.reset()
+
+        put(conn, "https://twice.example/new", "a late arrival about rank fusion",
+            body="this one arrived after the library was already indexed " * 6)
+        rep = await service.index_all(conn, provider=prov, settings=st, fetch=False)
+
+        assert rep.steps["enrich"]["enriched"] == 1
+        assert prov.chats == 1
+        # One content vector, plus the intent candidates that came with it. The
+        # bound that matters is that it does not scale with the library.
+        assert 1 <= len(prov.embedded) <= 1 + st.intent_generate_n
+        assert rep.steps["embed_content"]["embedded"] == 1
+
+    async def test_force_still_pays_for_everything(self, conn, st):
+        """The escape hatch has to remain an escape hatch."""
+        for i in range(4):
+            put(conn, f"https://twice.example/{i}", f"page {i} on vector search",
+                body=f"page {i} discusses vector search and sqlite storage " * 6)
+        prov = _Ledger(st)
+        await service.index_all(conn, provider=prov, settings=st, fetch=False)
+        prov.reset()
+
+        rep = await service.index_all(conn, provider=prov, settings=st, fetch=False, force=True)
+        assert rep.steps["enrich"]["enriched"] == 4
+        assert prov.chats == 4
+        assert rep.steps["embed_content"]["embedded"] == 4
+        assert rep.steps["filter_intents"]["already_scored"] == 0

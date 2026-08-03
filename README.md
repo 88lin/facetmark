@@ -23,7 +23,7 @@ Everything runs locally: Python + SQLite (`sqlite-vec`) + a browser extension. N
 
 ```bash
 pip install facetmark          # or: uv pip install facetmark
-facetmark import bookmarks.html
+facetmark import               # reads the live browser profile; or pass a file
 facetmark index                # fetch + enrich + embed + session + graph
 facetmark serve                # http://127.0.0.1:8787, prints a pairing token
 ```
@@ -133,7 +133,8 @@ Excluded domains skip the entire external layer - DNS included.
 ## Commands
 
 ```
-facetmark import PATH         Netscape HTML or Chrome JSON
+facetmark import [PATH]       Netscape HTML or Chrome JSON; no PATH reads the live profile
+facetmark browsers            live browser profiles that can be imported
 facetmark index [--no-fetch]  fetch, enrich, embed, filter intents, sessions, edges
 facetmark search QUERY        four-facet search from the terminal
 facetmark show ID             one bookmark with its facets and health

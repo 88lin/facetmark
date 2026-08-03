@@ -38,6 +38,7 @@ from facetmark.fetch import (
 )
 from facetmark.fetch.client import SMALL_DOC_BYTES, _classify_exception, _verdict_for_status
 from facetmark.fetch.extract import MIN_USEFUL_CHARS
+from facetmark.fetch.robots import RobotsCache
 from facetmark.fetch.store import (
     BROWSER_RETRY_BACKOFF_S,
     LEASE_TTL_S,
@@ -709,6 +710,99 @@ class TestCrawl:
                                  "queued_for_browser": 0, "by_verdict": {}}
 
 
+class _Interrupted(Exception):
+    """Stands in for a Ctrl-C, without asking pytest to abort the session."""
+
+
+class TestCrawlPersistsAsItGoes:
+    """A crawl that dies at 95% must keep the 95%.
+
+    Fetching a real library is tens of minutes of somebody else's bandwidth.
+    Holding every body in memory until the last request returns means one
+    Ctrl-C, one OOM, or one unhandled error costs the whole run and re-spends
+    every one of those requests on the next attempt.
+    """
+
+    def _stored(self, db) -> int:
+        return db.execute(
+            "SELECT COUNT(*) c FROM content WHERE body_hash IS NOT NULL"
+        ).fetchone()["c"]
+
+    @respx.mock
+    async def test_each_body_is_committed_before_the_next_one_arrives(self, db):
+        targets = pending_targets(db)
+        for n, (_bid, url, _t) in enumerate(targets):
+            respx.get(url).mock(
+                return_value=httpx.Response(200, html=article_html(title=f"Doc {n}")))
+        counts: list[int] = []
+        open_txn: list[bool] = []
+
+        def watch(_res) -> None:
+            counts.append(self._stored(db))
+            open_txn.append(db.in_transaction)
+
+        await crawl(db, policy=FetchPolicy(per_host_min_interval_s=0.0), progress=watch)
+        # The old code wrote nothing until the batch was complete, which made
+        # this list all zeroes.
+        assert counts == list(range(1, len(targets) + 1))
+        # And each row is committed, not merely written: a crash one page later
+        # cannot take it back.
+        assert open_txn == [False] * len(targets)
+
+    async def test_an_interrupted_crawl_keeps_what_already_landed(self, tmp_path):
+        path = tmp_path / "library.db"
+        disk = open_db(path)
+        from tests.conftest import NETSCAPE_SAMPLE
+
+        import_bookmarks(disk, content=NETSCAPE_SAMPLE)
+        targets = pending_targets(disk)
+        assert len(targets) >= 3
+        seen = 0
+
+        def die_partway(_res) -> None:
+            nonlocal seen
+            seen += 1
+            if seen == 2:
+                raise _Interrupted("user gave up")
+
+        with respx.mock:
+            for _bid, url, _t in targets:
+                respx.get(url).mock(return_value=httpx.Response(200, html=article_html()))
+            with pytest.raises(_Interrupted):
+                await crawl(disk, policy=FetchPolicy(concurrency=1,
+                                                     per_host_min_interval_s=0.0),
+                            progress=die_partway)
+        disk.close()
+
+        # Reopened from the file, so this is what actually survived the process.
+        reopened = open_db(path)
+        landed = self._stored(reopened)
+        assert landed >= 2
+        assert len(pending_targets(reopened)) == len(targets) - landed
+
+        with respx.mock:
+            for _bid, url, _t in targets:
+                respx.get(url).mock(return_value=httpx.Response(200, html=article_html()))
+            rep = await crawl(reopened, policy=FetchPolicy(per_host_min_interval_s=0.0))
+        assert rep.attempted == len(targets) - landed
+        assert self._stored(reopened) == len(targets)
+        reopened.close()
+
+    @respx.mock
+    async def test_a_failure_mid_batch_still_counts_and_still_queues(self, db):
+        targets = pending_targets(db)
+        for n, (_bid, url, _t) in enumerate(targets):
+            respx.get(url).mock(return_value=httpx.Response(403) if n == 1
+                                else httpx.Response(200, html=article_html()))
+        rep = await crawl(db, policy=FetchPolicy(per_host_min_interval_s=0.0))
+        # Per-result accounting has to agree with the whole-batch tally it
+        # replaced: results arrive out of order, ids are matched by URL.
+        assert rep.stored == len(targets) - 1
+        assert rep.queued == 1
+        assert rep.as_dict()["by_verdict"] == {"ok": len(targets) - 1, "refused": 1}
+        assert self._stored(db) == len(targets) - 1
+
+
 class TestExtractionDataclass:
     def test_ok_requires_both_length_and_not_being_a_wall(self):
         assert Extraction("x" * MIN_USEFUL_CHARS, "t", "trafilatura").ok
@@ -816,3 +910,144 @@ class TestBrowserQueueBackoff:
         lease_browser_batch(db, 1)
         db.execute("UPDATE fetch_queue SET leased_at = leased_at - ?", (LEASE_TTL_S + 60,))
         assert [b["bookmark_id"] for b in lease_browser_batch(db, 1)] == [bid]
+
+
+# ---------------------------------------------------------------------------
+# the failure taxonomy a real crawl actually produced
+# ---------------------------------------------------------------------------
+
+
+class TestRealWorldFailureModes:
+    """The twelve ways 2,376 real pages failed, pinned as regressions.
+
+    Measured over the W1 corpus: ``HTTP 403`` x104, ``empty`` x62, ``HTTP 404``
+    x54, ``wall`` x52, ``HTTP 429`` x26, DNS x20, timeout x18, server
+    disconnected x16, client-rendered host x9, TLS verification x8. Each row
+    below is one of those, asserted at the level that decides what happens next
+    -- the verdict, and whether the browser channel gets a turn.
+    """
+
+    @pytest.mark.parametrize(
+        "exc,verdict,fragment",
+        [
+            (httpx.ConnectError("[Errno -2] Name or service not known"),
+             Verdict.DNS_FAIL, "name or service"),
+            (httpx.ConnectError("[Errno -5] No address associated with hostname"),
+             Verdict.UNREACHABLE, "no address"),
+            (httpx.ReadTimeout("timed out"), Verdict.UNREACHABLE, "timeout"),
+            (httpx.ConnectTimeout("handshake timed out"), Verdict.UNREACHABLE, "timeout"),
+            (httpx.RemoteProtocolError("Server disconnected without sending a response."),
+             Verdict.UNREACHABLE, "server disconnected"),
+            (httpx.ConnectError(
+                "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: "
+                "unable to get local issuer certificate"),
+             Verdict.UNREACHABLE, "certificate verify failed"),
+        ],
+    )
+    @respx.mock
+    async def test_a_transport_failure_names_itself_in_the_error(self, exc, verdict, fragment):
+        respx.get("https://example.com/x").mock(side_effect=exc)
+        r = await _one("https://example.com/x")
+        assert r.verdict is verdict
+        assert fragment in r.error.lower()
+
+    @pytest.mark.parametrize("status", [403, 429])
+    @respx.mock
+    async def test_a_rate_limit_or_a_refusal_gets_the_browser_a_turn(self, status):
+        respx.get("https://example.com/x").mock(return_value=httpx.Response(status))
+        r = await _one("https://example.com/x")
+        assert r.verdict is Verdict.REFUSED and r.should_defer_to_browser
+
+    @pytest.mark.parametrize("status", [404, 410, 500, 503])
+    @respx.mock
+    async def test_a_dead_or_broken_url_does_not_spend_the_users_browser(self, status):
+        respx.get("https://example.com/x").mock(return_value=httpx.Response(status))
+        r = await _one("https://example.com/x")
+        assert not r.should_defer_to_browser
+
+    @respx.mock
+    async def test_robots_denial_is_the_one_refusal_the_browser_may_not_undo(self):
+        respx.get("https://tidy.example/robots.txt").mock(
+            return_value=httpx.Response(200, text="User-agent: *\nDisallow: /private/\n"))
+        r = await _one("https://tidy.example/private/page",
+                       policy=FetchPolicy(respect_robots=True),
+                       robots=RobotsCache())
+        assert r.verdict is Verdict.ROBOTS_DENIED
+        assert not r.should_defer_to_browser
+
+    @respx.mock
+    async def test_a_client_rendered_host_is_refused_early_but_still_deferred(self):
+        r = await _one("https://twitter.com/someone/status/1")
+        assert r.verdict is Verdict.SKIPPED and r.should_defer_to_browser
+        assert not respx.calls
+
+    @respx.mock
+    async def test_an_extractor_crash_becomes_a_verdict_not_an_exception(self, monkeypatch):
+        def boom(*a, **k):
+            raise RecursionError("maximum recursion depth exceeded")
+
+        monkeypatch.setattr("facetmark.fetch.client.extract", boom)
+        respx.get("https://example.com/x").mock(
+            return_value=httpx.Response(200, html=article_html()))
+        r = await _one("https://example.com/x")
+        assert r.verdict is Verdict.EMPTY
+        assert "RecursionError" in r.error
+        assert r.should_defer_to_browser
+
+    @respx.mock
+    async def test_one_pathological_page_does_not_take_the_batch_with_it(self, monkeypatch):
+        """`gather` without `return_exceptions` loses every already-fetched
+        result in the batch, and breaks the input-order contract `crawl` zips
+        bookmark ids against."""
+        real = fetch_one
+
+        async def sometimes_explodes(client, url, **kw):
+            if url.endswith("/2"):
+                raise ValueError("something nobody anticipated")
+            return await real(client, url, **kw)
+
+        monkeypatch.setattr("facetmark.fetch.client.fetch_one", sometimes_explodes)
+        urls = [f"https://example.com/{i}" for i in range(4)]
+        for u in urls:
+            respx.get(u).mock(return_value=httpx.Response(200, html=article_html()))
+        batch = await fetch_many(urls, policy=FetchPolicy(per_host_min_interval_s=0.0))
+        assert [r.url for r in batch.results] == urls
+        assert len(batch.ok) == 3
+        bad = batch.results[2]
+        assert bad.verdict is Verdict.UNREACHABLE and "ValueError" in bad.error
+
+    @respx.mock
+    async def test_a_mixed_batch_records_every_failure_and_queues_only_the_winnable(self, db):
+        targets = pending_targets(db)
+        assert len(targets) >= 5
+        plan = [
+            httpx.Response(200, html=article_html(title="Good")),
+            httpx.Response(403),
+            httpx.Response(404),
+            httpx.Response(200, html="<html><body><h1>Are you a robot?</h1>"
+                                     "<p>Checking your browser.</p></body></html>"),
+        ]
+        exhausted = httpx.ConnectError("[Errno -2] Name or service not known")
+        for n, (_bid, url, _t) in enumerate(targets):
+            if n < len(plan):
+                respx.get(url).mock(return_value=plan[n])
+            else:
+                respx.get(url).mock(side_effect=exhausted)
+
+        rep = await crawl(db, policy=FetchPolicy(per_host_min_interval_s=0.0))
+        counts = rep.as_dict()["by_verdict"]
+        assert counts["ok"] == 1
+        assert counts["refused"] == 1
+        assert counts["not_found"] == 1
+        assert counts["wall"] == 1
+        assert counts["dns_fail"] == len(targets) - 4
+        assert rep.attempted == len(targets)
+
+        # Every failure leaves a reason on the row, not a blank.
+        blank = db.execute(
+            "SELECT COUNT(*) c FROM content WHERE COALESCE(error,'')='' "
+            "AND COALESCE(char_count,0)=0"
+        ).fetchone()["c"]
+        assert blank == 0
+        # 403 and the wall are winnable in a real tab; 404 and DNS are not.
+        assert queue_stats(db)["pending"] == 2

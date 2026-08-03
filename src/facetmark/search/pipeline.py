@@ -369,6 +369,16 @@ async def search(
         mark("rerank", t0)
 
     # --- 6. one hop out, as its own group ---------------------------------
+    #
+    # What must be excluded is what the user is *shown*, not what the retriever
+    # *considered*. Those are wildly different sets: every vector facet returns
+    # `candidates_per_facet` neighbours whether or not they are any good, so the
+    # fused pool is ~50-150 documents while `hits` is ~10. Excluding the pool
+    # deletes the expansion group outright on a small library and guts it on a
+    # large one, because a graph neighbour of a hit is *by construction* the
+    # kind of document a vector facet also drags in. Expansion answers a
+    # different question from retrieval; a document that lost on topical
+    # similarity can still be the right answer to "what came with this?".
     expansions: list[Expansion] = []
     if config.graph and hits:
         t0 = time.perf_counter()
@@ -377,7 +387,7 @@ async def search(
             [(h.bookmark_id, h.score) for h in hits],
             factor=s.graph_expand_factor,
             limit=expand_limit,
-            exclude=[f.doc_id for f in fused],
+            exclude=[h.bookmark_id for h in hits],
         )
         mark("expand", t0)
 

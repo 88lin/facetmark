@@ -343,3 +343,163 @@ class TestMcpServer:
 
     async def test_the_instructions_tell_an_agent_that_nothing_is_deleted(self, srv):
         assert "never removed" in srv.instructions or "removed" in srv.instructions
+
+
+# ---------------------------------------------------------------------------
+# the extension boundary
+# ---------------------------------------------------------------------------
+
+
+def _ts_source() -> str:
+    from pathlib import Path
+
+    p = Path(__file__).resolve().parents[1] / "extension" / "src" / "api.ts"
+    if not p.exists():
+        pytest.skip("extension sources not in this tree")
+    return p.read_text(encoding="utf-8")
+
+
+def _ts_paths(src: str) -> set[str]:
+    """Every request path in the client, query strings stripped."""
+    import re
+
+    out = set()
+    for lit in re.findall(r"[\"`](/[^\"`]*)[\"`]", src):
+        out.add(lit.split("?", 1)[0])
+    return out
+
+
+def _ts_interface(src: str, name: str) -> dict[str, bool]:
+    """``{field: required}`` for the top level of one ``export interface``."""
+    import re
+
+    m = re.search(rf"export interface {name} \{{\n(.*?)\n\}}", src, re.S)
+    assert m, f"interface {name} not found -- rename?"
+    fields: dict[str, bool] = {}
+    depth = 0
+    for line in m.group(1).splitlines():
+        bare = line.strip()
+        if not bare.startswith(("//", "/*", "*")):
+            f = re.match(r"(\w+)(\??):", bare)
+            if depth == 0 and f:
+                fields[f.group(1)] = f.group(2) != "?"
+        depth += line.count("{") - line.count("}")
+    assert fields, f"parsed no fields out of {name}"
+    return fields
+
+
+def _ts_queue_keys(src: str) -> set[str]:
+    """Every ``/queue/stats`` key the client reads by name."""
+    import re
+
+    m = re.search(r"export function summarizeQueue\(.*?\n\}", src, re.S)
+    assert m, "summarizeQueue not found -- rename?"
+    return set(re.findall(r"n\(\"(\w+)\"\)", m.group(0)))
+
+
+class TestTheExtensionContract:
+    """The one boundary the type checker cannot see.
+
+    `request<T>` in the extension is `await res.json() as T` -- an unchecked
+    cast. TypeScript will believe any shape written there, so a field the
+    server renamed, or never sent, arrives as `undefined` and renders as an
+    empty string or `[object Object]`. Both have happened. These assertions run
+    on the Python side because that is where the truth is.
+    """
+
+    def test_every_path_the_extension_calls_is_a_real_route(self, client):
+        declared = _ts_paths(_ts_source())
+        routes = {r.path for r in client.app.routes}
+        assert declared, "parsed no paths out of api.ts"
+        assert declared <= routes, f"extension calls routes that do not exist: {declared - routes}"
+
+    def test_the_hit_type_describes_what_the_server_actually_sends(self, client, auth):
+        seed(client, "https://a.example/rust", "Rust ownership", body="borrow checker rust")
+        r = client.post("/search", json={"q": "rust", "limit": 5}, headers=auth)
+        assert r.status_code == 200 and r.json()["hits"]
+        actual = set(r.json()["hits"][0])
+        required = {k for k, req in _ts_interface(_ts_source(), "Hit").items() if req}
+        assert required <= actual, f"declared but never sent: {sorted(required - actual)}"
+
+    def test_the_response_type_describes_what_the_server_actually_sends(self, client, auth):
+        seed(client, "https://a.example/rust", "Rust ownership", body="borrow checker rust")
+        for r in (client.get("/quick?q=rust", headers=auth),
+                  client.post("/search", json={"q": "rust"}, headers=auth)):
+            actual = set(r.json())
+            required = {
+                k for k, req in _ts_interface(_ts_source(), "SearchResponse").items() if req
+            }
+            assert required <= actual, f"declared but never sent: {sorted(required - actual)}"
+
+    def test_took_ms_is_a_breakdown_and_the_client_is_told_so(self, client, auth):
+        """It was typed `number`. The popup printed `[object Object] ms`."""
+        seed(client, "https://a.example/rust", "Rust ownership", body="borrow checker rust")
+        took = client.post("/search", json={"q": "rust"}, headers=auth).json()["took_ms"]
+        assert isinstance(took, dict) and "total" in took
+        assert "took_ms: Record<string, number>" in _ts_source()
+
+    def test_the_expansion_group_is_part_of_the_response_the_client_declares(self, client, auth):
+        seed(client, "https://a.example/rust", "Rust ownership", body="borrow checker rust")
+        assert "expanded" in client.post("/search", json={"q": "rust"}, headers=auth).json()
+        assert "expanded" in _ts_interface(_ts_source(), "SearchResponse")
+
+    def test_a_graph_neighbour_actually_reaches_the_client(self, client, auth):
+        """The key being present is not the same as the group being reachable.
+
+        Asserting on the key passed for as long as the expansion group was
+        empty on every query, which it was.
+        """
+        a = seed(client, "https://a.example/rust", "Rust ownership",
+                 body="borrow checker rust lifetimes")
+        b = seed(client, "https://b.example/cook", "Braising short ribs",
+                 body="low oven braise beef stock aromatics")
+        conn = client.app.state.fm.conn
+        conn.execute("INSERT OR REPLACE INTO edge(src,dst,kind,weight) "
+                     "VALUES(?,?,'session',1.0)", (a, b))
+        conn.commit()
+        body = client.post("/search", json={"q": "rust", "limit": 1},
+                           headers=auth).json()
+        assert [h["bookmark_id"] for h in body["hits"]] == [a]
+        assert [h["bookmark_id"] for h in body["expanded"]] == [b]
+        assert body["expanded"][0]["via"] == a
+        assert body["expanded"][0]["via_kind"] == "session"
+
+    def test_the_queue_states_the_client_reads_are_the_ones_the_server_writes(self, client, auth):
+        """``/queue/stats`` is a ``GROUP BY state``: a state nobody is in is absent.
+
+        So the client reads it key by key, and a state renamed on this side
+        arrives over there as a zero rather than as an error. Put one bookmark
+        in every state the store can write and check that the two vocabularies
+        are the same set.
+        """
+        conn = client.app.state.fm.conn
+        ids = [seed(client, f"https://q{i}.example/p", f"page {i}") for i in range(4)]
+        for bid in ids:
+            fetchstore.enqueue_for_browser(conn, bid, reason="wall")
+
+        fetchstore.complete_browser_item(conn, ids[0], body="a body long enough to keep")
+        conn.execute(
+            "UPDATE fetch_queue SET attempts=? WHERE bookmark_id=?",
+            (fetchstore.MAX_BROWSER_ATTEMPTS, ids[1]),
+        )
+        fetchstore.complete_browser_item(conn, ids[1], body="")
+        conn.execute("UPDATE fetch_queue SET attempts=1 WHERE bookmark_id=?", (ids[2],))
+        fetchstore.complete_browser_item(conn, ids[2], body="")  # back to pending, in backoff
+        leased = fetchstore.lease_browser_batch(conn, 10)
+        assert [r["bookmark_id"] for r in leased] == [ids[3]], "a backoff must not be leasable"
+
+        got = client.get("/queue/stats", headers=auth).json()
+        assert got == {"done": 1, "failed": 1, "pending": 1, "leased": 1, "waiting": 1}
+        assert set(got) == _ts_queue_keys(_ts_source())
+
+    def test_waiting_is_a_share_of_pending_and_the_client_subtracts_it(self, client, auth):
+        """`waiting` counts pending rows in backoff. Adding the two double-counts."""
+        conn = client.app.state.fm.conn
+        bid = seed(client, "https://slow.example/p", "slow")
+        fetchstore.enqueue_for_browser(conn, bid, reason="wall")
+        fetchstore.complete_browser_item(conn, bid, body="")  # first failure -> backoff
+
+        got = client.get("/queue/stats", headers=auth).json()
+        assert got["pending"] == 1 and got["waiting"] == 1
+        src = _ts_source()
+        assert "pending - waiting" in src, "the client must carve `waiting` out of `pending`"

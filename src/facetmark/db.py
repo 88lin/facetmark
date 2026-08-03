@@ -108,10 +108,23 @@ CREATE TABLE IF NOT EXISTS intent_query (
     text          TEXT    NOT NULL,
     kept          INTEGER NOT NULL DEFAULT 0,
     probe_rank    INTEGER,     -- rank of the source doc when probed with this query
-    created_at    INTEGER
+    created_at    INTEGER,
+    scored_at     INTEGER      -- NULL: never probed. `kept=0` alone cannot say.
 );
 CREATE INDEX IF NOT EXISTS ix_intent_bookmark ON intent_query(bookmark_id);
 CREATE INDEX IF NOT EXISTS ix_intent_kept     ON intent_query(kept);
+CREATE INDEX IF NOT EXISTS ix_intent_unscored ON intent_query(scored_at);
+
+-- Provenance for facet 1. `vec_content` is a vec0 virtual table and holds
+-- nothing but the vector, so what the vector was built from lives here. A row
+-- whose hash no longer matches the text `content_text()` produces today is
+-- stale and gets re-embedded; a vector with no row here has unknown
+-- provenance and is treated the same way.
+CREATE TABLE IF NOT EXISTS vec_content_meta (
+    bookmark_id INTEGER PRIMARY KEY REFERENCES bookmark(id) ON DELETE CASCADE,
+    text_hash   TEXT    NOT NULL,
+    updated_at  INTEGER NOT NULL
+);
 
 -- Facet 4: reconstructed saving episodes.
 CREATE TABLE IF NOT EXISTS session (
@@ -368,12 +381,46 @@ def vec_tables_exist(conn: sqlite3.Connection) -> bool:
     return int(row["n"]) == 2
 
 
-def upsert_content_vector(conn: sqlite3.Connection, bookmark_id: int, vec: Sequence[float]) -> None:
+def upsert_content_vector(
+    conn: sqlite3.Connection,
+    bookmark_id: int,
+    vec: Sequence[float],
+    *,
+    text_hash: str | None = None,
+) -> None:
+    """Write facet 1's vector, and say what text produced it.
+
+    ``text_hash=None`` means the caller is not saying, which is not the same as
+    saying nothing changed -- the provenance row is dropped so the vector reads
+    as stale rather than as silently current.
+    """
     blob = _pack(_l2_normalize(vec))
     conn.execute("DELETE FROM vec_content WHERE bookmark_id=?", (bookmark_id,))
     conn.execute(
         "INSERT INTO vec_content(bookmark_id, embedding) VALUES(?,?)", (bookmark_id, blob)
     )
+    if text_hash is None:
+        conn.execute("DELETE FROM vec_content_meta WHERE bookmark_id=?", (bookmark_id,))
+    else:
+        conn.execute(
+            "INSERT INTO vec_content_meta(bookmark_id, text_hash, updated_at) VALUES(?,?,?) "
+            "ON CONFLICT(bookmark_id) DO UPDATE SET "
+            "  text_hash=excluded.text_hash, updated_at=excluded.updated_at",
+            (bookmark_id, text_hash, now()),
+        )
+
+
+def content_vector_hashes(conn: sqlite3.Connection) -> dict[int, str]:
+    """bookmark_id -> the hash of the text its stored vector was built from.
+
+    Only bookmarks that still have a vector are included: a provenance row left
+    behind by a hand-deleted ``vec_content`` would otherwise read as current.
+    """
+    rows = conn.execute(
+        "SELECT m.bookmark_id AS id, m.text_hash AS h FROM vec_content_meta m "
+        "WHERE m.bookmark_id IN (SELECT bookmark_id FROM vec_content)"
+    ).fetchall()
+    return {int(r["id"]): str(r["h"]) for r in rows}
 
 
 def upsert_intent_vector(conn: sqlite3.Connection, intent_id: int, vec: Sequence[float]) -> None:

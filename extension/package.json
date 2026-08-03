@@ -5,15 +5,20 @@
   "description": "Facetmark browser extension: search your own bookmarks, save pages, and fetch what the server cannot reach.",
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=22.6"
+  },
   "scripts": {
     "build": "node build.mjs",
     "watch": "node build.mjs --watch",
     "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test \"test/*.test.ts\"",
     "zip": "node build.mjs && cd dist && zip -qr ../facetmark-extension.zip ."
   },
   "devDependencies": {
     "@types/chrome": "^0.0.287",
+    "@types/node": "^22.20.1",
     "esbuild": "^0.24.0",
-    "typescript": "^5.6.0"
+    "typescript": "^5.8.0"
   }
 }

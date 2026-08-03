@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -27,6 +28,46 @@ from . import __version__, service
 from . import health as healthmod
 from .config import Settings, get_settings
 from .db import SCHEMA_VERSION, apply_pending, connect, open_db, schema_status
+from .importers.discovery import candidate_roots, discover_bookmark_files
+
+_UTF8_ALIASES = frozenset({"utf-8", "utf8", "utf-8-sig", "utf8-sig", "cp65001"})
+
+
+def _harden_stream(stream: object) -> None:
+    """Stop one text stream from dying on a character the platform cannot spell.
+
+    A Windows console talks UTF-8 to Python, but a *redirected* stdout is opened
+    with the ANSI code page, so ``facetmark search > hits.txt`` on an en-US box
+    raises UnicodeEncodeError the moment a result has a Chinese title. The same
+    happens to any POSIX process started without a locale. A bookmark searcher
+    that crashes on the titles it exists to find is not a bookmark searcher.
+
+    Redirected output moves to UTF-8, which is what a file should hold anyway.
+    An explicit ``PYTHONIOENCODING`` is the user's decision and is kept, but it
+    is downgraded from raising to replacing: a mangled title still tells you
+    which bookmark matched, a traceback tells you nothing.
+    """
+    reconfigure = getattr(stream, "reconfigure", None)
+    if reconfigure is None:  # pytest capture, StringIO, an already-closed stream
+        return
+    encoding = (getattr(stream, "encoding", "") or "").lower().replace("_", "-")
+    forgiving = getattr(stream, "errors", None) not in (None, "strict", "surrogateescape")
+    try:
+        if encoding in _UTF8_ALIASES or os.environ.get("PYTHONIOENCODING"):
+            if not forgiving:
+                reconfigure(errors="replace")
+        else:
+            reconfigure(encoding="utf-8", errors="replace")
+    except (ValueError, OSError):  # detached, or a stream that only pretends to be one
+        return
+
+
+def _harden_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        _harden_stream(stream)
+
+
+_harden_stdio()
 
 app = typer.Typer(
     name="facetmark",
@@ -91,12 +132,25 @@ def version() -> None:
 
 @app.command("import")
 def import_cmd(
-    path: Path = typer.Argument(..., exists=True, readable=True,
-                                help="Netscape bookmarks.html or Chrome Bookmarks JSON."),
+    path: Path | None = typer.Argument(
+        None, exists=True, readable=True,
+        help="Netscape bookmarks.html or Chrome Bookmarks JSON. "
+             "Omit to read the live browser profile.",
+    ),
     db: Path | None = typer.Option(None, "--db", help="Database file or data directory."),
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
-    """Import a browser bookmark export. Never writes back to the browser."""
+    """Import a browser bookmark export. Never writes back to the browser.
+
+    With no path, the live Chromium-family profile is located automatically.
+    That is the whole first-run experience on Windows, where the file is buried
+    at ``%LOCALAPPDATA%\\Google\\Chrome\\User Data\\Default\\Bookmarks`` and
+    nobody types it from memory. If more than one profile is installed the
+    choice is not guessed -- importing the wrong person's bookmarks is worse
+    than one extra command -- so the candidates are printed and you pick.
+    """
+    if path is None:
+        path = _the_only_profile(json_out)
     st = _settings(db)
     conn = _open(st)
     try:
@@ -113,6 +167,65 @@ def import_cmd(
     console.print(t)
     for w in stats["warnings"][:10]:
         err.print(f"[yellow]warning[/yellow] {w}")
+
+
+def _the_only_profile(json_out: bool) -> Path:
+    """Resolve ``facetmark import`` with no argument, or explain why it cannot."""
+    found = discover_bookmark_files()
+    if len(found) == 1:
+        p, browser, profile = found[0]
+        err.print(f"[dim]reading {browser} / {profile}: {p}[/dim]")
+        return p
+    if not found:
+        if json_out:
+            console.print(json.dumps(
+                {"error": "no browser profile found",
+                 "searched": [str(r) for r, _, _ in candidate_roots()]},
+                ensure_ascii=False, indent=2,
+            ))
+        else:
+            err.print("[red]no browser profile found.[/red] looked in:")
+            for root, browser, _ in candidate_roots():
+                err.print(f"  [dim]{browser:<9}[/dim] {root}")
+            err.print("\npass the file directly: [bold]facetmark import <path>[/bold]")
+        raise typer.Exit(2)
+    if json_out:
+        console.print(json.dumps(
+            {"error": "several browser profiles found",
+             "profiles": [{"path": str(p), "browser": b, "profile": prof}
+                          for p, b, prof in found]},
+            ensure_ascii=False, indent=2,
+        ))
+    else:
+        err.print(f"[yellow]{len(found)} browser profiles found.[/yellow] "
+                  "pick one rather than let it be guessed:")
+        for p, browser, profile in found:
+            err.print(f"  [bold]facetmark import {p}[/bold]  [dim]# {browser} / {profile}[/dim]")
+    raise typer.Exit(2)
+
+
+@app.command()
+def browsers(json_out: bool = typer.Option(False, "--json")) -> None:
+    """List the live browser profiles that can be imported.
+
+    Answers "is my browser even findable" without touching the database, which
+    is the first question on a machine where ``import`` came up empty.
+    """
+    found = discover_bookmark_files()
+    if _emit([{"path": str(p), "browser": b, "profile": prof} for p, b, prof in found],
+             json_out):
+        return
+    if not found:
+        console.print("[dim]no live browser profile found. searched:[/dim]")
+        for root, browser, _ in candidate_roots():
+            console.print(f"  [dim]{browser:<9} {root}[/dim]")
+        return
+    t = Table(title="live browser profiles", box=None)
+    for col in ("browser", "profile", "path"):
+        t.add_column(col)
+    for p, browser, profile in found:
+        t.add_row(browser, profile, str(p))
+    console.print(t)
 
 
 @app.command()

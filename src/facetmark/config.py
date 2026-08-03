@@ -18,12 +18,16 @@ from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-def default_data_dir() -> Path:
+def default_data_dir(*, os_name: str | None = None) -> Path:
     """Per-OS application data directory.
 
-    Windows is the primary target platform, so it is checked first.
+    Windows is the primary target platform, so it is checked first. ``os_name``
+    defaults to the running interpreter's and is an argument only so the Windows
+    branch can be tested from CI: patching :data:`os.name` is not an option,
+    because ``pathlib.Path`` chooses its concrete class from that attribute and
+    ``WindowsPath`` refuses to instantiate on POSIX.
     """
-    if os.name == "nt":
+    if (os.name if os_name is None else os_name) == "nt":
         base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
         return Path(base) / "facetmark"
     xdg = os.environ.get("XDG_DATA_HOME")

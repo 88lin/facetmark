@@ -14,7 +14,14 @@ import pytest
 import respx
 
 from facetmark.config import Settings
-from facetmark.db import count_vectors, ensure_vec_tables, jload, knn_content, open_db
+from facetmark.db import (
+    count_vectors,
+    ensure_vec_tables,
+    jload,
+    knn_content,
+    open_db,
+    upsert_content_vector,
+)
 from facetmark.enrich import (
     coerce,
     embed_content,
@@ -22,6 +29,8 @@ from facetmark.enrich import (
     enrich_all,
     filter_intents,
     probe,
+    stale_content_count,
+    vectors,
 )
 from facetmark.enrich.pipeline import targets, title_only_hash
 from facetmark.enrich.schema import SUMMARY_MAX, EnrichmentInvalid
@@ -570,6 +579,128 @@ class TestVectors:
             ensure_vec_tables(loaded, 999, mock_settings.embed_model)
 
 
+class TestContentVectorFreshness:
+    """A vector that exists is not the same as a vector that is right.
+
+    The original rule -- embed the bookmarks that have no vector -- is correct
+    exactly once. Index a library before its pages are fetched and every vector
+    is a title-only embedding that no later pass will ever revisit: the body
+    arrives, the summary arrives, and the thing search ranks on does not move.
+    """
+
+    @staticmethod
+    def _blob(conn, bid: int) -> bytes:
+        return conn.execute(
+            "SELECT embedding FROM vec_content WHERE bookmark_id=?", (bid,)
+        ).fetchone()[0]
+
+    @staticmethod
+    async def _titles_only(conn, settings):
+        from tests.conftest import NETSCAPE_SAMPLE
+
+        import_bookmarks(conn, content=NETSCAPE_SAMPLE)
+        conn.commit()
+        await embed_content(conn, settings=settings)
+        return conn
+
+    async def test_a_body_arriving_later_rebuilds_the_vector(self, conn, mock_settings):
+        await self._titles_only(conn, mock_settings)
+        bid = conn.execute("SELECT id FROM bookmark WHERE indexable=1 ORDER BY id").fetchone()["id"]
+        before = self._blob(conn, bid)
+
+        title, body = next(iter(PAGES.values()))
+        conn.execute("UPDATE bookmark SET title=? WHERE id=?", (title, bid))
+        store_body(conn, bid, body=body, title=title, extractor="trafilatura")
+        conn.commit()
+
+        rep = await embed_content(conn, settings=mock_settings)
+        assert rep.content_written >= 1
+        assert self._blob(conn, bid) != before
+
+    async def test_enrichment_arriving_later_rebuilds_the_vector(self, loaded, mock_settings):
+        await embed_content(loaded, settings=mock_settings)
+        bid = loaded.execute("SELECT id FROM bookmark ORDER BY id LIMIT 1").fetchone()["id"]
+        before = self._blob(loaded, bid)
+        await enrich_all(loaded, settings=mock_settings)
+        rep = await embed_content(loaded, settings=mock_settings)
+        assert rep.content_written >= 1
+        assert self._blob(loaded, bid) != before
+
+    async def test_nothing_changed_means_nothing_is_re_embedded(self, loaded, mock_settings):
+        await enrich_all(loaded, settings=mock_settings)
+        await embed_content(loaded, settings=mock_settings)
+        prov = MockProvider(mock_settings)
+        rep = await embed_content(loaded, provider=prov, settings=mock_settings)
+        assert rep.content_written == 0 and prov.usage.calls == 0
+        assert rep.content_current == count_vectors(loaded)[0]
+
+    async def test_a_vector_of_unknown_provenance_counts_as_stale(self, loaded, mock_settings):
+        await enrich_all(loaded, settings=mock_settings)
+        await embed_content(loaded, settings=mock_settings)
+        loaded.execute("DELETE FROM vec_content_meta")
+        loaded.commit()
+        assert stale_content_count(loaded) == count_vectors(loaded)[0]
+
+    async def test_a_provenance_row_without_its_vector_is_not_current(self, loaded, mock_settings):
+        """The hand-repair we actually performed: `DELETE FROM vec_content`."""
+        await enrich_all(loaded, settings=mock_settings)
+        await embed_content(loaded, settings=mock_settings)
+        n = count_vectors(loaded)[0]
+        loaded.execute("DELETE FROM vec_content")
+        loaded.commit()
+        assert loaded.execute("SELECT COUNT(*) c FROM vec_content_meta").fetchone()["c"] == n
+        rep = await embed_content(loaded, settings=mock_settings)
+        assert rep.content_written == n
+
+    async def test_changing_the_recipe_invalidates_every_vector(
+        self, loaded, mock_settings, monkeypatch
+    ):
+        await enrich_all(loaded, settings=mock_settings)
+        n = (await embed_content(loaded, settings=mock_settings)).content_written
+        monkeypatch.setattr(vectors, "CONTENT_RECIPE", "99")
+        assert stale_content_count(loaded) == n
+
+    async def test_writing_a_vector_without_saying_what_it_encodes_drops_provenance(
+        self, loaded, mock_settings
+    ):
+        await enrich_all(loaded, settings=mock_settings)
+        await embed_content(loaded, settings=mock_settings)
+        bid = loaded.execute("SELECT bookmark_id FROM vec_content LIMIT 1").fetchone()[0]
+        upsert_content_vector(loaded, bid, [0.0] * (mock_settings.embed_dim - 1) + [1.0])
+        assert loaded.execute(
+            "SELECT COUNT(*) c FROM vec_content_meta WHERE bookmark_id=?", (bid,)
+        ).fetchone()["c"] == 0
+        assert stale_content_count(loaded) >= 1
+
+    async def test_deleting_the_bookmark_takes_the_provenance_with_it(
+        self, loaded, mock_settings
+    ):
+        await enrich_all(loaded, settings=mock_settings)
+        await embed_content(loaded, settings=mock_settings)
+        bid = loaded.execute("SELECT bookmark_id FROM vec_content LIMIT 1").fetchone()[0]
+        loaded.execute("DELETE FROM bookmark WHERE id=?", (bid,))
+        loaded.commit()
+        assert loaded.execute(
+            "SELECT COUNT(*) c FROM vec_content_meta WHERE bookmark_id=?", (bid,)
+        ).fetchone()["c"] == 0
+
+    async def test_force_re_embeds_even_what_is_current(self, loaded, mock_settings):
+        await enrich_all(loaded, settings=mock_settings)
+        n = (await embed_content(loaded, settings=mock_settings)).content_written
+        rep = await embed_content(loaded, settings=mock_settings, force=True)
+        assert rep.content_written == n and rep.content_current == 0
+
+    async def test_the_library_report_names_the_stale_count(self, loaded, mock_settings):
+        from facetmark import service
+
+        await enrich_all(loaded, settings=mock_settings)
+        await embed_content(loaded, settings=mock_settings)
+        assert service.library_stats(loaded)["content_vectors_stale"] == 0
+        loaded.execute("DELETE FROM vec_content_meta")
+        loaded.commit()
+        assert service.library_stats(loaded)["content_vectors_stale"] > 0
+
+
 # ---------------------------------------------------------------------------
 # the intent filter
 # ---------------------------------------------------------------------------
@@ -690,6 +821,109 @@ class TestIntentFilter:
         assert rep.candidates == 0 and rep.kept == 0
 
 
+class TestTheProbeIsBoughtOnce:
+    """The cost of an index run should track the change, not the library.
+
+    Probing is a model call per candidate; selecting the best `keep_n` of them
+    is a sort over numbers already in the file. Conflating the two made adding
+    twenty bookmarks to a 2,376-page library re-embed all ~19,000 candidates.
+    """
+
+    @pytest.fixture
+    async def scored(self, loaded, mock_settings):
+        await enrich_all(loaded, settings=mock_settings)
+        await embed_content(loaded, settings=mock_settings)
+        await filter_intents(loaded, settings=mock_settings)
+        return loaded
+
+    async def test_a_second_run_over_the_same_library_buys_nothing(
+        self, scored, mock_settings
+    ):
+        prov = MockProvider(mock_settings)
+        rep = await filter_intents(scored, provider=prov, settings=mock_settings)
+        assert rep.candidates > 0
+        assert rep.probed == 0
+        assert rep.already_scored == rep.candidates
+        assert prov.usage.calls == 0
+
+    async def test_only_the_candidates_that_arrived_since_are_probed(
+        self, scored, mock_settings
+    ):
+        bid = scored.execute("SELECT id FROM bookmark LIMIT 1").fetchone()["id"]
+        scored.executemany(
+            "INSERT INTO intent_query(bookmark_id, text, kept, created_at) VALUES(?,?,0,0)",
+            [(bid, "a query nobody has scored yet"),
+             (bid, "another one that just arrived")],
+        )
+        scored.commit()
+        before = scored.execute("SELECT COUNT(*) c FROM intent_query").fetchone()["c"]
+        rep = await filter_intents(scored, settings=mock_settings)
+        assert rep.probed == 2
+        assert rep.candidates == before
+        assert rep.already_scored == before - 2
+
+    async def test_force_pays_for_the_whole_library_again(self, scored, mock_settings):
+        # Not paranoia: a query that retrieved its own page out of 2,000
+        # competitors can lose against 20,000, so the rank does go stale.
+        rep = await filter_intents(scored, settings=mock_settings, force=True)
+        assert rep.probed == rep.candidates > 0
+        assert rep.already_scored == 0
+
+    async def test_a_bookmark_named_outright_is_still_only_probed_once(
+        self, scored, mock_settings
+    ):
+        """`ids` says where to look; `force` says whether to redo. Orthogonal."""
+        bid = scored.execute("SELECT id FROM bookmark LIMIT 1").fetchone()["id"]
+        rep = await filter_intents(scored, settings=mock_settings, ids=[bid])
+        assert rep.bookmarks == 1
+        assert rep.probed == 0
+        forced = await filter_intents(scored, settings=mock_settings, ids=[bid], force=True)
+        assert forced.probed == forced.candidates > 0
+
+    async def test_re_deciding_keep_n_costs_nothing(self, scored, mock_settings):
+        prov = MockProvider(mock_settings)
+        wide = await filter_intents(scored, provider=prov, settings=mock_settings, keep_n=6)
+        narrow = await filter_intents(scored, provider=prov, settings=mock_settings, keep_n=2)
+        assert narrow.kept < wide.kept
+        assert prov.usage.calls == 0
+
+    async def test_widening_keep_n_leaves_the_new_survivors_for_the_embed_step(
+        self, scored, mock_settings
+    ):
+        # The filter can only store vectors it happens to hold. Candidates
+        # promoted from a rank recorded on an earlier run were never embedded
+        # here, so `embed_intents` -- which runs next in `index_all` -- buys
+        # them. The invariant that matters is the one after both steps.
+        await filter_intents(scored, settings=mock_settings, keep_n=2)
+        await embed_intents(scored, settings=mock_settings)
+        await filter_intents(scored, settings=mock_settings, keep_n=6)
+        out = await embed_intents(scored, settings=mock_settings)
+        assert out.intent_written > 0
+        kept = scored.execute("SELECT COUNT(*) c FROM intent_query WHERE kept=1").fetchone()["c"]
+        assert count_vectors(scored)[1] == kept
+
+    async def test_an_unprobed_candidate_is_not_silently_treated_as_rejected(
+        self, scored, mock_settings
+    ):
+        # kept=0 with a NULL rank is what both a rejection and an omission look
+        # like. If the marker were ignored the new row would keep its default 0
+        # and never be looked at again.
+        bid = scored.execute("SELECT id FROM bookmark LIMIT 1").fetchone()["id"]
+        scored.execute("DELETE FROM intent_query WHERE bookmark_id=?", (bid,))
+        scored.execute(
+            "INSERT INTO intent_query(bookmark_id, text, kept, created_at) VALUES(?,?,0,0)",
+            (bid, scored.execute(
+                "SELECT title FROM bookmark WHERE id=?", (bid,)).fetchone()["title"]),
+        )
+        scored.commit()
+        await filter_intents(scored, settings=mock_settings)
+        row = scored.execute(
+            "SELECT kept, scored_at FROM intent_query WHERE bookmark_id=?", (bid,)
+        ).fetchone()
+        assert row["scored_at"] is not None
+        assert row["kept"] == 1
+
+
 # ---------------------------------------------------------------------------
 # lexical facet + fusion (used by the probe, exercised again in P4)
 # ---------------------------------------------------------------------------
@@ -750,6 +984,71 @@ class TestRRF:
         assert rrf({}) == [] and rrf({"a": []}) == []
 
 
+class TestTheFilterKeepsTheVectorsItPaidFor:
+    """Probing and storing are the same embedding, so buy it once.
+
+    `filter_intents` embeds every candidate to probe with; `embed_intents` used
+    to embed the survivors all over again. Same text, same model, twice the
+    bill -- on a real library that is thousands of redundant calls against a
+    metered endpoint.
+    """
+
+    @pytest.fixture
+    async def filtered(self, loaded, mock_settings):
+        await enrich_all(loaded, settings=mock_settings)
+        await embed_content(loaded, settings=mock_settings)
+        return loaded, await filter_intents(loaded, settings=mock_settings)
+
+    async def test_survivors_come_out_of_the_filter_already_embedded(self, filtered):
+        conn, rep = filtered
+        assert rep.kept > 0
+        missing = conn.execute(
+            "SELECT COUNT(*) c FROM intent_query q WHERE q.kept=1 "
+            "AND q.id NOT IN (SELECT intent_id FROM vec_intent)"
+        ).fetchone()["c"]
+        assert missing == 0
+        assert rep.vectors_written == rep.kept
+
+    async def test_the_dropped_ones_are_not_paid_for(self, filtered):
+        conn, rep = filtered
+        assert rep.dropped > 0
+        stray = conn.execute(
+            "SELECT COUNT(*) c FROM vec_intent WHERE intent_id IN "
+            "(SELECT id FROM intent_query WHERE kept=0)"
+        ).fetchone()["c"]
+        assert stray == 0
+
+    async def test_the_embed_step_after_it_makes_no_calls(self, filtered, mock_settings):
+        conn, rep = filtered
+        prov = MockProvider(mock_settings)
+        before = dict(prov.usage.as_dict())
+        out = await embed_intents(conn, provider=prov, settings=mock_settings)
+        assert out.intent_written == 0
+        assert prov.usage.as_dict() == before
+
+    async def test_a_forced_re_embed_still_works(self, filtered, mock_settings):
+        conn, rep = filtered
+        out = await embed_intents(conn, settings=mock_settings, force=True)
+        assert out.intent_written == rep.kept
+
+    async def test_the_stored_vector_is_the_one_that_was_probed_with(
+        self, filtered, mock_settings
+    ):
+        conn, _rep = filtered
+        row = conn.execute(
+            "SELECT id, text FROM intent_query WHERE kept=1 ORDER BY id LIMIT 1"
+        ).fetchone()
+        prov = MockProvider(mock_settings)
+        expected = (await prov.embed([row["text"]]))[0]
+        stored = conn.execute(
+            "SELECT embedding FROM vec_intent WHERE intent_id=?", (row["id"],)
+        ).fetchone()["embedding"]
+        import struct
+        got = list(struct.unpack(f"{len(stored) // 4}f", stored))
+        norm = sum(v * v for v in expected) ** 0.5
+        assert got == pytest.approx([v / norm for v in expected], abs=1e-6)
+
+
 class TestFullIndexingPass:
     async def test_the_documented_order_runs_end_to_end_offline(self, loaded, mock_settings):
         e = await enrich_all(loaded, settings=mock_settings)
@@ -758,7 +1057,10 @@ class TestFullIndexingPass:
         i = await embed_intents(loaded, settings=mock_settings)
         assert e.enriched == c.content_written > 0
         assert f.candidates == e.queries_generated
-        assert i.intent_written == f.kept
+        # The filter already stored the vectors it probed with, so the embed
+        # step that follows it has nothing left to buy.
+        assert f.vectors_written == f.kept
+        assert i.intent_written == 0
         n_content, n_intent = count_vectors(loaded)
         assert n_content == c.content_written and n_intent == f.kept
 

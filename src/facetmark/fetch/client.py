@@ -244,8 +244,16 @@ async def fetch_one(
             return done(verdict=Verdict.TOO_LARGE, http_status=resp.status_code,
                         final_url=str(resp.url), error=f"{len(raw)} bytes")
 
-        html = resp.text
-        ex: Extraction = extract(html, url=str(resp.url), title_hint=title_hint)
+        try:
+            html = resp.text
+            ex: Extraction = extract(html, url=str(resp.url), title_hint=title_hint)
+        except Exception as exc:  # noqa: BLE001 - a bad page must not end the crawl
+            # The request succeeded; our parser did not. That is the same
+            # situation as an unextractable page, and a real browser has a real
+            # chance of doing better -- so it defers rather than dying.
+            return done(verdict=Verdict.EMPTY, http_status=resp.status_code,
+                        final_url=str(resp.url),
+                        error=f"extraction failed: {type(exc).__name__}: {exc}")
         if looks_like_wall(html, ex.text):
             return done(verdict=Verdict.WALL, http_status=resp.status_code,
                         final_url=str(resp.url), title=ex.title,
@@ -318,7 +326,15 @@ async def fetch_many(
 
     async def one(u: str) -> FetchResult:
         async with gate:
-            r = await fetch_one(cl, u, policy=pol, limiter=limiter, robots=robots)
+            try:
+                r = await fetch_one(cl, u, policy=pol, limiter=limiter, robots=robots)
+            except Exception as exc:  # noqa: BLE001 - one bad url, not the batch
+                # ``gather`` without ``return_exceptions`` would drop every
+                # result in the batch, including the ones already fetched, and
+                # would break the input-order contract callers zip against.
+                # A URL that finds a new way to fail becomes a verdict here.
+                r = FetchResult(url=u, verdict=Verdict.UNREACHABLE,
+                                error=f"{type(exc).__name__}: {exc}")
             if on_result is not None:
                 on_result(r)
             return r

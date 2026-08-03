@@ -41,6 +41,12 @@ jobs:
         working-directory: extension
       - run: npx tsc --noEmit
         working-directory: extension
+      # The type checker cannot see past `await res.json() as T`, and it has no
+      # opinion at all about what happens when `chrome.tabs.create` fails. These
+      # run the shipping source directly under node's type stripping, against a
+      # hand-written stand-in for the browser.
+      - run: npm test
+        working-directory: extension
       - run: npm run build
         working-directory: extension
       - uses: actions/upload-artifact@v4
