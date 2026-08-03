@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "facetmark"
-version = "0.1.0"
+version = "1.0.0"
 description = "Bookmark retrieval that indexes why you saved a page, not just what it says. Four orthogonal retrieval facets fused with RRF, local-first on SQLite."
 readme = "README.md"
 license = { text = "MIT" }

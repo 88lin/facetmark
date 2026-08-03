@@ -16,6 +16,6 @@ Fusion:
 F2 and F4 are the parts no existing tool has.
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
 __all__ = ["__version__"]

@@ -1,6 +1,6 @@
 {
   "name": "facetmark-extension",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Facetmark browser extension: search your own bookmarks, save pages, and fetch what the server cannot reach.",
   "license": "MIT",
