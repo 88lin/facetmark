@@ -41,7 +41,7 @@ from .config import Settings, get_settings
 from .db import open_db
 from .fetch import store as fetchstore
 from .providers import get_provider
-from .search.pipeline import CONFIGS, FULL
+from .search.pipeline import ALL_CONFIGS, default_config
 
 #: Chrome extension pages and service workers send this scheme.
 _EXT_ORIGIN_PREFIXES = ("chrome-extension://", "moz-extension://", "safari-web-extension://")
@@ -221,7 +221,14 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
 
     @app.post("/search", dependencies=auth)
     async def full_search(req: SearchRequest, state: AppState = Depends(get_state)) -> dict:
-        cfg = FULL if req.config in ("full", "") else CONFIGS.get(req.config)
+        # "full" is the name of *whatever this deployment ships*, and that
+        # depends on whether it has real embeddings -- so it resolves through
+        # default_config rather than through the table.
+        cfg = (
+            default_config(state.settings, state.provider)
+            if req.config in ("", "full")
+            else ALL_CONFIGS.get(req.config)
+        )
         if cfg is None:
             raise HTTPException(400, f"unknown config {req.config!r}")
         async with state.lock:

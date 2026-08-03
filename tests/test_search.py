@@ -1014,3 +1014,49 @@ class TestTheAblationLadderAndItsComplements:
         assert FULL.name == "full"
         assert FULL.decay is True
         assert all(c.decay is False for c in CONFIGS.values())
+
+
+class TestWhatThisDeploymentActuallyShips:
+    """``default_config`` is where the W1 gate reaches the product.
+
+    The gate measured a real embedding model on 2,376 real pages. None of it
+    transfers to a deployment whose "embeddings" are a hash of the text, and a
+    library that silently returns nothing because it dropped the only facet
+    that worked is worse than one that ignores the gate.
+    """
+
+    def test_a_real_deployment_gets_the_configuration_the_gate_selected(self):
+        from facetmark.search.pipeline import FULL, default_config
+
+        st = Settings(api_key="sk-real", use_mock_provider=False)
+        assert default_config(st) is FULL
+        assert FULL.facets == frozenset({"content"}), "the gate picked A's facet set"
+        assert FULL.graph is True, "expansion was free: 10 won / 0 lost, +9ms"
+        assert FULL.context is False, "-9.94pp on content queries, unconditionally on"
+        assert FULL.rerank is False, "45.4s p50 to repair damage that is now absent"
+
+    def test_a_deployment_with_no_embeddings_falls_back_to_retrieving_by_words(self):
+        from facetmark.search.pipeline import FUSED, LEXICAL_FACETS, default_config
+
+        assert default_config(Settings(use_mock_provider=True)) is FUSED
+        assert default_config(Settings(api_key="")) is FUSED
+        assert FUSED.facets >= LEXICAL_FACETS
+
+    def test_an_injected_mock_overrules_settings_that_claim_otherwise(self):
+        from facetmark.search.pipeline import FUSED, default_config
+
+        st = Settings(api_key="sk-real", use_mock_provider=False)
+        assert default_config(st, MockProvider(st)) is FUSED
+
+    def test_knowing_nothing_at_all_still_returns_something_runnable(self):
+        from facetmark.search.pipeline import FULL, default_config
+
+        assert default_config() is FULL
+
+    async def test_search_with_no_config_argument_resolves_one(self, indexed):
+        conn, prov = indexed
+        r = await search(conn, "kubernetes", limit=3, provider=prov, settings=prov.settings)
+        # Resolved, not left as None, and reported honestly: the response names
+        # the rung that actually ran, not the rung the caller asked for.
+        assert r.config == "fused"
+        assert r.hits

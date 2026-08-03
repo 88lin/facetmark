@@ -35,7 +35,7 @@ from .config import Settings, get_settings
 from .db import open_db
 from .edges import WEIGHTS as EDGE_WEIGHTS
 from .providers import get_provider
-from .search.pipeline import FULL
+from .search.pipeline import default_config
 
 try:  # pragma: no cover - import shape differs across fastmcp majors
     from fastmcp import FastMCP
@@ -123,7 +123,7 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
             resp = service.quick_search(ctx.conn, query, limit=limit)
         else:
             resp = await service.search(
-                ctx.conn, query, limit=limit, config=FULL,
+                ctx.conn, query, limit=limit, config=default_config(ctx.settings, ctx.provider),
                 provider=ctx.provider, settings=ctx.settings,
                 expand_limit=8 if include_related else 0,
             )

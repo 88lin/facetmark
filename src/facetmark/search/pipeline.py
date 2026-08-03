@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 
 from ..config import Settings, get_settings
 from ..db import jload
-from ..providers import Provider, get_provider
+from ..providers import MockProvider, Provider, get_provider
 from .context import ContextSignals, build_context, window_filter
 from .decay import cold_bookmark_ids, decay_hits
 from .graph import Expansion, expand
@@ -99,18 +99,81 @@ EXPLORATORY: dict[str, Config] = {
     "D_nolex": Config("D_nolex", VECTOR_FACETS, context=True, graph=True),
     # A plus context/graph only: the cheapest thing that could still work.
     "A_ctx": Config("A_ctx", frozenset({"content"}), context=True, graph=True),
+    # A plus the expansion group and nothing else. Graph expansion never touches
+    # `hits`, only the second group -- so this separates "the related group pays
+    # for itself" from "the context multiplier reorders the page", which A_ctx
+    # bundles together and therefore cannot attribute.
+    "A_graph": Config("A_graph", frozenset({"content"}), graph=True),
 }
 
-#: Every config the harness can be asked to run, pre-registered or not. Callers
-#: that report results must say which dict a rung came from; an exploratory rung
-#: measured on the same queries that motivated it is a hypothesis, not a result.
-ALL_CONFIGS: dict[str, Config] = {**CONFIGS, **EXPLORATORY}
+#: What shipped before the W1 gate: stage E plus metabolism. Kept reachable by
+#: name so anyone comparing against the pre-gate behaviour can still ask for it.
+FUSED = Config("fused", ALL_FACETS, context=True, graph=True, rerank=True, decay=True)
 
-#: What ``facetmark search`` and the API actually run: stage E plus metabolism.
-#: Metabolism is deliberately outside the ladder -- it is a library-hygiene
-#: feature, and leaving it on during ablation would let a cold-start synthetic
-#: corpus move the numbers for reasons unrelated to retrieval.
-FULL = Config("full", ALL_FACETS, context=True, graph=True, rerank=True, decay=True)
+#: What ``facetmark search``, the API and the MCP server actually run now.
+#:
+#: This used to be ``FUSED``. The W1 ablation on a 2,376-document library of real
+#: pages says that was wrong on every mechanism it turned on, so each flag below
+#: is set by a measurement rather than by the design document:
+#:
+#: * ``facets={"content"}`` -- fusing anything into the content vector cost
+#:   5-6pp of Recall@5, and it cost the same whether the companion was the two
+#:   lexical facets (A->B, -5.43pp, p=0.0067) or the intent facet on its own
+#:   (A->C_nolex, -5.43pp, p=0.0016). Flat-weight RRF over facets of unequal
+#:   quality lets a coincidence on a weak facet outvote confidence on a strong
+#:   one. Weighting is fixable, but it has to be fitted on queries that did not
+#:   suggest the fix, so it is W2 work.
+#: * ``context=False`` -- the contextual multiplier is not a small effect in
+#:   either direction: +8.14pp on episodic queries and -9.94pp on content
+#:   queries (both p<0.001, A vs A_ctx). Unconditionally on, it loses. It should
+#:   be gated on the query looking episodic; that is also W2 work.
+#: * ``graph=True`` -- the only mechanism in the study that is free. Expansion
+#:   never touches the ranked page, so every ranked metric is bit-identical to
+#:   plain A, and the second group finds the target in 2.09pp more queries
+#:   (10 won / 0 lost, p=0.0019) for 9 milliseconds.
+#: * ``rerank=False`` -- 45.4 s per query at p50 on a local 3B model, to recover
+#:   45% of the Recall@1 that fusion destroyed. With fusion off there is nothing
+#:   left for it to repair. Still available as ``--config E``.
+#: * ``decay=True`` -- metabolism is deliberately outside the ladder; it is a
+#:   library-hygiene feature, and leaving it on during ablation would let a
+#:   cold-start corpus move the numbers for reasons unrelated to retrieval.
+FULL = Config("full", frozenset({"content"}), graph=True, decay=True)
+
+#: Named configurations that are neither ladder rungs nor complements: the thing
+#: that ships, and the thing that used to ship.
+PROFILES: dict[str, Config] = {"full": FULL, "fused": FUSED}
+
+def default_config(settings=None, provider: Provider | None = None) -> Config:
+    """The configuration this deployment should actually run.
+
+    ``FULL`` is what the W1 ablation selected, and every flag in it is set by a
+    measurement taken on a library of 2,376 real pages embedded by a real model.
+    None of those measurements transfer to a deployment with no embeddings: the
+    mock provider hashes text into a vector, so the content facet -- the one
+    that wins outright on a real library -- is the one that returns noise on a
+    mock one, and dropping the lexical facets would leave such a deployment with
+    nothing that works. ``get_reranker`` already makes exactly this call for
+    exactly this reason.
+
+    So: real embeddings get the gate's answer, everyone else gets the pre-gate
+    behaviour, which at least retrieves by words. The provider instance decides
+    when it is known, because a caller can inject a mock over settings that say
+    otherwise -- which is exactly what the test suite does.
+    """
+    if isinstance(provider, MockProvider):
+        return FUSED
+    if settings is not None and (
+        getattr(settings, "use_mock_provider", False) or not getattr(settings, "api_key", "")
+    ):
+        return FUSED
+    return FULL
+
+
+#: Every config the harness or the API can be asked to run, pre-registered or
+#: not. Callers that report results must say which dict a rung came from; an
+#: exploratory rung measured on the same queries that motivated it is a
+#: hypothesis, not a result.
+ALL_CONFIGS: dict[str, Config] = {**CONFIGS, **EXPLORATORY, **PROFILES}
 
 
 @dataclass(slots=True)
@@ -271,7 +334,7 @@ async def search(
     query: str,
     *,
     limit: int = 20,
-    config: Config = FULL,
+    config: Config | None = None,
     provider: Provider | None = None,
     settings: Settings | None = None,
     reranker: Reranker | None = None,
@@ -283,6 +346,8 @@ async def search(
     """Run the full retrieval pipeline for one query."""
     s = settings or get_settings()
     prov = provider or get_provider(s)
+    if config is None:
+        config = default_config(s, prov)
     timings: dict[str, float] = {}
     t_start = time.perf_counter()
 

@@ -46,7 +46,14 @@ from .importers import import_bookmarks
 from .normalize import host_excluded, normalize_url, registrable_domain
 from .providers import Provider, get_provider
 from .search import graph as graphmod
-from .search.pipeline import FULL, Config, SearchResponse, quick_search, search
+from .search.pipeline import (
+    FULL,
+    Config,
+    SearchResponse,
+    default_config,
+    quick_search,
+    search,
+)
 from .text import sync_fts
 
 SUMMARY_CHARS = 200
@@ -703,6 +710,7 @@ __all__ = [
     "SUMMARY_CHARS",
     "Config",
     "FULL",
+    "default_config",
     "IndexReport",
     "Synthesis",
     "bookmark_record",

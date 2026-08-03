@@ -122,11 +122,25 @@ class TestSearchRoutes:
         assert r.status_code == 200
         assert [h["title"] for h in r.json()["hits"]] == ["sqlite vector search notes"]
 
-    def test_full_search_runs_all_facets(self, client, auth):
+    def test_full_search_reports_the_configuration_it_actually_ran(self, client, auth):
+        # "full" names whatever this deployment ships, and the test app has no
+        # real embeddings, so it ships the pre-gate fused pipeline. The response
+        # has to say `fused`, not echo the request back: a client that logs
+        # "config: full" while the server ran something else is a client that
+        # will misattribute every result it ever files a bug about.
         seed(client, "https://a.example/2", "rrf fusion", body="reciprocal rank fusion " * 20)
         r = client.post("/search", json={"q": "fusion", "limit": 5}, headers=auth)
         assert r.status_code == 200
-        assert r.json()["config"] == "full"
+        assert r.json()["config"] == "fused"
+        assert r.json()["hits"]
+
+    def test_a_named_rung_is_still_addressable_by_name(self, client, auth):
+        seed(client, "https://a.example/3", "rrf fusion", body="reciprocal rank fusion " * 20)
+        r = client.post("/search", json={"q": "fusion", "limit": 5, "config": "A"},
+                        headers=auth)
+        assert r.status_code == 200 and r.json()["config"] == "A"
+        assert client.post("/search", json={"q": "x", "config": "nope"},
+                           headers=auth).status_code == 400
 
     def test_an_unknown_ablation_config_is_a_400_not_a_silent_default(self, client, auth):
         r = client.post("/search", json={"q": "x", "config": "Z"}, headers=auth)

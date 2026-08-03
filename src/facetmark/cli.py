@@ -347,7 +347,7 @@ def search(
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Search the library."""
-    from .search.pipeline import CONFIGS, FULL
+    from .search.pipeline import ALL_CONFIGS, default_config
 
     st = _settings(db, mock)
     conn = _open(st)
@@ -355,7 +355,9 @@ def search(
         if quick:
             resp = service.quick_search(conn, query, limit=limit)
         else:
-            cfg = FULL if config in ("full", "") else CONFIGS.get(config.upper())
+            cfg = default_config(st) if config in ("", "full") else (
+                ALL_CONFIGS.get(config) or ALL_CONFIGS.get(config.upper())
+            )
             if cfg is None:
                 err.print(f"[red]unknown config {config!r}[/red]")
                 raise typer.Exit(2)

@@ -29,7 +29,7 @@ from typing import Any
 from ..config import Settings, get_settings
 from ..db import open_db
 from ..providers import get_provider
-from ..search.pipeline import ALL_CONFIGS, FULL, search
+from ..search.pipeline import ALL_CONFIGS, default_config, search
 from ..service import index_all
 from .corpus import Corpus, EvalQuery, generate_corpus, load_corpus, load_query_file
 
@@ -215,8 +215,10 @@ async def run_rung(
     outcome list is in query order regardless of completion order and the
     pairing the bootstrap depends on survives.
     """
-    cfg = FULL if config_key == "full" else ALL_CONFIGS[config_key]
     prov = get_provider(bench.settings)
+    # "full" means *what ships here*, which on a mock provider is not what
+    # ships on a real one -- see search.pipeline.default_config.
+    cfg = default_config(bench.settings, prov) if config_key == "full" else ALL_CONFIGS[config_key]
     outcomes: list[Outcome | None] = [None] * len(queries)
     reranker = ""
     gate = asyncio.Semaphore(max(1, concurrency))
