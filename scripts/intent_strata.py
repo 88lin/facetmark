@@ -208,7 +208,8 @@ def s2_neighbourhoods(overlapp: Path, stats: dict[int, dict]) -> dict:
             "n": len(rows),
             "mean_overlap_k_intent": round(sum(r["overlap_k"] for r in rows) / len(rows), 4),
             "mean_overlap_k_lex": round(sum(lex) / len(lex), 4) if lex else None,
-            "self_found_in_intent_topk": sum(1 for r in rows if 0 < r["self_rank_intent"] <= 10),
+            # self_rank_intent is None when the probe never found its own page.
+            "self_found_in_intent_topk": sum(1 for r in rows if (r["self_rank_intent"] or 0) > 0),
             "self_rank_intent_is_1": sum(1 for r in rows if r["self_rank_intent"] == 1),
         }
     return out
