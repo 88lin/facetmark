@@ -34,7 +34,7 @@ from .decay import cold_bookmark_ids, decay_hits
 from .graph import Expansion, expand
 from .lexical import lexical_lists, lexical_lists_scored
 from .rerank import RerankDoc, Reranker, get_reranker, reorder
-from .rrf import DEFAULT_K, Fused, rrf
+from .rrf import DEFAULT_K, Fused, guarantee_bonus, rrf
 from .understand import QueryUnderstanding, classify, classify_assisted
 from .vectors import vector_lists, vector_lists_scored
 
@@ -53,6 +53,19 @@ DEFAULT_FACET_WEIGHTS: dict[str, float] = {
 VECTOR_FACETS = frozenset({"content", "intent"})
 LEXICAL_FACETS = frozenset({"lex_seg", "lex_tri"})
 ALL_FACETS = VECTOR_FACETS | LEXICAL_FACETS
+
+#: Candidate depth assumed when sizing the CombMAX coefficient for ``C_max``.
+#: Mirrors :attr:`Settings.candidates_per_facet`, which is a runtime setting and
+#: therefore not importable as a constant here; the two are checked against each
+#: other in the tests.
+#:
+#: The dependence runs the *unintuitive* way: shallow lists are what make the
+#: bonus necessary. "Last" means rank ``depth``, so a deeper list pushes the
+#: all-last document further down, and past depth 166 it loses to a sole #1
+#: unaided -- the coefficient falls to zero. Raising ``candidates_per_facet``
+#: without re-deriving this would leave ``C_max`` paying for a guarantee it
+#: already has.
+_GUARANTEE_DEPTH = 50
 
 SNIPPET_CHARS = 300
 
@@ -93,6 +106,21 @@ class Config:
     #: wrong queries. Requires ``context=True`` to do anything. Also unshipped
     #: and unvalidated for the same reason as ``weight_overrides``.
     context_gate: bool = False
+    #: CombMAX coefficient handed to :func:`~facetmark.search.rrf.rrf`. 0.0 --
+    #: the shipped state -- leaves fusion bit-identical to plain RRF.
+    #:
+    #: The sum has no floor for a confident single facet: two full-weight facets
+    #: that merely recall a document beat a sole-facet #1 at every rank inside
+    #: the candidate depth (``docs/w2-fusion-anatomy.md`` §3), and 81 of the 102
+    #: sole-facet #1s in the W1 replay left the top 5. A max term is the
+    #: standard repair. :func:`~facetmark.search.rrf.guarantee_bonus` says the
+    #: coefficient needed to fully restore the guarantee is >1, i.e. the bonus
+    #: has to outweigh the entire sum -- so this is a knob to *measure*, not a
+    #: default to flip. Same discipline as ``weight_overrides``: the evidence
+    #: for it came from the 479 queries in
+    #: ``eval/queries/w1-real-library.jsonl``, so it has to be fitted and judged
+    #: on a query set those queries did not generate.
+    max_bonus: float = 0.0
 
     @property
     def facet_weights(self) -> dict[str, float]:
@@ -113,6 +141,7 @@ class Config:
             "graph": self.graph, "rerank": self.rerank, "decay": self.decay,
             "weight_overrides": dict(self.weight_overrides),
             "context_gate": self.context_gate, "abstain_margin": self.abstain_margin,
+            "max_bonus": self.max_bonus,
         }
 
 
@@ -201,6 +230,21 @@ EXPLORATORY: dict[str, Config] = {
     # a different claim from damping it (C_lowlex damps both halves), so it gets
     # its own rung. Like the others: implemented, off, unjudged.
     "C_notri": Config("C_notri", ALL_FACETS - frozenset({"lex_tri"})),
+    # C with a CombMAX term sized to restore the sole-facet guarantee. The
+    # coefficient is computed, not chosen: `guarantee_bonus` solves for the
+    # crossover between a document some facet ranks #1 and a document no facet
+    # ranks better than last, which for C's weights is 2.361. Sitting *at* the
+    # crossover rather than a hair above it is deliberate -- the worst case
+    # ties, everything short of it wins, and inventing an epsilon would dress a
+    # boundary up as a fitted value. It is
+    # above 1.0, meaning the bonus outweighs the sum it is correcting -- which
+    # is the honest reading of the arithmetic, not an endorsement. Whether a
+    # coefficient that large helps or wrecks the ranking is exactly the question
+    # a fresh query set has to answer. Implemented, off, unjudged.
+    "C_max": Config(
+        "C_max", ALL_FACETS,
+        max_bonus=guarantee_bonus(DEFAULT_K, _GUARANTEE_DEPTH, DEFAULT_FACET_WEIGHTS),
+    ),
 }
 
 #: What shipped before the W1 gate: stage E plus metabolism. Kept reachable by
@@ -518,7 +562,7 @@ async def search(
 
     # --- 3. fusion --------------------------------------------------------
     t0 = time.perf_counter()
-    fused = rrf(lists, k=s.rrf_k, weights=config.facet_weights)
+    fused = rrf(lists, k=s.rrf_k, weights=config.facet_weights, max_bonus=config.max_bonus)
     mark("fuse", t0)
 
     # A purely episodic query ("上个月存的那些") has no topic for any facet to

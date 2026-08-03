@@ -37,7 +37,7 @@ from .pipeline import (
     search,
 )
 from .rerank import LLMReranker, OverlapReranker, RerankDoc, Reranker, get_reranker
-from .rrf import DEFAULT_K, Fused, rank_of, rrf
+from .rrf import DEFAULT_K, Fused, guarantee_bonus, rank_of, rrf
 from .understand import QueryUnderstanding, classify, classify_assisted
 from .vectors import (
     content_list,
@@ -80,6 +80,7 @@ __all__ = [
     "decay_hits",
     "expand",
     "get_reranker",
+    "guarantee_bonus",
     "hydrate",
     "intent_list",
     "intent_list_scored",

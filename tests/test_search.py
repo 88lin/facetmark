@@ -36,6 +36,7 @@ from facetmark.search import (
     lexical_lists,
     lexical_search,
     quick_search,
+    rank_of,
     related,
     rrf,
     search,
@@ -1368,3 +1369,138 @@ class TestAFacetThatKnowsItHasNoOpinion:
         assert all(0.0 <= c <= 1.0 for c in r.facet_confidence.values())
         assert r.hits, "abstention must never empty the page"
         assert "facet_confidence" in r.as_dict()
+
+
+# ===========================================================================
+# the floor the sum does not have
+# ===========================================================================
+
+
+def _worst_case_lists(depth: int = 50) -> dict[str, list[int]]:
+    """Doc 1: ranked #1 by content, invisible to everything else.
+
+    Doc 2: ranked last by all four facets. Fillers are unique per facet so
+    nothing else accumulates votes. This is the pair the guarantee is about.
+    """
+    lists = {"content": [1] + [1000 + i for i in range(depth - 2)] + [2]}
+    for n, base in (("intent", 2000), ("lex_seg", 3000), ("lex_tri", 4000)):
+        lists[n] = [base + i for i in range(depth - 1)] + [2]
+    return lists
+
+
+def _score(fused, doc_id: int) -> float:
+    return next(f.score for f in fused if f.doc_id == doc_id)
+
+
+class TestTheFloorTheSumDoesNotHave:
+    """RRF gives a confident single facet no protection at all.
+
+    Two full-weight facets that merely *recall* a document beat a sole-facet #1
+    at every rank inside the candidate depth -- crossover rank 62 against a
+    depth of 50. That is arithmetic, not tuning, and 81 of the 102 sole-facet
+    #1s in the W1 replay left the top 5 because of it
+    (``docs/w2-fusion-anatomy.md``). ``max_bonus`` is the standard repair; these
+    tests fix its mechanics, not its worth. No configuration that ships sets it.
+    """
+
+    def test_max_bonus_restores_the_sole_facet_guarantee(self):
+        from facetmark.search.pipeline import DEFAULT_FACET_WEIGHTS as W
+        from facetmark.search.rrf import DEFAULT_K, guarantee_bonus
+
+        lists = _worst_case_lists()
+        plain = rrf(lists, weights=W)
+        # The documented failure: last place four times beats first place once.
+        assert _score(plain, 2) > _score(plain, 1)
+        assert _score(plain, 2) / _score(plain, 1) == pytest.approx(2.05, abs=0.01)
+
+        lam = guarantee_bonus(DEFAULT_K, 50, W)
+        at = rrf(lists, weights=W, max_bonus=lam)
+        # Exactly at the crossover the worst case is a tie, not a win.
+        assert _score(at, 1) == pytest.approx(_score(at, 2), rel=1e-12)
+        above = rrf(lists, weights=W, max_bonus=lam * 1.01)
+        assert _score(above, 1) > _score(above, 2)
+
+        # And anything short of the worst case -- here a rival one facet fails
+        # to list at all -- loses outright at the crossover itself.
+        easier = dict(lists)
+        easier["lex_tri"] = lists["lex_tri"][:-1]
+        won = rrf(easier, weights=W, max_bonus=lam)
+        assert _score(won, 1) > _score(won, 2)
+        assert rank_of(won, 1) == 1
+
+    def test_guarantee_bonus_matches_the_closed_form(self):
+        from facetmark.search.rrf import guarantee_bonus
+
+        w = {"content": 1.0, "intent": 1.0, "lex_seg": 1.0, "lex_tri": 0.7}
+        assert guarantee_bonus(60, 50, w) == pytest.approx(2.361, abs=5e-4)
+        # Config B: content + the two lexical facets.
+        assert guarantee_bonus(60, 50, {k: w[k] for k in ("content", "lex_seg", "lex_tri")}) \
+            == pytest.approx(1.116, abs=5e-4)
+        # A single facet needs no bonus -- it cannot be outvoted.
+        assert guarantee_bonus(60, 50, {"content": 1.0}) == 0.0
+        # Degenerate inputs return 0.0 rather than a negative or a ZeroDivision.
+        assert guarantee_bonus(60, 50, {}) == 0.0
+        assert guarantee_bonus(60, 1, w) == 0.0
+        assert guarantee_bonus(60, 50, {"content": 0.0}) == 0.0
+        # Shallow candidate lists are what make the bonus necessary, not deep
+        # ones: "last" means rank `depth`, so a deeper list puts the all-last
+        # document further down. Past depth 165.7 for these weights it already
+        # loses to a sole #1 and the required bonus falls to zero. This is the
+        # opposite of the intuition that more candidates means more noise -- the
+        # noise is at the top of the other lists, not the bottom.
+        assert guarantee_bonus(60, 200, w) == 0.0
+        assert guarantee_bonus(60, 166, w) == 0.0
+        assert guarantee_bonus(60, 165, w) > 0.0
+        assert guarantee_bonus(60, 50, w) > guarantee_bonus(60, 100, w) > 0.0
+
+    def test_max_bonus_zero_is_bit_identical(self):
+        from facetmark.search.pipeline import DEFAULT_FACET_WEIGHTS as W
+
+        lists = _worst_case_lists()
+        a = rrf(lists, weights=W)
+        b = rrf(lists, weights=W, max_bonus=0.0)
+        assert [(f.doc_id, f.score) for f in a] == [(f.doc_id, f.score) for f in b]
+        assert all(f.max_term == 0.0 for f in b), "no term, no bookkeeping"
+        # The max term is reported separately from the votes, so a caller can
+        # still see what the sum alone said.
+        c = rrf(lists, weights=W, max_bonus=1.0)
+        for f in c:
+            assert f.score == pytest.approx(sum(f.contributions.values()) + f.max_term)
+            assert f.max_term == pytest.approx(max(f.contributions.values()))
+
+    def test_c_max_is_off_by_default(self):
+        from facetmark.config import Settings
+        from facetmark.search.pipeline import (
+            _GUARANTEE_DEPTH,
+            ALL_CONFIGS,
+            DEFAULT_FACET_WEIGHTS,
+        )
+        from facetmark.search.rrf import DEFAULT_K, guarantee_bonus
+
+        for name, cfg in ALL_CONFIGS.items():
+            if name == "C_max":
+                assert cfg.max_bonus > 1.0, "the finding is that it has to be large"
+            else:
+                assert cfg.max_bonus == 0.0, f"{name} turned the max term on"
+        # The coefficient is derived, never typed in.
+        assert ALL_CONFIGS["C_max"].max_bonus == guarantee_bonus(
+            DEFAULT_K, _GUARANTEE_DEPTH, DEFAULT_FACET_WEIGHTS
+        )
+        # ... and the depth it was derived for is the depth the search uses.
+        assert Settings().candidates_per_facet == _GUARANTEE_DEPTH
+        assert Settings().rrf_k == DEFAULT_K
+        assert "max_bonus" in ALL_CONFIGS["C_max"].as_dict()
+
+    async def test_the_max_term_reaches_the_pipeline(self, indexed):
+        from facetmark.search.pipeline import ALL_CONFIGS
+
+        conn, prov = indexed
+        kw = {"limit": 5, "provider": prov, "settings": prov.settings}
+        plain = await search(conn, "kubernetes", config=CONFIGS["C"], **kw)
+        maxed = await search(conn, "kubernetes", config=ALL_CONFIGS["C_max"], **kw)
+        assert plain.hits and maxed.hits
+        # Same candidates, different arithmetic: every score moves up.
+        top = maxed.hits[0]
+        assert top.score > next(
+            h.score for h in plain.hits if h.bookmark_id == top.bookmark_id
+        )

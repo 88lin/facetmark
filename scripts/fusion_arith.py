@@ -40,7 +40,7 @@ from pathlib import Path
 from facetmark.config import Settings
 from facetmark.search.lexical import lexical_lists
 from facetmark.search.pipeline import CONFIGS, DEFAULT_FACET_WEIGHTS
-from facetmark.search.rrf import rrf
+from facetmark.search.rrf import guarantee_bonus, rrf
 
 
 def arithmetic(k: int, depth: int, weights: dict[str, float]) -> dict:
@@ -88,22 +88,18 @@ def max_term_lambda(k: int, depth: int, weights: dict[str, float], config: str) 
     """How large a CombMAX term would have to be to restore the guarantee.
 
     Principle: a document some facet ranks first must outscore a document that
-    no facet ranks better than last. Solve for lambda in
-
-        (1 + L) * w_top / (k + 1)  >  (W + L * w_top) / (k + depth)
+    no facet ranks better than last. The closed form lives in
+    :func:`facetmark.search.rrf.guarantee_bonus` -- this script calls it rather
+    than restating it, because the number here and the number the ``C_max`` rung
+    is built from have to be the same number.
     """
-    w_top = max(weights.values())
     ws = {f: weights.get(f, 1.0) for f in sorted(CONFIGS[config].facets)}
-    total = sum(ws.values())
-    lo, hi = k + 1, k + depth
-    # hi * w_top * (1 + L) > lo * (W + L * w_top)
-    #   -> L * w_top * (hi - lo) > lo * W - hi * w_top
-    num = lo * total - hi * w_top
-    den = w_top * (hi - lo)
+    lam = guarantee_bonus(k, depth, ws)
     return {
         "config": config,
-        "lambda_required": round(num / den, 3) if den else None,
+        "lambda_required": round(lam, 3),
         "note": "score = sum_f w_f/(k+r_f) + lambda * max_f w_f/(k+r_f)",
+        "implemented_as": "search.rrf.rrf(max_bonus=...); rung C_max, off by default",
     }
 
 

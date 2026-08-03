@@ -61,12 +61,14 @@
     {
       "config": "B",
       "lambda_required": 1.116,
-      "note": "score = sum_f w_f/(k+r_f) + lambda * max_f w_f/(k+r_f)"
+      "note": "score = sum_f w_f/(k+r_f) + lambda * max_f w_f/(k+r_f)",
+      "implemented_as": "search.rrf.rrf(max_bonus=...); rung C_max, off by default"
     },
     {
       "config": "C",
       "lambda_required": 2.361,
-      "note": "score = sum_f w_f/(k+r_f) + lambda * max_f w_f/(k+r_f)"
+      "note": "score = sum_f w_f/(k+r_f) + lambda * max_f w_f/(k+r_f)",
+      "implemented_as": "search.rrf.rrf(max_bonus=...); rung C_max, off by default"
     }
   ],
   "replay_two_lexical_facets": {
