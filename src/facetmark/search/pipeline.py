@@ -153,6 +153,15 @@ EXPLORATORY: dict[str, Config] = {
     # branch is guarded by `config.facets & VECTOR_FACETS`, this rung runs
     # without an embedding model at all. Protocol: docs/query-set-lexical-audit.md.
     "lex_only": Config("lex_only", LEXICAL_FACETS),
+    # Facet 3 taken apart. The two indexes were justified against each other on
+    # a calibration library using two-to-four character lookups as ground truth
+    # (see facetmark.text), and have been fused as one block ever since; nobody
+    # measured either half against a real query. Taking them apart is what
+    # exposed the trigram defect -- lex_tri returned nothing for 88% of Chinese
+    # queries. Same reason as lex_only: no vectors, so both run without a model.
+    # Results: docs/w2-fusion-anatomy.md.
+    "seg_only": Config("seg_only", frozenset({"lex_seg"})),
+    "tri_only": Config("tri_only", frozenset({"lex_tri"})),
     # --- W2 candidates ---------------------------------------------------
     # The three rungs below exist so the two W1 repairs are *runnable* before
     # they are believed. They are not defaults and they carry no claim: the
@@ -185,6 +194,13 @@ EXPLORATORY: dict[str, Config] = {
     # each. 0.25 is a placeholder -- a facet has to clear a quarter of its own
     # score range to be heard -- and it has not been fitted on anything.
     "C_abstain": Config("C_abstain", ALL_FACETS, abstain_margin=0.25),
+    # C with the trigram half of Facet 3 removed rather than damped. Separating
+    # the two lexical indexes for the first time (docs/w2-fusion-anatomy.md)
+    # found that adding lex_tri to lex_seg is worth -0.42pp, CI95 [-2.09, +1.25]
+    # -- a facet that has never been shown to pay for its vote. Deleting it is
+    # a different claim from damping it (C_lowlex damps both halves), so it gets
+    # its own rung. Like the others: implemented, off, unjudged.
+    "C_notri": Config("C_notri", ALL_FACETS - frozenset({"lex_tri"})),
 }
 
 #: What shipped before the W1 gate: stage E plus metabolism. Kept reachable by

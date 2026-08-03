@@ -1,0 +1,300 @@
+{
+  "arithmetic": {
+    "rrf_k": 60,
+    "candidates_per_facet": 50,
+    "facet_weights": {
+      "content": 1.0,
+      "intent": 1.0,
+      "lex_seg": 1.0,
+      "lex_tri": 0.7
+    },
+    "sole_facet_rank1_score": 0.016393,
+    "two_flat_facets_crossover_rank": 62.0,
+    "per_config": [
+      {
+        "config": "B",
+        "facets": {
+          "content": 1.0,
+          "lex_seg": 1.0,
+          "lex_tri": 0.7
+        },
+        "total_weight": 2.7,
+        "score_if_every_facet_ranks_it_last": 0.024545,
+        "beats_sole_facet_first": true,
+        "ratio_to_sole_facet_first": 1.497,
+        "crossover_rank": 104.7,
+        "crossover_beyond_candidate_depth": true
+      },
+      {
+        "config": "C",
+        "facets": {
+          "content": 1.0,
+          "intent": 1.0,
+          "lex_seg": 1.0,
+          "lex_tri": 0.7
+        },
+        "total_weight": 3.7,
+        "score_if_every_facet_ranks_it_last": 0.033636,
+        "beats_sole_facet_first": true,
+        "ratio_to_sole_facet_first": 2.052,
+        "crossover_rank": 165.7,
+        "crossover_beyond_candidate_depth": true
+      },
+      {
+        "config": "D",
+        "facets": {
+          "content": 1.0,
+          "intent": 1.0,
+          "lex_seg": 1.0,
+          "lex_tri": 0.7
+        },
+        "total_weight": 3.7,
+        "score_if_every_facet_ranks_it_last": 0.033636,
+        "beats_sole_facet_first": true,
+        "ratio_to_sole_facet_first": 2.052,
+        "crossover_rank": 165.7,
+        "crossover_beyond_candidate_depth": true
+      }
+    ]
+  },
+  "max_term_cost": [
+    {
+      "config": "B",
+      "lambda_required": 1.116,
+      "note": "score = sum_f w_f/(k+r_f) + lambda * max_f w_f/(k+r_f)"
+    },
+    {
+      "config": "C",
+      "lambda_required": 2.361,
+      "note": "score = sum_f w_f/(k+r_f) + lambda * max_f w_f/(k+r_f)"
+    }
+  ],
+  "replay_two_lexical_facets": {
+    "queries_replayed": 479,
+    "queries_with_only_one_non_empty_facet": {
+      "lex_seg": 9
+    },
+    "queries_fused": 470,
+    "queries_where_the_two_facets_disagree_on_first": 205,
+    "sole_facet_first_hits": 102,
+    "median_fused_rank": 15,
+    "pushed_out_of_top5": 81,
+    "pushed_out_of_top10": 66,
+    "share_pushed_out_of_top5": 0.7941,
+    "share_pushed_out_of_top10": 0.6471,
+    "by_type": {
+      "q_content": {
+        "sole": 29,
+        "out_of_top5": 18,
+        "out_of_top10": 15
+      },
+      "q_episodic": {
+        "sole": 43,
+        "out_of_top5": 39,
+        "out_of_top10": 33
+      },
+      "q_vague": {
+        "sole": 30,
+        "out_of_top5": 24,
+        "out_of_top10": 18
+      }
+    },
+    "examples": [
+      {
+        "qtype": "q_episodic",
+        "text": "大概2022年正在学习网页编程存的",
+        "facet": "lex_seg",
+        "doc_id": 556,
+        "fused_rank": 17,
+        "overtaken_by_multi_facet_docs": 16,
+        "strongest_overtaker_best_facet_rank": 1
+      },
+      {
+        "qtype": "q_episodic",
+        "text": "2025年那会儿阅读关于诺贝尔文学奖的新闻收的",
+        "facet": "lex_seg",
+        "doc_id": 1881,
+        "fused_rank": 17,
+        "overtaken_by_multi_facet_docs": 16,
+        "strongest_overtaker_best_facet_rank": 1
+      },
+      {
+        "qtype": "q_content",
+        "text": "我对生命的思考和有限的时间",
+        "facet": "lex_seg",
+        "doc_id": 1135,
+        "fused_rank": 26,
+        "overtaken_by_multi_facet_docs": 25,
+        "strongest_overtaker_best_facet_rank": 1
+      },
+      {
+        "qtype": "q_episodic",
+        "text": "大概2026年喜欢的创意人工作方式收的",
+        "facet": "lex_seg",
+        "doc_id": 556,
+        "fused_rank": 14,
+        "overtaken_by_multi_facet_docs": 13,
+        "strongest_overtaker_best_facet_rank": 2
+      },
+      {
+        "qtype": "q_episodic",
+        "text": "大概2026年喜欢的创意人工作方式收的",
+        "facet": "lex_tri",
+        "doc_id": 561,
+        "fused_rank": 31,
+        "overtaken_by_multi_facet_docs": 13,
+        "strongest_overtaker_best_facet_rank": 2
+      },
+      {
+        "qtype": "q_vague",
+        "text": "学习如何使用本地 AI",
+        "facet": "lex_seg",
+        "doc_id": 2342,
+        "fused_rank": 16,
+        "overtaken_by_multi_facet_docs": 15,
+        "strongest_overtaker_best_facet_rank": 1
+      },
+      {
+        "qtype": "q_vague",
+        "text": "关于AI对乐高社区的影响",
+        "facet": "lex_seg",
+        "doc_id": 1304,
+        "fused_rank": 13,
+        "overtaken_by_multi_facet_docs": 12,
+        "strongest_overtaker_best_facet_rank": 1
+      },
+      {
+        "qtype": "q_vague",
+        "text": "展示 CSS 力量",
+        "facet": "lex_tri",
+        "doc_id": 1430,
+        "fused_rank": 47,
+        "overtaken_by_multi_facet_docs": 21,
+        "strongest_overtaker_best_facet_rank": 1
+      },
+      {
+        "qtype": "q_content",
+        "text": "apple的设计转变",
+        "facet": "lex_seg",
+        "doc_id": 1716,
+        "fused_rank": 19,
+        "overtaken_by_multi_facet_docs": 18,
+        "strongest_overtaker_best_facet_rank": 2
+      },
+      {
+        "qtype": "q_content",
+        "text": "apple的设计转变",
+        "facet": "lex_tri",
+        "doc_id": 305,
+        "fused_rank": 39,
+        "overtaken_by_multi_facet_docs": 18,
+        "strongest_overtaker_best_facet_rank": 2
+      },
+      {
+        "qtype": "q_episodic",
+        "text": "去年寻找新的用户界面存的那篇",
+        "facet": "lex_seg",
+        "doc_id": 615,
+        "fused_rank": 15,
+        "overtaken_by_multi_facet_docs": 14,
+        "strongest_overtaker_best_facet_rank": 1
+      },
+      {
+        "qtype": "q_episodic",
+        "text": "2023年那会儿开发多核CPU应用存的那篇",
+        "facet": "lex_tri",
+        "doc_id": 1324,
+        "fused_rank": 31,
+        "overtaken_by_multi_facet_docs": 14,
+        "strongest_overtaker_best_facet_rank": 1
+      },
+      {
+        "qtype": "q_content",
+        "text": "休息是为了恢复精力",
+        "facet": "lex_seg",
+        "doc_id": 292,
+        "fused_rank": 15,
+        "overtaken_by_multi_facet_docs": 14,
+        "strongest_overtaker_best_facet_rank": 1
+      },
+      {
+        "qtype": "q_vague",
+        "text": "website security",
+        "facet": "lex_tri",
+        "doc_id": 1244,
+        "fused_rank": 39,
+        "overtaken_by_multi_facet_docs": 38,
+        "strongest_overtaker_best_facet_rank": 1
+      },
+      {
+        "qtype": "q_episodic",
+        "text": "大概2026年研究 AI 模型存的那篇",
+        "facet": "lex_seg",
+        "doc_id": 556,
+        "fused_rank": 12,
+        "overtaken_by_multi_facet_docs": 11,
+        "strongest_overtaker_best_facet_rank": 1
+      }
+    ],
+    "gold_target": {
+      "both_facets": 271,
+      "facet_top5": 244,
+      "target_in_no_lexical_list": 171,
+      "sole_facet": 28,
+      "facet_top5_but_fused_out_of_top5": 15,
+      "sole_facet_top5_lost_by_fusion": 7,
+      "sole_facet_top5_survived_fusion": 4
+    },
+    "gold_examples": [
+      {
+        "qtype": "q_vague",
+        "text": "automate c++ code checking",
+        "facet": "lex_tri",
+        "facet_rank": 5,
+        "fused_rank": 38
+      },
+      {
+        "qtype": "q_vague",
+        "text": "quickly build next js app",
+        "facet": "lex_seg",
+        "facet_rank": 3,
+        "fused_rank": 11
+      },
+      {
+        "qtype": "q_vague",
+        "text": "保存有用的网页链接",
+        "facet": "lex_seg",
+        "facet_rank": 3,
+        "fused_rank": 11
+      },
+      {
+        "qtype": "q_vague",
+        "text": "关于阿耳忒弥斯的图片",
+        "facet": "lex_tri",
+        "facet_rank": 1,
+        "fused_rank": 28
+      },
+      {
+        "qtype": "q_episodic",
+        "text": "wondering if people my age can start businesses sometime in 2023",
+        "facet": "lex_seg",
+        "facet_rank": 2,
+        "fused_rank": 31
+      },
+      {
+        "qtype": "q_content",
+        "text": "何时程序员选择退休",
+        "facet": "lex_seg",
+        "facet_rank": 1,
+        "fused_rank": 23
+      },
+      {
+        "qtype": "q_vague",
+        "text": "create a q a system",
+        "facet": "lex_seg",
+        "facet_rank": 1,
+        "fused_rank": 15
+      }
+    ]
+  }
+}
