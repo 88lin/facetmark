@@ -1504,3 +1504,65 @@ class TestTheFloorTheSumDoesNotHave:
         assert top.score > next(
             h.score for h in plain.hits if h.bookmark_id == top.bookmark_id
         )
+
+
+# ===========================================================================
+# the medium the contextual multiplier is measured in
+# ===========================================================================
+
+
+class TestTheMediumTheBoostIsMeasuredIn:
+    """The same multiplier is a different instrument in A than in C/D.
+
+    ``docs/gate-w1.md`` §9.2 blamed the +8.14pp / +3.49pp discrepancy on the
+    medium without measuring it; ``docs/w3-criterion-medium.md`` measures it.
+    These tests pin the two arithmetic facts that report rests on, so changing
+    ``MAX_BOOST``, ``rrf_k`` or ``candidates_per_facet`` breaks the test rather
+    than silently invalidating the document.
+    """
+
+    def test_a_single_facet_rung_is_almost_unbounded_under_the_cap(self):
+        from facetmark.config import Settings
+        from facetmark.search.context import MAX_BOOST
+
+        s = Settings()
+        depth = s.candidates_per_facet
+        fused = rrf({"content": list(range(1, depth + 1))}, k=s.rrf_k)
+        best = fused[0].score
+
+        def reaches_first(rank: int) -> bool:
+            return fused[rank - 1].score * MAX_BOOST >= best
+
+        # 1.60 lifts anything in the top 37 of the candidate pool straight to
+        # first place. "Bounded multiplier" is a very weak bound here.
+        assert reaches_first(37)
+        assert not reaches_first(38)
+        # The whole rung spans less than a factor of two, so the cap covers
+        # most of it: (60 + 50) / (60 + 1).
+        assert fused[0].score / fused[-1].score == pytest.approx(1.803, abs=1e-3)
+
+    def test_the_cap_means_something_different_in_a_fused_rung(self):
+        from facetmark.config import Settings
+        from facetmark.search.context import MAX_BOOST
+        from facetmark.search.pipeline import ALL_FACETS
+        from facetmark.search.pipeline import DEFAULT_FACET_WEIGHTS as W
+
+        s = Settings()
+        depth = s.candidates_per_facet
+        # doc 1: first in one facet only. doc 2: first in the other three.
+        lists = {"content": [1] + [1000 + i for i in range(depth - 1)]}
+        for n, base in (("intent", 2000), ("lex_seg", 3000), ("lex_tri", 4000)):
+            lists[n] = [2] + [base + i for i in range(depth - 1)]
+        fused = rrf(lists, k=s.rrf_k, weights=W)
+        one = _score(fused, 1)
+        three = _score(fused, 2)
+        # The MAX_BOOST docstring claims contextual agreement cannot outweigh
+        # being several facets' top hit. In a fused rung that holds ...
+        assert one * MAX_BOOST < three
+        # ... and the rung's span is five times wider than the single-facet
+        # one, which is why the same cap moves far fewer positions here.
+        span = (sum(W[f] for f in ALL_FACETS) / (s.rrf_k + 1)) / (
+            min(W[f] for f in ALL_FACETS) / (s.rrf_k + depth)
+        )
+        assert span == pytest.approx(9.532, abs=1e-3)
+        assert span / 1.803 > 5

@@ -25,7 +25,7 @@ A deployment with no API key still falls back to the full fusion, because the mo
 
 The whole thing - ladder, bootstrap CIs, per-query McNemar decisions, the leave-one-out probe, and the reasoning for each default flag - is in [`docs/gate-w1.md`](docs/gate-w1.md). The negative result is the deliverable.
 
-Two follow-ups took the losing step apart. [`docs/query-set-lexical-audit.md`](docs/query-set-lexical-audit.md) asked how much of the query set never needed a vector: 80.1% of content queries and 46.3% of vague ones are solvable by word matching alone, and 6.05% of all queries are found *only* by the lexical facet - so F3 is not contributing nothing, the fusion is losing what it contributes. [`docs/w2-fusion-anatomy.md`](docs/w2-fusion-anatomy.md) then measured the operator itself. Two results worth stating up front: F3's trigram half had never worked on Chinese queries at all (an unsegmented sentence reached the index as one quoted phrase - 25 of 211 Chinese queries got any candidate; the repair takes it to 202, and overall Recall@5 does not move), and RRF's arithmetic gives no protection to a sole-facet hit - with the shipped constants, any document two full-weight facets both recall beats any document a single facet ranks first, at every rank inside the candidate depth.
+Three follow-ups took the losing step apart. [`docs/query-set-lexical-audit.md`](docs/query-set-lexical-audit.md) asked how much of the query set never needed a vector: 80.1% of content queries and 46.3% of vague ones are solvable by word matching alone, and 6.05% of all queries are found *only* by the lexical facet - so F3 is not contributing nothing, the fusion is losing what it contributes. [`docs/w2-fusion-anatomy.md`](docs/w2-fusion-anatomy.md) then measured the operator itself. Two results worth stating up front: F3's trigram half had never worked on Chinese queries at all (an unsegmented sentence reached the index as one quoted phrase - 25 of 211 Chinese queries got any candidate; the repair takes it to 202, and overall Recall@5 does not move), and RRF's arithmetic gives no protection to a sole-facet hit - with the shipped constants, any document two full-weight facets both recall beats any document a single facet ranks first, at every rank inside the candidate depth. [`docs/w3-criterion-medium.md`](docs/w3-criterion-medium.md) then asked whether the W1 criterion could have measured the context multiplier at all: the shipped `MAX_BOOST = 1.60` spans 79.7% of rung A's score range but only 20.9% of the fused rung's, so testing the same mechanism there would need a cap of 6.03 - and separately, 66.3% of candidates never receive any boost, which is a different failure from a boost being too small.
 
 Everything runs locally: Python + SQLite (`sqlite-vec`) + a browser extension. No server, no account, no upload of your library. Your bookmarks are never modified - Facetmark only reads them.
 
@@ -174,7 +174,7 @@ src/facetmark/
 extension/     MV3, TypeScript, esbuild
 ```
 
-845 tests, no network access required to run them.
+847 tests, no network access required to run them.
 
 Project status, including what is *not* done and why, is in [`ROADMAP.md`](ROADMAP.md). Short version: the W1 evaluation gate is complete and it failed all three of its pre-registered criteria; weeks 2 through 4 of the plan are not done, and the thing blocking them is a query set, not code. Contribution rules are in [`CONTRIBUTING.md`](CONTRIBUTING.md); trust boundaries in [`SECURITY.md`](SECURITY.md).
 
@@ -197,13 +197,17 @@ Facetmark 给每条书签建四个面：内容面（正文向量）、**意图�
 原始阶梯、置信区间、McNemar 逐条判决和留一法探针都在 `docs/gate-w1.md`，包括三条
 预注册判据**全部未通过**的判定过程。
 
-后续两份把"输掉的那一步"拆开了。`docs/query-set-lexical-audit.md` 量出这批查询里有
+后续三份把"输掉的那一步"拆开了。`docs/query-set-lexical-audit.md` 量出这批查询里有
 多少条根本不需要向量（内容型 80.1%、模糊型 46.3%），以及 6.05% 的查询**只有**词面能
 找到——所以词面面不是没贡献，是融合把贡献弄丢了。`docs/w2-fusion-anatomy.md` 接着量
 融合算子本身，两条值得单说：词面的 trigram 半边在中文查询上**从来没有工作过**（无空格
 的整句被当成一个引号短语丢给索引，211 条中文查询只有 25 条拿得到候选；修好后 202 条，
 而整体 Recall@5 一动不动），以及 RRF 的算术**给不出单面保护**——用出厂常数，任何被两个
 满权重面同时召回的文档，在候选深度内的每一个名次上都赢过任何单面第一名。
+`docs/w3-criterion-medium.md` 再往前问一层：W1 的判据**能不能测到**上下文乘子——出厂的
+`MAX_BOOST = 1.60` 在 A 档能跨过整档分数量程的 79.7%，在融合档只有 20.9%，同一个机制
+放在融合档里测需要 6.03 的上限；另外，66.3% 的候选**根本没有拿到任何加成**，那和
+"加成太小推不动"是两个不同的问题。
 
 全部本地运行，不改你的浏览器书签，不上传书签库。想先看效果又不想配 key：`facetmark demo`。
 
