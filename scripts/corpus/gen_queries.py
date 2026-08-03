@@ -49,6 +49,30 @@ produces queries that look plausible and silently destroy the experiment.
 Failures are retried with the reason fed back to the model, then dropped and
 counted. Both a silently kept bad query and a silently dropped one corrupt the
 measurement, so the drop rate is reported next to the numbers.
+
+**Pages with no text.** The three types above all read the body, so for years
+this generator could only see pages the fetcher succeeded on. Measured on the
+W1 library that was 79% of it: 500 of 2,376 bookmarks have ``char_count = 0``
+-- fetch failures, login walls, pure client-side apps, PDFs -- and every W1
+conclusion silently excluded them (see ``docs/w4-intent-strata.md`` §2.6).
+Those pages are not a rounding error; they are exactly where the intent facet
+was caught inventing 62% of its vocabulary, because there was nothing to read.
+
+``--bodyless-share`` adds a second target pool drawn from them. The material is
+what a person could actually have seen: the title, the words in the address,
+the folder, the save time, and the titles saved in the same sitting. Two
+consequences are deliberate:
+
+  * **No ``q_content``.** Remembering the subject matter of a page whose text
+    we never captured is not a query we can write, only one we can invent, and
+    an invented one puts words in the query set that the page may never have
+    contained. The body-less pool emits ``q_vague`` and ``q_episodic`` only.
+
+  * **The address is treated as leaked vocabulary.** It is indexed, so a vague
+    query that reuses the slug is solved lexically before retrieval begins --
+    the same trap that made v1's ``q_content`` (the title, verbatim) score
+    100%. The rare-token gate therefore covers title *and* slug, which makes
+    this pool harder to satisfy than the body pool, and its drop rate higher.
 """
 from __future__ import annotations
 
@@ -62,6 +86,7 @@ import time
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 from facetmark.config import get_settings
 from facetmark.providers import get_provider
@@ -135,6 +160,43 @@ The example above is about a different page. Take its shape, never its words.
 
 JSON only: {{"content": "...", "vague": "...", "hint": "..."}}"""
 
+BODYLESS_TEMPLATE = """A person bookmarked this page and is now trying to find it
+again. Nobody knows what the page says -- the fetch failed, or it is behind a
+login, or it renders entirely in the browser. Everything that is known about it
+is below, and it is all you may use.
+
+TITLE: {title}
+ADDRESS: {url}
+WORDS IN THE ADDRESS: {slug}
+FOLDER: {folder}
+SAVED IN THE SAME SITTING AS: {neighbours}
+
+{examples}
+
+Answer in {lang}. Each value is one natural phrase of 4-14 words (or 8-25
+Chinese characters) that a person would actually type into a search box.
+Lowercase, no quotes, no trailing punctuation, and NOT a list of keywords
+separated by commas.
+
+"vague"   -- what they type remembering only what the page was FOR. Say what a
+   page with this title, at this address, is *for* -- what someone opens it to
+   do -- in everyday words, as if explaining it to a friend who has never seen
+   it. Use none of the distinctive words from the title or from the address: no
+   proper noun, product name, library name, acronym or unusual technical term
+   from either. If the title tells you almost nothing, describe the kind of
+   thing it is rather than inventing a topic for it.{avoid}
+
+"hint"    -- {hint_brief} Keep it under ten words, stay general, and write NO
+   date, NO year, NO month and NO season: the date is added separately and
+   yours would be wrong.
+
+Do NOT write a "content" answer. Nobody read this page, and a guessed one would
+put words into the query set that the page may never have contained.
+
+The example above is about a different page. Take its shape, never its words.
+
+JSON only: {{"vague": "...", "hint": "..."}}"""
+
 HINT_TOPIC = (
     "the situation they were in when they saved this page -- what they were "
     "working on or curious about, described loosely rather than by name."
@@ -143,6 +205,10 @@ HINT_NEIGHBOUR = (
     "what ELSE they were saving in that same sitting -- lean on the pages "
     "listed above rather than on this one."
 )
+
+#: The model answers three keys; the query file names three types. Ordered,
+#: because the emitted file is read by humans as much as by the harness.
+KEY_TO_QTYPE = {"content": "q_content", "vague": "q_vague", "hint": "q_episodic"}
 
 
 # ---------------------------------------------------------------------------
@@ -187,6 +253,59 @@ def cjk_ratio(text: str) -> float:
     if not letters:
         return 0.0
     return sum(1 for c in letters if "\u4e00" <= c <= "\u9fff") / len(letters)
+
+
+#: Path components that say nothing about the page. Left in, they crowd out the
+#: two or three words that carry the meaning and invite the model to write a
+#: query about "articles" or "index".
+_URL_NOISE = {
+    "http", "https", "www", "com", "net", "org", "edu", "gov", "io", "cn", "co",
+    "html", "htm", "php", "asp", "aspx", "jsp", "shtml", "amp", "index",
+    "default", "home", "main", "page", "pages", "post", "posts", "article",
+    "articles", "blog", "news", "view", "detail", "details", "content", "item",
+    "items", "show", "read", "en", "zh", "cgi", "bin", "static", "wp", "id",
+    "utm", "src", "ref", "pdf", "wiki", "docs", "doc", "tag", "tags",
+    "category", "categories", "archive", "archives", "search", "mobile", "app",
+}
+
+_CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
+_HEXISH = re.compile(r"[0-9a-f]{8,}|[a-z]*\d{4,}[a-z]*")
+
+
+def url_slug_words(url: str, limit: int = 12) -> list[str]:
+    """The words a person could have read off the address bar, in order.
+
+    Kept deliberately lossy: percent-escapes decoded, camel case split, ids and
+    hashes and file extensions dropped. What survives is the handful of words a
+    human would recognise -- which is both what the prompt may show and, more
+    importantly, what the leak gate must forbid the query from reusing.
+    """
+    try:
+        path = unquote(urlsplit(url).path)
+    except ValueError:
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for chunk in re.split(r"[^0-9A-Za-z\u4e00-\u9fff]+", _CAMEL.sub(" ", path)):
+        for word in re.findall(r"[\u4e00-\u9fff]+|[A-Za-z]+|\d+", chunk):
+            low = word.lower()
+            if low in _URL_NOISE or low.isdigit() or _HEXISH.fullmatch(low):
+                continue
+            if len(low) < 2 and not re.match(r"[\u4e00-\u9fff]", word):
+                continue
+            if low not in seen:
+                seen.add(low)
+                out.append(low)
+    return out[:limit]
+
+
+def example_without_content(block: str) -> str:
+    """Drop the ``content`` key from a shared example.
+
+    The body-less prompt asks for two keys, and an example showing three is an
+    invitation to answer the question it says not to answer.
+    """
+    return re.sub(r'\{"content": "[^"]*", ', "{", block)
 
 
 def build_df(db: str) -> tuple[Counter, int]:
@@ -408,17 +527,30 @@ def check_episodic_resolves(text: str, subtype: str, saved_ts: int,
 # ---------------------------------------------------------------------------
 
 
-def pick_targets(db: str, n: int, min_chars: int, seed: int) -> list[dict]:
+_BODY_SQL = (
+    "SELECT b.id, b.url, b.title, b.folder, b.date_added, b.host, "
+    "       ct.body_text, ct.char_count, ct.lang "
+    "FROM bookmark b JOIN content ct ON ct.bookmark_id = b.id "
+    "WHERE b.indexable = 1 AND ct.body_hash IS NOT NULL AND ct.char_count >= ? "
+    "ORDER BY b.id"
+)
+
+#: Everything indexable the fetcher came back empty-handed on. ``LEFT JOIN``
+#: because a bookmark with no ``content`` row at all belongs here too, and an
+#: inner join would quietly shrink the pool it is supposed to expose.
+_BODYLESS_SQL = (
+    "SELECT b.id, b.url, b.title, b.folder, b.date_added, b.host, "
+    "       '' AS body_text, 0 AS char_count, ct.lang "
+    "FROM bookmark b LEFT JOIN content ct ON ct.bookmark_id = b.id "
+    "WHERE b.indexable = 1 AND coalesce(ct.char_count, 0) = 0 "
+    "ORDER BY b.id"
+)
+
+
+def _stratify_by_year(rows: list, n: int, seed: int) -> list[dict]:
     """Stratified by save year, so episodic queries are not all from 2026."""
-    c = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
-    c.row_factory = sqlite3.Row
-    rows = c.execute(
-        "SELECT b.id, b.url, b.title, b.folder, b.date_added, b.host, "
-        "       ct.body_text, ct.char_count, ct.lang "
-        "FROM bookmark b JOIN content ct ON ct.bookmark_id = b.id "
-        "WHERE b.indexable = 1 AND ct.body_hash IS NOT NULL AND ct.char_count >= ? "
-        "ORDER BY b.id", (min_chars,)
-    ).fetchall()
+    if not rows or n <= 0:
+        return []
     by_year: dict[int, list] = {}
     for r in rows:
         by_year.setdefault(datetime.fromtimestamp(r["date_added"] or 0, UTC).year,
@@ -430,7 +562,10 @@ def pick_targets(db: str, n: int, min_chars: int, seed: int) -> list[dict]:
         rng.shuffle(pool)
         out.extend(dict(r) for r in pool[: max(1, round(n * len(v) / len(rows)))])
     rng.shuffle(out)
-    out = out[:n]
+    return out[:n]
+
+
+def _attach_neighbours(c: sqlite3.Connection, out: list[dict]) -> None:
     ids = [o["id"] for o in out]
     nb: dict[int, list[str]] = {}
     for i in range(0, len(ids), 400):
@@ -443,10 +578,71 @@ def pick_targets(db: str, n: int, min_chars: int, seed: int) -> list[dict]:
                 JOIN bookmark b2 ON b2.id = s2.bookmark_id
                 WHERE s1.bookmark_id IN ({marks})""", chunk):
             nb.setdefault(bid, []).append(title)
-    c.close()
     for o in out:
         o["neighbours"] = nb.get(o["id"], [])[:3]
+
+
+def pick_targets(db: str, n: int, min_chars: int, seed: int) -> list[dict]:
+    """Pages with enough text to write a content query about."""
+    c = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+    c.row_factory = sqlite3.Row
+    rows = c.execute(_BODY_SQL, (min_chars,)).fetchall()
+    out = _stratify_by_year(rows, n, seed)
+    _attach_neighbours(c, out)
+    c.close()
+    for o in out:
+        o["kind"] = "body"
+        o["slug"] = []
     return out
+
+
+def pick_bodyless_targets(db: str, n: int, seed: int) -> tuple[list[dict], int]:
+    """Pages the fetcher never got text for. Returns the pool and how many of
+    them had nothing usable to write a query from.
+
+    "Usable" is two content words across the title and the address. Below that
+    -- a bare host, an untitled id, ``login`` -- the only honest query is one
+    the model would have to invent, so the page is skipped and counted rather
+    than filled in.
+    """
+    c = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+    c.row_factory = sqlite3.Row
+    rows = []
+    unusable = 0
+    for r in c.execute(_BODYLESS_SQL):
+        slug = url_slug_words(r["url"] or "")
+        if len(content_tokens(f"{r['title'] or ''} {' '.join(slug)}")) < 2:
+            unusable += 1
+            continue
+        rows.append((r, slug))
+    out = _stratify_by_year([r for r, _ in rows], n, seed)
+    _attach_neighbours(c, out)
+    c.close()
+    slugs = {r["id"]: s for r, s in rows}
+    for o in out:
+        o["kind"] = "bodyless"
+        o["slug"] = slugs.get(o["id"], [])
+    return out, unusable
+
+
+def bodyless_share(db: str, min_chars: int) -> float:
+    """The share of the *eligible* library that has no text.
+
+    Eligible means "could be sampled at all": pages with 1..min_chars-1
+    characters are in neither pool, so they are excluded from the denominator
+    rather than silently counted as if the generator could reach them.
+    """
+    c = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+    n_body = c.execute(
+        "SELECT COUNT(*) FROM bookmark b JOIN content ct ON ct.bookmark_id = b.id "
+        "WHERE b.indexable = 1 AND ct.body_hash IS NOT NULL AND ct.char_count >= ?",
+        (min_chars,)).fetchone()[0]
+    n_bodyless = c.execute(
+        "SELECT COUNT(*) FROM bookmark b LEFT JOIN content ct ON ct.bookmark_id = b.id "
+        "WHERE b.indexable = 1 AND coalesce(ct.char_count, 0) = 0").fetchone()[0]
+    c.close()
+    total = n_body + n_bodyless
+    return (n_bodyless / total) if total else 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -463,14 +659,23 @@ def prompt_for(t: dict, body_chars: int, subtype: str, feedback: dict[str, str])
         fb = "\n\nYour previous answer was rejected:\n" + "\n".join(
             f'  "{k}": {v}' for k, v in feedback.items())
     avoid = feedback.get("vague", "")
+    common = {
+        "title": (t["title"] or "")[:200] or "(untitled)",
+        "folder": t["folder"] or "(none)",
+        "neighbours": nb,
+        "lang": "Chinese" if zh else "English",
+        "hint_brief": HINT_NEIGHBOUR if subtype == "anchor" else HINT_TOPIC,
+        "avoid": f" {avoid}" if avoid else "",
+    }
+    if t.get("kind") == "bodyless":
+        return BODYLESS_TEMPLATE.format(
+            url=(t["url"] or "")[:200],
+            slug=", ".join(t["slug"]) or "(none)",
+            examples=example_without_content(pool[t["example"] % len(pool)]),
+            **common) + fb
     return TEMPLATE.format(
-        title=(t["title"] or "")[:200],
-        folder=t["folder"] or "(none)", neighbours=nb,
         body=(t["body_text"] or "")[:body_chars],
-        examples=pool[t["example"] % len(pool)],
-        lang="Chinese" if zh else "English",
-        hint_brief=HINT_NEIGHBOUR if subtype == "anchor" else HINT_TOPIC,
-        avoid=f" {avoid}" if avoid else "") + fb
+        examples=pool[t["example"] % len(pool)], **common) + fb
 
 
 def choose_subtype(t: dict, mix: tuple[float, float, float], rng: random.Random) -> str:
@@ -494,7 +699,23 @@ async def generate(args) -> None:
     print(f"  {len(df):,} distinct tokens over {ndocs:,} docs; rare = df < {rare_cut}",
           flush=True)
 
-    targets = pick_targets(db, args.n, args.min_chars, args.seed)
+    share = args.bodyless_share
+    if share < 0:
+        share = bodyless_share(db, args.min_chars)
+        print(f"  --bodyless-share not given; using the library's own share "
+              f"{share:.3f}", flush=True)
+    n_bodyless = min(round(args.n * share), args.n)
+    targets = pick_targets(db, args.n - n_bodyless, args.min_chars, args.seed)
+    bodyless, unusable = ((pick_bodyless_targets(db, n_bodyless, args.seed))
+                          if n_bodyless else ([], 0))
+    if n_bodyless and len(bodyless) < n_bodyless:
+        # Asking for more text-less pages than exist is a fact about the
+        # library, not a failure; say so rather than silently returning fewer.
+        print(f"  only {len(bodyless)} usable text-less pages available "
+              f"(asked for {n_bodyless}; {unusable} had nothing to write from)",
+              flush=True)
+    targets = targets + bodyless
+
     rng = random.Random(args.seed)
     mix = tuple(float(x) for x in args.episodic_mix.split(","))
     for t in targets:
@@ -503,8 +724,11 @@ async def generate(args) -> None:
         t["subtype"] = choose_subtype(t, mix, rng)
         t["example"] = rng.randrange(4)
         t["phrase"] = time_phrase(t["subtype"], t["saved"], now, t["zh"], rng)
+    rng.shuffle(targets)
     yrs = Counter(t["saved"].year for t in targets)
-    print(f"selected {len(targets)} targets; years {dict(sorted(yrs.items()))}; "
+    print(f"selected {len(targets)} targets ({len(bodyless)} with no page text, "
+          f"{unusable} text-less pages skipped as unwritable); "
+          f"years {dict(sorted(yrs.items()))}; "
           f"{sum(1 for t in targets if t['neighbours'])} have session neighbours; "
           f"subtypes {dict(Counter(t['subtype'] for t in targets))}; "
           f"{sum(1 for t in targets if t['zh'])} Chinese-titled", flush=True)
@@ -517,20 +741,31 @@ async def generate(args) -> None:
 
     async def one(t: dict) -> list[dict]:
         nonlocal done
-        page_rare = {tok for tok in tokens(f"{t['title'] or ''} "
-                                           f"{(t['body_text'] or '')[:20000]}")
-                     if df.get(tok, 0) < rare_cut}
+        bodyless = t["kind"] == "bodyless"
+        # What the page puts in front of a person, and therefore what a query
+        # may not simply hand back. For a text-less page that is the title plus
+        # the address; both are indexed, so both leak.
+        material = (f"{t['title'] or ''} {' '.join(t['slug'])} {t['folder'] or ''}"
+                    if bodyless else
+                    f"{t['title'] or ''} {(t['body_text'] or '')[:20000]}")
+        page_toks = tokens(material)
+        page_rare = {tok for tok in page_toks if df.get(tok, 0) < rare_cut}
         title_toks = content_tokens(t["title"] or "")
+        if bodyless:
+            title_toks = title_toks | content_tokens(" ".join(t["slug"]))
         zh = t["zh"]
-        page_toks = tokens(f"{t['title'] or ''} {(t['body_text'] or '')[:20000]}")
         pool = EXAMPLES_ZH if zh else EXAMPLES_EN
         example_toks = content_tokens(pool[t["example"] % len(pool)])
         saved_ts = int(t["saved"].timestamp())
+        keys = ("vague", "hint") if bodyless else ("content", "vague", "hint")
+        for _k, qt in KEY_TO_QTYPE.items():
+            if _k in keys:
+                stats[f"asked:{qt}"] += 1
         accepted: dict[str, str] = {}
         feedback: dict[str, str] = {}
         async with gate:
             for attempt in range(args.retries + 1):
-                if len(accepted) == 3:
+                if len(accepted) == len(keys):
                     break
                 try:
                     payload = await prov.chat_json(
@@ -541,7 +776,12 @@ async def generate(args) -> None:
                     break
                 feedback = {}
                 content_cand = accepted.get("content") or str(payload.get("content") or "")
-                for key in ("content", "vague", "hint"):
+                if bodyless:
+                    # There is no content answer to differ from, so the vague
+                    # answer takes its place: the hint must still say something
+                    # the query set does not already contain twice.
+                    content_cand = accepted.get("vague", "")
+                for key in keys:
                     if key in accepted:
                         continue
                     cand = str(payload.get(key) or "").strip().strip('"').rstrip("。.")
@@ -572,10 +812,16 @@ async def generate(args) -> None:
                         accepted[key] = cand
                         stats[f"ok:{key}:attempt{attempt}"] += 1
         rows = []
-        for key, qtype in (("content", "q_content"), ("vague", "q_vague"),
-                           ("hint", "q_episodic")):
+        for key, qtype in KEY_TO_QTYPE.items():
+            if key not in keys:
+                continue
             if key in accepted:
                 row = {"text": accepted[key], "qtype": qtype, "target_url": t["url"]}
+                if bodyless:
+                    # Not read by load_query_file(); downstream stratification
+                    # should re-derive this from the library's char_count so it
+                    # stays true if the page is re-fetched. Kept for humans.
+                    row["material"] = "bodyless"
                 if qtype == "q_episodic":
                     # "note" is the slot load_query_file() carries into
                     # EvalQuery; "subtype" is kept for human readability.
@@ -601,7 +847,8 @@ async def generate(args) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as fh:
         fh.write(f"// generated {datetime.now(UTC).isoformat()} from {db}\n")
-        fh.write(f"// targets={len(targets)} rare_df_cut={rare_cut} ndocs={ndocs} "
+        fh.write(f"// targets={len(targets)} bodyless_targets={len(bodyless)} "
+                 f"min_chars={args.min_chars} rare_df_cut={rare_cut} ndocs={ndocs} "
                  f"title_overlap_max={args.title_overlap} "
                  f"content_overlap_max={args.content_overlap} "
                  f"episodic_mix={args.episodic_mix}\n")
@@ -611,10 +858,18 @@ async def generate(args) -> None:
     by_type = Counter(r["qtype"] for r in out)
     summary = {
         "targets": len(targets), "queries": len(out), "by_type": dict(by_type),
+        "bodyless": {
+            "targets": len(bodyless), "share": round(share, 4),
+            "unusable_skipped": unusable,
+            "queries": sum(1 for r in out if r.get("material") == "bodyless"),
+        },
         "episodic_subtypes": dict(Counter(r.get("subtype", "") for r in out
                                           if r["qtype"] == "q_episodic")),
-        "rare_df_cut": rare_cut, "ndocs": ndocs,
-        "drop_rate": {t: round(stats[f"dropped:{t}"] / max(len(targets), 1), 4)
+        "rare_df_cut": rare_cut, "ndocs": ndocs, "min_chars": args.min_chars,
+        # Denominator is how many targets were *asked* for this type, not how
+        # many targets exist: the text-less pool is never asked for q_content,
+        # and dividing by every target would report a drop rate it never had.
+        "drop_rate": {t: round(stats[f"dropped:{t}"] / max(stats[f"asked:{t}"], 1), 4)
                       for t in ("q_content", "q_vague", "q_episodic")},
         "stats": dict(stats.most_common()),
         "minutes": round((time.monotonic() - t0) / 60, 1),
@@ -627,9 +882,16 @@ async def generate(args) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--n", type=int, default=200)
+    ap.add_argument("--n", type=int, default=200,
+                    help="total targets, split between the two pools")
     ap.add_argument("--out", default="/workspace/corpus/queries.jsonl")
-    ap.add_argument("--min-chars", type=int, default=800)
+    # 800 was the W1 default and it cost the query set a third of the library
+    # for no stated reason. 300 is enough text to write a content query from,
+    # and moves the sampling frame on the W1 library from 65.7% to 72.7%.
+    ap.add_argument("--min-chars", type=int, default=300)
+    ap.add_argument("--bodyless-share", type=float, default=-1.0,
+                    help="fraction of targets drawn from pages with no text; "
+                         "-1 (default) uses the library's own share, 0 disables")
     ap.add_argument("--body-chars", type=int, default=2500)
     ap.add_argument("--rare-df", type=float, default=0.01)
     ap.add_argument("--title-overlap", type=float, default=0.5)
@@ -642,4 +904,5 @@ def main() -> None:
     asyncio.run(generate(ap.parse_args()))
 
 
-main()
+if __name__ == "__main__":
+    main()
