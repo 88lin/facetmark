@@ -981,7 +981,13 @@ class TestTheAblationLadderAndItsComplements:
 
         assert EXPLORATORY, "the complements are the point of this dict"
         for name, cfg in EXPLORATORY.items():
-            assert "content" in cfg.facets, f"{name} has to retrieve something"
+            # Originally "content in facets", which was true of every rung here
+            # while they were all content variants. `lex_only` is deliberately
+            # not one: it is the diagnostic for how much of the query set word
+            # matching alone can solve, and requiring the content facet would
+            # make that unaskable. The invariant that was actually meant is
+            # that a rung retrieves from somewhere.
+            assert cfg.facets, f"{name} has to retrieve something"
             assert cfg.name == name, f"{name} reports itself as {cfg.name}"
             # 45 s/query at p50 makes a rung unusable for the repeated sweeps
             # these exist for; the reranker stays behind rung E.
@@ -994,6 +1000,20 @@ class TestTheAblationLadderAndItsComplements:
         for name in ("C_nolex", "D_nolex", "A_ctx", "A_graph"):
             cfg = EXPLORATORY[name]
             assert not (cfg.facets & LEXICAL_FACETS), f"{name} still carries a lexical facet"
+
+    def test_lex_only_needs_no_embedding_model(self):
+        """The property that makes the audit runnable at all.
+
+        ``pipeline.search()`` guards the vector branch behind
+        ``config.facets & VECTOR_FACETS``. If a vector facet ever leaks into
+        this rung the audit silently starts requiring a model, and on a machine
+        without one it would measure a mock instead of word matching.
+        """
+        from facetmark.search.pipeline import EXPLORATORY, VECTOR_FACETS
+
+        cfg = EXPLORATORY["lex_only"]
+        assert not (cfg.facets & VECTOR_FACETS)
+        assert not (cfg.context or cfg.graph or cfg.rerank or cfg.decay)
 
     def test_a_complement_pairs_with_a_pre_registered_rung_on_everything_but_facets(self):
         from facetmark.search.pipeline import EXPLORATORY

@@ -146,6 +146,13 @@ EXPLORATORY: dict[str, Config] = {
     # for itself" from "the context multiplier reorders the page", which A_ctx
     # bundles together and therefore cannot attribute.
     "A_graph": Config("A_graph", frozenset({"content"}), graph=True),
+    # The lexical facets with nothing to hide behind. Not a candidate for
+    # anything -- it is the diagnostic the query set never had: how much of it
+    # is solvable by word matching alone, which is exactly what the generator's
+    # anti-leak gates exist to prevent and never measured. Because the vector
+    # branch is guarded by `config.facets & VECTOR_FACETS`, this rung runs
+    # without an embedding model at all. Protocol: docs/query-set-lexical-audit.md.
+    "lex_only": Config("lex_only", LEXICAL_FACETS),
     # --- W2 candidates ---------------------------------------------------
     # The three rungs below exist so the two W1 repairs are *runnable* before
     # they are believed. They are not defaults and they carry no claim: the

@@ -172,7 +172,7 @@ src/facetmark/
 extension/     MV3, TypeScript, esbuild
 ```
 
-820 tests, no network access required to run them.
+835 tests, no network access required to run them.
 
 Project status, including what is *not* done and why, is in [`ROADMAP.md`](ROADMAP.md). Short version: the W1 evaluation gate is complete and it failed all three of its pre-registered criteria; weeks 2 through 4 of the plan are not done, and the thing blocking them is a query set, not code. Contribution rules are in [`CONTRIBUTING.md`](CONTRIBUTING.md); trust boundaries in [`SECURITY.md`](SECURITY.md).
 
