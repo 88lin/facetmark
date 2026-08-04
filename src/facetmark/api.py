@@ -37,6 +37,7 @@ from pydantic import BaseModel, Field
 
 from . import __version__, service
 from . import health as healthmod
+from .bridges import karakeep as kkbridge
 from .config import Settings, get_settings
 from .db import open_db
 from .fetch import store as fetchstore
@@ -142,6 +143,28 @@ class SuggestRequest(BaseModel):
 class SynthesizeRequest(BaseModel):
     q: str
     limit: int = Field(default=8, ge=1, le=20)
+
+
+class KarakeepAddRequest(BaseModel):
+    """``addDocuments``. ``embed`` is escapable so a bulk backfill can defer it."""
+
+    documents: list[dict]
+    embed: bool = True
+
+
+class KarakeepDeleteRequest(BaseModel):
+    ids: list[str]
+
+
+class KarakeepSearchRequest(BaseModel):
+    """``SearchOptions`` verbatim, plus the ablation rung for experiments."""
+
+    query: str = ""
+    filter: list[dict] = Field(default_factory=list)
+    limit: int = Field(default=20, ge=1, le=200)
+    offset: int = Field(default=0, ge=0)
+    sort: list[dict] = Field(default_factory=list)
+    config: str = "full"
 
 
 class HealthCheckRequest(BaseModel):
@@ -394,6 +417,48 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
             if rec:
                 out.append(rec)
         return out
+
+    # -- karakeep search provider ------------------------------------------
+    # Four routes mirroring packages/shared/search.ts. They live behind the same
+    # pairing token as everything else, and they are the only endpoints that
+    # write bookmarks from an external system.
+
+    @app.post("/karakeep/documents", dependencies=auth)
+    async def karakeep_add(
+        req: KarakeepAddRequest, state: AppState = Depends(get_state)
+    ) -> dict:
+        async with state.lock:
+            return await kkbridge.add_documents(
+                state.conn, req.documents, provider=state.provider,
+                settings=state.settings, embed=req.embed,
+            )
+
+    @app.post("/karakeep/documents/delete", dependencies=auth)
+    async def karakeep_delete(
+        req: KarakeepDeleteRequest, state: AppState = Depends(get_state)
+    ) -> dict:
+        async with state.lock:
+            return kkbridge.delete_documents(state.conn, req.ids)
+
+    @app.post("/karakeep/search", dependencies=auth)
+    async def karakeep_search(
+        req: KarakeepSearchRequest, state: AppState = Depends(get_state)
+    ) -> dict:
+        if req.config not in ALL_CONFIGS:
+            raise HTTPException(status_code=400, detail=f"unknown config {req.config!r}")
+        return await kkbridge.search_documents(
+            state.conn, req.model_dump(), provider=state.provider,
+            settings=state.settings, config=req.config,
+        )
+
+    @app.post("/karakeep/clear", dependencies=auth)
+    async def karakeep_clear(state: AppState = Depends(get_state)) -> dict:
+        async with state.lock:
+            return kkbridge.clear_index(state.conn)
+
+    @app.get("/karakeep/stats", dependencies=auth)
+    async def karakeep_stats(state: AppState = Depends(get_state)) -> dict:
+        return kkbridge.mapping_stats(state.conn)
 
     @app.exception_handler(sqlite3.Error)
     async def _sqlite_error(request: Request, exc: sqlite3.Error) -> JSONResponse:

@@ -1,0 +1,12 @@
+{
+  "name": "@karakeep/plugin-search-facetmark",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "dependencies": {
+    "@karakeep/shared": "workspace:^"
+  }
+}

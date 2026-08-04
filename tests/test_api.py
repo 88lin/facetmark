@@ -517,3 +517,59 @@ class TestTheExtensionContract:
         assert got["pending"] == 1 and got["waiting"] == 1
         src = _ts_source()
         assert "pending - waiting" in src, "the client must carve `waiting` out of `pending`"
+
+
+class TestKarakeepRoutes:
+    """The four routes karakeep's plugin calls, plus the guard rails."""
+
+    DOC = {
+        "id": "kk-a",
+        "userId": "u1",
+        "url": "https://example.com/kafka-partitions",
+        "title": "How Kafka partitions actually rebalance",
+        "content": "Consumer group rebalancing, sticky assignment and why it stalls.",
+        "tags": ["kafka", "distributed"],
+        "createdAt": "2025-02-02T00:00:00Z",
+    }
+
+    def test_all_four_routes_require_the_pairing_token(self, client):
+        assert client.post("/karakeep/documents", json={"documents": []}).status_code == 401
+        assert client.post("/karakeep/documents/delete", json={"ids": []}).status_code == 401
+        assert client.post("/karakeep/search", json={"query": "x"}).status_code == 401
+        assert client.post("/karakeep/clear").status_code == 401
+
+    def test_add_then_search_returns_the_karakeep_id(self, client, auth):
+        r = client.post("/karakeep/documents", json={"documents": [self.DOC]}, headers=auth)
+        assert r.status_code == 200
+        assert r.json()["created"] == 1
+        s = client.post("/karakeep/search", json={"query": "kafka rebalance"}, headers=auth)
+        assert s.status_code == 200
+        body = s.json()
+        assert body["engine"] == "facetmark:full"
+        assert [h["id"] for h in body["hits"]] == ["kk-a"]
+
+    def test_stats_report_the_mapping(self, client, auth):
+        client.post("/karakeep/documents", json={"documents": [self.DOC]}, headers=auth)
+        assert client.get("/karakeep/stats", headers=auth).json() == {
+            "documents": 1, "users": 1, "with_body": 1,
+        }
+
+    def test_an_unknown_config_is_rejected_rather_than_silently_defaulted(self, client, auth):
+        r = client.post(
+            "/karakeep/search", json={"query": "x", "config": "nope"}, headers=auth
+        )
+        assert r.status_code == 400
+
+    def test_delete_and_clear_are_reachable_and_report_counts(self, client, auth):
+        client.post("/karakeep/documents", json={"documents": [self.DOC]}, headers=auth)
+        d = client.post(
+            "/karakeep/documents/delete", json={"ids": ["kk-a"]}, headers=auth
+        ).json()
+        assert d["removed"] == 1
+        client.post("/karakeep/documents", json={"documents": [self.DOC]}, headers=auth)
+        c = client.post("/karakeep/clear", headers=auth).json()
+        assert c["purged_bookmarks"] == 1
+
+    def test_limit_above_the_ceiling_is_a_validation_error_not_a_huge_query(self, client, auth):
+        r = client.post("/karakeep/search", json={"query": "x", "limit": 5000}, headers=auth)
+        assert r.status_code == 422
