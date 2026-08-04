@@ -178,8 +178,23 @@ def main() -> None:
     idx_fired = [i for i in range(n) if fired[i]]
     idx_quiet = [i for i in range(n) if not fired[i]]
     quiet = slice_delta(a, b, idx_quiet, resamples=args.bootstrap)
-    selfcheck_ok = (not idx_quiet) or (quiet["recall@5_pp"] == 0.0
-                                       and quiet["discordant"] == 0)
+    # An empty not-fired subset is the expected outcome on an adversarial set,
+    # and it makes the self-check vacuous rather than passed. Say so, and point
+    # at the run where the check does have data: on the W2/W3 holdout the 211
+    # vague queries fired zero times and A_gatedctx scored identically to A.
+    if not idx_quiet:
+        selfcheck = {
+            "state": "not_applicable",
+            "note": "every probe fired the gate, so this set contains no query "
+                    "on which the two rungs are the same code path; the check "
+                    "has data in eval/switch-verdicts.json, where q_vague "
+                    "(n=211, 0 fired) moved 0.00pp with 0 discordant",
+        }
+    elif quiet["recall@5_pp"] == 0.0 and quiet["discordant"] == 0:
+        selfcheck = {"state": "passed"}
+    else:
+        selfcheck = {"state": "failed"}
+    selfcheck_ok = selfcheck["state"] != "failed"
 
     by_subtype = {}
     for s in sorted({p["subtype"] for p in probes}):
@@ -223,6 +238,7 @@ def main() -> None:
                     "where it never fires must be exactly 0.00pp",
             "passed": bool(selfcheck_ok),
             "not_fired_n": len(idx_quiet),
+            **selfcheck,
         },
     }
     if not selfcheck_ok:
@@ -256,9 +272,10 @@ def main() -> None:
     if fs.get("n"):
         print(f"  fired subset     n={fs['n']:3d} Δ {fs['recall@5_pp']:+.2f} pp "
               f"CI95 {fs['ci95_pp']}")
+    state = {"passed": "PASS", "not_applicable": "N/A -- every probe fired",
+             "failed": "FAIL -- verdict void"}[selfcheck["state"]]
     print(f"  not-fired subset n={quiet.get('n', 0):3d} "
-          f"Δ {quiet.get('recall@5_pp', 0.0):+.2f} pp  "
-          f"self-check {'PASS' if selfcheck_ok else 'FAIL -- verdict void'}")
+          f"Δ {quiet.get('recall@5_pp', 0.0):+.2f} pp  self-check {state}")
 
 
 if __name__ == "__main__":

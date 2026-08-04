@@ -138,6 +138,7 @@ def test_end_to_end_prices_a_cost_and_passes_its_self_check(tmp_path):
     assert res["n"] == 30
     assert res["firing"]["overall"]["fired"] == 20
     assert res["secondary"]["not_fired_subset"]["recall@5_pp"] == 0.0
+    assert res["self_check"]["state"] == "passed"
     assert res["self_check"]["passed"] is True
     assert res["primary"]["recall@5_pp"] == pytest.approx(-26.67, abs=0.01)
     assert res["primary"]["verdict"]["label"] == "gate_precision_unqualified"
@@ -154,6 +155,17 @@ def test_self_check_voids_the_verdict_when_a_quiet_query_moves(tmp_path):
     assert res["self_check"]["passed"] is False
     assert res["primary"]["verdict"]["label"] == "void"
     assert res["primary"]["verdict"]["triggers_disposition"] is False
+
+
+def test_an_all_firing_set_reports_the_self_check_as_vacuous_not_passed(tmp_path):
+    """The expected shape of an adversarial probe set. "Passed" on an empty
+    subset is a claim about nothing; the run has to say so and point at the
+    dataset where the check does have data."""
+    res = _run(tmp_path, [1] * 10, [99] * 10, [_FIRES] * 10)
+    assert res["self_check"]["state"] == "not_applicable"
+    assert res["self_check"]["not_fired_n"] == 0
+    assert "q_vague" in res["self_check"]["note"]
+    assert res["primary"]["verdict"]["label"] != "void"
 
 
 def test_subtypes_and_distance_buckets_are_reported_separately(tmp_path):
