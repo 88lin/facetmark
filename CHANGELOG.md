@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-08-04
+
 **这一轮的主题是停止造轮子。** karakeep 已经把检索周边的东西全做完了——浏览器扩展、
 手机 App、无头 Chrome 抓取、多用户、Web UI、Docker 部署——而它的排序是一个只有四个方法
 的插件接口。所以 facetmark 实现那个接口，然后放弃自己那三样。
@@ -17,13 +19,15 @@
 - **五条 HTTP 路由**：`POST /karakeep/documents`、`POST /karakeep/documents/delete`、
   `POST /karakeep/search`、`POST /karakeep/clear`、`GET /karakeep/stats`。写路径全部在
   服务的全局锁内。
-- **`POST /karakeep/search` 接受 `config` 参数**（`full`、`A`–`E`、任意消融档名）。这是
-  这次集成里最有价值的一件东西：**消融可以在一个真实 karakeep 库上跑了**，而在此之前
-  所有数字都来自生成语料。
+- **`POST /karakeep/search` 接受 `config` 参数**（`full`、`A`–`E`、任意消融档名）。
+  ~~消融可以在一个真实 karakeep 库上跑了~~ —— **这条在同一个版本里被自己的实验证伪并
+  撤回**，见下面的往返实验。读取路径没问题，指标级结论搬得过去，名次级结论搬不过去。
 - **`integrations/karakeep/search-facetmark/`**：karakeep 侧的 TypeScript 插件
-  （`FacetmarkClient implements SearchIndexClient` + provider 注册）。**它不在本仓库的
-  CI 里构建、也没有测试**——本仓库没有 Node 工具链。这是一个已知且已披露的缺口，写在
-  文件头注释和 `docs/karakeep.md` 里。
+  （`FacetmarkClient implements SearchIndexClient` + provider 注册）。~~它不在本仓库的
+  CI 里构建、也没有测试~~ —— 这个缺口在本版本内被补上了一半：
+  `integrations/karakeep/typecheck/` 里放着上游两个接口模块的类型声明，blob SHA 钉在
+  `upstream-pins.json`，CI 的 `karakeep-plugin` job 每次 push 跑 `tsc --noEmit`。
+  仍然没有的是对着一个活的 karakeep 实例的集成测试。
 - **`docs/karakeep.md`**：分工表、三步装法、五条路由、逐字段映射表，以及三处不保真的
   地方。
 - **`README.zh-CN.md`**，并把 `README.md` 整篇重写成英文版，两边互相链接。旧 README
@@ -47,6 +51,65 @@
   才有意图向量。
 - `tags` 映射到 `bookmark.folder` 时用 `" / "` 拼接，`folder_depth = len(tags)`。**这不
   是等价物**：五个平级标签在 facetmark 眼里长得像五层嵌套目录。
+
+### 实验：karakeep 往返保真度（判定 `roundtrip_unfaithful`）
+
+- **协议先冻结再搬数据**：`docs/karakeep-roundtrip-protocol.md`（149 行），三条判据在
+  测量之前写死。结果报告 `docs/karakeep-roundtrip.md`。
+- 2,376 条真实书签推进 karakeep 形态的库再拉回来，616 条留出查询，bootstrap 10,000 次。
+  判据 a（指标保真）**通过**：ΔRecall@5 = −0.81pp，CI95 [−2.44, +0.81]。
+  判据 c（读取路径）**通过**：616 × 2 档 HTTP 与原生逐条比对，0 处不一致。
+  判据 b（名次保真）**差 0.94pp 未通过**：overlap@5 中位数 4.0 达标，top-1 一致率
+  79.06% 未达 80%。
+- **归因是完全的**：正文 1876/1876 逐字节相同，摘要 2375/2375 逐字相同，但 `topics`
+  一致率 0%、`entities` 1.18%——karakeep 的 tag 是浏览器**文件夹**标签。嵌入文本里那行
+  关键词的词汇量从 19,016 塌缩到 13，人均 10.32 → 0.76，最高频词是出现在 1,124 页上的
+  `未分类`。向量中位余弦 0.9846。把源库富集移植回去后 2376/2376 条嵌入文本逐字符相同，
+  残差 0。
+- **补救路径已实测有效**：在桥接库上跑 `facetmark index`，karakeep 给过的正文 0 条被
+  重抓，2376/2376 条桥接写入的富集行被重新拾起，重建的图与源库逐位相同，只差 212 条
+  语义边（26,485 对 26,697）。
+- 按协议第 7 节，`docs/karakeep.md` 里那句「可以在真实 karakeep 库上跑消融」已撤回并
+  限定，未通过的判据 b 写进了两份 README。
+
+### 修复
+
+- **桥接会静默降级已有的富集。** 旧的 `_upsert_one` 在 `ON CONFLICT` 分支里改
+  `summary` / `topics` / `model`，却**不动 `source_hash`**。后果链：某页本来被真实模型
+  富集过（`source_hash = <body_hash>`）→ karakeep 同步把摘要换成标签列表 → `source_hash`
+  仍等于 body_hash → `enrich.targets()` 认为这行没变过而**永久跳过**；而 `content_work()`
+  的指纹已经变了，向量会按**更差的文本**重建。不报错、不可逆（除非 `--force`）、报告里
+  也看不出来。现在改成与 `bookmark.source`、`delete_documents` 一致的**认领而非覆盖**：
+  只有该行不存在、或本来就是 `source_hash='karakeep'` 时才写；否则原样保留并在返回里
+  计入新字段 `kept_enrichment`。保留外来富集时，FTS 按**库里已存的**富集同步，不索引
+  karakeep 的词。UPDATE 分支现在显式写 `source_hash='karakeep'`。四条新测试钉住。
+
+### 已知缺陷（记录，未修）
+
+- **衰减层在默认档里够不着。** RRF 分数是 `sum_f w_f / (k + rank_f)`，`rrf_k = 60` 时
+  单个单位权重的面最高 `1/61 = 0.016393`，而 `decay_rescue_threshold` 出厂值 `0.02`。
+  默认档 `FULL` 是单面配置，于是救援阀恒开，它守着的降权从未执行过。`FUSED` 不受影响。
+  `tests/test_decay_reach.py` 五条测试钉住现状，**故意不改默认值**——动阈值会改变每条
+  查询的默认排序，按项目规矩需要先有查询集和预注册判据。已列入 `ROADMAP.md`。
+- 同时更正一条旧笔记：「只有 8/2,376 页够得上冷却线且从未进入前 20」的后半句是错的，
+  冷页确实进过前 5（源库侧 15/616 条查询）。它们只是从来没有被降过权。
+
+### 工具
+
+- **`scripts/karakeep_roundtrip_diff.py`**：两个库的逐层差异，一直挖到关键词行的词汇量
+  统计。
+- **`scripts/karakeep_remedy_probe.py`**：干跑 `facetmark index` 每一段会做什么，带
+  `--graph-only` 与 `--attribute` 两种模式。所有写操作都包在显式的
+  `BEGIN` / `ROLLBACK` 里并事后断言行数——因为 `facetmark.db.connect()` 是 autocommit，
+  `conn.rollback()` 在那里是空操作。
+
+### 开源工程
+
+- **两份 README 全面重写**（`README.md` / `README.zh-CN.md`）：加目录、流水线示意、
+  数据模型表、完整配置表、命令表、检索档位表、排错、FAQ、贡献指引，并把上面所有负面结果
+  平铺在正文里。
+- 新增 `CODE_OF_CONDUCT.md`（Contributor Covenant 2.1）、`CITATION.cff`、`.editorconfig`。
+- 浏览器扩展版本从 `1.0.0` 对齐到主包版本。
 
 ## [1.3.0] - 2026-08-04
 

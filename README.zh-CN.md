@@ -5,7 +5,8 @@
 [![CI](https://github.com/88lin/facetmark/actions/workflows/ci.yml/badge.svg)](https://github.com/88lin/facetmark/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1081-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-1090-brightgreen)](tests/)
+[![Code of Conduct](https://img.shields.io/badge/code%20of%20conduct-contributor%20covenant-blueviolet)](CODE_OF_CONDUCT.md)
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
@@ -14,355 +15,488 @@
 
 ---
 
+## 目录
+
+- [它要解决的问题](#它要解决的问题)
+- [它是怎么工作的](#它是怎么工作的)
+- [快速开始](#快速开始)
+- [安装](#安装)
+- [模型接入](#模型接入)
+- [配置](#配置)
+- [命令](#命令)
+- [检索档位](#检索档位)
+- [实测到了什么](#实测到了什么)
+- [拿它当 karakeep 的搜索引擎](#拿它当-karakeep-的搜索引擎)
+- [数据模型](#数据模型)
+- [排错](#排错)
+- [常见问题](#常见问题)
+- [这个项目守的边界](#这个项目守的边界)
+- [目录结构](#目录结构)
+- [参与贡献](#参与贡献)
+- [项目状态](#项目状态)
+- [License](#license)
+
+---
+
 ## 它要解决的问题
 
-你八个月前存过一个页面。你记得**为什么**存它——「某个帖子里有人贴的那个讲 Postgres
-索引类型的东西」——也大概记得是什么时候。你唯独不记得它的标题，而标题是浏览器书签
-搜索唯一会看的字段。
+八个月前你存了一个页面。你记得**为什么**存它——「有人在某个帖子里贴的那篇讲 Postgres
+索引类型的东西」——你也大概记得是什么时候。你唯独不记得它的标题，而标题是你浏览器的书签
+搜索唯一会看的东西。
 
-所以 facetmark 给每条书签建四个索引：
+所以 facetmark 给每条书签建四套不同的索引：
 
-| 面 | 是什么 | 接得住哪种回忆 |
+| 面 | 是什么 | 回答什么样的问题 |
 |---|---|---|
-| **词面** | 两条 FTS5 索引：字符三元组 + jieba 分词 | 精确串、ID、代码、没有空格的中文 |
-| **内容面** | 页面正文抽取后的向量 | 「那篇讲消费者组重平衡的文章」 |
-| **意图面** | 让模型反向生成「这页能回答哪些问题」，再用自洽性探针筛掉幻觉出来的 | 「kafka 卡住了怎么办」 |
-| **情境面** | 用保存时间的间隔重建保存会话，加上文件夹 / 域名 / 语义构成的图 | 「跟那批东西一起存的」 |
+| **词面** | 两个 FTS5 索引：字符三元组 + 词段 | 精确字符串、ID、代码、不带空格的中文 |
+| **内容面** | 页面正文抽取后的嵌入 | 「那篇讲消费者组再平衡的文章」 |
+| **意图面** | 模型生成的、你**可能**会用的查询，再用「能不能把这页捞回来」过滤一遍 | 「kafka 怎么才能不卡住」 |
+| **上下文面** | 保存会话聚类、域名、图结构 | 「我调那次故障的时候顺手存的那一批」 |
 
-候选用 RRF（倒数排名融合）合并，沿图扩展一跳，再按年龄衰减。
+……用 RRF 融合起来，然后——这才是不常见的部分——**逐个测量这四个面到底值不值得加**，把
+数字公开，把输了的那些关掉。有好几个输了。[实测到了什么](#实测到了什么)那一节就是这份
+诚实的清单。
 
-然后这个项目**量了一下四个面融合到底有没有用，答案是没有**——详见
-[实测到了什么](#实测到了什么)。所以出厂默认只搜**内容面**，外加图扩展和时间衰减；另外
-三个面照建、照存，用 `--config` 就能调出来。**没配 API key 的部署反而走全融合**，因为
-没有真实嵌入时，内容面恰好是那个只返回噪声的面。
+## 它是怎么工作的
+
+```
+浏览器导出 (HTML) ──┐
+karakeep 推送 (HTTP)─┼──▶  bookmark ──▶ fetch ──▶ content
+手工导入          ──┘                    │           │
+                                        │           ▼
+                                        │       enrich （摘要、主题、
+                                        │           │   实体、要点）
+                                        │           ▼
+                                        │       embed_content ──▶ vec_content
+                                        │           │
+                                        │           ▼
+                                        │       intents ──▶ 过滤 ──▶ vec_intent
+                                        │           │
+                                        ▼           ▼
+                                    sessions ──▶ edges  （会话 / 语义 /
+                                                          同域 / 取代）
+
+查询 ──▶ understand ──▶ [lex_tri, lex_seg, content, intent] ──▶ RRF ──▶ 上下文
+     ──▶ 衰减 ──▶ 重排 ──▶ hits  ＋ 一跳图扩展（**单独一组**）
+```
+
+每一段都是幂等的、带指纹的：`facetmark index` 只重跑变过的部分。富集的指纹是正文哈希；
+嵌入的指纹是**重建出来的嵌入文本**，所以「向量存在但是拿旧文本建的」这种情况也能被认出来。
 
 ## 快速开始
 
 ```bash
-uv pip install facetmark        # 或者：pip install facetmark
+pip install facetmark            # 或者：uv pip install facetmark
 
-facetmark import                # 直接读浏览器配置目录，也可以传一个导出文件的路径
-facetmark index                 # 抓正文、富集、嵌入、切会话、建图
-facetmark search "网盘直链解析"
+facetmark init                                  # 建 ~/.facetmark/facetmark.db
+facetmark import bookmarks.html                 # Chrome/Firefox/Edge/Safari 的导出文件
+facetmark index                                 # fetch → enrich → embed → sessions → edges
+facetmark search "那个讲 Postgres 索引类型的"
+facetmark serve                                 # http://127.0.0.1:8787
 ```
 
-想先导出成文件再喂给它：Chrome / Edge → 书签管理器 → 导出，Firefox → 管理书签 → 导出
-HTML。Netscape HTML 和 Chrome 的 `Bookmarks` JSON 都能读。
-
-一个 1,701 条书签的真实库跑出来的原样输出（[完整记录](docs/real-library-demo.md)）：
-
-```
-$ facetmark import favorites.html --json
-{"parsed": 1710, "inserted": 1701, "merged_duplicates": 9, "non_indexable": 1,
- "folders": 96, "max_depth": 4, "timestamp_unit": "unix_s", "warnings": []}
-
-$ facetmark search "chrome 插件下载" -n 3
-1. Chrome插件下载器          收藏夹栏/工具/插件搜索工具
-2. 插件小屋 Chrome插件        收藏夹栏/工具/插件搜索工具
-3. Chrome 离线安装包          收藏夹栏/工具
-```
+导出书签：Chrome/Edge → `chrome://bookmarks` → ⋮ → 导出书签。Firefox → 管理书签 →
+导入和备份 → 导出书签为 HTML。Safari → 文件 → 导出 → 书签。
 
 ### 不配 key、也没有书签库，先看效果
 
 ```bash
-facetmark demo                   # 合成库，建完索引直接搜，全程离线
-facetmark eval --ablation        # A–E 消融，带 bootstrap 置信区间和 McNemar 检验
-facetmark eval --rungs C,C_notri # 或者任选两档正面对打
+facetmark demo
 ```
 
-这两条命令用的是 mock provider，它的「嵌入」是词面 token 的特征哈希。**它们只能证明
-流水线接对了，不是质量测量**，每条用到它的命令都会在输出里自己说明这一点。
+用一个确定性的 mock provider 造一个小库，索引，跑几条查询。不联网、不要 key、不花钱。
+这是最快看清输出长什么样、顺便验证安装是否正常的办法。
 
-## 从源码安装
+### 另外两条入口
+
+```bash
+facetmark import-json bookmarks.json    # Firefox 的 JSON 备份，或任意 {url,title,...} 列表
+```
+
+或者从 karakeep 推过来——见[下面](#拿它当-karakeep-的搜索引擎)。
+
+## 安装
+
+从 PyPI：
+
+```bash
+pip install facetmark
+```
+
+从源码：
 
 ```bash
 git clone https://github.com/88lin/facetmark
 cd facetmark
-uv venv && uv pip install -e ".[dev]"
-pytest -q                       # 1081 条测试，不需要联网
+python -m venv .venv && . .venv/bin/activate
+pip install -e ".[dev]"
+pytest -q               # 1090 条测试，约 35 秒
 ruff check src tests scripts
 ```
 
-Python 3.10+。唯一一个不常见的依赖是
-[`sqlite-vec`](https://github.com/asg017/sqlite-vec)，它把向量 KNN 直接做进 SQLite 里
-——**没有另一个向量数据库要跑**。
+需要 Python 3.10+。唯一一个重的可选依赖是 `sentence-transformers`，只有本地嵌入后端
+才用得到。
 
 ## 模型接入
 
-facetmark 需要一个嵌入模型；意图面还需要一个 chat 模型。任何 OpenAI 兼容端点都行。
+facetmark 对接任何 OpenAI 协议兼容的端点。要两样东西：一个**对话模型**（做富集和意图
+生成）和一个**嵌入模型**。
 
 ```bash
 export FACETMARK_API_KEY=sk-...
-export FACETMARK_BASE_URL=https://api.openai.com/v1      # 必须带 /v1
+export FACETMARK_BASE_URL=https://api.openai.com/v1     # 必须带 /v1
 export FACETMARK_CHAT_MODEL=gpt-4o-mini
 export FACETMARK_EMBED_MODEL=text-embedding-3-small
 export FACETMARK_EMBED_DIM=1536
 ```
 
-`FACETMARK_CHAT_MODEL_FALLBACKS` 接一个逗号分隔的列表，主模型报错时按顺序往下试——用
-免费网关或者有限流的网关时很有用。
+Azure OpenAI、together.ai、DeepSeek、硅基流动、Ollama（`http://localhost:11434/v1`）、
+vLLM、LM Studio、公司内网网关，都是同一套配置。
 
 ### 本地嵌入
 
-如果你的网关只有 chat、没有 `/embeddings`（免费和聚合网关非常常见，而且
-`GET /v1/models` **不会告诉你**——它照样列出一串模型，但一个都不给嵌入接口用），或者
-你干脆不想把正文发出去：
+有些网关只代理对话、不代理嵌入。那就把嵌入这一半换成本地模型，对话那一半留在端点上：
 
 ```bash
-pip install 'facetmark[local]'                          # 装 sentence-transformers
+pip install "facetmark[local]"
 export FACETMARK_EMBED_BACKEND=local
-export FACETMARK_LOCAL_EMBED_PATH=BAAI/bge-m3           # 或者本地目录
 export FACETMARK_EMBED_MODEL=bge-m3
 export FACETMARK_EMBED_DIM=1024
+export FACETMARK_LOCAL_EMBED_PATH=/path/to/bge-m3     # 不设就联网下载
+export FACETMARK_LOCAL_EMBED_MAX_SEQ=1024
 ```
 
-`sentence-transformers` 会拉进来一个 torch，比这个项目其他所有依赖加起来都大，所以它
-不在基础安装里。
+`facetmark selfcheck-embed` 在你花一小时索引之前先验一遍后端：拿一组固定的 64 篇探针
+各嵌两次，报告自余弦和最佳错配余弦。bge-m3 在 1024 token 下实测最小自余弦 **0.999976**，
+64/64 全部自我匹配；把预算压到 512 token，最小自余弦掉到 0.9769——这就是默认值取 1024、
+以及为什么要有这条自检的原因。
 
-**换编码器之前必须先自校验。** `sqlite-vec` 对任何宽度正确的向量都会返回近邻，哪怕
-它来自另一个模型：结果照样有序、看着合理、其实无意义，代码里没有任何断言能拦住这件事。
-做法是拿索引里已经存着的东西重新编码一遍，和存着的向量算余弦。`vec_intent` 存的是逐字
-原文，中间没有拼接和截断，是最干净的探针。本项目自己这样测了 64 条：**最小自余弦
-0.999976、中位 0.999993、64/64 全部自我匹配**，而每条对其余 63 条的**最佳错配**余弦
-中位只有 0.5357、最高 0.6501。起作用的是这个**差距**，不是 0.99 这个数本身。
-
-嵌入维度和模型名在第一次建索引时写进数据库。之后不重建就改不了，facetmark 宁可拒绝
-运行也不会悄悄混着用、然后返回一堆看起来正常的垃圾近邻。
+**改 `FACETMARK_EMBED_DIM` 会让所有已存的向量作废。** facetmark 宁可拒绝混维也不肯
+悄悄返回胡说八道；改完请带 `--force` 重建。
 
 ## 配置
 
-所有配置项都是 `FACETMARK_` 前缀的环境变量，或者一个 `.env` 文件。值得知道的几个：
+所有配置项都是 `FACETMARK_` 前缀的环境变量，也可以写进 `~/.facetmark/config.toml`。
 
-| 变量 | 默认值 | 说明 |
+| 变量 | 默认值 | 作用 |
 |---|---|---|
-| `FACETMARK_DATA_DIR` | 平台数据目录 | 数据库、配对令牌、日志都在这里 |
-| `FACETMARK_DB_NAME` | `facetmark.db` | 一个文件一个库 |
-| `FACETMARK_FETCH_CONCURRENCY` | `30` | 全局抓取并发 |
-| `FACETMARK_FETCH_PER_HOST_CONCURRENCY` | `2` | 单主机并发上限，另有 0.5 秒最小间隔 |
-| `FACETMARK_RESPECT_ROBOTS` | `true` | 见下面「抓的是别人的服务器」 |
-| `FACETMARK_INTENT_GENERATE_N` / `_KEEP_N` | `8` / `4` | 意图查询生成条数 / 过滤后保留条数 |
-| `FACETMARK_DECAY_FACTOR` / `_AGE_DAYS` | `0.5` / `365` | 时间衰减半衰期 |
-| `FACETMARK_HEALTH_ENABLE_EXTERNAL` | `true` | 第三方链接检查（DoH、Wayback、reader） |
-| `FACETMARK_HOST` / `FACETMARK_PORT` | `127.0.0.1` / `8787` | 本地服务监听地址 |
+| `DATA_DIR` | `~/.facetmark` | 数据库和缓存放哪 |
+| `DB_NAME` | `facetmark.db` | `DATA_DIR` 里的数据库文件名 |
+| `API_KEY` | — | OpenAI 协议端点的 key |
+| `BASE_URL` | `https://api.openai.com/v1` | 端点根地址，**必须**带 `/v1` |
+| `CHAT_MODEL` | `gpt-4o-mini` | 富集和意图生成 |
+| `EMBED_MODEL` | `text-embedding-3-small` | 嵌入 |
+| `EMBED_DIM` | `1536` | 向量维度，改了就作废整个向量库 |
+| `EMBED_BACKEND` | `endpoint` | `endpoint` 或 `local` |
+| `LOCAL_EMBED_PATH` | — | 本地 sentence-transformers 模型路径 |
+| `LOCAL_EMBED_MAX_SEQ` | `1024` | 每篇的 token 预算 |
+| `LOCAL_EMBED_BATCH` | `8` | 本地批大小 |
+| `REQUEST_TIMEOUT` | `60.0` | 单次请求超时（秒） |
+| `FETCH_CONCURRENCY` | `30` | 抓取并发 |
+| `MIN_BODY_CHARS` | `200` | 低于这个字数就算「没有正文」 |
+| `BODY_TRUNCATE_CHARS` | `6000` | 送去富集的正文长度 |
+| `ENRICH_CONCURRENCY` | `4` | 富集并发 |
+| `INTENT_GENERATE_N` | `8` | 每页生成多少条候选意图 |
+| `INTENT_KEEP_N` | `4` | 过滤后留几条 |
+| `RRF_K` | `60` | RRF 常数 |
+| `CANDIDATES_PER_FACET` | `50` | 每个面的候选深度 |
+| `GRAPH_EXPAND_HOPS` | `1` | 扩展半径 |
+| `GRAPH_EXPAND_FACTOR` | `0.6` | 跨一条边带走多少分 |
+| `DECAY_FACTOR` | `0.5` | 冷层结果乘的系数 |
+| `DECAY_AGE_DAYS` | `365` | 冷层的年龄条件 |
+| `DECAY_RESCUE_THRESHOLD` | `0.02` | 低于这个分就撤销降权——**注意**[实测到了什么](#实测到了什么)里关于它的那条 |
+| `HOST` / `PORT` | `127.0.0.1` / `8787` | 服务监听地址 |
+
+## 命令
+
+| 命令 | 做什么 |
+|---|---|
+| `facetmark init` | 建库 |
+| `facetmark import FILE.html` | 导入浏览器书签导出文件 |
+| `facetmark import-json FILE.json` | 导入 Firefox JSON 或通用列表 |
+| `facetmark index` | 跑完整流水线，跳过没变的部分 |
+| `facetmark fetch` / `enrich` / `embed` / `intents` / `sessions` / `edges` | 单跑某一段 |
+| `facetmark search QUERY` | 命令行检索 |
+| `facetmark serve` | Web 界面 + REST API |
+| `facetmark health` | 复检已存 URL，记录 `gone` / `drifted` 判定 |
+| `facetmark stats` | 各表行数、各阶段覆盖率 |
+| `facetmark demo` | 合成库 + mock provider，不联网 |
+| `facetmark selfcheck-embed` | 索引之前先验嵌入后端 |
+| `facetmark eval` | 拿一份查询集跑一个或多个档位 |
+| `facetmark export` | 把库导回 JSON |
+
+任何一段加 `--force` 都可以无视指纹重做。
+
+## 检索档位
+
+`facetmark search --config NAME`，以及检索 API 的 `config` 字段，都吃这些名字。它们存在
+是因为每一个都曾经是一条被测量过的假设。
+
+| 名字 | 面 | 额外层 | 备注 |
+|---|---|---|---|
+| `A` | content | — | **W1 查询集上的赢家** |
+| `B` | content, lex_seg, lex_tri | — | 加词面反而输了 5.4pp |
+| `C` | 四个面 | — | |
+| `D` | 四个面 | context, graph | |
+| `E` | 四个面 | context, graph, rerank | |
+| `full` | content | graph, decay | 配了 key 时的出厂默认 |
+| `fused` | 四个面 | context, graph, rerank, decay | mock provider 下的出厂默认 |
+
+另外还有约二十个探索档（`A_ctx`、`A_gatedctx`、`C_notri`、`C_lowlex`、`C_abstain`、
+`C_max`、`D_gated`、`lex_only`、`seg_only`、`tri_only` 等等）供下面这些实验使用。
+`facetmark eval --list-configs` 会全部列出来。
 
 ## 实测到了什么
 
-这个项目真正跟别的书签工具不一样的地方不是架构，是**每一个默认值都由一次预注册实验
-选出来，而其中两个是因为数字回来是反的才改掉的**。
+这一节大部分是负面结果。这是故意的：公开数字的意义就在于它约束了这个项目**能声称什么**。
 
 ### 融合输了，而且输给了阶梯上最简单的那一档
 
-W1 跑了五档（A 只有内容面、B 加两个词面、C 再加意图面、D 再加上下文乘子和图扩展、
-E 再加 LLM listwise 重排），语料是 2,376 个真实抓取的网页，查询集 479 条。**三条预注册
-判据全部未通过**，而且不是「提升不够」——是**加了机制反而更差**：
+479 条查询，跑在一个 1,700 条书签的真实库上（[`docs/eval-w1.md`](docs/eval-w1.md)）：
 
-| 档位 | Recall@1 | Recall@5 | MRR@10 | p50 延迟 |
+| 档位 | Recall@5 | Recall@1 | MRR@10 | p50 延迟 |
 |---|---|---|---|---|
-| **A**（只有内容面） | **0.505** | **0.643** | **0.564** | **148 ms** |
-| B（+ 两个词面） | 0.432 | 0.589 | 0.501 | 189 ms |
-| C（+ 意图面） | 0.426 | 0.635 | 0.509 | 526 ms |
-| D（+ 上下文 + 图） | 0.399 | 0.639 | 0.497 | 523 ms |
+| **A** — 只有内容向量 | **0.643** | **0.505** | **0.564** | **148 ms** |
+| B — ＋两个词面 | 0.589 | | | 189 ms |
+| C — 四个面全上 | 0.635 | | | 526 ms |
+| D — ＋上下文＋图 | 0.639 | | | 523 ms |
 
-最简单的那一档在三个总体指标上全部最好，而且快 3.5 倍。后来在一批**完全独立的 616 条
-查询**上重测，差距更大：**0.5860**（只有内容面）对 **0.5065**（四面全融）。
+三条预注册判据**全部未通过**。加面没有帮助，代价是 5.4pp 和 3.5 倍延迟。分查询类型看
+A 档：内容型 0.959、模糊型 0.706、情景型 0.279——情景型这个数字，恰恰是意图面和上下文面
+本来要修的。
 
-所以出厂默认是**内容面 + 图扩展 + 时间衰减**。图扩展留着是因为它免费——扩展从不动已经
-排好的那一页，所以每一个排序指标都逐位不变，而第二组候选在多 2.09pp 的查询里找到了目标
-（10 胜 0 负，p=0.0019），代价 9 毫秒。判据与判定过程见
-[`docs/gate-w1.md`](docs/gate-w1.md)。
-
-**为什么融合会输**，三份文档拆开讲：
-
-- [`docs/query-set-lexical-audit.md`](docs/query-set-lexical-audit.md)：这批查询里有多少
-  条根本不需要向量（内容型 80.1%、模糊型 46.3%），以及 **6.05% 的查询只有词面能找到**
-  ——词面不是没贡献，是融合把贡献弄丢了。
-- [`docs/w2-fusion-anatomy.md`](docs/w2-fusion-anatomy.md)：两件值得单说的事。一，词面的
-  **trigram 半边在中文查询上从来没工作过**——没有空格的整句被当成一个引号短语丢给索引，
-  211 条中文查询只有 25 条（11.85%）拿得到候选；修好后 202 条（95.73%），而整体 Recall@5
-  一动不动。二，**RRF 的算术给不出单面保护**：用出厂常数，任何被两个满权重面同时召回的
-  文档，在候选深度内的每一个名次上都赢过任何单面第一名。
-- [`docs/w3-criterion-medium.md`](docs/w3-criterion-medium.md)：再往前问一层——W1 的判据
-  **能不能测到**上下文乘子？出厂的 `MAX_BOOST = 1.60` 在 A 档能跨过整档分数动态范围的
-  79.7%（对数尺度），在 C/D 档只有 20.9%；同一个机制放在融合档里测，上限得是 6.03。
-  另外 66.3% 的候选**根本没拿到任何加成**，那和「加成太小推不动」是两个不同的问题。
+有两样东西活下来了：图扩展作为**单独一组**结果（+2.09pp，10 胜 0 负，p=0.0019，代价
+9 ms），以及重排在 Recall@1 上的收益（+4.80pp，CI95 [+1.46, +8.35]，45 胜 22 负，
+p=0.0067）。
 
 ### 上下文乘子：一个 flag，两次改默认
 
-不门控时它在情景型查询上 **+8.14pp**、在内容型上 **−9.94pp**，所以 W1 把它关掉了，只留
-下「按查询类型门控就该行」这个猜想。
+在一份全新的 616 条留出集上（[`docs/gate-w2w3.md`](docs/gate-w2w3.md)），把上下文乘子
+门控在「查询里有明确时间表达」这个条件上，看起来是唯一一个干净的胜利：
+`A → A_gatedctx` = **+3.09pp** [1.79, 4.55]，19 胜 0 负，p=3.8e-6。于是它上线了。
 
-猜想后来在 **616 条没有参与产生它的查询**上判过，判定规则先于结果落盘：门控之后相对纯
-内容面是 **+3.09pp Recall@5，CI95 [+1.79, +4.55]，19 条变好、0 条变差，p=3.8e-6**，内容
-型查询逐位不变（+0.00pp），情景型 +8.48pp。**1.2.0 把它默认打开了**
-（[`docs/gate-w2w3.md`](docs/gate-w2w3.md)）。
+然后，一份专门为了**触发**这个门而构造的 361 条探针集
+（[`docs/gate-precision.md`](docs/gate-precision.md)）测了它**触发时**会发生什么：
 
-**然后 1.3.0 又把它关回去了。** 那一轮只量了门控**该响的时候**响不响：0.55% 的误触发率
-来自 181 条内容型查询，而那 181 条在生成时被明确禁止写日期。换一批**时间短语属于主题
-本身**的查询——一个 2026 年存的页面，被问成 `2015年国际空间站咖啡机为什么那么贵`——
-361 条探针，门控**响了 361 次，100%**，代价是：
+| | Recall@5 | Recall@1 |
+|---|---|---|
+| A | 0.9058 | 0.801 |
+| A_gatedctx | 0.7175 | 0.363 |
 
-```
-A          Recall@5 0.9058   Recall@1 0.801
-A_gatedctx Recall@5 0.7175   Recall@1 0.363
+**−18.83pp**，CI95 [−23.27, −14.68]，3 胜 71 负。分层看：推断出的时间窗**不含**目标时
+（n=304）代价 −22.37pp；含目标时（n=57）收益恰好 **+0.00pp**。这个门从来不帮忙，还经常
+造成破坏。判定 `gate_precision_unqualified`，默认值回退到不门控。
 
-Δ Recall@5  -18.83 pp   CI95 [-23.27, -14.68]   3 胜 71 负
-```
+`gate_v2` 起过草，然后被拒绝：它在同一份探针集上仍然是 −10.52pp，尽管它在 616 条集上是
++1.79pp。同一个机制、两次尝试、证据方向一致——第三次尝试是**主动放弃**，而不是调到通过
+为止。
 
-Recall@1 直接腰斩。分层看：在 304 条**解析出的时间窗口根本不可能装下答案**的探针上是
-**−22.37pp**；在 57 条**窗口恰好是对的**探针上是**精确的 +0.00pp**（1 胜 1 负，p=1.0）
-——这就把伤害定位在「窗口判错」，而不是「乘子太重」。
+### 另外五个候选修复，也都测了
 
-预注册的补救方案 `gate_v2` 有两道在看数据前冻死的关：**(a) 探针集上的代价必须消失
-→ 未通过**（n=361 仍然 −10.52pp，CI95 [−13.85, −7.48]，1 胜 39 负；v2 保持沉默的 197 条
-是 +0.00pp、0 条不一致，残余全部来自它**故意没碰**的相对时间词那一条规则）；**(b) 616
-条上的收益必须还在 → 通过**（+1.79pp，CI95 [+0.81, +2.92]，11 胜 0 负，p=0.00098）。协议
-要求两关都过，所以默认值**退回 1.1.0 的无门控状态**，`gate_v2` 留在树里关着。
+- **词面审计**——内容型查询里 80.1%、模糊型里 46.3% 根本不需要向量。但有 **6.05%**
+  （479 条里的 29 条）**只有**词面能找到，超过预注册的 5% 线，所以词面即使在融合里输了
+  也留在箱子里。
+- **融合解剖**（[`docs/w2-fusion-anatomy.md`](docs/w2-fusion-anatomy.md)）——原因是平权
+  RRF：两个弱面上的巧合（0.0279）能压过一个强面上的确信（0.0164）。这是算术，不是调参。
+- **三元组那一面在中文上从来没工作过。** 211 条中文查询里只有 25 条（11.85%）拿得到
+  三元组候选。修好之后是 202/211（95.73%）。整体 Recall@5：**一动不动**。一个面可以坏
+  掉、被修好、然后依然无关紧要。
+- **位移力介质**（[`docs/w3-criterion-medium.md`](docs/w3-criterion-medium.md)）——上下文
+  乘子的 `MAX_BOOST = 1.60` 在 A 档跨过分数动态范围的 79.7%，在 C/D 档只有 20.9%；要有
+  同等位移力，上限得是 6.03。66.3% 的候选拿到的乘子恰好等于 1.0。
+- **意图面是理念问题，不是模型太小**
+  （[`docs/w4-intent-strata.md`](docs/w4-intent-strata.md)）。人工判读 50 条生成的意图：
+  19/50 = 38% 是真人可能会打出来的查询，低于 50% 的线。而且**信息词在页面上完全不出现**
+  的比例整体 34.0%，在正文贫瘠的页面上升到 **62.4%**——而正文贫瘠正是这个面本来要服务的
+  那批页面。代码没删；被否掉的是「把它当作一个平权检索面」这个用法。
 
-看数据之前写好的协议：[`docs/gate-precision-protocol.md`](docs/gate-precision-protocol.md)；
-报告：[`docs/gate-precision.md`](docs/gate-precision.md)。
+### karakeep 往返实验：`roundtrip_unfaithful`
 
-**这里没有顺手做 `gate_v3`。** 这 361 条已经被用来在两个门控之间做选择，用完了；在同一
-批探针上收窄规则再报增益，就是在测试集上拟合。v3 必须配新的预注册和全新的探针集，两笔账
-都记在 [`ROADMAP.md`](ROADMAP.md) 里。
+2,376 条真实书签推进一个 karakeep 形态的库再拉回来，616 条留出查询，协议在数据搬动之前
+就冻结了（[`docs/karakeep-roundtrip-protocol.md`](docs/karakeep-roundtrip-protocol.md)，
+完整结果见 [`docs/karakeep-roundtrip.md`](docs/karakeep-roundtrip.md)）。
 
-### 另外五个候选修复
+| | 判据 | 实测 | |
+|---|---|---|---|
+| a | \|ΔRecall@5\| ≤ 3pp，CI95 落在 ±5pp 内 | **−0.81pp**，CI95 [−2.44, +0.81] | 通过 |
+| b | overlap@5 中位数 ≥ 4 **且** top-1 一致率 ≥ 80% | 中位数 4.0；top-1 **79.06%** | **未通过** |
+| c | HTTP 与原生读取路径逐条一致，616 × 2 档 | 0 处不一致 | 通过 |
 
-同一批 616 条查询还判了五个候选修复。三个确实修好了融合坏掉的一部分（相对 C 档：
-`C_notri` +4.54pp、`C_max` +4.22pp、`C_lowlex` +4.22pp），但三个都仍然**落后纯内容面
-3.4–3.7pp**——融合是被解释清楚了，不是被救回来了，所以它们继续默认关闭。两个什么都没
-发生：`C_abstain` 在 616 条里只改了 1 条结果，同一个门控装在融合栈上是 7 胜 8 负
-（−0.16pp）。
+**判据 b 差 0.94pp 未通过**，而原因已经归因到底。正文逐字节保真（1876/1876）。摘要逐字
+保真（2375/2375，100%）。但 `topics` 一致率 **0%**、`entities` 只有 1.18%——因为
+karakeep 的 tag 是浏览器的**文件夹**标签，那描述的是一个书架，不是一个页面。嵌入文本
+里那行关键词从 **19,016 个不同词塌缩到 13 个**，人均 10.32 → 0.76，最高频的词是
+`未分类`，出现在 1,124 页上。向量随之漂移，中位余弦 0.9846——足以打乱榜首，又不足以改变
+总体召回。
 
-### 意图面：理念问题，不是模型太小
+把源库的富集移植回去之后，**2376/2376** 条嵌入文本逐字符相同，残差 0，所以归因是完全的。
+在桥接库上跑一次 `facetmark index` 就能修好：karakeep 给过的正文 0 条被重抓，
+2376/2376 条桥接写入的行被重新富集拾起，重建出来的图与源库完全一致，只差 212 条语义边
+（26,485 对 26,697）——正是那些由漂移向量建出来的边。
 
-W4 抽了 50 篇人工读意图抽取的输出，评分标准和判定阈值都在看数据之前写死。结果
-**「会（真实用户会这么问）」只有 38%（19/50）**，低于 50% 的线，判为**理念问题**，不是
-「3B 模型不够，换 32B 再试」。旁证在
-[`docs/w4-intent-strata.md`](docs/w4-intent-strata.md)：每条保留下来的意图里，信息词在
-页面（标题 + 正文）上完全不出现的比例，正文正常的页面是 21.3%，**正文贫瘠的页面是
-62.4%**。H 的叙事是「页面说不清自己时，意图补上了缺的信息」；这张表说的是反的——
-**页面说不清自己时，模型不是在补，是在编。**
+**这对读这个仓库里数字的人意味着什么：**指标级的结论可以搬到 karakeep 富集的库上；
+名次级的结论不行，除非那个库先用 facetmark 自己的富集重新索引过一遍。
 
-意图抽取的代码**没有删**，仍在索引流程里。被否掉的是「把它当成一个独立的平权检索面」
-这个用法。
+### 衰减层在默认档里够不着
+
+这是解释往返结果时顺带发现的。RRF 的分数是 `sum_f w_f / (k + rank_f)`；`rrf_k = 60` 时
+单个单位权重的面最高只能给到 `1/61 = 0.016393`。而 `decay_rescue_threshold` 出厂值是
+`0.02`。默认档 `full` 恰好是**单面**配置，于是 `hot_top_score < rescue_threshold`
+**恒成立**，救援阀每次都开，它守着的降权一次也没执行过。`fused` 不受影响（两个面就有
+0.0279）。
+
+`tests/test_decay_reach.py` 把现状钉住了。**故意没有顺手改掉**：动阈值或动 `rrf_k` 会
+改变每一条查询的默认排序，按这个项目的规矩得先有查询集和预注册判据。已经写进
+[`ROADMAP.md`](ROADMAP.md)。
 
 ### 一次真实导出上的跑通
 
-上面每一个数字都来自生成语料。[`docs/real-library-demo.md`](docs/real-library-demo.md)
-是唯一一次在**真人真实导出**上跑出厂路径：1,701 条书签、96 个文件夹、1,513 个域名、
-92.8% 中文标题，只有标题、零抓取。**那里没有任何分数**——别人的书签没有标准答案——但
-1.3.0 那次回退在里面看得见：库里有一条书签的标题就叫「中国2025日历」，搜 `2025 日历`，
-1.2.0 的默认把这个年份读成归档日期，把它从第 1 名压到第 3 名，顶上来一个不相干的日落
-时间查询工具。
-
-想复现上面任何一个数字：`facetmark eval --rungs A,A_gatedctx`，冻结的查询集在
-`eval/queries/` 下。
+`favorites_2026_8_4.html`，1.7 MB，96 个文件夹，最深 4 层：解析 1,710 → 入库 1,701，
+合并重复 9 条，不可索引 1 条。在不抓正文的情况下索引：322 个会话、9,132 条边、1,386 个
+域名、1,775 条向量。那台机器上查询中位延迟 2,265 ms。细节见
+[`docs/real-library-demo.md`](docs/real-library-demo.md)。
 
 ## 拿它当 karakeep 的搜索引擎
 
-[karakeep](https://github.com/karakeep-app/karakeep) 已经把检索**周边**的东西全做完了：
-浏览器扩展、手机 App、无头 Chrome 抓取加正文抽取、资源归档、多用户、自动打标、Web UI、
-Docker / Helm 部署。而**它的排序是一个插件**，接口只有四个方法。facetmark 实现了这个
-接口，于是分工就很清楚：**karakeep 做产品，facetmark 做排序。**
+[karakeep](https://github.com/karakeep-app/karakeep) 是一个自托管的书签管理器，带一个
+搜索提供方插件接口。facetmark 实现了这个接口，于是存储、同步、界面继续归 karakeep，
+facetmark 只负责回答查询。
 
 ```bash
-facetmark serve && facetmark token                      # 打印配对令牌
-cp -r integrations/karakeep/search-facetmark <karakeep>/packages/plugins/
+cp -r integrations/karakeep/search-facetmark \
+      /path/to/karakeep/packages/plugins/search-facetmark
 # 在 packages/plugins/package.json 的 exports 里加一行：
 #   "./search-facetmark": "./search-facetmark/index.ts"
 # 在 packages/shared-server/src/plugins.ts 的 loadAllPlugins() 里加一行：
 #   await import("@karakeep/plugins/search-facetmark");
 #   位置必须在 meilisearch 那行之后——PluginManager 交出的是最后注册的那个
-export FACETMARK_URL=http://127.0.0.1:8787 FACETMARK_TOKEN=<token>
+export FACETMARK_URL=http://127.0.0.1:8787
+export FACETMARK_TOKEN=...
 ```
 
-然后在 karakeep 里触发一次重建索引，它会把每一条书签经 `addDocuments` 推过来。**不读它
-的数据库，不耦合它的 schema。** karakeep 抓好的正文会跟着一起进来，正好跳过第一次建索引
-最慢的那一步。
+然后 `facetmark serve`，karakeep 的搜索框就是 facetmark 了。
 
-顺带买到的最有价值的东西：`POST /karakeep/search` 接受 `config` 参数，所以**消融可以在
-一个真实 karakeep 库上跑**，而不是只能在生成语料上跑。上面每一个数字都来自生成查询集，
-这是第一条能拿真实使用去校验它们的路径。
+这个插件每次 push 都会对着 karakeep 的**真实接口**做类型检查：上游的
+`packages/shared/search.ts` 和 `packages/shared/plugins.ts` 按 blob SHA 钉在
+`integrations/karakeep/typecheck/upstream-pins.json` 里，CI 拿它们跑 `tsc --noEmit`。
+仍然没有测的是一个真正跑起来的 karakeep 实例。
 
-装法、逐字段映射、以及它诚实的短板（主要是多用户过滤发生在排序**之后**）都写在
-[`docs/karakeep.md`](docs/karakeep.md)。
+依赖这条路之前请先读 [`docs/karakeep.md`](docs/karakeep.md)：里面写了字段映射、哪些东西
+不保真，以及富集的归属规则——桥接是**认领**一行富集，它从不覆盖真实模型写下的那一行。
 
-TypeScript 那一侧**有类型检查，没有集成测试**。CI 拿 karakeep 那两个接口模块的手写
-`.d.ts` 去编译插件，`.d.ts` 按 git blob SHA 钉在上游，所以四个方法确实满足
-`SearchIndexClient`。但这些 `.d.ts` 是不是还和上游一致，是另一个问题、另一个失败模式，
-放在每周一次的独立 job 里——上游动了不该让别人的 PR 变红，而在它们过期期间，`tsc` 会
-一直绿着对一份已经不存在的契约编译。另外，**没有任何东西验证这个插件发出的 JSON 就是
-Python 测试解析的那个 JSON**，那需要两个进程同时跑，本仓库做不到。
+## 数据模型
 
-**这条路线同时意味着这个项目不再自己造扩展、抓取器和 UI。** 那三样 karakeep 已经做得
-更好了。
+一个 SQLite 文件。你比较可能直接查的那些表：
 
-## 命令
+| 表 | 存什么 |
+|---|---|
+| `bookmark` | url、title、folder、date_added、open_count、source |
+| `content` | body_text、body_hash、char_count、lang、extractor、http_status |
+| `enrichment` | summary、topics、entities、key_points、model、source_hash |
+| `intent` | 生成的查询、是否保留、回捞检查里的名次 |
+| `vec_content` / `vec_intent` | 嵌入，按书签索引 |
+| `fts_tri` / `fts_seg` | 覆盖 title / body / summary / extra 的 FTS5 索引 |
+| `session` / `bookmark_session` | 保存爆发聚出来的会话及其成员 |
+| `edge` | `(src, dst, kind, weight)`；kind 有 session、semantic、same_domain、supersession |
+| `health` | 每个 URL 历次判定：ok、gone、drifted、soft_gone |
+| `karakeep_doc` | 按需创建；卸载桥接就是把它 drop 掉 |
 
-```
-facetmark import [PATH]       Netscape HTML 或 Chrome JSON；不给 PATH 就读浏览器配置目录
-facetmark browsers            列出能导入的本机浏览器配置
-facetmark index [--no-fetch]  抓取、富集、嵌入、意图过滤、切会话、建边
-facetmark reindex             全部重建，保留书签本身
-facetmark search QUERY        终端里搜（--config 指定档位，--explain 看每一分从哪来）
-facetmark show ID             单条书签的四个面和健康状态
-facetmark sessions            重建出来的保存会话，最新的在前
-facetmark health [--check]    链接健康汇总，或者跑一轮探测
-facetmark stats               索引规模与覆盖率
-facetmark serve               本地 HTTP 服务，给扩展和集成用
-facetmark mcp                 stdio 上的 MCP server，给 Claude Desktop 之类的客户端
-facetmark token [--rotate]    扩展配对用的令牌
-facetmark demo / eval         离线合成语料，和 A–E 消融台
-```
+`enrichment.source_hash` 是决定一页要不要重新富集的指纹。值 `'karakeep'` 是保留值，意思
+是「这行属于桥接，可以随便覆盖」；其他任何值都意味着是真实模型写的，桥接必须放手。
+
+## 排错
+
+**`Dimension mismatch: expected 1024, received 1536`**——库里的向量和
+`FACETMARK_EMBED_DIM` 对不上。要么把维度改回去，要么带 `--force` 重新嵌入。
+
+**`base_url` 报错 / 每个调用都 404**——地址必须以 `/v1` 结尾。只给
+`https://host/` 的网关会在 `/chat/completions` 上 404。
+
+**富集悄无声息什么都没干**——`enrich.targets()` 在 `source_hash` 已经等于正文哈希时会
+跳过这一行。用 `facetmark enrich --force`。
+
+**某一页有向量但结果很差**——就是上面说的那种失效模式。`facetmark embed --force`
+会按当前文本重建。
+
+**打开数据库报 `disk I/O error`**——SQLite 在某些网络盘和 FUSE 文件系统上跑不了。
+先把文件拷到本地盘。
+
+**抓取被挡**——facetmark 是**故意**遵守 `robots.txt` 和分域名限速的。调低
+`FETCH_CONCURRENCY`，或者接受有些页面就是没有正文；流水线对没有正文的页面会回落到
+只用标题的指纹，不会卡住。
+
+## 常见问题
+
+**它会上传我的书签吗？** 不会。全部网络流量只有两处：抓页面，和你自己配的模型端点。
+如果 `EMBED_BACKEND=local` 且不配 `API_KEY`，除了抓页面之外一点网络都不走。
+
+**它会改我浏览器里的书签吗？** 永远不会。导入是单向只读的。
+
+**完全不用大模型能用吗？** 能，功能会退化：词面和会话/域名图完全不需要模型。你会失去
+内容面和意图面。
+
+**索引要花多少钱？** 主要成本在富集：大约每页一次小的对话调用。1,700 页用
+`gpt-4o-mini` 是几分钱的量级。嵌入更便宜，用本地模型就是免费。
+
+**为什么在我的库上这么慢？** 几乎总是抓取。不抓正文的话 `facetmark index` 是分钟级；
+带抓取的话瓶颈是礼貌性限速，不是 CPU。
+
+**为什么默认档只用一个面？** 因为四面融合在 479 条真实查询上测出来**比**单独的内容面
+**更差**，而这个项目发布的是数字说的话，不是架构图说的话。
 
 ## 这个项目守的边界
 
-**从不修改你的书签。** facetmark 读浏览器的导出或配置目录，只写自己那个 SQLite 文件。
-一个会改写你书签的工具，是一个你没法安全卸载的工具。
-
-**从不删除任何东西。** 链接健康只报告，不清理。死链留在库里、继续可搜，「墓地」端点存在
-是为了让 UI 能**提供**一个清理视图，绝不是为了让清理自动发生。本地探测失败永远不足以判定
-「页面已死」——从一个 socket 看过去，**被墙和被删长得一模一样**。
-
-**抓取默认是礼貌的。** 遵守 `robots.txt`，单主机两个并发、之间至少隔 0.5 秒，User-Agent
-如实标明工具身份，`Crawl-delay` 最多认到 5 秒。抓你自己存的页面，流量仍然落在别人的服务器
-上；默认值假设你宁可慢一点也不愿意做个混蛋。
-
-**只有意图面会把正文发出去**，而且只发到你自己配的那个端点。设
-`FACETMARK_EMBED_BACKEND=local` 并跳过 `index` 的富集步骤，就能让全部数据留在本机。
-
-**本地服务是令牌配对的。** `facetmark serve` 只绑 127.0.0.1 并生成一个配对令牌，除 `/`
-和 `/health` 外每一条路由都要它。`facetmark token --rotate` 让旧令牌立即失效。
+- **对浏览器只读。** 导入从不写回。
+- **什么都不删。** 冷层只降权，不归档、不移除。
+- **本地优先。** 一个 SQLite 文件，可以拷走，可以用 `sqlite3` 直接看。
+- **默认礼貌。** `robots.txt`、分域名限速、真实 UA。
+- **没有协议就没有数字。** 这份 README 里的每一个结果都有一条在测量之前写下的预注册
+  判据，而且失败结果和成功结果放在同样显眼的位置。
+- **没有查询集就不改默认。** 包括上面列的两个已知缺陷。
 
 ## 目录结构
 
 ```
 src/facetmark/
-  db.py normalize.py text.py sessions.py edges.py providers.py config.py
-  importers/   Netscape HTML + Chrome JSON，时间戳单位自动判定
-  fetch/       双通道抓取、三级正文抽取、浏览器兜底队列
-  enrich/      摘要、doc2query 意图、自洽性过滤、向量
-  search/      查询理解、逐面召回、RRF、上下文、图扩展、衰减、重排
-  health/      本地探测、外部交叉验证、综合判定、只追加的存储
-  bridges/     别的应用的插件契约（karakeep）
-  eval/        合成语料 + A–E 消融台，带 bootstrap 置信区间
-  service.py api.py mcp_server.py cli.py
-integrations/  karakeep 搜索插件，以及 CI 用来类型检查它的接口存根与 SHA 锚点
-extension/     MV3，TypeScript，esbuild——还停在 1.0.0；CI 会构建并测试它
-eval/queries/  冻结的查询集：W1 真实库、W2/W3 留出集、门控精确率探针
-docs/          一次实验一份文档，包括失败的那些
-scripts/       语料生成、判定脚本、处置表
+  cli.py  api.py  service.py  config.py  db.py  text.py
+  import_/     浏览器 HTML 与 JSON 解析、URL 归一化
+  fetch/       礼貌抓取、robots、正文抽取、落库
+  enrich/      摘要/主题/实体、意图、嵌入文本构造
+  graph/       会话、边、取代关系
+  search/      词面、向量、rrf、上下文、图扩展、衰减、重排、pipeline
+  bridges/     karakeep 推拉桥接
+  web/         `facetmark serve` 提供的单页界面
+integrations/karakeep/    TypeScript 插件 + 上游类型钉
+extension/                浏览器扩展（打开次数遥测）
+eval/                     查询集与评测框架
+scripts/                  实验驱动与探针
+docs/                     一个实验一份文档，协议在前
+tests/                    1090 条测试
 ```
+
+## 参与贡献
+
+欢迎 issue 和 PR。先说三件事：
+
+1. **改检索质量要先有协议。** 如果一个改动会移动默认排序，请先开一个
+   `retrieval-proposal` issue，把假设、查询集、判据写在**测量之前**。模板在
+   `.github/ISSUE_TEMPLATE/` 里。
+2. **跑 `pytest -q` 和 `ruff check src tests scripts`。** 不要跑 `ruff format`，
+   这份代码是手工排版的。
+3. **负面结果也是贡献。** 一条测出来的「这个没用」，在这里比一条没测过的改进更值钱。
+
+见 [CONTRIBUTING.md](CONTRIBUTING.md)、[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)、
+[SECURITY.md](SECURITY.md)。要引用这份工作见 [CITATION.cff](CITATION.cff)。
 
 ## 项目状态
 
-**没做完的东西和为什么没做，全部写在 [`ROADMAP.md`](ROADMAP.md) 里。** 简短版：W1 和 W4
-都跑完了，两个都是负面结果；W2/W3 的六个开关在一批全新的 616 条查询上判过了；唯一改了
-默认值的那一个后来又被一批对抗性探针推翻、默认值退回。**融合本身仍然没有修好。**
+能用，而且对自己做不到的事情很诚实。检索内核、CLI、服务端、Web 界面、karakeep 桥接、
+评测框架都能跑；上面所有数字都能从 `scripts/` 和 `eval/` 复现。
 
-贡献规则见 [`CONTRIBUTING.md`](CONTRIBUTING.md)，信任边界见 [`SECURITY.md`](SECURITY.md)，
-版本历史（包括每一个默认值为什么改）见 [`CHANGELOG.md`](CHANGELOG.md)。
+已知的未了事项，全部写出来而不是藏起来：衰减层在默认档里够不着；意图面默认关闭而且原因
+是理念性的；karakeep 桥接还没有对着一个活的 karakeep 实例测过；而最大的缺口是一份**由
+作者之外的人**构造的查询集。见 [ROADMAP.md](ROADMAP.md) 和 [CHANGELOG.md](CHANGELOG.md)。
 
 ## License
 
-MIT。
+MIT。见 [LICENSE](LICENSE)。

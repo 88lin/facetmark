@@ -85,18 +85,32 @@ facetmark 这边按批入库并逐批算向量。不需要读 karakeep 的数据
 
 | 路由 | 对应 | 返回 |
 |---|---|---|
-| `POST /karakeep/documents` | `addDocuments` | `received / stored / created / updated / embedded / created_at_missing / embed_error` |
+| `POST /karakeep/documents` | `addDocuments` | `received / stored / created / updated / kept_enrichment / embedded / created_at_missing / embed_error` |
 | `POST /karakeep/documents/delete` | `deleteDocuments` | `requested / removed / kept_not_ours` |
 | `POST /karakeep/search` | `search` | `hits[{id,score}] / totalHits / processingTimeMs / engine / truncated` |
 | `POST /karakeep/clear` | `clearIndex` | `purged_bookmarks / cleared_mappings` |
 | `GET /karakeep/stats` | 无（诊断用） | `documents / users / with_body` |
 
-`/karakeep/search` 多接一个 `config` 参数，取 `full`、`A`–`E` 或任意消融档名——也就是说
-**可以在真实的 karakeep 库上跑消融**，而不是只能在生成的语料上跑。这是这次集成顺带买到
-的最有价值的东西：所有已有的数字都来自生成的查询集，这条路第一次让真人真库的对比成为
-可能。
+`/karakeep/search` 多接一个 `config` 参数，取 `full`、`A`–`E` 或任意消融档名。
+
+> **这条曾经被写成「可以在真实的 karakeep 库上跑消融」。往返实验把它证伪了，这里按
+> 协议撤回。** 616 条留出集、2,376 篇真实书签推过去再拉回来：读取路径本身没问题
+> （1,232 次 HTTP 与原生逐条比对，0 处不一致），指标级结论也搬得过去
+> （ΔRecall@5 = −0.81pp，CI95 [−2.44, +0.81]）。搬不过去的是**名次级**比较——
+> top-1 一致率只有 79.06%，因为 karakeep 富集出来的是文件夹标签而不是逐页主题，
+> 关键词行的词汇量从 19,016 掉到 13。凡是结论取决于「谁排第一」的消融，在 karakeep
+> 富集的库上都不成立，除非先跑一次 `facetmark index` 用本包自己的富集重建。
+> 完整链条见 [`karakeep-roundtrip.md`](karakeep-roundtrip.md)。
 
 ## 字段映射，以及它不保真的地方
+
+`summary` + `tags` 写进 `enrichment.summary` / `enrichment.topics` 时是**认领而不是
+覆盖**：只有这一行本来就不存在，或者本来就是这个桥接自己写的（`source_hash='karakeep'`），
+才会写下去；否则原样保留，并在返回里计入 `kept_enrichment`。这不是洁癖——旧代码在这里
+有一个静默降级：它更新 `summary`/`topics`/`model` 却不动 `source_hash`，于是
+`enrich.targets()` 认为这行「没变过」而**永久跳过**，而向量那边指纹已经变了，会拿更差的
+文本重建。结果是一个不报错、不可逆（除非 `--force`）、报告里也看不出来的质量下降。
+
 
 | karakeep | facetmark | 说明 |
 |---|---|---|
@@ -136,8 +150,9 @@ facetmark 的索引没有用户分区。`userId` 存在映射表里，**排序�
 
 ## 测到什么程度
 
-- **Python 侧**：40 条测试。`tests/test_karakeep_bridge.py` 34 条盖映射、时间戳解析、
-  过滤器拆分、认领、删除边界、时序浏览、分页、上限钳制；`tests/test_api.py` 里
+- **Python 侧**：44 条测试。`tests/test_karakeep_bridge.py` 38 条盖映射、时间戳解析、
+  过滤器拆分、认领、删除边界、外来富集不被覆盖、时序浏览、分页、上限钳制；
+  `tests/test_api.py` 里
   `TestKarakeepRoutes` 6 条盖四个路由的鉴权、往返、未知档位拒绝、`limit` 超限。
 - **TypeScript 侧：类型检查有，集成测试没有。** `integrations/karakeep/typecheck/`
   里放着 karakeep 那两个接口模块（`packages/shared/search.ts`、

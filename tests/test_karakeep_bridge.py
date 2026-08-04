@@ -45,6 +45,32 @@ DOCS = [
 ]
 
 
+def _library_with_a_real_enrichment():
+    """One page, already crawled and already enriched by a model."""
+    conn = open_db(":memory:")
+    from facetmark.normalize import normalize_url
+
+    nu = normalize_url("https://example.com/e")
+    conn.execute(
+        "INSERT INTO bookmark(id,url,url_norm,url_hash,title,source,date_added,"
+        "created_at,updated_at) VALUES(1,?,?,?,'from browser','netscape_html',1,1,1)",
+        (nu.original, nu.normalized, nu.hash),
+    )
+    conn.execute(
+        "INSERT INTO content(bookmark_id, body_text, body_hash, char_count)"
+        " VALUES(1,'the real article text','body-hash-1',21)"
+    )
+    conn.execute(
+        "INSERT INTO enrichment(bookmark_id, summary, key_points, entities, topics,"
+        " utility, content_type, source_hash, model, created_at)"
+        " VALUES(1,'A model wrote this.','[]','[\"Postgres\"]',"
+        "'[\"indexing\", \"storage engines\"]','reference','article','body-hash-1',"
+        "'qwen2.5-3b-instruct',1)"
+    )
+    conn.commit()
+    return conn, 1
+
+
 @pytest.fixture
 async def bridged(mock_settings):
     conn = open_db(":memory:")
@@ -165,6 +191,90 @@ class TestAddDocuments:
         assert conn.execute(
             "SELECT bookmark_id FROM karakeep_doc WHERE karakeep_id='kk-x'"
         ).fetchone()["bookmark_id"] == 1
+
+    async def test_a_model_written_enrichment_survives_a_karakeep_push(self, mock_settings):
+        """The regression that motivated ``kept_enrichment``.
+
+        The bridge used to overwrite ``enrichment.summary`` and ``topics``
+        unconditionally while leaving ``source_hash`` alone. On a page a real
+        model had already enriched, that swapped a summary for a tag list,
+        rebuilt the content vector from the worse text, and left
+        ``source_hash`` still equal to the body hash -- so ``facetmark index``
+        considered the row current and would never repair it. Silent,
+        permanent, and reported as a routine update.
+        """
+        conn, bid = _library_with_a_real_enrichment()
+        rep = await kk.add_documents(
+            conn,
+            [{"id": "kk-e", "url": "https://example.com/e", "title": "from karakeep",
+              "summary": "karakeep blurb", "tags": ["工具"]}],
+            provider=MockProvider(mock_settings), settings=mock_settings,
+        )
+        assert rep["kept_enrichment"] == 1
+        row = conn.execute(
+            "SELECT summary, topics, entities, model, source_hash FROM enrichment"
+            " WHERE bookmark_id=?", (bid,)
+        ).fetchone()
+        assert row["summary"] == "A model wrote this."
+        assert row["topics"] == '["indexing", "storage engines"]'
+        assert row["entities"] == '["Postgres"]'
+        assert row["model"] == "qwen2.5-3b-instruct"
+        assert row["source_hash"] == "body-hash-1"
+
+    async def test_a_kept_enrichment_is_what_stays_in_the_lexical_index(self, mock_settings):
+        """Keeping the row but indexing karakeep's words would be half a fix."""
+        conn, bid = _library_with_a_real_enrichment()
+        await kk.add_documents(
+            conn,
+            [{"id": "kk-e", "url": "https://example.com/e", "title": "from karakeep",
+              "summary": "karakeep blurb", "tags": ["工具"]}],
+            provider=MockProvider(mock_settings), settings=mock_settings,
+        )
+        extra, summary = conn.execute(
+            "SELECT extra, summary FROM fts_tri WHERE rowid=?", (bid,)
+        ).fetchone()
+        assert "storage engines" in extra
+        assert "工具" not in extra
+        assert summary == "A model wrote this."
+
+    async def test_the_bridges_own_enrichment_is_still_updated_in_place(self, mock_settings):
+        """Claiming must not mean freezing: karakeep still owns its own rows."""
+        conn = open_db(":memory:")
+        doc = {"id": "kk-1", "url": "https://example.com/a", "title": "A",
+               "summary": "first", "tags": ["one"]}
+        await kk.add_documents(conn, [doc], provider=MockProvider(mock_settings),
+                               settings=mock_settings)
+        rep = await kk.add_documents(
+            conn, [{**doc, "summary": "second", "tags": ["two"]}],
+            provider=MockProvider(mock_settings), settings=mock_settings,
+        )
+        assert rep["kept_enrichment"] == 0
+        row = conn.execute(
+            "SELECT summary, topics, source_hash FROM enrichment").fetchone()
+        assert row["summary"] == "second"
+        assert row["topics"] == '["two"]'
+        assert row["source_hash"] == "karakeep"
+
+    async def test_bridge_written_rows_stay_visible_to_re_enrichment(self, bridged):
+        """The remedy the docs recommend has to have something to pick up.
+
+        ``enrich.targets`` skips a row whose ``source_hash`` equals the body
+        hash. The bridge writes the literal string ``karakeep``, which can
+        equal neither a body hash nor a title hash, so every bridged page is
+        offered to ``facetmark index``. Measured on the round-trip library:
+        2376 of 2376 picked up, 0 skipped.
+        """
+        from facetmark.enrich.pipeline import targets
+
+        conn, _, _, _ = bridged
+        assert conn.execute(
+            "SELECT COUNT(*) n FROM enrichment WHERE source_hash!='karakeep'"
+        ).fetchone()["n"] == 0
+        picked = {t.bookmark_id for t in targets(conn, force=False)}
+        stored = {
+            r["bookmark_id"] for r in conn.execute("SELECT bookmark_id FROM enrichment")
+        }
+        assert stored and stored <= picked
 
     async def test_no_provider_stores_rows_and_reports_zero_vectors(self, mock_settings):
         """Degraded visibly: the rows are there, the report says embedded 0."""

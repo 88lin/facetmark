@@ -1,0 +1,41 @@
+cff-version: 1.2.0
+title: >-
+  facetmark: measured multi-facet bookmark retrieval over a local SQLite
+  library
+message: >-
+  If you use this software or its published measurements, please cite it using
+  these metadata.
+type: software
+authors:
+  - alias: 88lin
+    website: 'https://github.com/88lin'
+repository-code: 'https://github.com/88lin/facetmark'
+url: 'https://github.com/88lin/facetmark'
+abstract: >-
+  facetmark indexes a personal bookmark library along four retrieval facets --
+  lexical (FTS5 trigram and word-segment), content embeddings, model-generated
+  intents filtered by a retrieve-back check, and save-session/graph context --
+  fuses them with reciprocal rank fusion, and then measures whether each facet
+  was worth adding. Every default ships from a pre-registered protocol with a
+  criterion written before the measurement, and the negative results are
+  published with the same prominence as the positive ones: four-facet fusion
+  measured worse than the single content facet on 479 real queries, a gated
+  context multiplier was shipped and then reverted after a targeted 361-query
+  probe measured -18.83pp Recall@5 when the gate fires, the intent facet was
+  demoted after a human read found only 38% of generated intents plausible, and
+  a pre-registered karakeep round-trip returned roundtrip_unfaithful on
+  list-level fidelity. The system runs entirely locally against a single SQLite
+  file and never writes back to the browser's bookmark store.
+keywords:
+  - information retrieval
+  - bookmark management
+  - reciprocal rank fusion
+  - embeddings
+  - evaluation
+  - negative results
+  - pre-registration
+  - sqlite
+  - karakeep
+license: MIT
+version: 1.4.0
+date-released: '2026-08-04'

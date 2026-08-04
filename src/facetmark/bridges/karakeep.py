@@ -31,10 +31,16 @@ What the mapping does and does not preserve
   facetmark's folder-peer context feature reads. It is a real approximation, not
   an identity: a page with five tags looks like a deeply nested folder path.
 * ``summary`` and ``tags`` are written to ``enrichment`` so both the lexical
-  index and the content vector see them. facetmark's own intent facet -- the
-  "why did I save this" queries -- is *not* populated by this bridge. Run
-  ``facetmark index`` afterwards if you want it; it will reuse karakeep's body
-  text and only pay for the LLM calls.
+  index and the content vector see them -- but only on pages this bridge owns.
+  A page that already carries an enrichment written by a real model keeps it,
+  and the batch reports that as ``kept_enrichment``. Substituting a tag list
+  for a model summary changes the text facet 1 embeds, and the round-trip
+  experiment measured what that costs: it changed 100% of embedded texts and
+  flipped 20.9% of top-1 results. facetmark's own intent facet -- the "why did
+  I save this" queries -- is *not* populated by this bridge. Run ``facetmark
+  index`` afterwards if you want it; it will reuse karakeep's body text, will
+  not re-request pages karakeep already gave bodies for, and only pays for the
+  LLM calls.
 * ``createdAt`` becomes ``date_added``, which is what time decay and session
   reconstruction read. karakeep sends ISO 8601; anything unparseable falls back
   to now, and the count of those fallbacks is reported rather than swallowed.
@@ -59,7 +65,7 @@ from datetime import datetime
 from typing import Any
 
 from ..config import Settings, get_settings
-from ..db import jdump, now
+from ..db import jdump, jload, now
 from ..enrich.vectors import embed_content
 from ..fetch.store import store_body
 from ..normalize import normalize_url, registrable_domain
@@ -172,8 +178,13 @@ class KarakeepDoc:
 
 def _upsert_one(
     conn: sqlite3.Connection, doc: KarakeepDoc, *, settings: Settings
-) -> tuple[int, bool]:
-    """Insert or update one document. Returns ``(bookmark_id, created)``."""
+) -> tuple[int, bool, bool]:
+    """Insert or update one document.
+
+    Returns ``(bookmark_id, created, kept_enrichment)``, where the last flag
+    means the page already carried an enrichment this bridge did not write and
+    that enrichment was left alone.
+    """
     nu = normalize_url(doc.url or f"karakeep://{doc.id}")
     ts = doc.created_at if doc.created_at is not None else now()
     row = conn.execute(
@@ -216,18 +227,51 @@ def _upsert_one(
     if body:
         store_body(conn, bid, body=body, title=doc.display_title,
                    extractor="karakeep", channel="k")
-    if doc.summary or doc.tags:
+
+    # Enrichment is claimed, never clobbered -- the same rule ``source`` and
+    # ``delete_documents`` already follow, and for a sharper reason here.
+    # karakeep's tag list is a coarser signal than a model-written enrichment,
+    # and overwriting with it is a downgrade that ``facetmark index`` cannot
+    # undo: the old UPDATE left ``source_hash`` matching the body hash, so
+    # re-enrichment saw the row as current and skipped it forever. Meanwhile
+    # the content vector *was* rebuilt, from the worse text. A page could
+    # therefore lose its summary permanently and get a quietly worse vector,
+    # from a sync that reported nothing unusual.
+    #
+    # The round-trip experiment measured what that substitution costs even in
+    # the benign direction (bridge-written topics displacing model topics
+    # changed 100% of embedded texts and flipped 20.9% of top-1 results);
+    # doing it to a library the user already enriched is the malignant one.
+    existing = conn.execute(
+        "SELECT source_hash, summary, topics, entities, key_points"
+        " FROM enrichment WHERE bookmark_id=?", (bid,)
+    ).fetchone()
+    kept_enrichment = existing is not None and existing["source_hash"] != "karakeep"
+    if not kept_enrichment and (doc.summary or doc.tags):
         conn.execute(
             "INSERT INTO enrichment(bookmark_id, summary, key_points, entities, topics,"
             " utility, content_type, source_hash, model, created_at)"
             " VALUES(?,?,'[]','[]',?,'', '', 'karakeep', 'karakeep', ?)"
             " ON CONFLICT(bookmark_id) DO UPDATE SET summary=excluded.summary,"
-            " topics=excluded.topics, model='karakeep', created_at=excluded.created_at",
+            " topics=excluded.topics, source_hash='karakeep', model='karakeep',"
+            " created_at=excluded.created_at",
             (bid, doc.summary, jdump(doc.tags), now()),
         )
-    sync_fts(conn, bid, title=doc.display_title, body=body,
-             summary=doc.summary, topics=doc.tags,
-             entities=[e for e in (doc.author, doc.publisher) if e])
+        existing = None
+
+    # The lexical rows mirror whatever the enrichment table actually holds, so
+    # a kept enrichment stays searchable by its own words rather than by
+    # karakeep's.
+    if kept_enrichment:
+        sync_fts(conn, bid, title=doc.display_title, body=body,
+                 summary=existing["summary"] or "",
+                 topics=jload(existing["topics"], []),
+                 entities=jload(existing["entities"], []),
+                 key_points=jload(existing["key_points"], []))
+    else:
+        sync_fts(conn, bid, title=doc.display_title, body=body,
+                 summary=doc.summary, topics=doc.tags,
+                 entities=[e for e in (doc.author, doc.publisher) if e])
     conn.execute(
         "INSERT INTO karakeep_doc(karakeep_id, user_id, bookmark_id, updated_at)"
         " VALUES(?,?,?,?) ON CONFLICT(karakeep_id) DO UPDATE SET"
@@ -235,7 +279,7 @@ def _upsert_one(
         " updated_at=excluded.updated_at",
         (doc.id, doc.user_id, bid, now()),
     )
-    return bid, created
+    return bid, created, kept_enrichment
 
 
 async def add_documents(
@@ -259,10 +303,12 @@ async def add_documents(
     docs = [KarakeepDoc.from_dict(d) for d in documents if str(d.get("id", "")).strip()]
     ids: list[int] = []
     created = 0
+    kept_enrichment = 0
     for doc in docs:
-        bid, was_new = _upsert_one(conn, doc, settings=st)
+        bid, was_new, kept = _upsert_one(conn, doc, settings=st)
         ids.append(bid)
         created += int(was_new)
+        kept_enrichment += int(kept)
     conn.commit()
 
     embedded = 0
@@ -280,6 +326,10 @@ async def add_documents(
         "created": created,
         "updated": len(docs) - created,
         "embedded": embedded,
+        #: Pages whose existing, model-written enrichment was left in place.
+        #: A number that climbs means karakeep is syncing over a library
+        #: facetmark already understands, which is the good case, not an error.
+        "kept_enrichment": kept_enrichment,
         "created_at_missing": sum(1 for d in docs if d.created_at_missing),
         "embed_error": error,
     }
