@@ -110,6 +110,35 @@ def slice_delta(a: list[Outcome], b: list[Outcome], idx: list[int], *,
     }
 
 
+def window_holds_target(db: str | None, probes: list[dict],
+                        now_ts: int | None) -> list[bool | None]:
+    """Whether each probe's resolved window contains the target's own save time.
+
+    The probe is only adversarial when it does *not*. A year probe can never
+    contain it -- the protocol requires the content year to differ from the
+    save year -- but a relative-time probe resolves against *now*, and a
+    bookmark saved recently can legitimately fall inside "last year". For
+    those the gate is not making a mistake, so they dilute the primary delta.
+    Reported, never subtracted.
+    """
+    if not db:
+        return [None] * len(probes)
+    conn = sqlite3.connect(db)
+    try:
+        out: list[bool | None] = []
+        for p in probes:
+            row = conn.execute("SELECT date_added FROM bookmark WHERE url = ?",
+                               (p["target_url"],)).fetchone()
+            win = classify(p["text"], now_ts=now_ts).time_window
+            if row is None or row[0] is None or win is None:
+                out.append(None)
+            else:
+                out.append(bool(win[0] <= int(row[0]) <= win[1]))
+        return out
+    finally:
+        conn.close()
+
+
 def verdict_for(point: float, lo: float, hi: float) -> dict:
     """The protocol's three-row table, plus the row it does not have.
 
@@ -210,6 +239,13 @@ def main() -> None:
         if idx:
             by_distance[name] = slice_delta(a, b, idx, resamples=args.bootstrap)
 
+    holds = window_holds_target(args.db, probes, now_ts)
+    by_window = {}
+    for flag, name in ((False, "window_wrong"), (True, "window_holds_target")):
+        idx = [i for i in range(n) if holds[i] is flag]
+        if idx:
+            by_window[name] = slice_delta(a, b, idx, resamples=args.bootstrap)
+
     out = {
         "protocol": "docs/gate-precision-protocol.md",
         "source": args.report,
@@ -232,6 +268,12 @@ def main() -> None:
             "not_fired_subset": quiet,
             "by_subtype": by_subtype,
             "by_year_distance": by_distance,
+            "by_window_correctness": {
+                "rule": "window_wrong is the adversarial subset; "
+                        "window_holds_target is where the gate is right and so "
+                        "dilutes the primary delta",
+                **by_window,
+            },
         },
         "self_check": {
             "rule": "the two rungs differ only by the gate, so ΔR@5 on queries "
@@ -268,6 +310,10 @@ def main() -> None:
               f"mde {row['detectable_pp_at_80pct_power']}pp")
     for name, row in by_distance.items():
         print(f"  distance {name:5s} n={row['n']:3d} Δ {row['recall@5_pp']:+.2f} pp")
+    for name, row in by_window.items():
+        wlo, whi = row["ci95_pp"]
+        print(f"  {name:18s} n={row['n']:3d} Δ {row['recall@5_pp']:+.2f} pp "
+              f"CI95 [{wlo:+.2f}, {whi:+.2f}]")
     fs = out["secondary"]["fired_subset"]
     if fs.get("n"):
         print(f"  fired subset     n={fs['n']:3d} Δ {fs['recall@5_pp']:+.2f} pp "

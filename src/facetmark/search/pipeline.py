@@ -35,7 +35,12 @@ from .graph import Expansion, expand
 from .lexical import lexical_lists, lexical_lists_scored
 from .rerank import RerankDoc, Reranker, get_reranker, reorder
 from .rrf import DEFAULT_K, Fused, guarantee_bonus, rrf
-from .understand import QueryUnderstanding, classify, classify_assisted
+from .understand import (
+    QueryUnderstanding,
+    classify,
+    classify_assisted,
+    episodic_beyond_a_bare_year,
+)
 from .vectors import vector_lists, vector_lists_scored
 
 #: Per-facet fusion weights. Three of the four are 1.0 -- RRF's whole appeal is
@@ -106,6 +111,18 @@ class Config:
     #: wrong queries. Requires ``context=True`` to do anything. Also unshipped
     #: and unvalidated for the same reason as ``weight_overrides``.
     context_gate: bool = False
+    #: Which gate predicate ``context_gate`` means.
+    #:
+    #: 1 -- ``is_episodic``: any resolvable time expression opens the gate. This
+    #: is what 1.2.0 shipped, on evidence that only ever measured what the gate
+    #: does when it *should* fire.
+    #:
+    #: 2 -- :func:`~facetmark.search.understand.episodic_beyond_a_bare_year`: a
+    #: lone year no longer counts. Pre-registered in
+    #: ``docs/gate-precision-protocol.md`` §6 as the remedy if v1 failed its
+    #: precision test, which it did: -18.83pp Recall@5 on 361 probes whose year
+    #: belonged to the subject matter rather than to the filing date.
+    context_gate_version: int = 1
     #: CombMAX coefficient handed to :func:`~facetmark.search.rrf.rrf`. 0.0 --
     #: the shipped state -- leaves fusion bit-identical to plain RRF.
     #:
@@ -133,14 +150,20 @@ class Config:
         """Whether the contextual multiplier should run for this query."""
         if not self.context:
             return False
-        return understanding.is_episodic if self.context_gate else True
+        if not self.context_gate:
+            return True
+        if self.context_gate_version >= 2:
+            return episodic_beyond_a_bare_year(understanding)
+        return understanding.is_episodic
 
     def as_dict(self) -> dict:
         return {
             "name": self.name, "facets": sorted(self.facets), "context": self.context,
             "graph": self.graph, "rerank": self.rerank, "decay": self.decay,
             "weight_overrides": dict(self.weight_overrides),
-            "context_gate": self.context_gate, "abstain_margin": self.abstain_margin,
+            "context_gate": self.context_gate,
+            "context_gate_version": self.context_gate_version,
+            "abstain_margin": self.abstain_margin,
             "max_bonus": self.max_bonus,
         }
 
@@ -205,6 +228,15 @@ EXPLORATORY: dict[str, Config] = {
     "A_gatedctx": Config(
         "A_gatedctx", frozenset({"content"}), context=True, graph=True, context_gate=True
     ),
+    # A_gatedctx with the year clause narrowed. The remedy pre-registered in
+    # docs/gate-precision-protocol.md before the probe set existed: a bare year
+    # stops counting as a filing-date signal. Two tests to pass, both frozen in
+    # advance -- the -18.83pp probe-set cost has to go, and the +3.09pp W2/W3
+    # win has to survive.
+    "A_gatedctx_v2": Config(
+        "A_gatedctx_v2", frozenset({"content"}), context=True, graph=True,
+        context_gate=True, context_gate_version=2,
+    ),
     # D with the same gate: the full fusion stack, contextual multiplier
     # restricted to the queries it helped.
     "D_gated": Config(
@@ -264,25 +296,36 @@ FUSED = Config("fused", ALL_FACETS, context=True, graph=True, rerank=True, decay
 #:   quality lets a coincidence on a weak facet outvote confidence on a strong
 #:   one. Weighting is fixable, but it has to be fitted on queries that did not
 #:   suggest the fix, so it is W2 work.
-#: * ``context=True, context_gate=True`` -- the contextual multiplier is not a
-#:   small effect in either direction: +8.14pp on episodic queries and -9.94pp
-#:   on content queries (both p<0.001, A vs A_ctx on W1). Unconditionally on it
-#:   loses, so W1 shipped it off and left "gate it on the query looking
-#:   episodic" as a hypothesis. W2 judged that hypothesis on 616 queries that
-#:   played no part in forming it (``docs/gate-w2w3.md``): gated, the multiplier
-#:   is **+3.09pp of Recall@5 over plain A, CI95 [+1.79, +4.55], McNemar 19
-#:   won / 0 lost, p=3.8e-6** -- and the stratified pre-registration it had to
-#:   satisfy came out as designed, ``q_content`` +0.00pp CI95 [0.00, 0.00] and
-#:   ``q_episodic`` +8.48pp CI95 [+4.91, +12.05]. The -9.94pp is gone and the
-#:   +8.14pp survived, which is what the gate was for.
+#: * ``context=False`` -- the contextual multiplier is not a small effect in
+#:   either direction: +8.14pp on episodic queries and -9.94pp on content
+#:   queries (both p<0.001, A vs A_ctx on W1). Unconditionally on it loses, so
+#:   W1 shipped it off and left "gate it on the query looking episodic" as a
+#:   hypothesis. W2 judged that hypothesis on 616 queries that played no part in
+#:   forming it (``docs/gate-w2w3.md``) and it won: gated, +3.09pp over plain A,
+#:   CI95 [+1.79, +4.55], 19 won / 0 lost. 1.2.0 made it the default on that
+#:   evidence.
 #:
-#:   What is *not* established is the gate's precision. On that query set it
-#:   fired on 1 of 181 content queries and 0 of 211 vague ones, but the episodic
-#:   queries were built by inserting time phrases that this same classifier
-#:   could parse, so its agreement with the label is partly construction. A real
-#:   library asked "papers from 2015 about X" will trip it more often than 0.55%
-#:   of the time, and each such query pays the ungated penalty. See
-#:   ``docs/gate-w2w3.md`` §7.
+#:   1.3.0 takes it back out, because that evidence only ever measured the gate
+#:   on queries where it *should* fire. Its 0.55% false-positive rate was
+#:   measured on 181 content queries a generator had been instructed not to put
+#:   dates into. Asked instead for 361 topical queries whose time expression
+#:   belongs to the subject matter -- "2015年国际空间站咖啡机为什么那么贵" of a
+#:   page filed in 2026 -- the gate fires on **361 of 361** and costs
+#:   **-18.83pp of Recall@5, CI95 [-23.27, -14.68], 3 better / 71 worse**, with
+#:   Recall@1 falling from 0.801 to 0.363 (``docs/gate-precision.md``). On the
+#:   304 probes whose resolved window cannot contain the answer it is -22.37pp;
+#:   on the 57 where the window happens to be right it is +0.00pp, which is the
+#:   control that says this is the window being wrong and not the multiplier
+#:   being heavy.
+#:
+#:   The remedy for that was written down before the probe set existed and is
+#:   implemented as ``A_gatedctx_v2`` (``context_gate_version=2``): a bare year
+#:   stops counting as a filing-date signal. It does what it says -- the 197
+#:   probes it silences move 0.00pp with zero discordant pairs, and it keeps
+#:   +1.79pp CI95 [+0.81, +2.92] on the 616 -- but the residual -10.52pp from
+#:   ``time:relative``, a clause the pre-registered remedy deliberately did not
+#:   touch, fails the first of its two frozen bars. The protocol required both,
+#:   so the default reverts here rather than moving to v2.
 #: * ``graph=True`` -- the only mechanism in the study that is free. Expansion
 #:   never touches the ranked page, so every ranked metric is bit-identical to
 #:   plain A, and the second group finds the target in 2.09pp more queries
@@ -293,9 +336,7 @@ FUSED = Config("fused", ALL_FACETS, context=True, graph=True, rerank=True, decay
 #: * ``decay=True`` -- metabolism is deliberately outside the ladder; it is a
 #:   library-hygiene feature, and leaving it on during ablation would let a
 #:   cold-start corpus move the numbers for reasons unrelated to retrieval.
-FULL = Config(
-    "full", frozenset({"content"}), context=True, context_gate=True, graph=True, decay=True
-)
+FULL = Config("full", frozenset({"content"}), graph=True, decay=True)
 
 #: Named configurations that are neither ladder rungs nor complements: the thing
 #: that ships, and the thing that used to ship.

@@ -1,0 +1,91 @@
+{
+  "protocol": "docs/gate-precision-protocol.md",
+  "report": "docs/gate-precision.md",
+  "sources": {
+    "probe": "eval/gate-v2-probe.json",
+    "holdout": "eval/gate-v2-holdout.json"
+  },
+  "bootstrap": 10000,
+  "gate_a": {
+    "name": "probe-set cost is gone",
+    "rule": "CI95 contains 0, or lower bound > 0",
+    "passed": false,
+    "n": 361,
+    "recall@5": {
+      "A": 0.9058,
+      "switch": 0.8006
+    },
+    "recall@5_pp": -10.52,
+    "ci95_pp": [
+      -13.85,
+      -7.48
+    ],
+    "mcnemar": {
+      "gained": 1,
+      "lost": 39,
+      "p": 0.0
+    }
+  },
+  "gate_b": {
+    "name": "W2/W3 win survives",
+    "rule": "CI95 lower bound > 0 versus A",
+    "passed": true,
+    "n": 616,
+    "recall@5": {
+      "A": 0.586,
+      "switch": 0.6039
+    },
+    "recall@5_pp": 1.79,
+    "ci95_pp": [
+      0.81,
+      2.92
+    ],
+    "mcnemar": {
+      "gained": 11,
+      "lost": 0,
+      "p": 0.00098
+    }
+  },
+  "v1_for_comparison": {
+    "probe": {
+      "n": 361,
+      "recall@5": {
+        "A": 0.9058,
+        "switch": 0.7175
+      },
+      "recall@5_pp": -18.83,
+      "ci95_pp": [
+        -23.27,
+        -14.68
+      ],
+      "mcnemar": {
+        "gained": 3,
+        "lost": 71,
+        "p": 0.0
+      }
+    },
+    "holdout": {
+      "n": 616,
+      "recall@5": {
+        "A": 0.586,
+        "switch": 0.6169
+      },
+      "recall@5_pp": 3.09,
+      "ci95_pp": [
+        1.79,
+        4.55
+      ],
+      "mcnemar": {
+        "gained": 19,
+        "lost": 0,
+        "p": 0.0
+      }
+    }
+  },
+  "disposition": {
+    "action": "revert_to_1_1_0_ungated",
+    "zh": "默认值退回 1.1.0 的无门控行为",
+    "default_config": "content + graph + decay",
+    "why": "the narrowed gate still pays for itself but is still imprecise; the protocol requires both, and offers no branch where an imprecise gate keeps the default"
+  }
+}

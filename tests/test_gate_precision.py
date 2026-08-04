@@ -105,7 +105,7 @@ def _probe_lines(texts, subtypes=None, distances=None):
     return out
 
 
-def _run(tmp_path, ranks_a, ranks_b, texts, **kw):
+def _run(tmp_path, ranks_a, ranks_b, texts, db=None, **kw):
     rep = tmp_path / "eval.json"
     qs = tmp_path / "probe.jsonl"
     out = tmp_path / "verdict.json"
@@ -115,6 +115,8 @@ def _run(tmp_path, ranks_a, ranks_b, texts, **kw):
         encoding="utf-8")
     argv = ["--report", str(rep), "--queries", str(qs), "--out", str(out),
             "--now", "1785649110", "--bootstrap", "300"]
+    if db is not None:
+        argv += ["--db", str(db)]
     import sys
     old = sys.argv
     sys.argv = ["gate_precision.py", *argv]
@@ -180,6 +182,45 @@ def test_subtypes_and_distance_buckets_are_reported_separately(tmp_path):
     assert res["secondary"]["by_subtype"]["p_relative"]["fired"] == 10
     # p_relative rows carry no year distance, so only p_year lands in a bucket
     assert res["secondary"]["by_year_distance"]["8y+"]["n"] == 10
+
+
+def test_a_window_that_contains_the_save_time_is_split_out_not_dropped(tmp_path):
+    """A relative-time probe resolves against *now*, so a recently saved target
+    can legitimately fall inside "last year". The gate is not wrong there, and
+    counting those cases as false positives would flatter it. They stay in the
+    primary and get their own row."""
+    import sqlite3
+
+    from facetmark.search.understand import classify
+
+    text = "去年那种固态电池能量密度进展"
+    lo, hi = classify(text, now_ts=1785649110).time_window
+    db = tmp_path / "lib.db"
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE bookmark (url TEXT, date_added INTEGER)")
+    for i in range(10):
+        inside = i < 4                       # 4 of 10 windows are actually right
+        conn.execute("INSERT INTO bookmark VALUES (?, ?)",
+                     (f"https://e.com/{i}", (lo + hi) // 2 if inside else lo - 86400))
+    conn.commit()
+    conn.close()
+
+    # the gate only costs the six queries whose window is wrong
+    res = _run(tmp_path, [1] * 10, [1] * 4 + [99] * 6, [text] * 10, db=db,
+               subtypes=["p_relative"] * 10, distances=[None] * 10)
+    bw = res["secondary"]["by_window_correctness"]
+    assert bw["window_holds_target"]["n"] == 4
+    assert bw["window_holds_target"]["recall@5_pp"] == 0.0
+    assert bw["window_wrong"]["n"] == 6
+    assert bw["window_wrong"]["recall@5_pp"] == -100.0
+    # diluted, and reported as such: -60pp overall against -100pp where it counts
+    assert res["primary"]["recall@5_pp"] == pytest.approx(-60.0)
+
+
+def test_a_missing_db_leaves_the_window_split_out_rather_than_guessing(tmp_path):
+    res = _run(tmp_path, [1] * 6, [99] * 6, [_FIRES] * 6)
+    bw = res["secondary"]["by_window_correctness"]
+    assert set(bw) == {"rule"}
 
 
 def test_order_mismatch_between_probe_file_and_report_is_fatal(tmp_path):

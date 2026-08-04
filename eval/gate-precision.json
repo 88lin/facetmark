@@ -1,0 +1,233 @@
+{
+  "protocol": "docs/gate-precision-protocol.md",
+  "source": "eval/gate-precision-eval.json",
+  "queries": "eval/queries/gate-precision.jsonl",
+  "clock": 1785649110,
+  "n": 361,
+  "bootstrap": 10000,
+  "alpha": 0.05,
+  "primary": {
+    "n": 361,
+    "recall@5": {
+      "A": 0.9058,
+      "A_gatedctx": 0.7175
+    },
+    "recall@5_pp": -18.83,
+    "ci95_pp": [
+      -23.27,
+      -14.68
+    ],
+    "mcnemar": {
+      "gained": 3,
+      "lost": 71,
+      "p": 0.0
+    },
+    "discordant": 74,
+    "detectable_pp_at_80pct_power": 6.68,
+    "verdict": {
+      "label": "gate_precision_unqualified",
+      "zh": "门控精确率不合格",
+      "triggers_disposition": true,
+      "why": "point -18.83pp <= -2.0pp and CI95 upper bound -14.68pp < 0"
+    }
+  },
+  "firing": {
+    "overall": {
+      "n": 361,
+      "fired": 361,
+      "share": 1.0
+    },
+    "by_subtype": {
+      "p_relative": {
+        "n": 162,
+        "fired": 162,
+        "share": 1.0
+      },
+      "p_year": {
+        "n": 199,
+        "fired": 199,
+        "share": 1.0
+      }
+    },
+    "by_rule": {
+      "time:absolute_year": 190,
+      "time:relative": 160,
+      "identifier+time:absolute_year": 7,
+      "identifier+time:relative": 3,
+      "time:n_ago": 1
+    }
+  },
+  "secondary": {
+    "fired_subset": {
+      "n": 361,
+      "recall@5": {
+        "A": 0.9058,
+        "A_gatedctx": 0.7175
+      },
+      "recall@5_pp": -18.83,
+      "ci95_pp": [
+        -23.27,
+        -14.68
+      ],
+      "mcnemar": {
+        "gained": 3,
+        "lost": 71,
+        "p": 0.0
+      },
+      "discordant": 74,
+      "detectable_pp_at_80pct_power": 6.68
+    },
+    "not_fired_subset": {
+      "n": 0
+    },
+    "by_subtype": {
+      "p_relative": {
+        "n": 162,
+        "recall@5": {
+          "A": 0.9012,
+          "A_gatedctx": 0.6728
+        },
+        "recall@5_pp": -22.84,
+        "ci95_pp": [
+          -29.63,
+          -16.67
+        ],
+        "mcnemar": {
+          "gained": 1,
+          "lost": 38,
+          "p": 0.0
+        },
+        "discordant": 39,
+        "detectable_pp_at_80pct_power": 10.8,
+        "fired": 162
+      },
+      "p_year": {
+        "n": 199,
+        "recall@5": {
+          "A": 0.9095,
+          "A_gatedctx": 0.7538
+        },
+        "recall@5_pp": -15.57,
+        "ci95_pp": [
+          -21.11,
+          -10.55
+        ],
+        "mcnemar": {
+          "gained": 2,
+          "lost": 33,
+          "p": 0.0
+        },
+        "discordant": 35,
+        "detectable_pp_at_80pct_power": 8.33,
+        "fired": 199
+      }
+    },
+    "by_year_distance": {
+      "1-2y": {
+        "n": 119,
+        "recall@5": {
+          "A": 0.8908,
+          "A_gatedctx": 0.6723
+        },
+        "recall@5_pp": -21.85,
+        "ci95_pp": [
+          -29.41,
+          -15.13
+        ],
+        "mcnemar": {
+          "gained": 0,
+          "lost": 26,
+          "p": 0.0
+        },
+        "discordant": 26,
+        "detectable_pp_at_80pct_power": 12.0
+      },
+      "3-7y": {
+        "n": 87,
+        "recall@5": {
+          "A": 0.8851,
+          "A_gatedctx": 0.7126
+        },
+        "recall@5_pp": -17.25,
+        "ci95_pp": [
+          -26.44,
+          -9.2
+        ],
+        "mcnemar": {
+          "gained": 1,
+          "lost": 16,
+          "p": 0.00027
+        },
+        "discordant": 17,
+        "detectable_pp_at_80pct_power": 13.28
+      },
+      "8y+": {
+        "n": 155,
+        "recall@5": {
+          "A": 0.929,
+          "A_gatedctx": 0.7548
+        },
+        "recall@5_pp": -17.42,
+        "ci95_pp": [
+          -23.87,
+          -10.97
+        ],
+        "mcnemar": {
+          "gained": 2,
+          "lost": 29,
+          "p": 0.0
+        },
+        "discordant": 31,
+        "detectable_pp_at_80pct_power": 10.06
+      }
+    },
+    "by_window_correctness": {
+      "rule": "window_wrong is the adversarial subset; window_holds_target is where the gate is right and so dilutes the primary delta",
+      "window_wrong": {
+        "n": 304,
+        "recall@5": {
+          "A": 0.898,
+          "A_gatedctx": 0.6743
+        },
+        "recall@5_pp": -22.37,
+        "ci95_pp": [
+          -27.3,
+          -17.76
+        ],
+        "mcnemar": {
+          "gained": 2,
+          "lost": 70,
+          "p": 0.0
+        },
+        "discordant": 72,
+        "detectable_pp_at_80pct_power": 7.82
+      },
+      "window_holds_target": {
+        "n": 57,
+        "recall@5": {
+          "A": 0.9474,
+          "A_gatedctx": 0.9474
+        },
+        "recall@5_pp": 0.0,
+        "ci95_pp": [
+          -5.26,
+          5.26
+        ],
+        "mcnemar": {
+          "gained": 1,
+          "lost": 1,
+          "p": 1.0
+        },
+        "discordant": 2,
+        "detectable_pp_at_80pct_power": 6.95
+      }
+    }
+  },
+  "self_check": {
+    "rule": "the two rungs differ only by the gate, so ΔR@5 on queries where it never fires must be exactly 0.00pp",
+    "passed": true,
+    "not_fired_n": 0,
+    "state": "not_applicable",
+    "note": "every probe fired the gate, so this set contains no query on which the two rungs are the same code path; the check has data in eval/switch-verdicts.json, where q_vague (n=211, 0 fired) moved 0.00pp with 0 discordant"
+  }
+}

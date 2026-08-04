@@ -74,6 +74,19 @@ _VAGUE_EPISODIC = (
     "along with", "when i was",
 )
 
+#: The vocabulary of *saving*, as opposed to the vocabulary of *when*. A bare
+#: year says nothing about whether the user means "the year I filed this" or
+#: "the year the article is about"; these words say they mean the former. Used
+#: only by the v2 context gate -- they do not label a query episodic on their
+#: own, because "收藏夹里的 postgres 教程" is a plain topical search.
+#:
+#: Sized by measurement, not intuition: gating a bare year on nothing cost
+#: -18.83pp Recall@5 on 361 adversarial probes (docs/gate-precision.md).
+_SAVE_ACTION = (
+    "保存", "收藏", "存的", "存过", "存了", "书签", "上次", "那天", "我存",
+    "saved", "bookmark", "bookmarked", "i kept", "my bookmarks",
+)
+
 #: (pattern, seconds_ago_start, seconds_ago_end). The window is
 #: ``[now - start, now - end]``.
 _RELATIVE: tuple[tuple[str, int, int], ...] = (
@@ -177,6 +190,30 @@ class QueryUnderstanding:
             "phrases": list(self.phrases),
             "source": self.source,
         }
+
+
+def episodic_beyond_a_bare_year(u: QueryUnderstanding) -> bool:
+    """The v2 gate predicate: episodic, on evidence other than a lone year.
+
+    ``is_episodic`` treats "2015 空间站咖啡机" as a query about *when the user
+    saved something*. On 361 probes where the year belonged to the subject
+    matter instead, acting on that reading cost -18.83pp Recall@5, and -22.37pp
+    on the 304 of them whose resolved window could not contain the answer.
+
+    So a bare ``time:absolute_year`` no longer opens the gate by itself; it has
+    to arrive with a vague episodic marker or with the vocabulary of saving.
+    ``n_ago``, ``relative`` and ``episodic_marker`` are untouched -- this is a
+    claim about years, and only about years.
+    """
+    if not u.is_episodic:
+        return False
+    hits = set(u.rule_hits)
+    if "time:absolute_year" not in hits:
+        return True
+    if "episodic_marker" in hits:
+        return True
+    lowered = u.query.lower()
+    return any(w in lowered for w in _SAVE_ACTION)
 
 
 def _resolve_time(query: str, now_ts: int) -> tuple[tuple[int, int] | None, str | None]:

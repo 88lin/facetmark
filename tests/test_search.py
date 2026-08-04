@@ -1062,11 +1062,13 @@ class TestWhatThisDeploymentActuallyShips:
         assert default_config(st) is FULL
         assert FULL.facets == frozenset({"content"}), "the gate picked A's facet set"
         assert FULL.graph is True, "expansion was free: 10 won / 0 lost, +9ms"
-        # W1 shipped context off (-9.94pp on content queries, unconditionally
-        # on) and left the gate as a hypothesis. W2 judged it on 616 held-out
-        # queries: +3.09pp over plain A, CI95 [+1.79, +4.55], 19 won / 0 lost.
-        assert FULL.context is True, "gated, the multiplier is +3.09pp over A"
-        assert FULL.context_gate is True, "ungated it is still -9.94pp on content"
+        # 1.2.0 turned the gated multiplier on: +3.09pp over plain A on 616
+        # held-out queries. 1.3.0 turns it back off, because that set never
+        # tested when the gate should *stay* out: on 361 probes whose time
+        # expression belongs to the subject matter it fires 361/361 and costs
+        # -18.83pp, CI95 [-23.27, -14.68]. docs/gate-precision.md.
+        assert FULL.context is False, "the gate fires on 361/361 adversarial probes"
+        assert FULL.context_gate is False, "no gate to configure with context off"
         assert FULL.rerank is False, "45.4s p50 to repair damage that is now absent"
 
     def test_a_deployment_with_no_embeddings_falls_back_to_retrieving_by_words(self):
@@ -1158,12 +1160,14 @@ class TestTheTwoKnobsW2HasToFit:
         cfg = Config("x", frozenset({"content"}), context=False, context_gate=True)
         assert cfg.wants_context(plain) is False
         # No *rung* turns the gate on -- the ladder measures mechanisms one at a
-        # time, and A_gatedctx is a complement, not a rung. `full` does turn it
-        # on, since W2 judged it on held-out queries and it won its shipping
-        # test; `fused` is the pre-gate profile and keeps the old behaviour.
-        for name in ("A", "B", "C", "D", "E", "fused"):
+        # time, and A_gatedctx is a complement, not a rung. `full` turned it on
+        # in 1.2.0 and turned it back off in 1.3.0, after 361 adversarial probes
+        # priced its false positives at -18.83pp (docs/gate-precision.md), so no
+        # shipped profile carries it now.
+        for name in ("A", "B", "C", "D", "E", "fused", "full"):
             assert ALL_CONFIGS[name].context_gate is False, f"{name} enabled the gate"
-        assert ALL_CONFIGS["full"].context_gate is True
+        assert ALL_CONFIGS["A_gatedctx"].context_gate is True
+        assert ALL_CONFIGS["A_gatedctx_v2"].context_gate is True
 
     def test_the_gate_admits_episodic_queries_and_turns_the_rest_away(self):
         from facetmark.search.pipeline import ALL_CONFIGS

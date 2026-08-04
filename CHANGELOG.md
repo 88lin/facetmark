@@ -2,6 +2,49 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循语义化版本。
 
+## [1.3.0] - 2026-08-04
+
+**发版是因为默认检索行为又变了，而且是往回变**：1.2.0 把带门控的上下文乘子设成默认，
+1.3.0 把它撤掉。`FULL` 退回 `content + graph + decay`——也就是 1.1.0 的排序行为。
+
+撤掉的理由是一次预注册的实验（协议 `docs/gate-precision-protocol.md` 先落盘，报告
+`docs/gate-precision.md`）。1.2.0 那 +3.09pp 的依据只测了门控**该响的时候**响不响：
+它的假阳性率 0.55% 是在 181 条"生成时被明确要求不要写日期"的内容型查询上量的。换成
+**361 条时间词属于正文主题而非保存时间**的查询——比如一篇 2026 年存的页面配上
+"2015年国际空间站咖啡机为什么那么贵"——门控 **361/361 全响**，代价是
+**Recall@5 −18.83pp，CI95 [−23.27, −14.68]，3 胜 71 负**，Recall@1 从 0.801 掉到 0.363。
+
+其中一个次要分层值得单独说：`p_relative` 子类有 57 条的时间窗恰好包含目标自己的保存
+时间，那 57 条上 ΔR@5 恰好 **+0.00pp**（1 胜 1 负）；窗口不可能包含答案的 304 条上是
+**−22.37pp**。所以这 22 个点是"窗口错了"，不是"乘子太重"。
+
+预注册的补救 `gate_v2`（`context_gate_version=2`，裸年份不再单独构成保存时间信号）
+也实现了、也跑了两关，结果是一关过一关不过：探针集上残余 **−10.52pp CI95
+[−13.85, −7.48]**（第一关不过，残余全部来自协议明确不动的 `time:relative`），616 条
+holdout 上仍有 **+1.79pp CI95 [+0.81, +2.92]**（第二关过）。协议要求两关都过，所以
+默认值按预注册规则退回无门控行为，`gate_v2` 留在树里但不上线。
+
+### 改动
+
+- **`FULL` 从 `content + context(gated) + graph + decay` 退回 `content + graph + decay`。**
+  装上这个版本的人，同一个库、同一条查询，情景型查询上会比 1.2.0 差（放弃了那
+  +8.48pp），带日期的内容型查询上会比 1.2.0 好很多（避开了那 −18.83pp）。
+- **新增 `Config.context_gate_version` 与 `episodic_beyond_a_bare_year()`**，以及档位
+  `A_gatedctx_v2`。实现了、有测试、默认关闭、有一个不合格的数字挂在上面。
+- **新增 `scripts/corpus/gen_gate_probe.py`**（探针生成器）、`scripts/gate_precision.py`
+  （按预注册规则判定）、`scripts/gate_v2_disposition.py`（两关合取的处置表）。
+- **新增评测数据**：`eval/queries/gate-precision.jsonl`（361 条，跑任何一档之前冻结）、
+  `eval/gate-precision-eval.json`、`eval/gate-precision.json`、`eval/gate-v2-probe.json`、
+  `eval/gate-v2-holdout.json`、`eval/gate-v2-disposition.json`、`eval/gate-precision-gen.json`。
+- **新增文档** `docs/gate-precision-protocol.md`、`docs/gate-precision.md`。
+
+### 没有做的事
+
+没有顺着数字继续收窄 `time:relative`。它看起来很可能管用（v2 已经把 `p_year` 压到
+−0.50pp 并保住 +1.79pp），但这 361 条查询已经被用来**在两个门控之间做选择**，再用它们
+去检验第三个门控就是重演这次实验要纠正的那种循环。`gate_v3` 需要自己的预注册和自己的
+探针集，记在 W4 里。
+
 ## [1.2.0] - 2026-08-04
 
 **发版是因为默认检索行为变了**：`FULL`（`facetmark search`、HTTP API 与 MCP 服务器

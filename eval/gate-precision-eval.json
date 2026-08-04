@@ -1,0 +1,6288 @@
+{
+  "provider": "z-ai/glm-5.2",
+  "embed_model": "bge-m3",
+  "reranker": "",
+  "queries_from": "eval/queries/gate-precision.jsonl",
+  "corpus": {
+    "pages": 2376,
+    "q_content": 361,
+    "q_vague": 0,
+    "q_episodic": 0
+  },
+  "index": {},
+  "concurrency": 1,
+  "rungs_run": [
+    "A",
+    "A_gatedctx"
+  ],
+  "rungs": [
+    {
+      "config": "A",
+      "overall": {
+        "n": 361,
+        "recall@1": 0.8006,
+        "recall@5": 0.9058,
+        "recall@10": 0.9418,
+        "mrr@10": 0.8473,
+        "recall@5+exp": 0.9058,
+        "p50_ms": 256.2,
+        "p95_ms": 303.2
+      },
+      "by_type": {
+        "q_content": {
+          "n": 361,
+          "recall@1": 0.8006,
+          "recall@5": 0.9058,
+          "recall@10": 0.9418,
+          "mrr@10": 0.8473,
+          "recall@5+exp": 0.9058,
+          "p50_ms": 256.2,
+          "p95_ms": 303.2
+        },
+        "q_vague": {
+          "n": 0,
+          "recall@1": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "mrr@10": 0.0,
+          "recall@5+exp": 0.0,
+          "p50_ms": 0.0,
+          "p95_ms": 0.0
+        },
+        "q_episodic": {
+          "n": 0,
+          "recall@1": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "mrr@10": 0.0,
+          "recall@5+exp": 0.0,
+          "p50_ms": 0.0,
+          "p95_ms": 0.0
+        }
+      }
+    },
+    {
+      "config": "A_gatedctx",
+      "overall": {
+        "n": 361,
+        "recall@1": 0.3629,
+        "recall@5": 0.7175,
+        "recall@10": 0.8781,
+        "mrr@10": 0.5148,
+        "recall@5+exp": 0.7396,
+        "p50_ms": 244.8,
+        "p95_ms": 281.8
+      },
+      "by_type": {
+        "q_content": {
+          "n": 361,
+          "recall@1": 0.3629,
+          "recall@5": 0.7175,
+          "recall@10": 0.8781,
+          "mrr@10": 0.5148,
+          "recall@5+exp": 0.7396,
+          "p50_ms": 244.8,
+          "p95_ms": 281.8
+        },
+        "q_vague": {
+          "n": 0,
+          "recall@1": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "mrr@10": 0.0,
+          "recall@5+exp": 0.0,
+          "p50_ms": 0.0,
+          "p95_ms": 0.0
+        },
+        "q_episodic": {
+          "n": 0,
+          "recall@1": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "mrr@10": 0.0,
+          "recall@5+exp": 0.0,
+          "p50_ms": 0.0,
+          "p95_ms": 0.0
+        }
+      }
+    }
+  ],
+  "deltas": [
+    {
+      "from": "A",
+      "to": "A_gatedctx",
+      "recall@5_pp": -18.83,
+      "ci95_pp": [
+        -23.27,
+        -14.68
+      ],
+      "mcnemar": {
+        "gained": 3,
+        "lost": 71,
+        "p": 0.0
+      }
+    }
+  ],
+  "pass_margin_pp": 10.0,
+  "queries": [
+    {
+      "i": 0,
+      "qtype": "q_content",
+      "target_id": 684,
+      "note": "p_year",
+      "text": "2012 sweet breakfast import struggled against savory traditions"
+    },
+    {
+      "i": 1,
+      "qtype": "q_content",
+      "target_id": 495,
+      "note": "p_year",
+      "text": "1994 value sweet spot premium transport"
+    },
+    {
+      "i": 2,
+      "qtype": "q_content",
+      "target_id": 1468,
+      "note": "p_relative",
+      "text": "lately nonprofit takeover of bundler maintenance"
+    },
+    {
+      "i": 3,
+      "qtype": "q_content",
+      "target_id": 2209,
+      "note": "p_relative",
+      "text": "recently benchmarked bun web framework faster than express"
+    },
+    {
+      "i": 4,
+      "qtype": "q_content",
+      "target_id": 2043,
+      "note": "p_year",
+      "text": "2015年国际空间站咖啡机为什么那么贵那么重"
+    },
+    {
+      "i": 5,
+      "qtype": "q_content",
+      "target_id": 1340,
+      "note": "p_relative",
+      "text": "最近用二维码追踪蜜蜂行为研究"
+    },
+    {
+      "i": 6,
+      "qtype": "q_content",
+      "target_id": 1134,
+      "note": "p_year",
+      "text": "1994四大导演聚餐敲定四部动画"
+    },
+    {
+      "i": 7,
+      "qtype": "q_content",
+      "target_id": 1226,
+      "note": "p_relative",
+      "text": "最近php基金会发展怎么样语言有什么新变化"
+    },
+    {
+      "i": 8,
+      "qtype": "q_content",
+      "target_id": 90,
+      "note": "p_year",
+      "text": "2003年用离子推进让老鼠悬浮的实验"
+    },
+    {
+      "i": 9,
+      "qtype": "q_content",
+      "target_id": 1544,
+      "note": "p_relative",
+      "text": "今年 前端工具链原生支持纯 ESM 趋势"
+    },
+    {
+      "i": 10,
+      "qtype": "q_content",
+      "target_id": 678,
+      "note": "p_relative",
+      "text": "最近华为车灯能投影全彩电影了"
+    },
+    {
+      "i": 11,
+      "qtype": "q_content",
+      "target_id": 1443,
+      "note": "p_year",
+      "text": "2018年透明窗户变基站天线"
+    },
+    {
+      "i": 12,
+      "qtype": "q_content",
+      "target_id": 625,
+      "note": "p_year",
+      "text": "lee milne culpable homicide conviction 2022 domestic abuse"
+    },
+    {
+      "i": 13,
+      "qtype": "q_content",
+      "target_id": 2370,
+      "note": "p_relative",
+      "text": "recently released free ai validates concepts through fifteen brutal failure gates"
+    },
+    {
+      "i": 14,
+      "qtype": "q_content",
+      "target_id": 738,
+      "note": "p_year",
+      "text": "2005年退学斯坦福后为何唱衰大学教育"
+    },
+    {
+      "i": 15,
+      "qtype": "q_content",
+      "target_id": 1014,
+      "note": "p_year",
+      "text": "jeremy smith teenage developer died 1992 accident"
+    },
+    {
+      "i": 16,
+      "qtype": "q_content",
+      "target_id": 1198,
+      "note": "p_relative",
+      "text": "去年慕尼黑宝马展兆瓦级充电枪"
+    },
+    {
+      "i": 17,
+      "qtype": "q_content",
+      "target_id": 1241,
+      "note": "p_year",
+      "text": "1998年multipart解决二进制上传避免url编码"
+    },
+    {
+      "i": 18,
+      "qtype": "q_content",
+      "target_id": 1510,
+      "note": "p_year",
+      "text": "1996年中国科学院直升机电磁探测系统高原铁路应用"
+    },
+    {
+      "i": 19,
+      "qtype": "q_content",
+      "target_id": 586,
+      "note": "p_year",
+      "text": "2022 openai playground api ai usb-c standard"
+    },
+    {
+      "i": 20,
+      "qtype": "q_content",
+      "target_id": 1391,
+      "note": "p_relative",
+      "text": "今年 utf-8 编码开发者怎么正确用"
+    },
+    {
+      "i": 21,
+      "qtype": "q_content",
+      "target_id": 166,
+      "note": "p_relative",
+      "text": "recently angie nginx fork added load balancing metrics"
+    },
+    {
+      "i": 22,
+      "qtype": "q_content",
+      "target_id": 2300,
+      "note": "p_relative",
+      "text": "lately updated counterfeit sterling reference"
+    },
+    {
+      "i": 23,
+      "qtype": "q_content",
+      "target_id": 1395,
+      "note": "p_year",
+      "text": "2023年 URL.parse 避免抛错 解析链接"
+    },
+    {
+      "i": 24,
+      "qtype": "q_content",
+      "target_id": 481,
+      "note": "p_relative",
+      "text": "recently overhyped tech fads that flopped completely"
+    },
+    {
+      "i": 25,
+      "qtype": "q_content",
+      "target_id": 257,
+      "note": "p_relative",
+      "text": "why latent infections activating lately pushing cases up"
+    },
+    {
+      "i": 26,
+      "qtype": "q_content",
+      "target_id": 2183,
+      "note": "p_year",
+      "text": "meta 2024 earnings ai engagement optimization european commission investigation"
+    },
+    {
+      "i": 27,
+      "qtype": "q_content",
+      "target_id": 1041,
+      "note": "p_year",
+      "text": "2007年 推特 怎么 让 第三方 应用 拿不到 密码"
+    },
+    {
+      "i": 28,
+      "qtype": "q_content",
+      "target_id": 1807,
+      "note": "p_relative",
+      "text": "前年 肾移植患者转向 AI 咨询因挂号只得三分钟"
+    },
+    {
+      "i": 29,
+      "qtype": "q_content",
+      "target_id": 420,
+      "note": "p_relative",
+      "text": "去年jeep 4xe ota更新导致车辆断电"
+    },
+    {
+      "i": 30,
+      "qtype": "q_content",
+      "target_id": 1114,
+      "note": "p_year",
+      "text": "2021 npm audit 设计缺陷 误报阻塞部署"
+    },
+    {
+      "i": 31,
+      "qtype": "q_content",
+      "target_id": 503,
+      "note": "p_year",
+      "text": "2012年雪豹窗口亮度71到塔霍100的对比"
+    },
+    {
+      "i": 32,
+      "qtype": "q_content",
+      "target_id": 2042,
+      "note": "p_relative",
+      "text": "今年把淘汰手机组云集群跑微服务"
+    },
+    {
+      "i": 33,
+      "qtype": "q_content",
+      "target_id": 1795,
+      "note": "p_relative",
+      "text": "今年 强制推送覆盖历史后那些悬空提交怎么查"
+    },
+    {
+      "i": 34,
+      "qtype": "q_content",
+      "target_id": 1221,
+      "note": "p_year",
+      "text": "2017 dark web fentanyl dealer houston first prosecution"
+    },
+    {
+      "i": 35,
+      "qtype": "q_content",
+      "target_id": 499,
+      "note": "p_year",
+      "text": "2012年nas自建incus自托管服务"
+    },
+    {
+      "i": 36,
+      "qtype": "q_content",
+      "target_id": 60,
+      "note": "p_year",
+      "text": "2022 年 web3 年轻人 把 传统 公司 叫 web2"
+    },
+    {
+      "i": 37,
+      "qtype": "q_content",
+      "target_id": 429,
+      "note": "p_relative",
+      "text": "去年有篇文章分析闪客火柴人动画历史"
+    },
+    {
+      "i": 38,
+      "qtype": "q_content",
+      "target_id": 1109,
+      "note": "p_relative",
+      "text": "去年堪培拉无人机外送被渡鸦袭击暂停"
+    },
+    {
+      "i": 39,
+      "qtype": "q_content",
+      "target_id": 248,
+      "note": "p_year",
+      "text": "2004年我机器人导演指控特斯拉设计相似"
+    },
+    {
+      "i": 40,
+      "qtype": "q_content",
+      "target_id": 1118,
+      "note": "p_relative",
+      "text": "last year visual automation that clicks anything you can see"
+    },
+    {
+      "i": 41,
+      "qtype": "q_content",
+      "target_id": 2067,
+      "note": "p_relative",
+      "text": "去年猫头鹰猴增重气候变暖新发现"
+    },
+    {
+      "i": 42,
+      "qtype": "q_content",
+      "target_id": 44,
+      "note": "p_year",
+      "text": "sql.js first browser database 2012"
+    },
+    {
+      "i": 43,
+      "qtype": "q_content",
+      "target_id": 854,
+      "note": "p_year",
+      "text": "2021年安圭拉ai域名收入740万美元"
+    },
+    {
+      "i": 44,
+      "qtype": "q_content",
+      "target_id": 1288,
+      "note": "p_relative",
+      "text": "去年普通版苹果手机用旧芯片导致接口限速"
+    },
+    {
+      "i": 45,
+      "qtype": "q_content",
+      "target_id": 1467,
+      "note": "p_year",
+      "text": "cory doctorow enshittification book 2023 internet gatekeepers"
+    },
+    {
+      "i": 46,
+      "qtype": "q_content",
+      "target_id": 2235,
+      "note": "p_year",
+      "text": "polaris dawn commercial spacewalk 2021 isaacman flight"
+    },
+    {
+      "i": 47,
+      "qtype": "q_content",
+      "target_id": 2280,
+      "note": "p_year",
+      "text": "2023年前前端用canvas png压缩数据"
+    },
+    {
+      "i": 48,
+      "qtype": "q_content",
+      "target_id": 742,
+      "note": "p_year",
+      "text": "潜意识偏爱2022年作品 人工手写的分量"
+    },
+    {
+      "i": 49,
+      "qtype": "q_content",
+      "target_id": 1196,
+      "note": "p_relative",
+      "text": "前年 卡塔利纳 为什么 默认 shell 变 zsh"
+    },
+    {
+      "i": 50,
+      "qtype": "q_content",
+      "target_id": 2065,
+      "note": "p_year",
+      "text": "2019年终端命令让冰冷MacBook发热"
+    },
+    {
+      "i": 51,
+      "qtype": "q_content",
+      "target_id": 782,
+      "note": "p_relative",
+      "text": "recently ev leader installs thousands megawatt stations in weeks"
+    },
+    {
+      "i": 52,
+      "qtype": "q_content",
+      "target_id": 2040,
+      "note": "p_year",
+      "text": "2025年泛星彗星长曝光满屏星链轨迹"
+    },
+    {
+      "i": 53,
+      "qtype": "q_content",
+      "target_id": 982,
+      "note": "p_year",
+      "text": "2024年大模型预训练语料怎么构建"
+    },
+    {
+      "i": 54,
+      "qtype": "q_content",
+      "target_id": 705,
+      "note": "p_year",
+      "text": "attenborough 2009 radio series life stories kearton inspiration"
+    },
+    {
+      "i": 55,
+      "qtype": "q_content",
+      "target_id": 118,
+      "note": "p_relative",
+      "text": "最近更新的维多利亚名著原版配图"
+    },
+    {
+      "i": 56,
+      "qtype": "q_content",
+      "target_id": 659,
+      "note": "p_year",
+      "text": "2025年claude code源码泄露揭示百分比夸大"
+    },
+    {
+      "i": 57,
+      "qtype": "q_content",
+      "target_id": 773,
+      "note": "p_relative",
+      "text": "recently added azure flexible server premium storage scaling"
+    },
+    {
+      "i": 58,
+      "qtype": "q_content",
+      "target_id": 461,
+      "note": "p_relative",
+      "text": "last year rfc 9111 cdns proxy behavior explained"
+    },
+    {
+      "i": 59,
+      "qtype": "q_content",
+      "target_id": 1414,
+      "note": "p_relative",
+      "text": "去年明尼苏达饥饿实验如何揭示稀缺心态"
+    },
+    {
+      "i": 60,
+      "qtype": "q_content",
+      "target_id": 579,
+      "note": "p_relative",
+      "text": "lately gil kalai correlated noise conjecture"
+    },
+    {
+      "i": 61,
+      "qtype": "q_content",
+      "target_id": 2077,
+      "note": "p_year",
+      "text": "2022年把业务流程拆成步骤清单的价值"
+    },
+    {
+      "i": 62,
+      "qtype": "q_content",
+      "target_id": 124,
+      "note": "p_relative",
+      "text": "今年维基媒体基金会加密dns防审查"
+    },
+    {
+      "i": 63,
+      "qtype": "q_content",
+      "target_id": 2240,
+      "note": "p_relative",
+      "text": "今年开放获取教学演示合集带代码"
+    },
+    {
+      "i": 64,
+      "qtype": "q_content",
+      "target_id": 68,
+      "note": "p_year",
+      "text": "2021年桌面布置如何激发创意灵感"
+    },
+    {
+      "i": 65,
+      "qtype": "q_content",
+      "target_id": 1257,
+      "note": "p_year",
+      "text": "实际开发像 2008 年 js 浏览器 api 混乱"
+    },
+    {
+      "i": 66,
+      "qtype": "q_content",
+      "target_id": 431,
+      "note": "p_relative",
+      "text": "this year share of automated package uploads rose sharply"
+    },
+    {
+      "i": 67,
+      "qtype": "q_content",
+      "target_id": 1358,
+      "note": "p_relative",
+      "text": "最近穿保暖内衣降低室温省能源"
+    },
+    {
+      "i": 68,
+      "qtype": "q_content",
+      "target_id": 723,
+      "note": "p_year",
+      "text": "2022 年独立承包商伪装 rust 专家接单"
+    },
+    {
+      "i": 69,
+      "qtype": "q_content",
+      "target_id": 1527,
+      "note": "p_relative",
+      "text": "去年朱紫里还原角色体型的载具"
+    },
+    {
+      "i": 70,
+      "qtype": "q_content",
+      "target_id": 1075,
+      "note": "p_relative",
+      "text": "前年空间站女宇航员出舱遗失装备双筒望远镜可见"
+    },
+    {
+      "i": 71,
+      "qtype": "q_content",
+      "target_id": 3,
+      "note": "p_year",
+      "text": "2015年阿甘骑士pc移植性能深度分析"
+    },
+    {
+      "i": 72,
+      "qtype": "q_content",
+      "target_id": 713,
+      "note": "p_year",
+      "text": "cannes 2025 movie debut gaza donation writing tool"
+    },
+    {
+      "i": 73,
+      "qtype": "q_content",
+      "target_id": 2150,
+      "note": "p_relative",
+      "text": "去年科技圈私密社群成梗传播上游"
+    },
+    {
+      "i": 74,
+      "qtype": "q_content",
+      "target_id": 1230,
+      "note": "p_year",
+      "text": "韩国首尔2025年汉江公园太阳能观景轮"
+    },
+    {
+      "i": 75,
+      "qtype": "q_content",
+      "target_id": 214,
+      "note": "p_year",
+      "text": "asmbb freshlib tutorial series 2025"
+    },
+    {
+      "i": 76,
+      "qtype": "q_content",
+      "target_id": 1849,
+      "note": "p_relative",
+      "text": "lately monte carlo carbonation corrosion simulations assess precast elements"
+    },
+    {
+      "i": 77,
+      "qtype": "q_content",
+      "target_id": 1268,
+      "note": "p_year",
+      "text": "2022年谷歌内部薪酬表格12000员工数据"
+    },
+    {
+      "i": 78,
+      "qtype": "q_content",
+      "target_id": 751,
+      "note": "p_relative",
+      "text": "今年正割积分墨卡托投影百年难题"
+    },
+    {
+      "i": 79,
+      "qtype": "q_content",
+      "target_id": 1435,
+      "note": "p_year",
+      "text": "2000年录音室数字母带读取失败"
+    },
+    {
+      "i": 80,
+      "qtype": "q_content",
+      "target_id": 895,
+      "note": "p_relative",
+      "text": "去年那个协议像点烟器一样通用"
+    },
+    {
+      "i": 81,
+      "qtype": "q_content",
+      "target_id": 1389,
+      "note": "p_relative",
+      "text": "前年阿耳忒弥斯发射台损坏逃生滑索测试延期"
+    },
+    {
+      "i": 82,
+      "qtype": "q_content",
+      "target_id": 943,
+      "note": "p_year",
+      "text": "2012 singularity fears ai coding agents finally useful"
+    },
+    {
+      "i": 83,
+      "qtype": "q_content",
+      "target_id": 192,
+      "note": "p_relative",
+      "text": "最近上海球场看台成打工人午休圣地"
+    },
+    {
+      "i": 84,
+      "qtype": "q_content",
+      "target_id": 731,
+      "note": "p_relative",
+      "text": "前年 cab 论坛 让加密 证书 吊销 规则 大 变"
+    },
+    {
+      "i": 85,
+      "qtype": "q_content",
+      "target_id": 922,
+      "note": "p_relative",
+      "text": "去年 ai 智能体 自己写代码 无需人工审核"
+    },
+    {
+      "i": 86,
+      "qtype": "q_content",
+      "target_id": 1778,
+      "note": "p_year",
+      "text": "2022年摄影师无人机航拍中国风光电站"
+    },
+    {
+      "i": 87,
+      "qtype": "q_content",
+      "target_id": 2362,
+      "note": "p_year",
+      "text": "2008年后精益创业为何仍管用"
+    },
+    {
+      "i": 88,
+      "qtype": "q_content",
+      "target_id": 1270,
+      "note": "p_relative",
+      "text": "file based cms visual editing agents this year"
+    },
+    {
+      "i": 89,
+      "qtype": "q_content",
+      "target_id": 452,
+      "note": "p_relative",
+      "text": "最近ddr5飙涨因openai大单引发恐慌抢购"
+    },
+    {
+      "i": 90,
+      "qtype": "q_content",
+      "target_id": 123,
+      "note": "p_year",
+      "text": "2011年UCLA地砖二进制隐藏信息致敬互联网首条消息"
+    },
+    {
+      "i": 91,
+      "qtype": "q_content",
+      "target_id": 1300,
+      "note": "p_year",
+      "text": "2015年百度贴吧月活三亿为何暴跌"
+    },
+    {
+      "i": 92,
+      "qtype": "q_content",
+      "target_id": 2112,
+      "note": "p_year",
+      "text": "1994年拉丁发表风车铺装论文"
+    },
+    {
+      "i": 93,
+      "qtype": "q_content",
+      "target_id": 100,
+      "note": "p_relative",
+      "text": "今年字节跳动客户端架构优化分享"
+    },
+    {
+      "i": 94,
+      "qtype": "q_content",
+      "target_id": 2003,
+      "note": "p_year",
+      "text": "mulesoft acquisition of api directory 2013"
+    },
+    {
+      "i": 95,
+      "qtype": "q_content",
+      "target_id": 1660,
+      "note": "p_year",
+      "text": "1990年出生女性结婚率骤降背后原因"
+    },
+    {
+      "i": 96,
+      "qtype": "q_content",
+      "target_id": 1141,
+      "note": "p_relative",
+      "text": "最近为什么技术进步没能消除贫困"
+    },
+    {
+      "i": 97,
+      "qtype": "q_content",
+      "target_id": 483,
+      "note": "p_year",
+      "text": "why crypto crashed in 2025 despite sec surrender"
+    },
+    {
+      "i": 98,
+      "qtype": "q_content",
+      "target_id": 2024,
+      "note": "p_year",
+      "text": "granularity reactivity velocity moldability bidirectionality materiality 2024 conference talk"
+    },
+    {
+      "i": 99,
+      "qtype": "q_content",
+      "target_id": 1860,
+      "note": "p_year",
+      "text": "why internet naming authority rejected ukraine plea russian domains 2022"
+    },
+    {
+      "i": 100,
+      "qtype": "q_content",
+      "target_id": 179,
+      "note": "p_relative",
+      "text": "最近 linux 大会 吐槽 硬件 错误 ai 炒作"
+    },
+    {
+      "i": 101,
+      "qtype": "q_content",
+      "target_id": 108,
+      "note": "p_relative",
+      "text": "今年 向量 索引 json 存储 实现 对比"
+    },
+    {
+      "i": 102,
+      "qtype": "q_content",
+      "target_id": 1470,
+      "note": "p_relative",
+      "text": "wsa deprecated this year microsoft says no profit"
+    },
+    {
+      "i": 103,
+      "qtype": "q_content",
+      "target_id": 2075,
+      "note": "p_year",
+      "text": "2007年php数组其实是字典"
+    },
+    {
+      "i": 104,
+      "qtype": "q_content",
+      "target_id": 299,
+      "note": "p_relative",
+      "text": "去年 ai 知识断层 导致 新框架 难推广"
+    },
+    {
+      "i": 105,
+      "qtype": "q_content",
+      "target_id": 1703,
+      "note": "p_year",
+      "text": "2000年用数据库实现全文检索方案"
+    },
+    {
+      "i": 106,
+      "qtype": "q_content",
+      "target_id": 790,
+      "note": "p_year",
+      "text": "1994年gof书出版后模式成java万金油"
+    },
+    {
+      "i": 107,
+      "qtype": "q_content",
+      "target_id": 2295,
+      "note": "p_year",
+      "text": "2025年 MySQL 提交量 为什么 大幅 下降"
+    },
+    {
+      "i": 108,
+      "qtype": "q_content",
+      "target_id": 1938,
+      "note": "p_year",
+      "text": "2023年飞盘高尔夫拇指握距物理实验最佳发射速度"
+    },
+    {
+      "i": 109,
+      "qtype": "q_content",
+      "target_id": 363,
+      "note": "p_year",
+      "text": "1997年html4引入类属性为何导致组合爆炸"
+    },
+    {
+      "i": 110,
+      "qtype": "q_content",
+      "target_id": 1854,
+      "note": "p_year",
+      "text": "hlsl clang llvm adoption 2015 compiler shift"
+    },
+    {
+      "i": 111,
+      "qtype": "q_content",
+      "target_id": 298,
+      "note": "p_relative",
+      "text": "前年新版瑞士护照水印山水设计"
+    },
+    {
+      "i": 112,
+      "qtype": "q_content",
+      "target_id": 1433,
+      "note": "p_year",
+      "text": "2018年本普拉茨米尔斯重现斯洛廷临界性事故经过"
+    },
+    {
+      "i": 113,
+      "qtype": "q_content",
+      "target_id": 1321,
+      "note": "p_relative",
+      "text": "今年YouTube分母研究为何难获随机样本"
+    },
+    {
+      "i": 114,
+      "qtype": "q_content",
+      "target_id": 1947,
+      "note": "p_year",
+      "text": "2025美元显卡发售价三十年变化"
+    },
+    {
+      "i": 115,
+      "qtype": "q_content",
+      "target_id": 1950,
+      "note": "p_year",
+      "text": "1997年哥斯达黎加橙皮实验让荒地变森林"
+    },
+    {
+      "i": 116,
+      "qtype": "q_content",
+      "target_id": 594,
+      "note": "p_year",
+      "text": "fanuc robotics japan 2003 manufacturing robots lights off"
+    },
+    {
+      "i": 117,
+      "qtype": "q_content",
+      "target_id": 573,
+      "note": "p_year",
+      "text": "2018年tc39会议彭博工程师如何推动temporal"
+    },
+    {
+      "i": 118,
+      "qtype": "q_content",
+      "target_id": 2050,
+      "note": "p_year",
+      "text": "2024年亚马逊830亿资本支出第三次将内部网络商业化"
+    },
+    {
+      "i": 119,
+      "qtype": "q_content",
+      "target_id": 1908,
+      "note": "p_relative",
+      "text": "last year wikipedia user identified mysterious symbol from 1950 catalogue"
+    },
+    {
+      "i": 120,
+      "qtype": "q_content",
+      "target_id": 106,
+      "note": "p_year",
+      "text": "2016年亚马逊股东信 day1 理念"
+    },
+    {
+      "i": 121,
+      "qtype": "q_content",
+      "target_id": 593,
+      "note": "p_relative",
+      "text": "recently transunion experian resolving far fewer consumer disputes"
+    },
+    {
+      "i": 122,
+      "qtype": "q_content",
+      "target_id": 2151,
+      "note": "p_year",
+      "text": "2014年神经嵴细胞理论解释驯化综合征"
+    },
+    {
+      "i": 123,
+      "qtype": "q_content",
+      "target_id": 1044,
+      "note": "p_relative",
+      "text": "前年那篇谈顶层路径规划重要性的文章"
+    },
+    {
+      "i": 124,
+      "qtype": "q_content",
+      "target_id": 2286,
+      "note": "p_relative",
+      "text": "最近分布式数据库自治与数据湖查询实践"
+    },
+    {
+      "i": 125,
+      "qtype": "q_content",
+      "target_id": 2371,
+      "note": "p_year",
+      "text": "2021年软件工程师为何自信工作不愁"
+    },
+    {
+      "i": 126,
+      "qtype": "q_content",
+      "target_id": 200,
+      "note": "p_relative",
+      "text": "this year chrome extension editor pick summarize videos"
+    },
+    {
+      "i": 127,
+      "qtype": "q_content",
+      "target_id": 300,
+      "note": "p_year",
+      "text": "why javascript commands needed polyfills in 2009"
+    },
+    {
+      "i": 128,
+      "qtype": "q_content",
+      "target_id": 747,
+      "note": "p_year",
+      "text": "2025年公制条约百五十年溯源"
+    },
+    {
+      "i": 129,
+      "qtype": "q_content",
+      "target_id": 861,
+      "note": "p_year",
+      "text": "2023年政策精英为何恐慌虚构agi威胁"
+    },
+    {
+      "i": 130,
+      "qtype": "q_content",
+      "target_id": 847,
+      "note": "p_relative",
+      "text": "今年 ai 写的代码没人审查了"
+    },
+    {
+      "i": 131,
+      "qtype": "q_content",
+      "target_id": 739,
+      "note": "p_year",
+      "text": "2007年合作眼假说婴儿实验"
+    },
+    {
+      "i": 132,
+      "qtype": "q_content",
+      "target_id": 1565,
+      "note": "p_relative",
+      "text": "前年德州首家3d打印星巴克施工细节"
+    },
+    {
+      "i": 133,
+      "qtype": "q_content",
+      "target_id": 295,
+      "note": "p_relative",
+      "text": "前年安卓商店ai拦截百万恶意应用"
+    },
+    {
+      "i": 134,
+      "qtype": "q_content",
+      "target_id": 1168,
+      "note": "p_relative",
+      "text": "去年用废玻璃代替沙子3d打印混凝土"
+    },
+    {
+      "i": 135,
+      "qtype": "q_content",
+      "target_id": 1450,
+      "note": "p_year",
+      "text": "mad建筑丹佛住宅垂直绿化2019年"
+    },
+    {
+      "i": 136,
+      "qtype": "q_content",
+      "target_id": 1784,
+      "note": "p_relative",
+      "text": "前年看到的a标签href冷门知识点"
+    },
+    {
+      "i": 137,
+      "qtype": "q_content",
+      "target_id": 1218,
+      "note": "p_year",
+      "text": "2022年gnu c入门参考发布"
+    },
+    {
+      "i": 138,
+      "qtype": "q_content",
+      "target_id": 746,
+      "note": "p_relative",
+      "text": "去年为什么说 jwt 不适合做登录态"
+    },
+    {
+      "i": 139,
+      "qtype": "q_content",
+      "target_id": 1385,
+      "note": "p_relative",
+      "text": "去年艾仕得报告白车占比大跌"
+    },
+    {
+      "i": 140,
+      "qtype": "q_content",
+      "target_id": 2260,
+      "note": "p_year",
+      "text": "1999 矩阵 隐喻 css 格式化上下文"
+    },
+    {
+      "i": 141,
+      "qtype": "q_content",
+      "target_id": 496,
+      "note": "p_relative",
+      "text": "free open source drawing program for kids this year"
+    },
+    {
+      "i": 142,
+      "qtype": "q_content",
+      "target_id": 1811,
+      "note": "p_year",
+      "text": "2005年以来youtube进度条演变历史"
+    },
+    {
+      "i": 143,
+      "qtype": "q_content",
+      "target_id": 1844,
+      "note": "p_relative",
+      "text": "last year speculative permits outpace renewable capacity"
+    },
+    {
+      "i": 144,
+      "qtype": "q_content",
+      "target_id": 1839,
+      "note": "p_year",
+      "text": "platform uptime reconstructed from 2019 archived atom feeds"
+    },
+    {
+      "i": 145,
+      "qtype": "q_content",
+      "target_id": 1868,
+      "note": "p_year",
+      "text": "self-hosted company scaled to 100 employees 2025"
+    },
+    {
+      "i": 146,
+      "qtype": "q_content",
+      "target_id": 1653,
+      "note": "p_year",
+      "text": "2014年向日葵纪录保持十年被破"
+    },
+    {
+      "i": 147,
+      "qtype": "q_content",
+      "target_id": 942,
+      "note": "p_year",
+      "text": "2025年roblox聊天ai重述脏话功能"
+    },
+    {
+      "i": 148,
+      "qtype": "q_content",
+      "target_id": 1584,
+      "note": "p_year",
+      "text": "2021年拍卖纪录马赛灯塔壁画"
+    },
+    {
+      "i": 149,
+      "qtype": "q_content",
+      "target_id": 505,
+      "note": "p_year",
+      "text": "2016年details summary跨浏览器后新增互斥手风琴写法"
+    },
+    {
+      "i": 150,
+      "qtype": "q_content",
+      "target_id": 375,
+      "note": "p_relative",
+      "text": "今年 ai 利用 阅读 清单 构建 画像"
+    },
+    {
+      "i": 151,
+      "qtype": "q_content",
+      "target_id": 1678,
+      "note": "p_relative",
+      "text": "今年哈尔丹动物体型缩放定律解析"
+    },
+    {
+      "i": 152,
+      "qtype": "q_content",
+      "target_id": 2219,
+      "note": "p_year",
+      "text": "2019年华为芯片备胎转正韬定律时间缩微"
+    },
+    {
+      "i": 153,
+      "qtype": "q_content",
+      "target_id": 1028,
+      "note": "p_relative",
+      "text": "今年焊接DIY掌机套件评价如何"
+    },
+    {
+      "i": 154,
+      "qtype": "q_content",
+      "target_id": 1357,
+      "note": "p_year",
+      "text": "2013年乔布斯故居被列为历史资源"
+    },
+    {
+      "i": 155,
+      "qtype": "q_content",
+      "target_id": 1946,
+      "note": "p_year",
+      "text": "2019年以来大语言模型时间视界按七个月翻倍"
+    },
+    {
+      "i": 156,
+      "qtype": "q_content",
+      "target_id": 1932,
+      "note": "p_year",
+      "text": "restaurant dumped used cooking oil into transformer vault 2000"
+    },
+    {
+      "i": 157,
+      "qtype": "q_content",
+      "target_id": 608,
+      "note": "p_year",
+      "text": "2014年mkdocs创始人隐退维护者内斗项目分裂"
+    },
+    {
+      "i": 158,
+      "qtype": "q_content",
+      "target_id": 396,
+      "note": "p_year",
+      "text": "2022年毫米波雷达识别十个预设词"
+    },
+    {
+      "i": 159,
+      "qtype": "q_content",
+      "target_id": 1699,
+      "note": "p_year",
+      "text": "2011年c语言https标签注释谜题答案"
+    },
+    {
+      "i": 160,
+      "qtype": "q_content",
+      "target_id": 1108,
+      "note": "p_relative",
+      "text": "今年丰田遥控钥匙远程启动要订阅了"
+    },
+    {
+      "i": 161,
+      "qtype": "q_content",
+      "target_id": 402,
+      "note": "p_relative",
+      "text": "前年谷歌建议再次增大tcp初始拥塞窗口"
+    },
+    {
+      "i": 162,
+      "qtype": "q_content",
+      "target_id": 130,
+      "note": "p_year",
+      "text": "2018年 gcj 比赛 源码 归档 下载"
+    },
+    {
+      "i": 163,
+      "qtype": "q_content",
+      "target_id": 2372,
+      "note": "p_relative",
+      "text": "前年 文章 说 别 光 换 技术 栈 要 做 抽象"
+    },
+    {
+      "i": 164,
+      "qtype": "q_content",
+      "target_id": 818,
+      "note": "p_relative",
+      "text": "how to position against big cloud this year"
+    },
+    {
+      "i": 165,
+      "qtype": "q_content",
+      "target_id": 1406,
+      "note": "p_relative",
+      "text": "去年adsense收益计算器怎么预估网站广告收入"
+    },
+    {
+      "i": 166,
+      "qtype": "q_content",
+      "target_id": 1316,
+      "note": "p_relative",
+      "text": "去年科学家首次从灭绝袋狼标本提取rna"
+    },
+    {
+      "i": 167,
+      "qtype": "q_content",
+      "target_id": 2263,
+      "note": "p_year",
+      "text": "lightweight classless stylesheet alternative to 2011 skeleton"
+    },
+    {
+      "i": 168,
+      "qtype": "q_content",
+      "target_id": 2162,
+      "note": "p_relative",
+      "text": "今年微软project solara设备只是云端代理入口"
+    },
+    {
+      "i": 169,
+      "qtype": "q_content",
+      "target_id": 2262,
+      "note": "p_year",
+      "text": "2022年各国温度变化表格现代css样式写法"
+    },
+    {
+      "i": 170,
+      "qtype": "q_content",
+      "target_id": 40,
+      "note": "p_year",
+      "text": "1996年乔布斯皮克斯早期未公开访谈"
+    },
+    {
+      "i": 171,
+      "qtype": "q_content",
+      "target_id": 572,
+      "note": "p_year",
+      "text": "2024年 37signals 三款产品 纯手写 CSS 无构建 实战"
+    },
+    {
+      "i": 172,
+      "qtype": "q_content",
+      "target_id": 1142,
+      "note": "p_year",
+      "text": "2021年新能源汽车销量突破350万辆"
+    },
+    {
+      "i": 173,
+      "qtype": "q_content",
+      "target_id": 720,
+      "note": "p_relative",
+      "text": "今年研究发现科学家年龄增长颠覆性创新下降"
+    },
+    {
+      "i": 174,
+      "qtype": "q_content",
+      "target_id": 2356,
+      "note": "p_relative",
+      "text": "last year dco sign-off clause references earlier certifications"
+    },
+    {
+      "i": 175,
+      "qtype": "q_content",
+      "target_id": 1085,
+      "note": "p_year",
+      "text": "2025 年 无代码 ai 让 学习曲线 变平"
+    },
+    {
+      "i": 176,
+      "qtype": "q_content",
+      "target_id": 2110,
+      "note": "p_year",
+      "text": "wolbachia mosquito suppression technique 2013 dengue burden"
+    },
+    {
+      "i": 177,
+      "qtype": "q_content",
+      "target_id": 2153,
+      "note": "p_year",
+      "text": "2025年教学改说学习怎么确认学会了"
+    },
+    {
+      "i": 178,
+      "qtype": "q_content",
+      "target_id": 1792,
+      "note": "p_year",
+      "text": "2021年ucla磁弹性喉部贴片语音识别"
+    },
+    {
+      "i": 179,
+      "qtype": "q_content",
+      "target_id": 793,
+      "note": "p_relative",
+      "text": "最近ai算力账单每工程师三种情景"
+    },
+    {
+      "i": 180,
+      "qtype": "q_content",
+      "target_id": 1732,
+      "note": "p_year",
+      "text": "2022年雅库茨克零下五十度锯冰修船"
+    },
+    {
+      "i": 181,
+      "qtype": "q_content",
+      "target_id": 795,
+      "note": "p_relative",
+      "text": "xbox restructuring this year studio departures layoffs"
+    },
+    {
+      "i": 182,
+      "qtype": "q_content",
+      "target_id": 1394,
+      "note": "p_year",
+      "text": "2023年全球首例癫痫脑起搏器植入手术"
+    },
+    {
+      "i": 183,
+      "qtype": "q_content",
+      "target_id": 987,
+      "note": "p_year",
+      "text": "2024 karpathy c implementation apple silicon amx gpu performance"
+    },
+    {
+      "i": 184,
+      "qtype": "q_content",
+      "target_id": 1986,
+      "note": "p_relative",
+      "text": "今年自制可乐精油乳化实验全过程"
+    },
+    {
+      "i": 185,
+      "qtype": "q_content",
+      "target_id": 1184,
+      "note": "p_year",
+      "text": "2001年ipv6路由追踪里藏着工程师履历"
+    },
+    {
+      "i": 186,
+      "qtype": "q_content",
+      "target_id": 206,
+      "note": "p_relative",
+      "text": "去年用生活用品做几何艺术雕塑的博客"
+    },
+    {
+      "i": 187,
+      "qtype": "q_content",
+      "target_id": 1823,
+      "note": "p_year",
+      "text": "2025特斯拉财报电话会宣布停产model s x"
+    },
+    {
+      "i": 188,
+      "qtype": "q_content",
+      "target_id": 939,
+      "note": "p_relative",
+      "text": "最近怎么用博客内容搭建 RAG 知识库做 AI 分身"
+    },
+    {
+      "i": 189,
+      "qtype": "q_content",
+      "target_id": 1591,
+      "note": "p_relative",
+      "text": "今年 最大 社区 成员 排行榜"
+    },
+    {
+      "i": 190,
+      "qtype": "q_content",
+      "target_id": 794,
+      "note": "p_relative",
+      "text": "最近接手新代码库先跑啥 git 命令"
+    },
+    {
+      "i": 191,
+      "qtype": "q_content",
+      "target_id": 1630,
+      "note": "p_relative",
+      "text": "去年内华达山脉远程天文台望远镜月租六百美元"
+    },
+    {
+      "i": 192,
+      "qtype": "q_content",
+      "target_id": 935,
+      "note": "p_relative",
+      "text": "今年 ai 核心原理 统计学 通俗解释"
+    },
+    {
+      "i": 193,
+      "qtype": "q_content",
+      "target_id": 1788,
+      "note": "p_year",
+      "text": "2013年技术文档教学而非告知理念"
+    },
+    {
+      "i": 194,
+      "qtype": "q_content",
+      "target_id": 19,
+      "note": "p_relative",
+      "text": "前年 十万 网站 图标 文件 体积 统计"
+    },
+    {
+      "i": 195,
+      "qtype": "q_content",
+      "target_id": 760,
+      "note": "p_year",
+      "text": "2015年入职谷歌文档团队七年离职"
+    },
+    {
+      "i": 196,
+      "qtype": "q_content",
+      "target_id": 874,
+      "note": "p_year",
+      "text": "2021年起用github actions自动生成网页全文摘要"
+    },
+    {
+      "i": 197,
+      "qtype": "q_content",
+      "target_id": 1966,
+      "note": "p_year",
+      "text": "2025 round closed for platform monetizing early trend discovery"
+    },
+    {
+      "i": 198,
+      "qtype": "q_content",
+      "target_id": 193,
+      "note": "p_year",
+      "text": "2014 twitter spam filter vibe check llm evaluation"
+    },
+    {
+      "i": 199,
+      "qtype": "q_content",
+      "target_id": 1165,
+      "note": "p_year",
+      "text": "联合国2021年超额死亡人口估算"
+    },
+    {
+      "i": 200,
+      "qtype": "q_content",
+      "target_id": 2128,
+      "note": "p_year",
+      "text": "nick strobel website links stable since 2001"
+    },
+    {
+      "i": 201,
+      "qtype": "q_content",
+      "target_id": 187,
+      "note": "p_year",
+      "text": "2019年r语言数据整理可视化教材"
+    },
+    {
+      "i": 202,
+      "qtype": "q_content",
+      "target_id": 691,
+      "note": "p_relative",
+      "text": "last year data centres small slice world power"
+    },
+    {
+      "i": 203,
+      "qtype": "q_content",
+      "target_id": 387,
+      "note": "p_year",
+      "text": "2016年帕兰提尔间谍技术争议前员工八年反思"
+    },
+    {
+      "i": 204,
+      "qtype": "q_content",
+      "target_id": 2149,
+      "note": "p_year",
+      "text": "2000年罗伯特彭纳缓动函数缓入缓出原理"
+    },
+    {
+      "i": 205,
+      "qtype": "q_content",
+      "target_id": 767,
+      "note": "p_relative",
+      "text": "how regulators curbed digital bank expansion lately"
+    },
+    {
+      "i": 206,
+      "qtype": "q_content",
+      "target_id": 1635,
+      "note": "p_relative",
+      "text": "今年大模型多模态泛化能力进展"
+    },
+    {
+      "i": 207,
+      "qtype": "q_content",
+      "target_id": 1671,
+      "note": "p_relative",
+      "text": "最近 coursera 预览模式 封锁 免费 课程 视频"
+    },
+    {
+      "i": 208,
+      "qtype": "q_content",
+      "target_id": 232,
+      "note": "p_relative",
+      "text": "last year unicode update expanded symbol collection significantly"
+    },
+    {
+      "i": 209,
+      "qtype": "q_content",
+      "target_id": 1159,
+      "note": "p_year",
+      "text": "2007年 nasa 追回 阿波罗11号 月壤 昆虫 标本"
+    },
+    {
+      "i": 210,
+      "qtype": "q_content",
+      "target_id": 2117,
+      "note": "p_relative",
+      "text": "why arabic justified text fails lately"
+    },
+    {
+      "i": 211,
+      "qtype": "q_content",
+      "target_id": 16,
+      "note": "p_relative",
+      "text": "今年芝加哥铁路用明火除冰保通车"
+    },
+    {
+      "i": 212,
+      "qtype": "q_content",
+      "target_id": 1805,
+      "note": "p_relative",
+      "text": "最近系统分阶段扩容避免过度设计"
+    },
+    {
+      "i": 213,
+      "qtype": "q_content",
+      "target_id": 1069,
+      "note": "p_year",
+      "text": "2024 fosdem talk what comes after unix"
+    },
+    {
+      "i": 214,
+      "qtype": "q_content",
+      "target_id": 1478,
+      "note": "p_relative",
+      "text": "今年八月弃用copilot改用ai编程助手心得"
+    },
+    {
+      "i": 215,
+      "qtype": "q_content",
+      "target_id": 2208,
+      "note": "p_relative",
+      "text": "open source smartwatch linux this year"
+    },
+    {
+      "i": 216,
+      "qtype": "q_content",
+      "target_id": 1753,
+      "note": "p_year",
+      "text": "cory doctorow 1990 university dropout systems administrator story"
+    },
+    {
+      "i": 217,
+      "qtype": "q_content",
+      "target_id": 1002,
+      "note": "p_year",
+      "text": "2019 free guitar tone emulation outperforms proprietary units using inexpensive microcontroller"
+    },
+    {
+      "i": 218,
+      "qtype": "q_content",
+      "target_id": 2129,
+      "note": "p_relative",
+      "text": "recently stanford study finds relationships declining before pandemic"
+    },
+    {
+      "i": 219,
+      "qtype": "q_content",
+      "target_id": 2236,
+      "note": "p_relative",
+      "text": "最近星舰塔架捕获助推器优于着陆腿的原因"
+    },
+    {
+      "i": 220,
+      "qtype": "q_content",
+      "target_id": 1243,
+      "note": "p_relative",
+      "text": "前年视频团队弃无服务器改单体省九成"
+    },
+    {
+      "i": 221,
+      "qtype": "q_content",
+      "target_id": 81,
+      "note": "p_relative",
+      "text": "去年法国艺术家石膏树皮做扭曲树雕塑"
+    },
+    {
+      "i": 222,
+      "qtype": "q_content",
+      "target_id": 1736,
+      "note": "p_year",
+      "text": "2025年agi next峰会唐杰让机器像人一样思考"
+    },
+    {
+      "i": 223,
+      "qtype": "q_content",
+      "target_id": 1954,
+      "note": "p_year",
+      "text": "2016年东京飞巴黎学rust写搜索引擎"
+    },
+    {
+      "i": 224,
+      "qtype": "q_content",
+      "target_id": 1887,
+      "note": "p_year",
+      "text": "2025年谷歌字节AI绘图模型推理编辑对比"
+    },
+    {
+      "i": 225,
+      "qtype": "q_content",
+      "target_id": 824,
+      "note": "p_year",
+      "text": "2000年天问二号探测器抵达小行星2016ho3科学探测"
+    },
+    {
+      "i": 226,
+      "qtype": "q_content",
+      "target_id": 557,
+      "note": "p_relative",
+      "text": "今年福雷斯特发现大树杜鹃经过"
+    },
+    {
+      "i": 227,
+      "qtype": "q_content",
+      "target_id": 1473,
+      "note": "p_relative",
+      "text": "最近大选后阁楼百年老琴修琴师谢幕"
+    },
+    {
+      "i": 228,
+      "qtype": "q_content",
+      "target_id": 1283,
+      "note": "p_year",
+      "text": "2024 谷歌开发者论坛 WebCodecs 视频剪辑"
+    },
+    {
+      "i": 229,
+      "qtype": "q_content",
+      "target_id": 317,
+      "note": "p_year",
+      "text": "1999年mac静音键图标终于改对了"
+    },
+    {
+      "i": 230,
+      "qtype": "q_content",
+      "target_id": 1355,
+      "note": "p_relative",
+      "text": "recently vpn bypasses china great firewall censorship"
+    },
+    {
+      "i": 231,
+      "qtype": "q_content",
+      "target_id": 940,
+      "note": "p_year",
+      "text": "2025年ai大模型使用成本实测"
+    },
+    {
+      "i": 232,
+      "qtype": "q_content",
+      "target_id": 622,
+      "note": "p_relative",
+      "text": "今年学生发明透明指甲油让长指甲能触屏"
+    },
+    {
+      "i": 233,
+      "qtype": "q_content",
+      "target_id": 1921,
+      "note": "p_year",
+      "text": "softbank stargate 2025 credit default swaps"
+    },
+    {
+      "i": 234,
+      "qtype": "q_content",
+      "target_id": 1125,
+      "note": "p_year",
+      "text": "2006年软银表情符号为何红色代表上涨"
+    },
+    {
+      "i": 235,
+      "qtype": "q_content",
+      "target_id": 1062,
+      "note": "p_year",
+      "text": "2014年起zip顶级域被滥用做钓鱼"
+    },
+    {
+      "i": 236,
+      "qtype": "q_content",
+      "target_id": 1332,
+      "note": "p_year",
+      "text": "2016年搞笑诺贝尔奖双腿间效应研究"
+    },
+    {
+      "i": 237,
+      "qtype": "q_content",
+      "target_id": 1000,
+      "note": "p_year",
+      "text": "chinese chatgpt data center campaign 2025 banned"
+    },
+    {
+      "i": 238,
+      "qtype": "q_content",
+      "target_id": 1816,
+      "note": "p_relative",
+      "text": "去年学的卡马克纯文本笔记法记技术日志"
+    },
+    {
+      "i": 239,
+      "qtype": "q_content",
+      "target_id": 1514,
+      "note": "p_year",
+      "text": "2022谷歌艺术文化ar复刻古希腊双耳瓶"
+    },
+    {
+      "i": 240,
+      "qtype": "q_content",
+      "target_id": 1160,
+      "note": "p_year",
+      "text": "why 2005 diagrams still load today"
+    },
+    {
+      "i": 241,
+      "qtype": "q_content",
+      "target_id": 1878,
+      "note": "p_year",
+      "text": "2001年击败平均数lisp宏优势"
+    },
+    {
+      "i": 242,
+      "qtype": "q_content",
+      "target_id": 254,
+      "note": "p_year",
+      "text": "2010年人类学家发现狭缝护目镜能矫正视力"
+    },
+    {
+      "i": 243,
+      "qtype": "q_content",
+      "target_id": 2081,
+      "note": "p_relative",
+      "text": "last year ai budget exhausted april claude code adoption"
+    },
+    {
+      "i": 244,
+      "qtype": "q_content",
+      "target_id": 2139,
+      "note": "p_year",
+      "text": "why reading for fun dropped since 2012"
+    },
+    {
+      "i": 245,
+      "qtype": "q_content",
+      "target_id": 609,
+      "note": "p_year",
+      "text": "2025年小米万亿参数模型被误认为deepseek v4"
+    },
+    {
+      "i": 246,
+      "qtype": "q_content",
+      "target_id": 2353,
+      "note": "p_relative",
+      "text": "前年 弃用 Spotify 自建音乐服务"
+    },
+    {
+      "i": 247,
+      "qtype": "q_content",
+      "target_id": 929,
+      "note": "p_relative",
+      "text": "agentic ai for merging government ai inventories this year"
+    },
+    {
+      "i": 248,
+      "qtype": "q_content",
+      "target_id": 1250,
+      "note": "p_year",
+      "text": "2024年复古软盘造型带屏显示文件的存储装置"
+    },
+    {
+      "i": 249,
+      "qtype": "q_content",
+      "target_id": 1826,
+      "note": "p_relative",
+      "text": "recently launched offline api client with cli and encrypted secrets"
+    },
+    {
+      "i": 250,
+      "qtype": "q_content",
+      "target_id": 1657,
+      "note": "p_year",
+      "text": "2024年几个月开发不如三周ai编程"
+    },
+    {
+      "i": 251,
+      "qtype": "q_content",
+      "target_id": 1713,
+      "note": "p_year",
+      "text": "2013年小王子基金会开始资助新出版物"
+    },
+    {
+      "i": 252,
+      "qtype": "q_content",
+      "target_id": 1039,
+      "note": "p_relative",
+      "text": "最近吉卜力新作高清剧照"
+    },
+    {
+      "i": 253,
+      "qtype": "q_content",
+      "target_id": 523,
+      "note": "p_year",
+      "text": "2018年表情符号设计趋同三星更新"
+    },
+    {
+      "i": 254,
+      "qtype": "q_content",
+      "target_id": 2360,
+      "note": "p_year",
+      "text": "2021 entrepreneurs age statistics kaufman foundation report"
+    },
+    {
+      "i": 255,
+      "qtype": "q_content",
+      "target_id": 1995,
+      "note": "p_year",
+      "text": "1999年c10k问题如何催生回调模式"
+    },
+    {
+      "i": 256,
+      "qtype": "q_content",
+      "target_id": 1223,
+      "note": "p_year",
+      "text": "how 2017 instrument recordings funded philadelphia school repairs"
+    },
+    {
+      "i": 257,
+      "qtype": "q_content",
+      "target_id": 1291,
+      "note": "p_year",
+      "text": "1992年纽约时报文章 解释为什么现在都开字幕"
+    },
+    {
+      "i": 258,
+      "qtype": "q_content",
+      "target_id": 504,
+      "note": "p_relative",
+      "text": "今年试用代码助手只能改类型错误"
+    },
+    {
+      "i": 259,
+      "qtype": "q_content",
+      "target_id": 417,
+      "note": "p_relative",
+      "text": "去年不同浏览器对吊销证书反应不一"
+    },
+    {
+      "i": 260,
+      "qtype": "q_content",
+      "target_id": 2033,
+      "note": "p_relative",
+      "text": "this year story of teenager writing vb6 parser for siemens pbx"
+    },
+    {
+      "i": 261,
+      "qtype": "q_content",
+      "target_id": 2115,
+      "note": "p_year",
+      "text": "2020 rule requires vies consultation number for zero-rated intra-community supplies"
+    },
+    {
+      "i": 262,
+      "qtype": "q_content",
+      "target_id": 338,
+      "note": "p_year",
+      "text": "2023年北京人形机器人创新中心天工半马夺冠细节"
+    },
+    {
+      "i": 263,
+      "qtype": "q_content",
+      "target_id": 211,
+      "note": "p_relative",
+      "text": "前年实习生做源码搜索用plan9正则"
+    },
+    {
+      "i": 264,
+      "qtype": "q_content",
+      "target_id": 23,
+      "note": "p_relative",
+      "text": "最近首批国产网游过审名单公布"
+    },
+    {
+      "i": 265,
+      "qtype": "q_content",
+      "target_id": 1936,
+      "note": "p_year",
+      "text": "2020年幼童夭折率降到4.3%原因"
+    },
+    {
+      "i": 266,
+      "qtype": "q_content",
+      "target_id": 1770,
+      "note": "p_relative",
+      "text": "lately creators earning more from fewer fans"
+    },
+    {
+      "i": 267,
+      "qtype": "q_content",
+      "target_id": 2324,
+      "note": "p_relative",
+      "text": "去年对go rust zig设计取舍的看法"
+    },
+    {
+      "i": 268,
+      "qtype": "q_content",
+      "target_id": 1331,
+      "note": "p_year",
+      "text": "2020年高温气冷堆调试三十个月细节"
+    },
+    {
+      "i": 269,
+      "qtype": "q_content",
+      "target_id": 426,
+      "note": "p_relative",
+      "text": "今年卢浮宫珠宝大劫案德国升降机蹭热度"
+    },
+    {
+      "i": 270,
+      "qtype": "q_content",
+      "target_id": 1505,
+      "note": "p_relative",
+      "text": "最近有致敬1999年个人网站烟花动画的网页"
+    },
+    {
+      "i": 271,
+      "qtype": "q_content",
+      "target_id": 1840,
+      "note": "p_relative",
+      "text": "blockchain surety bonds riskstream collaborative this year"
+    },
+    {
+      "i": 272,
+      "qtype": "q_content",
+      "target_id": 467,
+      "note": "p_relative",
+      "text": "最近爱沙尼亚警方寄警示卡给累犯司机"
+    },
+    {
+      "i": 273,
+      "qtype": "q_content",
+      "target_id": 649,
+      "note": "p_year",
+      "text": "father represents himself artificial intelligence lawsuits universities 2023 admissions discrimination"
+    },
+    {
+      "i": 274,
+      "qtype": "q_content",
+      "target_id": 2234,
+      "note": "p_relative",
+      "text": "最近docker打包百款unix工具做数据清洗"
+    },
+    {
+      "i": 275,
+      "qtype": "q_content",
+      "target_id": 357,
+      "note": "p_relative",
+      "text": "anti detect browser with isolated profiles this year"
+    },
+    {
+      "i": 276,
+      "qtype": "q_content",
+      "target_id": 2001,
+      "note": "p_year",
+      "text": "2015年创立设计独角兽上市后营收11亿却亏14亿"
+    },
+    {
+      "i": 277,
+      "qtype": "q_content",
+      "target_id": 2279,
+      "note": "p_year",
+      "text": "2023年浏览器原生支持行高单位优化排版"
+    },
+    {
+      "i": 278,
+      "qtype": "q_content",
+      "target_id": 1170,
+      "note": "p_relative",
+      "text": "今年陀螺仪钻井地热替代燃煤电厂"
+    },
+    {
+      "i": 279,
+      "qtype": "q_content",
+      "target_id": 1482,
+      "note": "p_relative",
+      "text": "前年帕斯卡尔说人类痛苦源于不会独处"
+    },
+    {
+      "i": 280,
+      "qtype": "q_content",
+      "target_id": 135,
+      "note": "p_year",
+      "text": "2021年程序员辞职全职独立开发月入四万五"
+    },
+    {
+      "i": 281,
+      "qtype": "q_content",
+      "target_id": 72,
+      "note": "p_year",
+      "text": "2012年bigquery创始工程师承认数据规模被高估"
+    },
+    {
+      "i": 282,
+      "qtype": "q_content",
+      "target_id": 635,
+      "note": "p_year",
+      "text": "distributed systems event ordering techniques 2024"
+    },
+    {
+      "i": 283,
+      "qtype": "q_content",
+      "target_id": 1399,
+      "note": "p_relative",
+      "text": "前年屋顶无叶片风机获九百万融资"
+    },
+    {
+      "i": 284,
+      "qtype": "q_content",
+      "target_id": 343,
+      "note": "p_year",
+      "text": "2018年分析电话计算器键盘数字排序相反的历史渊源"
+    },
+    {
+      "i": 285,
+      "qtype": "q_content",
+      "target_id": 835,
+      "note": "p_year",
+      "text": "2020年路边矿池mt19937随机数漏洞被盗"
+    },
+    {
+      "i": 286,
+      "qtype": "q_content",
+      "target_id": 1747,
+      "note": "p_year",
+      "text": "2025 lightweight markup language problems better alternatives"
+    },
+    {
+      "i": 287,
+      "qtype": "q_content",
+      "target_id": 2025,
+      "note": "p_relative",
+      "text": "recently recalled early school computers imac g3 club penguin"
+    },
+    {
+      "i": 288,
+      "qtype": "q_content",
+      "target_id": 234,
+      "note": "p_year",
+      "text": "2000年谷歌索引崩溃迪恩格马瓦特如何抢修"
+    },
+    {
+      "i": 289,
+      "qtype": "q_content",
+      "target_id": 756,
+      "note": "p_year",
+      "text": "2023年gps子帧4第17页军用密钥分发"
+    },
+    {
+      "i": 290,
+      "qtype": "q_content",
+      "target_id": 207,
+      "note": "p_year",
+      "text": "2023 单人 saas 架构 实战 经验"
+    },
+    {
+      "i": 291,
+      "qtype": "q_content",
+      "target_id": 1865,
+      "note": "p_year",
+      "text": "dutch smartphone 2025 record sales modular repair"
+    },
+    {
+      "i": 292,
+      "qtype": "q_content",
+      "target_id": 1733,
+      "note": "p_relative",
+      "text": "今年 ai 代理借鉴人类思考习惯"
+    },
+    {
+      "i": 293,
+      "qtype": "q_content",
+      "target_id": 178,
+      "note": "p_relative",
+      "text": "去年福岛adhd剪纸艺术家开馆"
+    },
+    {
+      "i": 294,
+      "qtype": "q_content",
+      "target_id": 748,
+      "note": "p_relative",
+      "text": "去年埃森哲收购奥克拉测速平台"
+    },
+    {
+      "i": 295,
+      "qtype": "q_content",
+      "target_id": 1837,
+      "note": "p_year",
+      "text": "ai restore ambersons saatchi mother died 2011"
+    },
+    {
+      "i": 296,
+      "qtype": "q_content",
+      "target_id": 2207,
+      "note": "p_relative",
+      "text": "前年 git exclude 忽略 区别 个人 仓库 配置"
+    },
+    {
+      "i": 297,
+      "qtype": "q_content",
+      "target_id": 537,
+      "note": "p_relative",
+      "text": "authoritarian regimes weaponizing infrastructure for communication blackouts lately"
+    },
+    {
+      "i": 298,
+      "qtype": "q_content",
+      "target_id": 142,
+      "note": "p_relative",
+      "text": "今年谷歌老员工辞职回顾十八年企业文化"
+    },
+    {
+      "i": 299,
+      "qtype": "q_content",
+      "target_id": 1799,
+      "note": "p_year",
+      "text": "1990年西蒙埃利希赌约金属价格下跌"
+    },
+    {
+      "i": 300,
+      "qtype": "q_content",
+      "target_id": 1797,
+      "note": "p_year",
+      "text": "1997年微软六次杀掉桌面组件又加围墙"
+    },
+    {
+      "i": 301,
+      "qtype": "q_content",
+      "target_id": 253,
+      "note": "p_relative",
+      "text": "今年主流AI模型调用价格一览"
+    },
+    {
+      "i": 302,
+      "qtype": "q_content",
+      "target_id": 21,
+      "note": "p_year",
+      "text": "2025年冷战铜针人工环仍在轨道"
+    },
+    {
+      "i": 303,
+      "qtype": "q_content",
+      "target_id": 1463,
+      "note": "p_relative",
+      "text": "去年阮一峰推荐的reactpress全栈博客"
+    },
+    {
+      "i": 304,
+      "qtype": "q_content",
+      "target_id": 2375,
+      "note": "p_relative",
+      "text": "前年随机x虚拟机内存硬设计原理"
+    },
+    {
+      "i": 305,
+      "qtype": "q_content",
+      "target_id": 1759,
+      "note": "p_year",
+      "text": "building tiny transformer with mlx 2025"
+    },
+    {
+      "i": 306,
+      "qtype": "q_content",
+      "target_id": 1458,
+      "note": "p_year",
+      "text": "2014年博斯特罗姆超级智能出版十年影响力回顾"
+    },
+    {
+      "i": 307,
+      "qtype": "q_content",
+      "target_id": 1064,
+      "note": "p_year",
+      "text": "2010年破解rsa能耗沸腾奥运游泳池"
+    },
+    {
+      "i": 308,
+      "qtype": "q_content",
+      "target_id": 620,
+      "note": "p_year",
+      "text": "2025年婚礼摄影师进粒子实验室拍照得奖"
+    },
+    {
+      "i": 309,
+      "qtype": "q_content",
+      "target_id": 2339,
+      "note": "p_relative",
+      "text": "今年首个稳定版rhino linux独角兽桌面"
+    },
+    {
+      "i": 310,
+      "qtype": "q_content",
+      "target_id": 680,
+      "note": "p_year",
+      "text": "2002年eprivacy指令谷歌浏览器偷装权重违规"
+    },
+    {
+      "i": 311,
+      "qtype": "q_content",
+      "target_id": 428,
+      "note": "p_year",
+      "text": "2008年金融危机后g20不平等监测提案"
+    },
+    {
+      "i": 312,
+      "qtype": "q_content",
+      "target_id": 1179,
+      "note": "p_relative",
+      "text": "前年世界杯裁判宇舶表进球震动"
+    },
+    {
+      "i": 313,
+      "qtype": "q_content",
+      "target_id": 610,
+      "note": "p_relative",
+      "text": "去年运营商隐私政策藏免费瑞士游有人中"
+    },
+    {
+      "i": 314,
+      "qtype": "q_content",
+      "target_id": 2265,
+      "note": "p_relative",
+      "text": "去年必应搜谷歌出现假谷歌首页"
+    },
+    {
+      "i": 315,
+      "qtype": "q_content",
+      "target_id": 683,
+      "note": "p_relative",
+      "text": "前年自研渲染引擎攻克腕上导航"
+    },
+    {
+      "i": 316,
+      "qtype": "q_content",
+      "target_id": 583,
+      "note": "p_year",
+      "text": "2025 folk music raw human expression"
+    },
+    {
+      "i": 317,
+      "qtype": "q_content",
+      "target_id": 1567,
+      "note": "p_year",
+      "text": "smart sampa system catches 2018 fugitive"
+    },
+    {
+      "i": 318,
+      "qtype": "q_content",
+      "target_id": 471,
+      "note": "p_year",
+      "text": "2025 ocean heat content record zettajoules la nina"
+    },
+    {
+      "i": 319,
+      "qtype": "q_content",
+      "target_id": 2109,
+      "note": "p_year",
+      "text": "2017年PiKVM开源引发IP KVM横向评测与避坑指南"
+    },
+    {
+      "i": 320,
+      "qtype": "q_content",
+      "target_id": 46,
+      "note": "p_year",
+      "text": "2012年退役一级军士长apple watch数字疗法干预梦魇"
+    },
+    {
+      "i": 321,
+      "qtype": "q_content",
+      "target_id": 175,
+      "note": "p_relative",
+      "text": "automated scoring engine reducing human scorers lately"
+    },
+    {
+      "i": 322,
+      "qtype": "q_content",
+      "target_id": 1931,
+      "note": "p_year",
+      "text": "2005 genius act section 4 stablecoin yield prohibition"
+    },
+    {
+      "i": 323,
+      "qtype": "q_content",
+      "target_id": 2357,
+      "note": "p_year",
+      "text": "rtmutex vulnerability since 2011 enables container escape"
+    },
+    {
+      "i": 324,
+      "qtype": "q_content",
+      "target_id": 1029,
+      "note": "p_year",
+      "text": "2011年出版的3d数学书哪些章节过时了"
+    },
+    {
+      "i": 325,
+      "qtype": "q_content",
+      "target_id": 722,
+      "note": "p_relative",
+      "text": "browser fingerprinting tracking without cookies lately"
+    },
+    {
+      "i": 326,
+      "qtype": "q_content",
+      "target_id": 1608,
+      "note": "p_relative",
+      "text": "去年无博士十年成分布式系统研究员"
+    },
+    {
+      "i": 327,
+      "qtype": "q_content",
+      "target_id": 1904,
+      "note": "p_year",
+      "text": "how 2018 publications enabled minimal cell simulation"
+    },
+    {
+      "i": 328,
+      "qtype": "q_content",
+      "target_id": 869,
+      "note": "p_relative",
+      "text": "最近 机器学习 领域 投机 盛行 逼走 真 从业 者"
+    },
+    {
+      "i": 329,
+      "qtype": "q_content",
+      "target_id": 1681,
+      "note": "p_year",
+      "text": "2020 architecture shift fueled record revenue"
+    },
+    {
+      "i": 330,
+      "qtype": "q_content",
+      "target_id": 1153,
+      "note": "p_year",
+      "text": "2006年创立的香氛品牌联名音响造型扩香器"
+    },
+    {
+      "i": 331,
+      "qtype": "q_content",
+      "target_id": 966,
+      "note": "p_year",
+      "text": "why 1994 cobol code rots in thirty days now"
+    },
+    {
+      "i": 332,
+      "qtype": "q_content",
+      "target_id": 148,
+      "note": "p_relative",
+      "text": "今年手机电量显示为何因厂商策略不同"
+    },
+    {
+      "i": 333,
+      "qtype": "q_content",
+      "target_id": 2278,
+      "note": "p_year",
+      "text": "1990年首个网页客户端wideweb复刻细节"
+    },
+    {
+      "i": 334,
+      "qtype": "q_content",
+      "target_id": 2167,
+      "note": "p_year",
+      "text": "2024 mof market growth barriers limiting commercial adoption"
+    },
+    {
+      "i": 335,
+      "qtype": "q_content",
+      "target_id": 1680,
+      "note": "p_relative",
+      "text": "最近 nocobase 开源 收入 破 千万 细节"
+    },
+    {
+      "i": 336,
+      "qtype": "q_content",
+      "target_id": 1154,
+      "note": "p_year",
+      "text": "2020年成都融创黄金巨马机械仿生艺术"
+    },
+    {
+      "i": 337,
+      "qtype": "q_content",
+      "target_id": 1187,
+      "note": "p_year",
+      "text": "2017年泰国珊瑚礁启发微藻生物石灰石水泥"
+    },
+    {
+      "i": 338,
+      "qtype": "q_content",
+      "target_id": 1086,
+      "note": "p_relative",
+      "text": "最近a股细分领域龙头名单"
+    },
+    {
+      "i": 339,
+      "qtype": "q_content",
+      "target_id": 1637,
+      "note": "p_relative",
+      "text": "去年微软因南半球季节改半年更新名字"
+    },
+    {
+      "i": 340,
+      "qtype": "q_content",
+      "target_id": 1315,
+      "note": "p_relative",
+      "text": "最近发现2005年纪录片采访了后来大佬"
+    },
+    {
+      "i": 341,
+      "qtype": "q_content",
+      "target_id": 1106,
+      "note": "p_year",
+      "text": "匈牙利大风坦克2000年天然气火灾灭火失败"
+    },
+    {
+      "i": 342,
+      "qtype": "q_content",
+      "target_id": 241,
+      "note": "p_relative",
+      "text": "前年谷歌云频繁关停服务迁移太麻烦"
+    },
+    {
+      "i": 343,
+      "qtype": "q_content",
+      "target_id": 290,
+      "note": "p_relative",
+      "text": "去年火砖储热技术替代工业燃煤"
+    },
+    {
+      "i": 344,
+      "qtype": "q_content",
+      "target_id": 750,
+      "note": "p_relative",
+      "text": "去年怎么禁止浏览器自动把数字变电话链接"
+    },
+    {
+      "i": 345,
+      "qtype": "q_content",
+      "target_id": 658,
+      "note": "p_relative",
+      "text": "lately smartphone physics experiments using phone sensors"
+    },
+    {
+      "i": 346,
+      "qtype": "q_content",
+      "target_id": 852,
+      "note": "p_relative",
+      "text": "去年波特兰电台克隆声音做主播"
+    },
+    {
+      "i": 347,
+      "qtype": "q_content",
+      "target_id": 997,
+      "note": "p_year",
+      "text": "2025年ai驱动失业引发的被压抑哀伤模式"
+    },
+    {
+      "i": 348,
+      "qtype": "q_content",
+      "target_id": 2160,
+      "note": "p_year",
+      "text": "2010年面试题中位数快速选择算法"
+    },
+    {
+      "i": 349,
+      "qtype": "q_content",
+      "target_id": 2245,
+      "note": "p_year",
+      "text": "spacex 2022 revenue base growth frontier analysis"
+    },
+    {
+      "i": 350,
+      "qtype": "q_content",
+      "target_id": 1147,
+      "note": "p_year",
+      "text": "2023年美国司法部关注安卓车机强制捆绑服务"
+    },
+    {
+      "i": 351,
+      "qtype": "q_content",
+      "target_id": 386,
+      "note": "p_year",
+      "text": "2019年马斯克构想超充餐饮好莱坞落地"
+    },
+    {
+      "i": 352,
+      "qtype": "q_content",
+      "target_id": 37,
+      "note": "p_year",
+      "text": "2009年月球熔岩管内温度常年17度"
+    },
+    {
+      "i": 353,
+      "qtype": "q_content",
+      "target_id": 1803,
+      "note": "p_relative",
+      "text": "今年考古学界还没搞懂晚期罗马青铜空心物用途"
+    },
+    {
+      "i": 354,
+      "qtype": "q_content",
+      "target_id": 838,
+      "note": "p_relative",
+      "text": "recently updated free wysiwyg scientific editor scheme extensible"
+    },
+    {
+      "i": 355,
+      "qtype": "q_content",
+      "target_id": 335,
+      "note": "p_year",
+      "text": "2024年宇树g1上海时装周走秀"
+    },
+    {
+      "i": 356,
+      "qtype": "q_content",
+      "target_id": 2331,
+      "note": "p_relative",
+      "text": "最近 python 导入 耗时 可视化 网页 工具"
+    },
+    {
+      "i": 357,
+      "qtype": "q_content",
+      "target_id": 1017,
+      "note": "p_relative",
+      "text": "recently exposed synthetic musicians racking up millions of streams"
+    },
+    {
+      "i": 358,
+      "qtype": "q_content",
+      "target_id": 717,
+      "note": "p_year",
+      "text": "2013年施乐复印机压缩算法把数字静默替换"
+    },
+    {
+      "i": 359,
+      "qtype": "q_content",
+      "target_id": 272,
+      "note": "p_year",
+      "text": "2019年伦敦办公室系统设计下一个排列"
+    },
+    {
+      "i": 360,
+      "qtype": "q_content",
+      "target_id": 676,
+      "note": "p_year",
+      "text": "2024年公开学习展示过程吸引同好"
+    }
+  ],
+  "outcomes": {
+    "A": [
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 12299.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 209.5
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 236.2
+      },
+      {
+        "rank": 7,
+        "expanded": false,
+        "ms": 237.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 249.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 237.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 248.7
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 257.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 236.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 248.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 284.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 284.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.7
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 256.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 254.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 282.5
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 256.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 246.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 275.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 254.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 275.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 303.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 303.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 275.4
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 263.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 254.2
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 264.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 254.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 283.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 278.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 246.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.0
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 227.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 234.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 264.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 254.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 283.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 291.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 253.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 275.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 283.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.8
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 256.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 283.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 277.1
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 235.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.1
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 235.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 247.6
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 263.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 254.4
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 276.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 310.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.5
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 235.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 228.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 282.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 236.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 254.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 283.1
+      },
+      {
+        "rank": 8,
+        "expanded": false,
+        "ms": 255.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 291.3
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 272.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 265.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 237.5
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 241.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 288.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 305.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 258.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 236.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 247.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 236.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 228.1
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 256.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 312.4
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 284.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 284.5
+      },
+      {
+        "rank": 8,
+        "expanded": false,
+        "ms": 283.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 275.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 226.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 265.3
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 248.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.0
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 264.3
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 254.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 290.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 246.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 282.0
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 256.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 283.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 275.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 247.4
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 276.0
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 254.6
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 255.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 236.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 248.8
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 254.9
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 235.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 254.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.6
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 247.4
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 228.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 254.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 234.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 227.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 278.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 254.2
+      },
+      {
+        "rank": 10,
+        "expanded": false,
+        "ms": 262.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 247.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 250.2
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 286.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 258.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 254.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.2
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 235.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 283.4
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 255.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 264.5
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 235.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.2
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 255.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 257.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 265.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.8
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 319.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 228.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.7
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 257.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 254.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 312.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 226.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 264.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 283.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 234.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 275.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 258.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 266.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 311.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.3
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 283.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 284.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 283.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 248.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 290.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 257.9
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 247.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 303.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 260.0
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 255.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 236.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 227.8
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 236.9
+      },
+      {
+        "rank": 8,
+        "expanded": false,
+        "ms": 247.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 283.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 257.6
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 236.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 282.8
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 234.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 334.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 237.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.6
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 249.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.4
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 264.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 229.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 319.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 277.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 284.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 279.1
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 249.2
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 276.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 310.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 264.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.4
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 247.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 249.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.1
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 235.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.4
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 283.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 227.8
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 247.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 283.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 228.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 284.1
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 256.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 282.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.3
+      },
+      {
+        "rank": 10,
+        "expanded": false,
+        "ms": 235.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 234.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 227.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 283.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 259.4
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 236.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 284.8
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 291.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 275.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 248.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 253.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 254.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 283.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 254.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 275.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 304.0
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 275.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 304.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.8
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 275.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.9
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 248.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 275.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 283.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 283.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 283.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 282.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 275.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 246.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 228.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 253.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 253.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 284.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 282.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.1
+      },
+      {
+        "rank": 8,
+        "expanded": false,
+        "ms": 247.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 234.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 275.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 246.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.5
+      },
+      {
+        "rank": 7,
+        "expanded": false,
+        "ms": 258.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 258.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 234.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 254.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 234.8
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 256.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 207.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 246.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 254.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 309.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 303.7
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 256.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 274.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 234.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 247.0
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 331.0
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 227.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 281.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 254.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 275.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 281.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 283.3
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 247.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 254.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 275.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 254.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 275.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 256.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 275.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 234.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 247.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 275.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 255.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 275.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 284.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 276.2
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 303.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 282.9
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 282.8
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 235.2
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 234.9
+      }
+    ],
+    "A_gatedctx": [
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 2416.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 197.4
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 225.3
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 224.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 245.2
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 235.8
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 224.8
+      },
+      {
+        "rank": 0,
+        "expanded": true,
+        "ms": 237.1
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 245.4
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 265.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 224.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 236.4
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 272.2
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 273.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 244.8
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 245.1
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 243.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 265.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 271.6
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 244.5
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 245.3
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 253.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 236.3
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 265.4
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 245.9
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 265.3
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 244.5
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 292.6
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 292.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 243.9
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 264.3
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 252.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 243.7
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 252.0
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 265.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 243.0
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 272.3
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 244.3
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 264.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.4
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 243.7
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 263.6
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 216.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 223.2
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 252.0
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 253.2
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 244.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 242.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 271.2
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 279.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 242.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 264.7
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 252.3
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 243.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 244.9
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 244.8
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 271.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 223.8
+      },
+      {
+        "rank": 0,
+        "expanded": true,
+        "ms": 244.4
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 271.1
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 264.9
+      },
+      {
+        "rank": 8,
+        "expanded": false,
+        "ms": 224.0
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 223.6
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 223.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 236.0
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 251.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 244.8
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 243.8
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 264.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 244.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 299.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 223.8
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 223.7
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 245.6
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 264.6
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 216.5
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 272.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 224.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 224.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 242.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 225.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 272.1
+      },
+      {
+        "rank": 9,
+        "expanded": false,
+        "ms": 243.9
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 244.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 280.6
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 252.9
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 245.0
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 224.3
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 224.6
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 272.4
+      },
+      {
+        "rank": 7,
+        "expanded": false,
+        "ms": 292.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 244.0
+      },
+      {
+        "rank": 8,
+        "expanded": false,
+        "ms": 223.5
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 237.0
+      },
+      {
+        "rank": 7,
+        "expanded": false,
+        "ms": 224.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 224.5
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 216.5
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 243.7
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 300.7
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 271.7
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 271.0
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 271.8
+      },
+      {
+        "rank": 9,
+        "expanded": false,
+        "ms": 264.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 215.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 251.7
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 235.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 266.4
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 244.1
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 251.9
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 243.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 264.3
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 244.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 279.3
+      },
+      {
+        "rank": 9,
+        "expanded": false,
+        "ms": 244.6
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 235.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 270.5
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 244.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 265.0
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 271.7
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 263.9
+      },
+      {
+        "rank": 7,
+        "expanded": false,
+        "ms": 235.6
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 264.6
+      },
+      {
+        "rank": 8,
+        "expanded": false,
+        "ms": 242.9
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 242.5
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 223.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 236.9
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 243.3
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 223.5
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 243.1
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 244.5
+      },
+      {
+        "rank": 8,
+        "expanded": false,
+        "ms": 236.5
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 216.9
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 243.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 242.8
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 243.9
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 223.8
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 243.8
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 216.2
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 264.7
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 243.4
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 252.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 236.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.8
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 265.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 245.2
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 244.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 227.2
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 245.9
+      },
+      {
+        "rank": 9,
+        "expanded": false,
+        "ms": 224.6
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 273.0
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 245.2
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 245.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 253.2
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 224.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 244.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 265.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 246.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 253.1
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 245.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 243.2
+      },
+      {
+        "rank": 9,
+        "expanded": false,
+        "ms": 245.3
+      },
+      {
+        "rank": 0,
+        "expanded": true,
+        "ms": 252.8
+      },
+      {
+        "rank": 7,
+        "expanded": false,
+        "ms": 252.9
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 308.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 216.4
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 264.2
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 252.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 244.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 243.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 265.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 246.1
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 300.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 215.1
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 224.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 253.3
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 272.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 252.3
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 223.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 265.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 244.9
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 252.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 272.0
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 264.5
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 271.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 243.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 271.3
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 244.3
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 243.9
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 271.7
+      },
+      {
+        "rank": 10,
+        "expanded": false,
+        "ms": 236.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 244.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 279.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 244.8
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 235.8
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 291.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 243.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 243.0
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 242.8
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 223.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 224.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 217.1
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 224.9
+      },
+      {
+        "rank": 10,
+        "expanded": false,
+        "ms": 237.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 272.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 252.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 244.9
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 223.7
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 271.6
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 224.3
+      },
+      {
+        "rank": 8,
+        "expanded": false,
+        "ms": 319.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 223.6
+      },
+      {
+        "rank": 8,
+        "expanded": false,
+        "ms": 243.2
+      },
+      {
+        "rank": 7,
+        "expanded": false,
+        "ms": 236.2
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 224.2
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 251.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 216.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 243.8
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 307.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 263.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 271.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 264.3
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 264.4
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 265.3
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 235.3
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 265.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 299.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 223.6
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 252.5
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 252.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 243.9
+      },
+      {
+        "rank": 0,
+        "expanded": true,
+        "ms": 254.2
+      },
+      {
+        "rank": 7,
+        "expanded": false,
+        "ms": 236.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 244.2
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 236.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 242.9
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 223.9
+      },
+      {
+        "rank": 7,
+        "expanded": false,
+        "ms": 223.2
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 243.7
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 271.8
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 245.1
+      },
+      {
+        "rank": 7,
+        "expanded": false,
+        "ms": 216.2
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 236.0
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 271.6
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 245.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 216.2
+      },
+      {
+        "rank": 8,
+        "expanded": false,
+        "ms": 271.1
+      },
+      {
+        "rank": 7,
+        "expanded": false,
+        "ms": 242.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 264.8
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 271.1
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 252.8
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 225.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 223.1
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 215.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 223.4
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 244.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 244.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 270.4
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 244.5
+      },
+      {
+        "rank": 0,
+        "expanded": true,
+        "ms": 223.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 251.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 281.8
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 281.0
+      },
+      {
+        "rank": 10,
+        "expanded": false,
+        "ms": 252.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 264.8
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 236.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 264.8
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 242.6
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 242.2
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 242.8
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 271.4
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 264.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 242.9
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 265.9
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 292.3
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 264.7
+      },
+      {
+        "rank": 0,
+        "expanded": true,
+        "ms": 224.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 291.4
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 244.2
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 264.1
+      },
+      {
+        "rank": 7,
+        "expanded": false,
+        "ms": 252.0
+      },
+      {
+        "rank": 7,
+        "expanded": false,
+        "ms": 252.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 252.4
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 236.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 264.2
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 271.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 272.1
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 223.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 251.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 271.6
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 272.3
+      },
+      {
+        "rank": 9,
+        "expanded": false,
+        "ms": 264.0
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 235.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 217.1
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 242.8
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 242.7
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 244.1
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 270.9
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 271.6
+      },
+      {
+        "rank": 0,
+        "expanded": true,
+        "ms": 224.3
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 245.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 251.8
+      },
+      {
+        "rank": 0,
+        "expanded": true,
+        "ms": 236.3
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 223.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 264.8
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 245.1
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 235.8
+      },
+      {
+        "rank": 7,
+        "expanded": false,
+        "ms": 245.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 223.7
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 244.6
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 254.1
+      },
+      {
+        "rank": 7,
+        "expanded": false,
+        "ms": 244.9
+      },
+      {
+        "rank": 8,
+        "expanded": false,
+        "ms": 242.9
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 223.4
+      },
+      {
+        "rank": 7,
+        "expanded": false,
+        "ms": 243.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 223.8
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 244.2
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 196.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 235.9
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 244.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 299.2
+      },
+      {
+        "rank": 7,
+        "expanded": false,
+        "ms": 292.4
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 245.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 265.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 244.7
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 252.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 224.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 224.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 237.0
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 320.1
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 216.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 272.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 265.0
+      },
+      {
+        "rank": 10,
+        "expanded": false,
+        "ms": 224.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 244.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 264.6
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 271.0
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 244.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 271.8
+      },
+      {
+        "rank": 8,
+        "expanded": false,
+        "ms": 236.7
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 244.8
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 244.3
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 265.4
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 245.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 242.8
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 244.1
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 265.5
+      },
+      {
+        "rank": 8,
+        "expanded": false,
+        "ms": 244.7
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 265.2
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 223.9
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 236.5
+      },
+      {
+        "rank": 4,
+        "expanded": false,
+        "ms": 264.6
+      },
+      {
+        "rank": 6,
+        "expanded": false,
+        "ms": 244.3
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 264.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 272.0
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 265.5
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 265.1
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 292.6
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 271.9
+      },
+      {
+        "rank": 5,
+        "expanded": false,
+        "ms": 272.3
+      },
+      {
+        "rank": 10,
+        "expanded": false,
+        "ms": 224.6
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 223.5
+      }
+    ]
+  },
+  "end_to_end": {
+    "from": "A",
+    "to": "A_gatedctx",
+    "recall@5_pp": -18.83,
+    "ci95_pp": [
+      -23.27,
+      -14.68
+    ],
+    "mcnemar": {
+      "gained": 3,
+      "lost": 71,
+      "p": 0.0
+    },
+    "bar_not_applicable": "the 10.0pp bar was pre-registered for A->B->C->D->E, not for A->A_gatedctx"
+  },
+  "seconds": 198.58
+}
