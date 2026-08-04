@@ -1,0 +1,38 @@
+{
+  "targets": 400,
+  "queries": 361,
+  "by_subtype": {
+    "p_year": 199,
+    "p_relative": 162
+  },
+  "frame": {
+    "pages_with_body": 1727,
+    "pages_about_a_year": 468
+  },
+  "drop_rate": {
+    "p_year": 0.1076,
+    "p_relative": 0.0847
+  },
+  "stats": {
+    "asked": 400,
+    "ok:p_year:attempt0": 192,
+    "ok:p_relative:attempt0": 153,
+    "reject:p_relative": 46,
+    "reject:p_year": 43,
+    "call_error:JSONDecodeError": 24,
+    "dropped:p_year": 24,
+    "dropped:p_relative": 15,
+    "ok:p_relative:attempt1": 5,
+    "ok:p_year:attempt1": 5,
+    "ok:p_relative:attempt2": 3,
+    "ok:p_year:attempt2": 2,
+    "ok:p_relative:attempt3": 1
+  },
+  "minutes": 25.6,
+  "usage": {
+    "prompt_tokens": 464105,
+    "completion_tokens": 363780,
+    "embed_tokens": 0,
+    "calls": 450
+  }
+}
