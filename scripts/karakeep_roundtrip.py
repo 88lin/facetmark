@@ -113,8 +113,17 @@ def phase_push(args: argparse.Namespace) -> None:
 
     totals: Counter[str] = Counter()
     t_start = time.time()
+    start = 0
     with httpx.Client(timeout=args.timeout) as cl:
-        for i in range(0, len(docs), args.batch):
+        if args.resume:
+            # Documents go out in file order and the upsert is keyed on
+            # karakeep_id, so the mapping count is a safe resume point: it can
+            # only undercount a partially applied batch, which then gets
+            # rewritten rather than skipped.
+            done = int(cl.get(f"{base}/karakeep/stats", headers=headers).json()["documents"])
+            start = (done // args.batch) * args.batch
+            print(f"  resume: {done} mapped, restarting at document {start}", flush=True)
+        for i in range(start, len(docs), args.batch):
             batch = docs[i:i + args.batch]
             t0 = time.time()
             rp = cl.post(f"{base}/karakeep/documents",
@@ -358,6 +367,7 @@ def main(argv: list[str] | None = None) -> int:
     u.add_argument("--batch", type=int, default=32)
     u.add_argument("--timeout", type=float, default=1800.0)
     u.add_argument("--no-embed", action="store_true")
+    u.add_argument("--resume", action="store_true")
     u.set_defaults(fn=phase_push)
 
     q = sub.add_parser("query")
