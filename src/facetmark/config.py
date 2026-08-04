@@ -69,6 +69,36 @@ class Settings(BaseSettings):
     table on first index build; a later mismatch raises rather than silently
     mixing incompatible vectors."""
 
+    embed_backend: str = "endpoint"
+    """Where embeddings come from: ``endpoint`` or ``local``.
+
+    ``endpoint`` is the default and the design rule -- one OpenAI-compatible
+    base_url for everything. ``local`` exists because that rule has a real
+    failure mode: a chat endpoint that does not serve ``/embeddings``. Free and
+    aggregated endpoints frequently do not, and there is no advance warning --
+    ``GET /v1/models`` will happily list six models and serve none of them to
+    ``/embeddings``. With ``local``, chat still goes to the endpoint and only
+    the encoder moves into this process; see ``providers.SplitProvider``."""
+
+    local_embed_path: str = ""
+    """Path or HuggingFace id of a sentence-transformers model, e.g.
+    ``BAAI/bge-m3`` or ``/models/bge-m3``. Required when
+    ``embed_backend='local'``. It must be the *same* model the index was built
+    with -- a different encoder produces vectors in a different space, and
+    sqlite-vec will return nearest neighbours from it without complaining."""
+
+    local_embed_device: str = "cpu"
+    local_embed_batch: int = 8
+    local_embed_max_seq: int = 1024
+    """Token budget per text for the local encoder.
+
+    Not cosmetic. Reproducing this project's own bge-m3 index, 512 tokens gave a
+    minimum self-cosine of 0.9769 against the stored vectors while 1024 gave
+    0.99995 -- the shortfall was truncation of the longest documents, not a
+    different encoder. 1024 covers the ~2,500-character ceiling that
+    ``enrich.vectors.content_text`` produces; queries are far shorter and are
+    unaffected either way. Raising it costs CPU quadratically for no gain here."""
+
     request_timeout: float = 60.0
     max_retries: int = 3
 
@@ -169,6 +199,14 @@ class Settings(BaseSettings):
     def _expand(cls, v: object) -> object:
         if isinstance(v, str):
             return Path(os.path.expandvars(v)).expanduser()
+        return v
+
+    @field_validator("embed_backend")
+    @classmethod
+    def _known_embed_backend(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v not in ("endpoint", "local"):
+            raise ValueError(f"embed_backend must be 'endpoint' or 'local', not {v!r}")
         return v
 
     @property

@@ -45,6 +45,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Only for embed_backend='local'. Left out of the base install on purpose:
+# sentence-transformers pulls torch, which is larger than everything else here
+# combined, and most users are pointing at an endpoint that embeds for them.
+local = [
+  "sentence-transformers>=3.0",
+]
 dev = [
   "pytest>=8.0",
   "pytest-asyncio>=0.23",

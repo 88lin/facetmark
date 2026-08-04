@@ -7,13 +7,17 @@ exercised with respx.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
+from pathlib import Path
 
 import httpx
 import pytest
 import respx
+from pydantic import ValidationError
 
+import facetmark.config
 from facetmark.config import Settings
 from facetmark.db import (
     count_vectors,
@@ -39,10 +43,12 @@ from facetmark.enrich.vectors import content_text
 from facetmark.fetch import store_body
 from facetmark.importers import import_bookmarks
 from facetmark.providers import (
+    LocalEmbeddingProvider,
     MockProvider,
     OpenAICompatibleProvider,
     Provider,
     ProviderError,
+    SplitProvider,
     get_provider,
     parse_json_object,
 )
@@ -383,6 +389,174 @@ class TestTheModelChainIsNotOneModel:
             await p.chat_json("s", "u")
         await p.aclose()
         assert seen == ["only"]
+
+
+class _FakeEncoder:
+    """A SentenceTransformer's shape without torch.
+
+    Deterministic and unit-length, because the two things the provider is
+    responsible for -- width and normalisation -- have to be checkable without
+    a 2 GB download in CI.
+    """
+
+    def __init__(self, dim: int = 64) -> None:
+        self.dim = dim
+        self.max_seq_length = 0
+        self.calls = 0
+        self.seen: list[str] = []
+        self.kwargs: dict = {}
+
+    def encode(self, texts, **kw):
+        self.calls += 1
+        self.seen.extend(texts)
+        self.kwargs = kw
+        out = []
+        for t in texts:
+            h = hashlib.sha256(t.encode("utf-8")).digest()
+            v = [(h[i % len(h)] / 255.0) - 0.5 for i in range(self.dim)]
+            n = math.sqrt(sum(x * x for x in v)) or 1.0
+            out.append([x / n for x in v])
+        return out
+
+
+class TestChatAndEmbeddingsNeedNotComeFromTheSamePlace:
+    """One base_url for everything was a simplification, not a requirement.
+
+    It breaks on an endpoint that serves ``/chat/completions`` and not
+    ``/embeddings`` -- which is the normal condition on free relays, and which
+    ``GET /v1/models`` does not disclose. These tests pin the split, and pin
+    the guard that matters more than the split: a local encoder of the wrong
+    width is refused rather than written into an index, because sqlite-vec
+    cannot tell a wrong vector from a right one.
+    """
+
+    @staticmethod
+    def _settings(tmp_path, **kw):
+        base = {
+            "data_dir": tmp_path, "api_key": "sk-x",
+            "base_url": "https://api.example/v1", "embed_dim": 64,
+            "embed_model": "bge-m3", "embed_backend": "local",
+            "local_embed_path": "/models/bge-m3", "max_retries": 1,
+        }
+        return Settings(**{**base, **kw})
+
+    def test_an_unknown_backend_is_rejected_before_anything_runs(self, tmp_path):
+        with pytest.raises(ValidationError, match="endpoint.*local"):
+            Settings(data_dir=tmp_path, embed_backend="grpc")
+
+    def test_local_without_a_path_says_which_variable_is_missing(self, tmp_path):
+        s = self._settings(tmp_path, local_embed_path="")
+        with pytest.raises(ProviderError, match="FACETMARK_LOCAL_EMBED_PATH"):
+            LocalEmbeddingProvider(s)
+
+    def test_naming_a_model_does_not_load_it(self, tmp_path):
+        # Constructing must stay free: get_provider runs on paths that never
+        # embed, and importing sentence-transformers drags in torch.
+        p = LocalEmbeddingProvider(self._settings(tmp_path, local_embed_path="/nope"))
+        assert p._model is None
+
+    async def test_the_embedding_half_refuses_to_chat(self, tmp_path):
+        p = LocalEmbeddingProvider(self._settings(tmp_path), model=_FakeEncoder())
+        with pytest.raises(ProviderError, match="no chat model"):
+            await p.chat_json("s", "u")
+
+    async def test_a_width_mismatch_is_refused_rather_than_indexed(self, tmp_path):
+        p = LocalEmbeddingProvider(self._settings(tmp_path), model=_FakeEncoder(dim=8))
+        with pytest.raises(ProviderError, match="FACETMARK_EMBED_DIM=8"):
+            await p.embed(["anything"])
+
+    async def test_vectors_come_back_normalised_at_the_declared_width(self, tmp_path):
+        enc = _FakeEncoder()
+        p = LocalEmbeddingProvider(self._settings(tmp_path), model=enc)
+        vecs = await p.embed(["alpha", "中文 检索"])
+        assert [len(v) for v in vecs] == [64, 64]
+        for v in vecs:
+            assert math.isclose(math.sqrt(sum(x * x for x in v)), 1.0, rel_tol=1e-9)
+        assert enc.kwargs["normalize_embeddings"] is True
+
+    async def test_no_texts_means_no_encoder_call(self, tmp_path):
+        enc = _FakeEncoder()
+        p = LocalEmbeddingProvider(self._settings(tmp_path), model=enc)
+        assert await p.embed([]) == []
+        assert enc.calls == 0
+
+    async def test_a_local_call_is_counted_but_billed_at_zero_tokens(self, tmp_path):
+        p = LocalEmbeddingProvider(self._settings(tmp_path), model=_FakeEncoder())
+        await p.embed(["x" * 4000])
+        u = p.usage.as_dict()
+        assert u["calls"] == 1 and u["embed_tokens"] == 0
+
+    def test_get_provider_splits_when_the_backend_is_local(self, tmp_path):
+        p = get_provider(self._settings(tmp_path))
+        assert isinstance(p, SplitProvider)
+        assert isinstance(p.chat_provider, OpenAICompatibleProvider)
+        assert isinstance(p.embed_provider, LocalEmbeddingProvider)
+
+    def test_the_offline_mock_can_also_borrow_a_local_encoder(self, tmp_path):
+        p = get_provider(self._settings(tmp_path, use_mock_provider=True))
+        assert isinstance(p, SplitProvider)
+        assert isinstance(p.chat_provider, MockProvider)
+
+    def test_the_default_backend_leaves_the_single_endpoint_alone(self, tmp_path):
+        s = Settings(data_dir=tmp_path, api_key="sk-x")
+        assert isinstance(get_provider(s), OpenAICompatibleProvider)
+
+    @respx.mock
+    async def test_chat_goes_out_and_embeddings_stay_in(self, tmp_path):
+        # No /embeddings route is registered. If the split leaked, respx would
+        # fail the request rather than let it reach the network.
+        route = respx.post("https://api.example/v1/chat/completions").mock(
+            return_value=httpx.Response(200, json={
+                "choices": [{"message": {"content": '{"summary":"s"}'}}],
+                "usage": {"prompt_tokens": 11, "completion_tokens": 3},
+            })
+        )
+        enc = _FakeEncoder()
+        s = self._settings(tmp_path)
+        p = SplitProvider(OpenAICompatibleProvider(s), LocalEmbeddingProvider(s, model=enc), s)
+        assert await p.chat_json("sys", "usr") == {"summary": "s"}
+        assert len((await p.embed(["one", "two"]))[0]) == 64
+        assert route.called and enc.seen == ["one", "two"]
+        u = p.usage.as_dict()
+        assert u["prompt_tokens"] == 11 and u["embed_tokens"] == 0 and u["calls"] == 2
+        await p.aclose()
+
+    @respx.mock
+    async def test_the_failover_chain_stays_visible_through_the_split(self, tmp_path):
+        seen: list[str] = []
+        respx.post("https://api.example/v1/chat/completions").mock(
+            side_effect=TestTheModelChainIsNotOneModel._endpoint(
+                {"works": TestTheModelChainIsNotOneModel._ok('{"summary":"s"}')}, seen)
+        )
+        s = self._settings(tmp_path, chat_model="gone", chat_model_fallbacks="works")
+        p = SplitProvider(OpenAICompatibleProvider(s), LocalEmbeddingProvider(s, model=_FakeEncoder()), s)
+        await p.chat_json("sys", "usr")
+        assert p.chat_model_in_use == "works"
+        assert p.chat_model_mix() == {"answered": {"works": 1}, "failed": {"gone": 1}}
+        await p.aclose()
+
+    def test_a_chat_only_provider_reports_an_empty_mix_rather_than_crashing(self, tmp_path):
+        s = self._settings(tmp_path, use_mock_provider=True)
+        p = get_provider(s)
+        assert p.chat_model_mix() == {"answered": {}, "failed": {}}
+        assert p.chat_model_in_use == s.chat_model
+
+    def test_the_truncation_default_is_the_one_that_reproduced(self, tmp_path):
+        # 512 tokens reproduced this project's own bge-m3 content vectors at a
+        # minimum self-cosine of 0.9769; 1024 at 0.99995. The gap was
+        # truncation of the longest documents, not a different encoder, so the
+        # default has to sit on the side that reproduces -- and the measurement
+        # has to stay next to it, or the next person will "optimise" it back.
+        assert Settings(data_dir=tmp_path).local_embed_max_seq == 1024
+        src = Path(facetmark.config.__file__).read_text(encoding="utf-8")
+        assert "0.9769" in src
+
+    def test_the_wrong_encoder_trap_is_written_down_where_it_is_opened(self):
+        # A vector from another encoder is structurally valid, so nothing in
+        # the code can catch it. The only defence is the reader.
+        doc = LocalEmbeddingProvider.__doc__ or ""
+        assert "cosine" in doc and "vec_intent" in doc
+
 
 class TestJsonRecovery:
     @pytest.mark.parametrize("text", [

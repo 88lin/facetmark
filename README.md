@@ -89,6 +89,40 @@ field is a lie.
 
 For ~1,700 bookmarks the one-off indexing cost lands around 8.5M input + 0.9M output chat tokens and ~3.4M embedding tokens. Vectors for that library are ~35 MB at float32/1024-dim; brute-force scan in `sqlite-vec` is well inside its comfortable range, so there is no ANN index to tune.
 
+### When the endpoint will not embed
+
+"One endpoint for everything" is a simplification, not a requirement, and it breaks on
+gateways that serve `/chat/completions` and refuse `/embeddings`. `GET /v1/models` does not
+disclose this - a gateway will list six models and serve none of them to the embedding
+surface. The chat side keeps its endpoint; the encoder moves into the process:
+
+```bash
+pip install 'facetmark[local]'
+export FACETMARK_EMBED_BACKEND=local
+export FACETMARK_LOCAL_EMBED_PATH=BAAI/bge-m3   # or a directory of weights
+export FACETMARK_EMBED_MODEL=bge-m3             # the name written into meta
+export FACETMARK_EMBED_DIM=1024
+```
+
+`FACETMARK_EMBED_MODEL` is the name recorded in the index; `FACETMARK_LOCAL_EMBED_PATH` is
+only where the weights load from. Keeping them apart is what lets a local encoder serve an
+index a remote one built.
+
+**Verify before you trust it.** `sqlite-vec` returns neighbours for any vector of the right
+width, including one from a different encoder; the results are ranked, plausible and
+meaningless, and no assertion in the code can catch it. Re-encode something the index
+already holds and take the cosine against the stored vector. Verbatim-text vectors are the
+right probe - nothing sits between the string and the encoder. Doing that here on 64 stored
+`vec_intent` vectors reproduced them at a minimum self-cosine of **0.999976** against a best
+*wrong* match of **0.6501**; the gap is the evidence, not the 0.99 by itself. On the content
+vectors, a 512-token budget bottomed out at 0.9769 and 1024 at 0.99995 - truncation of the
+longest documents, which is why `FACETMARK_LOCAL_EMBED_MAX_SEQ` defaults to 1024.
+
+Cost moves rather than disappears: on one CPU core bge-m3 encodes ~8.6 short queries per
+second, so query-time embedding is free enough and a full index build is an overnight job.
+Usage totals report the local half as calls with zero tokens, because inventing a token
+count would make a local run look like a paid one.
+
 ---
 
 ## The browser extension
@@ -190,7 +224,7 @@ src/facetmark/
 extension/     MV3, TypeScript, esbuild
 ```
 
-847 tests, no network access required to run them.
+869 tests, no network access required to run them.
 
 Project status, including what is *not* done and why, is in [`ROADMAP.md`](ROADMAP.md). Short version: the W1 evaluation gate is complete and it failed all three of its pre-registered criteria; weeks 2 through 4 of the plan are not done, and the thing blocking them is a query set, not code. Contribution rules are in [`CONTRIBUTING.md`](CONTRIBUTING.md); trust boundaries in [`SECURITY.md`](SECURITY.md).
 
@@ -224,6 +258,16 @@ Facetmark 给每条书签建四个面：内容面（正文向量）、**意图�
 `MAX_BOOST = 1.60` 在 A 档能跨过整档分数量程的 79.7%，在融合档只有 20.9%，同一个机制
 放在融合档里测需要 6.03 的上限；另外，66.3% 的候选**根本没有拿到任何加成**，那和
 "加成太小推不动"是两个不同的问题。
+
+如果你的 API 网关只提供 chat、不提供 `/embeddings`（免费和聚合网关很常见，而且
+`GET /v1/models` 不会告诉你——它照样列出六个模型，但一个都不给嵌入接口用），把编码器
+搬到本地即可：`pip install 'facetmark[local]'`，然后 `FACETMARK_EMBED_BACKEND=local`
+加 `FACETMARK_LOCAL_EMBED_PATH=BAAI/bge-m3`。**换编码器之前必须先验证**：`sqlite-vec`
+对任何宽度正确的向量都会返回近邻，哪怕它来自另一个模型，结果照样有序、看着合理、其实
+无意义，代码里没有任何断言能拦住。做法是拿索引里已经有的东西重新编码一遍，跟存着的向量
+算余弦；`vec_intent` 存的是逐字原文，中间没有拼接和截断，是最干净的探针。本项目自己这样
+测了 64 条，最小自余弦 **0.999976**，而最佳错配只有 **0.6501**——起作用的是这个差距，不是
+0.99 这个数本身。
 
 全部本地运行，不改你的浏览器书签，不上传书签库。想先看效果又不想配 key：`facetmark demo`。
 

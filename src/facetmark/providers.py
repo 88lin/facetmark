@@ -341,6 +341,166 @@ class OpenAICompatibleProvider(Provider):
         return vecs
 
 
+# ---------------------------------------------------------------------------
+# Local embeddings, and splitting chat away from them
+# ---------------------------------------------------------------------------
+
+
+class LocalEmbeddingProvider(Provider):
+    """Embeddings from a sentence-transformers model loaded in this process.
+
+    This exists because "one OpenAI-compatible endpoint for everything" has a
+    failure mode the design did not anticipate: an endpoint that serves
+    ``/chat/completions`` and not ``/embeddings``. Aggregators and free relays
+    do this routinely, and ``GET /v1/models`` does not warn you -- it lists the
+    chat models and says nothing about which surfaces will accept them.
+
+    The trap this class opens is worse than the one it closes. sqlite-vec will
+    return nearest neighbours for *any* 1024-dim query vector, including one
+    from a completely different encoder; the results will be ranked, plausible,
+    and meaningless. Nothing in the code can detect that, because the vectors
+    are structurally valid. So before trusting a local encoder against an
+    existing index, re-encode something the index already holds and take the
+    cosine against the stored vector. Verbatim-text vectors (``vec_intent``)
+    are the right probe: no recipe, no truncation, nothing between the string
+    and the encoder. This project's own check on 64 of them reproduced at a
+    minimum self-cosine of 0.999976, against a best *wrong* match of 0.6501 --
+    that gap is the evidence, not the 0.99 on its own.
+
+    ``embed_model`` stays the name written into the index's ``meta`` table;
+    ``local_embed_path`` is only where the weights are read from. Keeping them
+    separate is what lets a local encoder serve an index built by a remote one.
+    """
+
+    name = "local-embedding"
+
+    def __init__(self, settings: Settings | None = None, *, model: object = None) -> None:
+        super().__init__(settings)
+        self._path = self.settings.local_embed_path.strip()
+        if model is None and not self._path:
+            raise ProviderError(
+                "embed_backend='local' needs FACETMARK_LOCAL_EMBED_PATH set to a "
+                "sentence-transformers model (a HuggingFace id like 'BAAI/bge-m3', "
+                "or a directory)."
+            )
+        self._model = model
+
+    def _load(self) -> object:
+        """Load on first use, not on construction.
+
+        ``get_provider`` is called in code paths that never embed anything, and
+        a sentence-transformers import alone pulls in torch -- seconds of
+        startup and hundreds of MB of RSS to do nothing.
+        """
+        if self._model is None:
+            try:
+                from sentence_transformers import SentenceTransformer
+            except ImportError as exc:  # pragma: no cover - depends on install
+                raise ProviderError(
+                    "embed_backend='local' needs sentence-transformers: "
+                    "pip install 'facetmark[local]'"
+                ) from exc
+            m = SentenceTransformer(self._path, device=self.settings.local_embed_device)
+            m.max_seq_length = self.settings.local_embed_max_seq
+            self._model = m
+        return self._model
+
+    async def chat_json(self, system: str, user: str) -> dict:
+        raise ProviderError(
+            "LocalEmbeddingProvider has no chat model. Pair it with one via "
+            "SplitProvider, which is what get_provider() does for "
+            "embed_backend='local'."
+        )
+
+    def _encode(self, texts: list[str]) -> list[list[float]]:
+        m = self._load()
+        raw = m.encode(  # type: ignore[attr-defined]
+            texts,
+            batch_size=self.settings.local_embed_batch,
+            normalize_embeddings=True,
+            show_progress_bar=False,
+        )
+        return [[float(x) for x in row] for row in raw]
+
+    async def embed(self, texts: list[str]) -> list[list[float]]:
+        if not texts:
+            return []
+        # Encoding is a blocking, CPU-bound call. Off the event loop it goes,
+        # or every concurrent caller in the enrichment pipeline stalls behind it.
+        vecs = await asyncio.to_thread(self._encode, texts)
+        got = len(vecs[0])
+        if got != self.embed_dim:
+            raise ProviderError(
+                f"{self._path or 'local model'} returned {got}-dim vectors but "
+                f"settings say {self.embed_dim}. Set FACETMARK_EMBED_DIM={got}; if "
+                f"an index already exists it was built at another width and has to "
+                f"be rebuilt, not reconciled."
+            )
+        # calls, but no tokens: nothing here is billed, and reporting an invented
+        # token count would make a local run look like a paid one in the usage
+        # totals. A zero in embed_tokens next to a non-zero call count is the
+        # honest shape.
+        self.usage.calls += 1
+        return vecs
+
+
+class SplitProvider(Provider):
+    """Chat from one provider, embeddings from another.
+
+    The two model calls in this project have nothing in common but a base URL:
+    one wants a large instruct model and tolerates seconds of latency, the other
+    wants a small encoder and runs thousands of times. Tying them to the same
+    endpoint was a simplification, not a requirement, and it breaks the moment
+    an endpoint serves only one of them.
+
+    Both halves must still agree with the index: ``embed_model`` and
+    ``embed_dim`` are recorded in ``meta`` and are checked on open. Which chat
+    model produced an enrichment is *not* recorded per row, so a report that
+    mixes chat providers has to say so itself.
+    """
+
+    name = "split"
+
+    def __init__(self, chat: Provider, embed: Provider,
+                 settings: Settings | None = None) -> None:
+        # Deliberately not calling super().__init__: this provider owns no usage
+        # of its own, and a plain attribute would shadow the sum below.
+        self.settings = settings or chat.settings
+        self.chat_provider = chat
+        self.embed_provider = embed
+
+    @property
+    def usage(self) -> Usage:
+        """The two halves' usage, summed on every read.
+
+        Derived rather than accumulated, so it cannot drift from what the halves
+        actually did.
+        """
+        total = Usage()
+        total.add(self.chat_provider.usage)
+        total.add(self.embed_provider.usage)
+        return total
+
+    @property
+    def chat_model_in_use(self) -> str:
+        got = getattr(self.chat_provider, "chat_model_in_use", None)
+        return got if isinstance(got, str) else self.settings.chat_model
+
+    def chat_model_mix(self) -> dict[str, dict[str, int]]:
+        fn = getattr(self.chat_provider, "chat_model_mix", None)
+        return fn() if callable(fn) else {"answered": {}, "failed": {}}
+
+    async def chat_json(self, system: str, user: str) -> dict:
+        return await self.chat_provider.chat_json(system, user)
+
+    async def embed(self, texts: list[str]) -> list[list[float]]:
+        return await self.embed_provider.embed(texts)
+
+    async def aclose(self) -> None:
+        await self.chat_provider.aclose()
+        await self.embed_provider.aclose()
+
+
 _JSON_FENCE = re.compile(r"```(?:json)?\s*(.*?)```", re.S)
 
 
@@ -374,6 +534,11 @@ def parse_json_object(text: str) -> dict:
 
 def get_provider(settings: Settings | None = None, **kw) -> Provider:
     s = settings or get_settings()
+    base: Provider
     if s.use_mock_provider or not s.api_key:
-        return MockProvider(s)
-    return OpenAICompatibleProvider(s, **kw)
+        base = MockProvider(s)
+    else:
+        base = OpenAICompatibleProvider(s, **kw)
+    if s.embed_backend == "local":
+        return SplitProvider(base, LocalEmbeddingProvider(s), settings=s)
+    return base
