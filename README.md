@@ -71,6 +71,22 @@ export FACETMARK_CHAT_MODEL=gpt-4o-mini
 export FACETMARK_EMBED_MODEL=text-embedding-3-small
 ```
 
+Shared and free gateways list models they cannot always serve, so the chat side takes an
+ordered fallback chain. It is empty by default - on a paid endpoint an error is information
+and hiding it behind three more attempts turns a typo into a latency mystery.
+
+```bash
+export FACETMARK_CHAT_MODEL_FALLBACKS="DeepSeek-V4-Pro,grok-4.3-fast,deepseek-v4-flash"
+```
+
+Failover is forward-only and sticky: the first model that answers with a JSON object serves
+the rest of the run, and models already ruled out are never re-probed - on a 3,000-page
+index that would be thousands of known-dead timeouts. A model that returns HTTP 200 and
+prose counts as a failure, because for a JSON call it is indistinguishable from absence.
+The provider records answers and failures per model (`chat_model_mix()`), and any number
+reported from a chained run has to publish that mix - otherwise the run's `chat_model`
+field is a lie.
+
 For ~1,700 bookmarks the one-off indexing cost lands around 8.5M input + 0.9M output chat tokens and ~3.4M embedding tokens. Vectors for that library are ~35 MB at float32/1024-dim; brute-force scan in `sqlite-vec` is well inside its comfortable range, so there is no ANN index to tune.
 
 ---

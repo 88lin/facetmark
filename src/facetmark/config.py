@@ -52,6 +52,17 @@ class Settings(BaseSettings):
     api_key: str = ""
     base_url: str = "https://api.openai.com/v1"
     chat_model: str = "gpt-4o-mini"
+    chat_model_fallbacks: str = ""
+    """Comma-separated models to try, in order, when ``chat_model`` will not
+    answer. Empty by default: a paid endpoint that returns an error is telling
+    you something, and swallowing it is worse than failing.
+
+    This exists for free and shared endpoints, where a listed model can be
+    absent, out of quota, or unable to honour ``response_format`` -- three
+    failures that look nothing alike to a caller and identical to a run. The
+    provider records which model actually answered each call, and any report
+    built on a failover chain has to publish that mix; see
+    ``providers.OpenAICompatibleProvider``."""
     embed_model: str = "text-embedding-3-small"
     embed_dim: int = 1536
     """Must match the model's real output dimension. Recorded in the ``meta``
@@ -168,6 +179,20 @@ class Settings(BaseSettings):
     def token_path(self) -> Path:
         """One-time pairing token handed to the browser extension."""
         return self.data_dir / "pairing-token.txt"
+
+    def chat_model_chain(self) -> list[str]:
+        """``chat_model`` first, then the fallbacks, deduplicated in order.
+
+        Order is the caller's stated preference and is preserved exactly.
+        Duplicates are dropped because retrying the same dead model under a
+        second name costs a timeout and buys nothing.
+        """
+        chain: list[str] = []
+        for name in (self.chat_model, *self.chat_model_fallbacks.split(",")):
+            name = name.strip()
+            if name and name not in chain:
+                chain.append(name)
+        return chain
 
     def ensure_dirs(self) -> None:
         self.data_dir.mkdir(parents=True, exist_ok=True)

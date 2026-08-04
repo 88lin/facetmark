@@ -7,6 +7,7 @@ exercised with respx.
 
 from __future__ import annotations
 
+import json
 import math
 
 import httpx
@@ -276,6 +277,112 @@ class TestOpenAICompatibleTransport:
             await p.chat_json("s", "u")
         await p.aclose()
 
+
+class TestTheModelChainIsNotOneModel:
+    """Free and shared endpoints list models they cannot serve.
+
+    Three failures look identical from the caller's side -- the model is
+    absent, the model is out of quota, the model ignores ``response_format``
+    and answers in prose -- and all three end a 3,000-page run. These tests
+    pin the failover, and pin the two things that make it honest: it never
+    silently re-probes, and it records which model actually answered.
+    """
+
+    @staticmethod
+    def _endpoint(replies: dict[str, httpx.Response], seen: list[str]):
+        """Route by the ``model`` field, the way the real endpoint does."""
+        def handler(request: httpx.Request) -> httpx.Response:
+            model = json.loads(request.content)["model"]
+            seen.append(model)
+            return replies.get(model, httpx.Response(404, json={
+                "error": {"message": f'Model "{model}" is not supported',
+                          "type": "model_not_found"}}))
+        return handler
+
+    @staticmethod
+    def _ok(payload: str) -> httpx.Response:
+        return httpx.Response(200, json={
+            "choices": [{"message": {"content": payload}}],
+            "usage": {"prompt_tokens": 7, "completion_tokens": 3},
+        })
+
+    def _provider(self, tmp_path, seen, replies):
+        respx.post("https://api.example/v1/chat/completions").mock(
+            side_effect=self._endpoint(replies, seen))
+        return OpenAICompatibleProvider(Settings(
+            data_dir=tmp_path, api_key="sk-x", base_url="https://api.example/v1",
+            chat_model="gone", chat_model_fallbacks="prose, works ,works",
+            max_retries=1))
+
+    def test_the_chain_keeps_the_stated_order_and_drops_repeats(self, tmp_path):
+        s = Settings(data_dir=tmp_path, chat_model="a",
+                     chat_model_fallbacks=" b , a ,, c ")
+        assert s.chat_model_chain() == ["a", "b", "c"]
+        assert Settings(data_dir=tmp_path, chat_model="a").chat_model_chain() == ["a"]
+
+    @respx.mock
+    async def test_an_absent_model_falls_through_to_one_that_exists(self, tmp_path):
+        seen: list[str] = []
+        p = self._provider(tmp_path, seen, {"works": self._ok('{"ok":1}')})
+        got = await p.chat_json("s", "u")
+        await p.aclose()
+        assert got == {"ok": 1}
+        assert seen == ["gone", "prose", "works"]
+
+    @respx.mock
+    async def test_prose_where_json_was_asked_for_counts_as_a_failure(self, tmp_path):
+        seen: list[str] = []
+        p = self._provider(tmp_path, seen, {
+            "prose": self._ok("Sure! Here is the answer: yes."),
+            "works": self._ok('{"ok":2}'),
+        })
+        got = await p.chat_json("s", "u")
+        await p.aclose()
+        # The prose model answered HTTP 200 and was still wrong for this call.
+        assert got == {"ok": 2}
+        assert p.chat_model_mix() == {"answered": {"works": 1},
+                                      "failed": {"gone": 1, "prose": 1}}
+
+    @respx.mock
+    async def test_the_ruled_out_models_are_never_probed_again(self, tmp_path):
+        seen: list[str] = []
+        p = self._provider(tmp_path, seen, {"works": self._ok('{"ok":3}')})
+        for _ in range(4):
+            await p.chat_json("s", "u")
+        await p.aclose()
+        # Three probes on the first call, then one request per call. Re-probing
+        # would be 12 requests, eight of them known-dead.
+        assert seen == ["gone", "prose", "works", "works", "works", "works"]
+        assert p.chat_model_in_use == "works"
+        assert p.chat_model_mix()["answered"] == {"works": 4}
+
+    @respx.mock
+    async def test_when_nothing_answers_the_error_names_what_was_tried(self, tmp_path):
+        seen: list[str] = []
+        p = self._provider(tmp_path, seen, {})
+        with pytest.raises(ProviderError, match=r"\['gone', 'prose', 'works'\]"):
+            await p.chat_json("s", "u")
+        await p.aclose()
+        assert p.chat_model_mix()["answered"] == {}
+
+    @respx.mock
+    async def test_with_no_fallbacks_the_first_error_still_surfaces(self, tmp_path):
+        """The default has to stay a single-model path, errors included.
+
+        A paid endpoint returning 400 is information; a chain that hides it
+        behind three more attempts turns a typo in ``chat_model`` into a
+        latency mystery.
+        """
+        seen: list[str] = []
+        respx.post("https://api.example/v1/chat/completions").mock(
+            side_effect=self._endpoint({}, seen))
+        p = OpenAICompatibleProvider(Settings(
+            data_dir=tmp_path, api_key="sk-x", base_url="https://api.example/v1",
+            chat_model="only", max_retries=1))
+        with pytest.raises(ProviderError, match="not supported"):
+            await p.chat_json("s", "u")
+        await p.aclose()
+        assert seen == ["only"]
 
 class TestJsonRecovery:
     @pytest.mark.parametrize("text", [

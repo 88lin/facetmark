@@ -205,6 +205,11 @@ class OpenAICompatibleProvider(Provider):
                 "no API key. Set FACETMARK_API_KEY (and FACETMARK_BASE_URL for a "
                 "non-OpenAI endpoint), or run with FACETMARK_USE_MOCK_PROVIDER=1."
             )
+        #: Index into ``settings.chat_model_chain()`` that ``chat_json`` starts
+        #: from. Only ever moves forward; see ``chat_json``.
+        self._chat_at = 0
+        self.chat_calls: Counter[str] = Counter()
+        self.chat_failures: Counter[str] = Counter()
         self._own = client is None
         self._client = client or httpx.AsyncClient(
             base_url=self.settings.base_url.rstrip("/"),
@@ -241,9 +246,9 @@ class OpenAICompatibleProvider(Provider):
             f"{path} failed after {self.settings.max_retries} attempts: {detail}"
         )
 
-    async def chat_json(self, system: str, user: str) -> dict:
+    async def _chat_once(self, model: str, system: str, user: str) -> dict:
         data = await self._post("/chat/completions", {
-            "model": self.settings.chat_model,
+            "model": model,
             "messages": [{"role": "system", "content": system},
                          {"role": "user", "content": user}],
             "temperature": 0.2,
@@ -257,7 +262,57 @@ class OpenAICompatibleProvider(Provider):
             text = data["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError) as exc:
             raise ProviderError(f"unexpected chat response shape: {str(data)[:300]}") from exc
+        # parse_json_object is inside the failover boundary on purpose: a model
+        # that ignores response_format has failed at the only thing this method
+        # is for, and that is not distinguishable from absence to the caller.
         return parse_json_object(text)
+
+    async def chat_json(self, system: str, user: str) -> dict:
+        """Ask the first model in the chain that will answer with a JSON object.
+
+        Failover is **forward-only and sticky**: once a model answers, later
+        calls start from it and never re-probe the ones already ruled out. On a
+        3,000-page index run, re-probing a dead model per call is 3,000 wasted
+        timeouts, and a model that vanished once rarely returns mid-run.
+
+        With no fallbacks configured this is exactly the old single-model path,
+        including which exception surfaces.
+        """
+        chain = self.settings.chat_model_chain()
+        last: Exception | None = None
+        for i in range(self._chat_at, len(chain)):
+            model = chain[i]
+            try:
+                got = await self._chat_once(model, system, user)
+            except ProviderError as exc:
+                last = exc
+                self.chat_failures[model] += 1
+                continue
+            self._chat_at = i
+            self.chat_calls[model] += 1
+            return got
+        raise ProviderError(
+            f"no chat model answered. Tried {chain[self._chat_at:]} "
+            f"(last: {last})"
+        ) from last
+
+    @property
+    def chat_model_in_use(self) -> str:
+        """The model later calls will be sent to first."""
+        chain = self.settings.chat_model_chain()
+        return chain[self._chat_at] if chain else ""
+
+    def chat_model_mix(self) -> dict[str, dict[str, int]]:
+        """Answers and failures per model, for reports to publish verbatim.
+
+        A run that silently changed models is a run whose ``chat_model`` field
+        is a lie. Anything reporting numbers from a failover chain has to carry
+        this dict with it.
+        """
+        return {
+            "answered": dict(self.chat_calls),
+            "failed": dict(self.chat_failures),
+        }
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
         if not texts:
