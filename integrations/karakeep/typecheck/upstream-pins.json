@@ -1,0 +1,33 @@
+{
+  "comment": [
+    "Git blob SHAs of the karakeep files the vendored stubs and the install",
+    "instructions were written against. A blob SHA is a hash of file content, so",
+    "these stay valid across commits that do not touch these files, and break the",
+    "moment one of them changes.",
+    "",
+    "check-upstream-drift.sh re-fetches each path and compares. A mismatch does",
+    "not mean the plugin is broken -- it means nobody has checked since the file",
+    "moved, and `npm run typecheck` is now checking against a stale contract."
+  ],
+  "repo": "88lin/karakeep",
+  "ref": "main",
+  "fetched": "2026-08-04",
+  "files": {
+    "packages/shared/search.ts": {
+      "blob": "651b524508ef0a662184ee9aff92ba0dcae8dca8",
+      "why": "source of vendor/karakeep-shared/search.d.ts"
+    },
+    "packages/shared/plugins.ts": {
+      "blob": "974b9215913517ed3444a248f039925a64783bdb",
+      "why": "source of vendor/karakeep-shared/plugins.d.ts"
+    },
+    "packages/plugins/package.json": {
+      "blob": "8475d067404e32d9e0aad1f6589604fcd61fb200",
+      "why": "install step 2 edits its `exports` map"
+    },
+    "packages/shared-server/src/plugins.ts": {
+      "blob": "dc9fa547585f30a8537e74f13172726c48d3a555",
+      "why": "install step 3 adds an import to loadAllPlugins(); order decides which Search plugin wins"
+    }
+  }
+}

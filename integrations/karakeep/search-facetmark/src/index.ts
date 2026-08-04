@@ -6,23 +6,36 @@
  * the whole TypeScript side of the integration -- all the retrieval logic lives
  * in the Python service, reachable over HTTP on localhost.
  *
- * NOT BUILT OR TESTED IN THIS REPOSITORY. facetmark has no Node toolchain and no
- * karakeep checkout in CI, so this file is typechecked by karakeep's build and by
- * nothing here. The Python side it talks to is covered by
- * `tests/test_karakeep_bridge.py` and `tests/test_api.py::TestKarakeepRoutes`,
- * which pin the exact request and response shapes used below.
+ * WHAT IS AND IS NOT CHECKED. `integrations/karakeep/typecheck` runs `tsc` over
+ * this file against hand-written stubs of karakeep's two interface modules, so
+ * the four method signatures below are known to satisfy `SearchIndexClient` and
+ * the registration in ../index.ts is known to typecheck. The stubs are pinned to
+ * upstream by git blob SHA; `npm run check-drift` says whether they are stale.
+ * What that does not cover: this has never run inside a live karakeep, against a
+ * real MeiliSearch-shaped index, or with more than one user. The Python side it
+ * talks to is covered by `tests/test_karakeep_bridge.py` and
+ * `tests/test_api.py::TestKarakeepRoutes`, which pin the exact request and
+ * response shapes used below -- but those are Python tests asserting on Python,
+ * and nothing anywhere asserts that the JSON this file sends is the JSON they
+ * parse.
  *
- * Install into a karakeep checkout:
- *   1. copy this folder to `packages/plugins/search-facetmark/`
- *   2. add `@karakeep/plugin-search-facetmark` to the web app's dependencies and
- *      import it next to the other plugin imports in the server entrypoint
- *   3. set FACETMARK_URL and FACETMARK_TOKEN (from `facetmark token`)
+ * Install into a karakeep checkout (paths as of the pinned SHAs):
+ *   1. copy this folder to `packages/plugins/search-facetmark/` -- it is a
+ *      folder inside the `@karakeep/plugins` package, not a package of its own
+ *   2. add `"./search-facetmark": "./search-facetmark/index.ts"` to the
+ *      `exports` map in `packages/plugins/package.json`
+ *   3. add `await import("@karakeep/plugins/search-facetmark");` to
+ *      `loadAllPlugins()` in `packages/shared-server/src/plugins.ts`, AFTER the
+ *      `search-meilisearch` line -- `PluginManager.getClient` returns the last
+ *      registered provider, so ordering is what decides which one serves search
+ *   4. set FACETMARK_URL and FACETMARK_TOKEN (from `facetmark token`)
  *
  * Both variables must be set or `isConfigured()` returns false and karakeep
  * falls back to whatever other Search plugin registered -- a missing token is
  * not treated as "no auth needed".
  */
 
+import type { PluginProvider } from "@karakeep/shared/plugins";
 import type {
   BookmarkSearchDocument,
   IndexingOptions,
@@ -111,7 +124,7 @@ class FacetmarkClient implements SearchIndexClient {
   }
 }
 
-export class FacetmarkProvider {
+export class FacetmarkProvider implements PluginProvider<SearchIndexClient> {
   static isConfigured(): boolean {
     return Boolean(process.env[ENV_URL] && process.env[ENV_TOKEN]);
   }

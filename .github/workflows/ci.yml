@@ -63,3 +63,25 @@ jobs:
         with:
           name: facetmark-extension
           path: extension/dist
+
+  karakeep-plugin:
+    # The karakeep search plugin is TypeScript that this repository ships but
+    # never runs: it executes inside a karakeep checkout that is not here. What
+    # can be checked without one is whether it still satisfies karakeep's
+    # interface, so this compiles it against hand-written stubs of that
+    # interface, pinned to upstream by git blob SHA.
+    #
+    # This job is offline and deterministic. Whether the stubs still match
+    # upstream is a different question with a different failure mode, and it
+    # lives in karakeep-drift.yml on a schedule -- upstream moving is not a
+    # reason to fail somebody's pull request.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci || npm install
+        working-directory: integrations/karakeep/typecheck
+      - run: npx tsc --noEmit
+        working-directory: integrations/karakeep/typecheck

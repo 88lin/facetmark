@@ -1,0 +1,49 @@
+# Is the karakeep interface this repository was written against still the
+# karakeep interface?
+#
+# The stubs in integrations/karakeep/typecheck/vendor are hand-written copies of
+# two upstream modules, pinned by git blob SHA. When upstream edits either file,
+# the ci.yml typecheck goes on passing -- it is compiling against a contract
+# that no longer exists. Nothing in a pull request can detect that, so it is
+# checked on a clock instead.
+#
+# A red run here does not mean the plugin is broken. It means the stubs are
+# stale and somebody has to read the upstream diff and decide. Exit 2 (a file
+# could not be fetched) is also red, because a renamed path is exactly the kind
+# of move worth noticing early.
+name: karakeep-drift
+
+on:
+  schedule:
+    # Mondays, 06:17 UTC. Off the hour so it is not queued behind everyone
+    # else's midnight cron.
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: "owner/name to check against (default: the pinned one)"
+        required: false
+        type: string
+      ref:
+        description: "branch or tag to check (default: the pinned one)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: compare pinned blobs against upstream
+        env:
+          KARAKEEP_REPO: ${{ inputs.repo }}
+          KARAKEEP_REF: ${{ inputs.ref }}
+        run: |
+          # The script falls back to the pinned repo/ref when these are empty,
+          # which is what a scheduled run passes.
+          if [ -z "${KARAKEEP_REPO}" ]; then unset KARAKEEP_REPO; fi
+          if [ -z "${KARAKEEP_REF}" ]; then unset KARAKEEP_REF; fi
+          bash integrations/karakeep/typecheck/check-upstream-drift.sh

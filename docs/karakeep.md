@@ -26,7 +26,7 @@ interface SearchIndexClient {
 | 事情 | 谁做 | 理由 |
 |---|---|---|
 | 抓页面、抽正文、存快照 | **karakeep** | facetmark 第一次建索引最慢的一步就是抓取，karakeep 已经付过这笔钱 |
-| 浏览器扩展、手机端、UI | **karakeep** | 这个仓库里那个扩展是 1.0.0 的构建物，没有 Node 环境，无法重建也无法校验 |
+| 浏览器扩展、手机端、UI | **karakeep** | 这个仓库的扩展只有 MV3 一端，还停在 1.0.0；karakeep 有扩展、iOS、Android 三端并且有人在维护 |
 | 多用户、部署、打标 | **karakeep** | 全都有，且有人在维护 |
 | **排序** | **facetmark** | karakeep 的搜索是 BM25 加一个向量库；这个项目全部的实测收益都在排序上 |
 | **预注册评测** | **facetmark** | 十档消融、616 条 holdout、361 条对抗探针、两次因为数字不合格而改默认值 |
@@ -36,7 +36,7 @@ interface SearchIndexClient {
 
 ## 装法
 
-三步，两个环境变量。
+四步，两个环境变量。
 
 ```bash
 # 1. facetmark 侧：起服务，拿配对 token
@@ -44,16 +44,37 @@ facetmark serve                     # 默认 127.0.0.1:8787
 facetmark token                     # 打印 token
 
 # 2. karakeep 侧：把插件目录拷进去
+#    注意它是 @karakeep/plugins 这个包里的一个子目录，不是独立的包——
+#    上游的 search-meilisearch 也没有自己的 package.json
 cp -r integrations/karakeep/search-facetmark <karakeep>/packages/plugins/
+```
 
-# 3. 在 karakeep 的服务端入口里，和别的插件 import 放在一起
-#    import "@karakeep/plugin-search-facetmark";
+```jsonc
+// 3a. packages/plugins/package.json 的 exports 里加一行
+"./search-facetmark": "./search-facetmark/index.ts",
+```
+
+```ts
+// 3b. packages/shared-server/src/plugins.ts 的 loadAllPlugins() 里加一行，
+//     位置要在 search-meilisearch 那行之后
+await import("@karakeep/plugins/search-facetmark");
+```
+
+```bash
+# 4. 两个环境变量
 export FACETMARK_URL=http://127.0.0.1:8787
 export FACETMARK_TOKEN=<上面那个 token>
 ```
 
-两个变量必须都设。少一个 `isConfigured()` 就返回 false，karakeep 退回原来的搜索插件——
-**缺 token 不会被当成"不需要鉴权"**。
+第 3b 步的**顺序是有意义的**：`PluginManager.getClient()` 返回最后注册的那个
+provider，上游那句注释写的就是 "Order of plugin loading matter"。放在 meilisearch
+之前，facetmark 会被它盖掉，然后你会花一小时怀疑桥接坏了。
+
+两个变量必须都设。少一个 `isConfigured()` 就返回 false，插件根本不注册，karakeep 保持
+它原来的搜索插件——**缺 token 不会被当成"不需要鉴权"**。
+
+上面这些路径对应的是 `integrations/karakeep/typecheck/upstream-pins.json` 里钉住的那几个
+上游文件版本。karakeep 挪了目录这段就会过期，`npm run check-drift` 会告诉你。
 
 装完之后在 karakeep 里触发一次「重建索引」，它会把全部书签通过 `addDocuments` 推过来，
 facetmark 这边按批入库并逐批算向量。不需要读 karakeep 的数据库，也不需要知道它的 schema。
@@ -118,11 +139,29 @@ facetmark 的索引没有用户分区。`userId` 存在映射表里，**排序�
 - **Python 侧**：40 条测试。`tests/test_karakeep_bridge.py` 34 条盖映射、时间戳解析、
   过滤器拆分、认领、删除边界、时序浏览、分页、上限钳制；`tests/test_api.py` 里
   `TestKarakeepRoutes` 6 条盖四个路由的鉴权、往返、未知档位拒绝、`limit` 超限。
-- **TypeScript 侧：这个仓库不构建也不测试它。** 没有 Node 工具链，CI 里也没有 karakeep
-  检出。那个文件由 karakeep 自己的构建来类型检查，在这里由**零**东西检查。它调用的请求
-  与响应形状被上面那 40 条测试钉住了，这是能给的最强保证，不等于它能编译。
+- **TypeScript 侧：类型检查有，集成测试没有。** `integrations/karakeep/typecheck/`
+  里放着 karakeep 那两个接口模块（`packages/shared/search.ts`、
+  `packages/shared/plugins.ts`）的手写 `.d.ts`，`tsc --noEmit` 拿它们编译插件源码，
+  CI 的 `karakeep-plugin` 这个 job 每次 push 都跑。所以**四个方法确实满足
+  `SearchIndexClient`，`index.ts` 里那次 `PluginManager.register` 确实类型正确**。
 
-这一条写在这里，也写在那个 `.ts` 文件的头注释里。别人照着装的时候应该先知道这件事。
+  这个保证的边界要说清楚：手写的 `.d.ts` 是从上游翻译过来的，不是上游本身。它按
+  git blob SHA 钉在 `upstream-pins.json` 里，`npm run check-drift` 重新抓一遍上游对
+  哈希，`karakeep-drift.yml` 每周一自动跑。上游一改，`tsc` 照样绿——它在对着一份已经
+  不存在的契约编译，只有漂移检查能看见这件事。
+
+- **两侧之间没有任何东西。** Python 那 40 条测试断言的是 Python，TypeScript 的类型检查
+  断言的是 TypeScript。**没有一个测试验证这个 `.ts` 发出去的 JSON 就是那 40 条测试解析
+  的 JSON。**这需要同时起 karakeep 和 facetmark，本仓库做不到。
+
+- 还没测的：活的 karakeep 里跑一遍、karakeep 自己抓的正文、多用户、增量更新漂移。
+
+这几条写在这里，也写在那个 `.ts` 文件的头注释里。别人照着装的时候应该先知道。
+
+写这段的时候顺手发现，最初那版 `check-upstream-drift.sh` 打印 "0 unchanged, 0 drifted"
+并退出 0，其实一个文件都没抓——解析 pin 的那段 Python 撞上 3.11 不允许 f-string 里带
+反斜杠，静默失败，循环读到空流。一个什么都没检查的检查比没有检查更糟，所以现在读到零条
+pin 直接按错误退出。
 
 ## 装完之后第一件该做的事
 

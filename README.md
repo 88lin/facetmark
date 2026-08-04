@@ -216,6 +216,11 @@ facetmark does the ranking.
 ```bash
 facetmark serve && facetmark token                      # prints the pairing token
 cp -r integrations/karakeep/search-facetmark <karakeep>/packages/plugins/
+# add "./search-facetmark": "./search-facetmark/index.ts" to the exports map in
+#   packages/plugins/package.json
+# add await import("@karakeep/plugins/search-facetmark"); to loadAllPlugins() in
+#   packages/shared-server/src/plugins.ts — AFTER the meilisearch line, because
+#   PluginManager hands out the last provider registered
 export FACETMARK_URL=http://127.0.0.1:8787 FACETMARK_TOKEN=<token>
 ```
 
@@ -226,9 +231,16 @@ skips the slowest part of a first index.
 `POST /karakeep/search` accepts a `config` parameter, so ablations can be run **on a real
 karakeep library** instead of only on generated corpora. Every number above comes from a
 generated query set; this is the first path to checking them against real use. Setup,
-field-by-field mapping, and the honest limits (post-ranking multi-user filtering, and the
-TypeScript side not being built in this repo's CI) are in
-[`docs/karakeep.md`](docs/karakeep.md).
+field-by-field mapping, and the honest limits (post-ranking multi-user filtering, chiefly)
+are in [`docs/karakeep.md`](docs/karakeep.md).
+
+The TypeScript side is typechecked, not integration-tested. CI compiles it against
+hand-written stubs of karakeep's two interface modules, pinned to upstream by git blob SHA,
+so the four methods provably satisfy `SearchIndexClient`. Whether those stubs still match
+upstream is a separate weekly job, because upstream moving is not a reason to fail a pull
+request — and while the stubs are stale, `tsc` goes on passing against a contract that no
+longer exists. Nothing anywhere asserts that the JSON the plugin sends is the JSON the
+Python tests parse; that needs both processes running, which this repo cannot do.
 
 This also means the project stops building its own extension, crawler and UI. karakeep
 already does those better, and a ranking engine that also insists on shipping a browser
@@ -288,8 +300,8 @@ src/facetmark/
   bridges/     other applications' plugin contracts (karakeep)
   eval/        synthetic corpus + A-E ablation bench with bootstrap CIs
   service.py api.py mcp_server.py cli.py
-integrations/  karakeep search plugin (TypeScript, not built in this repo's CI)
-extension/     MV3, TypeScript, esbuild
+integrations/  karakeep search plugin + the stubs and pins CI typechecks it against
+extension/     MV3, TypeScript, esbuild — still at 1.0.0; CI builds and tests it
 eval/queries/  frozen query sets: W1 real-library, W2/W3 holdout, gate-precision probes
 docs/          one file per experiment, including the ones that failed
 scripts/       corpus generation, verdict scripts, disposition tables

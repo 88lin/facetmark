@@ -268,6 +268,11 @@ Docker / Helm 部署。而**它的排序是一个插件**，接口只有四个�
 ```bash
 facetmark serve && facetmark token                      # 打印配对令牌
 cp -r integrations/karakeep/search-facetmark <karakeep>/packages/plugins/
+# 在 packages/plugins/package.json 的 exports 里加一行：
+#   "./search-facetmark": "./search-facetmark/index.ts"
+# 在 packages/shared-server/src/plugins.ts 的 loadAllPlugins() 里加一行：
+#   await import("@karakeep/plugins/search-facetmark");
+#   位置必须在 meilisearch 那行之后——PluginManager 交出的是最后注册的那个
 export FACETMARK_URL=http://127.0.0.1:8787 FACETMARK_TOKEN=<token>
 ```
 
@@ -279,8 +284,15 @@ export FACETMARK_URL=http://127.0.0.1:8787 FACETMARK_TOKEN=<token>
 一个真实 karakeep 库上跑**，而不是只能在生成语料上跑。上面每一个数字都来自生成查询集，
 这是第一条能拿真实使用去校验它们的路径。
 
-装法、逐字段映射、以及它诚实的短板（多用户过滤发生在排序**之后**，以及 TypeScript 那一
-侧不在本仓库 CI 里构建）都写在 [`docs/karakeep.md`](docs/karakeep.md)。
+装法、逐字段映射、以及它诚实的短板（主要是多用户过滤发生在排序**之后**）都写在
+[`docs/karakeep.md`](docs/karakeep.md)。
+
+TypeScript 那一侧**有类型检查，没有集成测试**。CI 拿 karakeep 那两个接口模块的手写
+`.d.ts` 去编译插件，`.d.ts` 按 git blob SHA 钉在上游，所以四个方法确实满足
+`SearchIndexClient`。但这些 `.d.ts` 是不是还和上游一致，是另一个问题、另一个失败模式，
+放在每周一次的独立 job 里——上游动了不该让别人的 PR 变红，而在它们过期期间，`tsc` 会
+一直绿着对一份已经不存在的契约编译。另外，**没有任何东西验证这个插件发出的 JSON 就是
+Python 测试解析的那个 JSON**，那需要两个进程同时跑，本仓库做不到。
 
 **这条路线同时意味着这个项目不再自己造扩展、抓取器和 UI。** 那三样 karakeep 已经做得
 更好了。
@@ -335,8 +347,8 @@ src/facetmark/
   bridges/     别的应用的插件契约（karakeep）
   eval/        合成语料 + A–E 消融台，带 bootstrap 置信区间
   service.py api.py mcp_server.py cli.py
-integrations/  karakeep 搜索插件（TypeScript，不在本仓库 CI 里构建）
-extension/     MV3，TypeScript，esbuild
+integrations/  karakeep 搜索插件，以及 CI 用来类型检查它的接口存根与 SHA 锚点
+extension/     MV3，TypeScript，esbuild——还停在 1.0.0；CI 会构建并测试它
 eval/queries/  冻结的查询集：W1 真实库、W2/W3 留出集、门控精确率探针
 docs/          一次实验一份文档，包括失败的那些
 scripts/       语料生成、判定脚本、处置表
