@@ -19,13 +19,17 @@ F1 and F3 are table stakes. **F2 and F4 are the point** - they are what the exis
 
 2,376 real web pages, 479 evaluation queries, real models, three preregistered pass criteria. **All three failed.** More usefully, the ablation found that fusing was itself the problem: F1 alone gets **95.9%** Recall@5 on content queries, and equal-weight RRF with any weaker facet added drops that by 5.4pp (McNemar p<0.01). A leave-one-out probe ruled out the obvious suspect - dropping the lexical facets and fusing only F2 costs exactly the same 5.43pp.
 
-So the shipped default is **F1 + graph expansion + time decay**, not the full fusion. The other facets are still built, still stored, still addressable as `--config C`, `--config D`, `--config E`. Graph expansion stays on because it is bit-identical on ranking and adds 2.09pp of neighbours for 9ms (10 wins, 0 losses). The F4 context multiplier is off pending a query-type gate: it is +8.14pp on episodic queries and −9.94pp on content queries, and shipping it ungated is a net loss.
+So the shipped default is **F1 + graph expansion + time decay + a gated context multiplier**, not the full fusion. The other facets are still built, still stored, still addressable as `--config C`, `--config D`, `--config E`. Graph expansion stays on because it is bit-identical on ranking and adds 2.09pp of neighbours for 9ms (10 wins, 0 losses).
+
+The context multiplier is the one flag that changed after W1. Ungated it is +8.14pp on episodic queries and −9.94pp on content queries, so W1 shipped it off and left "gate it on the query looking episodic" as a hypothesis. That hypothesis was then judged on **616 queries that played no part in forming it**, with the rule written down first ([`docs/gate-w2w3.md`](docs/gate-w2w3.md)): gated, it is **+3.09pp of Recall@5 over plain F1, CI95 [+1.79, +4.55], 19 queries better and 0 worse**, with content queries bit-identical (+0.00pp) and episodic queries +8.48pp. It is on by default now. What that run does *not* establish is the gate's precision - the held-out episodic queries were built from time phrases this same classifier could parse, so a real "papers from 2015" query will trip it more often than the 0.55% measured here, and each one pays the ungated penalty.
+
+The same 616 queries judged five other candidate repairs. Three of them really do fix part of what fusion broke (`C_notri` +4.54pp, `C_max` +4.22pp, `C_lowlex` +4.22pp against rung C) and all three are still 3.4-3.7pp *behind* plain F1, so fusion is explained, not repaired, and they stay off. Two do nothing measurable: `C_abstain` changed 1 query out of 616, and the same gate on the fused stack is 7 wins / 8 losses.
 
 A deployment with no API key still falls back to the full fusion, because the mock provider's feature-hash "embeddings" make F1 noise. The response reports which rung actually ran.
 
 The whole thing - ladder, bootstrap CIs, per-query McNemar decisions, the leave-one-out probe, and the reasoning for each default flag - is in [`docs/gate-w1.md`](docs/gate-w1.md). The negative result is the deliverable.
 
-Three follow-ups took the losing step apart. [`docs/query-set-lexical-audit.md`](docs/query-set-lexical-audit.md) asked how much of the query set never needed a vector: 80.1% of content queries and 46.3% of vague ones are solvable by word matching alone, and 6.05% of all queries are found *only* by the lexical facet - so F3 is not contributing nothing, the fusion is losing what it contributes. [`docs/w2-fusion-anatomy.md`](docs/w2-fusion-anatomy.md) then measured the operator itself. Two results worth stating up front: F3's trigram half had never worked on Chinese queries at all (an unsegmented sentence reached the index as one quoted phrase - 25 of 211 Chinese queries got any candidate; the repair takes it to 202, and overall Recall@5 does not move), and RRF's arithmetic gives no protection to a sole-facet hit - with the shipped constants, any document two full-weight facets both recall beats any document a single facet ranks first, at every rank inside the candidate depth. [`docs/w3-criterion-medium.md`](docs/w3-criterion-medium.md) then asked whether the W1 criterion could have measured the context multiplier at all: the shipped `MAX_BOOST = 1.60` spans 79.7% of rung A's score range but only 20.9% of the fused rung's, so testing the same mechanism there would need a cap of 6.03 - and separately, 66.3% of candidates never receive any boost, which is a different failure from a boost being too small.
+Three follow-ups took the losing step apart. [`docs/query-set-lexical-audit.md`](docs/query-set-lexical-audit.md) asked how much of the query set never needed a vector: 80.1% of content queries and 46.3% of vague ones are solvable by word matching alone, and 6.05% of all queries are found *only* by the lexical facet - so F3 is not contributing nothing, the fusion is losing what it contributes. [`docs/w2-fusion-anatomy.md`](docs/w2-fusion-anatomy.md) then measured the operator itself. Two results worth stating up front: F3's trigram half had never worked on Chinese queries at all (an unsegmented sentence reached the index as one quoted phrase - 25 of 211 Chinese queries got any candidate; the repair takes it to 202, and overall Recall@5 does not move), and RRF's arithmetic gives no protection to a sole-facet hit - with the shipped constants, any document two full-weight facets both recall beats any document a single facet ranks first, at every rank inside the candidate depth. [`docs/w3-criterion-medium.md`](docs/w3-criterion-medium.md) then asked whether the W1 criterion could have measured the context multiplier at all: the shipped `MAX_BOOST = 1.60` spans 79.7% of rung A's score range but only 20.9% of the fused rung's, so testing the same mechanism there would need a cap of 6.03 - and separately, 66.3% of candidates never receive any boost, which is a different failure from a boost being too small. Finally, [`docs/gate-w2w3.md`](docs/gate-w2w3.md) judged all six candidate repairs on a fresh 616-query set with the rule fixed in advance, Holm-corrected within each of two families, and reports the smallest effect that sample size could have seen for every comparison.
 
 Everything runs locally: Python + SQLite (`sqlite-vec`) + a browser extension. No server, no account, no upload of your library. Your bookmarks are never modified - Facetmark only reads them.
 
@@ -225,7 +229,7 @@ src/facetmark/
 extension/     MV3, TypeScript, esbuild
 ```
 
-929 tests, no network access required to run them.
+930 tests, no network access required to run them.
 
 Project status, including what is *not* done and why, is in [`ROADMAP.md`](ROADMAP.md). Short version: the W1 evaluation gate is complete and it failed all three of its pre-registered criteria; weeks 2 through 4 of the plan are not done, and the thing blocking them is a query set, not code. Contribution rules are in [`CONTRIBUTING.md`](CONTRIBUTING.md); trust boundaries in [`SECURITY.md`](SECURITY.md).
 
@@ -240,10 +244,23 @@ Facetmark 给每条书签建四个面：内容面（正文向量）、**意图�
 **然后我们量了一下这四个面融合起来到底有没有用，答案是没有。** 2376 篇真实网页、
 479 条评测查询、真实模型（`docs/gate-w1.md`）：只用内容面，内容型查询 Recall@5 是
 95.9%；平权 RRF 融进任意一个更弱的面就掉 5.4pp。所以默认配置现在是**内容面 + 图扩展
-+ 时间衰减**，另外三个面照建照存，但要显式 `--config C/D/E` 才参与排序。图扩展留在
-默认里是因为它对排序逐位不变、只把邻居多送 2.09pp 上来，代价 9 毫秒。
-情境面的上下文乘子被暂时关掉：它在情景型查询上 +8.14pp，在内容型上 −9.94pp，
-得先按查询类型门控才能开——那是下一轮的活。
++ 时间衰减 + 带门控的上下文乘子**，另外三个面照建照存，但要显式 `--config C/D/E` 才
+参与排序。图扩展留在默认里是因为它对排序逐位不变、只把邻居多送 2.09pp 上来，代价
+9 毫秒。
+
+**上下文乘子是 W1 之后唯一改过的那个 flag。** 不门控时它在情景型查询上 +8.14pp、
+在内容型上 −9.94pp，所以 W1 把它关掉，只留下"按查询类型门控就该行"这个猜想。这个猜想
+后来在**616 条没有参与产生它的查询**上判过了，判定规则先于结果落盘
+（`docs/gate-w2w3.md`）：门控之后它相对纯内容面是 **+3.09pp（CI95 [+1.79, +4.55]，
+19 条变好、0 条变差）**，内容型查询逐位不变（+0.00pp），情景型 +8.48pp。**现在它默认
+开着。** 那轮**没有**检验到的是门控的精确率——那批情景型查询的时间短语是照着同一个
+分类器造出来的，真实用户问"2015 年那批论文"时误触发的概率远高于这里量到的 0.55%，
+而每一次误触发都要付那份 −9.94pp。
+
+同一批查询还判了另外五个候选修复。三个确实修好了融合坏掉的一部分（相对 C 档：
+`C_notri` +4.54pp、`C_max` +4.22pp、`C_lowlex` +4.22pp），但三个都仍然**落后纯内容面
+3.4–3.7pp**——融合是被解释清楚了，不是被救回来了，所以它们继续默认关闭。两个什么都没
+发生：`C_abstain` 在 616 条里只改了 1 条，同一个门控装在融合栈上是 7 胜 8 负。
 
 原始阶梯、置信区间、McNemar 逐条判决和留一法探针都在 `docs/gate-w1.md`，包括三条
 预注册判据**全部未通过**的判定过程。
@@ -259,6 +276,12 @@ Facetmark 给每条书签建四个面：内容面（正文向量）、**意图�
 `MAX_BOOST = 1.60` 在 A 档能跨过整档分数量程的 79.7%，在融合档只有 20.9%，同一个机制
 放在融合档里测需要 6.03 的上限；另外，66.3% 的候选**根本没有拿到任何加成**，那和
 "加成太小推不动"是两个不同的问题。
+
+最后是 `docs/gate-w2w3.md`：**六个候选修复在一批全新的 616 条查询上判胜负**，规则先于
+结果落盘，两个家族各自做 Holm 校正，每个比较都报"这个样本量能看见多小的效应"。它顺手
+给介质那件事补了一个旁证——同一个门控装在 A 上是 +4.55pp（32 胜 4 负），装在融合栈上是
+−0.16pp（7 胜 8 负），而两者的情景型 Recall@5 同为 0.3214：在融合后的分数里，这个乘子
+确实推不动东西。
 
 如果你的 API 网关只提供 chat、不提供 `/embeddings`（免费和聚合网关很常见，而且
 `GET /v1/models` 不会告诉你——它照样列出六个模型，但一个都不给嵌入接口用），把编码器

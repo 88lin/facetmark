@@ -96,6 +96,19 @@ class TestTheVerdictRule:
         v = sv.verdict(self._row(4.0, [-0.4, 8.1]), self._sig(True), gated=False, strata=None)
         assert not v["supported"] and "CI95 includes zero" in v["failed"]
 
+    def test_a_losing_interval_is_not_described_as_touching_zero(self):
+        """CI[-9.58, -2.27] excludes zero -- on the losing side.
+
+        The verdict was right and the sentence was wrong: the first real run
+        printed "CI95 includes zero" under four intervals that lay entirely
+        below it. The threshold is untouched; only the wording changed.
+        """
+        v = sv.verdict(self._row(-5.84, [-9.58, -2.27]), self._sig(True),
+                       gated=False, strata=None)
+        assert not v["supported"]
+        assert "CI95 lies below zero" in v["failed"]
+        assert "CI95 includes zero" not in v["failed"]
+
     def test_significance_alone_is_not_a_win(self):
         v = sv.verdict(self._row(-3.0, [-6.0, -0.5]), self._sig(True), gated=False, strata=None)
         assert not v["supported"]

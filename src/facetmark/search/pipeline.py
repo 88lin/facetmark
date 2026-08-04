@@ -264,10 +264,25 @@ FUSED = Config("fused", ALL_FACETS, context=True, graph=True, rerank=True, decay
 #:   quality lets a coincidence on a weak facet outvote confidence on a strong
 #:   one. Weighting is fixable, but it has to be fitted on queries that did not
 #:   suggest the fix, so it is W2 work.
-#: * ``context=False`` -- the contextual multiplier is not a small effect in
-#:   either direction: +8.14pp on episodic queries and -9.94pp on content
-#:   queries (both p<0.001, A vs A_ctx). Unconditionally on, it loses. It should
-#:   be gated on the query looking episodic; that is also W2 work.
+#: * ``context=True, context_gate=True`` -- the contextual multiplier is not a
+#:   small effect in either direction: +8.14pp on episodic queries and -9.94pp
+#:   on content queries (both p<0.001, A vs A_ctx on W1). Unconditionally on it
+#:   loses, so W1 shipped it off and left "gate it on the query looking
+#:   episodic" as a hypothesis. W2 judged that hypothesis on 616 queries that
+#:   played no part in forming it (``docs/gate-w2w3.md``): gated, the multiplier
+#:   is **+3.09pp of Recall@5 over plain A, CI95 [+1.79, +4.55], McNemar 19
+#:   won / 0 lost, p=3.8e-6** -- and the stratified pre-registration it had to
+#:   satisfy came out as designed, ``q_content`` +0.00pp CI95 [0.00, 0.00] and
+#:   ``q_episodic`` +8.48pp CI95 [+4.91, +12.05]. The -9.94pp is gone and the
+#:   +8.14pp survived, which is what the gate was for.
+#:
+#:   What is *not* established is the gate's precision. On that query set it
+#:   fired on 1 of 181 content queries and 0 of 211 vague ones, but the episodic
+#:   queries were built by inserting time phrases that this same classifier
+#:   could parse, so its agreement with the label is partly construction. A real
+#:   library asked "papers from 2015 about X" will trip it more often than 0.55%
+#:   of the time, and each such query pays the ungated penalty. See
+#:   ``docs/gate-w2w3.md`` §7.
 #: * ``graph=True`` -- the only mechanism in the study that is free. Expansion
 #:   never touches the ranked page, so every ranked metric is bit-identical to
 #:   plain A, and the second group finds the target in 2.09pp more queries
@@ -278,7 +293,9 @@ FUSED = Config("fused", ALL_FACETS, context=True, graph=True, rerank=True, decay
 #: * ``decay=True`` -- metabolism is deliberately outside the ladder; it is a
 #:   library-hygiene feature, and leaving it on during ablation would let a
 #:   cold-start corpus move the numbers for reasons unrelated to retrieval.
-FULL = Config("full", frozenset({"content"}), graph=True, decay=True)
+FULL = Config(
+    "full", frozenset({"content"}), context=True, context_gate=True, graph=True, decay=True
+)
 
 #: Named configurations that are neither ladder rungs nor complements: the thing
 #: that ships, and the thing that used to ship.

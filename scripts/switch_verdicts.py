@@ -149,12 +149,16 @@ def verdict(row: dict, sig: dict, *, gated: bool, strata: dict | None) -> dict:
     "Not supported" is not "harmful" and is not "no effect" -- see the
     detectable effect reported next to it.
     """
-    lo, _hi = row["ci95_pp"]
+    lo, hi = row["ci95_pp"]
     reasons: list[str] = []
     if row["recall@5_pp"] <= 0:
         reasons.append("point estimate is not positive")
     if lo <= 0:
-        reasons.append("CI95 includes zero")
+        # The test is `lo > 0` either way, but the sentence has to say what the
+        # interval actually did. Writing "CI95 includes zero" under
+        # CI[-9.58, -2.27] is a false statement about a real measurement: that
+        # interval excludes zero, on the losing side.
+        reasons.append("CI95 lies below zero" if hi < 0 else "CI95 includes zero")
     if not sig["significant"]:
         reasons.append(f"McNemar p={sig['p']} above Holm threshold {sig['holm_threshold']}")
     if gated and strata is not None:

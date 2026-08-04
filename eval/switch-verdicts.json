@@ -1,0 +1,915 @@
+{
+  "source": "/workspace/corpus2/eval_switches.json",
+  "n_queries": 616,
+  "alpha": 0.05,
+  "correction": "Holm-Bonferroni within each family, families corrected separately",
+  "shipping_baseline": "A",
+  "families": {
+    "mechanism": [
+      {
+        "from": "A_ctx",
+        "to": "A_gatedctx",
+        "recall@5": {
+          "A_ctx": 0.5714,
+          "A_gatedctx": 0.6169
+        },
+        "recall@5_pp": 4.55,
+        "ci95_pp": [
+          2.76,
+          6.49
+        ],
+        "mcnemar": {
+          "gained": 32,
+          "lost": 4,
+          "p": 0.0
+        },
+        "by_type": {
+          "q_content": {
+            "n": 181,
+            "recall@5_pp": 8.84,
+            "ci95_pp": [
+              4.42,
+              13.26
+            ],
+            "mcnemar": {
+              "gained": 17,
+              "lost": 1,
+              "p": 0.00014
+            }
+          },
+          "q_episodic": {
+            "n": 224,
+            "recall@5_pp": 0.0,
+            "ci95_pp": [
+              0.0,
+              0.0
+            ],
+            "mcnemar": {
+              "gained": 0,
+              "lost": 0,
+              "p": 1.0
+            }
+          },
+          "q_vague": {
+            "n": 211,
+            "recall@5_pp": 5.68,
+            "ci95_pp": [
+              1.9,
+              9.48
+            ],
+            "mcnemar": {
+              "gained": 15,
+              "lost": 3,
+              "p": 0.00754
+            }
+          }
+        },
+        "claim": "contextual multiplier fires only on episodic-looking queries",
+        "holm": {
+          "p": 0.0,
+          "holm_threshold": 0.00833,
+          "significant": true,
+          "rank_in_family": 1,
+          "family_size": 6
+        },
+        "discordant": 36,
+        "detectable_pp_at_80pct_power": 2.73,
+        "verdict": {
+          "supported": true,
+          "failed": []
+        }
+      },
+      {
+        "from": "D",
+        "to": "D_gated",
+        "recall@5": {
+          "D": 0.5292,
+          "D_gated": 0.5276
+        },
+        "recall@5_pp": -0.16,
+        "ci95_pp": [
+          -1.46,
+          1.14
+        ],
+        "mcnemar": {
+          "gained": 7,
+          "lost": 8,
+          "p": 1.0
+        },
+        "by_type": {
+          "q_content": {
+            "n": 181,
+            "recall@5_pp": -1.11,
+            "ci95_pp": [
+              -3.31,
+              1.1
+            ],
+            "mcnemar": {
+              "gained": 1,
+              "lost": 3,
+              "p": 0.625
+            }
+          },
+          "q_episodic": {
+            "n": 224,
+            "recall@5_pp": 0.0,
+            "ci95_pp": [
+              0.0,
+              0.0
+            ],
+            "mcnemar": {
+              "gained": 0,
+              "lost": 0,
+              "p": 1.0
+            }
+          },
+          "q_vague": {
+            "n": 211,
+            "recall@5_pp": 0.48,
+            "ci95_pp": [
+              -2.84,
+              3.32
+            ],
+            "mcnemar": {
+              "gained": 6,
+              "lost": 5,
+              "p": 1.0
+            }
+          }
+        },
+        "claim": "the same gate inside the full fusion stack",
+        "holm": {
+          "p": 1.0,
+          "holm_threshold": 0.025,
+          "significant": false,
+          "rank_in_family": 5,
+          "family_size": 6
+        },
+        "discordant": 15,
+        "detectable_pp_at_80pct_power": 1.76,
+        "verdict": {
+          "supported": false,
+          "failed": [
+            "point estimate is not positive",
+            "CI95 includes zero",
+            "McNemar p=1.0 above Holm threshold 0.025"
+          ]
+        }
+      },
+      {
+        "from": "C",
+        "to": "C_notri",
+        "recall@5": {
+          "C": 0.5065,
+          "C_notri": 0.5519
+        },
+        "recall@5_pp": 4.54,
+        "ci95_pp": [
+          2.44,
+          6.66
+        ],
+        "mcnemar": {
+          "gained": 37,
+          "lost": 9,
+          "p": 4e-05
+        },
+        "by_type": {
+          "q_content": {
+            "n": 181,
+            "recall@5_pp": 2.21,
+            "ci95_pp": [
+              -0.55,
+              5.52
+            ],
+            "mcnemar": {
+              "gained": 6,
+              "lost": 2,
+              "p": 0.28906
+            }
+          },
+          "q_episodic": {
+            "n": 224,
+            "recall@5_pp": 3.12,
+            "ci95_pp": [
+              0.0,
+              6.25
+            ],
+            "mcnemar": {
+              "gained": 10,
+              "lost": 3,
+              "p": 0.09229
+            }
+          },
+          "q_vague": {
+            "n": 211,
+            "recall@5_pp": 8.05,
+            "ci95_pp": [
+              3.79,
+              12.8
+            ],
+            "mcnemar": {
+              "gained": 21,
+              "lost": 4,
+              "p": 0.00091
+            }
+          }
+        },
+        "claim": "delete the trigram half of the lexical facet",
+        "holm": {
+          "p": 4e-05,
+          "holm_threshold": 0.0125,
+          "significant": true,
+          "rank_in_family": 3,
+          "family_size": 6
+        },
+        "discordant": 46,
+        "detectable_pp_at_80pct_power": 3.08,
+        "verdict": {
+          "supported": true,
+          "failed": []
+        }
+      },
+      {
+        "from": "C",
+        "to": "C_lowlex",
+        "recall@5": {
+          "C": 0.5065,
+          "C_lowlex": 0.5487
+        },
+        "recall@5_pp": 4.22,
+        "ci95_pp": [
+          1.46,
+          7.14
+        ],
+        "mcnemar": {
+          "gained": 55,
+          "lost": 29,
+          "p": 0.00604
+        },
+        "by_type": {
+          "q_content": {
+            "n": 181,
+            "recall@5_pp": 1.11,
+            "ci95_pp": [
+              -3.87,
+              6.08
+            ],
+            "mcnemar": {
+              "gained": 12,
+              "lost": 10,
+              "p": 0.83181
+            }
+          },
+          "q_episodic": {
+            "n": 224,
+            "recall@5_pp": 1.78,
+            "ci95_pp": [
+              -2.23,
+              5.8
+            ],
+            "mcnemar": {
+              "gained": 12,
+              "lost": 8,
+              "p": 0.50344
+            }
+          },
+          "q_vague": {
+            "n": 211,
+            "recall@5_pp": 9.47,
+            "ci95_pp": [
+              3.79,
+              15.64
+            ],
+            "mcnemar": {
+              "gained": 31,
+              "lost": 11,
+              "p": 0.00289
+            }
+          }
+        },
+        "claim": "damp both lexical facets to 0.3/0.2 instead of deleting them",
+        "holm": {
+          "p": 0.00604,
+          "holm_threshold": 0.01667,
+          "significant": true,
+          "rank_in_family": 4,
+          "family_size": 6
+        },
+        "discordant": 84,
+        "detectable_pp_at_80pct_power": 4.17,
+        "verdict": {
+          "supported": true,
+          "failed": []
+        }
+      },
+      {
+        "from": "C",
+        "to": "C_abstain",
+        "recall@5": {
+          "C": 0.5065,
+          "C_abstain": 0.5081
+        },
+        "recall@5_pp": 0.16,
+        "ci95_pp": [
+          0.0,
+          0.49
+        ],
+        "mcnemar": {
+          "gained": 1,
+          "lost": 0,
+          "p": 1.0
+        },
+        "by_type": {
+          "q_content": {
+            "n": 181,
+            "recall@5_pp": 0.56,
+            "ci95_pp": [
+              0.0,
+              1.66
+            ],
+            "mcnemar": {
+              "gained": 1,
+              "lost": 0,
+              "p": 1.0
+            }
+          },
+          "q_episodic": {
+            "n": 224,
+            "recall@5_pp": 0.0,
+            "ci95_pp": [
+              0.0,
+              0.0
+            ],
+            "mcnemar": {
+              "gained": 0,
+              "lost": 0,
+              "p": 1.0
+            }
+          },
+          "q_vague": {
+            "n": 211,
+            "recall@5_pp": 0.0,
+            "ci95_pp": [
+              0.0,
+              0.0
+            ],
+            "mcnemar": {
+              "gained": 0,
+              "lost": 0,
+              "p": 1.0
+            }
+          }
+        },
+        "claim": "a facet that cannot tell its own results apart does not vote",
+        "holm": {
+          "p": 1.0,
+          "holm_threshold": 0.05,
+          "significant": false,
+          "rank_in_family": 6,
+          "family_size": 6
+        },
+        "discordant": 1,
+        "detectable_pp_at_80pct_power": 0.45,
+        "verdict": {
+          "supported": false,
+          "failed": [
+            "CI95 includes zero",
+            "McNemar p=1.0 above Holm threshold 0.05"
+          ]
+        }
+      },
+      {
+        "from": "C",
+        "to": "C_max",
+        "recall@5": {
+          "C": 0.5065,
+          "C_max": 0.5487
+        },
+        "recall@5_pp": 4.22,
+        "ci95_pp": [
+          2.6,
+          6.01
+        ],
+        "mcnemar": {
+          "gained": 29,
+          "lost": 3,
+          "p": 0.0
+        },
+        "by_type": {
+          "q_content": {
+            "n": 181,
+            "recall@5_pp": 2.21,
+            "ci95_pp": [
+              0.55,
+              4.42
+            ],
+            "mcnemar": {
+              "gained": 4,
+              "lost": 0,
+              "p": 0.125
+            }
+          },
+          "q_episodic": {
+            "n": 224,
+            "recall@5_pp": 4.02,
+            "ci95_pp": [
+              1.79,
+              6.7
+            ],
+            "mcnemar": {
+              "gained": 9,
+              "lost": 0,
+              "p": 0.00391
+            }
+          },
+          "q_vague": {
+            "n": 211,
+            "recall@5_pp": 6.16,
+            "ci95_pp": [
+              2.37,
+              10.43
+            ],
+            "mcnemar": {
+              "gained": 16,
+              "lost": 3,
+              "p": 0.00443
+            }
+          }
+        },
+        "claim": "CombMAX term sized to restore the sole-facet guarantee",
+        "holm": {
+          "p": 0.0,
+          "holm_threshold": 0.01,
+          "significant": true,
+          "rank_in_family": 2,
+          "family_size": 6
+        },
+        "discordant": 32,
+        "detectable_pp_at_80pct_power": 2.57,
+        "verdict": {
+          "supported": true,
+          "failed": []
+        }
+      }
+    ],
+    "shipping": [
+      {
+        "from": "A",
+        "to": "A_gatedctx",
+        "recall@5": {
+          "A": 0.586,
+          "A_gatedctx": 0.6169
+        },
+        "recall@5_pp": 3.09,
+        "ci95_pp": [
+          1.79,
+          4.55
+        ],
+        "mcnemar": {
+          "gained": 19,
+          "lost": 0,
+          "p": 0.0
+        },
+        "by_type": {
+          "q_content": {
+            "n": 181,
+            "recall@5_pp": 0.0,
+            "ci95_pp": [
+              0.0,
+              0.0
+            ],
+            "mcnemar": {
+              "gained": 0,
+              "lost": 0,
+              "p": 1.0
+            }
+          },
+          "q_episodic": {
+            "n": 224,
+            "recall@5_pp": 8.48,
+            "ci95_pp": [
+              4.91,
+              12.05
+            ],
+            "mcnemar": {
+              "gained": 19,
+              "lost": 0,
+              "p": 0.0
+            }
+          },
+          "q_vague": {
+            "n": 211,
+            "recall@5_pp": 0.0,
+            "ci95_pp": [
+              0.0,
+              0.0
+            ],
+            "mcnemar": {
+              "gained": 0,
+              "lost": 0,
+              "p": 1.0
+            }
+          }
+        },
+        "claim": "contextual multiplier fires only on episodic-looking queries",
+        "holm": {
+          "p": 0.0,
+          "holm_threshold": 0.00833,
+          "significant": true,
+          "rank_in_family": 1,
+          "family_size": 6
+        },
+        "discordant": 19,
+        "detectable_pp_at_80pct_power": 1.98,
+        "verdict": {
+          "supported": true,
+          "failed": []
+        }
+      },
+      {
+        "from": "A",
+        "to": "D_gated",
+        "recall@5": {
+          "A": 0.586,
+          "D_gated": 0.5276
+        },
+        "recall@5_pp": -5.84,
+        "ci95_pp": [
+          -9.58,
+          -2.27
+        ],
+        "mcnemar": {
+          "gained": 47,
+          "lost": 83,
+          "p": 0.00202
+        },
+        "by_type": {
+          "q_content": {
+            "n": 181,
+            "recall@5_pp": -7.74,
+            "ci95_pp": [
+              -13.81,
+              -1.66
+            ],
+            "mcnemar": {
+              "gained": 9,
+              "lost": 23,
+              "p": 0.02006
+            }
+          },
+          "q_episodic": {
+            "n": 224,
+            "recall@5_pp": 5.8,
+            "ci95_pp": [
+              0.45,
+              11.16
+            ],
+            "mcnemar": {
+              "gained": 25,
+              "lost": 12,
+              "p": 0.04703
+            }
+          },
+          "q_vague": {
+            "n": 211,
+            "recall@5_pp": -16.58,
+            "ci95_pp": [
+              -23.7,
+              -9.48
+            ],
+            "mcnemar": {
+              "gained": 13,
+              "lost": 48,
+              "p": 1e-05
+            }
+          }
+        },
+        "claim": "the same gate inside the full fusion stack",
+        "holm": {
+          "p": 0.00202,
+          "holm_threshold": 0.0125,
+          "significant": true,
+          "rank_in_family": 3,
+          "family_size": 6
+        },
+        "discordant": 130,
+        "detectable_pp_at_80pct_power": 5.19,
+        "verdict": {
+          "supported": false,
+          "failed": [
+            "point estimate is not positive",
+            "CI95 lies below zero",
+            "gate requirement: q_content CI still excludes zero"
+          ]
+        }
+      },
+      {
+        "from": "A",
+        "to": "C_notri",
+        "recall@5": {
+          "A": 0.586,
+          "C_notri": 0.5519
+        },
+        "recall@5_pp": -3.41,
+        "ci95_pp": [
+          -6.66,
+          -0.32
+        ],
+        "mcnemar": {
+          "gained": 41,
+          "lost": 62,
+          "p": 0.04823
+        },
+        "by_type": {
+          "q_content": {
+            "n": 181,
+            "recall@5_pp": -5.53,
+            "ci95_pp": [
+              -11.05,
+              -0.55
+            ],
+            "mcnemar": {
+              "gained": 7,
+              "lost": 17,
+              "p": 0.06391
+            }
+          },
+          "q_episodic": {
+            "n": 224,
+            "recall@5_pp": 3.12,
+            "ci95_pp": [
+              -1.79,
+              8.04
+            ],
+            "mcnemar": {
+              "gained": 20,
+              "lost": 13,
+              "p": 0.29621
+            }
+          },
+          "q_vague": {
+            "n": 211,
+            "recall@5_pp": -8.53,
+            "ci95_pp": [
+              -14.69,
+              -2.37
+            ],
+            "mcnemar": {
+              "gained": 14,
+              "lost": 32,
+              "p": 0.01135
+            }
+          }
+        },
+        "claim": "delete the trigram half of the lexical facet",
+        "holm": {
+          "p": 0.04823,
+          "holm_threshold": 0.05,
+          "significant": false,
+          "rank_in_family": 6,
+          "family_size": 6
+        },
+        "discordant": 103,
+        "detectable_pp_at_80pct_power": 4.62,
+        "verdict": {
+          "supported": false,
+          "failed": [
+            "point estimate is not positive",
+            "CI95 lies below zero",
+            "McNemar p=0.04823 above Holm threshold 0.05"
+          ]
+        }
+      },
+      {
+        "from": "A",
+        "to": "C_lowlex",
+        "recall@5": {
+          "A": 0.586,
+          "C_lowlex": 0.5487
+        },
+        "recall@5_pp": -3.73,
+        "ci95_pp": [
+          -6.98,
+          -0.49
+        ],
+        "mcnemar": {
+          "gained": 40,
+          "lost": 63,
+          "p": 0.02968
+        },
+        "by_type": {
+          "q_content": {
+            "n": 181,
+            "recall@5_pp": -6.63,
+            "ci95_pp": [
+              -11.6,
+              -1.66
+            ],
+            "mcnemar": {
+              "gained": 5,
+              "lost": 17,
+              "p": 0.0169
+            }
+          },
+          "q_episodic": {
+            "n": 224,
+            "recall@5_pp": 1.78,
+            "ci95_pp": [
+              -3.57,
+              7.14
+            ],
+            "mcnemar": {
+              "gained": 20,
+              "lost": 16,
+              "p": 0.61772
+            }
+          },
+          "q_vague": {
+            "n": 211,
+            "recall@5_pp": -7.11,
+            "ci95_pp": [
+              -13.27,
+              -0.95
+            ],
+            "mcnemar": {
+              "gained": 15,
+              "lost": 30,
+              "p": 0.0357
+            }
+          }
+        },
+        "claim": "damp both lexical facets to 0.3/0.2 instead of deleting them",
+        "holm": {
+          "p": 0.02968,
+          "holm_threshold": 0.01667,
+          "significant": false,
+          "rank_in_family": 4,
+          "family_size": 6
+        },
+        "discordant": 103,
+        "detectable_pp_at_80pct_power": 4.62,
+        "verdict": {
+          "supported": false,
+          "failed": [
+            "point estimate is not positive",
+            "CI95 lies below zero",
+            "McNemar p=0.02968 above Holm threshold 0.01667"
+          ]
+        }
+      },
+      {
+        "from": "A",
+        "to": "C_abstain",
+        "recall@5": {
+          "A": 0.586,
+          "C_abstain": 0.5081
+        },
+        "recall@5_pp": -7.79,
+        "ci95_pp": [
+          -11.53,
+          -4.22
+        ],
+        "mcnemar": {
+          "gained": 44,
+          "lost": 92,
+          "p": 5e-05
+        },
+        "by_type": {
+          "q_content": {
+            "n": 181,
+            "recall@5_pp": -7.18,
+            "ci95_pp": [
+              -13.26,
+              -1.1
+            ],
+            "mcnemar": {
+              "gained": 9,
+              "lost": 22,
+              "p": 0.02945
+            }
+          },
+          "q_episodic": {
+            "n": 224,
+            "recall@5_pp": 0.0,
+            "ci95_pp": [
+              -5.8,
+              5.8
+            ],
+            "mcnemar": {
+              "gained": 22,
+              "lost": 22,
+              "p": 1.0
+            }
+          },
+          "q_vague": {
+            "n": 211,
+            "recall@5_pp": -16.58,
+            "ci95_pp": [
+              -23.7,
+              -9.48
+            ],
+            "mcnemar": {
+              "gained": 13,
+              "lost": 48,
+              "p": 1e-05
+            }
+          }
+        },
+        "claim": "a facet that cannot tell its own results apart does not vote",
+        "holm": {
+          "p": 5e-05,
+          "holm_threshold": 0.01,
+          "significant": true,
+          "rank_in_family": 2,
+          "family_size": 6
+        },
+        "discordant": 136,
+        "detectable_pp_at_80pct_power": 5.3,
+        "verdict": {
+          "supported": false,
+          "failed": [
+            "point estimate is not positive",
+            "CI95 lies below zero"
+          ]
+        }
+      },
+      {
+        "from": "A",
+        "to": "C_max",
+        "recall@5": {
+          "A": 0.586,
+          "C_max": 0.5487
+        },
+        "recall@5_pp": -3.73,
+        "ci95_pp": [
+          -7.14,
+          -0.32
+        ],
+        "mcnemar": {
+          "gained": 48,
+          "lost": 71,
+          "p": 0.04327
+        },
+        "by_type": {
+          "q_content": {
+            "n": 181,
+            "recall@5_pp": -5.53,
+            "ci95_pp": [
+              -11.6,
+              0.55
+            ],
+            "mcnemar": {
+              "gained": 10,
+              "lost": 20,
+              "p": 0.09874
+            }
+          },
+          "q_episodic": {
+            "n": 224,
+            "recall@5_pp": 4.02,
+            "ci95_pp": [
+              -1.79,
+              9.38
+            ],
+            "mcnemar": {
+              "gained": 25,
+              "lost": 16,
+              "p": 0.21102
+            }
+          },
+          "q_vague": {
+            "n": 211,
+            "recall@5_pp": -10.42,
+            "ci95_pp": [
+              -16.59,
+              -4.27
+            ],
+            "mcnemar": {
+              "gained": 13,
+              "lost": 35,
+              "p": 0.00209
+            }
+          }
+        },
+        "claim": "CombMAX term sized to restore the sole-facet guarantee",
+        "holm": {
+          "p": 0.04327,
+          "holm_threshold": 0.025,
+          "significant": false,
+          "rank_in_family": 5,
+          "family_size": 6
+        },
+        "discordant": 119,
+        "detectable_pp_at_80pct_power": 4.96,
+        "verdict": {
+          "supported": false,
+          "failed": [
+            "point estimate is not positive",
+            "CI95 lies below zero",
+            "McNemar p=0.04327 above Holm threshold 0.025"
+          ]
+        }
+      }
+    ]
+  }
+}

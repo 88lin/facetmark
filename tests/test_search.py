@@ -1062,7 +1062,11 @@ class TestWhatThisDeploymentActuallyShips:
         assert default_config(st) is FULL
         assert FULL.facets == frozenset({"content"}), "the gate picked A's facet set"
         assert FULL.graph is True, "expansion was free: 10 won / 0 lost, +9ms"
-        assert FULL.context is False, "-9.94pp on content queries, unconditionally on"
+        # W1 shipped context off (-9.94pp on content queries, unconditionally
+        # on) and left the gate as a hypothesis. W2 judged it on 616 held-out
+        # queries: +3.09pp over plain A, CI95 [+1.79, +4.55], 19 won / 0 lost.
+        assert FULL.context is True, "gated, the multiplier is +3.09pp over A"
+        assert FULL.context_gate is True, "ungated it is still -9.94pp on content"
         assert FULL.rerank is False, "45.4s p50 to repair damage that is now absent"
 
     def test_a_deployment_with_no_embeddings_falls_back_to_retrieving_by_words(self):
@@ -1153,9 +1157,13 @@ class TestTheTwoKnobsW2HasToFit:
         plain = classify("kubernetes networking")
         cfg = Config("x", frozenset({"content"}), context=False, context_gate=True)
         assert cfg.wants_context(plain) is False
-        # Nothing shipped or pre-registered turns the gate on.
-        for name in ("A", "B", "C", "D", "E", "full", "fused"):
+        # No *rung* turns the gate on -- the ladder measures mechanisms one at a
+        # time, and A_gatedctx is a complement, not a rung. `full` does turn it
+        # on, since W2 judged it on held-out queries and it won its shipping
+        # test; `fused` is the pre-gate profile and keeps the old behaviour.
+        for name in ("A", "B", "C", "D", "E", "fused"):
             assert ALL_CONFIGS[name].context_gate is False, f"{name} enabled the gate"
+        assert ALL_CONFIGS["full"].context_gate is True
 
     def test_the_gate_admits_episodic_queries_and_turns_the_rest_away(self):
         from facetmark.search.pipeline import ALL_CONFIGS
