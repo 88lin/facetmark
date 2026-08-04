@@ -383,3 +383,35 @@ class TestChoosingWhichRungsToRun:
         rep = await run_eval(size=24, bootstrap=50, rungs=list(RUNGS))
         assert isinstance(rep["end_to_end"]["meets_bar"], bool)
         assert "bar_not_applicable" not in rep["end_to_end"]
+
+    async def test_the_summary_prints_when_there_is_no_bar_to_print(self):
+        """The absent key has to be absent everywhere, including the renderer.
+
+        The first real ``--rungs`` run replayed ten rungs over 616 queries and
+        then died in this function on ``KeyError: 'meets_bar'`` -- after the
+        last rung, before ``--out`` was written, so fifty minutes of results
+        existed only in a traceback. Ninety-three tests covered the report and
+        none of them rendered it.
+        """
+        import io
+
+        from rich.console import Console
+
+        from facetmark.eval.harness import _print_tail
+
+        buf = io.StringIO()
+        rep = await run_eval(size=24, bootstrap=50, rungs=["A", "C_nolex"])
+        _print_tail(Console(file=buf, width=200), rep)
+        assert "pre-registered" in buf.getvalue()
+
+    async def test_the_summary_still_prints_the_bar_for_the_ae_ladder(self):
+        import io
+
+        from rich.console import Console
+
+        from facetmark.eval.harness import _print_tail
+
+        buf = io.StringIO()
+        rep = await run_eval(size=24, bootstrap=50, rungs=list(RUNGS))
+        _print_tail(Console(file=buf, width=200), rep)
+        assert "pp bar" in buf.getvalue()

@@ -510,9 +510,17 @@ def _print_tail(console, report: dict) -> None:
         )
     e = report.get("end_to_end")
     if e:
-        verdict = "meets" if e["meets_bar"] else "below"
-        console.print(f"[bold]{e['from']} -> {e['to']}[/bold] {e['recall@5_pp']:+.2f} pp "
-                      f"({verdict} the {report['pass_margin_pp']} pp bar)")
+        # A custom rung list has no `meets_bar` on purpose: the bar was
+        # pre-registered for A-E. Reading it unconditionally is how the first
+        # `--rungs` run crashed *after* fifty minutes of replay, with the whole
+        # report still in memory and nothing on disk.
+        if "meets_bar" in e:
+            verdict = "meets" if e["meets_bar"] else "below"
+            tail = f" ({verdict} the {report['pass_margin_pp']} pp bar)"
+        else:
+            tail = f" ({e.get('bar_not_applicable', 'no pre-registered bar')})"
+        console.print(f"[bold]{e['from']} -> {e['to']}[/bold] "
+                      f"{e['recall@5_pp']:+.2f} pp{tail}")
     console.print(f"[dim]provider={report['provider']} reranker={report['reranker'] or 'none'} "
                   f"{report['seconds']}s[/dim]")
     if report.get("caveat"):

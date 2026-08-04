@@ -1,0 +1,38 @@
+{
+  "queries": "eval/queries/w2w3-holdout.jsonl",
+  "clock": 1785649110,
+  "by_type": {
+    "q_content": {
+      "n": 181,
+      "fired": 1,
+      "share": 0.0055,
+      "rules": {
+        "time:absolute_year": 1
+      },
+      "median_multiplier": 1.5
+    },
+    "q_episodic": {
+      "n": 224,
+      "fired": 224,
+      "share": 1.0,
+      "rules": {
+        "time:relative": 42,
+        "time:absolute_year": 147,
+        "episodic_marker": 60
+      },
+      "median_multiplier": 1.5
+    },
+    "q_vague": {
+      "n": 211,
+      "fired": 0,
+      "share": 0.0,
+      "rules": {},
+      "median_multiplier": null
+    }
+  },
+  "false_positive_examples": {
+    "q_content": [
+      "kids reading for fun declined half since 2012  [time:absolute_year]"
+    ]
+  }
+}
