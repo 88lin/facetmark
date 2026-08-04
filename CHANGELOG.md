@@ -186,6 +186,23 @@
   与什么都没给不是一回事，以及两项端到端——自定义梯子拿不到 `meets_bar` 而拿到含
   "pre-registered" 的说明，A–E 梯子照旧给 `meets_bar`。测试总数 884 → **893**。
 
+### 新增（查询集分块生成后怎么合并，是先写下来的）
+
+- **`scripts/corpus/merge_queries.py`**：把多个 seed 分块生成的查询文件合成一份。生成
+  分块跑是因为一次长跑失败的代价比四次短跑大；合并**不是文件操作而是测量决策**，所以
+  规则先写在脚本的 docstring 里，再去跑：
+
+  - 去重单位是 **`(target, qtype)`** 而不是 target。同一页天然带 `q_content` /
+    `q_vague` / `q_episodic` 三条查询，这是设计；不该有的是两个分块各给同一页写一条
+    `q_content`——那是同一个格子被抽了两次，会让这一页在每个召回数字里算两遍。
+  - **文字相同就丢，哪怕目标页不同。** 两页讲同一件事时模型会写出同一句话，此时"正确
+    答案"是抛硬币，没有排序器能赢。保留先出现的那条。
+  - 每一次丢弃都计数并打印原因，四个分块的 `//` 溯源头行全部带进产物。
+
+  **九项新测试**（`TestWhatCountsAsTheSameQuery` / `TestTheFileItReads`）：一页三类型
+  不算重复、跨块同 `(target, qtype)` 只留先来的、跨块同一页仍可补不同类型、跨目标同文
+  去重、空白差异不算不同、空查询被丢、每行记录来自哪个分块。测试总数 893 → **902**。
+
 ### 新增（chat 和 embedding 可以来自两个地方）
 
 - **`Settings.embed_backend`（`endpoint` / `local`）+ `LocalEmbeddingProvider` +
