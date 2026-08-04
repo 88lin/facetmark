@@ -46,6 +46,7 @@ from .importers import import_bookmarks
 from .normalize import host_excluded, normalize_url, registrable_domain
 from .providers import Provider, get_provider
 from .search import graph as graphmod
+from .search.decay import cold_census
 from .search.pipeline import (
     FULL,
     Config,
@@ -580,7 +581,9 @@ def record_open(conn: sqlite3.Connection, bookmark_id: int, *, query: str = "") 
 # ---------------------------------------------------------------------------
 
 
-def library_stats(conn: sqlite3.Connection) -> dict:
+def library_stats(conn: sqlite3.Connection, settings: Settings | None = None) -> dict:
+    st = settings or get_settings()
+
     def one(sql: str, *p) -> int:
         r = conn.execute(sql, p).fetchone()
         return int(r[0]) if r and r[0] is not None else 0
@@ -598,6 +601,13 @@ def library_stats(conn: sqlite3.Connection) -> dict:
         "queue": fetchstore.queue_stats(conn),
         "queue_waiting": fetchstore.queue_waiting(conn),
         "health": healthmod.summary(conn),
+        # The metabolism layer's selectivity, decomposed. Reported next to the
+        # health summary on purpose: condition 3 reads health verdicts, so a
+        # library with `health.unchecked == bookmarks` has a cold layer running
+        # on supersession edges alone, and no other number here says so.
+        "cold_layer": cold_census(
+            conn, age_days=st.decay_age_days, min_body_chars=st.min_body_chars
+        ),
     }
     stats["vectors"] = dbmod.count_vectors(conn) if dbmod.vec_tables_exist(conn) else {}
     stats["content_vectors_stale"] = stale_content_count(conn)

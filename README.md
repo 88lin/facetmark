@@ -5,7 +5,7 @@
 [![CI](https://github.com/88lin/facetmark/actions/workflows/ci.yml/badge.svg)](https://github.com/88lin/facetmark/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1149-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-1166-brightgreen)](tests/)
 [![Code of Conduct](https://img.shields.io/badge/code%20of%20conduct-contributor%20covenant-blueviolet)](CODE_OF_CONDUCT.md)
 
 [English](README.md) · [简体中文](README.zh-CN.md)
@@ -135,7 +135,7 @@ git clone https://github.com/88lin/facetmark
 cd facetmark
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
-pytest -q               # 1149 tests, ~37 s
+pytest -q               # 1166 tests, ~37 s
 ruff check src tests scripts
 ```
 
@@ -355,7 +355,7 @@ built from the drifted vectors.
 to a karakeep-enriched library; rank-level ones do not, until that library has been
 re-indexed with facetmark's own enrichment.
 
-### The decay layer cannot fire in the default profile — and that costs nothing
+### The decay layer cannot fire in the default profile — and that turns out to help
 
 Found while explaining the round-trip result. RRF scores are `sum_f w_f / (k + rank_f)`;
 with `rrf_k = 60` a single unit-weight facet tops out at `1/61 = 0.016393`.
@@ -364,28 +364,61 @@ config, so `hot_top_score < rescue_threshold` is always true, the rescue valve a
 opens, and the demotion it guards has never executed. `fused` is unaffected (two facets
 already reach 0.0279). Pinned by `tests/test_decay_reach.py`.
 
-That is a proof about arithmetic. "There is a dead layer in the default profile" and "the
-default profile ranks worse because of it" are different claims, and the second one was
-measured ([`docs/decay-reach.md`](docs/decay-reach.md)): same retriever, same 616
-held-out queries, one setting changed — `0.02` versus `0.0`, which makes the valve
-unreachable in the other direction so the demotion always applies.
+That is a proof about arithmetic. It says nothing about consequence, so the consequence was
+measured — **twice, and the second run overturned the first.**
+
+**Round one** ([`docs/decay-reach.md`](docs/decay-reach.md)) reported ΔRecall@5 = exactly
+`0.0000pp`, CI95 `[0, 0]`, with only 8 of 2,376 pages cold and 0 of 230 targets cold, and
+concluded the defect costs nothing.
+
+**Round one measured an instrument that was never switched on.** Its own §7 admitted health
+check coverage had not been quantified. It had not: the library's `health` table held **zero
+rows**, so the half of cold-layer condition 3 that depends on a health verdict could never
+fire. `open_count` is also 0 for all 2,376 rows — browser bookmark exports carry no usage
+telemetry — so condition 1 selects everything. What was actually running was condition 2
+plus supersession edges, which is where the 8 came from.
+
+**Round two** ([`docs/decay-instrumented.md`](docs/decay-instrumented.md)) ran one local-only
+health pass over the same bytes (`save_recovered=False`, so only the `health` table changed —
+verified by deep fingerprint on `content`, `edge`, `bookmark`, vectors and FTS) and repeated
+the identical A/B:
 
 | | shipped `0.02` | reachable `0.0` |
 |---|---|---|
-| Recall@5 | 0.5860 | 0.5860 |
-| queries where the valve opened | 113 / 616 | 0 / 616 |
+| Recall@5 | **0.5860** | **0.5714** |
+| Recall@1 | 0.4237 | 0.4188 |
+| queries where the valve opened | 417 / 616 | 0 / 616 |
 
-**ΔRecall@5 = `0.0000pp`, CI95 `[0, 0]`** — and not for want of power. 46 result lists
-changed, 15 top-5s changed, 3 target ranks moved by one place, and not a single query
-crossed the `rank ≤ 5` boundary in either direction. The census says why: **8** of 2,376
-pages are cold, and **0** of the 230 target pages are. Condition 3 — positive evidence of
-supersession — cuts 1,071 old-and-never-opened pages down to 8, and that condition is
-exactly what stops the layer from being an age filter.
+| | round one | round two |
+|---|---|---|
+| `health` rows | 0 | 2,376 |
+| cold pages | 8 (0.34%) | **73 (3.07%)** |
+| cold ∩ 230 targets | **0** | **8** (19 queries) |
+| ΔRecall@5 | `+0.0000pp` `[0, 0]` | **`−1.4610pp`** `[−2.5974, −0.4870]` |
 
-So the threshold stays, and the reason upgrades from "changing default ranking needs a
-protocol" to "measured, the payoff is zero". The caveat worth pressing on: the query set
-was generated from pages that *have* body text, and cold pages are mostly dead links, so a
-query set of "find that page that no longer loads" could overturn every number here.
+**Fixing the threshold would cost 1.46pp of Recall@5**, interval clear of zero. The
+mechanism is countable, no statistics required: of 37 target-rank changes, **12 targets fell
+out of the 20-item list — 10 of them from inside the top 5, 5 of them from rank 1** — while
+24 rose (21 by a single place) and only **1** crossed into the top 5. Net `−10 + 1 = −9`
+over 616 queries is exactly `−1.4610pp`. Gains land inside recall buckets; losses land on
+bucket boundaries.
+
+**Root cause: condition 3 treats "the URL is dead" as "the saved copy is worthless".**
+facetmark stores body text. The words on a 404 page are still the right answer to the
+question. `drifted` is worse — it means the remote copy no longer matches the local one,
+which is precisely when the local snapshot is the only surviving record.
+
+So the threshold still stays, but the reason is now the opposite of round one's: not "the
+payoff is zero" but **"one bug is cancelling another, and the cancellation is
+load-bearing"**. Narrowing condition 3 needs a *new* query set — the two obvious candidate
+fixes were derived from these 616 queries' failures, so scoring them on the same 616 would
+be reporting a training score. And neither is clean: 4 of the 8 damaged targets have
+`char_count = 0`, no body text at all, yet are still retrieved and still correct via title
+and the lexical facets.
+
+`cold_census()` now reports the three conditions separately and names both silent failures
+(`never_opened_selects_everything`, `health_never_checked`) in `fm stats` and
+`fm health --check`, so the next such gap does not need to be found by hand.
 
 ### One real export, end to end
 
@@ -525,7 +558,7 @@ extension/                browser extension (open-count telemetry)
 eval/                     query sets and evaluation harness
 scripts/                  experiment drivers and probes
 docs/                     one file per experiment, protocol first
-tests/                    1149 tests
+tests/                    1166 tests
 ```
 
 ## Contributing
@@ -550,9 +583,10 @@ web UI, the karakeep bridge, and the evaluation harness all work; the numbers ab
 reproducible from `scripts/` and `eval/`.
 
 Known open items, all documented rather than hidden: the decay layer cannot fire in the
-default profile (measured — on this library it costs exactly nothing, but no query in the
-set is looking for a cold page); the intent facet is off by default and the reason is
-conceptual; the karakeep bridge is pinned to upstream's types and to a captured wire
+default profile (measured twice — the second run overturned the first: once the health
+checker is actually run, fixing the defect costs 1.46pp of Recall@5, so the accident is now
+**load-bearing** and a real fix means changing cold-layer condition 3, which needs a new
+query set); the intent facet is off by default and the reason is conceptual; the karakeep bridge is pinned to upstream's types and to a captured wire
 contract but still has no test against a live karakeep instance; and the largest missing
 piece is a query set built by someone other than the author. See [ROADMAP.md](ROADMAP.md)
 and [CHANGELOG.md](CHANGELOG.md).

@@ -74,6 +74,112 @@ def cold_bookmark_ids(
     return {int(r["id"]) for r in conn.execute(sql, params)}
 
 
+def cold_census(
+    conn: sqlite3.Connection,
+    *,
+    age_days: int = 365,
+    now_ts: int | None = None,
+    min_body_chars: int = 200,
+) -> dict:
+    """Which of the three conditions is actually selecting anything, and why.
+
+    The conditions are an ``AND``, so the layer is only as selective as its
+    least degenerate term -- and two of the three fail quietly on a library
+    that was just imported:
+
+    * **Condition 1 is degenerate on any browser export.** ``open_count = 0``
+      is true of *every* bookmark, because the Netscape bookmark HTML format
+      carries no usage telemetry. Nothing is wrong; there is simply no data.
+      Until facetmark has observed opens itself, condition 1 selects the whole
+      library and contributes nothing.
+    * **Condition 3's health half needs the health table populated**, and
+      ``fm health --check`` is opt-in network I/O. Nobody runs it by accident.
+      With zero rows in ``health``, that disjunct can never fire, so condition
+      3 collapses to "has an outgoing supersession edge".
+
+    A library where both hold has a cold layer built from supersession edges
+    alone. That is a different feature from the three-condition one the
+    docstring above describes, and the difference is large: on the 2,376-page
+    evaluation library it is 8 pages versus 73. Measuring the decay layer
+    without checking this first measures the instrument, not the layer.
+
+    ``servable`` is the count of cold pages whose text is still in the index.
+    It matters because demotion is a statement about *the answer*, not about
+    the URL: facetmark stores bodies, so a page the server now 404s can still
+    be the correct answer to the query, retrievable and readable, with a
+    Wayback link attached. Cold pages that are still servable are the ones
+    demotion can actually cost the user something.
+    """
+    now_ts = int(time.time()) if now_ts is None else int(now_ts)
+    cutoff = now_ts - age_days * 86400
+
+    def one(sql: str, *p: object) -> int:
+        row = conn.execute(sql, p).fetchone()
+        return int(row[0]) if row and row[0] is not None else 0
+
+    marks = ",".join("?" * len(DEAD_VERDICTS))
+    latest_dead = (
+        "EXISTS (SELECT 1 FROM health h WHERE h.bookmark_id = b.id"
+        f"        AND h.verdict IN ({marks})"
+        "        AND h.checked_at = (SELECT max(checked_at) FROM health h2"
+        "                            WHERE h2.bookmark_id = b.id))"
+    )
+    has_sup = (
+        "EXISTS (SELECT 1 FROM edge e WHERE e.src = b.id AND e.kind = 'supersession')"
+    )
+    both = "b.open_count = 0 AND b.date_added IS NOT NULL AND b.date_added < ?"
+
+    total = one("SELECT count(*) FROM bookmark")
+    never_opened = one("SELECT count(*) FROM bookmark WHERE open_count = 0")
+    older = one(
+        "SELECT count(*) FROM bookmark WHERE date_added IS NOT NULL AND date_added < ?", cutoff
+    )
+    old_unopened = one(f"SELECT count(*) FROM bookmark b WHERE {both}", cutoff)
+    by_sup = one(f"SELECT count(*) FROM bookmark b WHERE {both} AND {has_sup}", cutoff)
+    by_dead = one(
+        f"SELECT count(*) FROM bookmark b WHERE {both} AND {latest_dead}",
+        cutoff,
+        *DEAD_VERDICTS,
+    )
+    cold = cold_bookmark_ids(conn, age_days=age_days, now_ts=now_ts)
+    checked = one("SELECT count(DISTINCT bookmark_id) FROM health")
+    servable = 0
+    if cold:
+        ids = ",".join("?" * len(cold))
+        servable = one(
+            f"SELECT count(*) FROM content WHERE bookmark_id IN ({ids})"
+            " AND COALESCE(char_count, 0) >= ?",
+            *sorted(cold),
+            min_body_chars,
+        )
+
+    degenerate: list[str] = []
+    if total and never_opened == total:
+        degenerate.append("never_opened_selects_everything")
+    if checked == 0:
+        degenerate.append("health_never_checked")
+
+    return {
+        "bookmarks": total,
+        "age_days": age_days,
+        "cutoff_ts": cutoff,
+        # ---- the three conditions, separately
+        "never_opened": never_opened,
+        "older_than_cutoff": older,
+        "old_and_never_opened": old_unopened,
+        "condition3_by_supersession": by_sup,
+        "condition3_by_dead_verdict": by_dead,
+        "cold": len(cold),
+        # ---- can the third condition even fire?
+        "health_checked": checked,
+        "health_unchecked": max(0, total - checked),
+        # ---- of the cold pages, how many can we still serve?
+        "servable_cold": servable,
+        "unservable_cold": len(cold) - servable,
+        "degenerate_conditions": degenerate,
+    }
+
+
 @dataclass(slots=True)
 class DecayOutcome:
     #: True when the demotion was lifted because the hot layer was empty-handed.

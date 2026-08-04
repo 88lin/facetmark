@@ -1,0 +1,380 @@
+{
+  "clock": 1785649110,
+  "db": "/workspace/health/library-health.db",
+  "queries": 616,
+  "qtypes": {
+    "q_content": 181,
+    "q_vague": 211,
+    "q_episodic": 224
+  },
+  "census": {
+    "bookmarks": 2376,
+    "old_and_never_opened": 1071,
+    "cold": 73,
+    "cold_ids": [
+      42,
+      53,
+      54,
+      63,
+      76,
+      80,
+      112,
+      127,
+      129,
+      157,
+      158,
+      170,
+      181,
+      183,
+      190,
+      260,
+      266,
+      274,
+      287,
+      304,
+      316,
+      323,
+      329,
+      380,
+      848,
+      853,
+      879,
+      1031,
+      1078,
+      1110,
+      1115,
+      1126,
+      1129,
+      1140,
+      1145,
+      1162,
+      1169,
+      1190,
+      1212,
+      1222,
+      1237,
+      1238,
+      1272,
+      1275,
+      1277,
+      1293,
+      1301,
+      1302,
+      1365,
+      1367,
+      1371,
+      1396,
+      1423,
+      1432,
+      1453,
+      1454,
+      1463,
+      1485,
+      1490,
+      1498,
+      1502,
+      1504,
+      1522,
+      1541,
+      1576,
+      1581,
+      1591,
+      1603,
+      1606,
+      1614,
+      2258,
+      2290,
+      2342
+    ],
+    "targets": 230,
+    "cold_targets": [
+      848,
+      1129,
+      1277,
+      1454,
+      1485,
+      1614,
+      2258,
+      2342
+    ],
+    "note": "old_and_never_opened is conditions 1+2 only; `cold` adds condition 3 (a supersession edge or a dead health verdict). The gap between them is how much work condition 3 is doing."
+  },
+  "shipped": {
+    "threshold": 0.02,
+    "recall5": 0.586,
+    "recall1": 0.4237,
+    "rescued_queries": 417
+  },
+  "reachable": {
+    "threshold": 0.0,
+    "recall5": 0.5714,
+    "recall1": 0.4188,
+    "rescued_queries": 0
+  },
+  "exposure": {
+    "queries_with_a_cold_page_in_the_list": 256,
+    "queries_with_a_cold_page_in_top5": 93
+  },
+  "difference": {
+    "queries_whose_top5_changed": 93,
+    "queries_whose_list_changed": 256,
+    "queries_whose_target_rank_moved": 37,
+    "moves": [
+      {
+        "q": "reading about electric vehicle competition this year",
+        "qtype": "q_episodic",
+        "from": 0,
+        "to": 20
+      },
+      {
+        "q": "google privacy settings language selector page",
+        "qtype": "q_content",
+        "from": 5,
+        "to": 0
+      },
+      {
+        "q": "extension that puts ai chat everywhere",
+        "qtype": "q_vague",
+        "from": 2,
+        "to": 0
+      },
+      {
+        "q": "how hype hides financial danger in tech",
+        "qtype": "q_vague",
+        "from": 7,
+        "to": 6
+      },
+      {
+        "q": "ai browser tool that reads pages and helps with tasks",
+        "qtype": "q_vague",
+        "from": 4,
+        "to": 3
+      },
+      {
+        "q": "around the time unicode knowledge for developers and a chat tool",
+        "qtype": "q_episodic",
+        "from": 13,
+        "to": 11
+      },
+      {
+        "q": "把视频里的语音变成文字",
+        "qtype": "q_vague",
+        "from": 9,
+        "to": 8
+      },
+      {
+        "q": "傅盛 奇虎 360 安全卫士 合并 金山 网络 经历",
+        "qtype": "q_content",
+        "from": 1,
+        "to": 0
+      },
+      {
+        "q": "2024年那会儿研究 科技 公司 高管 背景存的",
+        "qtype": "q_episodic",
+        "from": 4,
+        "to": 0
+      },
+      {
+        "q": "把邮件服务跑在自己服务器上的教程",
+        "qtype": "q_vague",
+        "from": 1,
+        "to": 0
+      },
+      {
+        "q": "整理有趣观点的邮件",
+        "qtype": "q_vague",
+        "from": 6,
+        "to": 5
+      },
+      {
+        "q": "在笔记本里画图不用写一堆代码的方案",
+        "qtype": "q_vague",
+        "from": 14,
+        "to": 13
+      },
+      {
+        "q": "不用搭服务器也能上线的办法",
+        "qtype": "q_vague",
+        "from": 10,
+        "to": 9
+      },
+      {
+        "q": "去年换新电脑需要装软件存的",
+        "qtype": "q_episodic",
+        "from": 14,
+        "to": 13
+      },
+      {
+        "q": "看大厂怎么用新标准做复杂视觉效果",
+        "qtype": "q_vague",
+        "from": 19,
+        "to": 18
+      },
+      {
+        "q": "struggling with layout while building a web app in 2025",
+        "qtype": "q_episodic",
+        "from": 13,
+        "to": 12
+      },
+      {
+        "q": "进那个戴眼镜就能面试的虚拟场馆",
+        "qtype": "q_vague",
+        "from": 19,
+        "to": 0
+      },
+      {
+        "q": "directory of apps and tools for automation",
+        "qtype": "q_vague",
+        "from": 3,
+        "to": 2
+      },
+      {
+        "q": "personalized morning digest sent to telegram with live sources",
+        "qtype": "q_content",
+        "from": 2,
+        "to": 1
+      },
+      {
+        "q": "那条分享那种极简睡眠舱体验的推文",
+        "qtype": "q_vague",
+        "from": 15,
+        "to": 14
+      },
+      {
+        "q": "guidelines for making design components accessible and scalable",
+        "qtype": "q_vague",
+        "from": 17,
+        "to": 15
+      },
+      {
+        "q": "大概2026年研究 科技 股 投资 机会收的",
+        "qtype": "q_episodic",
+        "from": 9,
+        "to": 8
+      },
+      {
+        "q": "picking a styling approach for a new project in 2026",
+        "qtype": "q_episodic",
+        "from": 13,
+        "to": 12
+      },
+      {
+        "q": "website that lets you chain different ai art tools",
+        "qtype": "q_vague",
+        "from": 11,
+        "to": 10
+      },
+      {
+        "q": "找那篇讲坚持初心的著名演讲",
+        "qtype": "q_vague",
+        "from": 16,
+        "to": 15
+      },
+      {
+        "q": "exploring ai art tools for creative projects sometime in 2026",
+        "qtype": "q_episodic",
+        "from": 16,
+        "to": 15
+      },
+      {
+        "q": "learning new language phrases in 2025",
+        "qtype": "q_episodic",
+        "from": 13,
+        "to": 11
+      },
+      {
+        "q": "reading about technology and jobs in 2026",
+        "qtype": "q_episodic",
+        "from": 9,
+        "to": 8
+      },
+      {
+        "q": "browser game where space loops infinitely",
+        "qtype": "q_vague",
+        "from": 10,
+        "to": 9
+      },
+      {
+        "q": "calibre 支持 哪些 电子书 格式 转换",
+        "qtype": "q_content",
+        "from": 2,
+        "to": 1
+      },
+      {
+        "q": "musicians peaking later age billboard hot 100 analysis",
+        "qtype": "q_content",
+        "from": 1,
+        "to": 0
+      },
+      {
+        "q": "article explaining why older singers top charts now",
+        "qtype": "q_vague",
+        "from": 1,
+        "to": 0
+      },
+      {
+        "q": "researching music career age patterns in 2025",
+        "qtype": "q_episodic",
+        "from": 2,
+        "to": 0
+      },
+      {
+        "q": "如何教一大群新手写第一行代码",
+        "qtype": "q_vague",
+        "from": 8,
+        "to": 7
+      },
+      {
+        "q": "用编程助手生成配置表单和导出功能",
+        "qtype": "q_content",
+        "from": 3,
+        "to": 0
+      },
+      {
+        "q": "想找现成配置生成器思路参考",
+        "qtype": "q_vague",
+        "from": 20,
+        "to": 0
+      },
+      {
+        "q": "2024年那会儿后端想给项目加配置页存的",
+        "qtype": "q_episodic",
+        "from": 1,
+        "to": 0
+      }
+    ]
+  },
+  "recall5": {
+    "delta_pp": -1.461,
+    "ci95_pp": [
+      -2.5974,
+      -0.487
+    ],
+    "boots": 10000
+  },
+  "recall1": {
+    "delta_pp": -0.487,
+    "ci95_pp": [
+      -1.2987,
+      0.3247
+    ],
+    "boots": 10000
+  },
+  "by_qtype": {
+    "q_content": {
+      "n": 181,
+      "shipped_recall5": 0.9061,
+      "reachable_recall5": 0.884
+    },
+    "q_episodic": {
+      "n": 224,
+      "shipped_recall5": 0.2634,
+      "reachable_recall5": 0.25
+    },
+    "q_vague": {
+      "n": 211,
+      "shipped_recall5": 0.654,
+      "reachable_recall5": 0.6445
+    }
+  }
+}

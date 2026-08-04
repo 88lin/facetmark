@@ -1,0 +1,1093 @@
+{
+  "clock": 1785649110,
+  "age_days": 365,
+  "min_body_chars": 200,
+  "note": "Two snapshots of the same corpus. 'unchecked' is the library the 1.5.0 decay experiment ran against: its health table was empty, so half of cold-layer condition 3 could never fire. 'checked' is the same bytes with one local-only health pass applied (health_enable_external=False), which is the configuration most biased toward a dead verdict, so its cold layer is an upper bound.",
+  "snapshots": {
+    "unchecked": {
+      "db": "library-w1-indexed.db",
+      "census": {
+        "bookmarks": 2376,
+        "age_days": 365,
+        "cutoff_ts": 1754113110,
+        "never_opened": 2376,
+        "older_than_cutoff": 1071,
+        "old_and_never_opened": 1071,
+        "condition3_by_supersession": 8,
+        "condition3_by_dead_verdict": 0,
+        "cold": 8,
+        "health_checked": 0,
+        "health_unchecked": 2376,
+        "servable_cold": 3,
+        "unservable_cold": 5,
+        "degenerate_conditions": [
+          "never_opened_selects_everything",
+          "health_never_checked"
+        ]
+      },
+      "cold_ids": [
+        1126,
+        1169,
+        1275,
+        1365,
+        1423,
+        1453,
+        1576,
+        1581
+      ],
+      "verdict_histogram": {},
+      "cold_breakdown": [
+        {
+          "bookmark_id": 1126,
+          "reasons": [
+            "supersession"
+          ],
+          "verdict": null,
+          "body_chars": 513,
+          "servable": true,
+          "host": "news.ycombinator.com",
+          "title": "Hacker News 读者"
+        },
+        {
+          "bookmark_id": 1169,
+          "reasons": [
+            "supersession"
+          ],
+          "verdict": null,
+          "body_chars": 0,
+          "servable": false,
+          "host": "news.ycombinator.com",
+          "title": "Hacker News 读者"
+        },
+        {
+          "bookmark_id": 1275,
+          "reasons": [
+            "supersession"
+          ],
+          "verdict": null,
+          "body_chars": 0,
+          "servable": false,
+          "host": "calibre-ebook.com",
+          "title": "Calibre"
+        },
+        {
+          "bookmark_id": 1365,
+          "reasons": [
+            "supersession"
+          ],
+          "verdict": null,
+          "body_chars": 0,
+          "servable": false,
+          "host": "news.ycombinator.com",
+          "title": "Hacker News 读者"
+        },
+        {
+          "bookmark_id": 1423,
+          "reasons": [
+            "supersession"
+          ],
+          "verdict": null,
+          "body_chars": 16952,
+          "servable": true,
+          "host": "developer.apple.com",
+          "title": "苹果公司"
+        },
+        {
+          "bookmark_id": 1453,
+          "reasons": [
+            "supersession"
+          ],
+          "verdict": null,
+          "body_chars": 0,
+          "servable": false,
+          "host": "news.ycombinator.com",
+          "title": "Hacker News 读者"
+        },
+        {
+          "bookmark_id": 1576,
+          "reasons": [
+            "supersession"
+          ],
+          "verdict": null,
+          "body_chars": 0,
+          "servable": false,
+          "host": "www.xda-developers.com",
+          "title": "介绍文章"
+        },
+        {
+          "bookmark_id": 1581,
+          "reasons": [
+            "supersession"
+          ],
+          "verdict": null,
+          "body_chars": 1816,
+          "servable": true,
+          "host": "simonwillison.net",
+          "title": "介绍文章"
+        }
+      ],
+      "reason_histogram": {
+        "supersession": 8
+      },
+      "corpus_body": {
+        "with_body_at_least_min": 1787,
+        "with_any_body": 1876,
+        "rows_in_content": 2376
+      }
+    },
+    "checked": {
+      "db": "library-health.db",
+      "census": {
+        "bookmarks": 2376,
+        "age_days": 365,
+        "cutoff_ts": 1754113110,
+        "never_opened": 2376,
+        "older_than_cutoff": 1071,
+        "old_and_never_opened": 1071,
+        "condition3_by_supersession": 8,
+        "condition3_by_dead_verdict": 65,
+        "cold": 73,
+        "health_checked": 2376,
+        "health_unchecked": 0,
+        "servable_cold": 30,
+        "unservable_cold": 43,
+        "degenerate_conditions": [
+          "never_opened_selects_everything"
+        ]
+      },
+      "cold_ids": [
+        42,
+        53,
+        54,
+        63,
+        76,
+        80,
+        112,
+        127,
+        129,
+        157,
+        158,
+        170,
+        181,
+        183,
+        190,
+        260,
+        266,
+        274,
+        287,
+        304,
+        316,
+        323,
+        329,
+        380,
+        848,
+        853,
+        879,
+        1031,
+        1078,
+        1110,
+        1115,
+        1126,
+        1129,
+        1140,
+        1145,
+        1162,
+        1169,
+        1190,
+        1212,
+        1222,
+        1237,
+        1238,
+        1272,
+        1275,
+        1277,
+        1293,
+        1301,
+        1302,
+        1365,
+        1367,
+        1371,
+        1396,
+        1423,
+        1432,
+        1453,
+        1454,
+        1463,
+        1485,
+        1490,
+        1498,
+        1502,
+        1504,
+        1522,
+        1541,
+        1576,
+        1581,
+        1591,
+        1603,
+        1606,
+        1614,
+        2258,
+        2290,
+        2342
+      ],
+      "verdict_histogram": {
+        "alive": 1899,
+        "drifted": 58,
+        "gone": 60,
+        "restricted": 200,
+        "unknown": 74,
+        "unreachable": 85
+      },
+      "cold_breakdown": [
+        {
+          "bookmark_id": 42,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 14,
+          "servable": false,
+          "host": "juejin.cn",
+          "title": "掘金会员"
+        },
+        {
+          "bookmark_id": 53,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 4974,
+          "servable": true,
+          "host": "portswigger.net",
+          "title": "不带括号执行 JavaScript 函数的七种方法"
+        },
+        {
+          "bookmark_id": 54,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "47.104.180.148:8081",
+          "title": "Demo"
+        },
+        {
+          "bookmark_id": 63,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 9590,
+          "servable": true,
+          "host": "annasofia.xyz",
+          "title": "《计算机批评》"
+        },
+        {
+          "bookmark_id": 76,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "devpoga.org",
+          "title": "《从最难塑造的开始》"
+        },
+        {
+          "bookmark_id": 80,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "s.weibo.com",
+          "title": "微博的“热门文章”"
+        },
+        {
+          "bookmark_id": 112,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 575,
+          "servable": true,
+          "host": "www.toolai.io",
+          "title": "ToolAI"
+        },
+        {
+          "bookmark_id": 127,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 22,
+          "servable": false,
+          "host": "beebee.ai",
+          "title": "BeeBee AI"
+        },
+        {
+          "bookmark_id": 129,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 4028,
+          "servable": true,
+          "host": "flashmuseum.org",
+          "title": "Flash 博物馆"
+        },
+        {
+          "bookmark_id": 157,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "hughfenghen.github.io",
+          "title": "demo"
+        },
+        {
+          "bookmark_id": 158,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 14,
+          "servable": false,
+          "host": "juejin.cn",
+          "title": "点击这里"
+        },
+        {
+          "bookmark_id": 170,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 2267,
+          "servable": true,
+          "host": "chromewebstore.google.com",
+          "title": "Sidebar 插件"
+        },
+        {
+          "bookmark_id": 181,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 3072,
+          "servable": true,
+          "host": "www.euronews.com",
+          "title": "AI 小姐"
+        },
+        {
+          "bookmark_id": 183,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "www.longluo.me",
+          "title": "2024阿里巴巴全球数学竞赛预选赛"
+        },
+        {
+          "bookmark_id": 190,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "taxodium.ink",
+          "title": "Emoji 正则匹配"
+        },
+        {
+          "bookmark_id": 260,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "www.speakeasy.com",
+          "title": "Jest 与 Vitest"
+        },
+        {
+          "bookmark_id": 266,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 1103,
+          "servable": true,
+          "host": "englishnewsinlevels.com",
+          "title": "English News in Levels"
+        },
+        {
+          "bookmark_id": 274,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "www.comfydeploy.com",
+          "title": "我们用 React 取代了 Next.js"
+        },
+        {
+          "bookmark_id": 287,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 2267,
+          "servable": true,
+          "host": "translate.google.com",
+          "title": "谷歌翻译"
+        },
+        {
+          "bookmark_id": 304,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "bytedance.larkoffice.com",
+          "title": "模版要求"
+        },
+        {
+          "bookmark_id": 316,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "myxik.github.io",
+          "title": "Measure theoretic view on Policy Gradients"
+        },
+        {
+          "bookmark_id": 323,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 957,
+          "servable": true,
+          "host": "huggingface.co",
+          "title": "Daily Papers – Hugging Face"
+        },
+        {
+          "bookmark_id": 329,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 755,
+          "servable": true,
+          "host": "aisubtranslate.top",
+          "title": "aisubtranslate.top"
+        },
+        {
+          "bookmark_id": 380,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 645,
+          "servable": true,
+          "host": "kite.kagi.com",
+          "title": "Kite"
+        },
+        {
+          "bookmark_id": 848,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 2267,
+          "servable": true,
+          "host": "chrome.google.com",
+          "title": "GPTAnywhere"
+        },
+        {
+          "bookmark_id": 853,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "www.namedbyai.com",
+          "title": "Name by AI（AI 起名）"
+        },
+        {
+          "bookmark_id": 879,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 775,
+          "servable": true,
+          "host": "hika.fyi",
+          "title": "Hika AI"
+        },
+        {
+          "bookmark_id": 1031,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 3198,
+          "servable": true,
+          "host": "adplist.substack.com",
+          "title": "《10 个最昂贵的设计错误》"
+        },
+        {
+          "bookmark_id": 1078,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 290,
+          "servable": true,
+          "host": "sinqi.tools",
+          "title": "人像生成工具"
+        },
+        {
+          "bookmark_id": 1110,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 215,
+          "servable": true,
+          "host": "www.youtube.com",
+          "title": "Youtube"
+        },
+        {
+          "bookmark_id": 1115,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "apps.apple.com",
+          "title": "AirPods 跳绳计数 App"
+        },
+        {
+          "bookmark_id": 1126,
+          "reasons": [
+            "supersession"
+          ],
+          "verdict": "alive",
+          "body_chars": 513,
+          "servable": true,
+          "host": "news.ycombinator.com",
+          "title": "Hacker News 读者"
+        },
+        {
+          "bookmark_id": 1129,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "www.venu3d.com",
+          "title": "元宇宙招聘会"
+        },
+        {
+          "bookmark_id": 1140,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "www.tmtpost.com",
+          "title": "月球土壤种植"
+        },
+        {
+          "bookmark_id": 1145,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 57840,
+          "servable": true,
+          "host": "astralcodexten.substack.com",
+          "title": "Book Review: The Dawn of Everything"
+        },
+        {
+          "bookmark_id": 1162,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 232,
+          "servable": true,
+          "host": "github.com",
+          "title": "Bash-Oneliner"
+        },
+        {
+          "bookmark_id": 1169,
+          "reasons": [
+            "supersession"
+          ],
+          "verdict": "alive",
+          "body_chars": 0,
+          "servable": false,
+          "host": "news.ycombinator.com",
+          "title": "Hacker News 读者"
+        },
+        {
+          "bookmark_id": 1190,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "www.stats.gov.cn",
+          "title": "《中国统计年鉴》"
+        },
+        {
+          "bookmark_id": 1212,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 850,
+          "servable": true,
+          "host": "www.goodreads.com",
+          "title": "卡尔萨根"
+        },
+        {
+          "bookmark_id": 1222,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "finance.yahoo.com",
+          "title": "First Republic, PacWest Plunge Amid Wider Bank-Stock Selloff"
+        },
+        {
+          "bookmark_id": 1237,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "thehustle.co",
+          "title": "无人维护的流动公厕"
+        },
+        {
+          "bookmark_id": 1238,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "kadekillary.work",
+          "title": "《成为 1000 倍工程师或死于尝试》"
+        },
+        {
+          "bookmark_id": 1272,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "iq.hse.ru",
+          "title": "《幼稚主义是一种常态》"
+        },
+        {
+          "bookmark_id": 1275,
+          "reasons": [
+            "supersession"
+          ],
+          "verdict": "alive",
+          "body_chars": 0,
+          "servable": false,
+          "host": "calibre-ebook.com",
+          "title": "Calibre"
+        },
+        {
+          "bookmark_id": 1277,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "scoutapm.com",
+          "title": "Ruby 的 Lambda 函数"
+        },
+        {
+          "bookmark_id": 1293,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 7803,
+          "servable": true,
+          "host": "janvikalra.substack.com",
+          "title": "《六周内用户数量从0增加到600》"
+        },
+        {
+          "bookmark_id": 1301,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "goodyduru.github.io",
+          "title": "《Unix 信号》"
+        },
+        {
+          "bookmark_id": 1302,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "ataiva.com",
+          "title": "ataiva.com"
+        },
+        {
+          "bookmark_id": 1365,
+          "reasons": [
+            "supersession"
+          ],
+          "verdict": "restricted",
+          "body_chars": 0,
+          "servable": false,
+          "host": "news.ycombinator.com",
+          "title": "Hacker News 读者"
+        },
+        {
+          "bookmark_id": 1367,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "aeronde.com",
+          "title": "圆环飞行器"
+        },
+        {
+          "bookmark_id": 1371,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "alexanderweichart.de",
+          "title": "《访问日本的感想》"
+        },
+        {
+          "bookmark_id": 1396,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "romeov.github.io",
+          "title": "恶意 IP 地址的可视化"
+        },
+        {
+          "bookmark_id": 1423,
+          "reasons": [
+            "supersession"
+          ],
+          "verdict": "alive",
+          "body_chars": 16952,
+          "servable": true,
+          "host": "developer.apple.com",
+          "title": "苹果公司"
+        },
+        {
+          "bookmark_id": 1432,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 14,
+          "servable": false,
+          "host": "sourl.co",
+          "title": "征文活动"
+        },
+        {
+          "bookmark_id": 1453,
+          "reasons": [
+            "supersession"
+          ],
+          "verdict": "alive",
+          "body_chars": 0,
+          "servable": false,
+          "host": "news.ycombinator.com",
+          "title": "Hacker News 读者"
+        },
+        {
+          "bookmark_id": 1454,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 1078,
+          "servable": true,
+          "host": "money.163.com",
+          "title": "百度百科"
+        },
+        {
+          "bookmark_id": 1463,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 2296,
+          "servable": true,
+          "host": "blog.gaoredu.com",
+          "title": "demo 站点"
+        },
+        {
+          "bookmark_id": 1485,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "bosun.ai",
+          "title": "Releasing Kwaak with Kwaak"
+        },
+        {
+          "bookmark_id": 1490,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "www.i-mad.com",
+          "title": "嘉兴火车站"
+        },
+        {
+          "bookmark_id": 1498,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "podcast.zeabur.app",
+          "title": "Audio Transcription"
+        },
+        {
+          "bookmark_id": 1502,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 26115,
+          "servable": true,
+          "host": "www.noahpinion.blog",
+          "title": "中国的高科技产业集群"
+        },
+        {
+          "bookmark_id": 1504,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "mertbulan.com",
+          "title": "《裁员改变了我》"
+        },
+        {
+          "bookmark_id": 1522,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "prowords.zeabur.app",
+          "title": "ProWords"
+        },
+        {
+          "bookmark_id": 1541,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 338,
+          "servable": true,
+          "host": "anubis.techaro.lol",
+          "title": "Anubis"
+        },
+        {
+          "bookmark_id": 1576,
+          "reasons": [
+            "supersession"
+          ],
+          "verdict": "alive",
+          "body_chars": 0,
+          "servable": false,
+          "host": "www.xda-developers.com",
+          "title": "介绍文章"
+        },
+        {
+          "bookmark_id": 1581,
+          "reasons": [
+            "supersession"
+          ],
+          "verdict": "alive",
+          "body_chars": 1816,
+          "servable": true,
+          "host": "simonwillison.net",
+          "title": "介绍文章"
+        },
+        {
+          "bookmark_id": 1591,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 11097,
+          "servable": true,
+          "host": "www.visualcapitalist.com",
+          "title": "Reddit 的子频道"
+        },
+        {
+          "bookmark_id": 1603,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "bensilverman.co.uk",
+          "title": "短信发送天气预报教程"
+        },
+        {
+          "bookmark_id": 1606,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "2ality.com",
+          "title": "ECMAScript 2025 的新增语法"
+        },
+        {
+          "bookmark_id": 1614,
+          "reasons": [
+            "verdict:drifted"
+          ],
+          "verdict": "drifted",
+          "body_chars": 4651,
+          "servable": true,
+          "host": "www.cantgetmuchhigher.com",
+          "title": "The Return of the \"Elderly\" Pop Star"
+        },
+        {
+          "bookmark_id": 2258,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 3590,
+          "servable": true,
+          "host": "ameow.xyz",
+          "title": "联手 Copilot，我在10个小时内上线了一个前端网站"
+        },
+        {
+          "bookmark_id": 2290,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "gvwilson.github.io",
+          "title": "数据科学家的 SQL 教程"
+        },
+        {
+          "bookmark_id": 2342,
+          "reasons": [
+            "verdict:gone"
+          ],
+          "verdict": "gone",
+          "body_chars": 0,
+          "servable": false,
+          "host": "dev.yesmore.cc",
+          "title": "自己部署"
+        }
+      ],
+      "reason_histogram": {
+        "supersession": 8,
+        "verdict:drifted": 28,
+        "verdict:gone": 37
+      },
+      "corpus_body": {
+        "with_body_at_least_min": 1787,
+        "with_any_body": 1876,
+        "rows_in_content": 2376
+      }
+    }
+  },
+  "delta": {
+    "cold": [
+      8,
+      73
+    ],
+    "health_checked": [
+      0,
+      2376
+    ],
+    "condition3_by_dead_verdict": [
+      0,
+      65
+    ],
+    "condition3_by_supersession": [
+      8,
+      8
+    ],
+    "servable_cold": [
+      3,
+      30
+    ],
+    "unservable_cold": [
+      5,
+      43
+    ],
+    "degenerate_conditions": [
+      [
+        "never_opened_selects_everything",
+        "health_never_checked"
+      ],
+      [
+        "never_opened_selects_everything"
+      ]
+    ]
+  }
+}

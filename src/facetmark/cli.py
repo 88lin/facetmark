@@ -445,21 +445,39 @@ def health(
     limit: int = typer.Option(50, "--limit"),
     no_external: bool = typer.Option(False, "--no-external",
                                      help="Local probes only. Cannot confirm 'gone'."),
+    no_save_recovered: bool = typer.Option(
+        False, "--no-save-recovered",
+        help="Do not file reader-proxy text into the index. Makes the sweep "
+             "read-only apart from the health log, which is what you want "
+             "before measuring anything against this library."),
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
-    """Link health. Reports only; nothing is ever deleted or hidden."""
+    """Link health, and whether the metabolism layer can see any of it.
+
+    Reports only; nothing is ever deleted or hidden. The ``cold_layer`` block
+    exists because the two are coupled and the coupling is easy to miss: the
+    demotion in :mod:`facetmark.search.decay` needs a dead verdict or a
+    supersession edge, so on a library that has never been checked the layer
+    runs on edges alone and silently does almost nothing.
+    """
     st = _settings(db)
     if no_external:
         st = get_settings(**{**st.model_dump(), "health_enable_external": False})
+    from .search.decay import cold_census
+
     conn = _open(st)
     try:
         if check:
-            rep = asyncio.run(healthmod.check_bookmarks(conn, limit=limit, settings=st))
+            rep = asyncio.run(healthmod.check_bookmarks(
+                conn, limit=limit, settings=st, save_recovered=not no_save_recovered))
             conn.commit()
             payload = {**rep.as_dict(), "summary": healthmod.summary(conn)}
         else:
             payload = {"summary": healthmod.summary(conn),
                        "due_now": len(healthmod.due_for_check(conn, limit=100000))}
+        payload["cold_layer"] = cold_census(
+            conn, age_days=st.decay_age_days, min_body_chars=st.min_body_chars
+        )
     finally:
         conn.close()
     if _emit(payload, json_out):
@@ -478,6 +496,28 @@ def health(
     else:
         console.print(f"[dim]due for a check now:[/dim] {payload['due_now']}")
 
+    cl = payload["cold_layer"]
+    console.print(
+        f"[dim]cold layer:[/dim] {cl['cold']} page(s) "
+        f"({cl['condition3_by_dead_verdict']} via a dead verdict, "
+        f"{cl['condition3_by_supersession']} via a supersession edge); "
+        f"{cl['servable_cold']} of them still have indexed text"
+    )
+    if "health_never_checked" in cl["degenerate_conditions"]:
+        console.print(
+            "[yellow]No health check has ever run on this library, so the "
+            "demotion layer's third condition is running on supersession edges "
+            "alone. Try `fm health --check` before drawing conclusions about "
+            "how the library ranks.[/yellow]"
+        )
+    if "never_opened_selects_everything" in cl["degenerate_conditions"]:
+        console.print(
+            f"[yellow]All {cl['bookmarks']} bookmarks have open_count = 0, so "
+            f"the 'never opened' condition currently selects the whole library. "
+            f"Browser exports carry no usage telemetry; this resolves itself "
+            f"once facetmark has observed opens of its own.[/yellow]"
+        )
+
 
 @app.command()
 def stats(
@@ -488,7 +528,7 @@ def stats(
     st = _settings(db)
     conn = _open(st)
     try:
-        payload = service.library_stats(conn)
+        payload = service.library_stats(conn, st)
     finally:
         conn.close()
     if _emit(payload, json_out):

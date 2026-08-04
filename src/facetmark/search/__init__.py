@@ -18,7 +18,7 @@ dragging in the full query pipeline and its provider dependency.
 
 from . import abstain
 from .context import ContextSignals, anchor_window, build_context, window_filter
-from .decay import apply_decay, cold_bookmark_ids, decay_hits
+from .decay import apply_decay, cold_bookmark_ids, cold_census, decay_hits
 from .graph import Expansion, expand, related
 from .lexical import lexical_lists, lexical_lists_scored, lexical_search
 from .pipeline import (
@@ -75,6 +75,7 @@ __all__ = [
     "classify",
     "classify_assisted",
     "cold_bookmark_ids",
+    "cold_census",
     "content_list",
     "content_list_scored",
     "decay_hits",
