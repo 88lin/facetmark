@@ -1,0 +1,591 @@
+{
+  "db": "/workspace/real/live.db",
+  "config": {
+    "name": "full",
+    "facets": [
+      "content"
+    ],
+    "context": false,
+    "graph": true,
+    "rerank": false,
+    "decay": true,
+    "weight_overrides": {},
+    "context_gate": false,
+    "context_gate_version": 1,
+    "abstain_margin": 0.0,
+    "max_bonus": 0.0
+  },
+  "queries": [
+    {
+      "query": "把文字稿变成 PPT 的工具",
+      "kind": "plain",
+      "ms": 12370.5,
+      "is_episodic": false,
+      "rule_hits": [
+        "identifier"
+      ],
+      "shipped": [
+        {
+          "rank": 1,
+          "title": "文字转手写工具",
+          "folder": "收藏夹栏/工具/转换工具",
+          "url": "https://text-to-handwriting.org/zh"
+        },
+        {
+          "rank": 2,
+          "title": "TikTok转文字稿转换器——免费在线",
+          "folder": "收藏夹栏/工具",
+          "url": "https://tiktoktotranscript.com/zh"
+        },
+        {
+          "rank": 3,
+          "title": "命令式一键生成PPT",
+          "folder": "收藏夹栏/工具/AI工具",
+          "url": "https://chat-ppt.com/"
+        },
+        {
+          "rank": 4,
+          "title": "在线压缩PPT",
+          "folder": "收藏夹栏/工具/视频/音频/图片/PDF压缩",
+          "url": "https://compressppt.pro/"
+        },
+        {
+          "rank": 5,
+          "title": "PPT模板",
+          "folder": "收藏夹栏/工具/PPT模板",
+          "url": "https://www.2ppt.com/"
+        }
+      ]
+    },
+    {
+      "query": "网盘直链解析",
+      "kind": "plain",
+      "ms": 2346.7,
+      "is_episodic": false,
+      "rule_hits": [],
+      "shipped": [
+        {
+          "rank": 1,
+          "title": "网盘直链云解析",
+          "folder": "收藏夹栏/My/网盘",
+          "url": "https://lz.qaiu.top/"
+        },
+        {
+          "rank": 2,
+          "title": "网盘永久外链地址生成工具",
+          "folder": "收藏夹栏/My/网盘",
+          "url": "https://link.gimhoy.com/"
+        },
+        {
+          "rank": 3,
+          "title": "裤佬永久直链托管",
+          "folder": "收藏夹栏/文件传输",
+          "url": "https://upload.dhsv.eu.org/"
+        },
+        {
+          "rank": 4,
+          "title": "网盘资源搜索",
+          "folder": "收藏夹栏/云盘搜索",
+          "url": "https://so.joestudy.net/"
+        },
+        {
+          "rank": 5,
+          "title": "易搜网盘搜索",
+          "folder": "收藏夹栏/云盘搜索",
+          "url": "https://yiso.fun/"
+        }
+      ]
+    },
+    {
+      "query": "chrome 插件下载",
+      "kind": "plain",
+      "ms": 2263.2,
+      "is_episodic": false,
+      "rule_hits": [],
+      "shipped": [
+        {
+          "rank": 1,
+          "title": "Chrome插件下载器",
+          "folder": "收藏夹栏/工具/插件搜索工具",
+          "url": "https://extensiondock.com/cn"
+        },
+        {
+          "rank": 2,
+          "title": "插件小屋 Chrome插件",
+          "folder": "收藏夹栏/工具/插件搜索工具",
+          "url": "https://www.chajianxw.com/"
+        },
+        {
+          "rank": 3,
+          "title": "Chrome 离线安装包",
+          "folder": "收藏夹栏/工具",
+          "url": "https://www.iplaysoft.com/tools/chrome/"
+        },
+        {
+          "rank": 4,
+          "title": "Office插件",
+          "folder": "收藏夹栏/工具/电脑工具",
+          "url": "https://www.bukenghezi.com/"
+        },
+        {
+          "rank": 5,
+          "title": "CrxDL 插件下载",
+          "folder": "收藏夹栏/工具/插件搜索工具",
+          "url": "https://crxdl.com/"
+        }
+      ]
+    },
+    {
+      "query": "免费域名注册",
+      "kind": "plain",
+      "ms": 2233.2,
+      "is_episodic": false,
+      "rule_hits": [],
+      "shipped": [
+        {
+          "rank": 1,
+          "title": "域名比价搜索",
+          "folder": "收藏夹栏/工具",
+          "url": "https://namebeta.com/"
+        },
+        {
+          "rank": 2,
+          "title": "便宜域名 - 如有乐享",
+          "folder": "收藏夹栏/资源",
+          "url": "https://51.ruyo.net/tag/%e4%be%bf%e5%ae%9c%e5%9f%9f%e5%90%8d"
+        },
+        {
+          "rank": 3,
+          "title": "免费的 edu 二级域名(已经开放L站注册)（已更新 dnspod 解析取消cf解析） - 搞七捻三 - LINUX DO",
+          "folder": "-",
+          "url": "https://linux.do/t/topic/647628"
+        },
+        {
+          "rank": 4,
+          "title": "免税州地址生成器",
+          "folder": "收藏夹栏/工具",
+          "url": "https://mockaddress.com/"
+        },
+        {
+          "rank": 5,
+          "title": "免费徽标制作器",
+          "folder": "收藏夹栏/工具/LOGO | 图标 | 表情包",
+          "url": "https://app.logomakr.com/"
+        }
+      ]
+    },
+    {
+      "query": "hexo 博客主题美化",
+      "kind": "plain",
+      "ms": 2265.0,
+      "is_episodic": false,
+      "rule_hits": [],
+      "shipped": [
+        {
+          "rank": 1,
+          "title": "代码美化截图",
+          "folder": "收藏夹栏/工具/截图美化",
+          "url": "https://chalk.ist/"
+        },
+        {
+          "rank": 2,
+          "title": "截图美化",
+          "folder": "收藏夹栏/工具/截图美化",
+          "url": "https://pretty-snap.iwhy.dev/"
+        },
+        {
+          "rank": 3,
+          "title": "首页 | Butterfly主题美化教程",
+          "folder": "收藏夹栏/博客/博客美化",
+          "url": "https://butterfly.zhheo.com/"
+        },
+        {
+          "rank": 4,
+          "title": "Pixzens 截图美化",
+          "folder": "收藏夹栏/工具/截图美化",
+          "url": "https://pixzens.com/zh"
+        },
+        {
+          "rank": 5,
+          "title": "博客封面生成器",
+          "folder": "收藏夹栏/工具/封面图生成",
+          "url": "https://ddfm.de5.net/"
+        }
+      ]
+    },
+    {
+      "query": "食疗 营养成分",
+      "kind": "plain",
+      "ms": 2250.3,
+      "is_episodic": false,
+      "rule_hits": [],
+      "shipped": [
+        {
+          "rank": 1,
+          "title": "食物营养成分与科学食疗方案 - 唤醒食物",
+          "folder": "收藏夹栏/医学/食疗",
+          "url": "https://www.foodwake.com/"
+        },
+        {
+          "rank": 2,
+          "title": "护肤成分大全 - 小红书",
+          "folder": "xhs",
+          "url": "https://www.xiaohongshu.com/explore/68839e8e0000000023006ae6?xsec_token=AB7DDi8-wTRTiWsABK"
+        },
+        {
+          "rank": 3,
+          "title": "专业营养分析与食品研究平台",
+          "folder": "收藏夹栏/医学/食疗",
+          "url": "https://ecodish365.com/"
+        },
+        {
+          "rank": 4,
+          "title": "炒菜食谱",
+          "folder": "收藏夹栏/阅读/厨艺",
+          "url": "https://cooklikehoc.soilzhu.su/%E7%82%92%E8%8F%9C/README"
+        },
+        {
+          "rank": 5,
+          "title": "SuperCook 食材食谱",
+          "folder": "收藏夹栏/工具",
+          "url": "https://www.supercook.com/#/desktop"
+        }
+      ]
+    },
+    {
+      "query": "视频解析 去水印",
+      "kind": "plain",
+      "ms": 2283.9,
+      "is_episodic": false,
+      "rule_hits": [],
+      "shipped": [
+        {
+          "rank": 1,
+          "title": "短视频去水印",
+          "folder": "收藏夹栏/工具/视频/音乐解析",
+          "url": "https://watermark.liumingye.cn/"
+        },
+        {
+          "rank": 2,
+          "title": "无水印视频下载",
+          "folder": "收藏夹栏/工具/视频/音乐解析",
+          "url": "https://vtool.pro/"
+        },
+        {
+          "rank": 3,
+          "title": "免费视频去水印下载工具 - 抖音B站视频图片解析下载 - 效率坊",
+          "folder": "收藏夹栏/工具/视频/音乐解析",
+          "url": "https://www.xiaolvfang.com/"
+        },
+        {
+          "rank": 4,
+          "title": "抖音去水印下载",
+          "folder": "收藏夹栏/工具/视频/音乐解析",
+          "url": "https://www.xhs-download.org/zh/douyin-video-download"
+        },
+        {
+          "rank": 5,
+          "title": "图片加水印",
+          "folder": "收藏夹栏/工具/图片工具",
+          "url": "https://jiashuiyin.com/"
+        }
+      ]
+    },
+    {
+      "query": "AI 提示词",
+      "kind": "plain",
+      "ms": 2237.4,
+      "is_episodic": false,
+      "rule_hits": [],
+      "shipped": [
+        {
+          "rank": 1,
+          "title": "AI视频提示词指南",
+          "folder": "收藏夹栏/AI工具/AI图片提示词",
+          "url": "https://aivideoprompt.netlify.app/"
+        },
+        {
+          "rank": 2,
+          "title": "AI提示词灵感库",
+          "folder": "收藏夹栏/AI工具/AI图片提示词",
+          "url": "https://aiart.pics/"
+        },
+        {
+          "rank": 3,
+          "title": "AI 绘图提示词库",
+          "folder": "收藏夹栏/AI工具/AI图片提示词",
+          "url": "https://prompts.kkkm.cn/"
+        },
+        {
+          "rank": 4,
+          "title": "AI 图像提示词生成器",
+          "folder": "收藏夹栏/AI工具/AI图片提示词",
+          "url": "https://imageprompt.online/zh"
+        },
+        {
+          "rank": 5,
+          "title": "AI绘画提示词网站",
+          "folder": "收藏夹栏/工具/AI工具",
+          "url": "https://gitmind.cn/app/docs/mqdvr1m4"
+        }
+      ]
+    },
+    {
+      "query": "上次存的那个签到脚本",
+      "kind": "episodic",
+      "ms": 2283.1,
+      "is_episodic": false,
+      "rule_hits": [],
+      "shipped": [
+        {
+          "rank": 1,
+          "title": "登仙 API 签到",
+          "folder": "收藏夹栏/API",
+          "url": "https://api.denxio.top/checkin"
+        },
+        {
+          "rank": 2,
+          "title": "Microsoft激活脚本 （MAS）",
+          "folder": "收藏夹栏/镜像|激活/激活工具",
+          "url": "https://massgrave.dev/"
+        },
+        {
+          "rank": 3,
+          "title": "文档转 Markdown",
+          "folder": "收藏夹栏/工具/转换工具",
+          "url": "https://to-markdown.com/"
+        },
+        {
+          "rank": 4,
+          "title": "又要重装系统站",
+          "folder": "收藏夹栏/镜像|激活",
+          "url": "https://yyczxt.com/"
+        },
+        {
+          "rank": 5,
+          "title": "我的书签",
+          "folder": "收藏夹栏/导航",
+          "url": "https://it-cxy.top/"
+        }
+      ]
+    },
+    {
+      "query": "那阵子收藏的白嫖 API",
+      "kind": "episodic",
+      "ms": 2267.1,
+      "is_episodic": true,
+      "rule_hits": [
+        "identifier",
+        "episodic_marker"
+      ],
+      "shipped": [
+        {
+          "rank": 1,
+          "title": "白嫖API中转站",
+          "folder": "收藏夹栏/API/白嫖API中转站",
+          "url": "https://link.hcnsec.cn/"
+        },
+        {
+          "rank": 2,
+          "title": "免费 AI API 收录",
+          "folder": "收藏夹栏/API/免费公共模型",
+          "url": "https://github.com/CyYxl2024/freeai"
+        },
+        {
+          "rank": 3,
+          "title": "免费API平台",
+          "folder": "收藏夹栏/工具/API工具",
+          "url": "https://api.aa1.cn/"
+        },
+        {
+          "rank": 4,
+          "title": "免费 API 接口大全",
+          "folder": "收藏夹栏/工具/API工具",
+          "url": "https://www.free-api.com/"
+        },
+        {
+          "rank": 5,
+          "title": "API",
+          "folder": "收藏夹栏/工具/API工具",
+          "url": "https://imgapi.cn/wiki.html"
+        }
+      ],
+      "gated_1_2_0": [
+        {
+          "rank": 1,
+          "title": "白嫖API中转站",
+          "moved_from": 1
+        },
+        {
+          "rank": 2,
+          "title": "免费 AI API 收录",
+          "moved_from": 2
+        },
+        {
+          "rank": 3,
+          "title": "免费 LLM API 资源",
+          "moved_from": null
+        },
+        {
+          "rank": 4,
+          "title": "API",
+          "moved_from": 5
+        },
+        {
+          "rank": 5,
+          "title": "免费高性能 AI 合集",
+          "moved_from": null
+        }
+      ],
+      "top1_changed": false,
+      "overlap_at_5": 3
+    },
+    {
+      "query": "2025 日历",
+      "kind": "topical_year",
+      "ms": 2060.0,
+      "is_episodic": true,
+      "rule_hits": [
+        "time:absolute_year"
+      ],
+      "shipped": [
+        {
+          "rank": 1,
+          "title": "中国2025日历",
+          "folder": "收藏夹栏/工具",
+          "url": "https://vipcalendar.me/zh/calendar/2025/cn"
+        },
+        {
+          "rank": 2,
+          "title": "免费机场推荐 2025 年 9 月 | 一个朋友",
+          "folder": "-",
+          "url": "https://ygpy.net/vpn/2025/09.html"
+        },
+        {
+          "rank": 3,
+          "title": "全球日落时间查询",
+          "folder": "收藏夹栏/工具",
+          "url": "https://whattimeissunset.net/"
+        },
+        {
+          "rank": 4,
+          "title": "苹果免费ID共享站-2025/11/28",
+          "folder": "苹果ID共享",
+          "url": "https://applc.cc/h/888"
+        },
+        {
+          "rank": 5,
+          "title": "马年春节互动合集 2026 - Detail",
+          "folder": "-",
+          "url": "https://www.myvibe.so/zac/ma-nian-xin-chun-te-ji-2026"
+        }
+      ],
+      "gated_1_2_0": [
+        {
+          "rank": 1,
+          "title": "全球日落时间查询",
+          "moved_from": 3
+        },
+        {
+          "rank": 2,
+          "title": "苹果免费ID共享站-2025/11/28",
+          "moved_from": 4
+        },
+        {
+          "rank": 3,
+          "title": "中国2025日历",
+          "moved_from": 1
+        },
+        {
+          "rank": 4,
+          "title": "大学生招聘会_2025年全国招聘会大全_应届生校园求职_大学生招聘会网",
+          "moved_from": null
+        },
+        {
+          "rank": 5,
+          "title": "免费机场推荐 2025 年 9 月 | 一个朋友",
+          "moved_from": 2
+        }
+      ],
+      "top1_changed": true,
+      "overlap_at_5": 4
+    },
+    {
+      "query": "2024 年的开源模型",
+      "kind": "topical_year",
+      "ms": 2253.1,
+      "is_episodic": true,
+      "rule_hits": [
+        "time:absolute_year"
+      ],
+      "shipped": [
+        {
+          "rank": 1,
+          "title": "开源软件",
+          "folder": "收藏夹栏/资源",
+          "url": "https://kaiyuanapp.cn/"
+        },
+        {
+          "rank": 2,
+          "title": "最新2024年下半年无线路由器选购攻略-路由器交流",
+          "folder": "-",
+          "url": "https://www.acwifi.net/29391.html"
+        },
+        {
+          "rank": 3,
+          "title": "免 Token 大模型",
+          "folder": "收藏夹栏/API/免费公共模型",
+          "url": "https://github.com/linuxhsj/openclaw-zero-token/blob/main/README.zh-CN.md"
+        },
+        {
+          "rank": 4,
+          "title": "PDF24 在线工具",
+          "folder": "收藏夹栏/工具/PDF工具",
+          "url": "https://tools.pdf24.org/zh/"
+        },
+        {
+          "rank": 5,
+          "title": "Manifest 免费模型",
+          "folder": "收藏夹栏/API/免费公共模型",
+          "url": "https://manifest.build/free-models/"
+        }
+      ],
+      "gated_1_2_0": [
+        {
+          "rank": 1,
+          "title": "开源软件",
+          "moved_from": 1
+        },
+        {
+          "rank": 2,
+          "title": "免 Token 大模型",
+          "moved_from": 3
+        },
+        {
+          "rank": 3,
+          "title": "最新2024年下半年无线路由器选购攻略-路由器交流",
+          "moved_from": 2
+        },
+        {
+          "rank": 4,
+          "title": "免费 LLM API 资源",
+          "moved_from": null
+        },
+        {
+          "rank": 5,
+          "title": "清华大学开源软件镜像站",
+          "moved_from": null
+        }
+      ],
+      "top1_changed": false,
+      "overlap_at_5": 3
+    }
+  ],
+  "summary": {
+    "n_queries": 12,
+    "median_ms": 2265.0,
+    "gate_fired": 3,
+    "gate_fired_on_topical_year": 2,
+    "top1_changed_by_gate": 1
+  }
+}
