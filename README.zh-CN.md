@@ -5,7 +5,7 @@
 [![CI](https://github.com/88lin/facetmark/actions/workflows/ci.yml/badge.svg)](https://github.com/88lin/facetmark/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1090-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-1115-brightgreen)](tests/)
 [![Code of Conduct](https://img.shields.io/badge/code%20of%20conduct-contributor%20covenant-blueviolet)](CODE_OF_CONDUCT.md)
 
 [English](README.md) · [简体中文](README.zh-CN.md)
@@ -130,7 +130,7 @@ git clone https://github.com/88lin/facetmark
 cd facetmark
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
-pytest -q               # 1090 条测试，约 35 秒
+pytest -q               # 1115 条测试，约 36 秒
 ruff check src tests scripts
 ```
 
@@ -379,7 +379,14 @@ export FACETMARK_TOKEN=...
 这个插件每次 push 都会对着 karakeep 的**真实接口**做类型检查：上游的
 `packages/shared/search.ts` 和 `packages/shared/plugins.ts` 按 blob SHA 钉在
 `integrations/karakeep/typecheck/upstream-pins.json` 里，CI 拿它们跑 `tsc --noEmit`。
-仍然没有测的是一个真正跑起来的 karakeep 实例。
+
+字节也钉住了。`integrations/karakeep/contract/` 用 karakeep 驱动插件的方式驱动真插件，把
+`fetch` 换成记录器，请求体落进 `wire.json`；`tests/test_karakeep_contract.py` 把这些请求体
+**原样重放**进真实的 FastAPI 应用，再把响应写回去给捕获脚本解析。**每一边断言的都是另一边
+产出的文件**，所以插件多发一个 Python 模型不认识的字段，是一个测试失败而不是一份 bug 报告。
+它抓到的一件值得复述的事：请求「唯一一条匹配结果的 offset 1」时，响应是 `hits: []` 但
+`totalHits: 1`——**空的 `hits` 不等于没搜到**。仍然没有测的是一个真正跑起来的 karakeep
+实例：格式契约不是集成测试。
 
 依赖这条路之前请先读 [`docs/karakeep.md`](docs/karakeep.md)：里面写了字段映射、哪些东西
 不保真，以及富集的归属规则——桥接是**认领**一行富集，它从不覆盖真实模型写下的那一行。
@@ -466,12 +473,12 @@ src/facetmark/
   search/      词面、向量、rrf、上下文、图扩展、衰减、重排、pipeline
   bridges/     karakeep 推拉桥接
   web/         `facetmark serve` 提供的单页界面
-integrations/karakeep/    TypeScript 插件 + 上游类型钉
+integrations/karakeep/    TypeScript 插件、上游类型钉、跨语言线格式契约
 extension/                浏览器扩展（打开次数遥测）
 eval/                     查询集与评测框架
 scripts/                  实验驱动与探针
 docs/                     一个实验一份文档，协议在前
-tests/                    1090 条测试
+tests/                    1115 条测试
 ```
 
 ## 参与贡献

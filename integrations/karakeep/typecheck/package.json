@@ -3,10 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Typechecks ../search-facetmark against hand-written stubs of karakeep's plugin interfaces. Not shipped, not imported by karakeep.",
+  "description": "Typechecks ../search-facetmark against hand-written stubs of karakeep's plugin interfaces, and runs the cross-language wire contract. Not shipped, not imported by karakeep.",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "check-drift": "bash ./check-upstream-drift.sh"
+    "check-drift": "bash ./check-upstream-drift.sh",
+    "contract": "node --experimental-transform-types --disable-warning=ExperimentalWarning ../contract/capture.ts",
+    "contract:check": "node --experimental-transform-types --disable-warning=ExperimentalWarning ../contract/capture.ts --check"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

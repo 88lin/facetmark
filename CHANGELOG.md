@@ -4,6 +4,46 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **跨语言线格式契约**（`integrations/karakeep/contract/`）。1.4.0 的 CHANGELOG 和
+  插件源码头注释里都写着同一个缺口：Python 路由由 Python 测试钉住，TypeScript 签名由
+  `tsc` 钉住，**没有任何东西验证一边发出的 JSON 就是另一边解析的 JSON**。1.4.0 里还
+  顺带断言了这个缺口「需要同时起 karakeep 和 facetmark，本仓库做不到」——**这后半句是
+  错的，本条把它撤回**。
+
+  做法是让每一边把自己那半边的字节落成一个提交进仓库的文件，另一边对着文件断言：
+
+  - `capture.ts` 用 karakeep 驱动插件的方式驱动真插件（环境变量 → `getClient()` →
+    四个方法），只把 `globalThis.fetch` 换成记录器，请求体写进 `wire.json`。插件源码
+    一行没改。
+  - `tests/test_karakeep_contract.py`（25 条）把这 6 条请求**原样重放**进真实的 FastAPI
+    应用，断言全部 200，并把响应写回 `replies.json`；`capture.ts` 再把这些响应喂回插件的
+    `search()`，检查 TypeScript 这边解析得动。
+  - CI 两个 job 各跑一半：`python` 那个不需要 Node，`karakeep-plugin` 那个跑
+    `npm run contract:check`，不需要 Python。任一侧漂移都是一个已提交文件里的 diff。
+
+  钉住的边界情形：TypeScript 的 `Date` 经 `JSON.stringify` 只以 ISO 字符串到达 Python
+  （`z.date()` 描述的是一个 Python 永远见不到的类型）；只有两个必填字段的文档；显式
+  `null` 与字段缺失的区别；`FilterQuery` 的 `eq`/`in` 两种变体；`/karakeep/clear` 是一个
+  声明了 JSON content-type 却没有 body 的 POST；两个空批次早退不产生 HTTP 请求；以及
+  Pydantic 默认会静默丢弃的「插件发了模型不认识的键」。
+
+  **发现的语义陷阱**：请求「唯一一条匹配结果的 offset 1」时，真实响应是 `hits: []` 但
+  `totalHits: 1`。空的 `hits` 是一个分页结果，不是空结果集。两边任何把二者混为一谈的
+  代码都是错的。这条哪一种语言单独测都测不出来。
+
+  **边界**：这是格式契约，不是集成测试。插件注册、真实 HTTP 栈、并发、活的 karakeep
+  实例，一样都不覆盖。
+
+### 变更
+
+- `tsc --noEmit` 的 `include` 现在也覆盖契约脚本（`allowImportingTsExtensions`），所以
+  捕获脚本本身也被类型检查。
+- 契约脚本必须用 `node --experimental-transform-types` 而非 `--strip-types`：插件的构造
+  函数用了参数属性，strip-only 模式擦不掉。这里选择动运行参数而不是动插件源码。
+- 测试数 1090 → 1115。
+
 ## [1.4.0] - 2026-08-04
 
 **这一轮的主题是停止造轮子。** karakeep 已经把检索周边的东西全做完了——浏览器扩展、

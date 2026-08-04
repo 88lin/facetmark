@@ -85,3 +85,14 @@ jobs:
         working-directory: integrations/karakeep/typecheck
       - run: npx tsc --noEmit
         working-directory: integrations/karakeep/typecheck
+
+      # Typechecking proves the plugin satisfies an interface. It says nothing
+      # about whether the JSON it puts on the socket is the JSON the Python
+      # routes parse -- two type systems can agree about a shape they each
+      # describe separately and still disagree in bytes. This drives the real
+      # provider with a recording fetch and fails if the request bodies moved.
+      # The other half of the same contract runs in the `python` job, which
+      # replays those bodies through the real app; neither job needs the other's
+      # runtime, and drift on either side shows up as a diff in a checked-in file.
+      - run: npm run contract:check
+        working-directory: integrations/karakeep/typecheck

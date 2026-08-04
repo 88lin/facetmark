@@ -5,7 +5,7 @@
 [![CI](https://github.com/88lin/facetmark/actions/workflows/ci.yml/badge.svg)](https://github.com/88lin/facetmark/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1090-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-1115-brightgreen)](tests/)
 [![Code of Conduct](https://img.shields.io/badge/code%20of%20conduct-contributor%20covenant-blueviolet)](CODE_OF_CONDUCT.md)
 
 [English](README.md) · [简体中文](README.zh-CN.md)
@@ -135,7 +135,7 @@ git clone https://github.com/88lin/facetmark
 cd facetmark
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
-pytest -q               # 1090 tests, ~35 s
+pytest -q               # 1115 tests, ~36 s
 ruff check src tests scripts
 ```
 
@@ -399,7 +399,17 @@ Then run `facetmark serve` and karakeep's search box is facetmark.
 The plugin is type-checked against karakeep's real interfaces on every push: upstream's
 `packages/shared/search.ts` and `packages/shared/plugins.ts` are pinned by blob SHA in
 `integrations/karakeep/typecheck/upstream-pins.json`, and CI runs `tsc --noEmit` against
-them. What is still untested is an actual running karakeep instance.
+them.
+
+The bytes are pinned too. `integrations/karakeep/contract/` drives the real plugin the way
+karakeep drives it, with a recording `fetch`, and commits the request bodies to `wire.json`;
+`tests/test_karakeep_contract.py` replays those exact bodies through the real FastAPI app and
+commits the replies for the capture to parse back. Each language asserts against a file the
+other one produced, so a field the plugin starts sending that the Python model would silently
+drop is a failing test rather than a bug report. It caught one thing worth repeating: a search
+for offset 1 of a single match answers `hits: []` with `totalHits: 1`, so **an empty `hits` is
+not the same as no results**. What is still untested is an actual running karakeep instance —
+a format contract is not an integration test.
 
 Read [`docs/karakeep.md`](docs/karakeep.md) before relying on this — it documents the
 field mapping, what does not round-trip, and the enrichment ownership rule (the bridge
@@ -492,12 +502,12 @@ src/facetmark/
   search/      lexical, vectors, rrf, context, graph expansion, decay, rerank, pipeline
   bridges/     karakeep push/pull bridge
   web/         single-page UI served by `facetmark serve`
-integrations/karakeep/    TypeScript plugin + upstream type pins
+integrations/karakeep/    TypeScript plugin, upstream type pins, cross-language wire contract
 extension/                browser extension (open-count telemetry)
 eval/                     query sets and evaluation harness
 scripts/                  experiment drivers and probes
 docs/                     one file per experiment, protocol first
-tests/                    1090 tests
+tests/                    1115 tests
 ```
 
 ## Contributing

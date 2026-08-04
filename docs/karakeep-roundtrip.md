@@ -225,12 +225,32 @@ karakeep's own body extraction, multi-user isolation, the intent facet, and
 incremental drift over repeated syncs.
 
 §8.1 — "nothing checks the TypeScript plugin against karakeep's real
-interfaces" — was overtaken by commit `a4c4a95`, which added a `tsc --noEmit`
-check against upstream type stubs, blob SHAs pinned in
+interfaces" — was overtaken twice, both recorded here rather than by editing the
+frozen protocol.
+
+First by commit `a4c4a95`, which added a `tsc --noEmit` check against upstream
+type stubs, blob SHAs pinned in
 `integrations/karakeep/typecheck/upstream-pins.json`, and a CI job that runs it.
-Recorded here rather than by editing the frozen protocol. Still untested: an
-actual running karakeep instance, and whether the JSON the TypeScript plugin
-emits parses the way the Python route expects.
+
+Then by the wire contract in `integrations/karakeep/contract/`, which closes the
+half this report named as still open: *whether the JSON the TypeScript plugin
+emits parses the way the Python route expects*. It turns out that needs neither
+a running karakeep nor two processes at once — each side writes its own bytes to
+a committed file and asserts against the file the other side wrote. The capture
+drives the real `FacetmarkProvider` with a recording `fetch`;
+`tests/test_karakeep_contract.py` replays the captured bodies through the real
+app. Six requests, both directions, checked in CI by two jobs that do not share
+a runtime.
+
+Two findings from building it, neither of which either language could have
+produced alone. TypeScript `Date` values reach Python only as ISO strings, so
+the `z.date()` half of the schema describes a type the Python side never sees.
+And a search for offset 1 of a single match legitimately returns `hits: []` with
+`totalHits: 1` — an empty hit list is a pagination result, not an empty result
+set, and code on either side that conflates them is wrong.
+
+Still untested: an actual running karakeep instance. A format contract is not an
+integration test, and the four items above are unaffected by it.
 
 ## 7. Reproducing
 

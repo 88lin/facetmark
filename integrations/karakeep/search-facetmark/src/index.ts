@@ -11,13 +11,20 @@
  * the four method signatures below are known to satisfy `SearchIndexClient` and
  * the registration in ../index.ts is known to typecheck. The stubs are pinned to
  * upstream by git blob SHA; `npm run check-drift` says whether they are stale.
- * What that does not cover: this has never run inside a live karakeep, against a
- * real MeiliSearch-shaped index, or with more than one user. The Python side it
- * talks to is covered by `tests/test_karakeep_bridge.py` and
- * `tests/test_api.py::TestKarakeepRoutes`, which pin the exact request and
- * response shapes used below -- but those are Python tests asserting on Python,
- * and nothing anywhere asserts that the JSON this file sends is the JSON they
- * parse.
+ *
+ * The bytes are checked too, as of the wire contract in `../../contract`. That
+ * harness drives this class the way karakeep drives it -- environment variables,
+ * `getClient()`, the four methods -- with `globalThis.fetch` replaced by a
+ * recorder, and commits the resulting request bodies. `tests/test_karakeep_-
+ * contract.py` replays those exact bodies through the real FastAPI app and
+ * commits the replies, which the capture then feeds back here. So each language
+ * asserts against an artifact the other one produced, and a field this file
+ * starts sending that the Python model would silently drop is now a test
+ * failure rather than a bug report.
+ *
+ * What none of that covers: this has never run inside a live karakeep, against a
+ * real MeiliSearch-shaped index, or with more than one user. A format contract
+ * is not an integration test.
  *
  * Install into a karakeep checkout (paths as of the pinned SHAs):
  *   1. copy this folder to `packages/plugins/search-facetmark/` -- it is a

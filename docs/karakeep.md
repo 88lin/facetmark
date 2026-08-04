@@ -150,10 +150,11 @@ facetmark 的索引没有用户分区。`userId` 存在映射表里，**排序�
 
 ## 测到什么程度
 
-- **Python 侧**：44 条测试。`tests/test_karakeep_bridge.py` 38 条盖映射、时间戳解析、
+- **Python 侧**：69 条测试。`tests/test_karakeep_bridge.py` 38 条盖映射、时间戳解析、
   过滤器拆分、认领、删除边界、外来富集不被覆盖、时序浏览、分页、上限钳制；
   `tests/test_api.py` 里
-  `TestKarakeepRoutes` 6 条盖四个路由的鉴权、往返、未知档位拒绝、`limit` 超限。
+  `TestKarakeepRoutes` 6 条盖四个路由的鉴权、往返、未知档位拒绝、`limit` 超限；
+  `tests/test_karakeep_contract.py` 25 条是下面那条线格式契约的 Python 半边。
 - **TypeScript 侧：类型检查有，集成测试没有。** `integrations/karakeep/typecheck/`
   里放着 karakeep 那两个接口模块（`packages/shared/search.ts`、
   `packages/shared/plugins.ts`）的手写 `.d.ts`，`tsc --noEmit` 拿它们编译插件源码，
@@ -165,9 +166,52 @@ facetmark 的索引没有用户分区。`userId` 存在映射表里，**排序�
   哈希，`karakeep-drift.yml` 每周一自动跑。上游一改，`tsc` 照样绿——它在对着一份已经
   不存在的契约编译，只有漂移检查能看见这件事。
 
-- **两侧之间没有任何东西。** Python 那 40 条测试断言的是 Python，TypeScript 的类型检查
-  断言的是 TypeScript。**没有一个测试验证这个 `.ts` 发出去的 JSON 就是那 40 条测试解析
-  的 JSON。**这需要同时起 karakeep 和 facetmark，本仓库做不到。
+- **两侧之间：线格式契约。**
+
+  > **撤回。** 这一节原本写着「两侧之间没有任何东西……这需要同时起 karakeep 和
+  > facetmark，本仓库做不到」。后半句是错的。验证两边对同一份 JSON 的理解，并不需要
+  > 两个进程同时跑；只需要让每一边**把自己那半边的字节落成文件**，另一边对着文件断言。
+  > 下面就是这么做的。
+
+  `integrations/karakeep/contract/capture.ts` 用 karakeep 驱动插件的方式驱动它——设
+  环境变量、`getClient()`、调四个方法——只把 `globalThis.fetch` 换成一个记录器，然后把
+  真实的请求体写进 `wire.json`。插件源码一行没改，也没有被重新实现一遍：落盘的就是真
+  karakeep 会放到 socket 上的字节。
+
+  `tests/test_karakeep_contract.py` 把 `wire.json` 里那 6 条请求**原样重放**进真实的
+  FastAPI 应用，断言全部 200，并把响应写回 `replies.json`；`capture.ts` 再把这些响应喂
+  回插件的 `search()`，检查 TypeScript 这边解析得动。**每一边断言的都是另一边产出的文件**，
+  任一侧漂移都会变成一个已提交文件里的 diff。CI 里两个 job 各跑一半：`python` 那个不需要
+  Node，`karakeep-plugin` 那个不需要 Python。
+
+  跑法：
+
+  ```bash
+  cd integrations/karakeep/typecheck
+  npm run contract          # 重新捕获 wire.json
+  npm run contract:check    # 变了就失败（CI 跑这条）
+
+  FACETMARK_UPDATE_CONTRACT=1 python -m pytest tests/test_karakeep_contract.py  # 重写 replies.json
+  ```
+
+  必须用 `--experimental-transform-types` 而不是 `--strip-types`：插件的构造函数用了参数
+  属性，strip-only 模式擦不掉。这里选择动运行参数而不是动插件源码——为了迁就测试工具去改
+  被测对象，就没什么可测的了。
+
+  契约钉住的东西，挑几条实际抓到的说：TypeScript 的 `Date` 经 `JSON.stringify` 变成
+  `"2025-06-01T00:00:00.000Z"` 这样的字符串（`z.date()` 只存在于 TS 侧，Python 永远见不到
+  日期对象）；只有两个必填字段的文档；显式 `null` 与字段缺失是两回事；`FilterQuery` 的
+  `eq`（带 `value`）与 `in`（带 `values`）两种变体；`/karakeep/clear` 是一个**声明了
+  `content-type: application/json` 却完全没有 body 的 POST**；两个空批次早退**不产生任何
+  HTTP 请求**。还有一条 Pydantic 默认会放过的：插件发出的每一个键都必须是请求模型认识的
+  字段，否则那个键会被静默丢弃而不报错。
+
+  顺手抓到的一个语义陷阱：`search_full` 那条请求是「唯一一条匹配结果的 offset 1」，
+  真实响应是 `hits: []` 但 `totalHits: 1`。**空的 `hits` 不等于没搜到**，任何在 TS 侧
+  按「hits 空就是无结果」写的逻辑都会错。这条也钉进断言了。
+
+  边界同样要说清楚：**这是格式契约，不是集成测试。** 它不覆盖插件注册、真实 HTTP 栈、
+  并发、以及活的 karakeep 实例里的任何东西。
 
 - 还没测的：活的 karakeep 里跑一遍、karakeep 自己抓的正文、多用户、增量更新漂移。
 

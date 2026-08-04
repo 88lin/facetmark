@@ -1,0 +1,155 @@
+{
+  "base": "http://127.0.0.1:8787",
+  "calls": [
+    {
+      "label": "addDocuments",
+      "method": "POST",
+      "path": "/karakeep/documents",
+      "headers": {
+        "content-type": "application/json",
+        "authorization": "Bearer <token>"
+      },
+      "body": {
+        "documents": [
+          {
+            "id": "kk-full",
+            "userId": "u1",
+            "url": "https://example.com/a",
+            "title": "A page",
+            "linkTitle": "A page (link)",
+            "description": "described",
+            "content": "body text of the page",
+            "metadata": "{\"kind\":\"link\"}",
+            "fileName": null,
+            "createdAt": "2026-01-02T03:04:05.000Z",
+            "note": "a note",
+            "summary": "a summary",
+            "tags": [
+              "Reading",
+              "AI/LLM"
+            ],
+            "publisher": "Example",
+            "author": "Someone",
+            "datePublished": "2025-06-01T00:00:00.000Z",
+            "dateModified": "2025-06-02T12:30:00.000Z"
+          },
+          {
+            "id": "kk-min",
+            "userId": "u1",
+            "tags": []
+          },
+          {
+            "id": "kk-nulls",
+            "userId": "u2",
+            "url": null,
+            "title": null,
+            "content": null,
+            "createdAt": null,
+            "summary": null,
+            "tags": [
+              "单个中文标签"
+            ],
+            "datePublished": null,
+            "dateModified": null
+          }
+        ],
+        "embed": true
+      }
+    },
+    {
+      "label": "addDocuments_retry_unbatched",
+      "method": "POST",
+      "path": "/karakeep/documents",
+      "headers": {
+        "content-type": "application/json",
+        "authorization": "Bearer <token>"
+      },
+      "body": {
+        "documents": [
+          {
+            "id": "kk-min",
+            "userId": "u1",
+            "tags": []
+          }
+        ],
+        "embed": true
+      }
+    },
+    {
+      "label": "deleteDocuments",
+      "method": "POST",
+      "path": "/karakeep/documents/delete",
+      "headers": {
+        "content-type": "application/json",
+        "authorization": "Bearer <token>"
+      },
+      "body": {
+        "ids": [
+          "kk-nulls",
+          "kk-does-not-exist"
+        ]
+      }
+    },
+    {
+      "label": "search_full",
+      "method": "POST",
+      "path": "/karakeep/search",
+      "headers": {
+        "content-type": "application/json",
+        "authorization": "Bearer <token>"
+      },
+      "body": {
+        "query": "kubernetes 探针",
+        "filter": [
+          {
+            "type": "eq",
+            "field": "userId",
+            "value": "u1"
+          },
+          {
+            "type": "in",
+            "field": "id",
+            "values": [
+              "kk-full",
+              "kk-min"
+            ]
+          }
+        ],
+        "limit": 5,
+        "offset": 1,
+        "sort": [
+          {
+            "field": "createdAt",
+            "order": "asc"
+          }
+        ]
+      }
+    },
+    {
+      "label": "search_minimal",
+      "method": "POST",
+      "path": "/karakeep/search",
+      "headers": {
+        "content-type": "application/json",
+        "authorization": "Bearer <token>"
+      },
+      "body": {
+        "query": "sourdough",
+        "filter": [],
+        "limit": 20,
+        "offset": 0,
+        "sort": []
+      }
+    },
+    {
+      "label": "clearIndex",
+      "method": "POST",
+      "path": "/karakeep/clear",
+      "headers": {
+        "content-type": "application/json",
+        "authorization": "Bearer <token>"
+      },
+      "body": null
+    }
+  ]
+}
