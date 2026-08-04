@@ -56,3 +56,47 @@
 `facetmark.eval.corpus.load_query_file()` 只需要 `text` / `qtype` /
 `target_url`，并按 `bookmark.url_norm` 重新绑定 id——`target_id` 只是给探针
 脚本省一次查表，重新导入后以 URL 为准。
+
+---
+
+# W2/W3 判定查询集
+
+`w2w3-holdout.jsonl` — 616 条查询，绑定**同一个** 2,376 条书签的库。它存在的唯一
+理由：W2/W3 那六个候选开关的假设全部来自上面那 479 条查询，在同一批查询上判它们，
+测到的是循环性而不是效果（`search/pipeline.py` 里每个开关旁边都写着
+*implemented, off, unjudged*）。
+
+## 怎么来的
+
+生成器仍是 `scripts/corpus/gen_queries.py`，写查询的模型换成 `z-ai/glm-5.2`
+（W1 用的是本地 Qwen2.5-3B-Instruct）。四个 seed 分块跑——20260804 / 05 / 06 / 07，
+每块 63 个目标、`--n 64 --concurrency 8`——共 634 条原始查询，用时 42.8 分钟。
+
+`scripts/corpus/merge_queries.py` 合并去重，规则写在它的 docstring 里，在合并之前：
+去重单位是 `(target, qtype)` 而不是 target，跨目标的同文也丢。共丢 18 条跨块重复，
+**616 条留下**。`scripts/corpus/finalize_queries.py` 绑定 `target_id`，616 条全部
+可解析，没有一条落在库外。
+
+## 分布
+
+| qtype | n | 中文 | 拉丁 |
+|---|---|---|---|
+| `q_content` | 181 | 100 | 81 |
+| `q_vague` | 211 | 113 | 98 |
+| `q_episodic` | 224 | 124 | 100 |
+
+`q_episodic` 子类型：`year` 134 / `relative` 55 / `anchor` 35。230 个不同目标页，
+单页最多 3 条（每类型至多一条）。查询文本：最短 8 字符 / 中位 24 / 最长 82。
+
+## 偏差
+
+上面那三条**全部适用**（生成器看着正文写查询；丢弃率不均匀；时间表达是 Python
+构造的，因而 `q_episodic` 的时间部分偏易）。这一批另有两条：
+
+4. **四个分块之间的丢弃率不同。** `q_vague` 从 0.0635 涨到 0.2222，`q_episodic`
+   从 0.0317 涨到 0.1587；免费端点在后面几块上更不稳（`JSONDecodeError` 计数
+   3 → 4 → 13 → 6）。所以四块之间留下来的查询不是同分布，每行都带 `chunk` 字段
+   以便事后分层核查。
+5. **和 W1 集共享同一个库。** 库层面的偏差（21% 的页面没有正文、中文标题配英文
+   正文）两批都有。这是一批**新查询**，不是一个新的证据来源；它解掉的是"假设与
+   检验用同一批查询"这一个问题，不是全部问题。
