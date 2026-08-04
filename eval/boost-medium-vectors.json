@@ -96,14 +96,15 @@
   ],
   "replay": {
     "media_compared": [
-      "seg_only",
-      "lex_only"
+      "A",
+      "C_nolex",
+      "C"
     ],
     "clock": 1785649110,
     "media": {
-      "seg_only": {
+      "A": {
         "facets": [
-          "lex_seg"
+          "content"
         ],
         "n_queries_with_a_list": 479,
         "median_observed_dynamic_range": 1.803,
@@ -128,7 +129,7 @@
             "share_needing_more_than_max_boost": 0.0
           },
           "10": {
-            "n": 477,
+            "n": 479,
             "median_landing_rank": 1,
             "share_reaching_rank1": 1.0,
             "share_reaching_top5": 1.0,
@@ -137,7 +138,7 @@
             "share_needing_more_than_max_boost": 0.0
           },
           "20": {
-            "n": 475,
+            "n": 479,
             "median_landing_rank": 1,
             "share_reaching_rank1": 1.0,
             "share_reaching_top5": 1.0,
@@ -147,84 +148,133 @@
           }
         }
       },
-      "lex_only": {
+      "C_nolex": {
         "facets": [
-          "lex_seg",
-          "lex_tri"
+          "content",
+          "intent"
         ],
         "n_queries_with_a_list": 479,
-        "median_observed_dynamic_range": 4.26,
-        "median_observed_range_over_top10": 1.198,
+        "median_observed_dynamic_range": 3.577,
+        "median_observed_range_over_top10": 1.315,
         "from_rank": {
           "3": {
             "n": 479,
             "median_landing_rank": 1,
-            "share_reaching_rank1": 0.9624,
+            "share_reaching_rank1": 1.0,
             "share_reaching_top5": 1.0,
-            "median_multiplier_needed_for_rank1": 1.045,
-            "p90_multiplier_needed_for_rank1": 1.156,
-            "share_needing_more_than_max_boost": 0.0376
+            "median_multiplier_needed_for_rank1": 1.075,
+            "p90_multiplier_needed_for_rank1": 1.153,
+            "share_needing_more_than_max_boost": 0.0
           },
           "5": {
             "n": 479,
             "median_landing_rank": 1,
-            "share_reaching_rank1": 0.9165,
+            "share_reaching_rank1": 1.0,
             "share_reaching_top5": 1.0,
-            "median_multiplier_needed_for_rank1": 1.089,
-            "p90_multiplier_needed_for_rank1": 1.295,
-            "share_needing_more_than_max_boost": 0.0835
+            "median_multiplier_needed_for_rank1": 1.145,
+            "p90_multiplier_needed_for_rank1": 1.245,
+            "share_needing_more_than_max_boost": 0.0
           },
           "10": {
-            "n": 477,
+            "n": 479,
             "median_landing_rank": 1,
-            "share_reaching_rank1": 0.8281,
-            "share_reaching_top5": 0.9832,
-            "median_multiplier_needed_for_rank1": 1.198,
-            "p90_multiplier_needed_for_rank1": 1.811,
-            "share_needing_more_than_max_boost": 0.1719
+            "share_reaching_rank1": 0.881,
+            "share_reaching_top5": 0.9478,
+            "median_multiplier_needed_for_rank1": 1.315,
+            "p90_multiplier_needed_for_rank1": 1.705,
+            "share_needing_more_than_max_boost": 0.119
           },
           "20": {
-            "n": 476,
-            "median_landing_rank": 1.0,
-            "share_reaching_rank1": 0.6071,
-            "share_reaching_top5": 0.7794,
+            "n": 479,
+            "median_landing_rank": 9,
+            "share_reaching_rank1": 0.1587,
+            "share_reaching_top5": 0.2296,
+            "median_multiplier_needed_for_rank1": 2.112,
+            "p90_multiplier_needed_for_rank1": 2.262,
+            "share_needing_more_than_max_boost": 0.8413
+          }
+        }
+      },
+      "C": {
+        "facets": [
+          "content",
+          "intent",
+          "lex_seg",
+          "lex_tri"
+        ],
+        "n_queries_with_a_list": 479,
+        "median_observed_dynamic_range": 8.492,
+        "median_observed_range_over_top10": 1.783,
+        "from_rank": {
+          "3": {
+            "n": 479,
+            "median_landing_rank": 1,
+            "share_reaching_rank1": 0.929,
+            "share_reaching_top5": 1.0,
+            "median_multiplier_needed_for_rank1": 1.205,
+            "p90_multiplier_needed_for_rank1": 1.553,
+            "share_needing_more_than_max_boost": 0.071
+          },
+          "5": {
+            "n": 479,
+            "median_landing_rank": 1,
+            "share_reaching_rank1": 0.7537,
+            "share_reaching_top5": 1.0,
             "median_multiplier_needed_for_rank1": 1.413,
-            "p90_multiplier_needed_for_rank1": 2.153,
-            "share_needing_more_than_max_boost": 0.3929
+            "p90_multiplier_needed_for_rank1": 1.831,
+            "share_needing_more_than_max_boost": 0.2463
+          },
+          "10": {
+            "n": 479,
+            "median_landing_rank": 2,
+            "share_reaching_rank1": 0.2777,
+            "share_reaching_top5": 0.9812,
+            "median_multiplier_needed_for_rank1": 1.783,
+            "p90_multiplier_needed_for_rank1": 2.181,
+            "share_needing_more_than_max_boost": 0.7223
+          },
+          "20": {
+            "n": 479,
+            "median_landing_rank": 5,
+            "share_reaching_rank1": 0.0292,
+            "share_reaching_top5": 0.5846,
+            "median_multiplier_needed_for_rank1": 2.28,
+            "p90_multiplier_needed_for_rank1": 2.6,
+            "share_needing_more_than_max_boost": 0.9708
           }
         }
       }
     },
     "observed_boosts": {
-      "candidates_scored": 31137,
-      "share_receiving_no_boost": 0.6627,
-      "share_at_the_cap": 0.0277,
+      "candidates_scored": 64585,
+      "share_receiving_no_boost": 0.7259,
+      "share_at_the_cap": 0.0188,
       "median_boost_when_boosted": 1.3,
       "max_boost_observed": 1.6,
-      "anchors": "lex_only fused hits",
+      "anchors": "C fused hits",
       "by_query_type": {
         "all": {
-          "candidates": 31137,
-          "share_receiving_no_boost": 0.6627,
+          "candidates": 64585,
+          "share_receiving_no_boost": 0.7259,
           "median_boost_when_boosted": 1.3
         },
         "q_content": {
-          "candidates": 10492,
-          "share_receiving_no_boost": 0.7777,
+          "candidates": 22390,
+          "share_receiving_no_boost": 0.852,
           "median_boost_when_boosted": 1.1389
         },
         "q_episodic": {
-          "candidates": 12115,
-          "share_receiving_no_boost": 0.479,
+          "candidates": 24397,
+          "share_receiving_no_boost": 0.5224,
           "median_boost_when_boosted": 1.5
         },
         "q_vague": {
-          "candidates": 8530,
-          "share_receiving_no_boost": 0.7823,
+          "candidates": 17798,
+          "share_receiving_no_boost": 0.8462,
           "median_boost_when_boosted": 1.1389
         }
       }
     }
   },
-  "caveat": "The empirical media are lexical (1 facet vs 2). A is 1 vector facet and D is 4 fused facets, so the measured gap is a lower bound on the gap the W1 criterion actually straddled."
+  "caveat": "The media include the vector facets, so the A-vs-C gap is the gap the W1 criterion straddled rather than a lower bound on it. C and D fuse the same four facets and therefore share this fusion arithmetic; D's extra work is graph expansion and the contextual multiplier, neither of which changes what a bounded multiplier can reach. Ranks come from the same 479 queries W1 used, so nothing here is a verdict on any switch."
 }
