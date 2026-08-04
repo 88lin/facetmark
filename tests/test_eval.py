@@ -17,6 +17,7 @@ from facetmark.eval import (
     load_corpus,
     load_query_file,
     mcnemar,
+    resolve_rungs,
     run_demo,
     run_eval,
     summarise,
@@ -330,3 +331,55 @@ class TestQueryFile:
             summary = next(r for r in rep["rungs"] if r["config"] == key)["overall"]
             hits = sum(1 for o in outs if 0 < o["rank"] <= 5)
             assert round(hits / len(outs), 4) == summary["recall@5"]
+
+
+class TestChoosingWhichRungsToRun:
+    """A candidate switch is only worth measuring if it can be named.
+
+    Every exploratory rung exists to be judged on a query set it did not help
+    produce. Until the bench could be pointed at one, "judge it" meant editing
+    ``RUNGS`` and remembering to put it back.
+    """
+
+    def test_the_default_is_still_the_pre_registered_ladder(self):
+        assert resolve_rungs(None, ablation=True) == ["A", "B", "C", "D", "E"]
+        assert resolve_rungs([], ablation=True) == list(RUNGS)
+        assert resolve_rungs(None, ablation=False) == ["full"]
+
+    def test_named_rungs_keep_the_order_they_were_given(self):
+        # deltas compare adjacent entries, so order is the hypothesis direction.
+        assert resolve_rungs(["C", "C_notri"], ablation=False) == ["C", "C_notri"]
+        assert resolve_rungs(["C_notri", "C"], ablation=True) == ["C_notri", "C"]
+
+    def test_whitespace_is_tolerated_because_the_flag_is_comma_separated(self):
+        assert resolve_rungs([" C ", "", "  D_gated"], ablation=False) == ["C", "D_gated"]
+
+    def test_an_unknown_rung_fails_before_the_replay_starts(self):
+        with pytest.raises(ValueError, match="unknown rung"):
+            resolve_rungs(["C", "C_notrigram"], ablation=False)
+
+    def test_the_error_lists_what_is_available(self):
+        with pytest.raises(ValueError) as e:
+            resolve_rungs(["nope"], ablation=False)
+        assert "A_gatedctx" in str(e.value) and "full" in str(e.value)
+
+    def test_a_rung_cannot_be_compared_against_itself(self):
+        with pytest.raises(ValueError, match="named twice"):
+            resolve_rungs(["C", "D", "C"], ablation=False)
+
+    def test_naming_only_blanks_is_not_the_same_as_naming_nothing(self):
+        with pytest.raises(ValueError, match="named nothing"):
+            resolve_rungs(["  ", ""], ablation=True)
+
+    async def test_a_custom_ladder_does_not_inherit_the_pre_registered_bar(self):
+        rep = await run_eval(size=24, bootstrap=50, rungs=["A", "C_nolex"])
+        assert rep["rungs_run"] == ["A", "C_nolex"]
+        assert [r["config"] for r in rep["rungs"]] == ["A", "C_nolex"]
+        assert len(rep["deltas"]) == 1
+        assert "meets_bar" not in rep["end_to_end"]
+        assert "pre-registered" in rep["end_to_end"]["bar_not_applicable"]
+
+    async def test_the_ae_ladder_still_reports_the_bar(self):
+        rep = await run_eval(size=24, bootstrap=50, rungs=list(RUNGS))
+        assert isinstance(rep["end_to_end"]["meets_bar"], bool)
+        assert "bar_not_applicable" not in rep["end_to_end"]

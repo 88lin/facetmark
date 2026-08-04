@@ -571,6 +571,10 @@ def demo(
 def eval_cmd(
     db: Path | None = typer.Option(None, "--db"),
     ablation: bool = typer.Option(False, "--ablation", help="Run rungs A through E."),
+    rungs: str = typer.Option(
+        "", "--rungs",
+        help="Comma-separated rungs to run instead of the A-E ladder, e.g. "
+             "'C,C_notri'. Deltas compare adjacent entries in the order given."),
     size: int = typer.Option(120, "--size", help="Synthetic corpus size when building."),
     build: bool = typer.Option(True, "--build/--no-build",
                                help="Generate the corpus, or evaluate an existing db."),
@@ -601,6 +605,7 @@ def eval_cmd(
     payload = asyncio.run(run_eval(
         db=db, ablation=ablation, size=size, build=build, bootstrap=bootstrap,
         queries_path=queries, concurrency=concurrency,
+        rungs=[r for r in rungs.split(",") if r.strip()] or None,
         console=None if json_out else console,
     ))
     if out:

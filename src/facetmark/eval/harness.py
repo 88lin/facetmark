@@ -22,6 +22,7 @@ import random
 import shutil
 import tempfile
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -35,6 +36,41 @@ from .corpus import Corpus, EvalQuery, generate_corpus, load_corpus, load_query_
 
 #: Rungs in the order the report argues them, each adding one mechanism.
 RUNGS = ("A", "B", "C", "D", "E")
+
+
+def resolve_rungs(rungs: Sequence[str] | None, *, ablation: bool) -> list[str]:
+    """Which rungs this run evaluates, and in what order.
+
+    The A-E ladder is the pre-registered one; every other rung in
+    :data:`~facetmark.search.pipeline.ALL_CONFIGS` is a candidate switch that
+    has to be judged on a query set it did not help produce. Naming them
+    explicitly is how that judgement gets run, so the names are validated here
+    rather than failing with a ``KeyError`` several minutes into a replay.
+
+    Order is the caller's, because ``deltas`` compares adjacent entries: asking
+    for ``C,C_notri`` and asking for ``C_notri,C`` are the same comparison with
+    the sign flipped, and the caller is the one who knows which direction the
+    hypothesis was written in.
+    """
+    if not rungs:
+        return list(RUNGS) if ablation else ["full"]
+    keys = [r.strip() for r in rungs if r.strip()]
+    if not keys:
+        raise ValueError("--rungs was given but named nothing")
+    unknown = [k for k in keys if k != "full" and k not in ALL_CONFIGS]
+    if unknown:
+        raise ValueError(
+            f"unknown rung(s) {', '.join(sorted(unknown))}; known: "
+            f"full, {', '.join(sorted(ALL_CONFIGS))}"
+        )
+    if len(set(keys)) != len(keys):
+        dupes = sorted({k for k in keys if keys.count(k) > 1})
+        raise ValueError(
+            f"rung(s) {', '.join(dupes)} named twice: the second run would be "
+            "compared against itself and the paired bootstrap would report a "
+            "zero-width interval"
+        )
+    return keys
 
 #: The bar the design doc set for the whole stack over the single-vector
 #: baseline, in absolute percentage points of Recall@5.
@@ -269,6 +305,7 @@ async def run_eval(
     seed: int = 7,
     queries_path: Path | None = None,
     concurrency: int = 1,
+    rungs: Sequence[str] | None = None,
 ) -> dict:
     """Run the bench and return a JSON-serialisable report."""
     if not build and db is None:
@@ -279,10 +316,10 @@ async def run_eval(
             "judgements, so the (query, correct answer) pairs have to come from a file"
         )
 
+    keys = resolve_rungs(rungs, ablation=ablation)
     t0 = time.perf_counter()
     bench = (await build_bench(size=size, db=db, seed=seed) if build
              else _attach(db, queries_path))
-    keys = list(RUNGS) if ablation else ["full"]
     queries = bench.corpus.queries
     if not queries:
         raise ValueError("no evaluation queries: nothing to measure")
@@ -296,6 +333,7 @@ async def run_eval(
         "corpus": bench.corpus.counts,
         "index": bench.index,
         "concurrency": concurrency,
+        "rungs_run": list(keys),
         "rungs": [],
         "deltas": [],
         "pass_margin_pp": PASS_MARGIN_PP,
@@ -358,14 +396,25 @@ async def run_eval(
         if len(keys) > 1:
             first, last = by_rung[keys[0]], by_rung[keys[-1]]
             gain = (summarise(last)["recall@5"] - summarise(first)["recall@5"]) * 100
-            report["end_to_end"] = {
+            end: dict[str, Any] = {
                 "from": keys[0],
                 "to": keys[-1],
                 "recall@5_pp": round(gain, 2),
                 "ci95_pp": list(bootstrap_ci(first, last, resamples=bootstrap)),
                 "mcnemar": mcnemar(first, last),
-                "meets_bar": bool(gain >= PASS_MARGIN_PP),
             }
+            if keys == list(RUNGS):
+                end["meets_bar"] = bool(gain >= PASS_MARGIN_PP)
+            else:
+                # PASS_MARGIN_PP was pre-registered for the whole stack over the
+                # single-vector baseline. Printing it next to an arbitrary pair
+                # of rungs would let any comparison inherit a bar it was never
+                # set against.
+                end["bar_not_applicable"] = (
+                    f"the {PASS_MARGIN_PP}pp bar was pre-registered for "
+                    f"{'->'.join(RUNGS)}, not for {keys[0]}->{keys[-1]}"
+                )
+            report["end_to_end"] = end
     finally:
         bench.close(keep=db is not None)
 

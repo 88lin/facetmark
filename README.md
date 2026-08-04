@@ -56,6 +56,7 @@ Export your bookmarks first: Chrome/Edge -> Bookmark manager -> Export, or Firef
 ```bash
 facetmark demo            # builds a synthetic library, indexes it, runs three searches
 facetmark eval --ablation # A-E ablation with bootstrap CIs and McNemar tests
+facetmark eval --rungs C,C_notri # or any two candidate rungs, judged head to head
 ```
 
 Both run entirely offline on a mock provider. The mock's "embeddings" are feature hashes over lexical tokens, so the numbers check that the pipeline is wired correctly - they are **not** a quality measurement, and every command that uses them says so.
@@ -224,7 +225,7 @@ src/facetmark/
 extension/     MV3, TypeScript, esbuild
 ```
 
-884 tests, no network access required to run them.
+893 tests, no network access required to run them.
 
 Project status, including what is *not* done and why, is in [`ROADMAP.md`](ROADMAP.md). Short version: the W1 evaluation gate is complete and it failed all three of its pre-registered criteria; weeks 2 through 4 of the plan are not done, and the thing blocking them is a query set, not code. Contribution rules are in [`CONTRIBUTING.md`](CONTRIBUTING.md); trust boundaries in [`SECURITY.md`](SECURITY.md).
 
