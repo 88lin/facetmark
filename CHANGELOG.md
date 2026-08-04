@@ -2,6 +2,52 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循语义化版本。
 
+## [Unreleased]
+
+**这一轮的主题是停止造轮子。** karakeep 已经把检索周边的东西全做完了——浏览器扩展、
+手机 App、无头 Chrome 抓取、多用户、Web UI、Docker 部署——而它的排序是一个只有四个方法
+的插件接口。所以 facetmark 实现那个接口，然后放弃自己那三样。
+
+### 新增
+
+- **`facetmark.bridges.karakeep`**：karakeep `SearchIndexClient` 契约的 Python 侧实现，
+  `addDocuments` / `deleteDocuments` / `search` / `clearIndex` 四个方法各对应一个函数。
+  按需建一张 `karakeep_doc(karakeep_id, user_id, bookmark_id, updated_at)` 映射表，卸载
+  就是 `DROP TABLE karakeep_doc`。
+- **五条 HTTP 路由**：`POST /karakeep/documents`、`POST /karakeep/documents/delete`、
+  `POST /karakeep/search`、`POST /karakeep/clear`、`GET /karakeep/stats`。写路径全部在
+  服务的全局锁内。
+- **`POST /karakeep/search` 接受 `config` 参数**（`full`、`A`–`E`、任意消融档名）。这是
+  这次集成里最有价值的一件东西：**消融可以在一个真实 karakeep 库上跑了**，而在此之前
+  所有数字都来自生成语料。
+- **`integrations/karakeep/search-facetmark/`**：karakeep 侧的 TypeScript 插件
+  （`FacetmarkClient implements SearchIndexClient` + provider 注册）。**它不在本仓库的
+  CI 里构建、也没有测试**——本仓库没有 Node 工具链。这是一个已知且已披露的缺口，写在
+  文件头注释和 `docs/karakeep.md` 里。
+- **`docs/karakeep.md`**：分工表、三步装法、五条路由、逐字段映射表，以及三处不保真的
+  地方。
+- **`README.zh-CN.md`**，并把 `README.md` 整篇重写成英文版，两边互相链接。旧 README
+  里那段 `## 中文说明` 的内容并入中文版并按 1.3.0 的实际默认值更正。
+
+### 修正
+
+- **README 与 `docs/karakeep.md` 里的服务端口从 8765 改回 8787**，与
+  `config.py` 的 `port: int = 8787` 一致。
+- **README 里两处数字张冠李戴已更正**：`0.5860 / 0.5065` 是 W2/W3 那 616 条留出集上的
+  数字，不是 W1 的；W1 的主表是 A 0.643 / B 0.589 / C 0.635 / D 0.639（n=479）。另外
+  出厂默认档 `FULL` 是 `content + graph + decay`，**不含词面**，之前写成了
+  「lexical + content + graph + decay」。
+
+### 已知短板（写在这里而不是藏起来）
+
+- **多用户是最弱的一环。** facetmark 的索引没有用户分区，`userId` 过滤发生在**排序
+  之后**，所以书签多的用户会被系统性地偏向。`OVERFETCH = 5` 是补偿，不是保证。诚实的
+  配置是一个用户一个库。
+- **意图面不由桥接填充**，karakeep 推过来的文档需要事后单独跑一次 `facetmark index`
+  才有意图向量。
+- `tags` 映射到 `bookmark.folder` 时用 `" / "` 拼接，`folder_depth = len(tags)`。**这不
+  是等价物**：五个平级标签在 facetmark 眼里长得像五层嵌套目录。
+
 ## [1.3.0] - 2026-08-04
 
 **发版是因为默认检索行为又变了，而且是往回变**：1.2.0 把带门控的上下文乘子设成默认，

@@ -1,205 +1,238 @@
-# Facetmark
+# facetmark
 
-Search your own bookmarks by **what the page was about**, **why you saved it**, and **when you were saving things like it**.
+**Bookmark search that indexes why you saved a page, not just what it says.**
 
-Most bookmark tools index the wrong object. They fetch the page, ask a model for a summary and some tags, push one vector into a store, and call it semantic search. That works when you remember roughly what the page said. It fails on the two ways people actually remember their own bookmarks: *"the thing I read when I was trying to make embeddings fit in SQLite"* (a purpose, not a topic) and *"the stuff I saved the same evening as that Docker post"* (an episode, not a topic).
+[![CI](https://github.com/88lin/facetmark/actions/workflows/ci.yml/badge.svg)](https://github.com/88lin/facetmark/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-1081-brightgreen)](tests/)
 
-Facetmark indexes four things per bookmark and fuses them:
+[English](README.md) · [简体中文](README.zh-CN.md)
 
-| Facet | What it holds | What it rescues |
-|---|---|---|
-| **F1 content** | embedding of the extracted body | ordinary topical recall |
-| **F2 intent** | embeddings of generated *questions the page answers* (doc2query) | vague, purpose-shaped queries |
-| **F3 lexical** | two FTS5 indexes: jieba-segmented + trigram | exact identifiers, CJK, substrings |
-| **F4 episodic** | save-time sessions, folders, link graph | "around the same time as..." |
-
-F1 and F3 are table stakes. **F2 and F4 are the point** - they are what the existing tools do not have.
-
-### Then we measured it, and the fusion lost
-
-2,376 real web pages, 479 evaluation queries, real models, three preregistered pass criteria. **All three failed.** More usefully, the ablation found that fusing was itself the problem: F1 alone gets **95.9%** Recall@5 on content queries, and equal-weight RRF with any weaker facet added drops that by 5.4pp (McNemar p<0.01). A leave-one-out probe ruled out the obvious suspect - dropping the lexical facets and fusing only F2 costs exactly the same 5.43pp.
-
-So the shipped default is **F1 + graph expansion + time decay**, not the full fusion. The other facets are still built, still stored, still addressable as `--config C`, `--config D`, `--config E`. Graph expansion stays on because it is bit-identical on ranking and adds 2.09pp of neighbours for 9ms (10 wins, 0 losses).
-
-The context multiplier is the flag that has now changed twice. Ungated it is +8.14pp on episodic queries and −9.94pp on content queries, so W1 shipped it off and left "gate it on the query looking episodic" as a hypothesis. That hypothesis won on **616 queries that played no part in forming it** ([`docs/gate-w2w3.md`](docs/gate-w2w3.md)): gated, **+3.09pp of Recall@5 over plain F1, CI95 [+1.79, +4.55], 19 better and 0 worse**. 1.2.0 shipped it on that.
-
-1.3.0 takes it back off. That run measured the gate only where it *should* fire: its 0.55% false-positive rate came from 181 content queries a generator had been told not to put dates into. Asked instead for **361 topical queries whose time expression belongs to the subject matter** — a page filed in 2026 searched for as `2015年国际空间站咖啡机为什么那么贵` — the gate fires on **361 of 361** and costs **−18.83pp of Recall@5, CI95 [−23.27, −14.68], 3 better and 71 worse**, with Recall@1 falling from 0.801 to 0.363. On the 304 probes whose window cannot contain the answer it is −22.37pp; on the 57 where the window happens to be right it is exactly +0.00pp. The pre-registered remedy (`A_gatedctx_v2`: a bare year no longer counts) fixes the year clause completely and still loses −10.52pp to relative time words, so it cleared one of its two frozen bars and did not ship either. Protocol and report: [`docs/gate-precision-protocol.md`](docs/gate-precision-protocol.md), [`docs/gate-precision.md`](docs/gate-precision.md).
-
-There is also one run on a real export rather than a generated corpus: 1,701 bookmarks, 96 folders, 1,513 hosts, titles only and no crawl ([`docs/real-library-demo.md`](docs/real-library-demo.md)). Nothing there is scored — someone else's bookmarks have no ground truth — but the revert is visible in it. Searching `2025 日历` in a library that contains a bookmark literally titled 中国2025日历, the 1.2.0 default reads the year as a filing date and drops that bookmark from rank 1 to rank 3, promoting an unrelated sunset-time tool to the top. The same run also found the gate missing in the other direction: `上次存的那个签到脚本` is not classified as episodic at all.
-
-The same 616 queries judged five other candidate repairs. Three of them really do fix part of what fusion broke (`C_notri` +4.54pp, `C_max` +4.22pp, `C_lowlex` +4.22pp against rung C) and all three are still 3.4-3.7pp *behind* plain F1, so fusion is explained, not repaired, and they stay off. Two do nothing measurable: `C_abstain` changed 1 query out of 616, and the same gate on the fused stack is 7 wins / 8 losses.
-
-A deployment with no API key still falls back to the full fusion, because the mock provider's feature-hash "embeddings" make F1 noise. The response reports which rung actually ran.
-
-The whole thing - ladder, bootstrap CIs, per-query McNemar decisions, the leave-one-out probe, and the reasoning for each default flag - is in [`docs/gate-w1.md`](docs/gate-w1.md). The negative result is the deliverable.
-
-Three follow-ups took the losing step apart. [`docs/query-set-lexical-audit.md`](docs/query-set-lexical-audit.md) asked how much of the query set never needed a vector: 80.1% of content queries and 46.3% of vague ones are solvable by word matching alone, and 6.05% of all queries are found *only* by the lexical facet - so F3 is not contributing nothing, the fusion is losing what it contributes. [`docs/w2-fusion-anatomy.md`](docs/w2-fusion-anatomy.md) then measured the operator itself. Two results worth stating up front: F3's trigram half had never worked on Chinese queries at all (an unsegmented sentence reached the index as one quoted phrase - 25 of 211 Chinese queries got any candidate; the repair takes it to 202, and overall Recall@5 does not move), and RRF's arithmetic gives no protection to a sole-facet hit - with the shipped constants, any document two full-weight facets both recall beats any document a single facet ranks first, at every rank inside the candidate depth. [`docs/w3-criterion-medium.md`](docs/w3-criterion-medium.md) then asked whether the W1 criterion could have measured the context multiplier at all: the shipped `MAX_BOOST = 1.60` spans 79.7% of rung A's score range but only 20.9% of the fused rung's, so testing the same mechanism there would need a cap of 6.03 - and separately, 66.3% of candidates never receive any boost, which is a different failure from a boost being too small. Finally, [`docs/gate-w2w3.md`](docs/gate-w2w3.md) judged all six candidate repairs on a fresh 616-query set with the rule fixed in advance, Holm-corrected within each of two families, and reports the smallest effect that sample size could have seen for every comparison.
-
-Everything runs locally: Python + SQLite (`sqlite-vec`) + a browser extension. No server, no account, no upload of your library. Your bookmarks are never modified - Facetmark only reads them.
+Everything runs on your machine against a single SQLite file. Nothing is uploaded, nothing
+is deleted, and your browser's own bookmark store is never written to.
 
 ---
 
-## Install
+## The problem
+
+You saved a page eight months ago. You remember *why* you saved it — "that thing about
+Postgres index types someone linked in a thread" — and you remember roughly when. What you
+do not remember is its title, and the title is the only thing your browser's bookmark
+search looks at.
+
+So facetmark builds four different indexes over each bookmark:
+
+| Facet | What it is | What it answers |
+|---|---|---|
+| **Lexical** | Two FTS5 indexes: character trigrams and word segments | exact strings, IDs, code, Chinese without spaces |
+| **Content** | An embedding of the page's actual extracted text | "that article about consumer group rebalancing" |
+| **Intent** | LLM-generated queries you *might* have used, filtered by whether they retrieve the page back | "how do I stop kafka from stalling" |
+| **Episodic** | Saving sessions reconstructed from timestamp gaps, plus a folder/domain graph | "the batch I saved while researching X" |
+
+Candidates are fused with reciprocal rank fusion, expanded one hop through the graph, and
+decayed by age.
+
+Then the project measured whether fusing all four is better than using one, and it is not —
+see [What is actually measured](#what-is-actually-measured). The shipped default searches
+the **content** facet with graph expansion and time decay; the other three are still built,
+still stored, and reachable with `--config`. A deployment with no API key falls back to the
+full fusion instead, because without real embeddings the content facet is the one that
+returns noise.
+
+## Quickstart
 
 ```bash
-pip install facetmark          # or: uv pip install facetmark
-facetmark import               # reads the live browser profile; or pass a file
-facetmark index                # fetch + enrich + embed + session + graph
-facetmark serve                # http://127.0.0.1:8787, prints a pairing token
+uv pip install facetmark        # or: pip install facetmark
+
+facetmark import                # reads the live browser profile, or pass a path
+facetmark index                 # crawl, enrich, embed, sessions, graph
+facetmark search "网盘直链解析"
 ```
 
-From source:
+Export first if you prefer a file: Chrome/Edge → Bookmark manager → Export, or Firefox →
+Manage bookmarks → Export to HTML. Netscape HTML and Chrome's `Bookmarks` JSON both work.
+
+Real output from a 1,701-bookmark library ([full run](docs/real-library-demo.md)):
+
+```
+$ facetmark import favorites.html --json
+{"parsed": 1710, "inserted": 1701, "merged_duplicates": 9, "non_indexable": 1,
+ "folders": 96, "max_depth": 4, "timestamp_unit": "unix_s", "warnings": []}
+
+$ facetmark search "chrome 插件下载" -n 3
+1. Chrome插件下载器          收藏夹栏/工具/插件搜索工具
+2. 插件小屋 Chrome插件        收藏夹栏/工具/插件搜索工具
+3. Chrome 离线安装包          收藏夹栏/工具
+```
+
+### Try it with no API key and no library
+
+```bash
+facetmark demo                   # synthetic library, indexed and searched, fully offline
+facetmark eval --ablation        # A-E ablation with bootstrap CIs and McNemar tests
+facetmark eval --rungs C,C_notri # or any two rungs, judged head to head
+```
+
+Both use a mock provider whose "embeddings" are feature hashes over lexical tokens. They
+prove the pipeline is wired correctly. They are **not** a quality measurement, and every
+command that uses them says so in its output.
+
+## Install from source
 
 ```bash
 git clone https://github.com/88lin/facetmark
 cd facetmark
 uv venv && uv pip install -e ".[dev]"
-pytest -q
+pytest -q                       # 1081 tests, no network needed
+ruff check src tests scripts
 ```
 
-Export your bookmarks first: Chrome/Edge -> Bookmark manager -> Export, or Firefox -> Manage bookmarks -> Export to HTML. Both the Netscape HTML format and Chrome's `Bookmarks` JSON file are accepted.
+Python 3.10+. The only unusual dependency is [`sqlite-vec`](https://github.com/asg017/sqlite-vec),
+which provides vector KNN inside SQLite — there is no separate vector database to run.
 
-### Try it without a library or an API key
+## Model access
 
-```bash
-facetmark demo            # builds a synthetic library, indexes it, runs three searches
-facetmark eval --ablation # A-E ablation with bootstrap CIs and McNemar tests
-facetmark eval --rungs C,C_notri # or any two candidate rungs, judged head to head
-```
-
-Both run entirely offline on a mock provider. The mock's "embeddings" are feature hashes over lexical tokens, so the numbers check that the pipeline is wired correctly - they are **not** a quality measurement, and every command that uses them says so.
-
-### Model access
-
-One OpenAI-compatible endpoint drives both enrichment and embeddings, so any provider that speaks that API works:
+facetmark needs an embedding model and, for the intent facet, a chat model. Any
+OpenAI-compatible endpoint works.
 
 ```bash
 export FACETMARK_API_KEY=sk-...
-export FACETMARK_BASE_URL=https://api.openai.com/v1   # or your own gateway
+export FACETMARK_BASE_URL=https://api.openai.com/v1      # must include /v1
 export FACETMARK_CHAT_MODEL=gpt-4o-mini
 export FACETMARK_EMBED_MODEL=text-embedding-3-small
+export FACETMARK_EMBED_DIM=1536
 ```
 
-Shared and free gateways list models they cannot always serve, so the chat side takes an
-ordered fallback chain. It is empty by default - on a paid endpoint an error is information
-and hiding it behind three more attempts turns a typo into a latency mystery.
+**Local embeddings**, if your endpoint has no embedding route or you would rather not send
+page text anywhere:
 
 ```bash
-export FACETMARK_CHAT_MODEL_FALLBACKS="DeepSeek-V4-Pro,grok-4.3-fast,deepseek-v4-flash"
-```
-
-Failover is forward-only and sticky: the first model that answers with a JSON object serves
-the rest of the run, and models already ruled out are never re-probed - on a 3,000-page
-index that would be thousands of known-dead timeouts. A model that returns HTTP 200 and
-prose counts as a failure, because for a JSON call it is indistinguishable from absence.
-The provider records answers and failures per model (`chat_model_mix()`), and any number
-reported from a chained run has to publish that mix - otherwise the run's `chat_model`
-field is a lie.
-
-For ~1,700 bookmarks the one-off indexing cost lands around 8.5M input + 0.9M output chat tokens and ~3.4M embedding tokens. Vectors for that library are ~35 MB at float32/1024-dim; brute-force scan in `sqlite-vec` is well inside its comfortable range, so there is no ANN index to tune.
-
-### When the endpoint will not embed
-
-"One endpoint for everything" is a simplification, not a requirement, and it breaks on
-gateways that serve `/chat/completions` and refuse `/embeddings`. `GET /v1/models` does not
-disclose this - a gateway will list six models and serve none of them to the embedding
-surface. The chat side keeps its endpoint; the encoder moves into the process:
-
-```bash
-pip install 'facetmark[local]'
 export FACETMARK_EMBED_BACKEND=local
-export FACETMARK_LOCAL_EMBED_PATH=BAAI/bge-m3   # or a directory of weights
-export FACETMARK_EMBED_MODEL=bge-m3             # the name written into meta
+export FACETMARK_LOCAL_EMBED_PATH=/path/to/bge-m3
+export FACETMARK_EMBED_MODEL=bge-m3
 export FACETMARK_EMBED_DIM=1024
 ```
 
-`FACETMARK_EMBED_MODEL` is the name recorded in the index; `FACETMARK_LOCAL_EMBED_PATH` is
-only where the weights load from. Keeping them apart is what lets a local encoder serve an
-index a remote one built.
+`FACETMARK_CHAT_MODEL_FALLBACKS` takes a comma-separated list tried in order when the
+primary model returns an error — useful with free or rate-limited gateways.
 
-**Verify before you trust it.** `sqlite-vec` returns neighbours for any vector of the right
-width, including one from a different encoder; the results are ranked, plausible and
-meaningless, and no assertion in the code can catch it. Re-encode something the index
-already holds and take the cosine against the stored vector. Verbatim-text vectors are the
-right probe - nothing sits between the string and the encoder. Doing that here on 64 stored
-`vec_intent` vectors reproduced them at a minimum self-cosine of **0.999976** against a best
-*wrong* match of **0.6501**; the gap is the evidence, not the 0.99 by itself. On the content
-vectors, a 512-token budget bottomed out at 0.9769 and 1024 at 0.99995 - truncation of the
-longest documents, which is why `FACETMARK_LOCAL_EMBED_MAX_SEQ` defaults to 1024.
+The embedding dimension and model name are written into the database on first index. They
+cannot be changed later without a rebuild, and facetmark refuses to mix them rather than
+silently returning garbage neighbours.
 
-Cost moves rather than disappears: on one CPU core bge-m3 encodes ~8.6 short queries per
-second, so query-time embedding is free enough and a full index build is an overnight job.
-Usage totals report the local half as calls with zero tokens, because inventing a token
-count would make a local run look like a paid one.
+### Configuration
 
----
+All settings are `FACETMARK_`-prefixed environment variables or a `.env` file. The ones
+worth knowing:
 
-## The browser extension
+| Variable | Default | Notes |
+|---|---|---|
+| `FACETMARK_DATA_DIR` | platform data dir | Everything lives here: DB, token, logs |
+| `FACETMARK_DB_NAME` | `facetmark.db` | One library per file |
+| `FACETMARK_FETCH_CONCURRENCY` | `30` | Global crawl concurrency |
+| `FACETMARK_FETCH_PER_HOST_CONCURRENCY` | `2` | Per-host cap, plus a 0.5 s minimum interval |
+| `FACETMARK_RESPECT_ROBOTS` | `true` | See "Crawling other people's servers" below |
+| `FACETMARK_INTENT_GENERATE_N` / `_KEEP_N` | `8` / `4` | Intent queries generated, then kept after filtering |
+| `FACETMARK_DECAY_FACTOR` / `_AGE_DAYS` | `0.5` / `365` | Age decay half-life |
+| `FACETMARK_HEALTH_ENABLE_EXTERNAL` | `true` | Third-party link checks (DoH, Wayback, reader) |
+| `FACETMARK_HOST` / `FACETMARK_PORT` | `127.0.0.1` / `8787` | Where `facetmark serve` listens |
+
+## What is actually measured
+
+This project's distinguishing feature is not its architecture, it is that every default was
+chosen by a pre-registered experiment and two of them were **changed because the numbers
+came back wrong**.
+
+**The full fusion lost, and it lost to the simplest rung on the ladder.** W1 ran five rungs
+(A content-only, B +lexical, C +intent, D +context and graph, E +LLM rerank) over 479
+queries against 2,376 real crawled pages. Three pre-registered criteria, all three failed —
+and not by being underwhelming. Adding facets made retrieval *worse*: A scored Recall@5
+**0.643** / Recall@1 0.505 / MRR@10 0.564 against B 0.589, C 0.635, D 0.639, and ran 3.5x
+faster. On a later, independent 616-query set the gap is wider still: **0.5860** for content
+alone against **0.5065** for all four fused.
+
+So the shipped default is **content + graph expansion + time decay**, not the full fusion.
+Graph expansion stays because it is free — expansion never touches the ranked page, so every
+ranked metric is bit-identical, and the second group finds the target in 2.09pp more queries
+for 9 ms. Details in [`docs/gate-w1.md`](docs/gate-w1.md); the autopsy of *why* fusion loses,
+including that RRF with flat weights lets a coincidence on a weak facet outvote confidence on
+a strong one, and that the trigram half of the lexical facet had never worked on Chinese
+queries at all, is in [`docs/w2-fusion-anatomy.md`](docs/w2-fusion-anatomy.md).
+
+**The context multiplier changed the default twice.** Ungated it is +8.14pp on episodic
+queries and −9.94pp on content queries, so W1 shipped it off. Gating it on "the query looks
+episodic" won on 616 held-out queries — **+3.09pp Recall@5, CI95 [+1.79, +4.55], 19 better
+and 0 worse** — and 1.2.0 shipped it on ([`docs/gate-w2w3.md`](docs/gate-w2w3.md)).
+
+Then 1.3.0 took it back off. That run had only measured the gate where it *should* fire: its
+0.55% false-positive rate came from 181 content queries a generator had been told not to put
+dates into. Asked instead for **361 topical queries whose time expression belongs to the
+subject matter** — a page filed in 2026 searched for as `2015年国际空间站咖啡机为什么那么贵` —
+the gate fires on **361 of 361** and costs **−18.83pp Recall@5, CI95 [−23.27, −14.68], 3
+better and 71 worse**, with Recall@1 falling 0.801 → 0.363. On the 304 probes whose resolved
+window cannot contain the answer it is −22.37pp; on the 57 where the window happens to be
+right it is exactly +0.00pp, which locates the damage in the window being wrong rather than
+the multiplier being heavy. The pre-registered remedy fixed the bare-year clause completely
+and still lost −10.52pp to relative time words, so it cleared one of its two frozen bars and
+did not ship either. Protocol written before the data:
+[`docs/gate-precision-protocol.md`](docs/gate-precision-protocol.md); report:
+[`docs/gate-precision.md`](docs/gate-precision.md).
+
+The same 616 queries judged five other candidate repairs. Three genuinely fix part of what
+fusion broke (`C_notri` +4.54pp, `C_max` +4.22pp, `C_lowlex` +4.22pp) and none of them
+catches up to the content facet alone — they stay 3.4–3.7pp behind it — so none shipped.
+Two did nothing at all: `C_abstain` changed exactly 1 result out of 616.
+
+**The intent facet is an idea problem, not a model-size problem.** W4 read 50 sampled
+doc2query outputs by hand, with the rubric and the pass threshold frozen beforehand. Only
+**38% (19/50)** were queries a real user might plausibly type — below the 50% bar, so the
+verdict is the premise, not "the 3B model was too small". The corroborating measurement is
+sharper: of the intents kept for each page, the fraction whose content words appear nowhere
+on that page is 21.3% for pages with normal body text and **62.4% for pages with thin body
+text** ([`docs/w4-intent-strata.md`](docs/w4-intent-strata.md)). The story was "when a page
+cannot describe itself, the intents supply what is missing". The table says the opposite:
+when a page cannot describe itself, the model is not supplying, it is inventing. The code
+was not deleted — what was rejected is using it as an independent equal-weight facet.
+
+**One run on a real export rather than a generated corpus**: 1,701 bookmarks, 96 folders,
+1,513 hosts, titles only and no crawl ([`docs/real-library-demo.md`](docs/real-library-demo.md)).
+Nothing there is scored — someone else's bookmarks have no ground truth — but the revert is
+visible in it. Searching `2025 日历` in a library containing a bookmark literally titled
+中国2025日历, the 1.2.0 default reads the year as a filing date and drops that bookmark from
+rank 1 to rank 3, promoting an unrelated sunset-time tool to the top.
+
+Reproduce any of it: `facetmark eval --rungs A,A_gatedctx` and the frozen query sets in
+`eval/queries/`.
+
+## Use it as karakeep's search engine
+
+[karakeep](https://github.com/karakeep-app/karakeep) already has the browser extension, the
+mobile app, the headless-Chrome crawler, multi-user accounts, tagging and a UI — everything
+around retrieval. Its ranking is a plugin behind a four-method interface. facetmark
+implements that interface, so the division of labour is: karakeep does the product,
+facetmark does the ranking.
 
 ```bash
-cd extension && npm install && npm run build
+facetmark serve && facetmark token                      # prints the pairing token
+cp -r integrations/karakeep/search-facetmark <karakeep>/packages/plugins/
+export FACETMARK_URL=http://127.0.0.1:8787 FACETMARK_TOKEN=<token>
 ```
 
-Load `extension/dist` as an unpacked MV3 extension (Chrome/Edge: `chrome://extensions` -> Developer mode -> Load unpacked). Paste the pairing token from `facetmark serve` into the options page.
+Then trigger a reindex in karakeep; it pushes every bookmark through `addDocuments`. No
+schema coupling, no database reading. karakeep's crawled article text comes with it, which
+skips the slowest part of a first index.
 
-The extension does three jobs:
+`POST /karakeep/search` accepts a `config` parameter, so ablations can be run **on a real
+karakeep library** instead of only on generated corpora. Every number above comes from a
+generated query set; this is the first path to checking them against real use. Setup,
+field-by-field mapping, and the honest limits (post-ranking multi-user filtering, and the
+TypeScript side not being built in this repo's CI) are in
+[`docs/karakeep.md`](docs/karakeep.md).
 
-- **Search** - popup and the `fm` omnibox keyword. It renders in two stages: the FTS5 result goes on screen in single-digit milliseconds, the ranked result replaces it a few hundred milliseconds later. Waiting for stage two before drawing anything is what makes fast search feel slow.
-- **Save** - the current page or any link, straight into the index.
-- **Channel B** - pages the server cannot fetch (login walls, client-rendered shells, hosts that refuse unknown agents) are rendered in a background tab by the browser you are already logged into, three at a time, with a visible counter and a pause switch. About one page in fifty needs this; without it those pages stay title-only forever.
-
-All requests originate in the service worker, never in a content script. Chrome 142 tightened Local Network Access, and an extension worker holding an explicit `host_permissions` entry for `127.0.0.1` is the path that keeps working.
-
----
-
-## Crawling other people's servers
-
-Indexing a bookmark library means touching a few thousand hosts that never asked for the traffic. Channel A reads `/robots.txt` once per host and obeys it (RFC 9309: longest match wins, `Allow` breaks a tie, `*` and `$` supported, a group naming `facetmark` beats the `*` group), on top of a global concurrency cap, at most two in-flight requests per host, and a minimum interval between them. A published `Crawl-delay` raises that interval, capped so one host asking for 30 seconds cannot stall the sweep.
-
-A page that `robots.txt` disallows is recorded as `robots_denied` and stays title-only. It is **not** re-tried through the browser extension — channel B would succeed, because it is the user's own logged-in browser, and that is precisely the manoeuvre `robots.txt` exists to prevent. The same rule applies to link-health probes: a liveness check is still automated access, and the drift check reads the body.
-
-```bash
-FACETMARK_RESPECT_ROBOTS=false        # your servers, your call
-FACETMARK_ROBOTS_ON_ERROR=deny        # RFC 9309 reads an unreachable robots.txt as "disallow all"
-FACETMARK_ROBOTS_MAX_CRAWL_DELAY=5.0  # ceiling on an honoured Crawl-delay, seconds
-```
-
-The default for an *unreachable* `robots.txt` (5xx, timeout, reset) is `allow`, which deviates from the RFC on purpose. Applied literally, one flaky CDN silently drops a chunk of the user's own library out of the user's own index — and the user is not a search engine competing for crawl budget, they are re-reading pages they already opened in a browser. A *missing* `robots.txt` (404) means allow, as the RFC says. `deny` restores the strict reading.
-
----
-
-## MCP server
-
-```bash
-facetmark mcp    # stdio
-```
-
-Nine tools: `search_bookmarks`, `get_bookmark`, `list_sessions`, `get_session`, `find_related`, `synthesize`, `suggest_from_context`, `check_link_health`, `save_bookmark`, plus `bookmark://<id>` and `session://<id>` resources. `synthesize` answers from your own saved pages with per-claim citations and refuses to keep a claim whose citation does not resolve; it also reports what it could **not** find, which is the part that makes the answer usable.
-
----
-
-## Link health, and what it never does
-
-Roughly a quarter of a multi-year library is older than two years, and some of it is gone. Facetmark checks in three layers:
-
-1. **Local probe** - ranged GET for liveness; a full GET only when it needs to compare content.
-2. **External cross-check** - DoH resolvers, Wayback, a reader proxy - used only to separate *"the page is gone"* from *"the page is fine and this network cannot reach it"*.
-3. **Synthesis** - the two layers together produce `alive` / `drifted` / `soft_gone` / `restricted` / `unreachable` / `gone`.
-
-The design rule is that a local failure can never, on its own, conclude `gone`: confidence from local evidence alone is capped below the threshold that a "dead" verdict requires. A blocked page and a deleted page look identical from one socket.
-
-**Nothing is ever deleted or hidden.** A link confirmed dead twice, at least seven days apart, gets a graveyard view and a Wayback link - and stays fully searchable. `restricted` gets a badge and nothing else. Two lessons from the tools that came before, both encoded here: automation needs a deterministic fallback the user can reach, and a knowledge-graph visualisation is not that fallback.
-
-Two switches, both honoured everywhere:
-
-```bash
-FACETMARK_HEALTH_ENABLE_EXTERNAL=false      # never leave the machine for health checks
-FACETMARK_PRIVACY_EXCLUDED_DOMAINS=bank.example,internal.corp
-```
-
-Excluded domains skip the entire external layer - DNS included.
-
----
+This also means the project stops building its own extension, crawler and UI. karakeep
+already does those better, and a ranking engine that also insists on shipping a browser
+extension is a ranking engine with less time to spend on ranking.
 
 ## Commands
 
@@ -207,100 +240,72 @@ Excluded domains skip the entire external layer - DNS included.
 facetmark import [PATH]       Netscape HTML or Chrome JSON; no PATH reads the live profile
 facetmark browsers            live browser profiles that can be imported
 facetmark index [--no-fetch]  fetch, enrich, embed, filter intents, sessions, edges
-facetmark search QUERY        search from the terminal (--config to pick a rung)
+facetmark reindex             rebuild everything, keeping the bookmarks
+facetmark search QUERY        search from the terminal (--config to pick a rung, --explain)
 facetmark show ID             one bookmark with its facets and health
-facetmark sessions            saving sessions, newest first
+facetmark sessions            reconstructed saving episodes, newest first
 facetmark health [--check]    link health summary, or run a round of probes
-facetmark stats               library overview
-facetmark serve               HTTP API for the extension
-facetmark mcp                 MCP server over stdio
-facetmark token --rotate      new pairing token
-facetmark demo / eval         offline synthetic corpus and A-E ablation
+facetmark stats               index size and coverage
+facetmark serve               local HTTP service for the extension and integrations
+facetmark mcp                 MCP server over stdio, for Claude Desktop and other clients
+facetmark token [--rotate]    the pairing token the extension needs
+facetmark demo / eval         offline synthetic corpus and the A-E ablation bench
 ```
+
+## Boundaries this project keeps
+
+**Your bookmarks are never modified.** facetmark reads the browser's export or profile and
+writes only to its own SQLite file. A tool that rewrites your bookmarks is a tool you cannot
+safely uninstall.
+
+**Nothing is ever deleted.** Link health reports; it does not clean up. Dead links stay in
+the library and stay searchable, and the "graveyard" endpoint exists so a UI can *offer* a
+cleanup view, never so one happens automatically.
+
+**Crawling is polite by default.** `robots.txt` is respected, two concurrent requests per
+host with a 0.5 s floor between them, a real User-Agent that identifies the tool, and crawl
+delays honoured up to 5 s. Fetching pages you bookmarked is still traffic to someone else's
+server; the defaults assume you would rather be slow than rude.
+
+**The intent facet is the only thing that sends page text anywhere**, and only to the
+endpoint you configured. Set `FACETMARK_EMBED_BACKEND=local` and skip `index`'s enrichment
+step to keep everything on the machine.
+
+**The local service is token-paired.** `facetmark serve` binds 127.0.0.1 and mints a pairing
+token; every route except `/` and `/health` requires it. `facetmark token --rotate`
+invalidates the old one.
 
 ## Layout
 
 ```
 src/facetmark/
-  db.py normalize.py text.py sessions.py edges.py providers.py
-  importers/   Netscape HTML + Chrome JSON
-  fetch/       two-channel crawl, three-tier extraction
-  enrich/      summaries, doc2query, self-consistency filter, vectors
+  db.py normalize.py text.py sessions.py edges.py providers.py config.py
+  importers/   Netscape HTML + Chrome JSON, timestamp unit detection
+  fetch/       two-channel crawl, three-tier extraction, browser fallback queue
+  enrich/      summaries, doc2query intents, self-consistency filter, vectors
   search/      query understanding, per-facet retrieval, RRF, context, graph, decay, rerank
   health/      local probe, external cross-check, synthesis, append-only store
-  eval/        synthetic corpus + A-E ablation bench
+  bridges/     other applications' plugin contracts (karakeep)
+  eval/        synthetic corpus + A-E ablation bench with bootstrap CIs
   service.py api.py mcp_server.py cli.py
+integrations/  karakeep search plugin (TypeScript, not built in this repo's CI)
 extension/     MV3, TypeScript, esbuild
+eval/queries/  frozen query sets: W1 real-library, W2/W3 holdout, gate-precision probes
+docs/          one file per experiment, including the ones that failed
+scripts/       corpus generation, verdict scripts, disposition tables
 ```
 
-930 tests, no network access required to run them.
+## Status
 
-Project status, including what is *not* done and why, is in [`ROADMAP.md`](ROADMAP.md). Short version: the W1 evaluation gate is complete and it failed all three of its pre-registered criteria; weeks 2 through 4 of the plan are not done, and the thing blocking them is a query set, not code. Contribution rules are in [`CONTRIBUTING.md`](CONTRIBUTING.md); trust boundaries in [`SECURITY.md`](SECURITY.md).
+Read [`ROADMAP.md`](ROADMAP.md) for what is *not* done and why. Short version: W1 and W4 are
+complete and both returned negative results; the six W2/W3 switches have been judged on a
+fresh 616-query set; the one that changed a default was then overturned by an adversarial
+probe set and the default reverted. Fusion itself is still not fixed.
 
----
-
-## 中文说明
-
-书签搜不到，通常不是模型不行，是**索引的对象错了**。只对正文做一个向量，就只能接住“我记得它讲什么”这一种回忆方式；接不住“我当时是为了解决什么问题才存的”和“跟那批东西一起存的”。
-
-Facetmark 给每条书签建四个面：内容面（正文向量）、**意图面**（让模型反向生成“这个页面能回答哪些问题”，再用自洽性过滤掉幻觉出来的问题）、词面（jieba 分词 + trigram 两条 FTS5 路径，中文短词和英文子串盲区互不重叠）、**情境面**（保存时间聚类出的 session、文件夹、链接图）。后两个是现有工具都没有的。
-
-**然后我们量了一下这四个面融合起来到底有没有用，答案是没有。** 2376 篇真实网页、
-479 条评测查询、真实模型（`docs/gate-w1.md`）：只用内容面，内容型查询 Recall@5 是
-95.9%；平权 RRF 融进任意一个更弱的面就掉 5.4pp。所以默认配置现在是**内容面 + 图扩展
-+ 时间衰减 + 带门控的上下文乘子**，另外三个面照建照存，但要显式 `--config C/D/E` 才
-参与排序。图扩展留在默认里是因为它对排序逐位不变、只把邻居多送 2.09pp 上来，代价
-9 毫秒。
-
-**上下文乘子是 W1 之后唯一改过的那个 flag。** 不门控时它在情景型查询上 +8.14pp、
-在内容型上 −9.94pp，所以 W1 把它关掉，只留下"按查询类型门控就该行"这个猜想。这个猜想
-后来在**616 条没有参与产生它的查询**上判过了，判定规则先于结果落盘
-（`docs/gate-w2w3.md`）：门控之后它相对纯内容面是 **+3.09pp（CI95 [+1.79, +4.55]，
-19 条变好、0 条变差）**，内容型查询逐位不变（+0.00pp），情景型 +8.48pp。**现在它默认
-开着。** 那轮**没有**检验到的是门控的精确率——那批情景型查询的时间短语是照着同一个
-分类器造出来的，真实用户问"2015 年那批论文"时误触发的概率远高于这里量到的 0.55%，
-而每一次误触发都要付那份 −9.94pp。
-
-同一批查询还判了另外五个候选修复。三个确实修好了融合坏掉的一部分（相对 C 档：
-`C_notri` +4.54pp、`C_max` +4.22pp、`C_lowlex` +4.22pp），但三个都仍然**落后纯内容面
-3.4–3.7pp**——融合是被解释清楚了，不是被救回来了，所以它们继续默认关闭。两个什么都没
-发生：`C_abstain` 在 616 条里只改了 1 条，同一个门控装在融合栈上是 7 胜 8 负。
-
-原始阶梯、置信区间、McNemar 逐条判决和留一法探针都在 `docs/gate-w1.md`，包括三条
-预注册判据**全部未通过**的判定过程。
-
-后续三份把"输掉的那一步"拆开了。`docs/query-set-lexical-audit.md` 量出这批查询里有
-多少条根本不需要向量（内容型 80.1%、模糊型 46.3%），以及 6.05% 的查询**只有**词面能
-找到——所以词面面不是没贡献，是融合把贡献弄丢了。`docs/w2-fusion-anatomy.md` 接着量
-融合算子本身，两条值得单说：词面的 trigram 半边在中文查询上**从来没有工作过**（无空格
-的整句被当成一个引号短语丢给索引，211 条中文查询只有 25 条拿得到候选；修好后 202 条，
-而整体 Recall@5 一动不动），以及 RRF 的算术**给不出单面保护**——用出厂常数，任何被两个
-满权重面同时召回的文档，在候选深度内的每一个名次上都赢过任何单面第一名。
-`docs/w3-criterion-medium.md` 再往前问一层：W1 的判据**能不能测到**上下文乘子——出厂的
-`MAX_BOOST = 1.60` 在 A 档能跨过整档分数量程的 79.7%，在融合档只有 20.9%，同一个机制
-放在融合档里测需要 6.03 的上限；另外，66.3% 的候选**根本没有拿到任何加成**，那和
-"加成太小推不动"是两个不同的问题。
-
-最后是 `docs/gate-w2w3.md`：**六个候选修复在一批全新的 616 条查询上判胜负**，规则先于
-结果落盘，两个家族各自做 Holm 校正，每个比较都报"这个样本量能看见多小的效应"。它顺手
-给介质那件事补了一个旁证——同一个门控装在 A 上是 +4.55pp（32 胜 4 负），装在融合栈上是
-−0.16pp（7 胜 8 负），而两者的情景型 Recall@5 同为 0.3214：在融合后的分数里，这个乘子
-确实推不动东西。
-
-如果你的 API 网关只提供 chat、不提供 `/embeddings`（免费和聚合网关很常见，而且
-`GET /v1/models` 不会告诉你——它照样列出六个模型，但一个都不给嵌入接口用），把编码器
-搬到本地即可：`pip install 'facetmark[local]'`，然后 `FACETMARK_EMBED_BACKEND=local`
-加 `FACETMARK_LOCAL_EMBED_PATH=BAAI/bge-m3`。**换编码器之前必须先验证**：`sqlite-vec`
-对任何宽度正确的向量都会返回近邻，哪怕它来自另一个模型，结果照样有序、看着合理、其实
-无意义，代码里没有任何断言能拦住。做法是拿索引里已经有的东西重新编码一遍，跟存着的向量
-算余弦；`vec_intent` 存的是逐字原文，中间没有拼接和截断，是最干净的探针。本项目自己这样
-测了 64 条，最小自余弦 **0.999976**，而最佳错配只有 **0.6501**——起作用的是这个差距，不是
-0.99 这个数本身。
-
-全部本地运行，不改你的浏览器书签，不上传书签库。想先看效果又不想配 key：`facetmark demo`。
-
-链接健康检查遵守一条硬规则：**任何情况下不自动删除、不自动隐藏**。本地探测失败永远不足以判定“页面已死”——从一个 socket 看过去，被墙和被删长得一模一样。
+Contribution rules: [`CONTRIBUTING.md`](CONTRIBUTING.md). Trust boundaries:
+[`SECURITY.md`](SECURITY.md). Version history, including why each default changed:
+[`CHANGELOG.md`](CHANGELOG.md).
 
 ## License
 
-MIT
+MIT.
