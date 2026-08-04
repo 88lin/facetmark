@@ -5,7 +5,7 @@
 [![CI](https://github.com/88lin/facetmark/actions/workflows/ci.yml/badge.svg)](https://github.com/88lin/facetmark/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1115-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-1149-brightgreen)](tests/)
 [![Code of Conduct](https://img.shields.io/badge/code%20of%20conduct-contributor%20covenant-blueviolet)](CODE_OF_CONDUCT.md)
 
 [English](README.md) · [简体中文](README.zh-CN.md)
@@ -135,7 +135,7 @@ git clone https://github.com/88lin/facetmark
 cd facetmark
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
-pytest -q               # 1115 tests, ~36 s
+pytest -q               # 1149 tests, ~37 s
 ruff check src tests scripts
 ```
 
@@ -355,19 +355,37 @@ built from the drifted vectors.
 to a karakeep-enriched library; rank-level ones do not, until that library has been
 re-indexed with facetmark's own enrichment.
 
-### The decay layer cannot fire in the default profile
+### The decay layer cannot fire in the default profile — and that costs nothing
 
 Found while explaining the round-trip result. RRF scores are `sum_f w_f / (k + rank_f)`;
 with `rrf_k = 60` a single unit-weight facet tops out at `1/61 = 0.016393`.
 `decay_rescue_threshold` ships at `0.02`. The default profile `full` is a **one-facet**
 config, so `hot_top_score < rescue_threshold` is always true, the rescue valve always
 opens, and the demotion it guards has never executed. `fused` is unaffected (two facets
-already reach 0.0279).
+already reach 0.0279). Pinned by `tests/test_decay_reach.py`.
 
-Pinned by `tests/test_decay_reach.py`. **Deliberately not "fixed" here**: moving the
-threshold or `rrf_k` changes the default ranking for every query, and this project does
-not do that without a query set and a pre-registered criterion. It is on
-[`ROADMAP.md`](ROADMAP.md).
+That is a proof about arithmetic. "There is a dead layer in the default profile" and "the
+default profile ranks worse because of it" are different claims, and the second one was
+measured ([`docs/decay-reach.md`](docs/decay-reach.md)): same retriever, same 616
+held-out queries, one setting changed — `0.02` versus `0.0`, which makes the valve
+unreachable in the other direction so the demotion always applies.
+
+| | shipped `0.02` | reachable `0.0` |
+|---|---|---|
+| Recall@5 | 0.5860 | 0.5860 |
+| queries where the valve opened | 113 / 616 | 0 / 616 |
+
+**ΔRecall@5 = `0.0000pp`, CI95 `[0, 0]`** — and not for want of power. 46 result lists
+changed, 15 top-5s changed, 3 target ranks moved by one place, and not a single query
+crossed the `rank ≤ 5` boundary in either direction. The census says why: **8** of 2,376
+pages are cold, and **0** of the 230 target pages are. Condition 3 — positive evidence of
+supersession — cuts 1,071 old-and-never-opened pages down to 8, and that condition is
+exactly what stops the layer from being an age filter.
+
+So the threshold stays, and the reason upgrades from "changing default ranking needs a
+protocol" to "measured, the payoff is zero". The caveat worth pressing on: the query set
+was generated from pages that *have* body text, and cold pages are mostly dead links, so a
+query set of "find that page that no longer loads" could overturn every number here.
 
 ### One real export, end to end
 
@@ -507,7 +525,7 @@ extension/                browser extension (open-count telemetry)
 eval/                     query sets and evaluation harness
 scripts/                  experiment drivers and probes
 docs/                     one file per experiment, protocol first
-tests/                    1115 tests
+tests/                    1149 tests
 ```
 
 ## Contributing
@@ -532,8 +550,10 @@ web UI, the karakeep bridge, and the evaluation harness all work; the numbers ab
 reproducible from `scripts/` and `eval/`.
 
 Known open items, all documented rather than hidden: the decay layer cannot fire in the
-default profile; the intent facet is off by default and the reason is conceptual; the
-karakeep bridge has no test against a live karakeep instance; and the largest missing
+default profile (measured — on this library it costs exactly nothing, but no query in the
+set is looking for a cold page); the intent facet is off by default and the reason is
+conceptual; the karakeep bridge is pinned to upstream's types and to a captured wire
+contract but still has no test against a live karakeep instance; and the largest missing
 piece is a query set built by someone other than the author. See [ROADMAP.md](ROADMAP.md)
 and [CHANGELOG.md](CHANGELOG.md).
 

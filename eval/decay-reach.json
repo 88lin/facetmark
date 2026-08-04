@@ -1,0 +1,102 @@
+{
+  "clock": 1785649110,
+  "db": "/workspace/w1/library-w1-indexed.db",
+  "queries": 616,
+  "qtypes": {
+    "q_content": 181,
+    "q_vague": 211,
+    "q_episodic": 224
+  },
+  "census": {
+    "bookmarks": 2376,
+    "old_and_never_opened": 1071,
+    "cold": 8,
+    "cold_ids": [
+      1126,
+      1169,
+      1275,
+      1365,
+      1423,
+      1453,
+      1576,
+      1581
+    ],
+    "targets": 230,
+    "cold_targets": [],
+    "note": "old_and_never_opened is conditions 1+2 only; `cold` adds condition 3 (a supersession edge or a dead health verdict). The gap between them is how much work condition 3 is doing."
+  },
+  "shipped": {
+    "threshold": 0.02,
+    "recall5": 0.586,
+    "recall1": 0.4237,
+    "rescued_queries": 113
+  },
+  "reachable": {
+    "threshold": 0.0,
+    "recall5": 0.586,
+    "recall1": 0.4253,
+    "rescued_queries": 0
+  },
+  "exposure": {
+    "queries_with_a_cold_page_in_the_list": 46,
+    "queries_with_a_cold_page_in_top5": 15
+  },
+  "difference": {
+    "queries_whose_top5_changed": 15,
+    "queries_whose_list_changed": 46,
+    "queries_whose_target_rank_moved": 3,
+    "moves": [
+      {
+        "q": "去年换新电脑需要装软件存的",
+        "qtype": "q_episodic",
+        "from": 14,
+        "to": 13
+      },
+      {
+        "q": "reading about technology and jobs in 2026",
+        "qtype": "q_episodic",
+        "from": 9,
+        "to": 8
+      },
+      {
+        "q": "calibre 支持 哪些 电子书 格式 转换",
+        "qtype": "q_content",
+        "from": 2,
+        "to": 1
+      }
+    ]
+  },
+  "recall5": {
+    "delta_pp": 0.0,
+    "ci95_pp": [
+      0.0,
+      0.0
+    ],
+    "boots": 10000
+  },
+  "recall1": {
+    "delta_pp": 0.1623,
+    "ci95_pp": [
+      0.0,
+      0.487
+    ],
+    "boots": 10000
+  },
+  "by_qtype": {
+    "q_content": {
+      "n": 181,
+      "shipped_recall5": 0.9061,
+      "reachable_recall5": 0.9061
+    },
+    "q_episodic": {
+      "n": 224,
+      "shipped_recall5": 0.2634,
+      "reachable_recall5": 0.2634
+    },
+    "q_vague": {
+      "n": 211,
+      "shipped_recall5": 0.654,
+      "reachable_recall5": 0.654
+    }
+  }
+}

@@ -5,7 +5,7 @@
 [![CI](https://github.com/88lin/facetmark/actions/workflows/ci.yml/badge.svg)](https://github.com/88lin/facetmark/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1115-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-1149-brightgreen)](tests/)
 [![Code of Conduct](https://img.shields.io/badge/code%20of%20conduct-contributor%20covenant-blueviolet)](CODE_OF_CONDUCT.md)
 
 [English](README.md) · [简体中文](README.zh-CN.md)
@@ -130,7 +130,7 @@ git clone https://github.com/88lin/facetmark
 cd facetmark
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
-pytest -q               # 1115 条测试，约 36 秒
+pytest -q               # 1149 条测试，约 37 秒
 ruff check src tests scripts
 ```
 
@@ -337,17 +337,33 @@ karakeep 的 tag 是浏览器的**文件夹**标签，那描述的是一个书�
 **这对读这个仓库里数字的人意味着什么：**指标级的结论可以搬到 karakeep 富集的库上；
 名次级的结论不行，除非那个库先用 facetmark 自己的富集重新索引过一遍。
 
-### 衰减层在默认档里够不着
+### 衰减层在默认档里够不着——而这个缺陷的代价是零
 
 这是解释往返结果时顺带发现的。RRF 的分数是 `sum_f w_f / (k + rank_f)`；`rrf_k = 60` 时
 单个单位权重的面最高只能给到 `1/61 = 0.016393`。而 `decay_rescue_threshold` 出厂值是
 `0.02`。默认档 `full` 恰好是**单面**配置，于是 `hot_top_score < rescue_threshold`
 **恒成立**，救援阀每次都开，它守着的降权一次也没执行过。`fused` 不受影响（两个面就有
-0.0279）。
+0.0279）。`tests/test_decay_reach.py` 把现状钉住了。
 
-`tests/test_decay_reach.py` 把现状钉住了。**故意没有顺手改掉**：动阈值或动 `rrf_k` 会
-改变每一条查询的默认排序，按这个项目的规矩得先有查询集和预注册判据。已经写进
-[`ROADMAP.md`](ROADMAP.md)。
+这是一个关于算术的证明。「默认档里有一层死代码」和「默认档因此排得更差」是两个不同的
+主张，第二个已经量过了（[`docs/decay-reach.md`](docs/decay-reach.md)）：同一个检索器、
+同一批 616 条留出查询，只改一个设置——`0.02` 对 `0.0`，后者让阀门朝另一个方向够不着，
+于是降权总是执行。
+
+| | shipped `0.02` | reachable `0.0` |
+|---|---|---|
+| Recall@5 | 0.5860 | 0.5860 |
+| 救援阀打开的查询数 | 113 / 616 | 0 / 616 |
+
+**ΔRecall@5 = `0.0000pp`，CI95 `[0, 0]`**——而且不是样本不够。46 条查询的完整列表变了、
+15 条的前 5 变了、3 条的目标名次移动了一格，却没有任何一条查询在 `rank ≤ 5` 这个边界上
+翻转。普查说明了原因：全库 2,376 页里冷层只有 **8** 页，230 个目标里 **0** 个是冷页。
+条件 3——需要有被取代的正面证据——把 1,071 页「老且从未打开」砍到 8 页，而这条件正是
+拦着这一层退化成年龄过滤器的那道墙。
+
+所以阈值不动，理由从「改默认排序需要先有协议」升级成「量过了，收益是零」。最值得追问的
+边界：查询集是从**有正文**的页面生成的，而冷页大多是死链——一批「找回那个已经打不开的
+页面」的查询可以推翻上面每一个数字。
 
 ### 一次真实导出上的跑通
 
@@ -478,7 +494,7 @@ extension/                浏览器扩展（打开次数遥测）
 eval/                     查询集与评测框架
 scripts/                  实验驱动与探针
 docs/                     一个实验一份文档，协议在前
-tests/                    1115 条测试
+tests/                    1149 条测试
 ```
 
 ## 参与贡献
@@ -500,9 +516,10 @@ tests/                    1115 条测试
 能用，而且对自己做不到的事情很诚实。检索内核、CLI、服务端、Web 界面、karakeep 桥接、
 评测框架都能跑；上面所有数字都能从 `scripts/` 和 `eval/` 复现。
 
-已知的未了事项，全部写出来而不是藏起来：衰减层在默认档里够不着；意图面默认关闭而且原因
-是理念性的；karakeep 桥接还没有对着一个活的 karakeep 实例测过；而最大的缺口是一份**由
-作者之外的人**构造的查询集。见 [ROADMAP.md](ROADMAP.md) 和 [CHANGELOG.md](CHANGELOG.md)。
+已知的未了事项，全部写出来而不是藏起来：衰减层在默认档里够不着（已经量过——在这个库上
+代价是精确的零，但查询集里没有一条是在找冷页）；意图面默认关闭而且原因是理念性的；
+karakeep 桥接已经钉住了上游类型和一份捕获下来的线格式契约，但仍然没有对着一个活的
+karakeep 实例测过；而最大的缺口是一份**由作者之外的人**构造的查询集。见 [ROADMAP.md](ROADMAP.md) 和 [CHANGELOG.md](CHANGELOG.md)。
 
 ## License
 
