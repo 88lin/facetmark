@@ -246,11 +246,49 @@ Recall@1 同理：`0.4237 × 616 = 261`、`0.4188 × 616 = 258`，差 3 条，`�
    404 不算死，要连续观察」。这次只跑了一遍，没有第二次观察去确认。真实部署里的 `gone`
    应该比这更保守。
 
-还有一个**没查清的**问题，记在这里以免忘掉：全库健康检查时 stderr 反复打出
-`readability` 的 `ValueError: All strings must be XML compatible`（`lxml_html_clean`
-的 `drop_tree` 碰到控制字符），但报告的 `errors` 是空列表——异常在上层被吞掉了。这可能
-让一部分页的 drift 检测静默失效，也就是说 `drifted` 那 28 条可能既有假阳也有假阴。
-没有追下去。
+本文初版还留了一个「没查清」的问题：全库健康检查时 stderr 反复打出 `readability` 的
+`ValueError: All strings must be XML compatible`，但报告的 `errors` 是空列表——异常在
+上层被吞掉了。**1.6.1 把它查完了，结论分两半。**
+
+**一半是坏消息：这个吞掉的异常是一台自动生产死判定的机器。** 两条提取层（`trafilatura`
+和 `readability`）各自 `except Exception: return ""`，于是「解析器崩了」和「页面真的空
+了」到下游变成同一个值。而下游拿这个值跟索引里的正文比：0 个字符对 900 个字符，
+`body_similarity` 算出 0.0，低于 `DRIFT_SIMILARITY`，返回 `DRIFTED`——`DRIFTED` 在
+`DEAD_VERDICTS` 里，于是进冷层，于是在检索里被降权。**整条链条由我们自己的仪器故障
+驱动，而且长得和一次测量完全一样。** 写测试时还发现第二条更隐蔽的路径：两层都崩之后
+`extract()` 会退到 metadata 层，把 `<title>` 当正文返回——9 个字符的标题不是空值，于是
+连「什么都没提取到」这个信号都消失了，只剩下一个看起来很像「这页丢了 99% 的正文」的
+测量结果。
+
+**另一半是好消息：它没有污染 1.6.0 的任何数字。** 把 2,376 行健康记录的
+`local_evidence` 全部解开按判定分桶数 `body_chars`：
+
+| 判定 | 行数 | `body_chars == 0` |
+|---|---|---|
+| alive | 1,899 | 161 |
+| **drifted** | **58** | **0** |
+| gone | 60 | 60（HTTP 404/410，提取根本没跑到） |
+| restricted | 200 | 200 |
+| unknown | 74 | 74 |
+| unreachable | 85 | 85 |
+
+**58 条 `drifted` 里没有一条是空提取产生的。** `gone` 那 60 条的 0 来自
+`_verdict_for_status()` 提前返回，提取层压根没被调用。所以 73 条冷层、8 个受损目标、
+`−1.4610pp` 全部成立——这是一把上了膛但没有走火的枪。
+
+**修法**（1.6.1）：错误策略从各层挪到编排层。`_try_trafilatura` / `_try_readability`
+不再自己吞异常，`extract()` 用 `_guard()` 包住它们，把崩溃记成具名的
+`Extraction.failures`；新增 `Extraction.parse_failed`——**当且仅当有层崩过、且最终只剩
+`none` 或 `metadata`**（metadata 算「什么都没恢复出来」，因为标题不是正文测量）。
+`probe_one` 见到 `parse_failed` 就记一条 `extraction_failed` 证据并返回 `ALIVE`：
+HTTP 说 200，解析器崩了不是页面死了的证据。这跟同一个函数里早就写着的另一句
+（「HEAD 说 200，正文重读失败不是页面死了的证据」）是同一条原则，只是之前漏了这一处。
+`tests/test_extraction_failure.py` 9 条钉住它，其中两条是对照组：真的空页、和只有
+metadata 的薄页，都必须**照旧**产生正常判定，否则这个修法就只是把 drift 检测关掉了。
+
+仍然没查清的是**触发输入**。控制字符本身不触发（试过 `\x01\x0b\x0c`，两层都正常返回），
+所以真实触发条件是某种更具体的畸形标记。这个不重要了：修法钉的是策略（解析器崩溃 ⇒
+不产生死判定），不是某个 lxml 版本的崩溃输入。`drifted` 那 28 条噪声大的判断不变。
 
 ## 9. 新出现的未测边界
 
