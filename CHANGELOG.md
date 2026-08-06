@@ -248,27 +248,3 @@ metadata 层把 `<title>` 当正文返回，9 个字符的标题不是空值，�
   于是 `facetmark version`、`GET /health` 和 OpenAPI 文档一起报了一个落后两版的版本号。
   没有任何东西报错，这正是问题所在——一个只有人会读的版本号会悄悄漂走。
   `tests/test_version.py` 现在把五处（包内常量、`pyproject.toml`、
-  `extension/package.json`、`CITATION.cff`、`CHANGELOG.md` 最新的已发布标题）钉在一起，
-  顺带钉住 CITATION 的日期和 CHANGELOG 的版本顺序。
-- **浏览器扩展的 manifest 版本改为构建时注入。** 它自己写死着 `1.0.0`，而
-  `package.json` 已经爬到 1.4.0——装出来的扩展报着一个从没发布过的版本。现在
-  `src/manifest.json` 里没有 `version` 字段，`build.mjs` 从 `package.json` 盖上去，
-  单一事实来源，不会再漂。
-
-## [1.4.0] - 2026-08-04
-
-**这一轮的主题是停止造轮子。** karakeep 已经把检索周边的东西全做完了——浏览器扩展、
-手机 App、无头 Chrome 抓取、多用户、Web UI、Docker 部署——而它的排序是一个只有四个方法
-的插件接口。所以 facetmark 实现那个接口，然后放弃自己那三样。
-
-### 新增
-
-- **`facetmark.bridges.karakeep`**：karakeep `SearchIndexClient` 契约的 Python 侧实现，
-  `addDocuments` / `deleteDocuments` / `search` / `clearIndex` 四个方法各对应一个函数。
-  按需建一张 `karakeep_doc(karakeep_id, user_id, bookmark_id, updated_at)` 映射表，卸载
-  就是 `DROP TABLE karakeep_doc`。
-- **五条 HTTP 路由**：`POST /karakeep/documents`、`POST /karakeep/documents/delete`、
-  `POST /karakeep/search`、`POST /karakeep/clear`、`GET /karakeep/stats`。写路径全部在
-  服务的全局锁内。
-- **`POST /karakeep/search` 接受 `config` 参数**（`full`、`A`–`E`、任意消融档名）。
-  ~~消融可以在一个真实 karakeep 库上跑了~~ —— **这条在同一个版
