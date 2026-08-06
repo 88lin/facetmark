@@ -27,7 +27,7 @@ import statistics
 import sys
 import time
 from collections import Counter
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
@@ -39,6 +39,8 @@ from facetmark.config import get_settings  # noqa: E402
 from facetmark.db import connect  # noqa: E402
 from facetmark.providers import get_provider  # noqa: E402
 from facetmark.search.pipeline import ALL_CONFIGS, search  # noqa: E402
+
+UTC = timezone.utc  # datetime.UTC is 3.11+; CI matrix starts at 3.10
 
 #: Frozen in the protocol so decay and any time window resolve identically to
 #: ``docs/gate-w2w3.md``.

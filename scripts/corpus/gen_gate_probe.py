@@ -58,11 +58,13 @@ import re
 import sqlite3
 import time
 from collections import Counter
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from facetmark.config import get_settings
 from facetmark.providers import get_provider
+
+UTC = timezone.utc  # datetime.UTC is 3.11+; CI matrix starts at 3.10
 
 _SPEC = importlib.util.spec_from_file_location(
     "_gen_queries", Path(__file__).with_name("gen_queries.py"))
