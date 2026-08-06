@@ -77,6 +77,17 @@ const FACET_LABEL: Record<string, string> = {
 function render(hits: Hit[], expanded: Hit[], note: string): void {
   status.textContent = `${hits.length} result${hits.length === 1 ? "" : "s"} · ${note}`;
   list.innerHTML = "";
+  if (!hits.length && !expanded.length) {
+    const li = document.createElement("li");
+    li.className = "empty";
+    const glyph = document.createElement("span");
+    glyph.className = "glyph";
+    glyph.textContent = "○";
+    li.appendChild(glyph);
+    li.appendChild(document.createTextNode("nothing in your library matches that yet"));
+    list.appendChild(li);
+    return;
+  }
   for (const h of hits) list.appendChild(row(h));
   // The expansion group is one hop out through the link graph: not answers to
   // the query, neighbours of the answers. Interleaving them would be a lie
@@ -103,12 +114,23 @@ function row(h: Hit, neighbour = false): HTMLLIElement {
   title.textContent = h.title || h.url;
   a.appendChild(title);
 
-  const why = neighbour
-    ? h.via_kind || "linked"
-    : (h.facets ?? []).map((f) => FACET_LABEL[f] ?? f).join("+");
   const meta = document.createElement("div");
   meta.className = "meta";
-  meta.textContent = [h.domain, h.folder, why].filter(Boolean).join(" · ");
+  const lead = [h.domain, h.folder].filter(Boolean).join(" · ");
+  if (lead) meta.appendChild(document.createTextNode(lead));
+  if (neighbour) {
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.textContent = h.via_kind || "linked";
+    meta.appendChild(chip);
+  } else {
+    for (const f of h.facets ?? []) {
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.textContent = FACET_LABEL[f] ?? f;
+      meta.appendChild(chip);
+    }
+  }
   a.appendChild(meta);
 
   if (h.cold) {

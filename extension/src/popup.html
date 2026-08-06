@@ -2,15 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="color-scheme" content="light dark" />
     <title>Facetmark</title>
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
     <header>
       <input id="q" type="search" placeholder="what were you looking for?" autocomplete="off" />
-      <button id="save" type="button">save this page</button>
+      <button id="save" type="button" class="primary">save this page</button>
     </header>
-    <div id="status"></div>
+    <div id="status" role="status" aria-live="polite"></div>
     <ul id="results"></ul>
     <footer>
       <span id="queue"></span>
