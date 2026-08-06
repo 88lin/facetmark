@@ -276,6 +276,18 @@ async def probe_one(
 
         raw = body_resp.content[:MAX_BYTES]
         ex = extract(body_resp.text if raw else "", url=final_url, title_hint=title_hint)
+
+        if ex.parse_failed:
+            reason = "; ".join(ex.failures)[:200]
+            ev.append(Evidence("local", "extraction_failed", reason, now))
+            # HTTP said 200 and then every parser crashed on the bytes. A broken
+            # parser is not evidence the page died. Reading it as one would put
+            # zero characters against a healthy indexed copy, score similarity
+            # 0.0, and return DRIFTED -- a dead verdict, manufactured entirely
+            # by our own instrument, that then demotes a live page in search.
+            return done(LocalVerdict.ALIVE, http_status=status, final_url=final_url,
+                        method="GET", body_chars=0, error=reason)
+
         new_chars = len(ex.text)
         ratio = (new_chars / known_chars) if known_chars > 0 else None
         pat = placeholder_hit(ex.title, ex.text)
