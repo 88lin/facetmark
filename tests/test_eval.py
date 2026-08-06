@@ -150,7 +150,8 @@ class TestBench:
         rep = await run_eval(size=24, ablation=True, bootstrap=100)
         assert [r["config"] for r in rep["rungs"]] == ["A", "B", "C", "D", "E"]
         for row in rep["rungs"]:
-            assert set(row["by_type"]) == {"q_content", "q_vague", "q_episodic"}
+            assert set(row["by_type"]) == {"q_content", "q_vague", "q_episodic",
+                                           "q_save_action"}
             assert row["overall"]["n"] == sum(
                 row["by_type"][t]["n"] for t in row["by_type"])
         assert len(rep["deltas"]) == 4

@@ -73,6 +73,23 @@ consequences are deliberate:
     the same trap that made v1's ``q_content`` (the title, verbatim) score
     100%. The rare-token gate therefore covers title *and* slug, which makes
     this pool harder to satisfy than the body pool, and its drop rate higher.
+
+**Dead pages.** ``--dead-share`` adds a third pool from the 1.6.0 health
+check's ``gone`` + ``drifted`` verdicts (``eval/cold-census.json``). The
+servable layer (indexed body >= 200 chars) emits all four types -- the body
+is still in the index, so a content query is honest; the unservable layer
+uses the body-less prompt and emits no ``q_content``, for the same reason
+the body-less pool does not. The prompt never says the page is dead: the
+user saved it while it was alive, and "the page that died" would leak the
+dead identity to the lexical facet.
+
+**Save-action queries.** ``--save-action-share`` marks a fraction of targets
+(drawn from all three pools) to also emit ``q_save_action``: the user
+remembers *that they saved it*, not what it says and not when. This is the
+gate-recall probe, so the validator rejects any word the gate already
+triggers on -- year, ``n_ago``, ``time:relative``, ``_VAGUE_EPISODIC``,
+``_SAVE_ACTION`` -- and ``classify()`` is NOT consulted: whether the gate
+fires is the outcome variable, not an entrance ticket.
 """
 from __future__ import annotations
 
@@ -90,7 +107,14 @@ from urllib.parse import unquote, urlsplit
 
 from facetmark.config import get_settings
 from facetmark.providers import get_provider
-from facetmark.search.understand import _RELATIVE, classify
+from facetmark.search.understand import (
+    _ABS_YEAR,
+    _N_AGO,
+    _RELATIVE,
+    _SAVE_ACTION,
+    _VAGUE_EPISODIC,
+    classify,
+)
 from facetmark.text import segment, segment_query
 
 SYSTEM = (
@@ -156,9 +180,12 @@ separated by commas.
    date, NO year, NO month and NO season: the date is added separately and
    yours would be wrong.
 
+"save_action" -- {save_action_brief}
+
 The example above is about a different page. Take its shape, never its words.
 
-JSON only: {{"content": "...", "vague": "...", "hint": "..."}}"""
+JSON only: {{"content": "...", "vague": "...", "hint": "...",
+"save_action": "..."}}"""
 
 BODYLESS_TEMPLATE = """A person bookmarked this page and is now trying to find it
 again. Nobody knows what the page says -- the fetch failed, or it is behind a
@@ -190,12 +217,59 @@ separated by commas.
    date, NO year, NO month and NO season: the date is added separately and
    yours would be wrong.
 
+"save_action" -- {save_action_brief}
+
 Do NOT write a "content" answer. Nobody read this page, and a guessed one would
 put words into the query set that the page may never have contained.
 
 The example above is about a different page. Take its shape, never its words.
 
-JSON only: {{"vague": "...", "hint": "..."}}"""
+JSON only: {{"vague": "...", "hint": "...", "save_action": "..."}}"""
+
+#: Dead-pool variant for the unservable layer. Identical to BODYLESS_TEMPLATE
+#: except the health verdict is part of the material -- it is something a
+#: person could genuinely know ("that page is gone now") -- and the prompt
+#: must NOT hint that the page is unreachable, because the user saved it
+#: while it was alive and "the page that died" would leak the dead identity
+#: to the lexical facet.
+DEAD_BODYLESS_TEMPLATE = """A person bookmarked this page and is now trying to
+find it again. Nobody knows what the page says -- the fetch failed, or it is
+behind a login, or it renders entirely in the browser. Everything that is
+known about it is below, and it is all you may use.
+
+TITLE: {title}
+ADDRESS: {url}
+WORDS IN THE ADDRESS: {slug}
+FOLDER: {folder}
+SAVED IN THE SAME SITTING AS: {neighbours}
+
+{examples}
+
+Answer in {lang}. Each value is one natural phrase of 4-14 words (or 8-25
+Chinese characters) that a person would actually type into a search box.
+Lowercase, no quotes, no trailing punctuation, and NOT a list of keywords
+separated by commas.
+
+"vague"   -- what they type remembering only what the page was FOR. Say what a
+   page with this title, at this address, is *for* -- what someone opens it to
+   do -- in everyday words, as if explaining it to a friend who has never seen
+   it. Use none of the distinctive words from the title or from the address: no
+   proper noun, product name, library name, acronym or unusual technical term
+   from either. If the title tells you almost nothing, describe the kind of
+   thing it is rather than inventing a topic for it.{avoid}
+
+"hint"    -- {hint_brief} Keep it under ten words, stay general, and write NO
+   date, NO year, NO month and NO season: the date is added separately and
+   yours would be wrong.
+
+"save_action" -- {save_action_brief}
+
+Do NOT write a "content" answer. Nobody read this page, and a guessed one would
+put words into the query set that the page may never have contained.
+
+The example above is about a different page. Take its shape, never its words.
+
+JSON only: {{"vague": "...", "hint": "...", "save_action": "..."}}"""
 
 HINT_TOPIC = (
     "the situation they were in when they saved this page -- what they were "
@@ -206,9 +280,28 @@ HINT_NEIGHBOUR = (
     "listed above rather than on this one."
 )
 
-#: The model answers three keys; the query file names three types. Ordered,
+#: The save-action query: the user remembers *that they saved it*, not what it
+#: says and not when. This is the gate-recall probe, and its whole point is
+#: that the natural vocabulary of saving is already confiscated by the gate's
+#: trigger lists -- so the prompt must ask for the intent in words the gate
+#: does NOT know, and the validator must reject any that slip through.
+SAVE_ACTION_BRIEF = (
+    "what they type when they remember only THAT they saved this page, not "
+    "what it says and not when. Express the 'I saved this' intent in words "
+    "that do NOT appear in these forbidden lists: no year, no relative time "
+    "word (today/yesterday/recently/this year/last year/...), no vague "
+    "episodic marker (back when/at the time/...), and none of the gate's own "
+    "save-action words (saved/bookmark/bookmarked/i kept/my bookmarks/"
+    "保存/收藏/存的/存过/存了/书签/上次/那天/我存). Use an un-confiscated "
+    "phrasing instead: 'the one I put away', 'from my collection', "
+    "'之前收起来的那个'. Do not describe the page's subject "
+    "matter -- the user does not remember it."
+)
+
+#: The model answers four keys; the query file names four types. Ordered,
 #: because the emitted file is read by humans as much as by the harness.
-KEY_TO_QTYPE = {"content": "q_content", "vague": "q_vague", "hint": "q_episodic"}
+KEY_TO_QTYPE = {"content": "q_content", "vague": "q_vague", "hint": "q_episodic",
+                "save_action": "q_save_action"}
 
 
 # ---------------------------------------------------------------------------
@@ -522,6 +615,36 @@ def check_episodic_resolves(text: str, subtype: str, saved_ts: int,
     return ""
 
 
+def check_save_action(text: str, zh: bool, example_toks: set[str],
+                      page_toks: set[str]) -> str:
+    """The gate-recall probe: save-action intent with NO gate trigger words.
+
+    The validator is the whole type. A query that slips a trigger word through
+    is not a recall probe, it is a precision probe wearing the wrong label --
+    and the two experiments answer opposite questions. ``classify()`` is NOT
+    consulted here: whether the gate fires is the outcome variable, not an
+    entrance ticket, exactly as in the gate-precision protocol.
+    """
+    bad = check_shape(text, zh, example_toks, page_toks)
+    if bad:
+        return bad
+    lowered = text.lower()
+    if _ABS_YEAR.search(text):
+        return "remove the year; a save-action query carries no date"
+    if _N_AGO.search(lowered):
+        return "remove the 'n days/weeks ago' phrasing; no relative time"
+    for pattern, _s, _e in _RELATIVE:
+        if re.search(pattern, lowered):
+            return f"remove the relative time word: {pattern}"
+    for marker in _VAGUE_EPISODIC:
+        if marker in lowered:
+            return f"remove the vague episodic marker: {marker}"
+    for word in _SAVE_ACTION:
+        if word in lowered:
+            return f"the gate already knows this word, use another: {word}"
+    return ""
+
+
 # ---------------------------------------------------------------------------
 # target selection
 # ---------------------------------------------------------------------------
@@ -544,6 +667,20 @@ _BODYLESS_SQL = (
     "FROM bookmark b LEFT JOIN content ct ON ct.bookmark_id = b.id "
     "WHERE b.indexable = 1 AND coalesce(ct.char_count, 0) = 0 "
     "ORDER BY b.id"
+)
+
+#: The dead pool: bookmarks the 1.6.0 health pass judged ``gone`` or
+#: ``drifted`` (the two members of DEAD_VERDICTS that actually fired;
+#: ``soft_gone`` occurred zero times). The verdicts come from
+#: ``eval/cold-census.json``, not from a live health table, because the W1
+#: snapshot's health table is empty -- the check ran on a copy. Servable is
+#: the same 200-char line the cold census itself used.
+_DEAD_SQL = (
+    "SELECT b.id, b.url, b.title, b.folder, b.date_added, b.host, "
+    "       coalesce(ct.body_text, '') AS body_text, "
+    "       coalesce(ct.char_count, 0) AS char_count, ct.lang "
+    "FROM bookmark b LEFT JOIN content ct ON ct.bookmark_id = b.id "
+    "WHERE b.indexable = 1 AND b.id = ?"
 )
 
 
@@ -594,6 +731,45 @@ def pick_targets(db: str, n: int, min_chars: int, seed: int) -> list[dict]:
         o["kind"] = "body"
         o["slug"] = []
     return out
+
+
+def pick_dead_targets(db: str, n: int, seed: int,
+                      census_path: str) -> tuple[list[dict], int]:
+    """Pages the 1.6.0 health pass judged dead. Returns the pool and how many
+    of the census's dead ids no longer resolve to an indexable bookmark.
+
+    The census is the source of truth for *which* ids are dead; the library
+    is the source of truth for everything else (title, body, save time). A
+    dead id missing from the library is counted, not silently skipped,
+    because a query set that quietly shrinks its dead pool is reporting a
+    dead-target share it never had.
+    """
+    census = json.loads(Path(census_path).read_text(encoding="utf-8"))
+    breakdown = census["snapshots"]["checked"]["cold_breakdown"]
+    dead_ids = [r["bookmark_id"] for r in breakdown
+                if r["verdict"] in ("gone", "drifted")]
+    verdict_of = {r["bookmark_id"]: r["verdict"] for r in breakdown}
+    servable_of = {r["bookmark_id"]: bool(r["servable"]) for r in breakdown}
+
+    c = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+    c.row_factory = sqlite3.Row
+    rows = []
+    missing = 0
+    for bid in dead_ids:
+        r = c.execute(_DEAD_SQL, (bid,)).fetchone()
+        if r is None:
+            missing += 1
+            continue
+        rows.append(r)
+    out = _stratify_by_year(rows, n, seed)
+    _attach_neighbours(c, out)
+    c.close()
+    for o in out:
+        o["kind"] = "dead"
+        o["verdict"] = verdict_of.get(o["id"], "")
+        o["servable"] = servable_of.get(o["id"], False)
+        o["slug"] = url_slug_words(o["url"] or "")
+    return out, missing
 
 
 def pick_bodyless_targets(db: str, n: int, seed: int) -> tuple[list[dict], int]:
@@ -665,8 +841,15 @@ def prompt_for(t: dict, body_chars: int, subtype: str, feedback: dict[str, str])
         "neighbours": nb,
         "lang": "Chinese" if zh else "English",
         "hint_brief": HINT_NEIGHBOUR if subtype == "anchor" else HINT_TOPIC,
+        "save_action_brief": SAVE_ACTION_BRIEF,
         "avoid": f" {avoid}" if avoid else "",
     }
+    if t.get("kind") == "dead" and not t.get("servable"):
+        return DEAD_BODYLESS_TEMPLATE.format(
+            url=(t["url"] or "")[:200],
+            slug=", ".join(t["slug"]) or "(none)",
+            examples=example_without_content(pool[t["example"] % len(pool)]),
+            **common) + fb
     if t.get("kind") == "bodyless":
         return BODYLESS_TEMPLATE.format(
             url=(t["url"] or "")[:200],
@@ -705,7 +888,10 @@ async def generate(args) -> None:
         print(f"  --bodyless-share not given; using the library's own share "
               f"{share:.3f}", flush=True)
     n_bodyless = min(round(args.n * share), args.n)
-    targets = pick_targets(db, args.n - n_bodyless, args.min_chars, args.seed)
+    n_dead = min(round(args.n * args.dead_share), args.n)
+    n_save = min(round(args.n * args.save_action_share), args.n)
+    targets = pick_targets(db, args.n - n_bodyless - n_dead, args.min_chars,
+                           args.seed)
     bodyless, unusable = ((pick_bodyless_targets(db, n_bodyless, args.seed))
                           if n_bodyless else ([], 0))
     if n_bodyless and len(bodyless) < n_bodyless:
@@ -714,7 +900,28 @@ async def generate(args) -> None:
         print(f"  only {len(bodyless)} usable text-less pages available "
               f"(asked for {n_bodyless}; {unusable} had nothing to write from)",
               flush=True)
-    targets = targets + bodyless
+    dead, dead_missing = ((pick_dead_targets(db, n_dead, args.seed,
+                                             args.dead_census))
+                          if n_dead else ([], 0))
+    if n_dead and len(dead) < n_dead:
+        print(f"  only {len(dead)} dead targets available "
+              f"(asked for {n_dead}; {dead_missing} census ids not in library)",
+              flush=True)
+    # Dead-pool identity wins over body-pool membership: a servable dead page
+    # has a body, and without exclusion it would be sampled twice under two
+    # kinds. The dead pool is small enough that this costs the body pool a
+    # handful of candidates.
+    dead_ids = {t["id"] for t in dead}
+    targets = [t for t in targets if t["id"] not in dead_ids]
+    targets = targets + bodyless + dead
+
+    # Save-action targets are drawn from the union of all three pools, so a
+    # dead page can be "the one I saved" too -- that cross cell is exactly
+    # what the cold-layer narrowing experiment needs.
+    save_ids = {t["id"] for t in _stratify_by_year(targets, n_save,
+                                                   args.seed + 1)}
+    for t in targets:
+        t["save_action"] = t["id"] in save_ids
 
     rng = random.Random(args.seed)
     mix = tuple(float(x) for x in args.episodic_mix.split(","))
@@ -727,11 +934,14 @@ async def generate(args) -> None:
     rng.shuffle(targets)
     yrs = Counter(t["saved"].year for t in targets)
     print(f"selected {len(targets)} targets ({len(bodyless)} with no page text, "
-          f"{unusable} text-less pages skipped as unwritable); "
+          f"{unusable} text-less pages skipped as unwritable; "
+          f"{len(dead)} dead, {dead_missing} dead ids missing); "
           f"years {dict(sorted(yrs.items()))}; "
           f"{sum(1 for t in targets if t['neighbours'])} have session neighbours; "
           f"subtypes {dict(Counter(t['subtype'] for t in targets))}; "
-          f"{sum(1 for t in targets if t['zh'])} Chinese-titled", flush=True)
+          f"{sum(1 for t in targets if t['zh'])} Chinese-titled; "
+          f"{sum(1 for t in targets if t['save_action'])} save-action",
+          flush=True)
 
     prov = get_provider(st)
     gate = asyncio.Semaphore(args.concurrency)
@@ -742,22 +952,26 @@ async def generate(args) -> None:
     async def one(t: dict) -> list[dict]:
         nonlocal done
         bodyless = t["kind"] == "bodyless"
+        dead_unservable = t["kind"] == "dead" and not t["servable"]
+        no_body = bodyless or dead_unservable
         # What the page puts in front of a person, and therefore what a query
         # may not simply hand back. For a text-less page that is the title plus
         # the address; both are indexed, so both leak.
         material = (f"{t['title'] or ''} {' '.join(t['slug'])} {t['folder'] or ''}"
-                    if bodyless else
+                    if no_body else
                     f"{t['title'] or ''} {(t['body_text'] or '')[:20000]}")
         page_toks = tokens(material)
         page_rare = {tok for tok in page_toks if df.get(tok, 0) < rare_cut}
         title_toks = content_tokens(t["title"] or "")
-        if bodyless:
+        if no_body:
             title_toks = title_toks | content_tokens(" ".join(t["slug"]))
         zh = t["zh"]
         pool = EXAMPLES_ZH if zh else EXAMPLES_EN
         example_toks = content_tokens(pool[t["example"] % len(pool)])
         saved_ts = int(t["saved"].timestamp())
-        keys = ("vague", "hint") if bodyless else ("content", "vague", "hint")
+        keys = ["vague", "hint"] if no_body else ["content", "vague", "hint"]
+        if t["save_action"]:
+            keys.append("save_action")
         for _k, qt in KEY_TO_QTYPE.items():
             if _k in keys:
                 stats[f"asked:{qt}"] += 1
@@ -776,7 +990,7 @@ async def generate(args) -> None:
                     break
                 feedback = {}
                 content_cand = accepted.get("content") or str(payload.get("content") or "")
-                if bodyless:
+                if no_body:
                     # There is no content answer to differ from, so the vague
                     # answer takes its place: the hint must still say something
                     # the query set does not already contain twice.
@@ -792,6 +1006,9 @@ async def generate(args) -> None:
                         reason = check_vague(cand, page_rare, title_toks, zh,
                                              args.title_overlap, example_toks,
                                              page_toks, content_cand)
+                    elif key == "save_action":
+                        reason = check_save_action(cand, zh, example_toks,
+                                                   page_toks)
                     else:
                         reason = check_hint(cand, page_rare, zh, example_toks,
                                             page_toks, content_cand)
@@ -822,6 +1039,13 @@ async def generate(args) -> None:
                     # should re-derive this from the library's char_count so it
                     # stays true if the page is re-fetched. Kept for humans.
                     row["material"] = "bodyless"
+                elif t["kind"] == "dead":
+                    # Same caveat as "bodyless": for humans, not the harness.
+                    # The verdict is the construction-time one; see the v3
+                    # protocol's three caveats about single-observation,
+                    # local-only, time-varying verdicts.
+                    row["material"] = ("dead_servable" if t["servable"]
+                                       else "dead_unservable")
                 if qtype == "q_episodic":
                     # "note" is the slot load_query_file() carries into
                     # EvalQuery; "subtype" is kept for human readability.
@@ -848,10 +1072,14 @@ async def generate(args) -> None:
     with path.open("w", encoding="utf-8") as fh:
         fh.write(f"// generated {datetime.now(UTC).isoformat()} from {db}\n")
         fh.write(f"// targets={len(targets)} bodyless_targets={len(bodyless)} "
+                 f"dead_targets={len(dead)} "
+                 f"save_action_targets={sum(1 for t in targets if t['save_action'])} "
                  f"min_chars={args.min_chars} rare_df_cut={rare_cut} ndocs={ndocs} "
                  f"title_overlap_max={args.title_overlap} "
                  f"content_overlap_max={args.content_overlap} "
-                 f"episodic_mix={args.episodic_mix}\n")
+                 f"episodic_mix={args.episodic_mix} "
+                 f"dead_share={args.dead_share} "
+                 f"save_action_share={args.save_action_share}\n")
         for r in out:
             fh.write(json.dumps(r, ensure_ascii=False) + "\n")
 
@@ -863,6 +1091,19 @@ async def generate(args) -> None:
             "unusable_skipped": unusable,
             "queries": sum(1 for r in out if r.get("material") == "bodyless"),
         },
+        "dead": {
+            "targets": len(dead), "share": args.dead_share,
+            "census_ids_missing": dead_missing,
+            "servable": sum(1 for t in dead if t["servable"]),
+            "unservable": sum(1 for t in dead if not t["servable"]),
+            "queries": sum(1 for r in out
+                           if str(r.get("material", "")).startswith("dead")),
+        },
+        "save_action": {
+            "targets": sum(1 for t in targets if t["save_action"]),
+            "share": args.save_action_share,
+            "queries": sum(1 for r in out if r["qtype"] == "q_save_action"),
+        },
         "episodic_subtypes": dict(Counter(r.get("subtype", "") for r in out
                                           if r["qtype"] == "q_episodic")),
         "rare_df_cut": rare_cut, "ndocs": ndocs, "min_chars": args.min_chars,
@@ -870,7 +1111,7 @@ async def generate(args) -> None:
         # many targets exist: the text-less pool is never asked for q_content,
         # and dividing by every target would report a drop rate it never had.
         "drop_rate": {t: round(stats[f"dropped:{t}"] / max(stats[f"asked:{t}"], 1), 4)
-                      for t in ("q_content", "q_vague", "q_episodic")},
+                      for t in KEY_TO_QTYPE.values()},
         "stats": dict(stats.most_common()),
         "minutes": round((time.monotonic() - t0) / 60, 1),
         "usage": prov.usage.as_dict(),
@@ -892,6 +1133,15 @@ def main() -> None:
     ap.add_argument("--bodyless-share", type=float, default=-1.0,
                     help="fraction of targets drawn from pages with no text; "
                          "-1 (default) uses the library's own share, 0 disables")
+    ap.add_argument("--dead-share", type=float, default=0.0,
+                    help="fraction of targets drawn from pages the health "
+                         "check judged gone or drifted; 0 (default) disables")
+    ap.add_argument("--dead-census",
+                    default="eval/cold-census.json",
+                    help="path to the cold census carrying the dead verdicts")
+    ap.add_argument("--save-action-share", type=float, default=0.0,
+                    help="fraction of targets also asked for a q_save_action "
+                         "query; 0 (default) disables")
     ap.add_argument("--body-chars", type=int, default=2500)
     ap.add_argument("--rare-df", type=float, default=0.01)
     ap.add_argument("--title-overlap", type=float, default=0.5)
