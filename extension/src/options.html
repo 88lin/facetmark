@@ -2,20 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="color-scheme" content="light dark" />
     <title>Facetmark settings</title>
     <link rel="stylesheet" href="popup.css" />
-    <style>
-      body { width: 560px; max-height: none; }
-      label { display: block; margin: 12px 0 4px; font-weight: 600; }
-      input[type="text"] { width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 6px; }
-      .row { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-weight: 400; }
-      .ok { color: #75a025; }
-      .bad { color: #ff9400; }
-      p.hint { color: var(--muted); font-size: 12px; }
-      #state { margin: 14px 0; font-size: 12px; }
-    </style>
   </head>
-  <body>
+  <body class="options">
     <h2>Facetmark</h2>
     <p class="hint">
       Start the server with <code>facetmark serve</code>. It prints a pairing token on
@@ -32,9 +23,11 @@
     <label class="row"><input id="channelB" type="checkbox" /> Let Facetmark read pages the server cannot fetch</label>
     <label class="row"><input id="paused" type="checkbox" /> Pause background fetching</label>
 
-    <div id="state"></div>
-    <button id="save" type="button">save</button>
-    <button id="drain" type="button">fetch queued pages now</button>
+    <div id="state" role="status" aria-live="polite"></div>
+    <div class="actions">
+      <button id="save" type="button" class="primary">save</button>
+      <button id="drain" type="button">fetch queued pages now</button>
+    </div>
 
     <script type="module" src="options.js"></script>
   </body>
