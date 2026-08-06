@@ -1,0 +1,148 @@
+{
+  "generated_at": "2026-08-06",
+  "generator": "scripts/corpus/gen_queries.py @ 01a8c1f",
+  "model": "z-ai/glm-5.2 (fallbacks DeepSeek-V4-Pro, deepseek-v4-flash)",
+  "library": {
+    "db": "library-w1-indexed.db (W1 snapshot)",
+    "md5": "5c3249a2b1f510a6d68af13c0763d8c3",
+    "ndocs": 2376
+  },
+  "dead_census": {
+    "file": "eval/cold-census.json",
+    "clock": 1785649110,
+    "pool_n": 65,
+    "verdicts": [
+      "gone",
+      "drifted"
+    ]
+  },
+  "seeds": [
+    20260808,
+    20260809,
+    20260810,
+    20260811,
+    20260812
+  ],
+  "note_on_chunks": "protocol specifies 4 seed chunks; a 5th (seed 20260812) was added because 4 chunks yielded 440 < the 500 acceptance floor",
+  "per_chunk": {
+    "chunk1": {
+      "seed": 20260808,
+      "queries": 124,
+      "by_type": {
+        "q_content": 32,
+        "q_vague": 42,
+        "q_episodic": 43,
+        "q_save_action": 7
+      }
+    },
+    "chunk2": {
+      "seed": 20260809,
+      "queries": 136,
+      "by_type": {
+        "q_vague": 43,
+        "q_episodic": 46,
+        "q_content": 39,
+        "q_save_action": 8
+      }
+    },
+    "chunk3": {
+      "seed": 20260810,
+      "queries": 126,
+      "by_type": {
+        "q_content": 34,
+        "q_vague": 43,
+        "q_episodic": 43,
+        "q_save_action": 6
+      }
+    },
+    "chunk4": {
+      "seed": 20260811,
+      "queries": 89,
+      "by_type": {
+        "q_content": 26,
+        "q_episodic": 34,
+        "q_vague": 25,
+        "q_save_action": 4
+      }
+    },
+    "chunk5": {
+      "seed": 20260812,
+      "queries": 128,
+      "by_type": {
+        "q_content": 38,
+        "q_vague": 39,
+        "q_episodic": 46,
+        "q_save_action": 5
+      }
+    }
+  },
+  "totals": {
+    "queries": 551,
+    "distinct_targets": 206,
+    "max_queries_per_target": 4,
+    "by_type": {
+      "q_content": 159,
+      "q_vague": 179,
+      "q_episodic": 197,
+      "q_save_action": 16
+    },
+    "episodic_subtypes": {
+      "year": 121,
+      "relative": 45,
+      "anchor": 31
+    },
+    "language_by_type": {
+      "q_content": {
+        "zh": 88,
+        "latin": 71
+      },
+      "q_episodic": {
+        "zh": 102,
+        "latin": 95
+      },
+      "q_save_action": {
+        "zh": 10,
+        "latin": 6
+      },
+      "q_vague": {
+        "zh": 90,
+        "latin": 89
+      }
+    },
+    "pool_x_type": {
+      "body": {
+        "q_content": 152,
+        "q_vague": 131,
+        "q_episodic": 146,
+        "q_save_action": 12
+      },
+      "dead_unservable": {
+        "q_vague": 12,
+        "q_episodic": 14,
+        "q_save_action": 1
+      },
+      "bodyless": {
+        "q_vague": 29,
+        "q_episodic": 30,
+        "q_save_action": 3
+      },
+      "dead_servable": {
+        "q_content": 7,
+        "q_episodic": 7,
+        "q_vague": 7
+      }
+    },
+    "dead": {
+      "targets": 21,
+      "queries": 48,
+      "servable_targets": 7,
+      "unservable_targets": 14,
+      "share_of_targets": 0.1019
+    },
+    "text_chars": {
+      "min": 8,
+      "median": 24,
+      "max": 87
+    }
+  }
+}
