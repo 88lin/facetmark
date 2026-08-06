@@ -248,3 +248,253 @@ metadata 层把 `<title>` 当正文返回，9 个字符的标题不是空值，�
   于是 `facetmark version`、`GET /health` 和 OpenAPI 文档一起报了一个落后两版的版本号。
   没有任何东西报错，这正是问题所在——一个只有人会读的版本号会悄悄漂走。
   `tests/test_version.py` 现在把五处（包内常量、`pyproject.toml`、
+  `extension/package.json`、`CITATION.cff`、`CHANGELOG.md` 最新的已发布标题）钉在一起，
+  顺带钉住 CITATION 的日期和 CHANGELOG 的版本顺序。
+- **浏览器扩展的 manifest 版本改为构建时注入。** 它自己写死着 `1.0.0`，而
+  `package.json` 已经爬到 1.4.0——装出来的扩展报着一个从没发布过的版本。现在
+  `src/manifest.json` 里没有 `version` 字段，`build.mjs` 从 `package.json` 盖上去，
+  单一事实来源，不会再漂。
+
+## [1.4.0] - 2026-08-04
+
+**这一轮的主题是停止造轮子。** karakeep 已经把检索周边的东西全做完了——浏览器扩展、
+手机 App、无头 Chrome 抓取、多用户、Web UI、Docker 部署——而它的排序是一个只有四个方法
+的插件接口。所以 facetmark 实现那个接口，然后放弃自己那三样。
+
+### 新增
+
+- **`facetmark.bridges.karakeep`**：karakeep `SearchIndexClient` 契约的 Python 侧实现，
+  `addDocuments` / `deleteDocuments` / `search` / `clearIndex` 四个方法各对应一个函数。
+  按需建一张 `karakeep_doc(karakeep_id, user_id, bookmark_id, updated_at)` 映射表，卸载
+  就是 `DROP TABLE karakeep_doc`。
+- **五条 HTTP 路由**：`POST /karakeep/documents`、`POST /karakeep/documents/delete`、
+  `POST /karakeep/search`、`POST /karakeep/clear`、`GET /karakeep/stats`。写路径全部在
+  服务的全局锁内。
+- **`POST /karakeep/search` 接受 `config` 参数**（`full`、`A`–`E`、任意消融档名）。
+  ~~消融可以在一个真实 karakeep 库上跑了~~ —— **这条在同一个版本里被自己的实验证伪并
+  撤回**，见下面的往返实验。读取路径没问题，指标级结论搬得过去，名次级结论搬不过去。
+- **`integrations/karakeep/search-facetmark/`**：karakeep 侧的 TypeScript 插件
+  （`FacetmarkClient implements SearchIndexClient` + provider 注册）。~~它不在本仓库的
+  CI 里构建、也没有测试~~ —— 这个缺口在本版本内被补上了一半：
+  `integrations/karakeep/typecheck/` 里放着上游两个接口模块的类型声明，blob SHA 钉在
+  `upstream-pins.json`，CI 的 `karakeep-plugin` job 每次 push 跑 `tsc --noEmit`。
+  仍然没有的是对着一个活的 karakeep 实例的集成测试。
+- **`docs/karakeep.md`**：分工表、三步装法、五条路由、逐字段映射表，以及三处不保真的
+  地方。
+- **`README.zh-CN.md`**，并把 `README.md` 整篇重写成英文版，两边互相链接。旧 README
+  里那段 `## 中文说明` 的内容并入中文版并按 1.3.0 的实际默认值更正。
+
+### 修正
+
+- **README 与 `docs/karakeep.md` 里的服务端口从 8765 改回 8787**，与
+  `config.py` 的 `port: int = 8787` 一致。
+- **README 里两处数字张冠李戴已更正**：`0.5860 / 0.5065` 是 W2/W3 那 616 条留出集上的
+  数字，不是 W1 的；W1 的主表是 A 0.643 / B 0.589 / C 0.635 / D 0.639（n=479）。另外
+  出厂默认档 `FULL` 是 `content + graph + decay`，**不含词面**，之前写成了
+  「lexical + content + graph + decay」。
+
+### 已知短板（写在这里而不是藏起来）
+
+- **多用户是最弱的一环。** facetmark 的索引没有用户分区，`userId` 过滤发生在**排序
+  之后**，所以书签多的用户会被系统性地偏向。`OVERFETCH = 5` 是补偿，不是保证。诚实的
+  配置是一个用户一个库。
+- **意图面不由桥接填充**，karakeep 推过来的文档需要事后单独跑一次 `facetmark index`
+  才有意图向量。
+- `tags` 映射到 `bookmark.folder` 时用 `" / "` 拼接，`folder_depth = len(tags)`。**这不
+  是等价物**：五个平级标签在 facetmark 眼里长得像五层嵌套目录。
+
+### 实验：karakeep 往返保真度（判定 `roundtrip_unfaithful`）
+
+- **协议先冻结再搬数据**：`docs/karakeep-roundtrip-protocol.md`（149 行），三条判据在
+  测量之前写死。结果报告 `docs/karakeep-roundtrip.md`。
+- 2,376 条真实书签推进 karakeep 形态的库再拉回来，616 条留出查询，bootstrap 10,000 次。
+  判据 a（指标保真）**通过**：ΔRecall@5 = −0.81pp，CI95 [−2.44, +0.81]。
+  判据 c（读取路径）**通过**：616 × 2 档 HTTP 与原生逐条比对，0 处不一致。
+  判据 b（名次保真）**差 0.94pp 未通过**：overlap@5 中位数 4.0 达标，top-1 一致率
+  79.06% 未达 80%。
+- **归因是完全的**：正文 1876/1876 逐字节相同，摘要 2375/2375 逐字相同，但 `topics`
+  一致率 0%、`entities` 1.18%——karakeep 的 tag 是浏览器**文件夹**标签。嵌入文本里那行
+  关键词的词汇量从 19,016 塌缩到 13，人均 10.32 → 0.76，最高频词是出现在 1,124 页上的
+  `未分类`。向量中位余弦 0.9846。把源库富集移植回去后 2376/2376 条嵌入文本逐字符相同，
+  残差 0。
+- **补救路径已实测有效**：在桥接库上跑 `facetmark index`，karakeep 给过的正文 0 条被
+  重抓，2376/2376 条桥接写入的富集行被重新拾起，重建的图与源库逐位相同，只差 212 条
+  语义边（26,485 对 26,697）。
+- 按协议第 7 节，`docs/karakeep.md` 里那句「可以在真实 karakeep 库上跑消融」已撤回并
+  限定，未通过的判据 b 写进了两份 README。
+
+### 修复
+
+- **桥接会静默降级已有的富集。** 旧的 `_upsert_one` 在 `ON CONFLICT` 分支里改
+  `summary` / `topics` / `model`，却**不动 `source_hash`**。后果链：某页本来被真实模型
+  富集过（`source_hash = <body_hash>`）→ karakeep 同步把摘要换成标签列表 → `source_hash`
+  仍等于 body_hash → `enrich.targets()` 认为这行没变过而**永久跳过**；而 `content_work()`
+  的指纹已经变了，向量会按**更差的文本**重建。不报错、不可逆（除非 `--force`）、报告里
+  也看不出来。现在改成与 `bookmark.source`、`delete_documents` 一致的**认领而非覆盖**：
+  只有该行不存在、或本来就是 `source_hash='karakeep'` 时才写；否则原样保留并在返回里
+  计入新字段 `kept_enrichment`。保留外来富集时，FTS 按**库里已存的**富集同步，不索引
+  karakeep 的词。UPDATE 分支现在显式写 `source_hash='karakeep'`。四条新测试钉住。
+
+### 已知缺陷（记录，未修）
+
+- **衰减层在默认档里够不着。** RRF 分数是 `sum_f w_f / (k + rank_f)`，`rrf_k = 60` 时
+  单个单位权重的面最高 `1/61 = 0.016393`，而 `decay_rescue_threshold` 出厂值 `0.02`。
+  默认档 `FULL` 是单面配置，于是救援阀恒开，它守着的降权从未执行过。`FUSED` 不受影响。
+  `tests/test_decay_reach.py` 五条测试钉住现状，**故意不改默认值**——动阈值会改变每条
+  查询的默认排序，按项目规矩需要先有查询集和预注册判据。已列入 `ROADMAP.md`。
+- 同时更正一条旧笔记：「只有 8/2,376 页够得上冷却线且从未进入前 20」的后半句是错的，
+  冷页确实进过前 5（源库侧 15/616 条查询）。它们只是从来没有被降过权。
+
+### 工具
+
+- **`scripts/karakeep_roundtrip_diff.py`**：两个库的逐层差异，一直挖到关键词行的词汇量
+  统计。
+- **`scripts/karakeep_remedy_probe.py`**：干跑 `facetmark index` 每一段会做什么，带
+  `--graph-only` 与 `--attribute` 两种模式。所有写操作都包在显式的
+  `BEGIN` / `ROLLBACK` 里并事后断言行数——因为 `facetmark.db.connect()` 是 autocommit，
+  `conn.rollback()` 在那里是空操作。
+
+### 开源工程
+
+- **两份 README 全面重写**（`README.md` / `README.zh-CN.md`）：加目录、流水线示意、
+  数据模型表、完整配置表、命令表、检索档位表、排错、FAQ、贡献指引，并把上面所有负面结果
+  平铺在正文里。
+- 新增 `CODE_OF_CONDUCT.md`（Contributor Covenant 2.1）、`CITATION.cff`、`.editorconfig`。
+- 浏览器扩展版本从 `1.0.0` 对齐到主包版本。
+
+## [1.3.0] - 2026-08-04
+
+**发版是因为默认检索行为又变了，而且是往回变**：1.2.0 把带门控的上下文乘子设成默认，
+1.3.0 把它撤掉。`FULL` 退回 `content + graph + decay`——也就是 1.1.0 的排序行为。
+
+撤掉的理由是一次预注册的实验（协议 `docs/gate-precision-protocol.md` 先落盘，报告
+`docs/gate-precision.md`）。1.2.0 那 +3.09pp 的依据只测了门控**该响的时候**响不响：
+它的假阳性率 0.55% 是在 181 条"生成时被明确要求不要写日期"的内容型查询上量的。换成
+**361 条时间词属于正文主题而非保存时间**的查询——比如一篇 2026 年存的页面配上
+"2015年国际空间站咖啡机为什么那么贵"——门控 **361/361 全响**，代价是
+**Recall@5 −18.83pp，CI95 [−23.27, −14.68]，3 胜 71 负**，Recall@1 从 0.801 掉到 0.363。
+
+其中一个次要分层值得单独说：`p_relative` 子类有 57 条的时间窗恰好包含目标自己的保存
+时间，那 57 条上 ΔR@5 恰好 **+0.00pp**（1 胜 1 负）；窗口不可能包含答案的 304 条上是
+**−22.37pp**。所以这 22 个点是"窗口错了"，不是"乘子太重"。
+
+预注册的补救 `gate_v2`（`context_gate_version=2`，裸年份不再单独构成保存时间信号）
+也实现了、也跑了两关，结果是一关过一关不过：探针集上残余 **−10.52pp CI95
+[−13.85, −7.48]**（第一关不过，残余全部来自协议明确不动的 `time:relative`），616 条
+holdout 上仍有 **+1.79pp CI95 [+0.81, +2.92]**（第二关过）。协议要求两关都过，所以
+默认值按预注册规则退回无门控行为，`gate_v2` 留在树里但不上线。
+
+### 改动
+
+- **`FULL` 从 `content + context(gated) + graph + decay` 退回 `content + graph + decay`。**
+  装上这个版本的人，同一个库、同一条查询，情景型查询上会比 1.2.0 差（放弃了那
+  +8.48pp），带日期的内容型查询上会比 1.2.0 好很多（避开了那 −18.83pp）。
+- **新增 `Config.context_gate_version` 与 `episodic_beyond_a_bare_year()`**，以及档位
+  `A_gatedctx_v2`。实现了、有测试、默认关闭、有一个不合格的数字挂在上面。
+- **新增 `scripts/corpus/gen_gate_probe.py`**（探针生成器）、`scripts/gate_precision.py`
+  （按预注册规则判定）、`scripts/gate_v2_disposition.py`（两关合取的处置表）。
+- **新增评测数据**：`eval/queries/gate-precision.jsonl`（361 条，跑任何一档之前冻结）、
+  `eval/gate-precision-eval.json`、`eval/gate-precision.json`、`eval/gate-v2-probe.json`、
+  `eval/gate-v2-holdout.json`、`eval/gate-v2-disposition.json`、`eval/gate-precision-gen.json`。
+- **新增文档** `docs/gate-precision-protocol.md`、`docs/gate-precision.md`。
+
+### 没有做的事
+
+没有顺着数字继续收窄 `time:relative`。它看起来很可能管用（v2 已经把 `p_year` 压到
+−0.50pp 并保住 +1.79pp），但这 361 条查询已经被用来**在两个门控之间做选择**，再用它们
+去检验第三个门控就是重演这次实验要纠正的那种循环。`gate_v3` 需要自己的预注册和自己的
+探针集，记在 W4 里。
+
+## [1.2.0] - 2026-08-04
+
+**发版是因为默认检索行为变了**：`FULL`（`facetmark search`、HTTP API 与 MCP 服务器
+实际跑的那一档）加上了带门控的上下文乘子。装上这个版本的人，同一个库、同一条查询，
+拿到的排序会和 1.1.0 不一样——情景型查询上会更好（+8.48pp Recall@5），内容型与模糊型
+查询上逐位不变。依据是 616 条**没有参与产生这个假设**的查询，判定规则先于结果落盘，
+细节见下面第一节与 `docs/gate-w2w3.md`。
+
+除此之外还有一处产品代码的行为改动：`build_fts_query` 的三元组分支修了一个真缺陷
+（`lex_tri` 在中文查询上从来没有工作过），它对检索质量的实测影响是 **+0.00pp**。
+其余变动是诊断/候选档位、评测语料的生成器、评测台的 `--rungs`、免费网关的模型链与
+本地 embedding 通路、文档与评测数据。
+
+Chrome 扩展这一版没有改动，仍是 1.0.0。
+
+### 修复（`lex_tri` 在中文查询上从来没有工作过）
+
+- **`build_fts_query(query, segmented=False)` 现在把 CJK 片切成重叠 3-gram。** 它原来
+  只按空白切词——对英文正确，对中文是灾难：中文句子没有空格，整句话作为一个"词"到达
+  并被整体加引号，于是 `lex_tri` 问 trigram 索引的是"哪一页**逐字**包含用户写的整句
+  话"。真实页面不会，这个子句是**保证落空**的。
+
+  测量（479 条 W1 查询，`eval/lex-facet-split.json` 的 `trigram_coverage`）：修复前
+  `lex_tri` 返回空的 **186 条全部是中文，拉丁一条都没有**；211 条中文查询里只有
+  **25 条（11.85%）**拿得到候选，修好后是 **202 条（95.73%）**。**这个面存在的全部
+  理由就是"unicode61 切不开无空格中文"这个盲区，而它恰恰在 88% 的中文查询上缺席。**
+
+  拉丁片保持整词不切（引号里的 `compar` 经同一分词器已能匹配 `comparison`，切碎只加
+  噪声）。三元组这一路加 `TRI_MAX_TERMS = 48` 截断，防止长文本炸出几百个 OR 子句。
+
+- **五项新测试**：CJK 句子变重叠三元组、**三元组真的能匹配到文档**（不是只检查字符串
+  形状）、拉丁词不被切碎、扩展被 48 截断、中英混排时拉丁保持整词而中文被切。
+  测试总数 835 → 840。
+
+- **修复前 840 项测试全部通过，没有任何评测数字发现过它。** 原因是从来没有一项测试或
+  一个指标看过 `lex_tri` **单独**的输出——它一直和工作正常的 `lex_seg` 融合成 Facet 3
+  的一个结果。`facetmark.text` 里论证两个索引都必要的那张表用的是 `工具`/`论文`/
+  `提示词` 这种 2–4 字**查词**，短查词恰好没有空白切分问题，所以那张表是对的，同时
+  完全测不到这个缺陷。
+
+- **修好之后质量没有变。** 同一个审计脚本在修好的代码上原样重跑
+  （`eval/lex-solvable-after-trigram-repair.json`，`docs/query-set-lexical-audit.md`
+  §4）：整体 R@5 **0.4802 → 0.4802，+0.00pp**（`q_vague` +0.74pp、`q_episodic`
+  −0.58pp、`q_content` 不动），三条预注册线修复后仍全部被跨过，第 3 节一个字不改。
+  **修 bug 是对的，把它记成质量改进是不诚实的**——两句话都写在这里。
+
+### 新增（W2 预备：把融合这一步拆开看）
+
+- **`docs/w2-fusion-anatomy.md` + `scripts/lex_facet_split.py` +
+  `scripts/fusion_arith.py` + `eval/lex-facet-split.json` + `eval/fusion-arith.json`。**
+  探索性、**未预注册**、不判任何胜负。三部分：
+
+- **Facet 3 第一次被拆开测。** 两个 FTS5 表当年是在标定库上用 2–4 字查词互相论证的，
+  此后一直作为一个块融合，**没有任何一半单独对着真实查询打过分**。新增 `seg_only` /
+  `tri_only` 两个诊断档（都不含向量，都不需要模型）。R@5（n=479）：`seg_only` 0.4843、
+  `tri_only` 0.4572、融合后的 `lex_only` 0.4802。**融合 − seg = −0.42pp，CI95
+  [−2.09, +1.25]，8 赢 10 输，p = 0.815**；六个分组的 CI 全部包含 0。
+
+  正确说法是**与零不可区分**，不是"更差"，也**不足以删掉 `lex_tri`**：CI 宽到 ±2pp，
+  而且 seg/tri 四格表里有 **13 条只有 trigram 能解**（融合只保住 8 条）。反方向的
+  `tri_only → lex_only` 是 +2.30pp，CI95 [+0.42, +4.18]，p = 0.027——融合救了 tri，
+  没救到 seg 的水平。
+
+- **RRF 算子的算术（完全不依赖数据）。** 用出厂常数 `rrf_k = 60`、
+  `candidates_per_facet = 50`、权重 1.0/1.0/1.0/0.7：单面第一名的得分上限是
+  1/61 = **0.016393**；一个**被所有面都排在第 50 名**的文档，B 档得 0.024545
+  （**1.50×**）、C/D 档 0.033636（**2.05×**）——都压得过单面第一名。交叉点更说明问题：
+  两个满权重面共同持有的文档，名次好于 **62** 就赢过单面第一，而候选深度只有 50，
+  **所以它必然赢**。要用 CombMAX 项恢复"某面第一不该输给全面垫底"这条最弱保证，需要
+  λ ≥ **1.116**（B）/ **2.361**（C），即 max 项必须压过整个 sum 项。**纯加性打分融合
+  给不出单面保护，这不是参数没调好。**
+
+- **在真实查询上数掩埋（两个词面面，因此不需要模型；两面是最温和的情形，C/D 融四面，
+  所以这些是下界）。** 470 条进入融合，**205 条两面对第一名意见不一致**；102 个"单面
+  独有且被该面排第一"的文档，融合后中位名次 **15**，**79.4%（81 个）掉出前 5**。真正
+  要紧的 gold 目标：244 条被某个面排进前 5，其中 **15 条被融合挤出前 5**；只有一个面
+  排进前 5 的 11 条里 **7 条被丢掉**（n 小，只作方向参考）。
+
+- **`EXPLORATORY` 增加 `C_notri`**（C 去掉 `lex_tri`，与 `C_lowlex` 的"降权两半"是不同
+  的主张）。和其他 W2 候选一样：**实现、默认关闭、不判胜负**——证据来自产生假设的同一
+  批查询，在它上面 A/B 只能测出循环论证。
+
+- **CombMAX 项落地：`rrf(..., max_bonus=λ)` + `Config.max_bonus` + `C_max` 档位。**
+  第 3 节把补丁的形状算了出来，这一条把它变成可运行的东西：
+
+  ```
+  score(d) = Σ_f w_f/(k + r_f)  +  max_bonus · max_f w_f/(k + r_f)
+  ```
+
+  `max_bonus = 0`（出厂值）时**与原 RRF 逐位等同**，测试锁死这一点。λ 由新函数
+  `guarantee_bonus(k, depth, weights)` 闭式算出而**不是手写常数**——`C_max` 的
+  2.361 和 `eval/fusion-arith.json` 里报的 2.361 现在是同一份实现算出来的同一个数，
+  `scripts/fusion_arith.py` 已改为调用它，避免两处漂移。`Fused` 新增 `max_term` 字段，
