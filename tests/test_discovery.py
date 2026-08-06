@@ -15,6 +15,7 @@ is ours.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -46,6 +47,7 @@ def win(tmp_path, monkeypatch):
     return local, roaming
 
 
+@pytest.mark.skipif(os.name == "nt", reason="table tests fake Windows from POSIX; on real Windows the path shape inverts")
 class TestWindows:
     def test_the_default_chrome_profile_is_found(self, win):
         local, _ = win
@@ -103,6 +105,7 @@ class TestWindows:
             assert "\\" not in str(root)
 
 
+@pytest.mark.skipif(os.name == "nt", reason="posix table tests fake $HOME; on Windows Path.home() ignores it")
 class TestMacAndLinux:
     def test_mac_looks_under_application_support(self, tmp_path, monkeypatch):
         monkeypatch.setenv("HOME", str(tmp_path))
@@ -169,6 +172,7 @@ class TestDefaultDataDir:
         monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
         assert default_data_dir(os_name="posix") == tmp_path / "facetmark"
 
+    @pytest.mark.skipif(os.name == "nt", reason="Path.home() on Windows ignores the patched HOME")
     def test_posix_defaults_to_local_share(self, tmp_path, monkeypatch):
         monkeypatch.delenv("XDG_DATA_HOME", raising=False)
         monkeypatch.setenv("HOME", str(tmp_path))

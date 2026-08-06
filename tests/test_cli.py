@@ -157,11 +157,16 @@ class TestImportWithNoArgument:
 
         return CliRunner()
 
+    # A path that cannot exist, spelled so the assertion survives both
+    # separators: POSIX '/nowhere', Windows '\\nowhere'.
+    NOWHERE_PARTS = ("/nowhere",) if os.name != "nt" else ("\\", "nowhere")
+    NOWHERE_TEXT = str(Path(*NOWHERE_PARTS))
+
     def _invoke(self, monkeypatch, found, args, tmp_path):
         from facetmark import cli
 
         monkeypatch.setattr(cli, "discover_bookmark_files", lambda: found)
-        monkeypatch.setattr(cli, "candidate_roots", lambda: [(Path("/nowhere"), "Chrome", "p")])
+        monkeypatch.setattr(cli, "candidate_roots", lambda: [(Path(*self.NOWHERE_PARTS), "Chrome", "p")])
         monkeypatch.setenv("FACETMARK_DATA_DIR", str(tmp_path / "data"))
         return self._runner().invoke(cli.app, args)
 
@@ -190,7 +195,7 @@ class TestImportWithNoArgument:
     def test_no_profile_says_where_it_looked(self, tmp_path, monkeypatch):
         r = self._invoke(monkeypatch, [], ["import"], tmp_path)
         assert r.exit_code == 2
-        assert "/nowhere" in r.output
+        assert self.NOWHERE_TEXT in r.output
 
     def test_an_explicit_path_never_touches_discovery(self, tmp_path, monkeypatch):
         from facetmark import cli
@@ -219,7 +224,7 @@ class TestImportWithNoArgument:
     def test_the_browsers_command_is_honest_about_finding_nothing(self, tmp_path, monkeypatch):
         r = self._invoke(monkeypatch, [], ["browsers"], tmp_path)
         assert r.exit_code == 0
-        assert "/nowhere" in r.output
+        assert self.NOWHERE_TEXT in r.output
 
 
 @pytest.mark.parametrize("stream_name", ["stdout", "stderr"])
