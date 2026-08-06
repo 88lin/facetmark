@@ -144,6 +144,97 @@ def test_bodyless_share_excludes_pages_neither_pool_can_reach(db):
 
 
 # ---------------------------------------------------------------------------
+# the dead pool
+# ---------------------------------------------------------------------------
+
+
+def _census(tmp_path, rows):
+    import json
+    p = tmp_path / "census.json"
+    p.write_text(json.dumps({"snapshots": {"checked": {"cold_breakdown": rows}}}),
+                 encoding="utf-8")
+    return str(p)
+
+
+def test_pick_dead_targets_reads_verdicts_and_servable(db, tmp_path):
+    census = _census(tmp_path, [
+        {"bookmark_id": 1, "verdict": "gone", "servable": True},
+        {"bookmark_id": 6, "verdict": "drifted", "servable": False},
+        {"bookmark_id": 2, "verdict": "alive", "servable": True},   # not dead
+        {"bookmark_id": 99, "verdict": "gone", "servable": False},  # not in db
+    ])
+    out, missing = gq.pick_dead_targets(db, 10, seed=1, census_path=census)
+    assert {t["id"] for t in out} == {1, 6}
+    assert missing == 1
+    by_id = {t["id"]: t for t in out}
+    assert by_id[1]["kind"] == "dead" and by_id[1]["servable"] is True
+    assert by_id[1]["verdict"] == "gone"
+    assert by_id[6]["servable"] is False
+    # The dead pool carries the slug the unservable prompt will need.
+    assert by_id[6]["slug"] == ["photosynthesis", "explained"]
+
+
+def test_dead_unservable_prompt_hides_the_body_and_the_death(db, tmp_path):
+    t = _target(kind="dead", servable=False, verdict="gone",
+                body_text="secret body " * 100)
+    p = gq.prompt_for(t, body_chars=2500, subtype="year", feedback={})
+    assert "PAGE TEXT" not in p
+    assert "secret body" not in p
+    # The prompt must not leak that the page is dead: the user saved it alive.
+    assert "gone" not in p.lower()
+    assert "dead" not in p.lower()
+    assert 'JSON only: {"vague": "...", "hint": "...", "save_action": "..."}' in p
+
+
+def test_dead_servable_prompt_shows_the_body(db, tmp_path):
+    t = _target(kind="dead", servable=True, verdict="drifted",
+                body_text="Chlorophyll absorbs light " * 50)
+    p = gq.prompt_for(t, body_chars=2500, subtype="year", feedback={})
+    assert "PAGE TEXT" in p
+    assert "Chlorophyll" in p
+
+
+# ---------------------------------------------------------------------------
+# the save-action validator
+# ---------------------------------------------------------------------------
+
+
+def test_check_save_action_accepts_an_un_confiscated_phrasing():
+    assert gq.check_save_action("the one i put away from my collection",
+                                False, set(), set()) == ""
+    # "收起来" expresses the saving intent without any confiscated word.
+    assert gq.check_save_action("之前收起来的那个脚本", True, set(), set()) == ""
+
+
+@pytest.mark.parametrize("bad", [
+    "the one i saved in 2019",          # year
+    "the one i put away two weeks ago",  # n_ago
+    "the one i saved last year",         # time:relative
+    "the one i saved back when",         # vague episodic marker
+    "the one i saved",                   # _SAVE_ACTION: saved
+    "the one from my bookmarks",         # _SAVE_ACTION: bookmarks
+    "我保存的那个",                       # _SAVE_ACTION: 保存
+    "上次存的那个",                       # _SAVE_ACTION: 上次
+])
+def test_check_save_action_rejects_every_gate_trigger(bad):
+    reason = gq.check_save_action(bad, False, set(), set())
+    assert reason, f"should have rejected: {bad}"
+
+
+def test_check_save_action_does_not_consult_classify():
+    """Whether the gate fires is the outcome variable, not an entrance ticket.
+
+    "the one i put away" is NOT recognised as episodic by the shipped
+    resolver -- that is precisely the miss the probe exists to measure, so
+    the validator must accept it anyway.
+    """
+    from facetmark.search.understand import classify
+    assert not classify("the one i put away from my collection").is_episodic
+    assert gq.check_save_action("the one i put away from my collection",
+                                False, set(), set()) == ""
+
+
+# ---------------------------------------------------------------------------
 # the prompt
 # ---------------------------------------------------------------------------
 
@@ -157,19 +248,21 @@ def _target(**over):
     return t
 
 
-def test_bodyless_prompt_asks_for_two_keys_and_shows_no_body():
+def test_bodyless_prompt_asks_for_three_keys_and_shows_no_body():
     p = gq.prompt_for(_target(), body_chars=2500, subtype="year", feedback={})
     assert "PAGE TEXT" not in p
-    assert 'JSON only: {"vague": "...", "hint": "..."}' in p
+    assert ('JSON only: {"vague": "...", "hint": "...", "save_action": "..."}'
+            in p)
     assert '"content"' not in p.split("Do NOT write")[0]
     assert "photosynthesis, explained" in p
 
 
-def test_body_prompt_is_unchanged_and_still_asks_for_content():
+def test_body_prompt_still_asks_for_content_and_save_action():
     t = _target(kind="body", body_text="Chlorophyll absorbs light " * 50)
     p = gq.prompt_for(t, body_chars=2500, subtype="year", feedback={})
     assert "PAGE TEXT" in p
-    assert 'JSON only: {"content": "...", "vague": "...", "hint": "..."}' in p
+    assert ('JSON only: {"content": "...", "vague": "...", "hint": "...",\n'
+            '"save_action": "..."}') in p
 
 
 def test_untitled_bodyless_page_does_not_render_an_empty_title_line():

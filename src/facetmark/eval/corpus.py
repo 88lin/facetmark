@@ -45,7 +45,7 @@ from ..config import Settings, get_settings
 from ..normalize import normalize_url
 from ..text import sync_fts
 
-QueryType = Literal["q_content", "q_vague", "q_episodic"]
+QueryType = Literal["q_content", "q_vague", "q_episodic", "q_save_action"]
 
 DAY = 86_400
 
@@ -258,7 +258,7 @@ class Corpus:
     @property
     def counts(self) -> dict[str, int]:
         out = {"pages": len(self.pages) or self.library_pages}
-        for t in ("q_content", "q_vague", "q_episodic"):
+        for t in ("q_content", "q_vague", "q_episodic", "q_save_action"):
             out[t] = len(self.by_type(t))  # type: ignore[arg-type]
         return out
 
@@ -466,7 +466,7 @@ def load_query_file(conn: sqlite3.Connection, path: str | Path) -> Corpus:
     missing: list[str] = []
     for i, r in enumerate(rows):
         qtype = r.get("qtype")
-        if qtype not in ("q_content", "q_vague", "q_episodic"):
+        if qtype not in ("q_content", "q_vague", "q_episodic", "q_save_action"):
             raise QueryFileError(f"{path}: record {i} has qtype={qtype!r}")
         text = (r.get("text") or "").strip()
         if not text:

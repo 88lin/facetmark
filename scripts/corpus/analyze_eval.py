@@ -99,8 +99,8 @@ def main() -> None:
 
     emit("## 各档 Recall@5（分查询类型）")
     emit()
-    emit("| 档位 | 机制 | q_content | q_vague | q_episodic | 总体 |")
-    emit("|---|---|---|---|---|---|")
+    emit("| 档位 | 机制 | q_content | q_vague | q_episodic | q_save_action | 总体 |")
+    emit("|---|---|---|---|---|---|---|")
     mech = {"A": "单向量内容", "B": "+词面 RRF", "C": "+意图面",
             "D": "+上下文乘子/图扩展", "E": "+LLM 重排"}
     for rung in ("A", "B", "C", "D", "E"):
@@ -108,7 +108,7 @@ def main() -> None:
             continue
         o = by[rung]
         cells = [f"{summarise(select(report, o, t))['recall@5'] * 100:.1f}%"
-                 for t in ("q_content", "q_vague", "q_episodic")]
+                 for t in ("q_content", "q_vague", "q_episodic", "q_save_action")]
         emit(f"| {rung} | {mech[rung]} | " + " | ".join(cells)
              + f" | {summarise(o)['recall@5'] * 100:.1f}% |")
     emit()

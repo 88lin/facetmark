@@ -76,7 +76,7 @@ def resolve_rungs(rungs: Sequence[str] | None, *, ablation: bool) -> list[str]:
 #: baseline, in absolute percentage points of Recall@5.
 PASS_MARGIN_PP = 10.0
 
-QUERY_TYPES = ("q_content", "q_vague", "q_episodic")
+QUERY_TYPES = ("q_content", "q_vague", "q_episodic", "q_save_action")
 
 
 # ---------------------------------------------------------------------------
