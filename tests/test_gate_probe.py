@@ -22,12 +22,14 @@ from __future__ import annotations
 
 import importlib.util
 import sqlite3
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
 
 from facetmark.search.understand import _VAGUE_EPISODIC, classify
+
+UTC = timezone.utc  # datetime.UTC is 3.11+; CI matrix starts at 3.10
 
 _PATH = Path(__file__).resolve().parents[1] / "scripts" / "corpus" / "gen_gate_probe.py"
 _NOW = 1785649110  # the indexed library's created_at, so windows land where they did

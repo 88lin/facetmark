@@ -101,7 +101,7 @@ import re
 import sqlite3
 import time
 from collections import Counter
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
@@ -116,6 +116,8 @@ from facetmark.search.understand import (
     classify,
 )
 from facetmark.text import segment, segment_query
+
+UTC = timezone.utc  # datetime.UTC is 3.11+; CI matrix starts at 3.10
 
 SYSTEM = (
     "You write realistic search queries that a person types months after "
