@@ -336,6 +336,32 @@
       return;
     }
 
+    /* Reserve the height of the tallest frame so that rows appearing during
+       replay never push the rest of the page around.  Measured here rather
+       than hardcoded in CSS: the answer is 255px to 492px depending on
+       viewport width and language, so any single number is a hole at some
+       widths and a jump at others. */
+    function fit() {
+      var keep = el.innerHTML;
+      var max = 0;
+      el.style.minHeight = "0px";
+      for (var i = 0; i < DEMO.length; i++) {
+        frame(DEMO[i], DEMO[i].q, DEMO[i].hits.length, false);
+        if (el.scrollHeight > max) max = el.scrollHeight;
+        frame(DEMO[i], DEMO[i].q, DEMO[i].hits.length, true);
+        if (el.scrollHeight > max) max = el.scrollHeight;
+      }
+      if (max) el.style.minHeight = Math.ceil(max) + "px";
+      el.innerHTML = keep;
+    }
+
+    fit();
+    var fitTimer = null;
+    addEventListener("resize", function () {
+      clearTimeout(fitTimer);
+      fitTimer = setTimeout(fit, 150);
+    });
+
     var qi = 0;
     var timer = null;
     var running = true;

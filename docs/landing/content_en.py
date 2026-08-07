@@ -282,18 +282,10 @@ EN = {
             (
                 "assets/popup-mock.png",
                 "facetmark popup showing grouped results",
-                "<b>Popup.</b> Results carry the facets that matched \u2014 "
-                "<em>about</em>, <em>asked as</em>, <em>words</em>, "
-                "<em>linked</em> \u2014 and pages you saved in the same "
-                "session arrive as their own group, not shuffled into the "
-                "ranking.",
-            ),
-            (
-                "assets/popup-mock-dark.png",
-                "the same popup in dark mode",
-                "<b>Dark mode.</b> Follows the system setting. The footer "
-                "shows the local indexing queue, so you can see that saving a "
-                "page did something.",
+                "<b>Popup.</b> Every result carries the facets that matched, "
+                "and pages you saved in the same session arrive as their own "
+                "group rather than shuffled into the ranking. This frame "
+                "follows the theme of the page you are reading.",
             ),
             (
                 "assets/options.png",
@@ -302,10 +294,59 @@ EN = {
                 "channel, and a pause switch. Four fields, no account.",
             ),
         ],
+        "shot_dark": (
+            "assets/popup-mock-dark.png",
+            "the same popup in dark mode",
+        ),
+        "shot_dark_opts": (
+            "assets/options-dark.png",
+            "the same options page in dark mode",
+        ),
+        "shot_legend": (
+            "What the markers on a row mean",
+            [
+                (
+                    "chip",
+                    "about",
+                    "the <b>content</b> facet matched: a vector over the page "
+                    "body. The one facet that is on by default.",
+                ),
+                (
+                    "chip",
+                    "asked as",
+                    "the <b>intent</b> facet matched: vectors over questions "
+                    "generated for the page. Off by default.",
+                ),
+                (
+                    "chip",
+                    "words",
+                    "the <b>lexical \u00b7 segments</b> facet matched: FTS5 "
+                    "over words. Off by default.",
+                ),
+                (
+                    "chip",
+                    "substring",
+                    "the <b>lexical \u00b7 trigram</b> facet matched: FTS5 "
+                    "over characters. Off by default.",
+                ),
+                (
+                    "cold",
+                    "cold",
+                    "the link looks dead, so the row is demoted rather than "
+                    "removed. <code>facetmark health</code> says why.",
+                ),
+                (
+                    "group",
+                    "saved around these",
+                    "a second group, from one hop over session and semantic "
+                    "edges. Never mixed into the ranking above it.",
+                ),
+            ],
+        ),
         "shot_note": (
-            "These three are UI previews rendered against mock data, not "
-            "screenshots of a real library \u2014 a real one would put "
-            "somebody's browsing history on a public page."
+            "These are UI previews rendered against mock data, not screenshots "
+            "of a real library \u2014 a real one would put somebody's browsing "
+            "history on a public page."
         ),
         # --- measured
         "meas_label": "Evidence",
