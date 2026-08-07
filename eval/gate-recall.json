@@ -1,0 +1,60 @@
+{
+  "protocol": "docs/gate-recall-protocol.md",
+  "probe_set": "eval/queries/v3-holdout.jsonl qtype=q_save_action",
+  "n_probes": 16,
+  "power_note": "protocol accepts >=25 for a verdict; n=16 < 25, so descriptive only, no verdict",
+  "clock": 1785649110,
+  "provider": "z-ai/glm-5.2",
+  "embed_model": "bge-m3",
+  "miss_rate": {
+    "missed": 16,
+    "n": 16,
+    "point": 100.0,
+    "wilson_ci95": [
+      80.64,
+      100.0
+    ]
+  },
+  "fired_count": 0,
+  "paired_delta_recall5": {
+    "A": 0.1875,
+    "A_gatedctx": 0.1875,
+    "delta_pp": 0.0,
+    "ci95_pp": [
+      0.0,
+      0.0
+    ],
+    "mcnemar": {
+      "gained": 0,
+      "lost": 0,
+      "p": 1.0
+    },
+    "detectable_pp_at_80pct_power": NaN
+  },
+  "self_check_untriggered_subset": {
+    "n": 16,
+    "delta_pp": 0.0,
+    "discordant": 0,
+    "state": "pass"
+  },
+  "save_action_phrasings": [
+    "the one i put away",
+    "the menu bar utility i tucked away",
+    "the one i put away from my collection",
+    "之前收起来的那个",
+    "之前收起来的那个模块标准的文章",
+    "the link i set aside",
+    "the one i put away for later",
+    "the one I filed away",
+    "我放在一边的那个",
+    "从我收集的资料里找那个编辑器笔记",
+    "之前放进文件夹的那篇部署教程",
+    "我塞进清单里的那篇",
+    "放在一边的那篇工程师职业建议",
+    "工具文件夹里那篇我留下的长文",
+    "之前塞进列表里的那个",
+    "之前藏起来的那个"
+  ],
+  "verdict": "descriptive_only",
+  "verdict_why": "n=16 below the pre-registered 25-query floor; miss rate 100% with Wilson CI95 [80.6, 100.0] and zero paired cost (CI95 [0.00, 0.00] by construction: the gate never fired, so both rungs ran identical code)."
+}
