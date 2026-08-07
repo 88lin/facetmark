@@ -1,0 +1,445 @@
+{
+  "provider": "z-ai/glm-5.2",
+  "embed_model": "bge-m3",
+  "reranker": "",
+  "queries_from": "/workspace/v3-gen/save-action-probes.jsonl",
+  "corpus": {
+    "pages": 2376,
+    "q_content": 0,
+    "q_vague": 0,
+    "q_episodic": 0,
+    "q_save_action": 16
+  },
+  "index": {},
+  "concurrency": 4,
+  "rungs_run": [
+    "A",
+    "A_gatedctx"
+  ],
+  "rungs": [
+    {
+      "config": "A",
+      "overall": {
+        "n": 16,
+        "recall@1": 0.0625,
+        "recall@5": 0.1875,
+        "recall@10": 0.1875,
+        "mrr@10": 0.1146,
+        "recall@5+exp": 0.1875,
+        "p50_ms": 304.9,
+        "p95_ms": 25724.7
+      },
+      "by_type": {
+        "q_content": {
+          "n": 0,
+          "recall@1": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "mrr@10": 0.0,
+          "recall@5+exp": 0.0,
+          "p50_ms": 0.0,
+          "p95_ms": 0.0
+        },
+        "q_vague": {
+          "n": 0,
+          "recall@1": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "mrr@10": 0.0,
+          "recall@5+exp": 0.0,
+          "p50_ms": 0.0,
+          "p95_ms": 0.0
+        },
+        "q_episodic": {
+          "n": 0,
+          "recall@1": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "mrr@10": 0.0,
+          "recall@5+exp": 0.0,
+          "p50_ms": 0.0,
+          "p95_ms": 0.0
+        },
+        "q_save_action": {
+          "n": 16,
+          "recall@1": 0.0625,
+          "recall@5": 0.1875,
+          "recall@10": 0.1875,
+          "mrr@10": 0.1146,
+          "recall@5+exp": 0.1875,
+          "p50_ms": 304.9,
+          "p95_ms": 25724.7
+        }
+      }
+    },
+    {
+      "config": "A_gatedctx",
+      "overall": {
+        "n": 16,
+        "recall@1": 0.0625,
+        "recall@5": 0.1875,
+        "recall@10": 0.1875,
+        "mrr@10": 0.1146,
+        "recall@5+exp": 0.25,
+        "p50_ms": 324.3,
+        "p95_ms": 10980.9
+      },
+      "by_type": {
+        "q_content": {
+          "n": 0,
+          "recall@1": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "mrr@10": 0.0,
+          "recall@5+exp": 0.0,
+          "p50_ms": 0.0,
+          "p95_ms": 0.0
+        },
+        "q_vague": {
+          "n": 0,
+          "recall@1": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "mrr@10": 0.0,
+          "recall@5+exp": 0.0,
+          "p50_ms": 0.0,
+          "p95_ms": 0.0
+        },
+        "q_episodic": {
+          "n": 0,
+          "recall@1": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "mrr@10": 0.0,
+          "recall@5+exp": 0.0,
+          "p50_ms": 0.0,
+          "p95_ms": 0.0
+        },
+        "q_save_action": {
+          "n": 16,
+          "recall@1": 0.0625,
+          "recall@5": 0.1875,
+          "recall@10": 0.1875,
+          "mrr@10": 0.1146,
+          "recall@5+exp": 0.25,
+          "p50_ms": 324.3,
+          "p95_ms": 10980.9
+        }
+      }
+    }
+  ],
+  "deltas": [
+    {
+      "from": "A",
+      "to": "A_gatedctx",
+      "recall@5_pp": 0.0,
+      "ci95_pp": [
+        0.0,
+        0.0
+      ],
+      "mcnemar": {
+        "gained": 0,
+        "lost": 0,
+        "p": 1.0
+      }
+    }
+  ],
+  "pass_margin_pp": 10.0,
+  "queries": [
+    {
+      "i": 0,
+      "qtype": "q_save_action",
+      "target_id": 685,
+      "note": "",
+      "text": "the one i put away"
+    },
+    {
+      "i": 1,
+      "qtype": "q_save_action",
+      "target_id": 735,
+      "note": "",
+      "text": "the menu bar utility i tucked away"
+    },
+    {
+      "i": 2,
+      "qtype": "q_save_action",
+      "target_id": 477,
+      "note": "",
+      "text": "the one i put away from my collection"
+    },
+    {
+      "i": 3,
+      "qtype": "q_save_action",
+      "target_id": 2248,
+      "note": "",
+      "text": "之前收起来的那个"
+    },
+    {
+      "i": 4,
+      "qtype": "q_save_action",
+      "target_id": 1544,
+      "note": "",
+      "text": "之前收起来的那个模块标准的文章"
+    },
+    {
+      "i": 5,
+      "qtype": "q_save_action",
+      "target_id": 1959,
+      "note": "",
+      "text": "the link i set aside"
+    },
+    {
+      "i": 6,
+      "qtype": "q_save_action",
+      "target_id": 78,
+      "note": "",
+      "text": "the one i put away for later"
+    },
+    {
+      "i": 7,
+      "qtype": "q_save_action",
+      "target_id": 289,
+      "note": "",
+      "text": "the one I filed away"
+    },
+    {
+      "i": 8,
+      "qtype": "q_save_action",
+      "target_id": 2107,
+      "note": "",
+      "text": "我放在一边的那个"
+    },
+    {
+      "i": 9,
+      "qtype": "q_save_action",
+      "target_id": 1773,
+      "note": "",
+      "text": "从我收集的资料里找那个编辑器笔记"
+    },
+    {
+      "i": 10,
+      "qtype": "q_save_action",
+      "target_id": 14,
+      "note": "",
+      "text": "之前放进文件夹的那篇部署教程"
+    },
+    {
+      "i": 11,
+      "qtype": "q_save_action",
+      "target_id": 1606,
+      "note": "",
+      "text": "我塞进清单里的那篇"
+    },
+    {
+      "i": 12,
+      "qtype": "q_save_action",
+      "target_id": 225,
+      "note": "",
+      "text": "放在一边的那篇工程师职业建议"
+    },
+    {
+      "i": 13,
+      "qtype": "q_save_action",
+      "target_id": 1077,
+      "note": "",
+      "text": "工具文件夹里那篇我留下的长文"
+    },
+    {
+      "i": 14,
+      "qtype": "q_save_action",
+      "target_id": 383,
+      "note": "",
+      "text": "之前塞进列表里的那个"
+    },
+    {
+      "i": 15,
+      "qtype": "q_save_action",
+      "target_id": 994,
+      "note": "",
+      "text": "之前藏起来的那个"
+    }
+  ],
+  "outcomes": {
+    "A": [
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 18180.2
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 25546.8
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 25669.2
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 25724.7
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 7260.6
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 346.0
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 295.9
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 253.3
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 279.9
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 334.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 331.4
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 304.9
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 263.9
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 295.6
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 293.7
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 292.1
+      }
+    ],
+    "A_gatedctx": [
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 10865.1
+      },
+      {
+        "rank": 3,
+        "expanded": false,
+        "ms": 10980.9
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 10805.8
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 10919.2
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 293.6
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 266.4
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 324.3
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 330.7
+      },
+      {
+        "rank": 0,
+        "expanded": true,
+        "ms": 289.3
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 335.5
+      },
+      {
+        "rank": 1,
+        "expanded": false,
+        "ms": 351.9
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 292.7
+      },
+      {
+        "rank": 2,
+        "expanded": false,
+        "ms": 330.2
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 303.4
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 274.9
+      },
+      {
+        "rank": 0,
+        "expanded": false,
+        "ms": 270.0
+      }
+    ]
+  },
+  "latency_caveat": "queries ran 4-at-a-time: p50_ms/p95_ms include queueing against a shared endpoint and are not user-facing latency. Re-run with concurrency 1 on a subsample for that number.",
+  "end_to_end": {
+    "from": "A",
+    "to": "A_gatedctx",
+    "recall@5_pp": 0.0,
+    "ci95_pp": [
+      0.0,
+      0.0
+    ],
+    "mcnemar": {
+      "gained": 0,
+      "lost": 0,
+      "p": 1.0
+    },
+    "bar_not_applicable": "the 10.0pp bar was pre-registered for A->B->C->D->E, not for A->A_gatedctx"
+  },
+  "seconds": 38.62
+}
