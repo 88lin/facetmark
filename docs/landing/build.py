@@ -26,6 +26,12 @@ sys.path.insert(0, HERE)
 from content_en import EN, REPO  # noqa: E402
 from content_zh import ZH  # noqa: E402
 
+# Where the pages are actually served, derived from REPO so a move of the
+# repository does not leave a stale absolute URL behind.  Link previews need
+# absolute image URLs, which is the only reason the site knows its own address.
+_OWNER, _NAME = REPO.rstrip("/").split("/")[-2:]
+SITE_BASE = f"https://{_OWNER}.github.io/{_NAME}"
+
 # --------------------------------------------------------------------------
 # small helpers
 # --------------------------------------------------------------------------
@@ -126,6 +132,7 @@ DIAGRAM = {
             ("content", "vector over the page body", ""),
             ("intent", "vectors over generated questions", "off by default"),
         ],
+        "parallel": ("four facets, in parallel", "one of them is on by default"),
         "rrf": ("RRF", "k = 60"),
         "post": ("post-stages", ["context gate", "cold layer", "reranker"]),
         "hits": ("hits", "ranked"),
@@ -156,6 +163,10 @@ DIAGRAM = {
                 "\u9ed8\u8ba4\u5173\u95ed",
             ),
         ],
+        "parallel": (
+            "\u56db\u8def\u5e76\u884c",
+            "\u9ed8\u8ba4\u53ea\u5f00\u4e00\u8def",
+        ),
         "rrf": ("RRF \u878d\u5408", "k = 60"),
         "post": (
             "\u540e\u7f6e\u9636\u6bb5",
@@ -300,10 +311,19 @@ def diagram_stack(lang: str) -> str:
     p.append(a_on)
     p.append(_dn(d["u"][0], d["u"][1]))
     p.append(a_on)
+    # the four facets are a parallel fan-out, not four more steps in a chain.
+    # Stacked in one column with no group boundary the diagram claimed the wrong
+    # architecture, so they sit inside a bracketed, labelled group and the
+    # arrows enter and leave the group rather than any single facet.
+    p.append('<div class="dpar">')
+    p.append(
+        f'<p class="dpar-h"><b>{esc(d["parallel"][0])}</b>'
+        f'<i>{esc(d["parallel"][1])}</i></p>'
+    )
     p.append('<div class="dgrid">')
     for k, (title, sub, off) in enumerate(d["f"]):
         p.append(_dn(title, sub, off, "on" if k == ON else "off"))
-    p.append("</div>")
+    p.append("</div></div>")
     p.append(a_on)
     p.append(_dn(d["rrf"][0], d["rrf"][1], cls="on"))
     p.append(a_on)
@@ -374,6 +394,20 @@ THEME_BOOT = (
 )
 
 
+# the text nav drops the repo link below 700px; the control cluster shows this
+GH_MARK = (
+    '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8'
+    "c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01."
+    "37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.0"
+    "1 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.6"
+    "4-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2"
+    ".2.82a5.4 5.4 0 0 1 1.5-.2c.51 0 1.02.07 1.5.2 1.53-1.04 2.2-.82 2.2-.82.44"
+    " 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25"
+    '.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A7.99 7.99 0 0 0 16 '
+    '8c0-4.42-3.58-8-8-8Z"/></svg>'
+)
+
+
 def nav_html(t: dict, page: str) -> str:
     z = t["code"] == "zh"
     suffix = ".zh.html" if z else ".html"
@@ -397,6 +431,10 @@ def nav_html(t: dict, page: str) -> str:
         f'<a class="ctl" data-lang-switch href="#" title="{esc(t["other_title"])}" '
         f'hreflang="{t["other_code"]}">{esc(t["other_label"])}</a>'
     )
+    out.append(
+        f'<a class="ctl gh" href="{REPO}" rel="noopener" '
+        f'title="{esc(t["nav"]["gh"])}" aria-label="{esc(t["nav"]["gh"])}">{GH_MARK}</a>'
+    )
     aria = "\u5207\u6362\u6df1\u8272\u6a21\u5f0f" if z else "Toggle dark mode"
     out.append(
         '<button class="ctl" type="button" data-theme-toggle '
@@ -409,7 +447,7 @@ def nav_html(t: dict, page: str) -> str:
 def foot_html(t: dict) -> str:
     out = ['<footer class="site"><div class="wrap"><div class="foot">']
     for heading, links in t["foot"]["cols"]:
-        out.append(f"<div><h4>{esc(heading)}</h4><ul>")
+        out.append(f"<div><h3>{esc(heading)}</h3><ul>")
         for label, href in links:
             rel = ' rel="noopener"' if href.startswith("http") else ""
             out.append(f'<li><a href="{href}"{rel}>{esc(label)}</a></li>')
@@ -426,6 +464,12 @@ def shell(t: dict, page: str, body: str) -> str:
     stem = {"index": "index", "guide": "guide", "measured": "measured"}[page]
     canon_en = f"{stem}.html"
     canon_zh = f"{stem}.zh.html"
+    canon = canon_zh if z else canon_en
+    # the English index is served at the directory root
+    url = f"{SITE_BASE}/" if page == "index" and not z else f"{SITE_BASE}/{canon}"
+    card = f"{SITE_BASE}/assets/og-{t['code']}.png"
+    esc_title = html.escape(title, quote=True)
+    esc_desc = html.escape(desc, quote=True)
     return (
         "<!doctype html>\n"
         f'<html lang="{t["html_lang"]}">\n<head>\n'
@@ -434,9 +478,23 @@ def shell(t: dict, page: str, body: str) -> str:
         f"<title>{esc(title)}</title>\n"
         f'<meta name="description" content="{html.escape(desc, quote=True)}">\n'
         f'<meta name="color-scheme" content="light dark">\n'
-        f'<meta property="og:title" content="{html.escape(title, quote=True)}">\n'
-        f'<meta property="og:description" content="{html.escape(desc, quote=True)}">\n'
+        f'<meta property="og:title" content="{esc_title}">\n'
+        f'<meta property="og:description" content="{esc_desc}">\n'
         '<meta property="og:type" content="website">\n'
+        '<meta property="og:site_name" content="facetmark">\n'
+        f'<meta property="og:url" content="{url}">\n'
+        f'<meta property="og:image" content="{card}">\n'
+        '<meta property="og:image:width" content="1200">\n'
+        '<meta property="og:image:height" content="630">\n'
+        f'<meta property="og:image:alt" content="{esc_title}">\n'
+        f'<meta property="og:locale" content="{"zh_CN" if z else "en_US"}">\n'
+        '<meta property="og:locale:alternate" '
+        f'content="{"en_US" if z else "zh_CN"}">\n'
+        '<meta name="twitter:card" content="summary_large_image">\n'
+        f'<meta name="twitter:title" content="{esc_title}">\n'
+        f'<meta name="twitter:description" content="{esc_desc}">\n'
+        f'<meta name="twitter:image" content="{card}">\n'
+        f'<link rel="canonical" href="{url}">\n'
         f'<link rel="alternate" hreflang="en" href="{canon_en}">\n'
         f'<link rel="alternate" hreflang="zh-CN" href="{canon_zh}">\n'
         f'<link rel="alternate" hreflang="x-default" href="{canon_en}">\n'
@@ -464,6 +522,36 @@ def shell(t: dict, page: str, body: str) -> str:
 # --------------------------------------------------------------------------
 # index page
 # --------------------------------------------------------------------------
+
+
+# one marker for all five boundaries: they are the same kind of promise
+PMK = (
+    '<svg class="pmk" viewBox="0 0 24 24" aria-hidden="true">'
+    '<path d="M12 2.6 20.2 6v6.1c0 4-3.3 7.6-8.2 9.3-4.9-1.7-8.2-5.3-8.2-9.3V6Z"/>'
+    '<path d="m8.4 12.1 2.6 2.6 4.6-5"/></svg>'
+)
+
+
+def _shot(item: tuple, dark: tuple | None = None) -> str:
+    """One framed screenshot.  With ``dark``, the frame swaps image by theme."""
+    src, alt, cap = item
+    # the theme-swap class goes on only when there is something to swap to,
+    # otherwise a frame with no dark twin vanishes in dark mode
+    cls = ' class="only-light"' if dark else ""
+    body = (
+        f'<a{cls} href="{src}" target="_blank" rel="noopener">'
+        f'<img src="{src}" alt="{html.escape(alt, quote=True)}" loading="lazy"></a>'
+    )
+    if dark:
+        dsrc, dalt = dark
+        body += (
+            f'<a class="only-dark" href="{dsrc}" target="_blank" rel="noopener">'
+            f'<img src="{dsrc}" alt="{html.escape(dalt, quote=True)}" loading="lazy"></a>'
+        )
+    return (
+        f'<figure class="shot" style="margin:0">{body}'
+        f'<figcaption class="cap">{cap}</figcaption></figure>'
+    )
 
 
 def page_index(t: dict) -> str:
@@ -503,7 +591,7 @@ def page_index(t: dict) -> str:
     o.append("</div></div></section>")
 
     # ---- three kinds of query --------------------------------------------
-    o.append('<section class="band" id="queries"><div class="wrap">')
+    o.append('<section class="band alt" id="queries"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["prob_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["prob_h2"]}</h2>')
     o.append(f'<p class="lede read reveal">{i["prob_lede"]}</p>')
@@ -521,7 +609,7 @@ def page_index(t: dict) -> str:
     o.append("</div></section>")
 
     # ---- the four facets --------------------------------------------------
-    o.append('<section class="band alt" id="facets"><div class="wrap">')
+    o.append('<section class="band" id="facets"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["fac_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["fac_h2"]}</h2>')
     o.append(f'<p class="lede read reveal">{i["fac_lede"]}</p>')
@@ -532,7 +620,10 @@ def page_index(t: dict) -> str:
     o.append("</div></section>")
 
     # ---- pipeline ---------------------------------------------------------
-    o.append('<section class="band" id="pipeline"><div class="wrap">')
+    # one of two inverted bands. Ten sections of the same paper colour and the
+    # same left-aligned header shape is what made the page read as one flat
+    # sheet; this is the mid-page breath.
+    o.append('<section class="band invert" id="pipeline"><div class="wrap hcenter">')
     o.append(f'<p class="seclabel">{esc(i["pipe_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["pipe_h2"]}</h2>')
     o.append(f'<p class="lede read reveal">{i["pipe_lede"]}</p>')
@@ -551,15 +642,31 @@ def page_index(t: dict) -> str:
     o.append(f'<p class="seclabel">{esc(i["shot_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["shot_h2"]}</h2>')
     o.append(f'<p class="lede read reveal">{i["shot_lede"]}</p>')
-    o.append('<div class="grid g3 reveal">')
-    for src, alt, cap in i["shots"]:
-        o.append(
-            f'<figure class="shot" style="margin:0">'
-            f'<a href="{src}" target="_blank" rel="noopener">'
-            f'<img src="{src}" alt="{html.escape(alt, quote=True)}" loading="lazy"></a>'
-            f'<figcaption class="cap">{cap}</figcaption></figure>'
-        )
-    o.append("</div>")
+    # Two frames, not three. The popup frame swaps its own image with the site
+    # theme, so "it follows your dark mode" is still shown without spending a
+    # third of the band on the same content twice. The freed column explains
+    # what the markers on a result row mean.
+    o.append('<div class="grid gext reveal">')
+    o.append(_shot(i["shots"][0], i["shot_dark"]))
+    o.append('<div class="ecol">')
+    o.append(_shot(i["shots"][1], i["shot_dark_opts"]))
+    o.append("</div></div>")
+    # The legend spans the full band instead of sitting under the options
+    # frame. Stacked in the right column it left the popup column 299px short
+    # of the band floor (31% of the band) with nothing in it.
+    legend_title, legend_items = i["shot_legend"]
+    o.append(
+        f'<div class="mlegend wide reveal"><h3>{esc(legend_title)}</h3>'
+        f'<ul class="mlist">'
+    )
+    for kind, label, desc in legend_items:
+        mk = {
+            "chip": f'<span class="chip mk">{esc(label)}</span>',
+            "cold": f'<span class="badge warn mk">{esc(label)}</span>',
+            "group": f'<span class="gmk mk">{esc(label)}</span>',
+        }[kind]
+        o.append(f"<li>{mk}<span>{desc}</span></li>")
+    o.append("</ul></div>")
     o.append(f'<p class="tiny reveal">{i["shot_note"]}</p>')
     o.append("</div></section>")
 
@@ -571,9 +678,9 @@ def page_index(t: dict) -> str:
     o.append('<div class="grid g3 reveal" style="margin-bottom:26px">')
     for v, k, cls in i["meas_stats"]:
         o.append(
-            f'<div class="card"><div class="stat">'
+            f'<div class="stat">'
             f'<div class="v{" " + cls if cls else ""}">{esc(v)}</div>'
-            f'<div class="k">{esc(k)}</div></div></div>'
+            f'<div class="k">{esc(k)}</div></div>'
         )
     o.append("</div>")
     o.append('<div class="grid g2"><div>')
@@ -608,7 +715,7 @@ def page_index(t: dict) -> str:
     o.append('<section class="band" id="interfaces"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["if_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["if_h2"]}</h2>')
-    o.append('<div class="grid g3 reveal">')
+    o.append('<div class="grid g5 reveal">')
     for _slug, title, body, href, cta in i["if_cards"]:
         o.append(
             f'<article class="card"><h3>{esc(title)}</h3><p>{body}</p>'
@@ -620,30 +727,24 @@ def page_index(t: dict) -> str:
     o.append('<section class="band alt" id="faq"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["faq_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["faq_h2"]}</h2>')
-    o.append('<div class="read reveal">')
+    o.append('<div class="qa reveal">')
     for q, a in i["faq"]:
-        o.append(
-            f"<details class=\"faq\"><summary>{esc(q)}</summary>"
-            f'<div class="a">{a}</div></details>'
-        )
+        o.append(f'<div class="qa-i"><h3>{esc(q)}</h3><div class="a">{a}</div></div>')
     o.append("</div></div></section>")
 
     # ---- boundaries -------------------------------------------------------
     o.append('<section class="band" id="promises"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["bnd_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["bnd_h2"]}</h2>')
-    o.append('<div class="grid g3 reveal">')
+    o.append('<ul class="grid g5 plist reveal">')
     for title, body in i["bnd"]:
-        o.append(f'<article class="card"><h3>{esc(title)}</h3><p>{body}</p></article>')
-    o.append("</div></div></section>")
+        o.append(f"<li>{PMK}<div><h3>{esc(title)}</h3><p>{body}</p></div></li>")
+    o.append("</ul></div></section>")
 
     # ---- end --------------------------------------------------------------
-    o.append('<section class="band alt"><div class="wrap center">')
+    o.append('<section class="band invert"><div class="wrap center hcenter">')
     o.append(f'<h2 class="reveal">{i["end_h2"]}</h2>')
-    o.append(
-        f'<p class="lede reveal" style="margin-left:auto;margin-right:auto;max-width:640px">'
-        f'{i["end_p"]}</p>'
-    )
+    o.append(f'<p class="lede reveal" style="max-width:640px">{i["end_p"]}</p>')
     o.append('<div class="cta reveal" style="justify-content:center">')
     for label, href, primary in i["end_cta"]:
         rel = ' rel="noopener"' if href.startswith("http") else ""
