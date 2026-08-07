@@ -28,3 +28,7 @@ pairing-token.txt
 .vscode/
 .idea/
 .DS_Store
+
+# landing page (GitHub Pages)
+!docs/landing/*.html
+!docs/landing/*.css
