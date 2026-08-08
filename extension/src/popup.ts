@@ -6,9 +6,21 @@
 // then replaces the list in place. Waiting for stage two before drawing
 // anything is what makes otherwise fast search feel slow.
 
-import { ApiError, api, describeQueue, type Hit, summarizeQueue } from "./api.ts";
+import {
+  ApiError,
+  type PageCursor,
+  advance,
+  api,
+  describePage,
+  describeQueue,
+  type Hit,
+  nextRequest,
+  startCursor,
+  summarizeQueue,
+} from "./api.ts";
 
 const DEBOUNCE_MS = 150;
+const PAGE = 20;
 
 const $ = <T extends HTMLElement>(sel: string): T =>
   document.querySelector(sel) as T;
@@ -21,6 +33,11 @@ const saveBtn = $<HTMLButtonElement>("#save");
 let timer: number | undefined;
 let generation = 0;
 let lastQuery = "";
+// The rendered list is state now, not a function argument: "load more" appends
+// to it, so the previous pages have to survive the next render.
+let rows: Hit[] = [];
+let neighbours: Hit[] = [];
+let cursor: PageCursor = startCursor("");
 
 input.addEventListener("input", () => {
   window.clearTimeout(timer);
@@ -36,27 +53,66 @@ input.addEventListener("keydown", (e) => {
 
 async function run(q: string): Promise<void> {
   if (!q) {
+    rows = [];
+    neighbours = [];
+    cursor = startCursor("");
     list.innerHTML = "";
     status.textContent = "";
     return;
   }
   const mine = ++generation;
   lastQuery = q;
+  cursor = startCursor(q);
   try {
     const quick = await api.quick(q, 10);
-    if (mine === generation) render(quick.hits, [], `${ms(quick.took_ms)} ms · lexical`);
+    if (mine === generation) {
+      rows = quick.hits;
+      neighbours = [];
+      // The cursor deliberately does not follow the lexical pass. It is a
+      // different ranking from the full pipeline -- different facets, its own
+      // depth -- so paging from it would continue a list that is about to be
+      // replaced.
+      render(`${quick.hits.length} · ${ms(quick.took_ms)} ms · lexical`);
+    }
   } catch (e) {
     if (mine === generation) fail(e);
     return;
   }
   try {
-    const full = await api.search(q, 20);
+    const full = await api.search(q, PAGE);
     if (mine === generation) {
+      rows = full.hits;
+      neighbours = full.expanded ?? [];
+      cursor = advance(cursor, full);
       const labels = full.understanding?.labels?.join(" + ") ?? "";
-      render(full.hits, full.expanded ?? [], `${ms(full.took_ms)} ms · ${labels || "ranked"}`);
+      render(`${describePage(cursor)} · ${ms(full.took_ms)} ms · ${labels || "ranked"}`);
     }
   } catch (e) {
     if (mine === generation) status.textContent = describe(e);
+  }
+}
+
+async function loadMore(button: HTMLButtonElement): Promise<void> {
+  const req = nextRequest(cursor, PAGE);
+  if (!req) return;
+  const mine = generation;
+  button.disabled = true;
+  button.textContent = "loading...";
+  try {
+    // `req.depth` is the whole point: it pins the candidate depth to the one
+    // page 1 was ranked at, so this page continues that ranking rather than
+    // re-fusing at a deeper pool and disagreeing about what page 1 was.
+    const more = await api.search(cursor.query, req.limit, req.offset, req.depth);
+    if (mine !== generation) return;
+    const known = new Set(rows.map((h) => h.bookmark_id));
+    rows = rows.concat(more.hits.filter((h) => !known.has(h.bookmark_id)));
+    cursor = advance(cursor, more);
+    render(`${describePage(cursor)} · ${ms(more.took_ms)} ms`);
+  } catch (e) {
+    if (mine === generation) {
+      button.disabled = false;
+      button.textContent = describe(e);
+    }
   }
 }
 
@@ -74,8 +130,10 @@ const FACET_LABEL: Record<string, string> = {
   lex_tri: "substring",
 };
 
-function render(hits: Hit[], expanded: Hit[], note: string): void {
-  status.textContent = `${hits.length} result${hits.length === 1 ? "" : "s"} · ${note}`;
+function render(note: string): void {
+  const hits = rows;
+  const expanded = neighbours;
+  status.textContent = note;
   list.innerHTML = "";
   if (!hits.length && !expanded.length) {
     const li = document.createElement("li");
@@ -89,6 +147,7 @@ function render(hits: Hit[], expanded: Hit[], note: string): void {
     return;
   }
   for (const h of hits) list.appendChild(row(h));
+  if (nextRequest(cursor, PAGE)) list.appendChild(moreRow());
   // The expansion group is one hop out through the link graph: not answers to
   // the query, neighbours of the answers. Interleaving them would be a lie
   // about why they are there, so they get their own heading -- and without one
@@ -100,6 +159,19 @@ function render(hits: Hit[], expanded: Hit[], note: string): void {
     list.appendChild(head);
     for (const h of expanded) list.appendChild(row(h, true));
   }
+}
+
+function moreRow(): HTMLLIElement {
+  const li = document.createElement("li");
+  li.className = "more";
+  const b = document.createElement("button");
+  b.type = "button";
+  b.textContent = cursor.capped
+    ? `more (${cursor.seen} of ${cursor.total}+)`
+    : `more (${cursor.seen} of ${cursor.total})`;
+  b.addEventListener("click", () => void loadMore(b));
+  li.appendChild(b);
+  return li;
 }
 
 function row(h: Hit, neighbour = false): HTMLLIElement {
