@@ -35,6 +35,8 @@ import time
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
+from ..db import in_chunks
+
 #: Health verdicts that count as evidence of supersession for condition 3.
 DEAD_VERDICTS = ("gone", "drifted", "soft_gone")
 
@@ -46,9 +48,27 @@ def cold_bookmark_ids(
     ids: Sequence[int] | None = None,
     now_ts: int | None = None,
 ) -> set[int]:
-    """Bookmarks meeting all three demotion conditions."""
+    """Bookmarks meeting all three demotion conditions.
+
+    ``ids`` restricts the scan to a candidate set, and is chunked: it is the
+    fused pool, whose size follows the paging depth rather than a fixed 50, so
+    one placeholder per id is no longer a bounded number of them. An empty
+    sequence still means "no restriction", as before -- it is ``None`` and
+    ``[]`` alike that scan the whole table.
+    """
     now_ts = int(time.time()) if now_ts is None else int(now_ts)
     cutoff = now_ts - age_days * 86400
+    if ids:
+        out: set[int] = set()
+        for batch in in_chunks([int(i) for i in ids]):
+            out |= _cold_ids(conn, cutoff, batch)
+        return out
+    return _cold_ids(conn, cutoff, None)
+
+
+def _cold_ids(
+    conn: sqlite3.Connection, cutoff: int, ids: Sequence[int] | None
+) -> set[int]:
     where = [
         "b.open_count = 0",
         "b.date_added IS NOT NULL",
