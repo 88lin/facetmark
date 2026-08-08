@@ -1,380 +1,721 @@
-/* facetmark — local search page.
+/*
+ * The facetmark page.
+ *
+ * Every colour on this page comes from `palettes.css`, which is vendored
+ * verbatim from the project owner's design system and is not edited here. This
+ * file only arranges those tokens. The one exception is the dark block at the
+ * bottom: the design system defines light palettes only, so facetmark derives
+ * its own night surfaces there, and `tests/test_web.py` holds that block to an
+ * allowlist so it cannot quietly grow into a second palette.
+ *
+ * The scene is `references/scene-app.md`, not the landing-page scene: function
+ * first, restrained visuals, high information density, headings capped at
+ * 1.2rem, no scroll reveal, no decorative dark panels inside functional areas.
+ */
 
-   The palette is lifted verbatim from docs/landing/style.css, including its
-   contrast reasoning, because that is the most carefully checked set of tokens
-   in the repo and three brands is one too many. tests/test_web.py asserts the
-   accent and paper values still agree across this file, the site stylesheet
-   and the extension popup.
-
-   extension/src/popup.css is deliberately NOT refactored into a shared file.
-   It ships in a different artifact, on a different release cadence, into a
-   420px viewport with its own type scale; a common stylesheet would couple two
-   things that only look alike. Agreement is asserted, not enforced by sharing.
-
-   The layout is a reading column with a hanging left gutter, not a card grid.
-   A search result list is a list of texts. */
+/* ------------------------------------------------------------------ base */
 
 :root {
-  color-scheme: light;
-  --paper: #faf9f3;
-  --paper-2: #ece8da;
-  --surface: #ffffff;
-  --surface-2: #f7f5ee;
-  --ink: #17160f;
-  --ink-2: #55534a;
-  /* muted but still readable: ink-mute clears 4.5:1 against every paper and
-     surface token in this file, in both themes. It exists because a search
-     result list needs three text weights -- title, secondary, recessive --
-     and the recessive one is still text a beginner has to read. */
-  --ink-mute: #69665d;
-  /* hairlines, glyphs, disabled controls and bar fills only. ink-3 is 3.09:1
-     on paper-2, which fails WCAG AA for text. Text uses ink-2 or ink-mute. */
-  --ink-3: #86837a;
-  --line: #ddd9cc;
-  --line-2: #e7e2d4;
-  --accent: #0279ee;
-  /* the brand blue is 4.00:1 on paper, so it fills shapes and sets borders but
-     never sets small text. accent-ink does that. */
-  --accent-ink: #0163c4;
-  --accent-ink-2: #014e9c;
-  --accent-soft: #e7f1fd;
-  --btn-bg: #0163c4;
-  --btn-bg-h: #014e9c;
-  --btn-fg: #ffffff;
-  --warn: #ff9400;
-  --pass: #4d6a17;
-  --fail: #bd3a1a;
-  --fail-soft: #fbeae5;
-  --code-bg: #17160f;
-  --code-ink: #ece9e2;
-  --code-dim: #9c988c;
-  --shadow-1: 0 1px 2px rgba(23, 22, 15, 0.05), 0 2px 8px rgba(23, 22, 15, 0.04);
-  --radius: 12px;
-  --radius-sm: 8px;
-  --readw: 780px;
-  --sans: "Liberation Sans", Arimo, "Helvetica Neue", Arial, system-ui,
-    "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
-  --mono: "Liberation Mono", "SF Mono", "Cascadia Code", Consolas, monospace;
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "Noto Sans SC", "Helvetica Neue", sans-serif;
+  --font-serif: Fraunces, "Huiwen Mincho", "Noto Serif SC", "Songti SC", Georgia, serif;
+  --font-mono: ui-monospace, "Fira Code", SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Radii. The design system's app scene uses 12px cards, 16px modals and
+     8px inputs; `--r-pill` is the shape the whole interface is named after. */
+  --r-card: 12px;
+  --r-modal: 16px;
+  --r-input: 10px;
+  --r-chip: 8px;
+  --r-pill: 999px;
+
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.04);
+  --shadow-lift: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-pop: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+  --head-h: 56px;
+  --w-read: 900px;
+  --w-wide: 1200px;
+
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* The one colour name this file introduces, and it is an alias rather than
+     a value. The palette's `--brand-text` is tuned for white; on `--cream-dark`
+     it measures 4.43:1 and on a 10% brand tint 3.94:1, both under AA. The
+     palette already ships a darker brand step, so link-coloured text points at
+     that instead and clears 4.5:1 on every surface the page actually paints.
+     The dark block re-points it, because down there the deep step is the
+     unreadable one. */
+  --link: var(--brand-deep);
 }
 
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --paper: #131310;
-  --paper-2: #21211c;
-  --surface: #1c1c18;
-  --surface-2: #232320;
-  --ink: #eceae2;
-  --ink-2: #a8a59b;
-  --ink-mute: #8e8b82;
-  --ink-3: #807d74;
-  --line: #33332d;
-  --line-2: #282824;
-  --accent: #52a8ff;
-  --accent-ink: #52a8ff;
-  --accent-ink-2: #7dbeff;
-  --accent-soft: #12283c;
-  --btn-bg: #52a8ff;
-  --btn-bg-h: #7dbeff;
-  --btn-fg: #131310;
-  --warn: #ffab3d;
-  --pass: #a3c860;
-  --fail: #ff8a66;
-  --fail-soft: #2e1711;
-  /* in dark mode the code panel sits ABOVE the page, not below it: a darker
-     panel than the page reads as a hole punched in the screen. */
-  --code-bg: #23231d;
-  --code-ink: #eceae2;
-  --code-dim: #a3a094;
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-}
-
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
-html,
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+p {
   margin: 0;
 }
 
-body {
-  background: var(--paper);
-  color: var(--ink);
-  font: 15px/1.6 var(--sans);
-  -webkit-font-smoothing: antialiased;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
+ol,
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+dl,
+dd,
+dt {
+  margin: 0;
 }
 
 a {
-  color: var(--accent-ink);
+  color: var(--link);
+  text-decoration: none;
 }
 
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: 3px;
+a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+/* Small all-caps label with the letter-spacing the design system asks for. */
+.caps {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.dim {
+  color: var(--ink-faint);
+  font-size: 0.8rem;
 }
 
 .skip {
   position: absolute;
   left: -9999px;
-  top: 8px;
-  padding: 8px 14px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  z-index: 20;
+  top: 0;
+  z-index: 60;
+  padding: 10px 18px;
+  border-radius: var(--r-pill);
+  background: var(--brand-surface);
+  color: var(--on-brand);
 }
+
 .skip:focus {
   left: 12px;
+  top: 12px;
 }
 
-.mono {
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-}
+/* --------------------------------------------------------------- chrome */
 
-/* ---------------------------------------------------------------- header */
+/* The three-colour rule made literal: brand 60%, highlight 30%, pop 10%. */
+.brandbar {
+  height: 3px;
+  flex: none;
+  background: linear-gradient(
+    90deg,
+    var(--brand) 0 60%,
+    var(--highlight) 60% 90%,
+    var(--pop) 90% 100%
+  );
+}
 
 .top {
   position: sticky;
   top: 0;
-  z-index: 10;
-  background: color-mix(in srgb, var(--paper) 88%, transparent);
-  /* a plain background would let ascenders show through while scrolling. The
-     blur here is a scroll artefact fix, not decoration -- there is no frosted
-     panel anywhere else on the page. */
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--line);
+  z-index: 30;
+  flex: none;
+  background: var(--cream);
+  border-bottom: 1px solid var(--hairline);
 }
 
 .top-in {
-  max-width: var(--readw);
+  height: var(--head-h);
+  max-width: var(--w-wide);
   margin: 0 auto;
-  padding: 10px 20px;
+  padding: 0 clamp(16px, 3vw, 28px);
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .logo {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  text-decoration: none;
+  gap: 9px;
   color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 1.08rem;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
+.logo:hover {
+  text-decoration: none;
+}
+
 .logo .glyph {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  background: var(--accent);
-  /* the site's mark: a square split on the diagonal, blue over amber */
-  background-image: linear-gradient(135deg, var(--accent) 50%, var(--warn) 50%);
-}
-
-.views {
-  display: flex;
-  gap: 2px;
-  margin-left: auto;
-}
-
-.view {
-  appearance: none;
-  border: 0;
-  background: none;
-  font: 600 13px/1 var(--sans);
-  color: var(--ink-2);
-  padding: 7px 11px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-.view:hover {
-  background: var(--paper-2);
-  color: var(--ink);
-}
-.view[aria-current] {
-  background: var(--accent-soft);
-  color: var(--accent-ink-2);
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: var(--brand);
+  box-shadow: inset -7px -7px 0 0 var(--highlight);
 }
 
 .tools {
+  margin-left: auto;
   display: flex;
-  gap: 2px;
+  align-items: center;
+  gap: 8px;
 }
 
+/* Round icon button, and its wider sibling for the language pill. */
 .ctl {
-  appearance: none;
-  border: 1px solid transparent;
-  background: none;
-  color: var(--ink-2);
-  font: 600 13px/1 var(--sans);
+  height: 34px;
   min-width: 34px;
-  height: 30px;
-  border-radius: var(--radius-sm);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--card-bg);
+  color: var(--ink-light);
+  font-size: 0.8rem;
   cursor: pointer;
-  padding: 0 8px;
-}
-.ctl:hover {
-  background: var(--paper-2);
-  color: var(--ink);
+  transition:
+    border-color 0.2s var(--ease),
+    color 0.2s var(--ease);
 }
 
-/* ------------------------------------------------------------------ main */
+.ctl.wide {
+  padding: 0 13px;
+}
+
+.ctl:hover {
+  border-color: var(--brand-border);
+  color: var(--link);
+}
+
+/* The pill tab row. Primary navigation, so pills; secondary switching inside a
+   panel uses the underline tabs further down. */
+.tabs {
+  max-width: var(--w-wide);
+  margin: 0 auto;
+  padding: 10px clamp(16px, 3vw, 28px);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 15px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--card-bg);
+  color: var(--ink-light);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.2s var(--ease),
+    color 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+
+.tab:hover {
+  border-color: var(--brand-border);
+  color: var(--link);
+}
+
+.tab[aria-current="page"] {
+  background: var(--brand-surface);
+  border-color: var(--brand-surface);
+  color: var(--on-brand);
+  font-weight: 600;
+}
+
+.tab .n {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  background: rgba(var(--ink-rgb), 0.07);
+  color: var(--ink-light);
+}
+
+/* The count on the selected tab darkens rather than lightens. A white veil
+   over the brand blue lifts it toward the white numeral and lands at 3.2:1;
+   the palette's deep step goes the other way and reads at 6.7:1. */
+.tab[aria-current="page"] .n {
+  background: var(--brand-deep);
+  color: var(--on-brand);
+}
 
 main {
   flex: 1;
   width: 100%;
-  max-width: var(--readw);
+  max-width: var(--w-read);
   margin: 0 auto;
-  padding: 28px 20px 64px;
+  padding: clamp(18px, 3vw, 30px) clamp(16px, 3vw, 28px) 60px;
 }
 
-.page-title {
-  font-size: 24px;
-  line-height: 1.25;
-  letter-spacing: -0.015em;
-  margin: 0 0 6px;
+main.wide {
+  max-width: var(--w-wide);
 }
 
-.lede {
-  margin: 0 0 24px;
-  color: var(--ink-2);
-  max-width: 60ch;
+.bottom {
+  flex: none;
+  border-top: 1px solid var(--hairline);
+  padding: 18px clamp(16px, 3vw, 28px);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
 }
 
-/* ---- the search field is the product, so it gets the weight ---- */
-
-#ask {
-  position: relative;
-  display: block;
+.bottom a {
+  color: var(--ink-faint);
 }
 
-#q {
-  width: 100%;
-  font: 17px/1.4 var(--sans);
+.bottom a:hover {
+  color: var(--link);
+}
+
+/* ------------------------------------------------------------- controls */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--card-bg);
   color: var(--ink);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 14px 46px 14px 16px;
-  box-shadow: var(--shadow-1);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 0.2s var(--ease),
+    box-shadow 0.2s var(--ease),
+    border-color 0.2s var(--ease);
 }
-#q::placeholder {
-  color: var(--ink-mute);
+
+.btn:hover:not(:disabled) {
+  border-color: var(--brand-border);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card);
 }
-#q:focus {
+
+.btn.primary {
+  background: var(--brand-surface);
+  border-color: var(--brand-surface);
+  color: var(--on-brand);
+}
+
+.btn.primary:hover:not(:disabled) {
+  box-shadow: 0 8px 24px rgba(var(--brand-rgb), 0.28);
+}
+
+.btn.danger {
+  background: var(--card-bg);
+  border-color: var(--danger-soft);
+  color: var(--danger-strong);
+}
+
+.btn.small {
+  padding: 5px 13px;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.btn.round {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn:focus-visible,
+.tab:focus-visible,
+.ctl:focus-visible,
+.pill.act:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.field {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-input);
+  background: var(--card-bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.field:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  border-color: var(--brand-border);
+  box-shadow: 0 0 0 3px rgba(var(--brand-rgb), 0.1);
 }
-#q::-webkit-search-cancel-button {
+
+/* The one input the whole page is built around. */
+.ask {
+  position: relative;
+}
+
+.ask .field {
+  height: 50px;
+  padding: 0 74px 0 46px;
+  border-radius: var(--r-pill);
+  font-size: 0.98rem;
+}
+
+.ask .field::placeholder {
+  color: var(--ink-faint);
+}
+
+.ask .lens,
+.ask .hint {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+
+.ask .lens {
+  left: 17px;
+  font-size: 0.95rem;
+}
+
+.ask .hint {
+  right: 16px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--cream-dark);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+
+.ask .go {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  bottom: 6px;
+}
+
+.ask.with-go .field {
+  padding-right: 106px;
+}
+
+.ask.with-go .hint {
+  display: none;
+}
+
+/* Suggestions drop out of the query box. */
+.sugg {
+  position: absolute;
+  z-index: 25;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  background: var(--card-bg);
+  box-shadow: var(--shadow-pop);
+}
+
+.sugg li > button {
+  display: block;
+  width: 100%;
+  padding: 8px 11px;
+  border: 0;
+  border-radius: var(--r-chip);
+  background: none;
+  text-align: left;
   cursor: pointer;
 }
 
-.hint {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  font: 600 11px/1 var(--mono);
-  color: var(--ink-mute);
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  padding: 4px 6px;
-  background: var(--paper);
-  pointer-events: none;
-}
-#q:focus ~ .hint,
-#q:not(:placeholder-shown) ~ .hint {
-  opacity: 0;
+.sugg li > button:hover,
+.sugg li > button[aria-selected="true"] {
+  background: var(--info-soft);
 }
 
-.status {
-  font: 12px/1.5 var(--mono);
-  color: var(--ink-2);
-  margin: 14px 2px 0;
-  min-height: 18px;
-  letter-spacing: 0.01em;
+.sugg .t {
+  font-size: 0.86rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* ---- results: a list of texts with a hanging gutter ---- */
+.sugg .w {
+  font-size: 0.74rem;
+  color: var(--ink-faint);
+}
+
+.sugg-foot {
+  padding: 6px 11px 2px;
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  border-top: 1px solid var(--hairline);
+  margin-top: 4px;
+}
+
+/* Filter pills: the retrieval-rung row, the edge-kind row, the session sizes. */
+.pillbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.pill.act {
+  padding: 5px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--card-bg);
+  color: var(--ink-light);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition:
+    background 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+
+.pill.act:hover {
+  border-color: var(--brand-border);
+}
+
+.pill.act[aria-pressed="true"] {
+  background: var(--brand-surface);
+  border-color: var(--brand-surface);
+  color: var(--on-brand);
+  font-weight: 600;
+}
+
+.pill.act .n {
+  margin-left: 6px;
+  opacity: 0.7;
+}
+
+/* ---------------------------------------------------------------- pills */
+
+/* Read-only tags. `.act` above is the clickable variant. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border-radius: var(--r-pill);
+  background: rgba(var(--ink-rgb), 0.06);
+  color: var(--ink-light);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.7;
+  white-space: nowrap;
+}
+
+/* Vector facets read blue, lexical facets read gold: the split is the one
+   distinction in the result row a reader actually has to learn. */
+.pill.vec {
+  background: rgba(var(--brand-rgb), 0.1);
+  color: var(--link);
+}
+
+.pill.lex {
+  background: var(--highlight-soft);
+  color: var(--warning);
+}
+
+.pill.edge {
+  background: var(--card-bg);
+  border: 1px solid var(--brand-border);
+  color: var(--link);
+}
+
+.pill.ok {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.pill.warn {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.pill.bad {
+  background: var(--danger-soft);
+  color: var(--danger-strong);
+}
+
+.pill.mute {
+  background: var(--cream-dark);
+  color: var(--ink-faint);
+}
+
+.pill.cite {
+  padding: 1px 8px;
+  background: rgba(var(--brand-rgb), 0.1);
+  color: var(--link);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 0;
+  cursor: pointer;
+}
+
+.pill.cite:hover {
+  background: var(--brand-surface);
+  color: var(--on-brand);
+}
+
+.marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+/* ---------------------------------------------------------------- cards */
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  padding: 1.15rem 1.25rem;
+  box-shadow: var(--shadow-card);
+}
 
 .hits {
-  list-style: none;
-  counter-reset: hit;
-  margin: 10px 0 0;
-  padding: 0;
-}
-
-.hits > li {
-  counter-increment: hit;
-  border-top: 1px solid var(--line-2);
-}
-.hits > li:last-child {
-  border-bottom: 1px solid var(--line-2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
 }
 
 .hit {
-  display: grid;
-  grid-template-columns: 34px 1fr;
-  gap: 0 12px;
-  padding: 14px 10px 14px 2px;
-  text-decoration: none;
+  position: relative;
+  display: block;
+  background: var(--card-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  padding: 0.95rem 1.1rem 0.95rem 3.1rem;
+  box-shadow: var(--shadow-card);
   color: inherit;
-  border-radius: var(--radius-sm);
-  /* the header is sticky, so a row scrolled to by keyboard or by "load more"
-     would otherwise arrive underneath it */
-  scroll-margin-top: 72px;
-}
-.hit:hover,
-.hit:focus-visible {
-  background: var(--surface-2);
+  transition:
+    transform 0.2s var(--ease),
+    box-shadow 0.2s var(--ease),
+    border-color 0.2s var(--ease);
 }
 
-.hit::before {
-  content: counter(hit, decimal-leading-zero);
-  grid-row: 1 / span 4;
-  font: 11px/1.9 var(--mono);
-  color: var(--ink-mute);
-  text-align: right;
-  font-variant-numeric: tabular-nums;
+.hit:hover {
+  text-decoration: none;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+  border-color: var(--brand-border);
 }
-/* neighbours are not ranked answers, so they are not numbered like answers */
-#around .hit::before {
-  content: "\21b3";
-  font-size: 13px;
-  line-height: 1.55;
+
+.hit:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.hit .rank {
+  position: absolute;
+  left: 1.1rem;
+  top: 1.02rem;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--link);
 }
 
 .hit .title {
-  font-size: 15.5px;
+  font-size: 0.98rem;
   font-weight: 600;
-  line-height: 1.4;
-  color: var(--accent-ink);
-  overflow-wrap: anywhere;
+  color: var(--ink);
+  line-height: 1.45;
 }
+
 .hit:hover .title {
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  color: var(--link);
 }
 
 .hit .where {
-  font: 12px/1.6 var(--mono);
-  color: var(--ink-2);
-  overflow-wrap: anywhere;
+  margin-top: 2px;
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .hit .snippet {
-  margin-top: 4px;
-  color: var(--ink-2);
-  font-size: 13.5px;
-  line-height: 1.55;
+  margin-top: 7px;
+  font-size: 0.85rem;
+  color: var(--ink-light);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -382,282 +723,794 @@ main {
   overflow: hidden;
 }
 
-.marks {
-  margin-top: 6px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  align-items: center;
+/* Sitting neighbours are not ranked, so they carry no rank number and the
+   gutter that number sits in would otherwise be empty. */
+.hit.near {
+  background: var(--cream-dark);
+  box-shadow: none;
+  padding-left: 1.1rem;
 }
 
-/* outlined, not filled: four of these can appear on one row and four filled
-   pills would out-shout the title they belong to */
-.chip {
-  font: 11px/1 var(--sans);
-  color: var(--ink-2);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 3px 7px;
-  white-space: nowrap;
-}
-.chip.via {
-  border-color: var(--accent);
-  color: var(--accent-ink);
-}
-.chip.cold {
-  border-color: var(--warn);
-  color: var(--ink-2);
-}
-.chip.when {
-  border: 0;
-  padding-left: 0;
-  color: var(--ink-mute);
+/* The detail button sits over the row, so it needs its own stacking context. */
+.row-wrap {
+  position: relative;
 }
 
-.group {
-  font: 600 12px/1 var(--sans);
-  text-transform: lowercase;
-  letter-spacing: 0.02em;
-  color: var(--ink-2);
-  margin: 30px 0 0;
-  padding-bottom: 8px;
+.row-wrap .peek {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 2;
+  background: var(--card-bg);
 }
 
-#more {
-  padding: 16px 0 0;
-}
-
-.btn {
-  appearance: none;
-  font: 600 13px/1 var(--sans);
-  padding: 9px 16px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink);
-}
-.btn:hover:not(:disabled) {
-  border-color: var(--ink-3);
-}
-.btn:disabled {
-  cursor: default;
-  color: var(--ink-3);
-}
-.btn.primary {
-  background: var(--btn-bg);
-  border-color: var(--btn-bg);
-  color: var(--btn-fg);
-}
-.btn.primary:hover:not(:disabled) {
-  background: var(--btn-bg-h);
-  border-color: var(--btn-bg-h);
-}
-
-/* ---- panels: empty states, errors, the token prompt ---- */
-
-.panel {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-  padding: 20px;
-  margin-top: 20px;
-}
-.panel.bad {
-  border-color: var(--fail);
-  background: var(--fail-soft);
-}
-.panel h2 {
-  margin: 0 0 6px;
-  font-size: 16px;
-  letter-spacing: -0.01em;
-}
-.panel p {
-  margin: 0;
-  color: var(--ink-2);
-  max-width: 62ch;
-}
-.panel p + p {
-  margin-top: 8px;
-}
-
-/* the terminal block is the actual payload of every empty state: the reason
-   the library is empty is always a command the reader has not run yet */
-.cmd {
-  margin: 12px 0 0;
-  background: var(--code-bg);
-  color: var(--code-ink);
-  border-radius: var(--radius-sm);
-  padding: 11px 13px;
-  font: 13px/1.7 var(--mono);
-  overflow-x: auto;
+.group-head {
   display: flex;
   align-items: baseline;
-  gap: 9px;
+  gap: 10px;
+  margin: 28px 0 0;
 }
-.cmd::before {
-  content: "$";
-  color: var(--code-dim);
-  flex: none;
+
+.more-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
 }
-.cmd code {
-  white-space: pre;
+
+.status {
+  margin-top: 12px;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  min-height: 1.2em;
+}
+
+/* --------------------------------------------------------- view scaffold */
+
+.view-panel[hidden] {
+  display: none;
+}
+
+/* `scene-app.md` caps in-app headings at 1.2rem. This is a tool, not a
+   landing page: a 3rem display serif here would be decoration. */
+.page-title {
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  letter-spacing: -0.01em;
+}
+
+.lede {
+  margin-top: 6px;
+  max-width: 62ch;
+  font-size: 0.86rem;
+  color: var(--ink-light);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+/* Not a fifth retrieval mode. The modes are a choice between equals, so they
+   are pills of the same weight; this one opens a drawer, so it drops the pill
+   entirely and sits at the far end of the row where it cannot be misread as
+   part of the group. */
+#opts-toggle {
+  margin-left: auto;
+  padding: 6px 2px;
+  border-color: transparent;
+  background: none;
+  color: var(--ink-light);
+  font-weight: 500;
+}
+
+#opts-toggle::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.2s var(--ease);
+}
+
+#opts-toggle[aria-expanded="true"]::after {
+  transform: translateY(1px) rotate(225deg);
+}
+
+#opts-toggle:hover:not(:disabled) {
+  border-color: transparent;
+  transform: none;
+  box-shadow: none;
+  color: var(--ink);
+}
+
+.note {
+  margin-top: 8px;
+  max-width: 68ch;
+}
+
+.opts {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  background: var(--card-bg);
+}
+
+.opts[hidden] {
+  display: none;
+}
+
+.opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.82rem;
+  color: var(--ink-light);
+}
+
+.field.num {
+  width: 84px;
+  padding: 7px 10px;
+  text-align: right;
+}
+
+/* A vertical stack of cards: sittings, sources, the graveyard. */
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.rows.tight {
+  gap: 6px;
+}
+
+/* One line of a list that is not a search result: a sitting member, a dead
+   link. Lighter than `.hit` because these are already inside a card. */
+.line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.line:first-child {
+  border-top: 0;
+}
+
+.line .grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.line .t {
+  font-size: 0.86rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line .w {
+  font-size: 0.74rem;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- callouts */
+
+.panel {
+  border-radius: var(--r-card);
+  padding: clamp(18px, 2.4vw, 26px);
+  background: var(--info-soft);
+  border: 1px solid var(--brand-border);
+  margin-top: 16px;
+}
+
+.panel h2 {
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
+.panel p {
+  margin-top: 8px;
+  font-size: 0.88rem;
+  color: var(--ink-light);
+}
+
+.panel.bad {
+  background: var(--danger-soft);
+  border-color: var(--danger-soft);
+}
+
+.panel.warn {
+  background: var(--warning-soft);
+  border-color: var(--warning-soft);
+}
+
+/* A command to copy, inset into the panel that asked for it. Light, not a
+   terminal: the app scene forbids dark panels in functional areas, and a
+   black slab inside a yellow notice is exactly the thing it forbids. */
+.panel .cmd {
+  margin: 14px 0 0;
+  padding: 12px 15px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-chip);
+  background: var(--card-bg);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  overflow-x: auto;
 }
 
 .pair {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.pair .field {
+  flex: 1 1 220px;
+  width: auto;
+}
+
+/* ---------------------------------------------------------- dashboards */
+
+/* auto-fill, not auto-fit: a page with two numbers on it should show two
+   normal cards and some quiet space, not two cards stretched to half the
+   window each. */
+.numbers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.num {
+  background: var(--card-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  padding: 1.1rem 1.2rem;
+  box-shadow: var(--shadow-card);
+}
+
+.num b {
+  display: block;
+  font-size: clamp(1.7rem, 4vw, 2.4rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--link);
+}
+
+.num.gold b {
+  color: var(--warning);
+}
+
+.num.pop b {
+  color: var(--pop-text);
+}
+
+.num.ink b {
+  color: var(--ink);
+}
+
+.num span {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+}
+
+.block {
+  margin-top: 30px;
+}
+
+.block > h2 {
+  font-size: 1.15rem;
+}
+
+.block > .lede {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: var(--ink-light);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+/* auto-fill reserves the empty tracks, which is right for a census that grows
+   and wrong for a block that is always exactly two cards: the pair ends up
+   huddled against the left edge of a four-column grid. */
+.grid.duo {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+/* Labelled progress row: label, thin track, right-aligned percent. */
+.bars {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 2.2fr auto;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.82rem;
+}
+
+.bar-row .lab {
+  color: var(--ink-light);
+}
+
+.bar-row .val {
+  color: var(--ink-faint);
+  font-size: 0.78rem;
+  text-align: right;
+}
+
+.track {
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: rgba(var(--ink-rgb), 0.07);
+  overflow: hidden;
+}
+
+.track > i {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: var(--brand);
+}
+
+.track > i.gold {
+  background: var(--highlight);
+}
+
+/* One bar, many verdicts. */
+/* The inset hairline matters when one band holds everything: a full-width
+   grey bar with no edge reads as an empty track that is still loading. */
+.stack {
+  display: flex;
+  height: 12px;
+  border-radius: var(--r-pill);
+  overflow: hidden;
+  background: rgba(var(--ink-rgb), 0.07);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  margin-top: 14px;
+}
+
+.stack > i {
+  height: 100%;
+}
+
+.stack > i.ok {
+  background: var(--success);
+}
+
+.stack > i.warn {
+  background: var(--highlight);
+}
+
+.stack > i.bad {
+  background: var(--danger);
+}
+
+.stack > i.mute {
+  background: rgba(var(--ink-rgb), 0.22);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
-  flex-wrap: wrap;
-}
-.pair input {
-  flex: 1 1 240px;
-  font: 13px/1.4 var(--mono);
-  padding: 9px 11px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--paper);
-  color: var(--ink);
-}
-.pair input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-/* ---- library ---- */
-
-.stat-group {
-  margin: 0 0 26px;
-}
-.stat-group h2 {
-  font: 600 12px/1 var(--sans);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--ink-mute);
-  margin: 0 0 2px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--line);
-}
-.stat-group .note {
-  margin: 10px 0 0;
-  font-size: 13px;
-  color: var(--ink-2);
-  max-width: 62ch;
+/* Definition rows inside a card: hairline separated, label left, value right. */
+.facts {
+  margin-top: 10px;
 }
 
-.stat {
+.facts > div {
   display: flex;
   align-items: baseline;
-  gap: 12px;
-  padding: 9px 2px;
-  border-bottom: 1px solid var(--line-2);
+  justify-content: space-between;
+  gap: 14px;
+  padding: 7px 0;
+  border-top: 1px solid var(--hairline);
+  font-size: 0.82rem;
 }
-.stat dt {
-  color: var(--ink-2);
-  font-size: 14px;
+
+.facts > div:first-child {
+  border-top: 0;
 }
-.stat dd {
-  margin: 0 0 0 auto;
-  font: 14px/1 var(--mono);
-  font-variant-numeric: tabular-nums;
+
+.facts dt {
+  color: var(--ink-faint);
+}
+
+.facts dd {
+  color: var(--ink);
+  font-weight: 500;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.facts .zero dd {
+  color: var(--ink-faint);
+  font-weight: 400;
+}
+
+/* A fact can carry a verdict: a fetch error, a stale vector count. */
+.facts dd.t-bad {
+  color: var(--danger-strong);
+}
+
+.facts dd.t-warn {
+  color: var(--warning);
+}
+
+.facts dd.t-ok {
+  color: var(--success);
+}
+
+/* --------------------------------------------------------------- claims */
+
+.claim {
+  position: relative;
+  background: var(--card-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  padding: 1rem 1.2rem 1rem 3.4rem;
+  box-shadow: var(--shadow-card);
+}
+
+.claim .n {
+  position: absolute;
+  left: 1.1rem;
+  top: 1rem;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-surface);
+  color: var(--on-brand);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.claim p {
+  font-size: 0.92rem;
+  line-height: 1.85;
   color: var(--ink);
 }
-.stat.zero dd {
-  color: var(--ink-mute);
-}
 
-dl {
-  margin: 0;
-}
-
-/* ---- footer ---- */
-
-.bottom {
-  border-top: 1px solid var(--line);
-  padding: 16px 20px;
+.claim .cites {
   display: flex;
-  gap: 18px;
-  justify-content: center;
   flex-wrap: wrap;
-  font-size: 12.5px;
-  color: var(--ink-mute);
-}
-.bottom a {
-  color: var(--ink-2);
-  text-decoration: none;
-}
-.bottom a:hover {
-  color: var(--accent-ink);
-  text-decoration: underline;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
 }
 
-/* ---- first paint ---- */
-
-.skeleton {
-  list-style: none;
-  margin: 10px 0 0;
-  padding: 0;
-}
-.skeleton li {
-  height: 14px;
-  border-radius: 4px;
-  background: var(--paper-2);
-  margin: 18px 0;
-}
-.skeleton li:nth-child(2n) {
-  width: 62%;
-}
-.skeleton li:nth-child(3n) {
-  width: 78%;
+.claim .cites .dim {
+  margin-left: auto;
 }
 
-/* ---------------------------------------------------------------- motion */
+.src {
+  scroll-margin-top: calc(var(--head-h) + 70px);
+}
 
-/* Two animations, both under 200ms, both opt-in. Appended rows fade so the
-   reader can see that the list grew rather than having to re-find their place
-   in it; the skeleton pulses so a slow embedding round trip does not look
-   like a hang. Nothing else on this page moves. */
-@media (prefers-reduced-motion: no-preference) {
-  .hits > li.fresh .hit {
-    animation: rise 180ms ease-out both;
+/* The number a claim cites. Same circle as .claim .n so the eye pairs them. */
+.src .no {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-surface);
+  color: var(--on-brand);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.src.lit {
+  border-color: var(--brand-border);
+  box-shadow: 0 0 0 3px rgba(var(--brand-rgb), 0.12);
+}
+
+/* ---------------------------------------------------------------- modal */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 6vh 16px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.overlay[hidden] {
+  display: none;
+}
+
+.sheet {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  max-height: 80vh;
+  overflow-y: auto;
+  border-radius: var(--r-modal);
+  background: var(--cream);
+  padding: clamp(24px, 3vw, 40px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
+}
+
+.sheet h2 {
+  font-size: 1.15rem;
+  padding-right: 44px;
+}
+
+.shut {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--card-bg);
+  color: var(--ink-light);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.shut:hover {
+  border-color: var(--brand-border);
+  color: var(--link);
+}
+
+/* Underline tabs: the secondary switch the app scene prescribes. */
+.utabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 18px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.utab {
+  padding: 8px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  color: var(--ink-faint);
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+
+.utab:hover {
+  color: var(--ink-light);
+}
+
+.utab[aria-selected="true"] {
+  border-bottom-color: var(--brand);
+  color: var(--link);
+  font-weight: 600;
+}
+
+.utab:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.upanel {
+  padding-top: 16px;
+}
+
+.upanel[hidden] {
+  display: none;
+}
+
+.prose {
+  font-size: 0.88rem;
+  line-height: 1.85;
+  color: var(--ink-light);
+}
+
+/* A URL rendered as a URL: mono, wraps anywhere, never widens the dialog. */
+.surl {
+  display: inline-block;
+  max-width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--link);
+  overflow-wrap: anywhere;
+}
+
+/* One labelled group of pills: topics, entities, remembered queries. */
+.tagset {
+  margin-top: 18px;
+}
+
+.tagset > h3 {
+  margin-bottom: 8px;
+}
+
+.tagset .marks {
+  margin-top: 0;
+}
+
+.points {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.points li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 0.85rem;
+  color: var(--ink-light);
+  line-height: 1.7;
+}
+
+.points li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+
+/* ------------------------------------------------------------ skeletons */
+
+.skel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.skel > div {
+  height: 84px;
+  border-radius: var(--r-card);
+  background: linear-gradient(
+    90deg,
+    var(--cream-dark) 0%,
+    var(--card-bg) 40%,
+    var(--cream-dark) 80%
+  );
+  background-size: 300% 100%;
+  animation: sweep 1.3s linear infinite;
+}
+
+@keyframes sweep {
+  from {
+    background-position: 120% 0;
   }
-  .skeleton li {
-    animation: pulse 1.3s ease-in-out infinite;
-  }
-  @keyframes rise {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
-  }
-  @keyframes pulse {
-    50% {
-      opacity: 0.45;
-    }
+  to {
+    background-position: -40% 0;
   }
 }
 
-/* ------------------------------------------------------------ responsive */
+/* --------------------------------------------------------- responsive */
 
-@media (max-width: 560px) {
-  .top-in {
-    gap: 10px;
-    padding: 9px 14px;
+@media (max-width: 720px) {
+  .tabs {
+    padding: 8px 12px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
   }
-  .logo .word {
+
+  .tabs::-webkit-scrollbar {
     display: none;
   }
-  main {
-    padding: 20px 14px 48px;
+
+  .bar-row {
+    grid-template-columns: 1fr auto;
   }
-  .hit {
-    grid-template-columns: 1fr;
-    padding-left: 2px;
+
+  .bar-row .track {
+    grid-column: 1 / -1;
   }
-  /* the gutter is a scanning aid, and at this width it costs more room than
-     it repays */
-  .hit::before {
-    display: none;
+
+  .overlay {
+    padding: 0;
   }
+
+  .sheet {
+    max-width: none;
+    max-height: 100vh;
+    min-height: 100vh;
+    border-radius: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skel > div {
+    animation: none;
+  }
+
+  .btn:hover:not(:disabled),
+  .hit:hover {
+    transform: none;
+  }
+}
+
+/* ----------------------------------------------------------------- dark */
+
+/*
+ * facetmark's own extension. `palettes.css` defines light palettes only, and
+ * `references/scene-app.md` bans decorative dark panels inside functional
+ * areas -- which is a different rule from "no night theme". These values keep
+ * palette A's three hues and move only the surfaces and the ink, plus the
+ * three text roles that would otherwise fall under 4.5:1 on a dark card.
+ *
+ * Only the tokens below may appear in this block; `tests/test_web.py` fails
+ * the build if a fourth colour or a new token name shows up here, because the
+ * moment this grows past surfaces it stops being a theme and becomes a second
+ * palette that nobody upstream is maintaining.
+ *
+ * Contrast on every pairing this page actually renders is asserted in
+ * `tests/test_web.py::TestTheContrast`, using the same WCAG relative-luminance
+ * maths as the design system's own `scripts/validate-palettes.mjs`.
+ */
+html[data-theme="dark"] {
+  --cream: #14161c;
+  --cream-dark: #1b1e26;
+  --card-bg: #1c1f28;
+  --preview-bg: #23252c;
+  --ink: #e9eaee;
+  --ink-light: #b9bcc6;
+  --ink-faint: #979ba6;
+  --ink-rgb: 233, 234, 238;
+  --border: rgba(233, 234, 238, 0.16);
+  --hairline: rgba(233, 234, 238, 0.1);
+  --border-strong: rgba(233, 234, 238, 0.26);
+  --brand-text: #7db4ee;
+  --brand-border: rgba(125, 180, 238, 0.45);
+  --pop-text: #f2879a;
+  --warning: #e8c65a;
+  --success: #6cc394;
+  --danger-strong: #f2879a;
+  --highlight-soft: rgba(244, 215, 88, 0.16);
+  --success-soft: rgba(108, 195, 148, 0.16);
+  --warning-soft: rgba(232, 198, 90, 0.16);
+  --danger-soft: rgba(242, 135, 154, 0.16);
+  --info-soft: rgba(125, 180, 238, 0.12);
+  --focus-ring: #7db4ee;
+  --link: var(--brand-text);
 }

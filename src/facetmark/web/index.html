@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  The facetmark search page, served by `facetmark serve` at /app.
+  The facetmark app, served by `facetmark serve` at /app.
 
   Shipped as English markup rather than as an empty shell that JavaScript
   fills. If `strings.json` is slow, blocked, or missing, the page is still a
@@ -8,10 +8,15 @@
   for the length of one fetch off localhost. That tradeoff is deliberate and
   is recorded in the plan.
 
+  `data-palette` picks a colourway out of `palettes.css`, which is vendored
+  verbatim from the project owner's design system. The app pins A because that
+  is the only palette whose AA corrections and dark counterpart are checked in
+  `tests/test_web.py`; the other nine still work if you edit this attribute.
+
   Asset paths are absolute. The document is served at `/app`, with no trailing
   slash, so a relative `static/app.css` would resolve to `/static/app.css`.
 -->
-<html lang="en">
+<html lang="en" data-palette="A">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -20,8 +25,9 @@
     <title>facetmark</title>
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23ff9400'/%3E%3Cpath d='M0 0h32v32z' fill='%230279ee'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232B7FD8'/%3E%3Cpath d='M32 32H21V21h11z' fill='%23F4D758'/%3E%3C/svg%3E"
     />
+    <link rel="stylesheet" href="/app/static/palettes.css" />
     <link rel="stylesheet" href="/app/static/app.css" />
     <!-- Same key and same shape as the site's theme boot, so the two surfaces
          cannot disagree about what "dark" is. Inline because it has to run
@@ -40,6 +46,9 @@
   <body>
     <a class="skip" href="#main" data-i18n="skip">Skip to results</a>
 
+    <!-- Brand 60%, highlight 30%, pop 10%: the design system's ratio, drawn. -->
+    <div class="brandbar" aria-hidden="true"></div>
+
     <header class="top">
       <div class="top-in">
         <a class="logo" href="#/search">
@@ -47,20 +56,11 @@
           <span class="word">facetmark</span>
         </a>
 
-        <nav class="views" aria-label="Views">
-          <button type="button" class="view" data-view="search" aria-current="page">
-            <span data-i18n="nav.search">Search</span>
-          </button>
-          <button type="button" class="view" data-view="library">
-            <span data-i18n="nav.library">Library</span>
-          </button>
-        </nav>
-
         <div class="tools">
           <button
             type="button"
             id="lang"
-            class="ctl"
+            class="ctl wide"
             data-i18n-attr="title:nav.lang, aria-label:nav.lang"
             title="Switch language"
           >
@@ -77,43 +77,185 @@
           </button>
         </div>
       </div>
+
+      <nav class="tabs" id="tabs" data-i18n-attr="aria-label:nav.views" aria-label="Views">
+        <button type="button" class="tab" data-view="search" aria-current="page">
+          <span data-i18n="nav.search">Search</span>
+        </button>
+        <button type="button" class="tab" data-view="ask">
+          <span data-i18n="nav.ask">Synthesise</span>
+        </button>
+        <button type="button" class="tab" data-view="library">
+          <span data-i18n="nav.library">Library</span>
+          <span class="n" id="n-library" hidden></span>
+        </button>
+        <button type="button" class="tab" data-view="sessions">
+          <span data-i18n="nav.sessions">Sittings</span>
+          <span class="n" id="n-sessions" hidden></span>
+        </button>
+        <button type="button" class="tab" data-view="system">
+          <span data-i18n="nav.system">System</span>
+        </button>
+      </nav>
     </header>
 
     <main id="main">
-      <!-- ---------------- search ---------------- -->
+      <!-- ---------------------------------------------------------- search -->
       <section id="view-search" class="view-panel">
-        <form id="ask" autocomplete="off">
+        <form id="seek" class="ask" role="search" autocomplete="off">
+          <span class="lens" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="7" cy="7" r="4.6" stroke="currentColor" stroke-width="1.6" />
+              <path d="M10.6 10.6 14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+          </span>
           <input
             id="q"
+            class="field"
             type="search"
             enterkeyhint="search"
             spellcheck="false"
+            role="combobox"
+            aria-expanded="false"
+            aria-controls="sugg"
+            aria-autocomplete="list"
             data-i18n-attr="placeholder:search.placeholder, aria-label:search.label"
             placeholder="what were you looking for?"
             aria-label="Search your library"
           />
           <kbd class="hint" aria-hidden="true">/</kbd>
+          <ul
+            id="sugg"
+            class="sugg"
+            role="listbox"
+            hidden
+            data-i18n-attr="aria-label:sugg.label"
+            aria-label="Suggestions"
+          ></ul>
         </form>
+
+        <div class="controls">
+          <div
+            class="pillbar"
+            id="rungs"
+            role="group"
+            data-i18n-attr="aria-label:mode.label"
+            aria-label="Retrieval mode"
+          ></div>
+          <button
+            type="button"
+            id="opts-toggle"
+            class="btn small"
+            aria-expanded="false"
+            aria-controls="opts"
+            data-i18n="opts.more"
+          >
+            More options
+          </button>
+        </div>
+        <p class="dim note" id="rung-note"></p>
+
+        <div class="opts" id="opts" hidden>
+          <label class="opt" for="expand">
+            <span data-i18n="opts.expand">Saved-around rows</span>
+            <input id="expand" class="field num" type="number" min="0" max="20" step="1" value="8" />
+          </label>
+          <p class="dim" data-i18n="opts.expand.why">
+            How many neighbours of the answers to walk out to through the link graph. 0 turns the
+            group off.
+          </p>
+        </div>
 
         <p id="status" class="status" role="status" aria-live="polite"></p>
         <div id="panel"></div>
         <ol id="results" class="hits"></ol>
-        <div id="more"></div>
+        <div id="more" class="more-wrap"></div>
 
         <section id="around" hidden>
-          <h2 id="around-head" class="group"></h2>
+          <div class="group-head">
+            <h2 class="caps" id="around-head"></h2>
+          </div>
           <ol id="around-list" class="hits"></ol>
         </section>
       </section>
 
-      <!-- ---------------- library ---------------- -->
+      <!-- ------------------------------------------------------ synthesise -->
+      <section id="view-ask" class="view-panel" hidden>
+        <h1 class="page-title" data-i18n="ask.title">One answer, with its sources</h1>
+        <p class="lede" data-i18n="ask.lede">
+          Reads the pages your library already holds and writes short claims from them. Every claim
+          carries the numbered sources it came from, so you can check it.
+        </p>
+
+        <form id="askform" class="ask with-go" autocomplete="off">
+          <span class="lens" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="7" cy="7" r="4.6" stroke="currentColor" stroke-width="1.6" />
+              <path d="M10.6 10.6 14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+          </span>
+          <input
+            id="aq"
+            class="field"
+            type="search"
+            enterkeyhint="go"
+            spellcheck="false"
+            data-i18n-attr="placeholder:ask.placeholder, aria-label:ask.label"
+            placeholder="what do your saved pages say about…"
+            aria-label="Ask across your library"
+          />
+          <button type="submit" id="ago" class="btn primary go" data-i18n="ask.go">Synthesise</button>
+        </form>
+
+        <div class="controls">
+          <label class="opt" for="alimit">
+            <span data-i18n="ask.limit">Sources to read</span>
+            <input id="alimit" class="field num" type="number" min="1" max="20" step="1" value="8" />
+          </label>
+        </div>
+
+        <div id="apanel"></div>
+        <div id="aout"></div>
+      </section>
+
+      <!-- --------------------------------------------------------- library -->
       <section id="view-library" class="view-panel" hidden>
         <h1 class="page-title" data-i18n="library.title">Your library</h1>
         <p class="lede" data-i18n="library.lede">
-          What facetmark has actually indexed. If a search came back empty, the answer is
-          usually on this page.
+          What facetmark has actually indexed. If a search came back empty, the answer is usually on
+          this page.
         </p>
         <div id="stats"></div>
+      </section>
+
+      <!-- -------------------------------------------------------- sittings -->
+      <section id="view-sessions" class="view-panel" hidden>
+        <h1 class="page-title" data-i18n="sessions.title">Sittings</h1>
+        <p class="lede" data-i18n="sessions.lede">
+          Bookmarks saved close together in time, grouped. This is the same grouping the search page
+          calls “saved around these”.
+        </p>
+        <div class="controls">
+          <div
+            class="pillbar"
+            id="minsize"
+            role="group"
+            data-i18n-attr="aria-label:sessions.min"
+            aria-label="Smallest sitting"
+          ></div>
+        </div>
+        <div id="slist"></div>
+        <div id="smore" class="more-wrap"></div>
+      </section>
+
+      <!-- ---------------------------------------------------------- system -->
+      <section id="view-system" class="view-panel" hidden>
+        <h1 class="page-title" data-i18n="system.title">System</h1>
+        <p class="lede" data-i18n="system.lede">
+          What this server is running, what it still has queued, and which saved pages have stopped
+          answering.
+        </p>
+        <div id="sys"></div>
       </section>
     </main>
 
@@ -126,6 +268,85 @@
         Source
       </a>
     </footer>
+
+    <!-- ----------------------------------------------------- detail dialog -->
+    <div
+      id="overlay"
+      class="overlay"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="sheet-title"
+    >
+      <div class="sheet" id="sheet">
+        <button
+          type="button"
+          id="shut"
+          class="shut"
+          data-i18n-attr="aria-label:detail.close, title:detail.close"
+          aria-label="Close"
+        >
+          ×
+        </button>
+        <h2 id="sheet-title"></h2>
+        <div id="sheet-head"></div>
+
+        <div class="utabs" role="tablist" data-i18n-attr="aria-label:detail.tabs" aria-label="Detail">
+          <button
+            type="button"
+            class="utab"
+            id="utab-about"
+            role="tab"
+            aria-selected="true"
+            aria-controls="upanel-about"
+            data-tab="about"
+            data-i18n="detail.tab.about"
+          >
+            Overview
+          </button>
+          <button
+            type="button"
+            class="utab"
+            id="utab-related"
+            role="tab"
+            aria-selected="false"
+            aria-controls="upanel-related"
+            data-tab="related"
+            data-i18n="detail.tab.related"
+          >
+            Related
+          </button>
+          <button
+            type="button"
+            class="utab"
+            id="utab-sittings"
+            role="tab"
+            aria-selected="false"
+            aria-controls="upanel-sittings"
+            data-tab="sittings"
+            data-i18n="detail.tab.sittings"
+          >
+            Sittings
+          </button>
+        </div>
+
+        <div class="upanel" id="upanel-about" role="tabpanel" aria-labelledby="utab-about"></div>
+        <div
+          class="upanel"
+          id="upanel-related"
+          role="tabpanel"
+          aria-labelledby="utab-related"
+          hidden
+        ></div>
+        <div
+          class="upanel"
+          id="upanel-sittings"
+          role="tabpanel"
+          aria-labelledby="utab-sittings"
+          hidden
+        ></div>
+      </div>
+    </div>
 
     <script type="module" src="/app/static/app.js"></script>
   </body>
