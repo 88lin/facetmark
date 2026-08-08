@@ -1,0 +1,132 @@
+<!doctype html>
+<!--
+  The facetmark search page, served by `facetmark serve` at /app.
+
+  Shipped as English markup rather than as an empty shell that JavaScript
+  fills. If `strings.json` is slow, blocked, or missing, the page is still a
+  readable, usable search box; the cost is that a Chinese reader sees English
+  for the length of one fetch off localhost. That tradeoff is deliberate and
+  is recorded in the plan.
+
+  Asset paths are absolute. The document is served at `/app`, with no trailing
+  slash, so a relative `static/app.css` would resolve to `/static/app.css`.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="robots" content="noindex" />
+    <title>facetmark</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23ff9400'/%3E%3Cpath d='M0 0h32v32z' fill='%230279ee'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="/app/static/app.css" />
+    <!-- Same key and same shape as the site's theme boot, so the two surfaces
+         cannot disagree about what "dark" is. Inline because it has to run
+         before first paint; deferring it produces a white flash. -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("fm-theme");
+          if (!t || t === "system")
+            t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main" data-i18n="skip">Skip to results</a>
+
+    <header class="top">
+      <div class="top-in">
+        <a class="logo" href="#/search">
+          <span class="glyph" aria-hidden="true"></span>
+          <span class="word">facetmark</span>
+        </a>
+
+        <nav class="views" aria-label="Views">
+          <button type="button" class="view" data-view="search" aria-current="page">
+            <span data-i18n="nav.search">Search</span>
+          </button>
+          <button type="button" class="view" data-view="library">
+            <span data-i18n="nav.library">Library</span>
+          </button>
+        </nav>
+
+        <div class="tools">
+          <button
+            type="button"
+            id="lang"
+            class="ctl"
+            data-i18n-attr="title:nav.lang, aria-label:nav.lang"
+            title="Switch language"
+          >
+            中文
+          </button>
+          <button
+            type="button"
+            id="theme"
+            class="ctl"
+            data-i18n-attr="title:nav.theme, aria-label:nav.theme"
+            title="Theme"
+          >
+            <span id="theme-glyph" aria-hidden="true">☾</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- ---------------- search ---------------- -->
+      <section id="view-search" class="view-panel">
+        <form id="ask" autocomplete="off">
+          <input
+            id="q"
+            type="search"
+            enterkeyhint="search"
+            spellcheck="false"
+            data-i18n-attr="placeholder:search.placeholder, aria-label:search.label"
+            placeholder="what were you looking for?"
+            aria-label="Search your library"
+          />
+          <kbd class="hint" aria-hidden="true">/</kbd>
+        </form>
+
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+        <div id="panel"></div>
+        <ol id="results" class="hits"></ol>
+        <div id="more"></div>
+
+        <section id="around" hidden>
+          <h2 id="around-head" class="group"></h2>
+          <ol id="around-list" class="hits"></ol>
+        </section>
+      </section>
+
+      <!-- ---------------- library ---------------- -->
+      <section id="view-library" class="view-panel" hidden>
+        <h1 class="page-title" data-i18n="library.title">Your library</h1>
+        <p class="lede" data-i18n="library.lede">
+          What facetmark has actually indexed. If a search came back empty, the answer is
+          usually on this page.
+        </p>
+        <div id="stats"></div>
+      </section>
+    </main>
+
+    <footer class="bottom">
+      <span id="version" class="mono"></span>
+      <a href="https://88lin.github.io/facetmark/" rel="noopener" data-i18n="foot.docs">
+        Documentation
+      </a>
+      <a href="https://github.com/88lin/facetmark" rel="noopener" data-i18n="foot.repo">
+        Source
+      </a>
+    </footer>
+
+    <script type="module" src="/app/static/app.js"></script>
+  </body>
+</html>

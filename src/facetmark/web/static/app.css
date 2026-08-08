@@ -1,0 +1,663 @@
+/* facetmark — local search page.
+
+   The palette is lifted verbatim from docs/landing/style.css, including its
+   contrast reasoning, because that is the most carefully checked set of tokens
+   in the repo and three brands is one too many. tests/test_web.py asserts the
+   accent and paper values still agree across this file, the site stylesheet
+   and the extension popup.
+
+   extension/src/popup.css is deliberately NOT refactored into a shared file.
+   It ships in a different artifact, on a different release cadence, into a
+   420px viewport with its own type scale; a common stylesheet would couple two
+   things that only look alike. Agreement is asserted, not enforced by sharing.
+
+   The layout is a reading column with a hanging left gutter, not a card grid.
+   A search result list is a list of texts. */
+
+:root {
+  color-scheme: light;
+  --paper: #faf9f3;
+  --paper-2: #ece8da;
+  --surface: #ffffff;
+  --surface-2: #f7f5ee;
+  --ink: #17160f;
+  --ink-2: #55534a;
+  /* muted but still readable: ink-mute clears 4.5:1 against every paper and
+     surface token in this file, in both themes. It exists because a search
+     result list needs three text weights -- title, secondary, recessive --
+     and the recessive one is still text a beginner has to read. */
+  --ink-mute: #69665d;
+  /* hairlines, glyphs, disabled controls and bar fills only. ink-3 is 3.09:1
+     on paper-2, which fails WCAG AA for text. Text uses ink-2 or ink-mute. */
+  --ink-3: #86837a;
+  --line: #ddd9cc;
+  --line-2: #e7e2d4;
+  --accent: #0279ee;
+  /* the brand blue is 4.00:1 on paper, so it fills shapes and sets borders but
+     never sets small text. accent-ink does that. */
+  --accent-ink: #0163c4;
+  --accent-ink-2: #014e9c;
+  --accent-soft: #e7f1fd;
+  --btn-bg: #0163c4;
+  --btn-bg-h: #014e9c;
+  --btn-fg: #ffffff;
+  --warn: #ff9400;
+  --pass: #4d6a17;
+  --fail: #bd3a1a;
+  --fail-soft: #fbeae5;
+  --code-bg: #17160f;
+  --code-ink: #ece9e2;
+  --code-dim: #9c988c;
+  --shadow-1: 0 1px 2px rgba(23, 22, 15, 0.05), 0 2px 8px rgba(23, 22, 15, 0.04);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --readw: 780px;
+  --sans: "Liberation Sans", Arimo, "Helvetica Neue", Arial, system-ui,
+    "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
+  --mono: "Liberation Mono", "SF Mono", "Cascadia Code", Consolas, monospace;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #131310;
+  --paper-2: #21211c;
+  --surface: #1c1c18;
+  --surface-2: #232320;
+  --ink: #eceae2;
+  --ink-2: #a8a59b;
+  --ink-mute: #8e8b82;
+  --ink-3: #807d74;
+  --line: #33332d;
+  --line-2: #282824;
+  --accent: #52a8ff;
+  --accent-ink: #52a8ff;
+  --accent-ink-2: #7dbeff;
+  --accent-soft: #12283c;
+  --btn-bg: #52a8ff;
+  --btn-bg-h: #7dbeff;
+  --btn-fg: #131310;
+  --warn: #ffab3d;
+  --pass: #a3c860;
+  --fail: #ff8a66;
+  --fail-soft: #2e1711;
+  /* in dark mode the code panel sits ABOVE the page, not below it: a darker
+     panel than the page reads as a hole punched in the screen. */
+  --code-bg: #23231d;
+  --code-ink: #eceae2;
+  --code-dim: #a3a094;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font: 15px/1.6 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+a {
+  color: var(--accent-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.skip {
+  position: absolute;
+  left: -9999px;
+  top: 8px;
+  padding: 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  z-index: 20;
+}
+.skip:focus {
+  left: 12px;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- header */
+
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  /* a plain background would let ascenders show through while scrolling. The
+     blur here is a scroll artefact fix, not decoration -- there is no frosted
+     panel anywhere else on the page. */
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+
+.top-in {
+  max-width: var(--readw);
+  margin: 0 auto;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--ink);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.logo .glyph {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: var(--accent);
+  /* the site's mark: a square split on the diagonal, blue over amber */
+  background-image: linear-gradient(135deg, var(--accent) 50%, var(--warn) 50%);
+}
+
+.views {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.view {
+  appearance: none;
+  border: 0;
+  background: none;
+  font: 600 13px/1 var(--sans);
+  color: var(--ink-2);
+  padding: 7px 11px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.view:hover {
+  background: var(--paper-2);
+  color: var(--ink);
+}
+.view[aria-current] {
+  background: var(--accent-soft);
+  color: var(--accent-ink-2);
+}
+
+.tools {
+  display: flex;
+  gap: 2px;
+}
+
+.ctl {
+  appearance: none;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--ink-2);
+  font: 600 13px/1 var(--sans);
+  min-width: 34px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  padding: 0 8px;
+}
+.ctl:hover {
+  background: var(--paper-2);
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------------------ main */
+
+main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--readw);
+  margin: 0 auto;
+  padding: 28px 20px 64px;
+}
+
+.page-title {
+  font-size: 24px;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  margin: 0 0 6px;
+}
+
+.lede {
+  margin: 0 0 24px;
+  color: var(--ink-2);
+  max-width: 60ch;
+}
+
+/* ---- the search field is the product, so it gets the weight ---- */
+
+#ask {
+  position: relative;
+  display: block;
+}
+
+#q {
+  width: 100%;
+  font: 17px/1.4 var(--sans);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 46px 14px 16px;
+  box-shadow: var(--shadow-1);
+}
+#q::placeholder {
+  color: var(--ink-mute);
+}
+#q:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+#q::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+
+.hint {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font: 600 11px/1 var(--mono);
+  color: var(--ink-mute);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 4px 6px;
+  background: var(--paper);
+  pointer-events: none;
+}
+#q:focus ~ .hint,
+#q:not(:placeholder-shown) ~ .hint {
+  opacity: 0;
+}
+
+.status {
+  font: 12px/1.5 var(--mono);
+  color: var(--ink-2);
+  margin: 14px 2px 0;
+  min-height: 18px;
+  letter-spacing: 0.01em;
+}
+
+/* ---- results: a list of texts with a hanging gutter ---- */
+
+.hits {
+  list-style: none;
+  counter-reset: hit;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.hits > li {
+  counter-increment: hit;
+  border-top: 1px solid var(--line-2);
+}
+.hits > li:last-child {
+  border-bottom: 1px solid var(--line-2);
+}
+
+.hit {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 0 12px;
+  padding: 14px 10px 14px 2px;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--radius-sm);
+  /* the header is sticky, so a row scrolled to by keyboard or by "load more"
+     would otherwise arrive underneath it */
+  scroll-margin-top: 72px;
+}
+.hit:hover,
+.hit:focus-visible {
+  background: var(--surface-2);
+}
+
+.hit::before {
+  content: counter(hit, decimal-leading-zero);
+  grid-row: 1 / span 4;
+  font: 11px/1.9 var(--mono);
+  color: var(--ink-mute);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* neighbours are not ranked answers, so they are not numbered like answers */
+#around .hit::before {
+  content: "\21b3";
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.hit .title {
+  font-size: 15.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--accent-ink);
+  overflow-wrap: anywhere;
+}
+.hit:hover .title {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.hit .where {
+  font: 12px/1.6 var(--mono);
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+.hit .snippet {
+  margin-top: 4px;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.marks {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+
+/* outlined, not filled: four of these can appear on one row and four filled
+   pills would out-shout the title they belong to */
+.chip {
+  font: 11px/1 var(--sans);
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 7px;
+  white-space: nowrap;
+}
+.chip.via {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.chip.cold {
+  border-color: var(--warn);
+  color: var(--ink-2);
+}
+.chip.when {
+  border: 0;
+  padding-left: 0;
+  color: var(--ink-mute);
+}
+
+.group {
+  font: 600 12px/1 var(--sans);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+  margin: 30px 0 0;
+  padding-bottom: 8px;
+}
+
+#more {
+  padding: 16px 0 0;
+}
+
+.btn {
+  appearance: none;
+  font: 600 13px/1 var(--sans);
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+.btn:hover:not(:disabled) {
+  border-color: var(--ink-3);
+}
+.btn:disabled {
+  cursor: default;
+  color: var(--ink-3);
+}
+.btn.primary {
+  background: var(--btn-bg);
+  border-color: var(--btn-bg);
+  color: var(--btn-fg);
+}
+.btn.primary:hover:not(:disabled) {
+  background: var(--btn-bg-h);
+  border-color: var(--btn-bg-h);
+}
+
+/* ---- panels: empty states, errors, the token prompt ---- */
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 20px;
+  margin-top: 20px;
+}
+.panel.bad {
+  border-color: var(--fail);
+  background: var(--fail-soft);
+}
+.panel h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+.panel p {
+  margin: 0;
+  color: var(--ink-2);
+  max-width: 62ch;
+}
+.panel p + p {
+  margin-top: 8px;
+}
+
+/* the terminal block is the actual payload of every empty state: the reason
+   the library is empty is always a command the reader has not run yet */
+.cmd {
+  margin: 12px 0 0;
+  background: var(--code-bg);
+  color: var(--code-ink);
+  border-radius: var(--radius-sm);
+  padding: 11px 13px;
+  font: 13px/1.7 var(--mono);
+  overflow-x: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+.cmd::before {
+  content: "$";
+  color: var(--code-dim);
+  flex: none;
+}
+.cmd code {
+  white-space: pre;
+}
+
+.pair {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.pair input {
+  flex: 1 1 240px;
+  font: 13px/1.4 var(--mono);
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--ink);
+}
+.pair input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* ---- library ---- */
+
+.stat-group {
+  margin: 0 0 26px;
+}
+.stat-group h2 {
+  font: 600 12px/1 var(--sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin: 0 0 2px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.stat-group .note {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+  max-width: 62ch;
+}
+
+.stat {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 2px;
+  border-bottom: 1px solid var(--line-2);
+}
+.stat dt {
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.stat dd {
+  margin: 0 0 0 auto;
+  font: 14px/1 var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.stat.zero dd {
+  color: var(--ink-mute);
+}
+
+dl {
+  margin: 0;
+}
+
+/* ---- footer ---- */
+
+.bottom {
+  border-top: 1px solid var(--line);
+  padding: 16px 20px;
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--ink-mute);
+}
+.bottom a {
+  color: var(--ink-2);
+  text-decoration: none;
+}
+.bottom a:hover {
+  color: var(--accent-ink);
+  text-decoration: underline;
+}
+
+/* ---- first paint ---- */
+
+.skeleton {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+.skeleton li {
+  height: 14px;
+  border-radius: 4px;
+  background: var(--paper-2);
+  margin: 18px 0;
+}
+.skeleton li:nth-child(2n) {
+  width: 62%;
+}
+.skeleton li:nth-child(3n) {
+  width: 78%;
+}
+
+/* ---------------------------------------------------------------- motion */
+
+/* Two animations, both under 200ms, both opt-in. Appended rows fade so the
+   reader can see that the list grew rather than having to re-find their place
+   in it; the skeleton pulses so a slow embedding round trip does not look
+   like a hang. Nothing else on this page moves. */
+@media (prefers-reduced-motion: no-preference) {
+  .hits > li.fresh .hit {
+    animation: rise 180ms ease-out both;
+  }
+  .skeleton li {
+    animation: pulse 1.3s ease-in-out infinite;
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+  @keyframes pulse {
+    50% {
+      opacity: 0.45;
+    }
+  }
+}
+
+/* ------------------------------------------------------------ responsive */
+
+@media (max-width: 560px) {
+  .top-in {
+    gap: 10px;
+    padding: 9px 14px;
+  }
+  .logo .word {
+    display: none;
+  }
+  main {
+    padding: 20px 14px 48px;
+  }
+  .hit {
+    grid-template-columns: 1fr;
+    padding-left: 2px;
+  }
+  /* the gutter is a scanning aid, and at this width it costs more room than
+     it repays */
+  .hit::before {
+    display: none;
+  }
+}
