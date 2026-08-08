@@ -22,6 +22,11 @@ data/
 *.db-shm
 *.html
 !extension/src/*.html
+# The pattern above did not stop `favorites_2026_8_4.html`: it arrived through
+# GitHub's web uploader, which commits directly and never consults .gitignore.
+# Named here as well, so that `git add` at least cannot bring it back.
+favorites_*.html
+bookmarks*.html
 pairing-token.txt
 
 # editors / os
