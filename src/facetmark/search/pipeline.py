@@ -24,9 +24,10 @@ import sqlite3
 import time
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
+from typing import TypeVar
 
 from ..config import Settings, get_settings
-from ..db import jload
+from ..db import in_chunks, jload
 from ..providers import MockProvider, Provider, get_provider
 from . import abstain
 from .context import ContextSignals, build_context, window_filter
@@ -73,6 +74,145 @@ ALL_FACETS = VECTOR_FACETS | LEXICAL_FACETS
 _GUARANTEE_DEPTH = 50
 
 SNIPPET_CHARS = 300
+
+#: Facet lists come through as bare ids on the default path and as
+#: ``(id, score)`` pairs on the abstention path. Trimming is the same operation
+#: on both, and doing it in one place is what keeps the two paths agreeing
+#: about how deep the pool was.
+_T = TypeVar("_T")
+
+
+# ---------------------------------------------------------------------------
+# paging
+# ---------------------------------------------------------------------------
+#
+# What makes a page-2 request honest is that it continues page 1 rather than
+# holding a second opinion about the same query, and whether that holds is a
+# property of the fusion rather than of the slicing.
+#
+# **One facet: exact.** A single ranked list scores ``w / (k + rank)``, which is
+# strictly decreasing in rank, so the fused order *is* the facet's order. Asking
+# for 500 candidates instead of 50 appends and never reorders. The shipped
+# ``FULL`` config has one facet, so its paging is exact for free.
+#
+# **Several facets: only at a fixed depth.** A document's RRF score is a sum
+# over the facets that ranked it *within the depth asked for*, so raising the
+# depth can hand a document a term it did not previously have -- and that term
+# can be worth more than a rival's whole score. Ranks 40 and 40 in two facets
+# beat rank 1 in one facet (0.0200 against 0.0164) but contribute nothing at
+# depth 30. So a deeper pool genuinely reorders, and paging by growing the depth
+# would let page 2 disagree with page 1 about page 1.
+#
+# The fix is not to grow the depth. ``depth`` is a request parameter, echoed on
+# every response: a client that wants an exactly consistent multi-page session
+# sends back the depth it was given, and every page is then a slice of one
+# ranking. Left unset it defaults to whatever the requested window needs, which
+# is the cheap thing to do for the overwhelmingly common single-page request.
+# ``tests/test_search.py::TestPaging`` pins both halves of this -- exactness
+# under a pinned depth, and the reordering that motivates the parameter.
+
+
+@dataclass(frozen=True, slots=True)
+class Page:
+    """The resolved window for one request, after clamping."""
+
+    limit: int
+    offset: int
+    #: Per-facet candidate depth. Either the caller's, or derived from the
+    #: window; clamped to ``max_candidate_depth`` either way.
+    depth: int
+    #: :attr:`depth` was cut by ``max_candidate_depth``. On its own this says
+    #: nothing about whether results were lost -- the facets may not have had
+    #: that many candidates anyway -- so it is combined with the observed facet
+    #: sizes before being reported. See :func:`page_signals`.
+    ceiling_hit: bool
+
+    @property
+    def stop(self) -> int:
+        return self.offset + self.limit
+
+    @property
+    def fetch(self) -> int:
+        """How many rows to ask each facet for: :attr:`depth`, plus a probe.
+
+        The probe row is the difference between "the facet had more to give"
+        and "the facet happened to hold exactly this many", which are the same
+        observation if you only ask for ``depth``. It is cut off again by
+        :func:`trim_pool` before fusion, so it never reaches a score, a hydrate
+        or a page -- it exists to be counted.
+        """
+        return self.depth + 1
+
+
+def resolve_page(
+    settings: Settings,
+    *,
+    limit: int,
+    offset: int,
+    depth: int | None = None,
+    over_fetch: int = 1,
+) -> Page:
+    """Clamp a requested window and settle the retrieval depth it runs at.
+
+    ``limit`` and ``offset`` are clamped rather than rejected, and the clamped
+    values are echoed back on the response, because a caller that asks for
+    10,000 rows wants results, not a 422 -- but it also must not be told "here
+    are your 10,000 rows" and handed 200.
+
+    ``depth`` pins the per-facet candidate depth; see the module note above for
+    why a paging client should pin it. Unset, it is derived from the window.
+
+    ``over_fetch`` widens that derived depth for callers whose facets return
+    heavily overlapping lists, where fusion dedupes a large fraction of the pool
+    and asking for exactly the window size yields a short page that looks like
+    the end of the results.
+    """
+    limit = max(1, min(int(limit), max(1, settings.max_page_size)))
+    ceiling = max(1, settings.max_candidate_depth)
+    offset = max(0, min(int(offset), ceiling - 1))
+    if depth is None:
+        want = max(settings.candidates_per_facet, (limit + offset) * max(1, over_fetch))
+    else:
+        want = max(1, int(depth))
+    settled = min(want, ceiling)
+    return Page(limit=limit, offset=offset, depth=settled, ceiling_hit=settled < want)
+
+
+def trim_pool(
+    page: Page, lists: Mapping[str, Sequence[_T]]
+) -> tuple[dict[str, list[_T]], bool]:
+    """Cut every facet back to ``depth`` and report whether any overflowed.
+
+    Facets are read at :attr:`Page.fetch`, one row deeper than the pool is
+    allowed to be. Trimming here rather than at each call site keeps the fusion
+    input exactly ``depth`` rows per facet -- which is what makes a pinned depth
+    reproduce the same ranking on every page -- while the row that was thrown
+    away still gets to answer "was there more?".
+    """
+    over = any(len(ids) > page.depth for ids in lists.values())
+    return {name: list(ids)[: page.depth] for name, ids in lists.items()}, over
+
+
+def page_signals(page: Page, total: int, *, truncated: bool) -> tuple[bool, bool]:
+    """``(has_more, depth_capped)`` for a finished request.
+
+    ``truncated`` comes from :func:`trim_pool`: some facet had a row past the
+    depth we fused at, so the library has more to say even when the served
+    window ran to the end of the pool. Without it a request whose window lands
+    exactly on the depth ceiling would report itself as the last page, which is
+    the one lie a paging UI cannot recover from.
+
+    ``depth_capped`` narrows that to the case worth acting on -- more results
+    exist *and* the reason we stopped is our own ceiling rather than the
+    caller's window -- so a client can tell "press next" apart from "raise
+    ``depth`` or narrow the query".
+
+    In a multi-facet config the overflow row may turn out to be a document the
+    pool already holds, so ``has_more`` is an upper bound there: it can say
+    "more" and deliver a short final page. It is never wrong in the other
+    direction, and the shipped single-facet config is exact.
+    """
+    return (page.stop < total or truncated), (truncated and page.ceiling_hit)
 
 
 @dataclass(frozen=True, slots=True)
@@ -437,6 +577,28 @@ class SearchResponse:
     rescued: bool = False
     reranker: str = ""
     took_ms: dict[str, float] = field(default_factory=dict)
+    #: The window actually served. Not an echo of the request: both are clamped
+    #: against ``max_page_size`` / ``max_candidate_depth``, and a caller that
+    #: pages by incrementing its own counter needs to know which one was used.
+    limit: int = 0
+    offset: int = 0
+    #: The per-facet candidate depth this ranking was produced at. Send it back
+    #: on the next page: fusion is only order-stable across pages at a fixed
+    #: depth once more than one facet is in play (see the paging note above).
+    depth: int = 0
+    #: Documents ranked for this query, i.e. the size of the fused pool. It is
+    #: a count of what fusion *considered*, which at the depth ceiling is a
+    #: lower bound on the library's true match count rather than the whole of
+    #: it -- ``depth_capped`` says which of the two this is.
+    total: int = 0
+    #: Whether another page exists. Derived from the pool, except at the depth
+    #: ceiling where the pool itself is truncated and the honest answer is
+    #: "probably, and you have reached the configured limit".
+    has_more: bool = False
+    #: The pool was cut by ``max_candidate_depth``, not by the library running
+    #: out. Distinguishing these is the whole reason both fields exist: a short
+    #: page at the ceiling is not the end of the results.
+    depth_capped: bool = False
 
     def as_dict(self) -> dict:
         return {
@@ -451,6 +613,12 @@ class SearchResponse:
             "rescued": self.rescued,
             "reranker": self.reranker,
             "took_ms": {k: round(v, 2) for k, v in self.took_ms.items()},
+            "limit": self.limit,
+            "offset": self.offset,
+            "depth": self.depth,
+            "total": self.total,
+            "has_more": self.has_more,
+            "depth_capped": self.depth_capped,
         }
 
     @property
@@ -480,11 +648,12 @@ def _snippet(summary: str | None, body_head: str | None) -> str:
 
 
 def hydrate(conn: sqlite3.Connection, ids: Sequence[int]) -> dict[int, dict]:
-    if not ids:
-        return {}
-    marks = ",".join("?" * len(ids))
-    rows = conn.execute(_ROW_SQL.format(marks=marks), list(ids)).fetchall()
-    return {int(r["id"]): dict(r) for r in rows}
+    out: dict[int, dict] = {}
+    for batch in in_chunks(ids):
+        marks = ",".join("?" * len(batch))
+        for r in conn.execute(_ROW_SQL.format(marks=marks), batch):
+            out[int(r["id"])] = dict(r)
+    return out
 
 
 def _to_hit(row: Mapping, fused: Fused | None = None) -> SearchHit:
@@ -513,19 +682,36 @@ def _to_hit(row: Mapping, fused: Fused | None = None) -> SearchHit:
 
 
 def quick_search(
-    conn: sqlite3.Connection, query: str, *, limit: int = 20, k: int = DEFAULT_K
+    conn: sqlite3.Connection,
+    query: str,
+    *,
+    limit: int = 20,
+    offset: int = 0,
+    depth: int | None = None,
+    k: int = DEFAULT_K,
+    settings: Settings | None = None,
 ) -> SearchResponse:
     """Lexical-only first paint. Synchronous, no model call, no network."""
     t0 = time.perf_counter()
+    s = settings or get_settings()
+    # 3x the window, as before: the two lexical lists overlap heavily -- that is
+    # the point of running both -- so fusion dedupes a large fraction of what
+    # they return, and asking for exactly the window size would hand back a
+    # short page that looks like the end of the results.
+    page = resolve_page(s, limit=limit, offset=offset, depth=depth, over_fetch=3)
     u = classify(query)
-    lists = lexical_lists(conn, query, limit=max(limit * 3, 30))
-    fused = rrf(lists, k=k, weights=DEFAULT_FACET_WEIGHTS, limit=limit)
-    rows = hydrate(conn, [f.doc_id for f in fused])
-    hits = [_to_hit(rows[f.doc_id], f) for f in fused if f.doc_id in rows]
+    lists, truncated = trim_pool(page, lexical_lists(conn, query, limit=page.fetch))
+    fused = rrf(lists, k=k, weights=DEFAULT_FACET_WEIGHTS)
+    window = fused[page.offset:page.stop]
+    rows = hydrate(conn, [f.doc_id for f in window])
+    hits = [_to_hit(rows[f.doc_id], f) for f in window if f.doc_id in rows]
+    has_more, capped = page_signals(page, len(fused), truncated=truncated)
     return SearchResponse(
         query=query, hits=hits, understanding=u, config="quick",
         facet_sizes={k2: len(v) for k2, v in lists.items()},
         took_ms={"total": (time.perf_counter() - t0) * 1000},
+        limit=page.limit, offset=page.offset, depth=page.depth, total=len(fused),
+        has_more=has_more, depth_capped=capped,
     )
 
 
@@ -539,6 +725,8 @@ async def search(
     query: str,
     *,
     limit: int = 20,
+    offset: int = 0,
+    depth: int | None = None,
     config: Config | None = None,
     provider: Provider | None = None,
     settings: Settings | None = None,
@@ -569,7 +757,14 @@ async def search(
         )
     mark("understand", t0)
 
-    per_facet = max(s.candidates_per_facet, limit)
+    # Retrieval depth used to be a side effect of the page size
+    # (`max(candidates_per_facet, limit)`), which meant asking for more rows
+    # quietly changed what was retrieved. It is now resolved up front, bounded,
+    # and reported back.
+    page = resolve_page(s, limit=limit, offset=offset, depth=depth)
+    # One row deeper than the pool is allowed to be; `trim_pool` takes it back
+    # off before anything is fused. See `Page.fetch`.
+    per_facet = page.fetch
 
     # --- 2. facets --------------------------------------------------------
     # Two paths. The default one takes ranked ids and throws the scores away,
@@ -578,6 +773,7 @@ async def search(
     # shape of its score distribution -- see `facetmark.search.abstain`.
     lists: dict[str, list[int]] = {}
     facet_confidence: dict[str, float] = {}
+    truncated = False
     if config.abstain_margin > 0.0:
         t0 = time.perf_counter()
         scored: dict[str, list[tuple[int, float]]] = {}
@@ -596,6 +792,11 @@ async def search(
             )
             scored.update(vrows)
         mark("vectors", t0)
+
+        # Trim before abstention, not after: the margin is read off the shape
+        # of a facet's score distribution, and the probe row is not part of the
+        # pool it is being asked about.
+        scored, truncated = trim_pool(page, scored)
 
         t0 = time.perf_counter()
         lists, facet_confidence = abstain.apply(scored, config.abstain_margin)
@@ -618,6 +819,8 @@ async def search(
             lists.update(vlists)
         mark("vectors", t0)
 
+        lists, truncated = trim_pool(page, lists)
+
     # --- 3. fusion --------------------------------------------------------
     t0 = time.perf_counter()
     fused = rrf(lists, k=s.rrf_k, weights=config.facet_weights, max_bonus=config.max_bonus)
@@ -627,13 +830,20 @@ async def search(
     # match. The window *is* the query, so it becomes the candidate set.
     if not fused and understanding.time_window is not None:
         ids = window_filter(conn, understanding.time_window)[: per_facet]
+        truncated = truncated or len(ids) > page.depth
+        ids = ids[: page.depth]
         fused = rrf({"episodic_window": ids}, k=s.rrf_k)
         lists["episodic_window"] = ids
 
     ctx: ContextSignals | None = None
     if fused and config.wants_context(understanding):
         t0 = time.perf_counter()
-        head = [f.doc_id for f in fused[:200]]
+        # The 200-row cap keeps the context queries off the tail of the pool,
+        # where a boost cannot change anything anyway. It has to cover the
+        # served window though: a row past the cap gets a boost of 1.0 and
+        # would be judged against neighbours that were boosted, which is not a
+        # cheaper answer, just a wrong one.
+        head = [f.doc_id for f in fused[: max(200, page.stop)]]
         ctx = build_context(
             conn,
             anchors=[f.doc_id for f in fused],
@@ -661,10 +871,10 @@ async def search(
         rescued = outcome.rescued
         mark("decay", t0)
 
-    page = fused[:limit]
-    rows = hydrate(conn, [f.doc_id for f in page])
+    window = fused[page.offset : page.stop]
+    rows = hydrate(conn, [f.doc_id for f in window])
     hits: list[SearchHit] = []
-    for f in page:
+    for f in window:
         row = rows.get(f.doc_id)
         if row is None:
             continue
@@ -682,10 +892,19 @@ async def search(
         t0 = time.perf_counter()
         rr = reranker or get_reranker(s, prov)
         rr_name = rr.name
-        docs = [RerankDoc(h.bookmark_id, h.title, h.snippet) for h in hits]
+        # Bound the *scoring*, not just the reorder. `depth=len(hits)` scored
+        # the whole page. The reranker is listwise -- one call, a line per
+        # candidate, one score demanded back per id -- so the page size sets
+        # both the prompt length and the required output length, and a large
+        # enough page stops fitting the context window at all. `rerank_depth`
+        # is the depth `search.rerank` already documents; rows past it keep
+        # their fused order, which is a tradeoff nothing here has measured.
+        rr_depth = max(1, s.rerank_depth)
+        head = hits[:rr_depth]
+        docs = [RerankDoc(h.bookmark_id, h.title, h.snippet) for h in head]
         scores = await rr.score(query, docs)
-        if len(scores) == len(hits):
-            hits = reorder(hits, scores, depth=len(hits))
+        if len(scores) == len(head):
+            hits = reorder(hits, scores, depth=rr_depth)
         mark("rerank", t0)
 
     # --- 6. one hop out, as its own group ---------------------------------
@@ -699,6 +918,10 @@ async def search(
     # kind of document a vector facet also drags in. Expansion answers a
     # different question from retrieval; a document that lost on topical
     # similarity can still be the right answer to "what came with this?".
+    #
+    # With paging, "shown" means every page up to this one, not just this page:
+    # `fused[:page.stop]`. At `offset=0` that is exactly `hits`, so the shipped
+    # behaviour is unchanged.
     expansions: list[Expansion] = []
     if config.graph and hits:
         t0 = time.perf_counter()
@@ -707,7 +930,7 @@ async def search(
             [(h.bookmark_id, h.score) for h in hits],
             factor=s.graph_expand_factor,
             limit=expand_limit,
-            exclude=[h.bookmark_id for h in hits],
+            exclude=[f.doc_id for f in fused[: page.stop]],
         )
         mark("expand", t0)
 
@@ -725,10 +948,13 @@ async def search(
         expanded.append(h)
 
     timings["total"] = (time.perf_counter() - t_start) * 1000
+    has_more, capped = page_signals(page, len(fused), truncated=truncated)
     return SearchResponse(
         query=query, hits=hits, expanded=expanded, understanding=understanding,
         config=config.name, facet_sizes={k: len(v) for k, v in lists.items()},
         facet_confidence=facet_confidence,
         context=ctx.as_dict() if ctx else None, rescued=rescued,
         reranker=rr_name, took_ms=timings,
+        limit=page.limit, offset=page.offset, depth=page.depth, total=len(fused),
+        has_more=has_more, depth_capped=capped,
     )
