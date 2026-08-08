@@ -25,6 +25,7 @@ is deleted, and your browser's own bookmark store is never written to.
 - [Configuration](#configuration)
 - [Commands](#commands)
 - [Search configurations](#search-configurations)
+- [Paging](#paging)
 - [What is actually measured](#what-is-actually-measured)
 - [Use it as karakeep's search engine](#use-it-as-karakeeps-search-engine)
 - [Data model](#data-model)
@@ -207,7 +208,10 @@ Every setting is an environment variable prefixed `FACETMARK_`, or a key in
 | `INTENT_GENERATE_N` | `8` | Candidate intents per page |
 | `INTENT_KEEP_N` | `4` | Intents kept after the retrieve-back filter |
 | `RRF_K` | `60` | Reciprocal rank fusion constant |
-| `CANDIDATES_PER_FACET` | `50` | Candidate depth per facet |
+| `CANDIDATES_PER_FACET` | `50` | Candidate depth per facet — a *floor*, see [Paging](#paging) |
+| `MAX_PAGE_SIZE` | `200` | Largest page any surface will serve; bigger requests are clamped, not rejected |
+| `MAX_CANDIDATE_DEPTH` | `2000` | Hard ceiling on candidate depth, so a deep page cannot become an unbounded query |
+| `RERANK_DEPTH` | `20` | How many hits the cross-encoder actually reorders |
 | `GRAPH_EXPAND_HOPS` | `1` | Expansion radius |
 | `GRAPH_EXPAND_FACTOR` | `0.6` | Score carried across an edge |
 | `DECAY_FACTOR` | `0.5` | Multiplier applied to cold results |
@@ -253,6 +257,80 @@ these. They exist because each one was a hypothesis that got measured.
 Plus roughly twenty exploratory ablations (`A_ctx`, `A_gatedctx`, `C_notri`, `C_lowlex`,
 `C_abstain`, `C_max`, `D_gated`, `lex_only`, `seg_only`, `tri_only`, …) used by the
 experiments below. `facetmark eval --list-configs` prints them all.
+
+## Paging
+
+Every search surface takes `limit`, `offset` and `depth`, and every search response
+reports the window it served:
+
+```jsonc
+{
+  "hits": [ /* ... */ ],
+  "limit": 20,          // what was served, after clamping — not an echo of the request
+  "offset": 20,
+  "depth": 60,          // the candidate depth this ranking was produced at
+  "total": 137,         // documents ranked; a lower bound when depth_capped
+  "has_more": true,
+  "depth_capped": false // we stopped at the depth ceiling, not at the end of the library
+}
+```
+
+```bash
+facetmark search "kafka rebalance" -n 20              # first page
+facetmark search "kafka rebalance" -n 20 -o 20 --depth 60   # the next one
+```
+
+The CLI prints the `--offset` / `--depth` for the next page whenever there is one.
+
+**Why `depth` is a parameter and not an implementation detail.** Page size and retrieval
+depth used to be the same number: asking for more rows quietly retrieved deeper, and
+result 51 was unreachable at any page size because the pool was 50 rows regardless. Now
+the page is a window onto a pool whose size you can see and pin.
+
+Pinning matters because RRF is only rank-stable under a growing pool when there is one
+facet. A document's score is a sum over the facets that ranked it *within the depth
+asked for*, so a deeper pool can hand a document a term it did not have — and that term
+can outweigh a rival's entire score. Rank 2 in one facet plus rank 40 in another beats a
+sole rank 1 (1/62 + 1/100 against 1/61), but contributes nothing at depth 30. So with
+several facets in play, growing the depth to reach page 2 lets page 2 disagree with page
+1 about page 1.
+
+The fix is not to grow it. Send back the `depth` the previous page reported and every
+page is a slice of one ranking. Leave it out and the depth is derived from the window,
+which is the cheap thing to do for the overwhelmingly common single-page request.
+
+The shipped `full` configuration has one facet, so its paging is exact whether or not you
+pin anything. `fused` — the default under the mock provider — has four, and does not.
+
+**Ceilings.** `MAX_PAGE_SIZE` bounds a page and `MAX_CANDIDATE_DEPTH` bounds the pool.
+Both clamp rather than reject, because a caller that asks for 10,000 rows wants results,
+not a 422 — and the response tells it what it actually got, so it can stop paging. When
+the pool was cut by the ceiling rather than by the library running out, `depth_capped`
+says so, which is the difference between "press next" and "narrow the query".
+
+`CANDIDATES_PER_FACET` is now a floor rather than the pool size: every request retrieves
+at least that much, so a five-row page still reports an honest `total`.
+
+**What this does and does not change about relevance.** The fusion ranking a query
+produces at a given depth is the ranking it produced before — no weight, no constant and
+no default configuration moved. What changed is that the depth is visible, addressable
+and no longer a side effect of the page size.
+
+Two behaviours did move, both deliberately:
+
+- Reranking is now bounded by `RERANK_DEPTH` (20), which is what `rerank.DEFAULT_DEPTH`
+  always said and what the pipeline was overriding with "however many hits there are".
+  The LLM reranker is listwise — one chat call carrying a line per candidate and
+  returning a score per candidate — so an unbounded page grows both the prompt and the
+  output, and past some page size the "score every id" contract stops fitting in the
+  context window at all. On the configurations that rerank (`E`, `fused`), a page longer
+  than 20 now leaves its tail in fused order.
+- The first-paint depth (`quick_search`) is now at least `CANDIDATES_PER_FACET` rather
+  than `3 × limit`, so a small first page is retrieved from the same pool as a large one
+  instead of a shallower one.
+
+Neither has been measured for retrieval quality, and nothing here is a claim that it
+improves it.
 
 ## What is actually measured
 
