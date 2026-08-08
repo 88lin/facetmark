@@ -215,6 +215,20 @@ ul#results {
 .hit.neighbour .title { font-weight: 500; }
 .hit.neighbour { opacity: 0.8; }
 
+/* "load more". A row in the list rather than a control above it, because the
+   thing it continues is the list, and it has to stay reachable by scrolling
+   to the bottom of what you have already read. */
+.more {
+  display: flex;
+  justify-content: center;
+  padding: 8px 10px 4px;
+}
+.more button {
+  width: 100%;
+  font-size: 11px;
+  color: var(--muted);
+}
+
 /* Empty state: a query that matched nothing, or nothing typed yet. */
 .empty {
   display: flex;

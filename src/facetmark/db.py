@@ -16,7 +16,7 @@ import json
 import sqlite3
 import struct
 import time
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -489,3 +489,26 @@ def executemany(conn: sqlite3.Connection, sql: str, rows: Iterable[tuple]) -> No
     batch = list(rows)
     if batch:
         conn.executemany(sql, batch)
+
+
+#: Ids per ``IN (...)`` batch. SQLite's ``SQLITE_MAX_VARIABLE_NUMBER`` is 32766
+#: on anything built since 3.32, but the older default is **999** and it is a
+#: compile-time constant, so the interpreter a user happens to have decides
+#: whether a query raises. 900 leaves room for the handful of non-id parameters
+#: the callers here also bind.
+IN_CHUNK = 900
+
+
+def in_chunks(ids: Sequence[int], size: int = IN_CHUNK) -> Iterator[list[int]]:
+    """Split ``ids`` into batches small enough for a single ``IN (...)`` clause.
+
+    Every query in this codebase that expands one placeholder per id used to be
+    bounded by ``candidates_per_facet``, which is 50. Paging removed that bound:
+    depth now follows ``limit + offset``, and the intent facet multiplies it by
+    ``intent_keep_n`` again. Chunking is what makes "how deep can you page"
+    a question about the configured ceiling rather than about which SQLite the
+    host was compiled with.
+    """
+    seq = list(ids)
+    for i in range(0, len(seq), size):
+        yield seq[i:i + size]

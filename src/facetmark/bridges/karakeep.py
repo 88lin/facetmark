@@ -75,8 +75,11 @@ from ..text import sync_fts
 
 #: How many facetmark hits to ask for per requested karakeep hit when a userId
 #: filter is present. Ranking happens over the whole library, so a user with a
-#: small share of the rows needs headroom before the filter cuts in.
+#: small share of the rows needs headroom before the filter cuts in. The
+#: headroom is bounded by ``max_candidate_depth``, not by a constant here.
 OVERFETCH = 5
+#: Ceiling on one karakeep page, kept separate from ``max_page_size`` because
+#: it is part of karakeep's own contract rather than a facetmark setting.
 MAX_LIMIT = 200
 
 
@@ -465,11 +468,30 @@ async def search_documents(
         out["engine"] = "chronological"
         return out
 
-    want = (limit + offset) * (OVERFETCH if (user_id or only_ids) else 1)
+    # Both the karakeep-id mapping and the userId filter are applied *after*
+    # ranking, and neither is a bijection: a bookmark can carry several
+    # karakeep ids, and a library can hold bookmarks karakeep never sent. So
+    # the window retrieved is not the window returned, and `offset` stays a
+    # slice of the mapped list rather than being pushed into the pipeline.
+    #
+    # What did change: the ceiling on that window is `max_candidate_depth`
+    # rather than a literal 500, the depth is pinned so the window is one
+    # coherent ranking, and the floor is `candidates_per_facet` -- the pipeline
+    # retrieves that much regardless, so reading it costs nothing and makes
+    # `totalHits` a real count instead of the size of the page.
+    need = limit + offset
+    over = OVERFETCH if (user_id or only_ids) else 1
+    window = min(max(need * over, st.candidates_per_facet), max(1, st.max_candidate_depth))
     resp = await search(
-        conn, query, limit=min(max(want, limit + offset), 500),
+        conn, query, limit=window, offset=0, depth=window,
         config=ALL_CONFIGS.get(config, ALL_CONFIGS["full"]),
-        provider=provider, settings=st,
+        provider=provider,
+        # `max_page_size` bounds what a *caller* is handed. This window is
+        # internal -- filtered and re-sliced before anything leaves -- so the
+        # bound that applies to it is the depth ceiling.
+        settings=st if window <= st.max_page_size else st.model_copy(
+            update={"max_page_size": window}
+        ),
     )
     by_bid: dict[int, list[tuple[str, str]]] = {}
     for r in conn.execute("SELECT karakeep_id, user_id, bookmark_id FROM karakeep_doc"):
@@ -493,7 +515,11 @@ async def search_documents(
         "totalHits": len(hits),
         "processingTimeMs": round((time.perf_counter() - t0) * 1000, 2),
         "engine": f"facetmark:{config}",
-        "truncated": len(resp.hits) >= min(max(want, limit + offset), 500),
+        # The pipeline knows whether it stopped early; asking it beats
+        # inferring truncation from the length of what came back, which said
+        # "truncated" for any library whose match count landed exactly on the
+        # window.
+        "truncated": resp.has_more,
     }
 
 

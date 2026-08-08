@@ -29,7 +29,7 @@ import sqlite3
 from collections.abc import Sequence
 
 from ..config import Settings, get_settings
-from ..db import knn_content, knn_intent, vec_tables_exist
+from ..db import in_chunks, knn_content, knn_intent, vec_tables_exist
 from ..providers import Provider, get_provider
 
 
@@ -87,11 +87,17 @@ def intent_list_scored(
     if not hits:
         return []
     ids = [i for i, _ in hits]
-    rows = conn.execute(
-        f"SELECT id, bookmark_id FROM intent_query WHERE id IN ({','.join('?' * len(ids))})",
-        ids,
-    ).fetchall()
-    owner = {int(r["id"]): int(r["bookmark_id"]) for r in rows}
+    # Chunked because this is the widest `IN (...)` in the pipeline: it binds
+    # `limit * over_fetch` placeholders, so a deep page asks for four times the
+    # candidate depth and would trip `SQLITE_MAX_VARIABLE_NUMBER` on a 999 build
+    # long before the configured ceiling.
+    owner: dict[int, int] = {}
+    for batch in in_chunks(ids):
+        rows = conn.execute(
+            f"SELECT id, bookmark_id FROM intent_query WHERE id IN ({','.join('?' * len(batch))})",
+            batch,
+        ).fetchall()
+        owner.update({int(r["id"]): int(r["bookmark_id"]) for r in rows})
 
     out: list[tuple[int, float]] = []
     seen: set[int] = set()

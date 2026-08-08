@@ -8,6 +8,7 @@ proves the happy path is a suite that will not warn anyone.
 
 from __future__ import annotations
 
+import sqlite3
 import time
 
 import pytest
@@ -1578,3 +1579,266 @@ class TestTheMediumTheBoostIsMeasuredIn:
         )
         assert span == pytest.approx(9.532, abs=1e-3)
         assert span / 1.803 > 5
+
+
+# ===========================================================================
+# paging
+#
+# What needs pinning here is not that a slice slices -- that is Python -- but
+# *which list* is being sliced, and whether page 2 is the continuation of page
+# 1 or a second opinion about the same query. Those are different claims for
+# one facet and for several, and the tests are split accordingly.
+# ===========================================================================
+
+
+def _paging_db(n: int = 70):
+    """``n`` documents that all match one query, so the ranking is long.
+
+    Lexical only, deliberately: two facets, no provider, no vectors, and the
+    fused pool is far longer than ``candidates_per_facet``, which is the
+    situation the old fixed depth could not express.
+    """
+    conn = open_db(":memory:")
+    base = 1_700_000_000
+    for i in range(1, n + 1):
+        title = f"vector database note {i:03d}"
+        body = f"note {i} on vector database indexing and nearest neighbour search"
+        conn.execute(
+            "INSERT INTO bookmark(id,url,url_norm,url_hash,title,folder,domain,"
+            "date_added,created_at,updated_at) VALUES(?,?,?,?,?,'notes',?,?,?,?)",
+            (i, f"https://p{i}.test/doc", f"https://p{i}.test/doc", f"ph{i}",
+             title, f"p{i}.test", base + i, base + i, base + i),
+        )
+        conn.execute(
+            "INSERT INTO content(bookmark_id,body_text,body_hash,char_count,extractor)"
+            " VALUES(?,?,?,?,'trafilatura')", (i, body, f"pb{i}", len(body)),
+        )
+        sync_fts(conn, i, title=title, body=body)
+    conn.commit()
+    return conn
+
+
+@pytest.fixture()
+def paging_db():
+    conn = _paging_db()
+    yield conn
+    conn.close()
+
+
+@pytest.fixture()
+def paging_settings(tmp_path) -> Settings:
+    return Settings(
+        data_dir=tmp_path, use_mock_provider=True, embed_dim=64,
+        embed_model="mock-embed", chat_model="mock-chat",
+        health_enable_external=False,
+    )
+
+
+class TestWhatDeepeningThePoolDoesToTheOrder:
+    """The property the whole paging design rests on, and its limit."""
+
+    def test_one_facet_only_appends(self):
+        # A single list scores w/(k+rank), strictly decreasing in rank, so the
+        # fused order *is* the facet's order and a deeper ask cannot reorder
+        # what was already there.
+        ids = list(range(1, 101))
+        shallow = rrf({"content": ids[:30]}, k=60)
+        deep = rrf({"content": ids[:80]}, k=60)
+        assert [f.doc_id for f in deep[:30]] == [f.doc_id for f in shallow]
+        assert [f.score for f in deep[:30]] == [f.score for f in shallow]
+
+    def test_several_facets_reorder(self):
+        """The counterexample the `depth` parameter exists for.
+
+        Doc 1 is rank 1 in one facet and nowhere else, so its score is fixed at
+        every depth. Doc 2 is rank 2 in that facet and rank 40 in another: below
+        doc 1 while the second facet is only read 30 deep, above it once the
+        second facet is read 50 deep. Nothing about doc 1 changed; the pool got
+        deeper and the order flipped.
+        """
+        content = [1, 2] + list(range(1000, 1098))
+        lex = list(range(2000, 2039)) + [2] + list(range(3000, 3060))
+
+        def rank_of(depth: int, doc: int) -> int:
+            fused = rrf({"content": content[:depth], "lex_seg": lex[:depth]}, k=60)
+            return [f.doc_id for f in fused].index(doc)
+
+        # Read 30 deep, doc 2 has only its content rank: 1/62 against doc 1's
+        # 1/61, so it sits just below. Read 50 deep it picks up 1/100 from the
+        # second facet, and 1/62 + 1/100 clears 1/61 comfortably.
+        assert rank_of(30, 1) < rank_of(30, 2)
+        assert rank_of(50, 2) < rank_of(50, 1)
+
+    def test_the_shipped_default_has_one_facet(self, paging_settings):
+        # Which is why paging the deployed configuration is exact for free,
+        # and why `depth` is a correctness knob rather than a default-path one.
+        assert len(FULL.facets) == 1
+
+
+class TestPagingThePipeline:
+    def test_a_pinned_depth_makes_every_page_a_slice_of_one_ranking(
+        self, paging_db, paging_settings
+    ):
+        whole = quick_search(
+            paging_db, "vector database", limit=70, offset=0, depth=70,
+            settings=paging_settings,
+        )
+        walked: list[int] = []
+        for off in range(0, 70, 10):
+            p = quick_search(
+                paging_db, "vector database", limit=10, offset=off, depth=70,
+                settings=paging_settings,
+            )
+            assert p.offset == off and p.depth == 70
+            walked.extend(p.ids)
+        assert walked == whole.ids
+
+    async def test_the_fifty_first_result_is_reachable(self, paging_db, paging_settings):
+        # `candidates_per_facet` is 50 and used to be the whole pool, so this
+        # window did not exist: it is past the end of a list that stopped at 50.
+        r = await search(
+            paging_db, "vector database", limit=10, offset=45,
+            config=CONFIGS["B"], settings=paging_settings,
+        )
+        assert len(r.hits) == 10
+        assert r.depth > paging_settings.candidates_per_facet
+        first = await search(
+            paging_db, "vector database", limit=45, offset=0, depth=r.depth,
+            config=CONFIGS["B"], settings=paging_settings,
+        )
+        assert not (set(r.ids) & set(first.ids))
+
+    async def test_pinning_the_old_depth_reproduces_the_old_ceiling(
+        self, paging_db, paging_settings
+    ):
+        # Same call, depth pinned at what the pipeline used to use: five hits,
+        # then the list stops. This is the behaviour being removed, stated as
+        # a test so the removal is legible.
+        r = await search(
+            paging_db, "vector database", limit=10, offset=45, depth=50,
+            config=CONFIGS["B"], settings=paging_settings,
+        )
+        assert len(r.hits) == 5
+        assert r.total == 50
+
+    def test_total_and_has_more_find_the_end_of_the_library(
+        self, paging_db, paging_settings
+    ):
+        early = quick_search(
+            paging_db, "vector database", limit=10, offset=0, depth=70,
+            settings=paging_settings,
+        )
+        assert early.total == 70 and early.has_more
+        last = quick_search(
+            paging_db, "vector database", limit=10, offset=60, depth=70,
+            settings=paging_settings,
+        )
+        assert last.total == 70 and not last.has_more
+
+    def test_depth_capped_separates_the_ceiling_from_the_last_page(self, paging_db, tmp_path):
+        # A short page at the depth ceiling is not the end of the results, and
+        # a paging UI that cannot tell the two apart stops early and says so
+        # with confidence. `depth_capped` is the difference.
+        tight = Settings(
+            data_dir=tmp_path, use_mock_provider=True, max_candidate_depth=20,
+            health_enable_external=False,
+        )
+        r = quick_search(paging_db, "vector database", limit=10, offset=0, settings=tight)
+        assert r.depth == 20
+        assert r.has_more and r.depth_capped
+        roomy = Settings(
+            data_dir=tmp_path, use_mock_provider=True, health_enable_external=False
+        )
+        done = quick_search(
+            paging_db, "vector database", limit=10, offset=60, depth=70, settings=roomy
+        )
+        assert not done.has_more and not done.depth_capped
+
+    def test_an_oversized_window_is_clamped_and_the_response_says_which(
+        self, paging_db, paging_settings
+    ):
+        # Clamped rather than rejected -- a caller asking for 10,000 rows wants
+        # results -- but it must not be told it received 10,000 of them.
+        r = quick_search(
+            paging_db, "vector database", limit=10_000, offset=-5, settings=paging_settings
+        )
+        assert r.limit == paging_settings.max_page_size
+        assert r.offset == 0
+        assert r.depth <= paging_settings.max_candidate_depth
+
+    async def test_a_bigger_page_no_longer_silently_retrieves_deeper(
+        self, paging_db, paging_settings
+    ):
+        # `per_facet = max(candidates_per_facet, limit)` made page size and
+        # retrieval depth the same knob. Pinning the depth separates them.
+        small = await search(
+            paging_db, "vector database", limit=5, depth=60,
+            config=CONFIGS["B"], settings=paging_settings,
+        )
+        large = await search(
+            paging_db, "vector database", limit=60, depth=60,
+            config=CONFIGS["B"], settings=paging_settings,
+        )
+        assert small.facet_sizes == large.facet_sizes
+        assert small.total == large.total
+        assert large.ids[:5] == small.ids
+
+
+class TestWhatAPageCosts:
+    async def test_the_reranker_only_ever_sees_rerank_depth_documents(
+        self, paging_db, tmp_path
+    ):
+        """Stage E used to be handed the whole page.
+
+        `reorder(hits, scores, depth=len(hits))` overrode the module's own
+        `DEFAULT_DEPTH`, so a 100-row page put 100 candidates into the single
+        listwise call the LLM reranker makes -- both the prompt and the "score
+        every id" JSON grow with the page. `docs/gate-w1.md` §7.3 measured that
+        call at 45.4 s p50 with the harness's page size of 10.
+        """
+        seen: list[int] = []
+
+        class Spy:
+            name = "spy"
+
+            async def score(self, query, docs):
+                seen.append(len(docs))
+                return [0.0] * len(docs)
+
+        st = Settings(
+            data_dir=tmp_path, use_mock_provider=True, rerank_depth=7,
+            health_enable_external=False,
+        )
+        r = await search(
+            paging_db, "vector database", limit=100,
+            config=Config("rr", frozenset({"lex_seg", "lex_tri"}), rerank=True),
+            settings=st, reranker=Spy(),
+        )
+        assert len(r.hits) > st.rerank_depth       # the page really is large
+        assert seen == [st.rerank_depth]
+
+    @pytest.mark.skipif(
+        not hasattr(sqlite3.Connection, "setlimit"),
+        reason="Connection.setlimit is 3.11+; the guard cannot be forced on 3.10",
+    )
+    def test_a_deep_page_survives_a_sqlite_built_with_999_variables(self, tmp_path):
+        """`SQLITE_MAX_VARIABLE_NUMBER` is a compile-time constant.
+
+        999 on older builds, 32766 since 3.32 -- so whether a query raises
+        depends on which interpreter the user happens to have, and CI's is the
+        generous one. Forcing the limit down is the only way to test the
+        chunking on a modern host.
+        """
+        conn = _paging_db(1200)
+        conn.setlimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER, 999)
+        st = Settings(
+            data_dir=tmp_path, use_mock_provider=True, max_page_size=1200,
+            max_candidate_depth=2000, health_enable_external=False,
+        )
+        try:
+            r = quick_search(conn, "vector database", limit=1100, settings=st)
+            assert len(r.hits) == 1100          # one hydrate of 1100 ids
+            cold = cold_bookmark_ids(conn, ids=list(range(1, 1201)))
+            assert cold == set()                # one scan over 1200 ids
+        finally:
+            conn.close()

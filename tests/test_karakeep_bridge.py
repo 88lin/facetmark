@@ -354,6 +354,97 @@ class TestSearch:
         assert len(out["hits"]) == 3
 
 
+@pytest.fixture
+async def big_bridged(mock_settings):
+    """Enough documents that the query path has something to page through."""
+    conn = open_db(":memory:")
+    provider = MockProvider(mock_settings)
+    docs = [
+        {
+            "id": f"kk-b{i}",
+            "userId": "u1",
+            "url": f"https://example.com/kafka-{i}",
+            "title": f"Kafka consumer rebalance notes {i}",
+            "content": "kafka consumer group rebalance partition assignment " * 4,
+            "tags": ["kafka"],
+            "createdAt": 1_700_000_000 + i,
+        }
+        for i in range(25)
+    ]
+    await kk.add_documents(conn, docs, provider=provider, settings=mock_settings)
+    return conn, provider, mock_settings
+
+
+class TestSearchPaging:
+    """The query path pages by slicing the *mapped* list, not the pipeline.
+
+    A karakeep id and a bookmark are not one to one -- one bookmark can carry
+    several karakeep ids, and the library can hold bookmarks karakeep never
+    sent -- so an offset pushed into the pipeline would land somewhere else by
+    the time the mapping and the userId filter had been applied. The tests here
+    pin what the caller is actually promised: that the pages tile.
+    """
+
+    async def test_a_second_page_is_the_tail_of_the_first(self, big_bridged):
+        conn, provider, st = big_bridged
+        opts = {"query": "kafka rebalance"}
+        whole = await kk.search_documents(
+            conn, {**opts, "limit": 10}, provider=provider, settings=st
+        )
+        second = await kk.search_documents(
+            conn, {**opts, "limit": 5, "offset": 5}, provider=provider, settings=st
+        )
+        ids = [h["id"] for h in whole["hits"]]
+        assert [h["id"] for h in second["hits"]] == ids[5:10]
+
+    async def test_total_hits_counts_the_library_not_the_page(self, big_bridged):
+        # The retrieval floor is `candidates_per_facet`, which the pipeline
+        # reads regardless of how small the page is, so a five-row request can
+        # still report an honest total instead of the number five.
+        conn, provider, st = big_bridged
+        out = await kk.search_documents(
+            conn, {"query": "kafka rebalance", "limit": 5}, provider=provider, settings=st
+        )
+        assert len(out["hits"]) == 5
+        assert out["totalHits"] == 25
+        assert out["truncated"] is False
+
+    async def test_paging_past_the_end_is_empty_rather_than_wrapped(self, big_bridged):
+        conn, provider, st = big_bridged
+        out = await kk.search_documents(
+            conn, {"query": "kafka rebalance", "limit": 10, "offset": 100},
+            provider=provider, settings=st,
+        )
+        assert out["hits"] == [] and out["totalHits"] == 25
+
+    async def test_truncated_reports_the_depth_ceiling(self, big_bridged):
+        # `truncated` is the pipeline's own answer now. Squeeze the depth
+        # ceiling below the number of matches and it has to say so; leave it
+        # alone and the same query is complete.
+        conn, provider, st = big_bridged
+        tight = st.model_copy(update={"max_candidate_depth": 10})
+        out = await kk.search_documents(
+            conn, {"query": "kafka rebalance", "limit": 5}, provider=provider, settings=tight
+        )
+        assert out["truncated"] is True
+        assert out["totalHits"] <= 10
+
+    async def test_the_window_does_not_move_with_the_page_size(self, big_bridged):
+        # Every small request retrieves the same `candidates_per_facet` pool,
+        # so page size cannot quietly change which documents are considered --
+        # the failure mode that made the old `max(want, limit + offset)` window
+        # return different rankings for the same query.
+        conn, provider, st = big_bridged
+        totals = set()
+        for limit in (1, 5, 20):
+            out = await kk.search_documents(
+                conn, {"query": "kafka rebalance", "limit": limit},
+                provider=provider, settings=st,
+            )
+            totals.add(out["totalHits"])
+        assert totals == {25}
+
+
 class TestDeleteAndClear:
     async def test_delete_removes_the_document_and_its_rows(self, bridged):
         conn, _, _, _ = bridged

@@ -90,18 +90,35 @@ export interface SearchResponse {
   took_ms: Record<string, number>;
   config: string;
   understanding?: { labels: string[]; time_window?: [number, number] | null } | null;
+  /** The window actually served, after the server clamped it. Not an echo. */
+  limit: number;
+  offset: number;
+  /**
+   * The candidate depth this ranking was produced at. Send it back on the next
+   * page: with more than one facet in play, fusion only orders identically
+   * across pages when the depth is held fixed.
+   */
+  depth: number;
+  /** Documents ranked. A lower bound on the library's matches when `depth_capped`. */
+  total: number;
+  has_more: boolean;
+  /** The pool was cut by the server's depth ceiling, not by the library ending. */
+  depth_capped: boolean;
 }
 
 export const api = {
   health: () =>
     request<{ ok: boolean; version: string; bookmarks: number; provider: string }>("/health"),
   stats: () => request<Record<string, unknown>>("/stats"),
-  quick: (q: string, limit = 10) =>
-    request<SearchResponse>(`/quick?q=${encodeURIComponent(q)}&limit=${limit}`),
-  search: (q: string, limit = 20) =>
+  quick: (q: string, limit = 10, offset = 0, depth?: number) =>
+    request<SearchResponse>(
+      `/quick?q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}` +
+        (depth ? `&depth=${depth}` : ""),
+    ),
+  search: (q: string, limit = 20, offset = 0, depth?: number) =>
     request<SearchResponse>("/search", {
       method: "POST",
-      body: JSON.stringify({ q, limit }),
+      body: JSON.stringify(depth ? { q, limit, offset, depth } : { q, limit, offset }),
     }),
   save: (body: { url: string; title: string; folder?: string }) =>
     request<{ bookmark_id: number; created?: boolean }>("/bookmark", {
@@ -190,4 +207,73 @@ export function describeQueue(s: QueueSummary): string {
   if (s.leased) parts.push(`${s.leased} in flight`);
   if (s.failed) parts.push(`${s.failed} gave up`);
   return parts.join(" · ");
+}
+
+// ---------------------------------------------------------------------------
+// paging
+//
+// Kept here, as pure functions over plain data, for the same reason
+// `summarizeQueue` is: the popup has no DOM stand-in in the test suite, so any
+// logic that lives inside an event handler is logic nothing can assert. What
+// is easy to get wrong about paging is not the fetch, it is the bookkeeping --
+// pinning the depth, not counting the first page twice when the full pipeline
+// replaces the lexical one at the same offset, and not claiming a total that
+// the server described as a lower bound.
+
+export interface PageCursor {
+  /** The query these pages belong to. Typing a new one starts over. */
+  query: string;
+  /** Rows on screen. Derived from the last response, never incremented blindly. */
+  seen: number;
+  /**
+   * Depth to pin on every later page, so page N+1 continues page N instead of
+   * being a fresh opinion about the same query. 0 until a response says.
+   */
+  depth: number;
+  /** Documents the server ranked. A lower bound when `capped`. */
+  total: number;
+  more: boolean;
+  /** `total` was cut by the server's depth ceiling, not by the library ending. */
+  capped: boolean;
+}
+
+export function startCursor(query: string): PageCursor {
+  return { query, seen: 0, depth: 0, total: 0, more: false, capped: false };
+}
+
+/** Fold one response into the cursor. */
+export function advance(cur: PageCursor, r: SearchResponse): PageCursor {
+  // `offset + length`, not `seen + length`. Stage one (lexical) and stage two
+  // (the full pipeline) both render offset 0, and adding lengths would
+  // double-count the first page and then skip a page's worth of results; it
+  // would also strand the cursor above the row count whenever the second
+  // ranking is shorter than the first.
+  return {
+    query: cur.query,
+    seen: (r.offset ?? 0) + r.hits.length,
+    depth: r.depth || cur.depth,
+    total: r.total ?? 0,
+    more: Boolean(r.has_more),
+    capped: Boolean(r.depth_capped),
+  };
+}
+
+/** Arguments for the next page, or null when there is nothing further to ask for. */
+export function nextRequest(
+  cur: PageCursor,
+  size: number,
+): { offset: number; limit: number; depth: number } | null {
+  if (!cur.more || !cur.query) return null;
+  return { offset: cur.seen, limit: size, depth: cur.depth };
+}
+
+/** The counter above the list. Never states a total the server called a floor. */
+export function describePage(cur: PageCursor): string {
+  if (!cur.seen) return "no results";
+  if (cur.more) {
+    return cur.capped
+      ? `${cur.seen} of ${cur.total}+ (depth limit reached)`
+      : `${cur.seen} of ${cur.total}`;
+  }
+  return `${cur.seen} result${cur.seen === 1 ? "" : "s"}`;
 }

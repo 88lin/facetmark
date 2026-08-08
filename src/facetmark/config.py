@@ -156,6 +156,49 @@ class Settings(BaseSettings):
     rrf_k: int = 60
     """RRF smoothing constant. k=60 is the standard value and is not tuned."""
     candidates_per_facet: int = 50
+    """Floor on how deep each facet is asked to rank.
+
+    A floor, not a fixed value: a request for page N needs ``limit + offset``
+    candidates to have anything to slice, so the pipeline raises the depth to
+    cover the page and this setting only decides how much is fetched *beyond*
+    that. Raising it costs one deeper KNN and one deeper FTS5 scan per facet;
+    it does not change the ranking of anything already in the pool, because RRF
+    scores a document from its *rank* inside a facet's list and that rank does
+    not move when the list gets longer."""
+
+    max_page_size: int = 200
+    """Hard ceiling on one page of results.
+
+    Not unbounded, and the reasons are all in this codebase rather than in
+    general caution. A page is what the LLM reranker is handed (bounded again
+    by ``rerank_depth``, but the page is the outer bound), what ``hydrate``
+    turns into SQL placeholders, and what the caller has to hold in memory and
+    -- for the MCP surface -- in a context window. 200 is well past what any
+    UI renders at once; raise it in ``.env`` if a script wants bigger pages."""
+
+    max_candidate_depth: int = 2000
+    """Hard ceiling on per-facet retrieval depth, i.e. on how deep paging can go.
+
+    ``limit + offset`` above this is answered with a truncated pool and
+    ``depth_capped: true`` in the response, rather than silently returning a
+    short page that looks like the end of the library. The cost this bounds is
+    not the fusion -- that is linear and cheap -- it is the intent facet, which
+    over-fetches ``depth * intent_keep_n`` vectors to survive deduplication, so
+    depth 2000 is already a KNN of 8000 rows."""
+
+    rerank_depth: int = 20
+    """How many rows of a page the reranker is allowed to touch.
+
+    Was a module constant in ``search.rerank`` that the pipeline overrode with
+    the whole page, which tied stage E's cost to ``limit``. ``LLMReranker`` is
+    listwise -- one ``chat_json`` call carrying a line per candidate, obliged to
+    return a score for every id it was handed -- so a longer page grows the
+    prompt and the demanded output together, and past some page size the "score
+    every id" contract stops fitting the model's context window. That is a wrong
+    answer, not merely a slow one. 20 is the depth ``search.rerank`` already
+    documented; rows below it keep their fused order, and whether that beats a
+    reranked tail has not been measured."""
+
     graph_expand_hops: int = 1
     graph_expand_factor: float = 0.6
     decay_factor: float = 0.5

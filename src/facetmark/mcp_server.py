@@ -105,7 +105,16 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
         query: Annotated[str, Field(description="Natural language, keywords, or a "
                                     "memory fragment such as 'the CSS thing from "
                                     "around when I was learning Svelte'.")],
-        limit: Annotated[int, Field(ge=1, le=50)] = 10,
+        limit: Annotated[int, Field(ge=1, description="Hits per page. Clamped to "
+                                    "the server's `max_page_size`; the response "
+                                    "reports what was actually served.")] = 10,
+        offset: Annotated[int, Field(ge=0, description="Skip this many hits. Use "
+                                     "with `depth` from the previous response "
+                                     "to page through results.")] = 0,
+        depth: Annotated[int | None, Field(ge=1, description="Pin the candidate "
+                                           "depth. Pass back the `depth` of the "
+                                           "previous page so this one continues "
+                                           "it rather than re-ranking.")] = None,
         quick: Annotated[bool, Field(description="Lexical-only. Milliseconds, no "
                                      "model call. Use when latency matters more "
                                      "than recall.")] = False,
@@ -118,12 +127,27 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
         Returns ranked hits with the facets that found each one, so you can tell
         a lexical match from an episodic one. `expanded` holds graph neighbours
         and is never interleaved with `hits`.
+
+        The default of 10 is a context-window budget, not a recall ceiling: the
+        payload carries snippets and per-facet provenance, so a large page is
+        expensive to *read*. When `has_more` is true, ask for the next page with
+        `offset` and the `depth` this response reported, rather than re-running
+        the query at a bigger `limit`.
+
+        An oversized `limit` is clamped rather than rejected, because an agent
+        that spends a turn on a validation error has paid more for the mistake
+        than the mistake was worth. The served window comes back as `limit` and
+        `offset`, so a caller can always tell what it got.
         """
         if quick:
-            resp = service.quick_search(ctx.conn, query, limit=limit)
+            resp = service.quick_search(
+                ctx.conn, query, limit=limit, offset=offset, depth=depth,
+                settings=ctx.settings,
+            )
         else:
             resp = await service.search(
-                ctx.conn, query, limit=limit, config=default_config(ctx.settings, ctx.provider),
+                ctx.conn, query, limit=limit, offset=offset, depth=depth,
+                config=default_config(ctx.settings, ctx.provider),
                 provider=ctx.provider, settings=ctx.settings,
                 expand_limit=8 if include_related else 0,
             )
