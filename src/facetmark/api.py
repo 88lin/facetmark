@@ -108,8 +108,23 @@ def require_token(request: Request) -> None:
 
 
 class SearchRequest(BaseModel):
+    """``limit``/``offset``/``depth`` carry no static upper bound on purpose.
+
+    They are clamped in one place -- ``resolve_page``, against
+    ``max_page_size`` and ``max_candidate_depth`` -- and the response reports
+    the values actually served. A second ceiling here would be a limit hidden
+    in a file the operator does not edit: raising ``max_page_size`` in ``.env``
+    would appear to do nothing. Oversized values cost nothing, since clamping
+    happens before any query runs.
+    """
+
     q: str
-    limit: int = Field(default=20, ge=1, le=100)
+    limit: int = Field(default=20, ge=1)
+    offset: int = Field(default=0, ge=0)
+    #: Pin the per-facet candidate depth. Echo back ``depth`` from the previous
+    #: page to guarantee that this page continues it; omit it and the depth is
+    #: derived from the window.
+    depth: int | None = Field(default=None, ge=1)
     config: str = "full"
     assist: bool = False
     expand: int = Field(default=8, ge=0, le=50)
@@ -236,11 +251,16 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
     @app.get("/quick", dependencies=auth)
     async def quick(
         q: str,
-        limit: int = Query(default=20, ge=1, le=100),
+        limit: int = Query(default=20, ge=1),
+        offset: int = Query(default=0, ge=0),
+        depth: int | None = Query(default=None, ge=1),
         state: AppState = Depends(get_state),
     ) -> dict:
         """First paint. Lexical only, no model call, no await on anything."""
-        return service.quick_search(state.conn, q, limit=limit).as_dict()
+        return service.quick_search(
+            state.conn, q, limit=limit, offset=offset, depth=depth,
+            settings=state.settings,
+        ).as_dict()
 
     @app.post("/search", dependencies=auth)
     async def full_search(req: SearchRequest, state: AppState = Depends(get_state)) -> dict:
@@ -256,7 +276,8 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
             raise HTTPException(400, f"unknown config {req.config!r}")
         async with state.lock:
             resp = await service.search(
-                state.conn, req.q, limit=req.limit, config=cfg,
+                state.conn, req.q, limit=req.limit, offset=req.offset,
+                depth=req.depth, config=cfg,
                 provider=state.provider, settings=state.settings,
                 assist=req.assist, expand_limit=req.expand,
             )

@@ -340,6 +340,12 @@ def search(
     query: str = typer.Argument(...),
     db: Path | None = typer.Option(None, "--db"),
     limit: int = typer.Option(10, "-n", "--limit"),
+    offset: int = typer.Option(0, "-o", "--offset", help="Skip this many hits."),
+    depth: int | None = typer.Option(
+        None, "--depth",
+        help="Pin the candidate depth. Pass the previous page's depth to page "
+             "through one ranking instead of re-ranking each time.",
+    ),
     quick: bool = typer.Option(False, "--quick", help="Lexical only, no model call."),
     config: str = typer.Option("full", "--config", help="full or an ablation rung A-E."),
     mock: bool = typer.Option(False, "--mock"),
@@ -353,7 +359,9 @@ def search(
     conn = _open(st)
     try:
         if quick:
-            resp = service.quick_search(conn, query, limit=limit)
+            resp = service.quick_search(
+                conn, query, limit=limit, offset=offset, depth=depth, settings=st
+            )
         else:
             cfg = default_config(st) if config in ("", "full") else (
                 ALL_CONFIGS.get(config) or ALL_CONFIGS.get(config.upper())
@@ -362,7 +370,8 @@ def search(
                 err.print(f"[red]unknown config {config!r}[/red]")
                 raise typer.Exit(2)
             resp = asyncio.run(service.search(
-                conn, query, limit=limit, config=cfg, settings=st))
+                conn, query, limit=limit, offset=offset, depth=depth,
+                config=cfg, settings=st))
         payload = resp.as_dict()
     finally:
         conn.close()
@@ -382,12 +391,19 @@ def search(
     t.add_column("added")
     if explain:
         t.add_column("facets")
-    for i, h in enumerate(resp.hits, 1):
+    # Numbered from the offset, so row 51 says 51 and not 1.
+    for i, h in enumerate(resp.hits, resp.offset + 1):
         row = [str(i), f"{h.score:.4f}", h.title or h.url, h.domain, _fmt_ts(h.date_added)]
         if explain:
             row.append(",".join(h.facets))
         t.add_row(*row)
     console.print(t)
+    if resp.has_more:
+        nxt = f"--offset {resp.offset + resp.limit} --depth {resp.depth}"
+        note = f"[dim]more results:[/dim] {nxt}"
+        if resp.depth_capped:
+            note += f" [dim](depth ceiling reached at {resp.depth})[/dim]"
+        console.print(note)
     if resp.expanded:
         console.print("[dim]related[/dim]")
         for h in resp.expanded[:5]:
