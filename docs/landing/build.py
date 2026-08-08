@@ -106,6 +106,16 @@ def r_block(b: tuple) -> str:
         return (
             f'<div class="callout {b[1]}"><div class="t">{b[2]}</div>{b[3]}</div>'
         )
+    if kind == "shot":
+        # A framed screenshot inside a doc section. `_shot` pins margin:0 for
+        # the grid it was written for, so the wrapper puts the vertical rhythm
+        # back and caps the width at the reading column.
+        dark = (b[4], b[5]) if len(b) > 4 else None
+        return (
+            '<div style="max-width:var(--readw);margin:22px 0">'
+            + _shot((b[1], b[2], b[3]), dark)
+            + "</div>"
+        )
     if kind == "raw":
         return b[1]
     raise ValueError(f"unknown block: {kind!r}")
@@ -413,6 +423,9 @@ def nav_html(t: dict, page: str) -> str:
     suffix = ".zh.html" if z else ".html"
     items = [
         ("home", "index" + suffix, page == "index", False),
+        # Short label on purpose: four text items have to survive the 380px
+        # rule below, which drops the padding to 4px and the size to 0.81rem.
+        ("quickstart", "quickstart" + suffix, page == "quickstart", False),
         ("guide", "guide" + suffix, page == "guide", False),
         ("measured", "measured" + suffix, page == "measured", False),
         ("gh", REPO, False, True),
@@ -461,7 +474,12 @@ def foot_html(t: dict) -> str:
 def shell(t: dict, page: str, body: str) -> str:
     title, desc = t["meta"][page]
     z = t["code"] == "zh"
-    stem = {"index": "index", "guide": "guide", "measured": "measured"}[page]
+    stem = {
+        "index": "index",
+        "quickstart": "quickstart",
+        "guide": "guide",
+        "measured": "measured",
+    }[page]
     canon_en = f"{stem}.html"
     canon_zh = f"{stem}.zh.html"
     canon = canon_zh if z else canon_en
@@ -637,8 +655,30 @@ def page_index(t: dict) -> str:
         o.append(f'<article class="card"><h3>{esc(title)}</h3><p>{body}</p></article>')
     o.append("</div></div></section>")
 
+    # ---- the local page ---------------------------------------------------
+    # Placed before the extension band because this is the surface a reader can
+    # use without installing anything else, and the bands after it flip their
+    # `alt` tint to keep the page alternating.
+    o.append('<section class="band alt" id="app"><div class="wrap">')
+    o.append(f'<p class="seclabel">{esc(i["app_label"])}</p>')
+    o.append(f'<h2 class="reveal">{i["app_h2"]}</h2>')
+    o.append(f'<p class="lede read reveal">{i["app_lede"]}</p>')
+    o.append('<div class="reveal" style="margin-bottom:22px">')
+    o.append(_shot(i["app_shot"], i["app_shot_dark"]))
+    o.append("</div>")
+    o.append('<div class="grid g3 reveal">')
+    for title, body in i["app_points"]:
+        o.append(f'<article class="card"><h3>{esc(title)}</h3><p>{body}</p></article>')
+    o.append("</div>")
+    suffix = ".zh.html" if t["code"] == "zh" else ".html"
+    o.append(
+        f'<p class="reveal" style="margin-top:22px">'
+        f'<a class="btn primary" href="quickstart{suffix}">{esc(i["app_cta"])}</a></p>'
+    )
+    o.append("</div></section>")
+
     # ---- screenshots ------------------------------------------------------
-    o.append('<section class="band alt" id="extension"><div class="wrap">')
+    o.append('<section class="band" id="extension"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["shot_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["shot_h2"]}</h2>')
     o.append(f'<p class="lede read reveal">{i["shot_lede"]}</p>')
@@ -671,7 +711,7 @@ def page_index(t: dict) -> str:
     o.append("</div></section>")
 
     # ---- measured ---------------------------------------------------------
-    o.append('<section class="band" id="measured"><div class="wrap">')
+    o.append('<section class="band alt" id="measured"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["meas_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["meas_h2"]}</h2>')
     o.append(f'<p class="lede read reveal">{i["meas_lede"]}</p>')
@@ -700,7 +740,7 @@ def page_index(t: dict) -> str:
     o.append("</div></div></div></section>")
 
     # ---- quick start ------------------------------------------------------
-    o.append('<section class="band alt" id="start"><div class="wrap">')
+    o.append('<section class="band" id="start"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["qs_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["qs_h2"]}</h2>')
     o.append(f'<p class="lede read reveal">{i["qs_lede"]}</p>')
@@ -712,10 +752,10 @@ def page_index(t: dict) -> str:
     o.append("</div></div></div></section>")
 
     # ---- interfaces -------------------------------------------------------
-    o.append('<section class="band" id="interfaces"><div class="wrap">')
+    o.append('<section class="band alt" id="interfaces"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["if_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["if_h2"]}</h2>')
-    o.append('<div class="grid g5 reveal">')
+    o.append('<div class="grid g6 reveal">')
     for _slug, title, body, href, cta in i["if_cards"]:
         o.append(
             f'<article class="card"><h3>{esc(title)}</h3><p>{body}</p>'
@@ -724,7 +764,7 @@ def page_index(t: dict) -> str:
     o.append("</div></div></section>")
 
     # ---- faq --------------------------------------------------------------
-    o.append('<section class="band alt" id="faq"><div class="wrap">')
+    o.append('<section class="band" id="faq"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["faq_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["faq_h2"]}</h2>')
     o.append('<div class="qa reveal">')
@@ -733,7 +773,7 @@ def page_index(t: dict) -> str:
     o.append("</div></div></section>")
 
     # ---- boundaries -------------------------------------------------------
-    o.append('<section class="band" id="promises"><div class="wrap">')
+    o.append('<section class="band alt" id="promises"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["bnd_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["bnd_h2"]}</h2>')
     o.append('<ul class="grid g5 plist reveal">')
@@ -799,6 +839,9 @@ def build() -> None:
         z = t["code"] == "zh"
         pages = {
             f'index{".zh" if z else ""}.html': shell(t, "index", page_index(t)),
+            f'quickstart{".zh" if z else ""}.html': shell(
+                t, "quickstart", page_doc(t, "quickstart")
+            ),
             f'guide{".zh" if z else ""}.html': shell(t, "guide", page_doc(t, "guide")),
             f'measured{".zh" if z else ""}.html': shell(
                 t, "measured", page_doc(t, "measured")

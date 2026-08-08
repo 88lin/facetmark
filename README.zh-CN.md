@@ -92,8 +92,8 @@ pip install facetmark            # 或者：uv pip install facetmark
 facetmark init                                  # 建 ~/.facetmark/facetmark.db
 facetmark import bookmarks.html                 # Chrome/Firefox/Edge/Safari 的导出文件
 facetmark index                                 # fetch → enrich → embed → sessions → edges
-facetmark search "那个讲 Postgres 索引类型的"
-facetmark serve                                 # http://127.0.0.1:8787
+facetmark search "那个讲 Postgres 索引类型的"     # 也可以直接用网页界面
+facetmark serve                                 # 然后打开 http://127.0.0.1:8787/app
 ```
 
 导出书签：Chrome/Edge → `chrome://bookmarks` → ⋮ → 导出书签。Firefox → 管理书签 →

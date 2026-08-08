@@ -18,6 +18,7 @@ EN = {
     "copy": {"label": "copy", "done": "copied"},
     "nav": {
         "home": "Overview",
+        "quickstart": "Start",
         "guide": "Guide",
         "measured": "Measured",
         "gh": "GitHub",
@@ -38,6 +39,12 @@ EN = {
             "it, and what you saved next to it. One SQLite file on your "
             "machine. No account, no upload.",
         ),
+        "quickstart": (
+            "Quickstart \u2014 facetmark",
+            "Nothing installed to a search page open in your browser: five "
+            "steps, every command copy-pasteable, a picture of what you "
+            "should be looking at.",
+        ),
         "guide": (
             "Guide \u2014 facetmark",
             "Install, import, index, search, serve. Browser extension, MCP "
@@ -55,6 +62,7 @@ EN = {
             (
                 "Start here",
                 [
+                    ("Quickstart", "quickstart.html"),
                     ("Install", "guide.html#install"),
                     ("Get your bookmarks in", "guide.html#import"),
                     ("Model access", "guide.html#models"),
@@ -65,6 +73,7 @@ EN = {
             (
                 "Interfaces",
                 [
+                    ("The local page", "guide.html#webui"),
                     ("Command line", "guide.html#commands"),
                     ("HTTP API", "guide.html#serve"),
                     ("MCP server", "guide.html#mcp"),
@@ -269,6 +278,56 @@ EN = {
             ),
         ],
         # --- screenshots
+        # --- the local page
+        "app_label": "The page you open",
+        "app_h2": "A search page, at <code>127.0.0.1:8787/app</code>",
+        "app_lede": (
+            "<code>facetmark serve</code> prints a URL. Open it and you get "
+            "the search box, the same markers on a result row that the "
+            "extension uses, and a second view that tells you what your index "
+            "actually contains. Nothing to install and nothing to build "
+            "\u2014 the page ships inside the Python package and is served by "
+            "the same process."
+        ),
+        "app_shot": (
+            "assets/app-search.png",
+            "the facetmark search page showing ranked results and a "
+            "separate group of pages saved in the same sitting",
+            "<b>Search.</b> The first paint is lexical and costs no model "
+            "call; the ranked answer replaces it when it arrives. Pages you "
+            "saved in the same sitting arrive as their own group rather than "
+            "shuffled into the ranking. This frame follows the theme of the "
+            "page you are reading.",
+        ),
+        "app_shot_dark": (
+            "assets/app-search-dark.png",
+            "the same search page in dark mode",
+        ),
+        "app_points": [
+            (
+                "It pairs itself",
+                "The token is fetched from a route that answers only when the "
+                "caller <em>and</em> the address in the request are both "
+                "loopback, so on your own machine there is nothing to copy. "
+                "Anywhere else the page asks you to paste it once.",
+            ),
+            (
+                "It says what is missing",
+                "An empty library prints the import command. Bookmarks with "
+                "no vectors print <code>facetmark index</code>. A search with "
+                "no hits and a full fetch queue tells you that, instead of "
+                "showing you an empty list and letting you guess.",
+            ),
+            (
+                "English and \u4e2d\u6587",
+                "One switch in the header, remembered between visits. Light, "
+                "dark, or whatever your system is set to. <kbd>/</kbd> "
+                "focuses the box, the arrow keys walk the results, "
+                "<kbd>Esc</kbd> clears.",
+            ),
+        ],
+        "app_cta": "Start from nothing \u2192",
+        # --- extension
         "shot_label": "In the browser",
         "shot_h2": "An extension that talks to localhost and nothing else",
         "shot_lede": (
@@ -426,8 +485,18 @@ EN = {
         ),
         # --- interfaces
         "if_label": "Interfaces",
-        "if_h2": "Five ways in, one index",
+        "if_h2": "Six ways in, one index",
         "if_cards": [
+            (
+                "web",
+                "The local page",
+                "<code>facetmark serve</code> hosts a search page at "
+                "<code>/app</code>. Search and a library overview, English or "
+                "Chinese, light or dark. The only interface that needs "
+                "nothing installed beyond facetmark itself.",
+                "guide.html#webui",
+                "What is on it",
+            ),
             (
                 "cli",
                 "Command line",
@@ -441,8 +510,9 @@ EN = {
                 "http",
                 "HTTP API",
                 "<code>facetmark serve</code> binds 127.0.0.1:8787. "
-                "Twenty-five routes; everything except <code>/</code> and "
-                "<code>/health</code> requires a pairing token.",
+                "Twenty-seven routes. Four are open — the root, health, "
+                "and the two the local page needs to load itself; everything "
+                "that touches the library requires a pairing token.",
                 "guide.html#serve",
                 "Routes and auth",
             ),
@@ -587,6 +657,278 @@ EN = {
     },
 }
 
+
+
+# ----------------------------------------------------------- quickstart ----
+
+EN["quickstart"] = {
+    "h1": "Quickstart",
+    "lede": (
+        "Nothing installed, to a search page open in your browser. Five steps, "
+        "every command copy-pasteable, and a picture of what you should be "
+        "looking at when it works. No prior knowledge of embeddings, vectors "
+        "or retrieval is assumed \u2014 and nothing here needs any."
+    ),
+    "toc_title": "Five steps",
+    "sections": [
+        # ------------------------------------------------------------ install
+        (
+            "install",
+            "Install it",
+            [
+                ("p",
+                 "You need Python 3.10 or newer, on Windows, macOS or Linux. "
+                 "Check with <code>python --version</code>; if that prints "
+                 "3.9 or an error, install Python first from "
+                 "<a href=\"https://www.python.org/downloads/\" "
+                 "rel=\"noopener\">python.org</a>."),
+                ("cb", "shell", "pip install facetmark"),
+                ("p",
+                 "That is the whole install. There is no separate server to "
+                 "run, no database to create, no account to make. Confirm it "
+                 "landed:"),
+                ("cb", "shell", "facetmark --version"),
+                ("callout", "info", "If the shell says \u201ccommand not found\u201d",
+                 "<p>pip installed it somewhere that is not on your "
+                 "<code>PATH</code>. <code>python -m facetmark --version</code> "
+                 "works regardless, and every command on this page can be "
+                 "written that way.</p>"),
+            ],
+        ),
+        # ------------------------------------------------------------- import
+        (
+            "import",
+            "Bring your bookmarks in",
+            [
+                ("p",
+                 "On Chrome, Edge, Brave, Vivaldi, Chromium or Opera you do "
+                 "not have to export anything. Close the browser first \u2014 "
+                 "it holds the file open \u2014 then:"),
+                ("cb", "shell", "facetmark import"),
+                ("p",
+                 "It finds the profile, reads the bookmarks file and prints "
+                 "how many it took. Firefox and Safari are not in that family, "
+                 "so those two need a one-off export to HTML first "
+                 "(<a href=\"guide.html#import\">how to do that</a>) and then "
+                 "the path:"),
+                ("cb", "shell", "facetmark import ~/Downloads/bookmarks.html"),
+                ("callout", "info", "This never writes to your browser",
+                 "<p>Import is a one-way read: open the file, read it, close "
+                 "it. Nothing in facetmark writes to a browser profile, and "
+                 "nothing you do here can change or delete a bookmark you "
+                 "have.</p>"),
+            ],
+        ),
+        # ------------------------------------------------------------- models
+        (
+            "model",
+            "Point it at a model \u2014 or skip this",
+            [
+                ("p",
+                 "Searching \u201cby meaning\u201d needs something that turns "
+                 "text into numbers. You have three ways to get one, and the "
+                 "third is to do without."),
+                ("h3", "A hosted API"),
+                ("p",
+                 "Any OpenAI-compatible endpoint. Put this in "
+                 "<code>~/.facetmark/.env</code> \u2014 the file is created "
+                 "for you on first run:"),
+                ("cb", "dotenv",
+                 "FACETMARK_API_BASE=https://api.openai.com/v1\n"
+                 "FACETMARK_API_KEY=sk-your-key"),
+                ("callout", "warn", "The single most common setup mistake",
+                 "<p>The base URL must end in <code>/v1</code>. Without it "
+                 "every model call returns 404, and the error surfaces as a "
+                 "provider error, so it reads like a bad key.</p>"),
+                ("h3", "A model on your own machine"),
+                ("p",
+                 "No key, nothing leaves the machine except the page fetches "
+                 "themselves:"),
+                ("cb", "dotenv", "FACETMARK_EMBED_BACKEND=local"),
+                ("p",
+                 "This downloads a small sentence-transformers model the first "
+                 "time it runs."),
+                ("h3", "Neither"),
+                ("p",
+                 "Skip this step entirely and you still get keyword search "
+                 "over titles, folders and addresses, plus the session graph "
+                 "\u2014 which of your bookmarks were saved in the same "
+                 "sitting. You lose search by meaning. You can add a model "
+                 "later and re-run the next step; nothing has to be redone."),
+            ],
+        ),
+        # -------------------------------------------------------------- index
+        (
+            "index",
+            "Build the index",
+            [
+                ("p",
+                 "This is the slow step, and the only slow step. It fetches "
+                 "each page, extracts the text, summarises it if you "
+                 "configured a chat model, embeds it, and works out which "
+                 "bookmarks were saved together."),
+                ("cb", "shell", "facetmark index"),
+                ("p",
+                 "Wall time is dominated by <em>fetching</em>, not by models: "
+                 "facetmark honours robots.txt and rate-limits itself per "
+                 "site on purpose. A few thousand bookmarks is a coffee, not a "
+                 "second. In a hurry, or just want to see it work:"),
+                ("cb", "shell", "facetmark index --no-fetch"),
+                ("p",
+                 "That indexes titles only and finishes in seconds. Run "
+                 "<code>facetmark index</code> properly later \u2014 it is "
+                 "idempotent, so it picks up exactly the work that is still "
+                 "missing and skips everything already done."),
+                ("callout", "info", "You can stop it and start it again",
+                 "<p>Progress is written as it goes. Interrupting with "
+                 "<kbd>Ctrl</kbd>+<kbd>C</kbd> loses at most the page in "
+                 "flight, and re-running continues rather than "
+                 "restarting.</p>"),
+            ],
+        ),
+        # --------------------------------------------------------------- open
+        (
+            "open",
+            "Open the page",
+            [
+                ("cb", "shell", "facetmark serve"),
+                ("p",
+                 "It prints the address. Open the second line in a browser:"),
+                ("cb", "shell",
+                 "facetmark 1.6.1  http://127.0.0.1:8787\n"
+                 "open the search page:     http://127.0.0.1:8787/app"),
+                ("p",
+                 "That is the whole interface. Type a question the way you "
+                 "would say it out loud \u2014 you do not have to remember the "
+                 "title, and you do not have to get the words right."),
+                ("shot",
+                 "assets/app-search.png",
+                 "the facetmark search page with a query typed and ranked "
+                 "results below it",
+                 "<b>What you should see.</b> Results appear as you type, "
+                 "starting with a plain keyword match that costs nothing, "
+                 "then re-ranked once the model answers. This frame follows "
+                 "the theme of the page you are reading.",
+                 "assets/app-search-dark.png",
+                 "the same search page in dark mode"),
+                ("p",
+                 "The second view answers the question everybody has at this "
+                 "point \u2014 <em>did that actually work?</em> Click "
+                 "<b>Library</b> in the header."),
+                ("shot",
+                 "assets/app-library.png",
+                 "the facetmark library view listing bookmark, vector, "
+                 "session and edge counts",
+                 "<b>Library.</b> If <em>Content vectors</em> is zero, search "
+                 "by meaning is not on yet: either no model is configured, or "
+                 "<code>facetmark index</code> has not finished. If "
+                 "<em>Bookmarks</em> is zero, the import did not land.",
+                 "assets/app-library-dark.png",
+                 "the same library view in dark mode"),
+                ("callout", "info", "Leave it running",
+                 "<p><code>facetmark serve</code> is a foreground process; the "
+                 "page only works while it is up. It binds 127.0.0.1, which "
+                 "means your machine and nothing else on the network. The "
+                 "browser extension, the API and MCP clients all talk to this "
+                 "same process \u2014 see <a href=\"guide.html#webui\">the "
+                 "guide</a>.</p>"),
+            ],
+        ),
+        # --------------------------------------------------------------- read
+        (
+            "read",
+            "Read a result",
+            [
+                ("p",
+                 "Each row says why it is there. Hovering a marker explains it "
+                 "in the page; this is the same thing in one table."),
+                ("table",
+                 ["On the row", "Means"],
+                 [["<span class=\"chip mk\">about</span>",
+                   "The page\u2019s own text matched \u2014 by meaning, not by "
+                   "keyword. This is the one that finds a page whose words you "
+                   "do not remember."],
+                  ["<span class=\"chip mk\">words</span>",
+                   "A whole word in the title, folder or address matched."],
+                  ["<span class=\"chip mk\">substring</span>",
+                   "Part of a word matched, which is what makes half-typed and "
+                   "Chinese queries work."],
+                  ["<span class=\"chip mk\">asked as</span>",
+                   "A question this page was saved to answer matched."],
+                  ["<span class=\"badge warn mk\">cold</span>",
+                   "Saved long ago, never opened, and something newer looks "
+                   "like it replaced it. Pushed down the list, never "
+                   "deleted."]]),
+                ("p",
+                 "Below the ranked list there is sometimes a second, separate "
+                 "group headed <b>saved around these</b>. Those are not "
+                 "answers to your query \u2014 they are pages you saved in the "
+                 "same sitting as something above, which is often how you "
+                 "actually remember where a page was. They are kept apart on "
+                 "purpose and never mixed into the ranking."),
+                ("p",
+                 "<b>Load more</b> at the bottom fetches the next page of the "
+                 "same ranking rather than searching again, so the order you "
+                 "have already read cannot shuffle underneath you. The counter "
+                 "above the list says which slice you are looking at."),
+            ],
+        ),
+        # ------------------------------------------------------------ trouble
+        (
+            "trouble",
+            "When it goes wrong",
+            [
+                ("h3", "The page says it needs a token"),
+                ("p",
+                 "You are not reaching it over 127.0.0.1 \u2014 a LAN address, "
+                 "a hostname or a reverse proxy all look the same to the "
+                 "check. Run <code>facetmark token</code>, paste the value "
+                 "into the field once, and the browser remembers it. "
+                 "<a href=\"guide.html#webui\">Why that check exists.</a>"),
+                ("h3", "The page will not load at all"),
+                ("p",
+                 "<code>facetmark serve</code> has to still be running in a "
+                 "terminal. If it exited with <code>address already in use</code>, "
+                 "something else has 8787: run "
+                 "<code>facetmark serve --port 8788</code> and open that port "
+                 "instead."),
+                ("h3", "Search finds nothing, or only exact words"),
+                ("p",
+                 "Open <b>Library</b>. <em>Content vectors</em> at zero means "
+                 "search by meaning is not on: no model configured, or "
+                 "<code>facetmark index</code> has not run to completion. A "
+                 "non-empty <em>fetch queue</em> means indexing is still "
+                 "working through your library and results will keep "
+                 "improving."),
+                ("h3", "Every model call returns 404"),
+                ("p",
+                 "The base URL is missing <code>/v1</code>. This is the most "
+                 "common failure by a wide margin."),
+                ("h3", "Where is my data?"),
+                ("p",
+                 "One folder: <code>~/.facetmark</code> on macOS and Linux, "
+                 "<code>%USERPROFILE%\\.facetmark</code> on Windows. Inside it "
+                 "is a single SQLite file plus the pairing token. Move it, "
+                 "back it up, or copy it to another machine \u2014 it is the "
+                 "whole state. <code>FACETMARK_DATA_DIR</code> puts it "
+                 "somewhere else."),
+                ("h3", "How do I delete everything?"),
+                ("p",
+                 "Delete that folder. There is no uninstall step and nothing "
+                 "outside it \u2014 no registry keys, no browser changes, no "
+                 "account anywhere. <code>pip uninstall facetmark</code> "
+                 "removes the program."),
+                ("h3", "Something else"),
+                ("p",
+                 "<code>facetmark stats</code> prints what the index actually "
+                 "contains, which resolves most confusion, and the "
+                 "<a href=\"guide.html#trouble\">guide has a longer "
+                 "troubleshooting list</a>. Beyond that, "
+                 "<a href=\"" + REPO + "/issues\">open an issue</a>."),
+            ],
+        ),
+    ],
+}
 
 # ---------------------------------------------------------------- guide ----
 
@@ -988,9 +1330,14 @@ EN["guide"] = {
             [
                 ("cb", "shell", "facetmark serve        # 127.0.0.1:8787"),
                 ("callout", "warn", "Loopback is not an authorisation model",
-                 "<p>Every route except <code>/</code> and "
-                 "<code>/health</code> requires a token, even on localhost, "
-                 "because any process on your machine can reach 127.0.0.1. "
+                 "<p>Every route that touches the library requires a token, "
+                 "even on localhost, because any process on your machine can "
+                 "reach 127.0.0.1. The open ones are <code>/</code>, "
+                 "<code>/health</code>, and the two the "
+                 "<a href=\"#webui\">local page</a> needs before it can send "
+                 "a header \u2014 <code>/app</code>, a static file with no "
+                 "data in it, and <code>/app/boot</code>, which answers only a "
+                 "loopback caller asking a loopback address. "
                  "<code>facetmark serve</code> prints a warning when "
                  "<code>--host</code> is anything other than a loopback "
                  "address: the index contains your whole browsing interest "
@@ -1028,6 +1375,10 @@ EN["guide"] = {
                  ["Group", "Routes"],
                  [["Open",
                    "<code>GET /</code> \u00b7 <code>GET /health</code>"],
+                  ["Local page \u2014 also open",
+                   "<code>GET /app</code> \u00b7 "
+                   "<code>GET /app/static/*</code> \u00b7 "
+                   "<code>GET /app/boot</code>"],
                   ["Search",
                    "<code>GET /stats</code> \u00b7 <code>GET /quick</code> "
                    "\u00b7 <code>POST /search</code> \u00b7 "
@@ -1056,6 +1407,213 @@ EN["guide"] = {
                    "<code>POST /karakeep/search</code> \u00b7 "
                    "<code>POST /karakeep/clear</code> \u00b7 "
                    "<code>GET /karakeep/stats</code>"]]),
+            ],
+        ),
+        # -------------------------------------------------------------- webui
+        (
+            "webui",
+            "The local page",
+            [
+                ("p",
+                 "<code>facetmark serve</code> also hosts a search page. It is "
+                 "the one interface that needs nothing installed beyond "
+                 "facetmark itself \u2014 no browser extension to load, no "
+                 "editor to configure, no <code>curl</code>."),
+                ("cb", "shell",
+                 "facetmark serve\n"
+                 "# facetmark 1.6.1  http://127.0.0.1:8787\n"
+                 "# open the search page:     http://127.0.0.1:8787/app\n"
+                 "# pairing token written to: ~/.facetmark/pairing-token.txt"),
+                ("p",
+                 "Plain HTML, CSS and ES modules inside the Python package: no "
+                 "Node, no bundler, no build artefact that can go stale "
+                 "against the server it talks to. Because the page is served "
+                 "by the same process as the API it is same-origin, which is "
+                 "also why it cannot be hosted anywhere else \u2014 CORS on "
+                 "this service is restricted to browser-extension origins."),
+                ("h3", "Two views"),
+                ("table",
+                 ["View", "Address", "What it is for"],
+                 [["Search", "<code>/app#/search</code>",
+                   "The query box and the ranked list. Typing paints a lexical "
+                   "result first, with no model call at all; the ranked answer "
+                   "replaces it when it arrives, and <b>Load more</b> pages "
+                   "through the rest."],
+                  ["Library", "<code>/app#/library</code>",
+                   "Everything <code>facetmark stats</code> prints, as labelled "
+                   "rows: bookmarks, how many have a body, how many are "
+                   "embedded, sessions, edges by kind, the fetch queue, link "
+                   "health, and the cold-layer census. This is the view that "
+                   "answers \u201cI searched and got nothing\u201d."]]),
+                ("callout", "info", "What it deliberately does not do",
+                 "<p>It reads. There is no delete, no edit, no queue control "
+                 "and no synthesize button. Those exist on the command line "
+                 "and in the API, where a mistake is at least deliberate. The "
+                 "one thing the page writes is a <code>POST /open</code> when "
+                 "you follow a result, which is what feeds the cold "
+                 "layer.</p>"),
+                ("h3", "What the markers on a row mean"),
+                ("p",
+                 "The same vocabulary the extension popup uses. In the page "
+                 "each one carries a one-line explanation on hover; the table "
+                 "is here so you can read them all at once."),
+                ("table",
+                 ["Marker", "Means", "Default"],
+                 [["<span class=\"chip mk\">about</span>",
+                   "The <b>content</b> facet matched \u2014 a vector over the "
+                   "page\u2019s own text.",
+                   "<span class=\"badge info\">on</span>"],
+                  ["<span class=\"chip mk\">asked as</span>",
+                   "The <b>intent</b> facet matched \u2014 vectors over "
+                   "questions generated for the page.", "off"],
+                  ["<span class=\"chip mk\">words</span>",
+                   "The <b>lexical \u00b7 segments</b> facet matched \u2014 "
+                   "FTS5 over whole words in the title, folder or address.",
+                   "off"],
+                  ["<span class=\"chip mk\">substring</span>",
+                   "The <b>lexical \u00b7 trigram</b> facet matched \u2014 "
+                   "FTS5 over characters, which is what makes partial words "
+                   "and Chinese queries hit.", "off"],
+                  ["<span class=\"badge warn mk\">cold</span>",
+                   "Saved long ago, never opened, and something newer looks "
+                   "like it replaced it. Ranked lower, never deleted.",
+                   "<span class=\"badge info\">on</span>"],
+                  ["<span class=\"gmk mk\">saved around these</span>",
+                   "The second group: one hop over the link graph from a "
+                   "result above. Never mixed into the ranking.",
+                   "<span class=\"badge info\">on</span>"]]),
+                ("p",
+                 "Rows in that second group carry a chip for the edge that "
+                 "reached them \u2014 <em>same sitting</em> (saved in the same "
+                 "browsing session), <em>similar</em> (close in meaning), "
+                 "<em>replaced by</em>, <em>same page</em>, <em>same "
+                 "site</em>. The weights behind those names are in "
+                 "<a href=\"#env\">the settings table</a>."),
+                ("h3", "How the page gets the token"),
+                ("p",
+                 "It asks <code>GET /app/boot</code>, which is the only route "
+                 "that can hand out the pairing token, and only when both the "
+                 "caller and the address in the request are loopback. On your "
+                 "own machine both are true and the page pairs itself with "
+                 "nothing to copy."),
+                ("callout", "warn", "Why the second condition exists",
+                 "<p>A page on the open web can point a hostname at "
+                 "127.0.0.1 and have <em>your</em> browser make the request "
+                 "\u2014 the caller really is loopback. What it cannot do is "
+                 "change the <code>Host</code> header, which still carries the "
+                 "attacker\u2019s domain. Checking it is what keeps a website "
+                 "from reading your token, and it is why this is a separate "
+                 "route rather than a flag on an existing one.</p><p>Behind a "
+                 "reverse proxy, or on a LAN address, that check fails on "
+                 "purpose: the page then shows a field and you paste "
+                 "<code>facetmark token</code> once. It is kept in that "
+                 "browser\u2019s local storage, not in the page.</p>"),
+                ("h3", "Keyboard"),
+                ("table",
+                 ["Key", "Does"],
+                 [["<kbd>/</kbd>", "Focus the query box from anywhere on the "
+                   "page."],
+                  ["<kbd>Enter</kbd>", "Search."],
+                  ["<kbd>\u2191</kbd> <kbd>\u2193</kbd>",
+                   "Walk the results. From the box, "
+                   "<kbd>\u2193</kbd> enters the list."],
+                  ["<kbd>Esc</kbd>", "Clear the query and go back to the "
+                   "box."]]),
+                ("h3", "Language and theme"),
+                ("p",
+                 "English and Chinese, switched in the header and remembered. "
+                 "Without a stored choice the page follows the browser\u2019s "
+                 "language. The theme switch cycles system \u2192 light "
+                 "\u2192 dark and shares its stored key with this site, so a "
+                 "reader who picked dark here gets dark there. Everything "
+                 "animated is inside a "
+                 "<code>prefers-reduced-motion</code> query."),
+            ],
+        ),
+        # ------------------------------------------------------------- paging
+        (
+            "paging",
+            "Paging: limit, offset and depth",
+            [
+                ("p",
+                 "Every search surface takes <code>limit</code>, "
+                 "<code>offset</code> and <code>depth</code>, and every search "
+                 "response reports the window it actually served rather than "
+                 "echoing what you asked for."),
+                ("cb", "shell",
+                 'facetmark search "kafka rebalance" -n 20\n'
+                 'facetmark search "kafka rebalance" -n 20 -o 20 --depth 60'),
+                ("p",
+                 "The CLI prints the <code>--offset</code> and "
+                 "<code>--depth</code> for the next page whenever there is "
+                 "one. Over HTTP the same three fields go in the "
+                 "<code>POST /search</code> body:"),
+                ("cb", "json",
+                 "{\n"
+                 '  "hits": [ ],\n'
+                 '  "limit": 20,          // served, after clamping\n'
+                 '  "offset": 20,\n'
+                 '  "depth": 60,          // the depth this ranking ran at\n'
+                 '  "total": 137,         // ranked so far; a floor when capped\n'
+                 '  "has_more": true,\n'
+                 '  "depth_capped": false\n'
+                 "}"),
+                ("table",
+                 ["Field", "Meaning"],
+                 [["<code>limit</code>",
+                   "Rows in this page. Clamped to "
+                   "<code>MAX_PAGE_SIZE</code>, 200 by default."],
+                  ["<code>offset</code>",
+                   "Rows skipped. Clamped below "
+                   "<code>MAX_CANDIDATE_DEPTH</code>."],
+                  ["<code>depth</code>",
+                   "How deep each facet was read before fusion. Omit it and it "
+                   "is derived from the window; send back the value the "
+                   "previous page reported and this page continues that same "
+                   "ranking."],
+                  ["<code>total</code>",
+                   "Documents the fusion step ranked. A lower bound, not a "
+                   "library count, and explicitly a floor when "
+                   "<code>depth_capped</code> is true."],
+                  ["<code>has_more</code>",
+                   "There is something past this window. Exact under the "
+                   "shipped single-facet default; an upper bound with several "
+                   "facets in play, where the overflow row can turn out to be "
+                   "a document the pool already held."],
+                  ["<code>depth_capped</code>",
+                   "More exists <em>and</em> the reason we stopped is the "
+                   "depth ceiling rather than your window \u2014 the "
+                   "difference between \u201cpress next\u201d and "
+                   "\u201craise the depth or narrow the query\u201d."]]),
+                ("h3", "Why depth is a parameter and not an implementation detail"),
+                ("p",
+                 "Page size and retrieval depth used to be the same number: "
+                 "asking for more rows quietly retrieved deeper, and result 51 "
+                 "was unreachable at any page size because the pool was 50 rows "
+                 "regardless. Now the page is a window onto a pool whose size "
+                 "you can see and pin."),
+                ("callout", "warn", "Pin the depth or page two can disagree with page one",
+                 "<p>RRF is only rank-stable under a growing pool when there is "
+                 "<em>one</em> facet. A document\u2019s score is a sum over the "
+                 "facets that ranked it within the depth asked for, so a deeper "
+                 "pool can hand a document a term it did not have \u2014 and "
+                 "that term can outweigh a rival\u2019s whole score. Rank 2 in "
+                 "one facet plus rank 40 in another beats a sole rank 1 "
+                 "(1/62 + 1/100 against 1/61) but contributes nothing at depth "
+                 "30.</p><p>So with several facets on, growing the depth to "
+                 "reach page 2 lets page 2 disagree with page 1 about what page "
+                 "1 was. The fix is not to grow it: send back the "
+                 "<code>depth</code> the previous page reported and every page "
+                 "is a slice of one ranking. The local page and the browser "
+                 "extension both do this.</p>"),
+                ("h3", "The two ceilings"),
+                ("p",
+                 "<code>MAX_PAGE_SIZE</code> (200) bounds one page. "
+                 "<code>MAX_CANDIDATE_DEPTH</code> (2000) bounds the pool "
+                 "behind all of them, and hitting it is what sets "
+                 "<code>depth_capped</code>. Both are clamped in one place, "
+                 "before any query runs, so an oversized request costs nothing "
+                 "and is answered with the window that was actually served."),
             ],
         ),
         # ---------------------------------------------------------- extension

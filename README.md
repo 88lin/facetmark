@@ -97,7 +97,7 @@ facetmark init                                  # create ~/.facetmark/facetmark.
 facetmark import bookmarks.html                 # Chrome/Firefox/Edge/Safari export
 facetmark index                                 # fetch → enrich → embed → sessions → edges
 facetmark search "那个讲 Postgres 索引类型的"     # or use the web UI
-facetmark serve                                 # http://127.0.0.1:8787
+facetmark serve                                 # then open http://127.0.0.1:8787/app
 ```
 
 Exporting bookmarks: Chrome/Edge → `chrome://bookmarks` → ⋮ → Export. Firefox → Manage
