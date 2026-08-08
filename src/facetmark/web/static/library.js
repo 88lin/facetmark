@@ -1,0 +1,230 @@
+// The library dashboard: `/stats`.
+//
+// The old version of this view printed every counter the endpoint returns as a
+// definition list, which is accurate and tells a reader nothing: 964 next to
+// the word "enriched" is only meaningful against the 1,197 pages that could
+// have been enriched. So every number that is a share of something is drawn as
+// a share of that thing, with the denominator that makes it true chosen in
+// derive.js and unit tested there.
+//
+// Nothing on this page is an evaluation. Counts of what is indexed are facts
+// about this database; they say nothing about whether retrieval is any good.
+
+import { api } from "./api.js";
+import { HEALTH_TONE, coverageRows, edgeRows, healthBands } from "./derive.js";
+import { $, barRow, block, card, el, facts, numberCard, numbers, pill, skeleton, stackBar } from "./dom.js";
+import { count, pct } from "./format.js";
+import { failPanel } from "./panels.js";
+import { S, t } from "./state.js";
+
+let ui = null;
+let generation = 0;
+
+/** `count / total · 42%`. Digits and punctuation only, so it needs no words. */
+function reading(n, total) {
+  return `${count(n, S.lang)} / ${count(total, S.lang)} \u00b7 ${pct(n, total)}%`;
+}
+
+function factsFrom(map, prefix, extra = []) {
+  const rows = Object.entries(map ?? {}).map(([k, v]) => ({
+    label: t(`${prefix}.${k}`),
+    value: count(v, S.lang),
+    zero: !v,
+  }));
+  return facts([...rows, ...extra]);
+}
+
+// -------------------------------------------------------------------- parts
+
+function topNumbers(s) {
+  return numbers([
+    numberCard(count(s.bookmarks, S.lang), t("stats.bookmarks"), "ink"),
+    numberCard(count(s.indexable, S.lang), t("stats.indexable")),
+    numberCard(count(s.enriched, S.lang), t("stats.enriched"), "gold"),
+    numberCard(count(s.sessions, S.lang), t("stats.sessions"), "pop"),
+  ]);
+}
+
+function coverage(s) {
+  const rows = coverageRows(s);
+  const text = rows.filter((r) => !r.vec);
+  const vecs = rows.filter((r) => r.vec);
+
+  const one = block(t("stats.group.text"), t("stats.note.text"));
+  const boxA = card();
+  const barsA = el("div", "bars");
+  for (const r of text) barsA.appendChild(barRow(t(r.key), pct(r.n, r.total), reading(r.n, r.total)));
+  boxA.appendChild(barsA);
+  boxA.appendChild(
+    facts([{ label: t("stats.intent_kept"), value: count(s.intent_kept, S.lang), zero: !s.intent_kept }]),
+  );
+  one.appendChild(boxA);
+
+  const two = block(t("stats.group.vectors"), t("stats.note.vectors"));
+  const boxB = card();
+  const barsB = el("div", "bars");
+  for (const r of vecs) {
+    barsB.appendChild(barRow(t(r.key), pct(r.n, r.total), reading(r.n, r.total), r.gold));
+  }
+  boxB.appendChild(barsB);
+  boxB.appendChild(
+    facts([
+      {
+        label: t("stats.content_vectors_stale"),
+        value: count(s.content_vectors_stale, S.lang),
+        zero: !s.content_vectors_stale,
+        tone: s.content_vectors_stale ? "warn" : undefined,
+      },
+    ]),
+  );
+  two.appendChild(boxB);
+  return [one, two];
+}
+
+function health(s) {
+  const { total, bands } = healthBands(s.health);
+  const sec = block(t("stats.group.health"), t("stats.note.health"));
+  const box = card();
+  box.appendChild(stackBar(bands));
+  const legend = el("div", "legend");
+  // Every verdict the server reported, largest first -- `summary()` already
+  // sorts them, and `unchecked` is in there as a real category rather than as
+  // the leftover space in the bar.
+  for (const [k, v] of Object.entries(s.health ?? {})) {
+    legend.appendChild(pill(HEALTH_TONE[k] ?? "mute", `${t(`health.${k}`)} ${count(v, S.lang)}`));
+  }
+  box.appendChild(legend);
+  // Never checked is not a verdict, so it cannot be counted as one. The note
+  // right above this says exactly that, and a total that swept the unchecked
+  // in with the rest would contradict it.
+  if (total) {
+    const checked = total - (s.health?.unchecked ?? 0);
+    box.appendChild(
+      el(
+        "p",
+        "dim note",
+        t("stats.health.total", { n: count(checked, S.lang), total: count(total, S.lang) }),
+      ),
+    );
+  }
+  sec.appendChild(box);
+  return sec;
+}
+
+function graph(s) {
+  const sec = block(t("stats.group.graph"), t("stats.note.graph"));
+  const rows = edgeRows(s.edges_by_kind);
+  const box = card();
+  const bars = el("div", "bars");
+  for (const r of rows) {
+    // The weight is what fusion multiplies this edge kind by. It is a constant
+    // in `edges.py`, not something measured here.
+    const tail = r.weight === undefined ? "" : ` \u00b7 \u00d7${r.weight}`;
+    bars.appendChild(
+      barRow(t(`edge.${r.kind}`), pct(r.n, s.edges), `${count(r.n, S.lang)}${tail}`),
+    );
+  }
+  box.appendChild(bars);
+  box.appendChild(
+    facts([
+      { label: t("stats.edges"), value: count(s.edges, S.lang) },
+      { label: t("stats.sessions"), value: count(s.sessions, S.lang) },
+    ]),
+  );
+  sec.appendChild(box);
+  return sec;
+}
+
+function queue(s) {
+  const sec = block(t("stats.group.queue"), t("stats.note.queue"));
+  const box = card();
+  box.appendChild(
+    factsFrom(s.queue, "queue", [
+      { label: t("queue.waiting"), value: count(s.queue_waiting, S.lang), zero: !s.queue_waiting },
+    ]),
+  );
+  sec.appendChild(box);
+  return sec;
+}
+
+function cold(s) {
+  const c = s.cold_layer ?? {};
+  const sec = block(t("stats.group.cold"), t("stats.note.cold"));
+  const grid = el("div", "grid duo");
+  const left = card();
+  left.appendChild(
+    facts([
+      { label: t("cold.cold"), value: count(c.cold, S.lang), zero: !c.cold },
+      { label: t("cold.servable_cold"), value: count(c.servable_cold, S.lang), zero: !c.servable_cold },
+      {
+        label: t("cold.unservable_cold"),
+        value: count(c.unservable_cold, S.lang),
+        zero: !c.unservable_cold,
+      },
+    ]),
+  );
+  const right = card();
+  right.appendChild(
+    facts([
+      { label: t("cold.never_opened"), value: count(c.never_opened, S.lang), zero: !c.never_opened },
+      {
+        label: t("cold.older_than_cutoff"),
+        value: count(c.older_than_cutoff, S.lang),
+        zero: !c.older_than_cutoff,
+      },
+      {
+        label: t("cold.old_and_never_opened"),
+        value: count(c.old_and_never_opened, S.lang),
+        zero: !c.old_and_never_opened,
+      },
+      {
+        label: t("cold.health_unchecked"),
+        value: count(c.health_unchecked, S.lang),
+        zero: !c.health_unchecked,
+      },
+    ]),
+  );
+  grid.append(left, right);
+  sec.appendChild(grid);
+  return sec;
+}
+
+function shape(s) {
+  const sec = block(t("stats.group.library"), t("stats.note.library"));
+  const box = card();
+  box.appendChild(
+    facts([
+      { label: t("stats.bookmarks"), value: count(s.bookmarks, S.lang) },
+      { label: t("stats.indexable"), value: count(s.indexable, S.lang) },
+      {
+        label: t("stats.privacy_skipped"),
+        value: count(s.privacy_skipped, S.lang),
+        zero: !s.privacy_skipped,
+      },
+      { label: t("stats.domains"), value: count(s.domains, S.lang) },
+    ]),
+  );
+  sec.appendChild(box);
+  return sec;
+}
+
+// ------------------------------------------------------------------- shell
+
+export async function render() {
+  const mine = ++generation;
+  ui.stats.replaceChildren(el("p", "status", t("stats.loading")), skeleton(3));
+  let s;
+  try {
+    s = await api.stats();
+  } catch (e) {
+    if (mine === generation) failPanel(e, ui.stats);
+    return;
+  }
+  if (mine !== generation) return;
+  S.stats = s;
+  ui.stats.replaceChildren(topNumbers(s), ...coverage(s), health(s), graph(s), queue(s), cold(s), shape(s));
+}
+
+export function mount() {
+  ui = { stats: $("#stats") };
+}

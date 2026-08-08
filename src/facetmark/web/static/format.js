@@ -72,6 +72,39 @@ export function shortUrl(url) {
 }
 
 /**
+ * A share of a whole, as a whole number of percent.
+ *
+ * Clamped at both ends. `with_body` can exceed `indexable` on a library that
+ * was indexed before a privacy rule was tightened, and a progress bar drawn at
+ * 104% is a rendering bug rather than a fact about the library.
+ */
+export function pct(n, total) {
+  if (!total || total <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round(((n ?? 0) / total) * 100)));
+}
+
+/**
+ * How long the server has been up, as at most two units.
+ *
+ * Returns pairs rather than a string because the units are translated and this
+ * module is not. Seconds are only ever shown on their own: a server that has
+ * been up for four hours and nine seconds has been up for four hours.
+ *
+ * @returns {Array<{n: number, unit: "d"|"h"|"m"|"s"}>}
+ */
+export function uptimeParts(seconds) {
+  const total = Math.max(0, Math.floor(seconds ?? 0));
+  const d = Math.floor(total / 86400);
+  const h = Math.floor((total % 86400) / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (d) return h ? [{ n: d, unit: "d" }, { n: h, unit: "h" }] : [{ n: d, unit: "d" }];
+  if (h) return m ? [{ n: h, unit: "h" }, { n: m, unit: "m" }] : [{ n: h, unit: "h" }];
+  if (m) return [{ n: m, unit: "m" }];
+  return [{ n: s, unit: "s" }];
+}
+
+/**
  * Fill `{name}` placeholders. Deliberately dumb: the strings file is ours, the
  * values are numbers and identifiers, and nothing here reaches innerHTML.
  */
