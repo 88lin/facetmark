@@ -7,10 +7,14 @@ unauthenticated routes that were added, so each one is pinned: what it serves,
 that it needs no token, and -- for ``/app/boot``, the only route in the service
 that can hand out the pairing token -- exactly when it refuses to.
 
-*Contract.* ``app.js`` reads response fields by name off `await res.json()`,
+*Contract.* The page reads response fields by name off `await res.json()`,
 which is the same unchecked cast the extension makes and the same failure mode:
 a renamed field arrives as ``undefined`` and renders as an empty string. The
 extension has its own contract test for this. The web UI now has one too.
+The page is a set of ES modules rather than one file, so the scans below are
+scoped to the module that owns each response: ``search.js`` holds the search
+objects, ``library.js`` and ``derive.js`` hold the stats object, and the paths
+and translation keys are collected across every module at once.
 
 *Strings.* A missing translation is invisible until a reader hits that exact
 screen in that exact language, so the key sets are compared here instead.
@@ -30,8 +34,45 @@ from facetmark.config import Settings
 from facetmark.edges import WEIGHTS
 from facetmark.health.verdicts import Status
 from facetmark.web import INDEX_HTML, STATIC_DIR
+from tests.palette import (
+    Palette,
+    backdrop_of,
+    declarations,
+    first_colour,
+    painted,
+    ratio,
+    rules,
+    value_of,
+)
 
 REPO = Path(__file__).resolve().parents[1]
+
+#: The palette file cascades three times for palette A: the colourway itself,
+#: the semantic aliases every colourway shares, then the AA corrections that
+#: only A carries. Resolving a token means replaying all three in order.
+PALETTE_BLOCKS = (
+    r':root,\s*\n\[data-palette="A"\]',
+    r':root,\s*\n\[data-palette\]',
+    r':root:not\(\[data-palette\]\),\s*\n\[data-palette="A"\]',
+)
+DARK = r'html\[data-theme="dark"\]'
+
+
+def _palette_tokens() -> dict[str, str]:
+    css = (STATIC_DIR / "palettes.css").read_text(encoding="utf-8")
+    tokens: dict[str, str] = {}
+    for block in PALETTE_BLOCKS:
+        tokens.update(declarations(css, block))
+    return tokens
+
+
+def _resolved(theme: str) -> Palette:
+    """Every custom property in force, for one theme."""
+    app = (STATIC_DIR / "app.css").read_text(encoding="utf-8")
+    tokens = {**_palette_tokens(), **declarations(app, r":root")}
+    if theme == "dark":
+        tokens.update(declarations(app, DARK))
+    return Palette(tokens)
 
 
 @pytest.fixture()
@@ -62,6 +103,20 @@ def local(st):
 
 def js(name: str) -> str:
     return (STATIC_DIR / name).read_text(encoding="utf-8")
+
+
+def modules() -> list[str]:
+    """Every ES module the page ships, discovered rather than listed.
+
+    A module added to the directory and never imported is caught by the import
+    graph test; a module listed here by hand and then renamed would silently
+    stop being scanned, which is the failure this avoids.
+    """
+    return sorted(p.name for p in STATIC_DIR.glob("*.js"))
+
+
+def all_js() -> str:
+    return "\n".join(js(name) for name in modules())
 
 
 def strings() -> dict[str, dict[str, str]]:
@@ -172,8 +227,19 @@ class TestPairing:
 # ---------------------------------------------------------------------------
 
 
+def _decomment(src: str) -> str:
+    """Drop comments before scanning for paths and keys.
+
+    The modules name the endpoints they deliberately do not call, and a scan
+    that cannot tell prose from code reads those mentions as calls.
+    """
+    src = re.sub(r"/\*.*?\*/", "", src, flags=re.S)
+    return re.sub(r"(?m)^\s*//.*$", "", src)
+
+
 def _js_paths(src: str) -> set[str]:
     """Every request path the client builds, query strings stripped."""
+    src = _decomment(src)
     out = set()
     for lit in re.findall(r"[\"`](/[^\"`${]*)[\"`]", src):
         out.add(lit.split("?", 1)[0])
@@ -198,10 +264,24 @@ class TestTheWebContract:
     """
 
     def test_every_path_the_page_calls_is_a_real_route(self, client):
-        declared = _js_paths(js("app.js"))
+        declared = _js_paths(all_js())
         routes = {r.path for r in client.app.routes}
-        assert declared, "parsed no paths out of app.js"
-        assert declared <= routes, f"app.js calls routes that do not exist: {declared - routes}"
+        assert declared, "parsed no paths out of the page's modules"
+        assert declared <= routes, f"the page calls routes that do not exist: {declared - routes}"
+
+    def test_the_endpoints_the_page_deliberately_leaves_alone_stay_alone(self, client):
+        """``/queue/next`` and ``/queue/complete`` are a worker lease protocol.
+
+        A browser that leases an item and then navigates away never completes
+        it, and the item sits leased until the lease expires. The page shows
+        ``/queue/stats`` and takes no work off the queue. This is a decision,
+        not an omission, so it is pinned: wiring either one should require
+        deleting this test and saying why.
+        """
+        routes = {r.path for r in client.app.routes}
+        for path in ("/queue/next", "/queue/complete"):
+            assert path in routes, f"{path} was removed; this test is stale"
+            assert path not in _js_paths(all_js()), f"the page now calls {path}"
 
     def test_the_response_fields_the_page_reads_are_fields_the_server_sends(self, client):
         st = client.app.state.fm.settings
@@ -217,10 +297,10 @@ class TestTheWebContract:
         auth = {"Authorization": f"Bearer {client.app.state.fm.token}"}
         sent = set(client.post("/search", json={"q": "rust"}, headers=auth).json())
         # `rows`/`cursor` names are local; these are the two response objects.
-        read = (_js_reads(js("app.js"), "full") | _js_reads(js("app.js"), "more")
-                | _js_reads(js("app.js"), "quick"))
-        assert read, "parsed no field reads out of app.js"
-        assert read <= sent, f"app.js reads fields the server never sends: {sorted(read - sent)}"
+        src = js("search.js")
+        read = _js_reads(src, "full") | _js_reads(src, "more") | _js_reads(src, "quick")
+        assert read, "parsed no field reads out of search.js"
+        assert read <= sent, f"search.js reads fields the server never sends: {sorted(read - sent)}"
 
     def test_the_hit_fields_the_page_reads_are_fields_the_server_sends(self, client):
         st = client.app.state.fm.settings
@@ -235,17 +315,22 @@ class TestTheWebContract:
 
         auth = {"Authorization": f"Bearer {client.app.state.fm.token}"}
         hit = client.post("/search", json={"q": "rust"}, headers=auth).json()["hits"][0]
-        read = _js_reads(js("app.js"), "h")
-        assert read, "parsed no hit-field reads out of app.js"
+        read = _js_reads(js("search.js"), "h")
+        assert read, "parsed no hit-field reads out of search.js"
         # `via`/`via_kind` are only present on expansion rows, by design.
         assert read - {"via", "via_kind"} <= set(hit), (
-            f"app.js reads hit fields the server never sends: {sorted(read - set(hit))}"
+            f"search.js reads hit fields the server never sends: {sorted(read - set(hit))}"
         )
 
     def test_the_stats_shape_the_page_assumes_is_the_shape_the_server_sends(self, client):
         auth = {"Authorization": f"Bearer {client.app.state.fm.token}"}
         stats = client.get("/stats", headers=auth).json()
-        read = _js_reads(js("app.js"), "s")
+        # `derive.js` does the arithmetic, `library.js` draws it, `search.js`
+        # reads it to decide which set-up panel a first-run reader needs.
+        read = set()
+        for name in ("derive.js", "library.js", "search.js"):
+            read |= _js_reads(js(name), "s")
+        assert read, "parsed no stats-field reads out of the page's modules"
         assert read <= set(stats), f"unknown stats keys: {sorted(read - set(stats))}"
 
     def test_vectors_is_a_pair_and_the_page_knows_it(self, client):
@@ -256,7 +341,10 @@ class TestTheWebContract:
         auth = {"Authorization": f"Bearer {client.app.state.fm.token}"}
         vectors = client.get("/stats", headers=auth).json()["vectors"]
         assert isinstance(vectors, (list, dict))
-        assert "Array.isArray(s.vectors)" in js("app.js")
+        # Absent the vector tables the server sends `{}`, not a pair, so the
+        # guard has to be a type check rather than a truthiness check.
+        assert "Array.isArray(s.vectors)" in js("derive.js")
+        assert "Array.isArray(s?.vectors)" in js("search.js")
 
 
 # ---------------------------------------------------------------------------
@@ -264,13 +352,14 @@ class TestTheWebContract:
 # ---------------------------------------------------------------------------
 
 
-DYNAMIC = ("edge.", "health.", "queue.")
+DYNAMIC = ("edge.", "health.", "queue.", "unit.")
 """Key families the page builds at runtime, e.g. ``edge.${kind}``.
 
 A literal scan cannot see these, so they are exempted here and checked against
 the server-side enumerations instead -- which is stricter than a scan, not
 looser: a scan proves someone typed the key, the vocabulary tests prove every
-value the server can emit has a name.
+value the server can emit has a name. ``unit.`` is the one family whose
+enumeration is client-side, in ``uptimeParts``; it gets the same treatment.
 """
 
 
@@ -295,8 +384,10 @@ def _keys_asked_for() -> set[str]:
     which is what the vocabulary tests below are for.
     """
     keys: set[str] = set()
-    for name in ("app.js", "paging.js", "format.js", "i18n.js"):
-        keys |= set(re.findall(r"\"([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)\"", js(name)))
+    for name in modules():
+        keys |= set(
+            re.findall(r"\"([a-z][a-zA-Z0-9_]*(?:\.[a-zA-Z0-9_]+)+)\"", _decomment(js(name)))
+        )
     html = INDEX_HTML.read_text(encoding="utf-8")
     keys |= set(re.findall(r'data-i18n="([^"]+)"', html))
     for group in re.findall(r'data-i18n-attr="([^"]+)"', html):
@@ -339,7 +430,7 @@ class TestTheStrings:
         tooltip -- one whose chip was renamed or removed -- is text no reader
         can ever reach, and it would otherwise sit in the file forever.
         """
-        assert "`${key}.why`" in js("app.js"), "the tooltip lookup moved; re-derive this rule"
+        assert "`${key}.why`" in js("search.js"), "the tooltip lookup moved; re-derive this rule"
         en = strings()["en"]
         for key in en:
             if key.endswith(".why"):
@@ -362,6 +453,16 @@ class TestTheStrings:
         for lang in ("en", "zh"):
             for v in verdicts:
                 assert f"health.{v}" in s[lang], f"{lang} has no name for verdict {v}"
+
+    def test_every_uptime_unit_has_a_name(self):
+        """``uptimeParts`` emits ``{n, unit}`` and the unit is rendered as
+        ``unit.${p.unit}``. The enumeration lives in ``format.js``."""
+        s = strings()
+        units = set(re.findall(r'unit:\s*"(\w+)"', js("format.js")))
+        assert units == {"d", "h", "m", "s"}, f"uptimeParts emits {sorted(units)}"
+        for lang in ("en", "zh"):
+            for u in units:
+                assert f"unit.{u}" in s[lang], f"{lang} has no name for unit {u}"
 
     def test_every_queue_state_has_a_name(self):
         s = strings()
@@ -413,108 +514,209 @@ class TestPackaging:
 
 
 class TestTheBrand:
-    """Three stylesheets, one product.
+    """One palette file, vendored twice, edited never.
 
-    ``extension/src/popup.css`` and ``docs/landing/style.css`` are deliberately
-    not refactored into a shared file -- one ships in a wheel, one in a zip and
-    one on GitHub Pages. Only the two values a reader would actually notice
-    diverging are pinned.
+    The colours are not facetmark's to choose. They come from the project
+    owner's design system as a whole file, copied in twice because the page and
+    the documentation site are published by different pipelines. What is worth
+    testing is not the values -- upstream owns those -- but the seam: that the
+    two copies have not drifted, that the page still points at the one palette
+    whose contrast has been checked, and that `app.css` has not started
+    inventing colours of its own alongside the ones it was given.
     """
 
-    @staticmethod
-    def _token(css: str, name: str) -> str:
-        m = re.search(rf"{name}:\s*([^;]+);", css)
-        assert m, f"{name} not found"
-        return m.group(1).strip().lower()
+    def test_the_two_copies_of_the_palette_are_the_same_file(self):
+        """A copy is only safe while it is a copy."""
+        page = (STATIC_DIR / "palettes.css").read_bytes()
+        site = (REPO / "docs" / "landing" / "palettes.css").read_bytes()
+        assert page == site, "the two vendored palettes have drifted apart"
 
-    def test_the_accent_and_paper_agree_across_the_three_stylesheets(self):
-        sources = {
-            "web": (STATIC_DIR / "app.css"),
-            "landing": REPO / "docs" / "landing" / "style.css",
-            "extension": REPO / "extension" / "src" / "popup.css",
-        }
-        seen = {}
-        for where, path in sources.items():
-            if not path.exists():
-                pytest.skip(f"{where} stylesheet not in this tree")
-            css = path.read_text(encoding="utf-8")
-            seen[where] = (self._token(css, "--accent"), self._token(css, "--paper"))
-        assert len(set(seen.values())) == 1, f"three stylesheets, {len(set(seen.values()))} brands: {seen}"
+    def test_the_palette_says_where_it_came_from(self):
+        """Vendored code without provenance is code nobody dares update."""
+        head = (STATIC_DIR / "palettes.css").read_text(encoding="utf-8")[:1400]
+        assert "github.com/88lin/mydesign-system" in head
+        assert re.search(r"commit:\s*[0-9a-f]{7,40}", head), "no upstream commit pinned"
+
+    def test_the_page_pins_the_palette_whose_contrast_was_checked(self):
+        html = INDEX_HTML.read_text(encoding="utf-8")
+        assert re.search(r"<html[^>]*data-palette=\"A\"", html), "no palette pinned on <html>"
+
+    def test_the_palette_is_linked_before_the_stylesheet_that_consumes_it(self):
+        """`app.css` reads tokens the palette declares. Load it first and the
+        page renders one paint with every custom property unresolved."""
+        html = INDEX_HTML.read_text(encoding="utf-8")
+        sheets = re.findall(r'<link rel="stylesheet" href="([^"]+)"', html)
+        assert "/app/static/palettes.css" in sheets, "the palette is not linked"
+        assert sheets.index("/app/static/palettes.css") < sheets.index("/app/static/app.css")
+
+    def test_the_stylesheet_names_no_colour_the_palette_did_not(self):
+        """Everything above the dark block must be a token reference.
+
+        The design system's brand rules forbid hardcoded colour values in
+        shared components, and a stray hex is how a palette swap silently
+        stops working. Black shadows and the modal scrim are exempt: they are
+        the design system's own literals, and they are not brand colour.
+        """
+        css, night = self._split()
+        assert not re.findall(r"#[0-9a-fA-F]{3,8}\b", css), "hardcoded hex above the dark block"
+        for literal in re.findall(r"rgba?\(\s*\d[^)]*\)", css):
+            channels = [c.strip() for c in literal.split("(")[1].rstrip(")").split(",")]
+            assert set(channels[:3]) == {"0"}, f"{literal} is a colour, not a shadow"
+        assert night, "the dark block vanished; this test is now measuring nothing"
+
+    def test_the_night_block_only_darkens_what_the_palette_already_named(self):
+        """The dark theme is facetmark's own extension -- upstream ships light
+        palettes only -- so it is held to an allowlist. Every token it sets
+        must already be named by the palette or by this stylesheet's own
+        `:root`, or the page has grown a second palette in a place nobody
+        thinks to look."""
+        app = (STATIC_DIR / "app.css").read_text(encoding="utf-8")
+        known = set(_palette_tokens()) | set(declarations(app, r":root"))
+        night = declarations(app, DARK)
+        invented = sorted(set(night) - known)
+        assert not invented, f"the dark block invents tokens the palette never had: {invented}"
+
+    def test_the_night_block_covers_every_colour_the_page_reads(self):
+        """A token the light theme paints and the dark theme forgets renders
+        as its light value on a dark surface. Both themes resolve here, so the
+        omission would surface as a contrast failure rather than a crash --
+        this names it directly instead."""
+        night = declarations((STATIC_DIR / "app.css").read_text(encoding="utf-8"), DARK)
+        assert "--link" in night, "--link must be re-pointed for dark, the deep brand step is unreadable"
+        assert len(night) == 24, f"the dark block is now {len(night)} tokens; review each addition"
+
+    @staticmethod
+    def _split() -> tuple[str, str]:
+        css = (STATIC_DIR / "app.css").read_text(encoding="utf-8")
+        cut = css.index('html[data-theme="dark"]')
+        return css[:cut], css[cut:]
+
+
+class TestTheAppScene:
+    """The four things the design system forbids on a functional page.
+
+    `references/scene-app.md` ends with a short list of taboos, and three of
+    them are the kind of rule that gets broken by a well-meaning single commit
+    six months from now. They are cheap to check, so they are checked. The
+    fourth -- no long decorative prose -- is a judgement call and is left to
+    review.
+    """
+
+    def test_no_dark_panel_in_a_functional_area(self):
+        """`深色只用于夜间模式场景`. A dark slab in the middle of a light page
+        reads as a terminal, and the one place it crept in was a shell command
+        inside a warning notice."""
+        light, _ = TestTheBrand._split()
+        offenders = [sel for sel, body in rules(light) if "--dark-panel" in body]
+        assert not offenders, f"dark panel painted in: {offenders}"
+
+    def test_no_heading_is_larger_than_the_scene_allows(self):
+        """`App内标题控制在1.2rem以内`. The dashboard numerals are not headings
+        and are not covered; they are the whole point of that card."""
+        light, _ = TestTheBrand._split()
+        numerals = re.compile(r"\.num\b")
+        for selector, body in rules(light):
+            size = value_of(body, "font-size")
+            if not size or numerals.search(selector):
+                continue
+            for rem in re.findall(r"([\d.]+)rem", size):
+                assert float(rem) <= 1.2, f"{selector} sets {size}, over the 1.2rem cap"
+
+    def test_the_page_does_not_wait_for_an_animation_to_show_its_data(self):
+        """`不要用Scroll Reveal（App页面要即时加载）`. The landing site reveals
+        on scroll; the app must not, or a reader who lands mid-page sees empty
+        cards until they move the mouse."""
+        assert "IntersectionObserver" not in all_js(), "the app page reveals on scroll"
 
 
 class TestTheContrast:
-    """``--ink-mute`` is a promise, so it is measured rather than trusted.
+    """Every piece of text on the page, measured against what is behind it.
 
-    The palette carries a comment saying ``--ink-3`` is too light for text.
-    That comment was true of ``docs/landing/style.css``, where ink-3 only draws
-    hairlines, and quietly false here the moment the search page used it for
-    rank numbers, the footer and the "N months ago" chip. A comment cannot
-    catch that; a ratio can.
+    The earlier version of this class pinned two tokens by hand. That scaled
+    badly: a token is only legible in context, and the context is the rule that
+    uses it. So this reads `app.css` instead -- every rule that sets a colour,
+    resolved through the palette, composited over whatever is actually behind
+    it -- and grades all of them, in both themes.
 
-    Only ink-mute is pinned. ink-3 keeps its two legitimate jobs -- a hover
-    border, which WCAG scores as a non-text object at 3:1, and disabled button
-    text, which WCAG 1.4.3 exempts.
+    "Behind it" is the part worth spelling out. A rule with its own background
+    is measured against that background over each page surface, because a tint
+    like `rgba(var(--brand-rgb), .1)` is transparent and the surface shows
+    through. A rule without one is measured against its nearest painted
+    ancestor: `.hit .title` is never seen outside `.hit`, and grading it
+    against the page background would ask a question the interface never poses.
+    Only when nothing paints an ancestor does it fall back to the three
+    surfaces the page actually uses.
     """
 
-    THEMES = {
-        ":root": ("light", 4.5),
-        r':root\[data-theme="dark"\]': ("dark", 4.5),
-    }
-    BACKDROPS = ("--paper", "--paper-2", "--surface", "--surface-2")
+    #: The backgrounds the page paints large enough to sit text on. Checked by
+    #: `test_these_are_the_only_surfaces`, so the list cannot quietly go stale.
+    SURFACES = ("--cream", "--cream-dark", "--card-bg")
 
-    @staticmethod
-    def _ratio(fg: str, bg: str) -> float:
-        def channel(v: int) -> float:
-            c = v / 255
-            return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+    #: WCAG 1.4.3 scores 18.66px bold and up at 3:1. These are the dashboard
+    #: numerals, `clamp(1.7rem, 4vw, 2.4rem)` at weight 700.
+    LARGE = {".num b", ".num.pop b", ".num.ok b", ".num.warn b"}
 
-        def luminance(hexcolor: str) -> float:
-            h = hexcolor.lstrip("#")
-            r, g, b = (int(h[i : i + 2], 16) for i in (0, 2, 4))
-            return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+    #: WCAG 1.4.3 exempts disabled controls.
+    EXEMPT = {".btn:disabled"}
 
-        a, b = luminance(fg), luminance(bg)
-        hi, lo = max(a, b), min(a, b)
-        return (hi + 0.05) / (lo + 0.05)
+    def test_these_are_the_only_surfaces_the_page_sits_text_on(self):
+        """`SURFACES` is an input to the sweep below, so it is derived rather
+        than trusted. Anything else painting a full-width background would
+        widen the sweep, and this is where that shows up."""
+        surfaces = painted((STATIC_DIR / "app.css").read_text(encoding="utf-8"))
+        wide = {"body", ".top", ".sheet", ".card", ".hit", ".num"}
+        used = {v for k, v in surfaces.items() if k in wide}
+        assert used <= {f"var({s})" for s in self.SURFACES}, f"unlisted page surface: {used}"
 
-    def _block(self, css: str, selector: str) -> dict[str, str]:
-        m = re.search(rf"{selector}\s*\{{(.*?)\n\}}", css, re.S)
-        assert m, f"{selector} block not found in app.css"
-        return dict(re.findall(r"(--[\w-]+):\s*([^;]+);", m.group(1)))
+    @pytest.mark.parametrize("theme", ["light", "dark"])
+    def test_every_line_of_text_clears_aa_against_what_is_behind_it(self, theme):
+        css = (STATIC_DIR / "app.css").read_text(encoding="utf-8")
+        pal = _resolved(theme)
+        surfaces = painted(css)
+        checked, failures = 0, []
+        for selector, body in rules(css):
+            ink = first_colour(value_of(body, "color") or "")
+            if not ink:
+                continue
+            own = first_colour(value_of(body, "background-color") or value_of(body, "background") or "")
+            for one in (s.strip() for s in selector.split(",")):
+                if one in self.EXEMPT:
+                    continue
+                checked += 1
+                stack = [layer for layer in (own, backdrop_of(one, surfaces)) if layer]
+                floor = 3.0 if one in self.LARGE else 4.5
+                worst, where = None, None
+                for surface in self.SURFACES:
+                    behind = pal.rgb(f"var({surface})")
+                    for layer in reversed(stack):
+                        behind = pal.rgb(layer, behind)
+                    got = ratio(pal.rgb(ink, behind), behind)
+                    if worst is None or got < worst:
+                        worst, where = got, " over ".join([*stack, surface])
+                    if stack and not pal.has_alpha(stack[0]):
+                        break  # opaque: the page surface cannot show through
+                if worst < floor:
+                    failures.append(f"{one}: {ink} on {where} is {worst:.2f}:1, below {floor}:1")
+        assert checked > 60, f"only {checked} rules measured; the sweep stopped seeing the file"
+        assert not failures, f"{theme}: " + "; ".join(failures)
 
     def test_the_muted_ink_clears_aa_on_every_surface_in_both_themes(self):
-        css = (STATIC_DIR / "app.css").read_text(encoding="utf-8")
-        light = self._block(css, ":root")
-        checked = 0
-        for selector, (name, floor) in self.THEMES.items():
-            block = dict(light)
-            if name != "light":
-                block.update(self._block(css, selector))
-            fg = block["--ink-mute"].strip()
-            for key in self.BACKDROPS:
-                ratio = self._ratio(fg, block[key].strip())
-                assert ratio >= floor, f"{name} --ink-mute on {key} is {ratio:.2f}:1, below {floor}:1"
-                checked += 1
-        assert checked == 8, f"expected 8 measurements, made {checked}"
+        """Kept from the hand-written version, because `--ink-faint` is the
+        token most likely to be reached for by someone adding a rule, and the
+        sweep above only sees the rules that already exist."""
+        for theme in ("light", "dark"):
+            pal = _resolved(theme)
+            for surface in self.SURFACES:
+                behind = pal.rgb(f"var({surface})")
+                got = ratio(pal.rgb("var(--ink-faint)"), behind)
+                assert got >= 4.5, f"{theme} --ink-faint on {surface} is {got:.2f}:1"
 
-    def test_the_light_ink_3_is_still_too_light_for_text(self):
-        """The comment's claim, asserted. If someone lightens ink-3 into AA
-        range this fails and the comment above it should be deleted, not the
-        test."""
-        css = (STATIC_DIR / "app.css").read_text(encoding="utf-8")
-        light = self._block(css, ":root")
-        ratio = self._ratio(light["--ink-3"].strip(), light["--paper-2"].strip())
-        assert ratio < 4.5, f"ink-3 is now {ratio:.2f}:1 on paper-2; the comment is stale"
-
-    def test_no_small_text_rule_paints_itself_with_ink_3(self):
-        """Guards the actual regression: ink-3 creeping back into a text rule.
-
-        A rule is "text" if it sets ``color``. The two survivors are named."""
-        css = (STATIC_DIR / "app.css").read_text(encoding="utf-8")
-        allowed = {".btn:disabled"}
-        offenders = []
-        for m in re.finditer(r"(?:^|\n)([^{}\n][^{}]*?)\{([^{}]*)\}", css):
-            selector, body = m.group(1).strip(), m.group(2)
-            if re.search(r"(?<!-)\bcolor:\s*var\(--ink-3\)", body) and selector not in allowed:
-                offenders.append(selector)
-        assert not offenders, f"ink-3 is setting text colour in: {offenders}"
+    def test_the_link_colour_is_the_reason_the_deep_brand_step_exists(self):
+        """`--brand-text` is the palette's AA correction for white. The page
+        also paints text on `--cream-dark`, where it drops to 4.43:1, so
+        `--link` points one step deeper. If someone collapses the alias back
+        this fails before the sweep does, with the reason attached."""
+        pal = _resolved("light")
+        cream = pal.rgb("var(--cream-dark)")
+        assert ratio(pal.rgb("var(--brand-text)"), cream) < 4.5, "the palette moved; drop --link"
+        assert ratio(pal.rgb("var(--link)"), cream) >= 4.5
