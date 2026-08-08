@@ -167,6 +167,103 @@ class TestSearchRoutes:
 
 
 # ---------------------------------------------------------------------------
+# paging
+# ---------------------------------------------------------------------------
+
+
+PAGE_KEYS = {"limit", "offset", "depth", "total", "has_more", "depth_capped"}
+
+
+def seed_many(client, n: int, *, word: str = "kafka") -> None:
+    """A library big enough to have a second page."""
+    for i in range(n):
+        seed(client, f"https://p{i}.example/", f"{word} note {i}", body=f"{word} " * 30)
+
+
+class TestPagingOverHttp:
+    def test_both_search_routes_report_the_window_they_served(self, client, auth):
+        seed_many(client, 25)
+        q = client.get("/quick", params={"q": "kafka", "limit": 5}, headers=auth).json()
+        assert set(q) >= PAGE_KEYS
+        f = client.post("/search", json={"q": "kafka", "limit": 5}, headers=auth).json()
+        assert set(f) >= PAGE_KEYS
+
+    def test_offset_walks_the_ranking_instead_of_restarting_it(self, client, auth):
+        # The property that makes paging worth having: page 2 continues page 1
+        # rather than re-ranking from scratch and repeating half of it.
+        seed_many(client, 25)
+        whole = client.get(
+            "/quick", params={"q": "kafka", "limit": 20, "depth": 60}, headers=auth
+        ).json()
+        ids = [h["bookmark_id"] for h in whole["hits"]]
+        second = client.get(
+            "/quick",
+            params={"q": "kafka", "limit": 10, "offset": 10, "depth": 60},
+            headers=auth,
+        ).json()
+        assert [h["bookmark_id"] for h in second["hits"]] == ids[10:20]
+        assert second["offset"] == 10 and second["depth"] == 60
+
+    def test_the_full_pipeline_pages_too(self, client, auth):
+        seed_many(client, 25)
+        body = {"q": "kafka", "limit": 20, "depth": 60}
+        whole = client.post("/search", json=body, headers=auth).json()
+        ids = [h["bookmark_id"] for h in whole["hits"]]
+        page2 = client.post(
+            "/search", json={**body, "limit": 10, "offset": 10}, headers=auth
+        ).json()
+        assert [h["bookmark_id"] for h in page2["hits"]] == ids[10:20]
+
+    def test_reaching_the_end_of_the_library_is_reported_as_such(self, client, auth):
+        seed_many(client, 12)
+        first = client.get(
+            "/quick", params={"q": "kafka", "limit": 10, "depth": 40}, headers=auth
+        ).json()
+        assert first["total"] == 12 and first["has_more"]
+        last = client.get(
+            "/quick",
+            params={"q": "kafka", "limit": 10, "offset": 10, "depth": 40},
+            headers=auth,
+        ).json()
+        assert len(last["hits"]) == 2 and not last["has_more"]
+
+    def test_an_oversized_limit_is_clamped_and_the_clamp_is_visible(self, tmp_path):
+        # Not a 422. The ceiling is an operator setting, so it has to be able to
+        # move; and a caller handed 20 rows after asking for 500 needs to be
+        # told that is all it is getting, or it will page forever.
+        st = Settings(data_dir=tmp_path / "fm", use_mock_provider=True, max_page_size=20)
+        with TestClient(create_app(st)) as c:
+            auth = {"Authorization": f"Bearer {c.app.state.fm.token}"}
+            seed_many(c, 30)
+            r = c.get("/quick", params={"q": "kafka", "limit": 500}, headers=auth).json()
+            assert r["limit"] == 20 and len(r["hits"]) == 20 and r["has_more"]
+
+    def test_the_depth_ceiling_is_distinguishable_from_the_last_page(self, tmp_path):
+        st = Settings(
+            data_dir=tmp_path / "fm", use_mock_provider=True, max_candidate_depth=15
+        )
+        with TestClient(create_app(st)) as c:
+            auth = {"Authorization": f"Bearer {c.app.state.fm.token}"}
+            seed_many(c, 40)
+            r = c.get(
+                "/quick", params={"q": "kafka", "limit": 10, "depth": 999}, headers=auth
+            ).json()
+            assert r["depth"] == 15
+            assert r["has_more"] and r["depth_capped"]
+
+    def test_a_negative_offset_is_still_a_validation_error(self, client, auth):
+        assert client.get(
+            "/quick", params={"q": "x", "offset": -1}, headers=auth
+        ).status_code == 422
+        assert client.post(
+            "/search", json={"q": "x", "offset": -1}, headers=auth
+        ).status_code == 422
+        assert client.post(
+            "/search", json={"q": "x", "depth": 0}, headers=auth
+        ).status_code == 422
+
+
+# ---------------------------------------------------------------------------
 # records
 # ---------------------------------------------------------------------------
 
@@ -357,6 +454,45 @@ class TestMcpServer:
 
     async def test_the_instructions_tell_an_agent_that_nothing_is_deleted(self, srv):
         assert "never removed" in srv.instructions or "removed" in srv.instructions
+
+    async def test_an_agent_can_page_instead_of_re_running_a_bigger_query(self, srv):
+        # The small default is a context-window budget, so the way out of it has
+        # to be paging. Re-running at a bigger limit is the thing the tool
+        # description tells an agent not to do, and it only stops being the
+        # obvious move if offset actually works.
+        for i in range(25):
+            await srv.call_tool("save_bookmark", {"url": f"https://m.example/p{i}",
+                                                  "title": f"kafka rebalance note {i}"})
+        first = (await srv.call_tool(
+            "search_bookmarks", {"query": "kafka", "limit": 10, "depth": 60, "quick": True}
+        )).structured_content
+        assert first["has_more"] and first["depth"] == 60
+        second = (await srv.call_tool(
+            "search_bookmarks",
+            {"query": "kafka", "limit": 10, "offset": 10, "depth": 60, "quick": True},
+        )).structured_content
+        ids = [h["bookmark_id"] for h in first["hits"]]
+        assert not set(ids) & {h["bookmark_id"] for h in second["hits"]}
+        whole = (await srv.call_tool(
+            "search_bookmarks", {"query": "kafka", "limit": 20, "depth": 60, "quick": True}
+        )).structured_content
+        assert [h["bookmark_id"] for h in whole["hits"]] == ids + [
+            h["bookmark_id"] for h in second["hits"]
+        ]
+
+    async def test_an_oversized_limit_costs_the_agent_a_clamp_not_a_turn(self, srv, st):
+        # A validation error here is expensive in a way it is not over HTTP: the
+        # agent has to read it, decide what happened and call again. Clamping
+        # and reporting the served window is the cheaper true answer. The
+        # ceiling is the operator's setting, so this also pins that MCP has no
+        # second ceiling of its own hidden in the schema.
+        out = await srv.call_tool("search_bookmarks", {"query": "x", "limit": 10_000})
+        assert out.structured_content["limit"] == st.max_page_size
+
+    async def test_the_declared_schema_does_not_contradict_the_clamp(self, srv):
+        tool = next(t for t in await srv.list_tools() if t.name == "search_bookmarks")
+        limit = tool.parameters["properties"]["limit"]
+        assert limit["minimum"] == 1 and "maximum" not in limit
 
 
 # ---------------------------------------------------------------------------
