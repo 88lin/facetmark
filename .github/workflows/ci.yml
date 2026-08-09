@@ -101,8 +101,12 @@ jobs:
           # list is read off the source rather than written out here, so adding
           # a module cannot silently ship a wheel that 404s on it.
           static = pathlib.Path("src/facetmark/web/static")
+          # rglob, not iterdir: `static/fonts/` is a directory, and asking a
+          # zip for a directory name asks for something that is not in it.
           want = ["facetmark/web/index.html"] + [
-              f"facetmark/web/static/{p.name}" for p in sorted(static.iterdir())
+              f"facetmark/web/{p.relative_to(static.parent).as_posix()}"
+              for p in sorted(static.rglob("*"))
+              if p.is_file()
           ]
           missing = [w for w in want if w not in names]
           if missing:
