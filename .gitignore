@@ -26,6 +26,11 @@ data/
 # and, worse, hatchling honours the ignore file when selecting wheel contents,
 # so `pip install facetmark` would serve a 404 at /app.
 !src/facetmark/web/*.html
+# The published site. `scripts/publish_pages.py` flattens docs/landing/ into
+# docs/, and without this negation every page it writes is invisible to
+# `git add`, so publishing quietly needs -f and -f then sweeps in every cache
+# directory it walks past.
+!docs/*.html
 # The pattern above did not stop `favorites_2026_8_4.html`: it arrived through
 # GitHub's web uploader, which commits directly and never consults .gitignore.
 # Named here as well, so that `git add` at least cannot bring it back.
