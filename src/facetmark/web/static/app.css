@@ -1,0 +1,2213 @@
+/*
+ * The facetmark page.
+ *
+ * Every colour on this page comes from `palettes.css`, which is vendored
+ * verbatim from the project owner's design system and is not edited here. This
+ * file only arranges those tokens. The one exception is the dark block at the
+ * bottom: the design system defines light palettes only, so facetmark derives
+ * its own night surfaces there, and `tests/test_web.py` holds that block to an
+ * allowlist so it cannot quietly grow into a second palette.
+ *
+ * The scene is `references/scene-app.md`, not the landing-page scene: function
+ * first, restrained visuals, high information density, headings capped at
+ * 1.2rem, no scroll reveal, no decorative dark panels inside functional areas.
+ *
+ * That scene forbids decoration in the places a reader looks at fifty times a
+ * day, which is not the same as forbidding it everywhere. The page therefore
+ * runs three tiers, and the tier is chosen by how often the surface is read
+ * rather than by how important it is:
+ *
+ *   Tier 0  the result list, the search field, the tab bar, the status table.
+ *           Plain cards, colour only where it carries meaning. `scene-app.md`
+ *           applies literally.
+ *   Tier 1  the panels that frame those: dashboard tiles, the facet legend,
+ *           the retrieval-mode chooser, the import and index job cards. These
+ *           get the tinted base card (`.tint`, design system component 10D).
+ *   Tier 2  first-run setup, empty states, error states, the explainers. Read
+ *           once or twice and then never again, so they carry the full hand
+ *           drawn treatment (`.sketch`, component 10C) and the highlighter.
+ *
+ * Fonts follow the same local-first rule as the colours: the two decorative
+ * Latin faces are vendored under `static/fonts/` rather than pulled from a
+ * CDN, because a bookmark index that phones a third party on every page load
+ * is not local-first and would render wrong offline. Han glyphs fall through
+ * to whatever serif the reader's system already has; a vendored CJK subset
+ * would be larger than everything else in the wheel put together.
+ */
+
+/* ------------------------------------------------------------------ font */
+
+@font-face {
+  font-family: Caveat;
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/app/static/fonts/caveat-700-latin.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: Fraunces;
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/app/static/fonts/fraunces-italic-600-latin.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ------------------------------------------------------------------ base */
+
+:root {
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "Noto Sans SC", "Helvetica Neue", sans-serif;
+  --font-serif: Fraunces, "Huiwen Mincho", "Noto Serif SC", "Songti SC", Georgia, serif;
+  --font-mono: ui-monospace, "Fira Code", SFMono-Regular, Menlo, Consolas, monospace;
+  /* Caveat has no Han glyphs, so a Chinese corner label falls straight through
+     to a brush face if the reader has one and a serif if they do not. That is
+     the same substitution the design system's own Chinese demos make. */
+  --font-hand: Caveat, "Xingkai SC", "Kaiti SC", KaiTi, STKaiti, cursive;
+
+  /* Radii. The design system's app scene uses 12px cards, 16px modals and
+     8px inputs; `--r-pill` is the shape the whole interface is named after.
+     The two decorative radii belong to the components that introduce them:
+     20px for the tinted base card, 16px for the hand-drawn frame. */
+  --r-card: 12px;
+  --r-modal: 16px;
+  --r-input: 10px;
+  --r-chip: 8px;
+  --r-pill: 999px;
+  --r-tint: 20px;
+  --r-sketch: 16px;
+
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.04);
+  --shadow-lift: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-pop: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+  --head-h: 56px;
+  --w-read: 900px;
+  --w-wide: 1200px;
+
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* The one colour name this file introduces, and it is an alias rather than
+     a value. The palette's `--brand-text` is tuned for white; on `--cream-dark`
+     it measures 4.43:1 and on a 10% brand tint 3.94:1, both under AA. The
+     palette already ships a darker brand step, so link-coloured text points at
+     that instead and clears 4.5:1 on every surface the page actually paints.
+     The dark block re-points it, because down there the deep step is the
+     unreadable one. */
+  --link: var(--brand-deep);
+
+  /*
+   * The four recall paths, given one colour each.
+   *
+   * This is the only colour decision on the page that is about meaning rather
+   * than hierarchy, and it is the argument the product is named after: a hit
+   * arrives through the words on the page, through what the page is about,
+   * through why it was saved, or through what it was saved next to. Before
+   * this, every facet badge was some shade of blue and the reader had to read
+   * the label to learn which path fired. Now the label is a confirmation.
+   *
+   * Three roles per facet, because one colour cannot do three jobs:
+   *   `-*`      the display hue. Dots, bars, borders. Never text.
+   *   `-*-ink`  the text-safe step, which is one or two stops deeper. Every
+   *             one of these clears 4.5:1 on all three page surfaces in both
+   *             themes; the display hues do not, and yellow never could.
+   *   `-*-soft` the wash used behind a badge.
+   *
+   * Context borrows `--success`, which the health dashboard also uses for
+   * "this link still resolves". The two never share a screen -- facet colour
+   * appears in result rows and the legend, link health only in the system
+   * view -- but it is the one collision in the scheme and it is deliberate:
+   * palette A ships three hues, and a fourth invented here would be a colour
+   * nobody upstream maintains.
+   */
+  --facet-lex: var(--highlight);
+  --facet-lex-ink: var(--warning);
+  --facet-lex-soft: var(--highlight-soft);
+  --facet-content: var(--brand);
+  --facet-content-ink: var(--link);
+  --facet-content-soft: var(--info-soft);
+  --facet-intent: var(--pop);
+  --facet-intent-ink: var(--danger-strong);
+  --facet-intent-soft: var(--danger-soft);
+  --facet-context: var(--success);
+  --facet-context-ink: var(--success);
+  --facet-context-soft: var(--success-soft);
+
+  /* The highlighter band. Full-strength yellow under near-black ink reads at
+     11:1; under the dark theme's near-white ink it would read at 1.6:1, so the
+     dark block drops it to a wash rather than repainting the ink. */
+  --mark-band: var(--highlight);
+
+  /*
+   * The wash under each tinted base card, as a token rather than a literal,
+   * so that the contrast sweep resolves the right one per theme and so that
+   * yellow can be re-pointed for night without a second copy of the rule.
+   *
+   * Yellow is the reason this is a token at all. Every other hue laid over a
+   * near-black page stays recognisably itself; yellow turns khaki, and at the
+   * design system's daylight strength of .15 the night card reads as olive
+   * rather than as the lexical facet. The dark block takes it to .09, which
+   * is the point where it is still yellow and no longer mud.
+   *
+   * Context has no wash of its own because the palette ships no
+   * `--success-rgb`; it borrows the ready-made soft step and stays flat.
+   */
+  --tint-content: rgba(var(--brand-rgb), 0.08);
+  --tint-lex: rgba(var(--highlight-rgb), 0.15);
+  --tint-intent: rgba(var(--pop-rgb), 0.08);
+  --tint-context: var(--success-soft);
+  --tint-plain: var(--cream-dark);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+p {
+  margin: 0;
+}
+
+ol,
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+dl,
+dd,
+dt {
+  margin: 0;
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+/* Small all-caps label with the letter-spacing the design system asks for. */
+.caps {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.dim {
+  color: var(--ink-faint);
+  font-size: 0.8rem;
+}
+
+.skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 60;
+  padding: 10px 18px;
+  border-radius: var(--r-pill);
+  background: var(--brand-surface);
+  color: var(--on-brand);
+}
+
+.skip:focus {
+  left: 12px;
+  top: 12px;
+}
+
+/* --------------------------------------------------------------- chrome */
+
+/* The three-colour rule made literal: brand 60%, highlight 30%, pop 10%. */
+.brandbar {
+  height: 3px;
+  flex: none;
+  background: linear-gradient(
+    90deg,
+    var(--brand) 0 60%,
+    var(--highlight) 60% 90%,
+    var(--pop) 90% 100%
+  );
+}
+
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  flex: none;
+  background: var(--cream);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.top-in {
+  height: var(--head-h);
+  max-width: var(--w-wide);
+  margin: 0 auto;
+  padding: 0 clamp(16px, 3vw, 28px);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 1.08rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.logo:hover {
+  text-decoration: none;
+}
+
+.logo .glyph {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: var(--brand);
+  box-shadow: inset -7px -7px 0 0 var(--highlight);
+}
+
+.tools {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Round icon button, and its wider sibling for the language pill. */
+.ctl {
+  height: 34px;
+  min-width: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--card-bg);
+  color: var(--ink-light);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition:
+    border-color 0.2s var(--ease),
+    color 0.2s var(--ease);
+}
+
+.ctl.wide {
+  padding: 0 13px;
+}
+
+.ctl:hover {
+  border-color: var(--brand-border);
+  color: var(--link);
+}
+
+/* The pill tab row. Primary navigation, so pills; secondary switching inside a
+   panel uses the underline tabs further down. */
+.tabs {
+  max-width: var(--w-wide);
+  margin: 0 auto;
+  padding: 10px clamp(16px, 3vw, 28px);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 15px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--card-bg);
+  color: var(--ink-light);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.2s var(--ease),
+    color 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+
+.tab:hover {
+  border-color: var(--brand-border);
+  color: var(--link);
+}
+
+.tab[aria-current="page"] {
+  background: var(--brand-surface);
+  border-color: var(--brand-surface);
+  color: var(--on-brand);
+  font-weight: 600;
+}
+
+.tab .n {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  background: rgba(var(--ink-rgb), 0.07);
+  color: var(--ink-light);
+}
+
+/* The count on the selected tab darkens rather than lightens. A white veil
+   over the brand blue lifts it toward the white numeral and lands at 3.2:1;
+   the palette's deep step goes the other way and reads at 6.7:1. */
+.tab[aria-current="page"] .n {
+  background: var(--brand-deep);
+  color: var(--on-brand);
+}
+
+main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--w-read);
+  margin: 0 auto;
+  padding: clamp(18px, 3vw, 30px) clamp(16px, 3vw, 28px) 60px;
+}
+
+main.wide {
+  max-width: var(--w-wide);
+}
+
+.bottom {
+  flex: none;
+  border-top: 1px solid var(--hairline);
+  padding: 18px clamp(16px, 3vw, 28px);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+}
+
+.bottom a {
+  color: var(--ink-faint);
+}
+
+.bottom a:hover {
+  color: var(--link);
+}
+
+/* ------------------------------------------------------------- controls */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--card-bg);
+  color: var(--ink);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 0.2s var(--ease),
+    box-shadow 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--brand-border);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card);
+}
+
+.btn.primary {
+  background: var(--brand-surface);
+  border-color: var(--brand-surface);
+  color: var(--on-brand);
+}
+
+.btn.primary:hover:not(:disabled) {
+  box-shadow: 0 8px 24px rgba(var(--brand-rgb), 0.28);
+}
+
+.btn.danger {
+  background: var(--card-bg);
+  border-color: var(--danger-soft);
+  color: var(--danger-strong);
+}
+
+.btn.small {
+  padding: 5px 13px;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.btn.round {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn:focus-visible,
+.tab:focus-visible,
+.ctl:focus-visible,
+.pill.act:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.field {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-input);
+  background: var(--card-bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.field:focus {
+  outline: none;
+  border-color: var(--brand-border);
+  box-shadow: 0 0 0 3px rgba(var(--brand-rgb), 0.1);
+}
+
+/* The one input the whole page is built around. */
+.ask {
+  position: relative;
+}
+
+.ask .field {
+  height: 50px;
+  padding: 0 74px 0 46px;
+  border-radius: var(--r-pill);
+  font-size: 0.98rem;
+}
+
+.ask .field::placeholder {
+  color: var(--ink-faint);
+}
+
+.ask .lens,
+.ask .hint {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+
+.ask .lens {
+  left: 17px;
+  font-size: 0.95rem;
+}
+
+.ask .hint {
+  right: 16px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--cream-dark);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+
+.ask .go {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  bottom: 6px;
+}
+
+.ask.with-go .field {
+  padding-right: 106px;
+}
+
+.ask.with-go .hint {
+  display: none;
+}
+
+/* Suggestions drop out of the query box. */
+.sugg {
+  position: absolute;
+  z-index: 25;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  background: var(--card-bg);
+  box-shadow: var(--shadow-pop);
+}
+
+.sugg li > button {
+  display: block;
+  width: 100%;
+  padding: 8px 11px;
+  border: 0;
+  border-radius: var(--r-chip);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sugg li > button:hover,
+.sugg li > button[aria-selected="true"] {
+  background: var(--info-soft);
+}
+
+.sugg .t {
+  font-size: 0.86rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sugg .w {
+  font-size: 0.74rem;
+  color: var(--ink-faint);
+}
+
+.sugg-foot {
+  padding: 6px 11px 2px;
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  border-top: 1px solid var(--hairline);
+  margin-top: 4px;
+}
+
+/* Filter pills: the retrieval-rung row, the edge-kind row, the session sizes. */
+.pillbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.pill.act {
+  padding: 5px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--card-bg);
+  color: var(--ink-light);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition:
+    background 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+
+.pill.act:hover {
+  border-color: var(--brand-border);
+}
+
+.pill.act[aria-pressed="true"] {
+  background: var(--brand-surface);
+  border-color: var(--brand-surface);
+  color: var(--on-brand);
+  font-weight: 600;
+}
+
+.pill.act .n {
+  margin-left: 6px;
+  opacity: 0.7;
+}
+
+/* ---------------------------------------------------------------- pills */
+
+/* Read-only tags. `.act` above is the clickable variant. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border-radius: var(--r-pill);
+  background: rgba(var(--ink-rgb), 0.06);
+  color: var(--ink-light);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.7;
+  white-space: nowrap;
+}
+
+/* Vector facets read blue, lexical facets read gold: the split is the one
+   distinction in the result row a reader actually has to learn. */
+.pill.vec {
+  background: rgba(var(--brand-rgb), 0.1);
+  color: var(--link);
+}
+
+.pill.lex {
+  background: var(--highlight-soft);
+  color: var(--warning);
+}
+
+.pill.edge {
+  background: var(--card-bg);
+  border: 1px solid var(--brand-border);
+  color: var(--link);
+}
+
+.pill.ok {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.pill.warn {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.pill.bad {
+  background: var(--danger-soft);
+  color: var(--danger-strong);
+}
+
+.pill.mute {
+  background: var(--cream-dark);
+  color: var(--ink-faint);
+}
+
+.pill.cite {
+  padding: 1px 8px;
+  background: rgba(var(--brand-rgb), 0.1);
+  color: var(--link);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 0;
+  cursor: pointer;
+}
+
+.pill.cite:hover {
+  background: var(--brand-surface);
+  color: var(--on-brand);
+}
+
+.marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+/* The mixture bar is the quietest thing on the row on purpose: 3px tall and
+   only as wide as the text column, so it reads as a footnote to the badges
+   above it rather than as a progress bar for something. */
+.hit > .fbar {
+  height: 3px;
+  /* Short on purpose. Run it the width of the card and it stops being a
+     footnote to the badges and becomes an underline for the whole result --
+     or worse, a progress bar for something that is not loading. */
+  max-width: 190px;
+  margin-top: 9px;
+}
+
+/* ---------------------------------------------------------------- cards */
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  padding: 1.15rem 1.25rem;
+  box-shadow: var(--shadow-card);
+}
+
+.hits {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.hit {
+  position: relative;
+  display: block;
+  background: var(--card-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  padding: 0.95rem 1.1rem 0.95rem 3.1rem;
+  box-shadow: var(--shadow-card);
+  color: inherit;
+  transition:
+    transform 0.2s var(--ease),
+    box-shadow 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+
+.hit:hover {
+  text-decoration: none;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+  border-color: var(--brand-border);
+}
+
+.hit:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.hit .rank {
+  position: absolute;
+  left: 1.1rem;
+  top: 1.02rem;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--link);
+}
+
+.hit .title {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.hit:hover .title {
+  color: var(--link);
+}
+
+.hit .where {
+  margin-top: 2px;
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hit .snippet {
+  margin-top: 7px;
+  font-size: 0.85rem;
+  color: var(--ink-light);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* The matched terms inside a snippet. The palette's highlighter wash, so the
+   mark reads as a marker pen rather than as a link or a selection. */
+.snippet mark {
+  background: var(--highlight-soft);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+  box-shadow: inset 0 -0.5em 0 var(--highlight-soft);
+}
+
+/* Sitting neighbours are not ranked, so they carry no rank number and the
+   gutter that number sits in would otherwise be empty. */
+.hit.near {
+  background: var(--cream-dark);
+  box-shadow: none;
+  padding-left: 1.1rem;
+}
+
+/* The detail button sits over the row, so it needs its own stacking context. */
+.row-wrap {
+  position: relative;
+}
+
+.row-wrap .peek {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 2;
+  background: var(--card-bg);
+}
+
+.group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 28px 0 0;
+}
+
+.more-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.status {
+  margin-top: 12px;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  min-height: 1.2em;
+}
+
+/* --------------------------------------------------------- view scaffold */
+
+.view-panel[hidden] {
+  display: none;
+}
+
+/* `scene-app.md` caps in-app headings at 1.2rem. This is a tool, not a
+   landing page: a 3rem display serif here would be decoration. */
+.page-title {
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  letter-spacing: -0.01em;
+}
+
+.lede {
+  margin-top: 6px;
+  max-width: 62ch;
+  font-size: 0.86rem;
+  color: var(--ink-light);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+/* Not a fifth retrieval mode. The modes are a choice between equals, so they
+   are pills of the same weight; this one opens a drawer, so it drops the pill
+   entirely and sits at the far end of the row where it cannot be misread as
+   part of the group. */
+#opts-toggle {
+  margin-left: auto;
+  padding: 6px 2px;
+  border-color: transparent;
+  background: none;
+  color: var(--ink-light);
+  font-weight: 500;
+}
+
+#opts-toggle::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.2s var(--ease);
+}
+
+#opts-toggle[aria-expanded="true"]::after {
+  transform: translateY(1px) rotate(225deg);
+}
+
+#opts-toggle:hover:not(:disabled) {
+  border-color: transparent;
+  transform: none;
+  box-shadow: none;
+  color: var(--ink);
+}
+
+.note {
+  margin-top: 8px;
+  max-width: 68ch;
+}
+
+.opts {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  background: var(--card-bg);
+}
+
+.opts[hidden] {
+  display: none;
+}
+
+.opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.82rem;
+  color: var(--ink-light);
+}
+
+/* A labelled group inside the options drawer: the advanced rungs sit under
+   their own caption so they are not misread as more values of the number
+   input above them. */
+.opt-group {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+}
+
+.opt-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.field.num {
+  width: 84px;
+  padding: 7px 10px;
+  text-align: right;
+}
+
+/* A vertical stack of cards: sittings, sources, the graveyard. */
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.rows.tight {
+  gap: 6px;
+}
+
+/* One line of a list that is not a search result: a sitting member, a dead
+   link. Lighter than `.hit` because these are already inside a card. */
+.line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.line:first-child {
+  border-top: 0;
+}
+
+.line .grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.line .t {
+  font-size: 0.86rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line .w {
+  font-size: 0.74rem;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- callouts */
+
+.panel {
+  border-radius: var(--r-card);
+  padding: clamp(18px, 2.4vw, 26px);
+  background: var(--info-soft);
+  border: 1px solid var(--brand-border);
+  margin-top: 16px;
+}
+
+.panel h2 {
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
+.panel p {
+  margin-top: 8px;
+  font-size: 0.88rem;
+  color: var(--ink-light);
+}
+
+.panel.bad {
+  background: var(--danger-soft);
+  border-color: var(--danger-soft);
+}
+
+/* A degraded synthesis is not a generic failure notice: it is the one panel
+   whose whole job is to stop a reader trusting the text below it, so it gets
+   the strong border and a leading glyph that a plain `.panel.bad` does not. */
+.panel.bad.degraded {
+  border: 1.5px solid var(--danger-strong);
+}
+
+.panel.bad.degraded .degraded-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.panel.bad.degraded .degraded-head .glyph {
+  color: var(--danger-strong);
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.panel.bad.degraded .degraded-head h2 {
+  color: var(--danger-strong);
+}
+
+.panel.warn {
+  background: var(--warning-soft);
+  border-color: var(--warning-soft);
+}
+
+/* A command to copy, inset into the panel that asked for it. Light, not a
+   terminal: the app scene forbids dark panels in functional areas, and a
+   black slab inside a yellow notice is exactly the thing it forbids. */
+.panel .cmd {
+  margin: 14px 0 0;
+  padding: 12px 15px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-chip);
+  background: var(--card-bg);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  overflow-x: auto;
+}
+
+.pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.pair .field {
+  flex: 1 1 220px;
+  width: auto;
+}
+
+/* ------------------------------------------------------------ decoration */
+
+/*
+ * Tier 1 and Tier 2 of the scheme described at the top of this file, plus the
+ * facet colour primitives that Tier 0 is allowed to use.
+ *
+ * The two card components are lifted from the design system unchanged (10D
+ * tinted base card, 10C hand-drawn frame).
+ *
+ * The tints are gradients, and a gradient used to be invisible to the
+ * contrast sweep -- `tests/palette.py` only recognised a value that *starts*
+ * with a colour. The first attempt at a fix declared a flat `background-color`
+ * under each gradient for the auditor to read, which was wrong twice over:
+ * `background-color` and `background-image` composite, so every tint rendered
+ * at roughly twice its declared strength, and the auditor was grading the
+ * single layer rather than the pair. The auditor now reads gradient stops
+ * directly, so these rules can say exactly what the design system says. Note
+ * the ordering contract that makes that safe: the strongest stop comes first.
+ */
+
+/* --- facet identity ------------------------------------------------------ */
+
+/* The dot is the smallest carrier of facet colour and the most repeated one:
+   it rides in front of a badge, a legend row, or a bar label. It is never the
+   only signal -- every dot sits next to the facet's name -- because colour
+   alone would fail 1.4.1 and would also fail anyone reading a screenshot. */
+.fdot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--facet-content);
+}
+
+.fdot.lex {
+  background: var(--facet-lex);
+}
+
+.fdot.intent {
+  background: var(--facet-intent);
+}
+
+.fdot.context {
+  background: var(--facet-context);
+}
+
+/* The contribution bar: how much each path put into one hit's fused score.
+   Widths are set inline by the renderer, so this only owns the shape. */
+.fbar {
+  display: flex;
+  overflow: hidden;
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: rgba(var(--ink-rgb), 0.07);
+}
+
+.fbar > span {
+  display: block;
+  height: 100%;
+  background: var(--facet-content);
+  transition: width 0.3s var(--ease);
+}
+
+.fbar > span.lex {
+  background: var(--facet-lex);
+}
+
+.fbar > span.intent {
+  background: var(--facet-intent);
+}
+
+.fbar > span.context {
+  background: var(--facet-context);
+}
+
+/* A badge that names the path a hit arrived through. The text is the ink
+   step, never the display hue: `--facet-lex` on cream is 1.4:1. */
+.fbadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 11px;
+  border-radius: var(--r-pill);
+  background: var(--facet-content-soft);
+  color: var(--facet-content-ink);
+  /* A step above `.pill`, and the only chip on a result row that is. The
+     badges answer "why is this here"; the pills beside them are metadata. One
+     size for both flattened that into six equal tags of undifferentiated
+     small text, which is how a reader learns to skip all of them. */
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.7;
+  white-space: nowrap;
+}
+
+.fbadge.lex {
+  background: var(--facet-lex-soft);
+  color: var(--facet-lex-ink);
+}
+
+.fbadge.intent {
+  background: var(--facet-intent-soft);
+  color: var(--facet-intent-ink);
+}
+
+.fbadge.context {
+  background: var(--facet-context-soft);
+  color: var(--facet-context-ink);
+}
+
+/* --- tier 1: the tinted base card --------------------------------------- */
+
+.tint {
+  border-radius: var(--r-tint);
+  padding: 1.35rem 1.25rem;
+  background: linear-gradient(145deg, var(--tint-content), rgba(var(--brand-rgb), 0.02));
+  border: 1px solid rgba(var(--brand-rgb), 0.14);
+}
+
+.tint.lex {
+  background: linear-gradient(145deg, var(--tint-lex), rgba(var(--highlight-rgb), 0.03));
+  border-color: rgba(var(--highlight-rgb), 0.4);
+}
+
+.tint.intent {
+  background: linear-gradient(145deg, var(--tint-intent), rgba(var(--pop-rgb), 0.02));
+  border-color: rgba(var(--pop-rgb), 0.16);
+}
+
+/* Green is the one facet with no `--*-rgb` channel upstream, so its tint is
+   the palette's ready-made soft step and stays flat. Matching the other three
+   would mean inventing a colour, which the brand rules forbid -- and it also
+   means the wash cannot double as the border, because a soft step against
+   itself is no edge at all. The neutral hairline does that job instead. */
+.tint.context {
+  background: var(--tint-context);
+  border-color: var(--border);
+}
+
+.tint.plain {
+  background: var(--tint-plain);
+  border-color: var(--hairline);
+}
+
+/* A tint is a frame, not a card, so it never nests one. `cards-in-cards` is
+   on the design system's banned list and this is where it would happen. */
+.tint > h2,
+.tint > h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.tint > .caps + * {
+  margin-top: 10px;
+}
+
+/*
+ * The faintest ink does not survive a tint, and this is the rule that says so.
+ *
+ * `--ink-faint` clears AA on the bare page by 0.37 -- 4.87:1 against a 4.5
+ * floor -- and every tint here costs more than that, landing the four
+ * variants between 4.06:1 and 4.42:1. Nothing would have caught it: the
+ * contrast sweep grades the rule that *sets* a colour, and `.caps` and `.dim`
+ * set theirs at the top level, where they pass. Inheriting into a tinted
+ * panel is invisible to it. So the tint re-points both classes to the next
+ * ink up, which has 8.46:1 to spend and stays over 7:1 on the strongest wash.
+ * `tests/test_web.py::TestTheTint` measures all of this rather than trusting
+ * the arithmetic in this comment.
+ */
+.tint .caps,
+.tint .dim {
+  color: var(--ink-light);
+}
+
+/* --- tier 2: the hand-drawn frame --------------------------------------- */
+
+/*
+ * Component 10C. Only used where a reader is reading rather than working:
+ * first run, empty state, error state, the two explainers. The corner label
+ * paints `--cream` because these frames sit on the page background; drop one
+ * onto a card and the label will show the wrong notch.
+ */
+.sketch {
+  position: relative;
+  border: 2px dashed rgba(var(--brand-rgb), 0.3);
+  border-radius: var(--r-sketch);
+  padding: 1.65rem 1.35rem 1.35rem;
+}
+
+.sketch > * + * {
+  margin-top: 10px;
+}
+
+.sketch .label {
+  position: absolute;
+  top: -11px;
+  left: 16px;
+  padding: 0 9px;
+  background: var(--cream);
+  color: var(--facet-content-ink);
+  font-family: var(--font-hand);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+
+.sketch.lex {
+  border-color: rgba(var(--highlight-rgb), 0.5);
+}
+
+.sketch.lex .label {
+  color: var(--facet-lex-ink);
+}
+
+.sketch.intent {
+  border-color: rgba(var(--pop-rgb), 0.3);
+}
+
+.sketch.intent .label {
+  color: var(--facet-intent-ink);
+}
+
+.sketch.context {
+  border-color: var(--success);
+}
+
+.sketch.context .label {
+  color: var(--facet-context-ink);
+}
+
+/* The numbered step, Fraunces italic. This is the one place the app borrows
+   the landing page's display face, and it is capped at the scene's 1.2rem
+   ceiling rather than the 2rem the tutorial scene would allow. Inside a frame
+   it takes the frame's colour: a blue numeral in a red frame reads as two
+   unrelated marks rather than one card. */
+.stepnum {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.2rem;
+  line-height: 1;
+  color: var(--facet-content-ink);
+}
+
+.sketch.lex .stepnum {
+  color: var(--facet-lex-ink);
+}
+
+.sketch.intent .stepnum {
+  color: var(--facet-intent-ink);
+}
+
+.sketch.context .stepnum {
+  color: var(--facet-context-ink);
+}
+
+/* --- highlighter --------------------------------------------------------- */
+
+/* Component 1E-C. A wash under the baseline, not a filled block: the whole
+   point is that the text still sits on the page colour. */
+.mark {
+  padding: 0 2px;
+  background-image: linear-gradient(transparent 58%, var(--mark-band) 58%);
+}
+
+/* --------------------------------------------------- setup and settings */
+
+/*
+ * The two views that are not tabs.
+ *
+ * Setup is the one screen in this app drawn at Tier 2. `scene-app.md` bans
+ * decoration from the operating surfaces and it is right to -- but this page
+ * is read once, slowly, by someone who does not yet know what the program is,
+ * and three framed panels in three colours say "three steps" before a word of
+ * it is read. Settings is Tier 1: coloured base cards holding restrained
+ * Tier 0 controls, because it is a form and a form is an operating surface.
+ */
+
+.steps {
+  display: grid;
+  gap: 22px;
+  margin-top: 22px;
+}
+
+.steps .sketch > h2 {
+  font-size: 1.05rem;
+}
+
+.steps .sketch > p {
+  max-width: 60ch;
+  color: var(--ink-light);
+  font-size: 0.86rem;
+}
+
+/* A finished step keeps its colour and keeps its dashed frame. Turning it grey
+   would leave a page of three steps showing one coloured frame and two dead
+   ones, which reads as "two of these are broken" rather than "two of these are
+   done"; the same hue at a third of the ink is the settled version of itself.
+   The tick in the corner is what says done. */
+.sketch.done {
+  border-color: rgba(var(--brand-rgb), 0.16);
+}
+
+.sketch.lex.done {
+  border-color: rgba(var(--highlight-rgb), 0.28);
+}
+
+.sketch.intent.done {
+  border-color: rgba(var(--pop-rgb), 0.16);
+}
+
+.sketch.done .label {
+  color: var(--success);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.note.ok {
+  color: var(--success);
+}
+
+.note.bad {
+  color: var(--danger-strong);
+}
+
+.setup-done .row {
+  margin-top: 12px;
+}
+
+/* --- the settings forms -------------------------------------------------- */
+
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(252px, 1fr));
+  gap: 16px 20px;
+  margin-top: 14px;
+}
+
+.grid2 + .row {
+  margin-top: 16px;
+}
+
+.fld {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.fld > label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink-light);
+}
+
+.fld > .field {
+  width: 100%;
+}
+
+/* Read-only because an environment variable already won. Styled as inert
+   rather than merely unfocusable, so the reason is visible before the click
+   that does nothing. */
+.fld > .field[readonly] {
+  background: var(--cream-dark);
+  color: var(--ink-light);
+  cursor: not-allowed;
+}
+
+.fld > .hint {
+  font-size: 0.76rem;
+  line-height: 1.55;
+  color: var(--ink-light);
+}
+
+.fld > .hint .pill {
+  margin-left: 4px;
+  vertical-align: baseline;
+}
+
+/* --- the seven stages ---------------------------------------------------- */
+
+/* auto-fit rather than seven fixed columns: seven boxes at reading width are
+   already narrow, and at phone width they have to wrap or the labels break
+   one character per line. */
+.stages {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.stage {
+  display: grid;
+  gap: 2px;
+  padding: 9px 8px;
+  border-radius: 10px;
+  background: rgba(var(--ink-rgb), 0.05);
+  text-align: center;
+}
+
+.stage .nm {
+  font-size: 0.72rem;
+  color: var(--ink-light);
+}
+
+.stage .vl {
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-height: 1.2em;
+}
+
+.stage.done {
+  background: var(--success-soft);
+}
+
+/* The running stage is marked by a ring, not by an animation. A spinner on a
+   stage that can legitimately take twenty minutes is a lie about liveness. */
+.stage.now {
+  background: var(--warning-soft);
+  box-shadow: inset 0 0 0 1.5px rgba(var(--highlight-rgb), 0.85);
+}
+
+/* Planned, then never reached, because the run stopped. Hollow rather than
+   dimmed: `--ink-faint` on a filled tile lands at 4.20:1, and a stage the
+   reader may need to go and run themselves is not the place to spend the
+   contrast budget. */
+.stage.skipped {
+  background: none;
+  border: 1px dashed var(--border);
+}
+
+.log {
+  margin-top: 12px;
+  max-height: 172px;
+  overflow: auto;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--cream-dark);
+  border: 1px solid var(--hairline);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--ink-light);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.card.where > h2 {
+  font-size: 1.05rem;
+}
+
+.card.where > p {
+  margin-top: 6px;
+  max-width: 62ch;
+  font-size: 0.86rem;
+  color: var(--ink-light);
+}
+
+/* ------------------------------------------------- dashboard composition */
+
+/* One tall column of same-sized white cards is the failure mode of every
+   stats page. Two columns at desk width halves the scroll and lets the eye
+   compare the coverage block against the health block without travelling. */
+.cols2 {
+  display: grid;
+  gap: 22px;
+  align-content: start;
+}
+
+@media (min-width: 900px) {
+  .cols2 {
+    grid-template-columns: 1fr 1fr;
+    gap: 22px 26px;
+  }
+}
+
+/* The legend: four rows, dot and name on the left, the sentence beside it.
+   Two-up on a wide screen because four full-width rows of one short sentence
+   each leaves a stripe of empty cream down the right of the card. */
+.facetgrid {
+  display: grid;
+  gap: 14px 26px;
+}
+
+@media (min-width: 760px) {
+  .facetgrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.facetgrid > .fitem {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.facetgrid > .fitem > .fbadge {
+  flex: none;
+}
+
+.facetgrid > .fitem > p {
+  margin: 0;
+  color: var(--ink-light);
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+
+/* ---------------------------------------------------------- dashboards */
+
+/* auto-fill, not auto-fit: a page with two numbers on it should show two
+   normal cards and some quiet space, not two cards stretched to half the
+   window each. */
+.numbers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.num {
+  background: var(--card-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  padding: 1.1rem 1.2rem;
+  box-shadow: var(--shadow-card);
+}
+
+.num b {
+  display: block;
+  font-size: clamp(1.7rem, 4vw, 2.4rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--link);
+}
+
+.num.gold b {
+  color: var(--warning);
+}
+
+.num.pop b {
+  color: var(--pop-text);
+}
+
+.num.ink b {
+  color: var(--ink);
+}
+
+.num span {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+}
+
+.block {
+  margin-top: 30px;
+}
+
+.block > h2 {
+  font-size: 1.15rem;
+}
+
+.block > .lede {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: var(--ink-light);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+/* auto-fill reserves the empty tracks, which is right for a census that grows
+   and wrong for a block that is always exactly two cards: the pair ends up
+   huddled against the left edge of a four-column grid. */
+.grid.duo {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+/* Labelled progress row: label, thin track, right-aligned percent. */
+.bars {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 2.2fr auto;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.82rem;
+}
+
+.bar-row .lab {
+  color: var(--ink-light);
+}
+
+.bar-row .val {
+  color: var(--ink-faint);
+  font-size: 0.78rem;
+  text-align: right;
+}
+
+.track {
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: rgba(var(--ink-rgb), 0.07);
+  overflow: hidden;
+}
+
+.track > i {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: var(--brand);
+}
+
+.track > i.gold {
+  background: var(--highlight);
+}
+
+/* One bar, many verdicts. */
+/* The inset hairline matters when one band holds everything: a full-width
+   grey bar with no edge reads as an empty track that is still loading. */
+.stack {
+  display: flex;
+  height: 12px;
+  border-radius: var(--r-pill);
+  overflow: hidden;
+  background: rgba(var(--ink-rgb), 0.07);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  margin-top: 14px;
+}
+
+.stack > i {
+  height: 100%;
+}
+
+.stack > i.ok {
+  background: var(--success);
+}
+
+.stack > i.warn {
+  background: var(--highlight);
+}
+
+.stack > i.bad {
+  background: var(--danger);
+}
+
+.stack > i.mute {
+  background: rgba(var(--ink-rgb), 0.22);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* Definition rows inside a card: hairline separated, label left, value right. */
+.facts {
+  margin-top: 10px;
+}
+
+.facts > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 7px 0;
+  border-top: 1px solid var(--hairline);
+  font-size: 0.82rem;
+}
+
+.facts > div:first-child {
+  border-top: 0;
+}
+
+.facts dt {
+  color: var(--ink-faint);
+}
+
+.facts dd {
+  color: var(--ink);
+  font-weight: 500;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.facts .zero dd {
+  color: var(--ink-faint);
+  font-weight: 400;
+}
+
+/* A fact can carry a verdict: a fetch error, a stale vector count. */
+.facts dd.t-bad {
+  color: var(--danger-strong);
+}
+
+.facts dd.t-warn {
+  color: var(--warning);
+}
+
+.facts dd.t-ok {
+  color: var(--success);
+}
+
+/* --------------------------------------------------------------- claims */
+
+.claim {
+  position: relative;
+  background: var(--card-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  padding: 1rem 1.2rem 1rem 3.4rem;
+  box-shadow: var(--shadow-card);
+}
+
+.claim .n {
+  position: absolute;
+  left: 1.1rem;
+  top: 1rem;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-surface);
+  color: var(--on-brand);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.claim p {
+  font-size: 0.92rem;
+  line-height: 1.85;
+  color: var(--ink);
+}
+
+.claim .cites {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.claim .cites .dim {
+  margin-left: auto;
+}
+
+.src {
+  scroll-margin-top: calc(var(--head-h) + 70px);
+}
+
+/* The number a claim cites. Same circle as .claim .n so the eye pairs them. */
+.src .no {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-surface);
+  color: var(--on-brand);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.src.lit {
+  border-color: var(--brand-border);
+  box-shadow: 0 0 0 3px rgba(var(--brand-rgb), 0.12);
+}
+
+/* ---------------------------------------------------------------- modal */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 6vh 16px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.overlay[hidden] {
+  display: none;
+}
+
+.sheet {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  max-height: 80vh;
+  overflow-y: auto;
+  border-radius: var(--r-modal);
+  background: var(--cream);
+  padding: clamp(24px, 3vw, 40px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
+}
+
+.sheet h2 {
+  font-size: 1.15rem;
+  padding-right: 44px;
+}
+
+.shut {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--card-bg);
+  color: var(--ink-light);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.shut:hover {
+  border-color: var(--brand-border);
+  color: var(--link);
+}
+
+/* Underline tabs: the secondary switch the app scene prescribes. */
+.utabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 18px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.utab {
+  padding: 8px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  color: var(--ink-faint);
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+
+.utab:hover {
+  color: var(--ink-light);
+}
+
+.utab[aria-selected="true"] {
+  border-bottom-color: var(--brand);
+  color: var(--link);
+  font-weight: 600;
+}
+
+.utab:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.upanel {
+  padding-top: 16px;
+}
+
+.upanel[hidden] {
+  display: none;
+}
+
+.prose {
+  font-size: 0.88rem;
+  line-height: 1.85;
+  color: var(--ink-light);
+}
+
+/* A URL rendered as a URL: mono, wraps anywhere, never widens the dialog. */
+.surl {
+  display: inline-block;
+  max-width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--link);
+  overflow-wrap: anywhere;
+}
+
+/* One labelled group of pills: topics, entities, remembered queries. */
+.tagset {
+  margin-top: 18px;
+}
+
+.tagset > h3 {
+  margin-bottom: 8px;
+}
+
+.tagset .marks {
+  margin-top: 0;
+}
+
+.points {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.points li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 0.85rem;
+  color: var(--ink-light);
+  line-height: 1.7;
+}
+
+.points li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+
+/* ------------------------------------------------------------ skeletons */
+
+.skel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.skel > div {
+  height: 84px;
+  border-radius: var(--r-card);
+  background: linear-gradient(
+    90deg,
+    var(--cream-dark) 0%,
+    var(--card-bg) 40%,
+    var(--cream-dark) 80%
+  );
+  background-size: 300% 100%;
+  animation: sweep 1.3s linear infinite;
+}
+
+@keyframes sweep {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -40% 0;
+  }
+}
+
+/* --------------------------------------------------------- responsive */
+
+@media (max-width: 720px) {
+  .tabs {
+    padding: 8px 12px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .bar-row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .bar-row .track {
+    grid-column: 1 / -1;
+  }
+
+  .overlay {
+    padding: 0;
+  }
+
+  .sheet {
+    max-width: none;
+    max-height: 100vh;
+    min-height: 100vh;
+    border-radius: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skel > div {
+    animation: none;
+  }
+
+  .btn:hover:not(:disabled),
+  .hit:hover {
+    transform: none;
+  }
+}
+
+/* ----------------------------------------------------------------- dark */
+
+/*
+ * facetmark's own extension. `palettes.css` defines light palettes only, and
+ * `references/scene-app.md` bans decorative dark panels inside functional
+ * areas -- which is a different rule from "no night theme". These values keep
+ * palette A's three hues and move only the surfaces and the ink, plus the
+ * three text roles that would otherwise fall under 4.5:1 on a dark card.
+ *
+ * Only the tokens below may appear in this block; `tests/test_web.py` fails
+ * the build if a fourth colour or a new token name shows up here, because the
+ * moment this grows past surfaces it stops being a theme and becomes a second
+ * palette that nobody upstream is maintaining.
+ *
+ * Contrast on every pairing this page actually renders is asserted in
+ * `tests/test_web.py::TestTheContrast`, using the same WCAG relative-luminance
+ * maths as the design system's own `scripts/validate-palettes.mjs`.
+ */
+html[data-theme="dark"] {
+  --cream: #14161c;
+  --cream-dark: #1b1e26;
+  --card-bg: #1c1f28;
+  --preview-bg: #23252c;
+  --ink: #e9eaee;
+  --ink-light: #b9bcc6;
+  --ink-faint: #979ba6;
+  --ink-rgb: 233, 234, 238;
+  --border: rgba(233, 234, 238, 0.16);
+  --hairline: rgba(233, 234, 238, 0.1);
+  --border-strong: rgba(233, 234, 238, 0.26);
+  --brand-text: #7db4ee;
+  --brand-border: rgba(125, 180, 238, 0.45);
+  --pop-text: #f2879a;
+  --warning: #e8c65a;
+  --success: #6cc394;
+  --danger-strong: #f2879a;
+  --highlight-soft: rgba(244, 215, 88, 0.16);
+  --success-soft: rgba(108, 195, 148, 0.16);
+  --warning-soft: rgba(232, 198, 90, 0.16);
+  --danger-soft: rgba(242, 135, 154, 0.16);
+  --info-soft: rgba(125, 180, 238, 0.12);
+  --focus-ring: #7db4ee;
+  --link: var(--brand-text);
+  --mark-band: rgba(244, 215, 88, 0.26);
+  --tint-lex: rgba(244, 215, 88, 0.09);
+}
