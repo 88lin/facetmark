@@ -97,11 +97,12 @@ jobs:
           import pathlib, sys, zipfile
           wheel = sorted(pathlib.Path("dist").glob("*.whl"))[-1]
           names = set(zipfile.ZipFile(wheel).namelist())
-          want = [
-              "facetmark/web/index.html",
-              "facetmark/web/static/app.css",
-              "facetmark/web/static/app.js",
-              "facetmark/web/static/strings.json",
+          # Every static file the source tree ships, plus the page itself. The
+          # list is read off the source rather than written out here, so adding
+          # a module cannot silently ship a wheel that 404s on it.
+          static = pathlib.Path("src/facetmark/web/static")
+          want = ["facetmark/web/index.html"] + [
+              f"facetmark/web/static/{p.name}" for p in sorted(static.iterdir())
           ]
           missing = [w for w in want if w not in names]
           if missing:

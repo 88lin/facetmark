@@ -219,3 +219,60 @@ class TestTheGeneratedPages:
         assert rendered == committed, (
             f"{name} is stale -- run `python docs/landing/build.py`"
         )
+
+
+class TestThePaletteWiring:
+    """The landing site now reads the same vendored palette as the app.
+
+    The stylesheet stays self-contained -- its own `:root` holds the colourway
+    -- but the page also pins palette A and links the vendored file, because
+    that is where ``--highlight-rgb`` and the other ``*-rgb`` triplets the
+    highlighter wash reads come from. These assertions pin the wiring, not the
+    colours: the values are upstream's, the seam is ours.
+    """
+
+    PAGES = tuple(f"{p}{s}.html" for p in ("index",) + DOC_PAGES for s in ("", ".zh"))
+
+    @pytest.mark.parametrize("name", PAGES)
+    def test_the_page_pins_the_palette_whose_contrast_was_checked(self, name):
+        html = (LANDING / name).read_text(encoding="utf-8")
+        assert re.search(r"<html[^>]*data-palette=\"A\"", html), f"{name}: no palette pinned"
+
+    @pytest.mark.parametrize("name", PAGES)
+    def test_the_palette_is_linked_before_the_stylesheet_that_consumes_it(self, name):
+        """`style.css` reads tokens the palette declares. Load it first and the
+        page renders one paint with every custom property unresolved."""
+        html = (LANDING / name).read_text(encoding="utf-8")
+        sheets = re.findall(r'<link rel="stylesheet" href="([^"]+)"', html)
+        assert "palettes.css" in sheets, f"{name}: the palette is not linked"
+        assert sheets.index("palettes.css") < sheets.index("style.css"), name
+
+    @pytest.mark.parametrize("name", PAGES)
+    def test_the_display_serif_is_loaded_with_a_preconnect(self, name):
+        """Fraunces and Noto Serif SC come from Google Fonts. The preconnect
+        hides the handshake; without it the first paint waits on a second
+        origin's TLS before the heading can draw."""
+        html = (LANDING / name).read_text(encoding="utf-8")
+        assert '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' in html
+        assert "fonts.googleapis.com/css2?" in html, f"{name}: no Google Fonts stylesheet"
+        assert "Fraunces" in html and "Noto+Serif+SC" in html, name
+
+    def test_the_stylesheet_defines_the_display_serif_token(self):
+        """The headings read `--font-serif`; if the token vanished they would
+        fall back to the body sans with no error anywhere."""
+        css = (LANDING / "style.css").read_text(encoding="utf-8")
+        assert "--font-serif:" in css, "no --font-serif token"
+        assert "Fraunces" in css, "--font-serif does not name Fraunces"
+
+    def test_the_display_headings_use_the_serif(self):
+        css = (LANDING / "style.css").read_text(encoding="utf-8")
+        assert re.search(r"\.hero h1[^{]*\{[^}]*var\(--font-serif\)", css), "hero h1 is not serif"
+        assert re.search(r"\.pagehead h1[^{]*\{[^}]*var\(--font-serif\)", css), "pagehead h1 is not serif"
+
+    def test_the_stat_numerals_align(self):
+        """Dashboard-style numbers are tabular so a column of them does not
+        wobble. `.stat .v` and `.bigstat` are the two display numerals."""
+        css = (LANDING / "style.css").read_text(encoding="utf-8")
+        for sel in (r"\.stat \.v", r"\.bigstat"):
+            body = re.search(sel + r"\s*\{([^}]*)\}", css)
+            assert body and "tabular-nums" in body.group(1), f"{sel} is not tabular"

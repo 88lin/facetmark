@@ -490,7 +490,7 @@ def shell(t: dict, page: str, body: str) -> str:
     esc_desc = html.escape(desc, quote=True)
     return (
         "<!doctype html>\n"
-        f'<html lang="{t["html_lang"]}">\n<head>\n'
+        f'<html lang="{t["html_lang"]}" data-palette="A">\n<head>\n'
         '<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f"<title>{esc(title)}</title>\n"
@@ -520,6 +520,13 @@ def shell(t: dict, page: str, body: str) -> str:
         "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E"
         "%3Crect width='32' height='32' rx='7' fill='%23ff9400'/%3E"
         "%3Cpath d='M0 0h32v32z' fill='%230279ee'/%3E%3C/svg%3E\">\n"
+        '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
+        '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
+        '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?'
+        "family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700"
+        "&family=Noto+Serif+SC:wght@400..700"
+        '&family=Caveat:wght@500&display=swap">\n'
+        '<link rel="stylesheet" href="palettes.css">\n'
         '<link rel="stylesheet" href="style.css">\n'
         f"<script>{THEME_BOOT}</script>\n"
         "</head>\n<body>\n"

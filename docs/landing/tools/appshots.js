@@ -13,10 +13,11 @@
    the shipped CSS or the shipped render path.  It can drift from the *server*,
    which is what the web contract test in tests/test_web.py is for.
 
-   Eight files: {search, library} x {en, zh} x {light, dark}.  The Chinese pages
-   get their own captures because the UI itself is translated -- a Chinese
-   quickstart illustrated with an English screenshot is the thing this whole
-   change was meant to fix.
+   Sixteen files: {search, ask, library, detail} x {en, zh} x {light, dark}.
+   The Chinese pages get their own captures because the UI itself is
+   translated -- a Chinese quickstart illustrated with an English screenshot
+   is the thing this whole change was meant to fix.  `detail` is the bookmark
+   dialog, captured open over the search view; `ask` is the synthesise view.
 
    Usage:  node docs/landing/tools/appshots.js
 */
@@ -29,7 +30,7 @@ const WEB = path.join(ROOT, 'src', 'facetmark', 'web');
 const OUT = path.join(ROOT, 'docs', 'landing', 'assets');
 // Tall enough for the whole library census. Rendered on the site inside a
 // 780px reading column, so height costs page scroll, not legibility.
-const MAX_H = 2600;
+const MAX_H = 2800;
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -183,6 +184,71 @@ const STATS = {
   },
 };
 
+// `/synthesize`, Synthesis.as_dict(). Claims cite sources by their 1-based
+// number; `sources[n]` is what a `[n]` chip looks up, so the numbers here are
+// load-bearing, not positional. `degraded` is left false: the mock-provider
+// notice is what the shot is meant to show, and a second stacked panel would
+// only repeat it.
+const synthBody = (zh) => ({
+  query: zh ? ZH_QUERIES.ask : EN_QUERIES.ask,
+  claims: zh
+    ? [
+        { text: 'SQLite 的虚拟表机制让扩展表现得像一张表，但读写走的是注册的回调。', sources: [1] },
+        { text: 'sqlite-vec 把向量直接存进普通表，因此检索可以和数据放在同一个文件里。', sources: [2, 3] },
+      ]
+    : [
+        { text: 'SQLite virtual tables behave like ordinary tables but route reads and writes through registered callbacks.', sources: [1] },
+        { text: 'sqlite-vec stores vectors in ordinary tables, so the index can live in the same file as the data.', sources: [2, 3] },
+      ],
+  sources: [
+    { n: 1, bookmark_id: 1, url: 'https://www.sqlite.org/vtab.html', title: zh ? 'SQLite 虚拟表机制（官方文档）' : 'The Virtual Table Mechanism Of SQLite', excerpt: zh ? '虚拟表看起来像一张普通表，但读写走的是你注册的回调。' : 'A virtual table behaves like a table but calls callback methods instead of reading a B-tree.', health: 'alive', badge: 'ok' },
+    { n: 2, bookmark_id: 2, url: 'https://github.com/asg017/sqlite-vec', title: zh ? 'sqlite-vec：把向量搜索塞进 SQLite 文件里' : 'sqlite-vec: a vector search extension that runs anywhere', excerpt: zh ? '纯 C 写的，没有依赖，向量就存在普通表里。' : 'No dependencies, written in C, stores vectors in ordinary tables.', health: 'alive', badge: 'ok' },
+    { n: 3, bookmark_id: 3, url: 'https://example.dev/notes/embeddings-on-disk', title: zh ? '把 embedding 和它描述的那行放在一起' : 'Keeping embeddings next to the rows they describe', excerpt: zh ? '两个文件就是两份要备份的东西。一个文件两样都没有。' : 'Two files means two things to back up. One file means neither.', health: 'drifted', badge: 'drifted' },
+  ],
+  gaps: zh ? ['有 3 条被引用的页面近 90 天没有重新抓取。'] : ['3 cited pages have not been re-fetched in 90 days.'],
+  degraded: false,
+  model: 'mock-deterministic',
+});
+
+// `/bookmark/{id}`, bookmark_record(). The detail dialog reads the full
+// record: summary, the three tag lists, the fact grid and the sittings.
+const bookmarkBody = (zh) => ({
+  bookmark_id: 1,
+  url: 'https://www.sqlite.org/vtab.html',
+  title: zh ? 'SQLite 虚拟表机制（官方文档）' : 'The Virtual Table Mechanism Of SQLite',
+  folder: zh ? '阅读/存储' : 'reading/storage', folder_depth: 2,
+  domain: 'sqlite.org', date_added: NOW - 41 * DAY,
+  open_count: 6, last_opened_at: NOW - 3 * DAY,
+  summary: zh
+    ? 'SQLite 虚拟表机制的权威说明：扩展如何注册一张表现得像普通表、但读写走回调的表。'
+    : 'The authoritative reference for SQLite virtual tables: how an extension registers a table that behaves like a real one but routes reads and writes through callbacks.',
+  topics: zh ? ['数据库', '存储', '扩展机制'] : ['databases', 'storage', 'extension mechanism'],
+  entities: zh ? ['SQLite', '虚拟表', 'B-tree'] : ['SQLite', 'virtual table', 'B-tree'],
+  key_points: zh
+    ? ['虚拟表不自己存数据，而是调用注册的回调。', 'xCreate 与 xConnect 决定表的生命周期。']
+    : ['A virtual table stores nothing itself; it calls registered callbacks.', 'xCreate and xConnect govern the table lifecycle.'],
+  utility: 0.82, content_type: 'reference',
+  intent_queries: zh ? ['sqlite 虚拟表 怎么用', 'vtab 回调'] : ['how sqlite vtab works', 'virtual table callback'],
+  sessions: [
+    { session_id: 7, started_at: NOW - 40 * DAY, size: 5, label: zh ? '存储方案调研' : 'storage options survey' },
+    { session_id: 12, started_at: NOW - 9 * DAY, size: 3, label: '' },
+  ],
+  indexed: {
+    chars: 4120, lang: zh ? 'zh' : 'en', extractor: 'readability', channel: 'http',
+    http_status: 200, fetched_at: NOW - 41 * DAY, error: '', enriched_by: 'mock',
+  },
+  privacy_skipped: false,
+  health: { bookmark_id: 1, status: 'alive', confidence: 0.98, checked_at: NOW - 2 * DAY, http_status: 200, archive_url: '', confirmed_gone: false, badge: 'ok', next_check_after: NOW + 5 * DAY },
+  badge: 'ok', in_graveyard: false,
+});
+
+// `/bookmark/{id}/related`, related_records(). Grouped by edge kind.
+const relatedBody = (zh) => [
+  { bookmark_id: 51, url: 'https://www.sqlite.org/fts5.html', title: zh ? 'SQLite FTS5：全文检索' : 'SQLite FTS5', folder: zh ? '阅读/存储' : 'reading/storage', domain: 'sqlite.org', date_added: NOW - 41 * DAY, summary: '', kind: 'session', score: 0.4 },
+  { bookmark_id: 52, url: 'https://example.dev/notes/rrf', title: zh ? '倒数排名融合（RRF）简说' : 'Reciprocal rank fusion, briefly', folder: zh ? '阅读/检索' : 'reading/retrieval', domain: 'example.dev', date_added: NOW - 40 * DAY, summary: '', kind: 'semantic', score: 0.37 },
+  { bookmark_id: 2, url: 'https://github.com/asg017/sqlite-vec', title: zh ? 'sqlite-vec：把向量搜索塞进 SQLite 文件里' : 'sqlite-vec: a vector search extension that runs anywhere', folder: zh ? '阅读/存储' : 'reading/storage', domain: 'github.com', date_added: NOW - 12 * DAY, summary: '', kind: 'same_domain', score: 0.3 },
+];
+
 // -------------------------------------------------------------------- wiring
 
 function staticFile(urlPath) {
@@ -193,6 +259,12 @@ function staticFile(urlPath) {
   const p = path.join(WEB, 'static', m[1]);
   return p.startsWith(path.join(WEB, 'static')) && fs.existsSync(p) ? p : null;
 }
+
+// The language of the shot in flight. The app keeps its language in
+// localStorage, not in a request header, so the fixtures cannot read it off
+// the request; `shoot` sets this before the page navigates.
+let currentLang = 'en';
+const isZh = () => currentLang === 'zh';
 
 async function handle(route, request) {
   const url = new URL(request.url());
@@ -215,6 +287,11 @@ async function handle(route, request) {
   }
   if (p === '/stats') return json(STATS);
   if (p === '/open') return json({ ok: true });
+  if (p === '/health') return json({ ok: true, version: '1.6.1', uptime_s: 90061, bookmarks: STATS.bookmarks, provider: 'mock' });
+  if (p === '/synthesize') return json(synthBody(isZh()));
+  // `/bookmark/1` and `/bookmark/1/related`. The id is fixed by the fixtures.
+  if (/^\/bookmark\/\d+\/related$/.test(p)) return json(relatedBody(isZh()));
+  if (/^\/bookmark\/\d+$/.test(p)) return json(bookmarkBody(isZh()));
   if (p === '/quick' || p === '/search') {
     const zh = /[\u4e00-\u9fff]/.test(url.searchParams.get('q') ?? request.postData() ?? '');
     const [hits, near] = zh ? [ZH_HITS, ZH_NEAR] : [EN_HITS, EN_NEAR];
@@ -227,9 +304,13 @@ async function handle(route, request) {
   return route.fulfill({ status: 404, contentType: 'application/json', body: '{}' });
 }
 
-const QUERIES = {
-  en: 'that sqlite thing about storing vectors',
-  zh: '\u4e0a\u6b21\u770b\u7684\u90a3\u4e2a sqlite \u5b58\u5411\u91cf\u7684',
+const EN_QUERIES = {
+  search: 'that sqlite thing about storing vectors',
+  ask: 'how does sqlite store vectors',
+};
+const ZH_QUERIES = {
+  search: '\u4e0a\u6b21\u770b\u7684\u90a3\u4e2a sqlite \u5b58\u5411\u91cf\u7684',
+  ask: 'sqlite \u662f\u600e\u4e48\u5b58\u5411\u91cf\u7684',
 };
 
 async function shoot(browser, { view, lang, theme }) {
@@ -249,14 +330,31 @@ async function shoot(browser, { view, lang, theme }) {
   );
 
   const page = await ctx.newPage();
-  const q = view === 'search' ? `?q=${encodeURIComponent(QUERIES[lang])}` : '';
-  await page.goto(`http://facetmark.test/app${q}#/${view}`, { waitUntil: 'load' });
+  currentLang = lang;
+  const queries = lang === 'zh' ? ZH_QUERIES : EN_QUERIES;
+  // `detail` is the dialog, captured open over the search view it was launched
+  // from; the other three are their own hash-routed views.
+  const hashView = view === 'detail' ? 'search' : view;
+  const q = hashView === 'search' ? `?q=${encodeURIComponent(queries.search)}` : '';
+  await page.goto(`http://facetmark.test/app${q}#/${hashView}`, { waitUntil: 'load' });
 
-  // Wait for the thing the shot is of, not for a timeout: the search view is
-  // done when the ranked list has replaced the lexical first paint, and the
-  // library view when the stat groups have rendered.
-  const target = view === 'search' ? '#results li:nth-child(4)' : '#stats .stat-group:nth-of-type(3)';
-  await page.waitForSelector(target, { timeout: 15000 });
+  // Wait for the thing the shot is of, not for a timeout. Each view has its
+  // own readiness signal, and `ask` and `detail` need a nudge first: ask has
+  // to be told to synthesise, and the dialog has to be opened.
+  if (view === 'ask') {
+    await page.fill('#aq', queries.ask);
+    await page.click('#ago');
+    await page.waitForSelector('#aout .claim', { timeout: 15000 });
+  } else if (view === 'detail') {
+    await page.waitForSelector('#results li:nth-child(4)', { timeout: 15000 });
+    await page.click('#results li:nth-child(1) .peek');
+    await page.waitForSelector('#overlay:not([hidden]) #sheet .tagset', { timeout: 15000 });
+  } else {
+    // search is done when the ranked list has replaced the lexical first
+    // paint; library when the census blocks have rendered.
+    const target = view === 'search' ? '#results li:nth-child(4)' : '#stats .block:nth-of-type(3)';
+    await page.waitForSelector(target, { timeout: 15000 });
+  }
   await page.waitForTimeout(400); // the 180ms row fade
 
   // Fit the viewport to the content instead of using fullPage: fullPage
@@ -284,7 +382,11 @@ async function shoot(browser, { view, lang, theme }) {
   // mid-content, which is worse than a tall figure. The library view is a
   // census of nine stat groups and is legitimately long.
   if (h > MAX_H) console.warn(`  ! content is ${h}px, capped at ${MAX_H} -- the shot will be cut`);
-  await page.setViewportSize({ width: 1180, height: Math.min(h, MAX_H) });
+  // The dialog is `position: fixed` with `max-height: 80vh`, so it tracks the
+  // viewport, not the content. Sizing to the (short) search page behind it
+  // would crush the sheet; the dialog gets a fixed tall window instead.
+  const height = view === 'detail' ? 1000 : Math.min(h, MAX_H);
+  await page.setViewportSize({ width: 1180, height });
   await page.waitForTimeout(200);
 
   const name = `app-${view}${lang === 'zh' ? '-zh' : ''}${theme === 'dark' ? '-dark' : ''}.png`;
@@ -295,7 +397,7 @@ async function shoot(browser, { view, lang, theme }) {
 
 (async () => {
   const browser = await chromium.launch();
-  for (const view of ['search', 'library']) {
+  for (const view of ['search', 'ask', 'library', 'detail']) {
     for (const lang of ['en', 'zh']) {
       for (const theme of ['light', 'dark']) {
         const name = await shoot(browser, { view, lang, theme });
