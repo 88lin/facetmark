@@ -106,6 +106,31 @@ def r_block(b: tuple) -> str:
         return (
             f'<div class="callout {b[1]}"><div class="t">{b[2]}</div>{b[3]}</div>'
         )
+    if kind == "shot":
+        # A framed screenshot inside a doc section. `_shot` pins margin:0 for
+        # the grid it was written for, so the wrapper puts the vertical rhythm
+        # back and caps the width at the reading column.
+        dark = (b[4], b[5]) if len(b) > 4 else None
+        return (
+            '<div style="max-width:var(--readw);margin:22px 0">'
+            + _shot((b[1], b[2], b[3]), dark)
+            + "</div>"
+        )
+    if kind == "dashed":
+        # A hand-drawn frame. `tone` is "" for brand blue, or lex / intent /
+        # context. The label is the frame's name and is never decoration: it
+        # is what a reader who cannot see the hue reads instead of it.
+        cls = f"sketch {b[1]}".strip()
+        return f'<div class="{cls}"><span class="label">{b[2]}</span>{r_blocks(b[3])}</div>'
+    if kind == "tintcard":
+        cls = f"tintcard {b[1]}".strip()
+        return f'<div class="{cls}"><div class="t">{b[2]}</div>{r_blocks(b[3])}</div>'
+    if kind == "tintrow":
+        inner = "".join(
+            f'<div class="tintcard {tone}"><div class="t">{title}</div>{r_blocks(body)}</div>'
+            for tone, title, body in b[1]
+        )
+        return f'<div class="tintrow">{inner}</div>'
     if kind == "raw":
         return b[1]
     raise ValueError(f"unknown block: {kind!r}")
@@ -413,8 +438,14 @@ def nav_html(t: dict, page: str) -> str:
     suffix = ".zh.html" if z else ".html"
     items = [
         ("home", "index" + suffix, page == "index", False),
+        # Short label on purpose: four text items have to survive the 380px
+        # rule below, which drops the padding to 4px and the size to 0.81rem.
+        ("quickstart", "quickstart" + suffix, page == "quickstart", False),
+        ("webui", "webui" + suffix, page == "webui", False),
+        ("config", "config" + suffix, page == "config", True),
+        ("integrations", "integrations" + suffix, page == "integrations", True),
         ("guide", "guide" + suffix, page == "guide", False),
-        ("measured", "measured" + suffix, page == "measured", False),
+        ("measured", "measured" + suffix, page == "measured", True),
         ("gh", REPO, False, True),
     ]
     out = ['<nav class="top">']
@@ -461,7 +492,15 @@ def foot_html(t: dict) -> str:
 def shell(t: dict, page: str, body: str) -> str:
     title, desc = t["meta"][page]
     z = t["code"] == "zh"
-    stem = {"index": "index", "guide": "guide", "measured": "measured"}[page]
+    stem = {
+        "index": "index",
+        "quickstart": "quickstart",
+        "webui": "webui",
+        "config": "config",
+        "integrations": "integrations",
+        "guide": "guide",
+        "measured": "measured",
+    }[page]
     canon_en = f"{stem}.html"
     canon_zh = f"{stem}.zh.html"
     canon = canon_zh if z else canon_en
@@ -472,7 +511,7 @@ def shell(t: dict, page: str, body: str) -> str:
     esc_desc = html.escape(desc, quote=True)
     return (
         "<!doctype html>\n"
-        f'<html lang="{t["html_lang"]}">\n<head>\n'
+        f'<html lang="{t["html_lang"]}" data-palette="A">\n<head>\n'
         '<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f"<title>{esc(title)}</title>\n"
@@ -498,10 +537,19 @@ def shell(t: dict, page: str, body: str) -> str:
         f'<link rel="alternate" hreflang="en" href="{canon_en}">\n'
         f'<link rel="alternate" hreflang="zh-CN" href="{canon_zh}">\n'
         f'<link rel="alternate" hreflang="x-default" href="{canon_en}">\n'
-        '<link rel="icon" href="data:image/svg+xml,'
-        "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E"
-        "%3Crect width='32' height='32' rx='7' fill='%23ff9400'/%3E"
-        "%3Cpath d='M0 0h32v32z' fill='%230279ee'/%3E%3C/svg%3E\">\n"
+        # Four bars in the four facet colours on a rounded cream square: the
+        # same grammar as the mark on repair.88lin.eu.org, drawn for this
+        # project. The old inline square used #ff9400 and #0279ee, neither of
+        # which is in any palette this project ships.
+        '<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">\n'
+        '<link rel="mask-icon" href="assets/favicon.svg" color="#2b7fd8">\n'
+        '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
+        '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
+        '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?'
+        "family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700"
+        "&family=Noto+Serif+SC:wght@400..700"
+        '&family=Caveat:wght@500&display=swap">\n'
+        '<link rel="stylesheet" href="palettes.css">\n'
         '<link rel="stylesheet" href="style.css">\n'
         f"<script>{THEME_BOOT}</script>\n"
         "</head>\n<body>\n"
@@ -637,8 +685,30 @@ def page_index(t: dict) -> str:
         o.append(f'<article class="card"><h3>{esc(title)}</h3><p>{body}</p></article>')
     o.append("</div></div></section>")
 
+    # ---- the local page ---------------------------------------------------
+    # Placed before the extension band because this is the surface a reader can
+    # use without installing anything else, and the bands after it flip their
+    # `alt` tint to keep the page alternating.
+    o.append('<section class="band alt" id="app"><div class="wrap">')
+    o.append(f'<p class="seclabel">{esc(i["app_label"])}</p>')
+    o.append(f'<h2 class="reveal">{i["app_h2"]}</h2>')
+    o.append(f'<p class="lede read reveal">{i["app_lede"]}</p>')
+    o.append('<div class="reveal" style="margin-bottom:22px">')
+    o.append(_shot(i["app_shot"], i["app_shot_dark"]))
+    o.append("</div>")
+    o.append('<div class="grid g3 reveal">')
+    for title, body in i["app_points"]:
+        o.append(f'<article class="card"><h3>{esc(title)}</h3><p>{body}</p></article>')
+    o.append("</div>")
+    suffix = ".zh.html" if t["code"] == "zh" else ".html"
+    o.append(
+        f'<p class="reveal" style="margin-top:22px">'
+        f'<a class="btn primary" href="quickstart{suffix}">{esc(i["app_cta"])}</a></p>'
+    )
+    o.append("</div></section>")
+
     # ---- screenshots ------------------------------------------------------
-    o.append('<section class="band alt" id="extension"><div class="wrap">')
+    o.append('<section class="band" id="extension"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["shot_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["shot_h2"]}</h2>')
     o.append(f'<p class="lede read reveal">{i["shot_lede"]}</p>')
@@ -671,7 +741,7 @@ def page_index(t: dict) -> str:
     o.append("</div></section>")
 
     # ---- measured ---------------------------------------------------------
-    o.append('<section class="band" id="measured"><div class="wrap">')
+    o.append('<section class="band alt" id="measured"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["meas_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["meas_h2"]}</h2>')
     o.append(f'<p class="lede read reveal">{i["meas_lede"]}</p>')
@@ -700,7 +770,7 @@ def page_index(t: dict) -> str:
     o.append("</div></div></div></section>")
 
     # ---- quick start ------------------------------------------------------
-    o.append('<section class="band alt" id="start"><div class="wrap">')
+    o.append('<section class="band" id="start"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["qs_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["qs_h2"]}</h2>')
     o.append(f'<p class="lede read reveal">{i["qs_lede"]}</p>')
@@ -712,10 +782,10 @@ def page_index(t: dict) -> str:
     o.append("</div></div></div></section>")
 
     # ---- interfaces -------------------------------------------------------
-    o.append('<section class="band" id="interfaces"><div class="wrap">')
+    o.append('<section class="band alt" id="interfaces"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["if_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["if_h2"]}</h2>')
-    o.append('<div class="grid g5 reveal">')
+    o.append('<div class="grid g6 reveal">')
     for _slug, title, body, href, cta in i["if_cards"]:
         o.append(
             f'<article class="card"><h3>{esc(title)}</h3><p>{body}</p>'
@@ -724,7 +794,7 @@ def page_index(t: dict) -> str:
     o.append("</div></div></section>")
 
     # ---- faq --------------------------------------------------------------
-    o.append('<section class="band alt" id="faq"><div class="wrap">')
+    o.append('<section class="band" id="faq"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["faq_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["faq_h2"]}</h2>')
     o.append('<div class="qa reveal">')
@@ -733,7 +803,7 @@ def page_index(t: dict) -> str:
     o.append("</div></div></section>")
 
     # ---- boundaries -------------------------------------------------------
-    o.append('<section class="band" id="promises"><div class="wrap">')
+    o.append('<section class="band alt" id="promises"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["bnd_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["bnd_h2"]}</h2>')
     o.append('<ul class="grid g5 plist reveal">')
@@ -799,6 +869,16 @@ def build() -> None:
         z = t["code"] == "zh"
         pages = {
             f'index{".zh" if z else ""}.html': shell(t, "index", page_index(t)),
+            f'quickstart{".zh" if z else ""}.html': shell(
+                t, "quickstart", page_doc(t, "quickstart")
+            ),
+            f'webui{".zh" if z else ""}.html': shell(t, "webui", page_doc(t, "webui")),
+            f'config{".zh" if z else ""}.html': shell(
+                t, "config", page_doc(t, "config")
+            ),
+            f'integrations{".zh" if z else ""}.html': shell(
+                t, "integrations", page_doc(t, "integrations")
+            ),
             f'guide{".zh" if z else ""}.html': shell(t, "guide", page_doc(t, "guide")),
             f'measured{".zh" if z else ""}.html': shell(
                 t, "measured", page_doc(t, "measured")

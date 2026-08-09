@@ -16,6 +16,7 @@ ZH = {
     "copy": {"label": "\u590d\u5236", "done": "\u5df2\u590d\u5236"},
     "nav": {
         "home": "\u9996\u9875",
+        "quickstart": "\u4e0a\u624b",
         "guide": "\u4f7f\u7528\u6307\u5357",
         "measured": "\u5b9e\u6d4b\u8bb0\u5f55",
         "gh": "GitHub",
@@ -36,6 +37,11 @@ ZH = {
             "\u4e66\u7b7e\u3002\u5168\u90e8\u6570\u636e\u662f\u4f60\u673a\u5668\u4e0a\u7684\u4e00"
             "\u4e2a SQLite \u6587\u4ef6\u3002\u4e0d\u7528\u8d26\u53f7\uff0c\u4e0d\u4e0a\u4f20\u3002",
         ),
+        "quickstart": (
+            "\u5feb\u901f\u4e0a\u624b \u2014 facetmark",
+            "\u4ece\u4ec0\u4e48\u90fd\u6ca1\u88c5\uff0c\u5230\u6d4f\u89c8\u5668\u91cc\u6253\u5f00\u4e00\u4e2a\u641c\u7d22\u9875\uff1a\u4e94\u6b65\uff0c\u6bcf\u6761\u547d\u4ee4\u90fd\u80fd"
+            "\u76f4\u63a5\u590d\u5236\uff0c\u8fd8\u914d\u4e86\u56fe\u544a\u8bc9\u4f60\u6bcf\u4e00\u6b65\u5e94\u8be5\u770b\u5230\u4ec0\u4e48\u3002",
+        ),
         "guide": (
             "\u4f7f\u7528\u6307\u5357 \u2014 facetmark",
             "\u5b89\u88c5\u3001\u5bfc\u5165\u3001\u5efa\u7d22\u5f15\u3001\u641c\u7d22\u3001\u8d77"
@@ -55,6 +61,7 @@ ZH = {
             (
                 "\u4ece\u8fd9\u91cc\u5f00\u59cb",
                 [
+                    ("\u5feb\u901f\u4e0a\u624b", "quickstart.zh.html"),
                     ("\u5b89\u88c5", "guide.zh.html#install"),
                     ("\u628a\u4e66\u7b7e\u5bfc\u8fdb\u6765", "guide.zh.html#import"),
                     ("\u6a21\u578b\u63a5\u5165", "guide.zh.html#models"),
@@ -65,6 +72,7 @@ ZH = {
             (
                 "\u63a5\u53e3",
                 [
+                    ("\u672c\u5730\u9875\u9762", "guide.zh.html#webui"),
                     ("\u547d\u4ee4\u884c", "guide.zh.html#commands"),
                     ("HTTP API", "guide.zh.html#serve"),
                     ("MCP \u670d\u52a1\u5668", "guide.zh.html#mcp"),
@@ -283,6 +291,47 @@ ZH["index"] = {
             "\u91cc\u3002\u5b9e\u6d4b +2.09pp\uff0c10 \u80dc 0 \u8d1f\uff0c9 ms\u3002",
         ),
     ],
+    # --- the local page
+    "app_label": "\u4f60\u8981\u6253\u5f00\u7684\u90a3\u4e2a\u9875\u9762",
+    "app_h2": "\u4e00\u4e2a\u641c\u7d22\u9875\uff0c\u5c31\u5728 <code>127.0.0.1:8787/app</code>",
+    "app_lede": (
+        "<code>facetmark serve</code> \u4f1a\u6253\u5370\u4e00\u4e2a\u5730\u5740\u3002\u6253\u5f00\u5b83\uff0c\u4f60\u5c31\u62ff\u5230\u4e86\u641c\u7d22"
+        "\u6846\u3001\u548c\u6269\u5c55\u91cc\u540c\u4e00\u5957\u7ed3\u679c\u6807\u8bb0\uff0c\u5916\u52a0\u4e00\u4e2a\u544a\u8bc9\u4f60\u7d22\u5f15\u91cc\u5230\u5e95\u6709\u4ec0\u4e48\u7684\u7b2c\u4e8c\u4e2a"
+        "\u89c6\u56fe\u3002\u4e0d\u7528\u88c5\uff0c\u4e5f\u4e0d\u7528\u7f16\u8bd1 \u2014\u2014 \u8fd9\u4e2a\u9875\u9762\u5c31\u88c5\u5728 Python \u5305\u91cc\uff0c\u7531\u540c\u4e00\u4e2a"
+        "\u8fdb\u7a0b\u53d1\u51fa\u6765\u3002"
+    ),
+    "app_shot": (
+        "assets/app-search-zh.png",
+        "facetmark \u641c\u7d22\u9875\uff0c\u4e0a\u9762\u662f\u6392\u597d\u5e8f\u7684\u7ed3\u679c\uff0c\u4e0b\u9762\u662f\u5f53\u65f6\u524d\u540e\u4e00\u8d77\u5b58\u7684\u90a3\u4e00\u7ec4",
+        "<b>\u641c\u7d22\u3002</b>\u7b2c\u4e00\u5c4f\u662f\u5b57\u9762\u5339\u914d\uff0c\u4e0d\u82b1\u4efb\u4f55\u6a21\u578b\u8c03\u7528\uff1b\u6392\u597d\u5e8f\u7684\u7b54\u6848\u5230\u4e86\u5c31"
+        "\u628a\u5b83\u6362\u6389\u3002\u5f53\u65f6\u524d\u540e\u4e00\u8d77\u5b58\u7684\u9875\u9762\u5355\u72ec\u6210\u4e00\u7ec4\uff0c\u4e0d\u4f1a\u88ab\u6253\u6563\u6df7\u8fdb\u6392\u540d\u91cc\u3002\u8fd9\u5f20"
+        "\u56fe\u4f1a\u8ddf\u7740\u4f60\u6b63\u5728\u8bfb\u7684\u8fd9\u4e2a\u9875\u9762\u5207\u6362\u6df1\u6d45\u8272\u3002",
+    ),
+    "app_shot_dark": (
+        "assets/app-search-zh-dark.png",
+        "\u540c\u4e00\u4e2a\u641c\u7d22\u9875\u7684\u6df1\u8272\u6a21\u5f0f",
+    ),
+    "app_points": [
+        (
+            "\u5b83\u81ea\u5df1\u914d\u5bf9",
+            "\u4ee4\u724c\u6765\u81ea\u4e00\u6761\u53ea\u5728<em>\u8c03\u7528\u65b9</em>\u548c<em>\u8bf7\u6c42\u91cc\u5199\u7684\u5730\u5740</em>\u4e24\u8005\u90fd\u662f\u56de"
+            "\u73af\u5730\u5740\u65f6\u624d\u56de\u7b54\u7684\u8def\u7531\uff0c\u6240\u4ee5\u5728\u4f60\u81ea\u5df1\u673a\u5668\u4e0a\u6ca1\u6709\u4ec0\u4e48\u8981\u590d\u5236\u7684\u3002\u6362\u4e2a\u5730"
+            "\u65b9\uff0c\u9875\u9762\u4f1a\u8ba9\u4f60\u7c98\u8d34\u4e00\u6b21\u3002",
+        ),
+        (
+            "\u7f3a\u4ec0\u4e48\u5b83\u4f1a\u8bf4",
+            "\u7a7a\u7684\u4e66\u7b7e\u5e93\u4f1a\u628a\u5bfc\u5165\u547d\u4ee4\u6253\u51fa\u6765\u3002\u6709\u4e66\u7b7e\u4f46\u6ca1\u6709\u5411\u91cf\uff0c\u5c31\u6253 "
+            "<code>facetmark index</code>\u3002\u641c\u4e0d\u5230\u4e1c\u897f\u800c\u6293\u53d6\u961f\u5217\u8fd8\u6392\u7740\uff0c\u5b83\u4f1a\u76f4"
+            "\u63a5\u544a\u8bc9\u4f60\uff0c\u800c\u4e0d\u662f\u7529\u7ed9\u4f60\u4e00\u4e2a\u7a7a\u5217\u8868\u8ba9\u4f60\u731c\u3002",
+        ),
+        (
+            "\u4e2d\u6587\u548c English",
+            "\u9876\u680f\u4e00\u4e2a\u5f00\u5173\uff0c\u4e0b\u6b21\u6765\u8fd8\u8bb0\u5f97\u3002\u6d45\u8272\u3001\u6df1\u8272\uff0c\u6216\u8005\u8ddf\u968f\u7cfb\u7edf\u3002<kbd>/</kbd> "
+            "\u805a\u7126\u641c\u7d22\u6846\uff0c\u4e0a\u4e0b\u952e\u8d70\u7ed3\u679c\uff0c<kbd>Esc</kbd> \u6e05\u7a7a\u3002",
+        ),
+    ],
+    "app_cta": "\u4ece\u96f6\u5f00\u59cb\u4e0a\u624b \u2192",
+    # --- extension
     "shot_label": "\u5728\u6d4f\u89c8\u5668\u91cc",
     "shot_h2": "\u4e00\u4e2a\u53ea\u548c localhost \u8bf4\u8bdd\u7684\u6269\u5c55",
     "shot_lede": (
@@ -455,8 +504,17 @@ ZH["index"] = {
         "\u4e0d\u8981\u6295\u5165\u3002"
     ),
     "if_label": "\u63a5\u53e3",
-    "if_h2": "\u4e94\u79cd\u7528\u6cd5\uff0c\u540c\u4e00\u4e2a\u7d22\u5f15",
+    "if_h2": "\u516d\u79cd\u7528\u6cd5\uff0c\u540c\u4e00\u4e2a\u7d22\u5f15",
     "if_cards": [
+        (
+            "web",
+            "\u672c\u5730\u9875\u9762",
+            "<code>facetmark serve</code> \u4f1a\u5728 <code>/app</code> \u4e0a\u5f00\u4e00\u4e2a\u641c\u7d22"
+            "\u9875\u3002\u641c\u7d22\u52a0\u4e66\u7b7e\u5e93\u6982\u89c8\uff0c\u4e2d\u82f1\u6587\u3001\u6df1\u6d45\u8272\u90fd\u80fd\u5207\u3002\u8fd9\u662f\u552f\u4e00\u4e00\u4e2a\u9664\u4e86 "
+            "facetmark \u672c\u8eab\u4ec0\u4e48\u90fd\u4e0d\u7528\u88c5\u7684\u5165\u53e3\u3002",
+            "guide.zh.html#webui",
+            "\u9875\u9762\u4e0a\u6709\u4ec0\u4e48",
+        ),
         (
             "cli",
             "\u547d\u4ee4\u884c",
@@ -470,9 +528,9 @@ ZH["index"] = {
         (
             "http",
             "HTTP API",
-            "<code>facetmark serve</code> \u76d1\u542c 127.0.0.1:8787\u300225 \u6761\u8def"
-            "\u7531\uff0c\u9664\u4e86 <code>/</code> \u548c <code>/health</code> \u5168\u90e8"
-            "\u8981\u914d\u5bf9\u4ee4\u724c\u3002",
+            "<code>facetmark serve</code> \u76d1\u542c 127.0.0.1:8787\u300227 \u6761\u8def"
+            "\u7531\uff0c\u5176\u4e2d\u56db\u6761\u516c\u5f00 \u2014\u2014 \u6839\u8def\u5f84\u3001\u5065\u5eb7\u68c0\u67e5\uff0c\u4ee5\u53ca\u672c\u5730\u9875\u9762\u52a0\u8f7d\u81ea"
+            "\u5df1\u9700\u8981\u7684\u90a3\u4e24\u6761\uff1b\u51e1\u662f\u78b0\u5230\u4e66\u7b7e\u5e93\u7684\u90fd\u8981\u914d\u5bf9\u4ee4\u724c\u3002",
             "guide.zh.html#serve",
             "\u8def\u7531\u4e0e\u9274\u6743",
         ),
@@ -631,6 +689,246 @@ ZH["index"] = {
 }
 
 # ---------------------------------------------------------------- 指南 ----
+
+ZH["quickstart"] = {
+    "h1": "\u5feb\u901f\u4e0a\u624b",
+    "lede": (
+        "\u4ece\u4ec0\u4e48\u90fd\u6ca1\u88c5\uff0c\u5230\u6d4f\u89c8\u5668\u91cc\u6253\u5f00\u4e00\u4e2a\u641c\u7d22\u9875\u3002\u4e94\u6b65\uff0c\u6bcf\u6761\u547d\u4ee4\u90fd\u80fd\u76f4\u63a5\u590d\u5236\uff0c"
+        "\u8fd8\u914d\u4e86\u56fe\u544a\u8bc9\u4f60\u8dd1\u901a\u4e4b\u540e\u5e94\u8be5\u770b\u5230\u4ec0\u4e48\u3002\u4e0d\u9700\u8981\u4f60\u4e8b\u5148\u61c2 embedding\u3001\u5411\u91cf\u6216"
+        "\u8005\u68c0\u7d22 \u2014\u2014 \u8fd9\u4e00\u9875\u91cc\u4e5f\u6ca1\u6709\u4e00\u5904\u9700\u8981\u3002"
+    ),
+    "toc_title": "\u4e94\u6b65",
+    "sections": [
+        # ------------------------------------------------------------ 安装
+        (
+            "install",
+            "\u88c5\u4e0a\u5b83",
+            [
+                ("p",
+                 "\u4f60\u9700\u8981 Python 3.10 \u6216\u66f4\u65b0\u7684\u7248\u672c\uff0cWindows\u3001macOS\u3001Linux \u90fd"
+                 "\u884c\u3002\u7528 <code>python --version</code> \u770b\u4e00\u4e0b\uff1b\u5982\u679c\u6253\u51fa\u6765\u662f "
+                 "3.9 \u6216\u8005\u76f4\u63a5\u62a5\u9519\uff0c\u5148\u53bb "
+                 "<a href=\"https://www.python.org/downloads/\" "
+                 "rel=\"noopener\">python.org</a> \u88c5 Python\u3002"),
+                ("cb", "shell", "pip install facetmark"),
+                ("p",
+                 "\u5b89\u88c5\u5c31\u8fd9\u4e9b\u3002\u6ca1\u6709\u53e6\u5916\u8981\u8dd1\u7684\u670d\u52a1\u7aef\uff0c\u6ca1\u6709\u8981\u5efa\u7684\u6570\u636e\u5e93\uff0c\u4e5f\u6ca1\u6709"
+                 "\u8981\u6ce8\u518c\u7684\u8d26\u53f7\u3002\u786e\u8ba4\u4e00\u4e0b\u88c5\u597d\u4e86\uff1a"),
+                ("cb", "shell", "facetmark --version"),
+                ("callout", "info", "\u5982\u679c\u7ec8\u7aef\u8bf4 command not found",
+                 "<p>pip \u628a\u5b83\u88c5\u5230\u4e86\u4e0d\u5728 <code>PATH</code> \u4e0a\u7684\u5730\u65b9\u3002"
+                 "<code>python -m facetmark --version</code> \u65e0\u8bba\u5982\u4f55\u90fd\u80fd\u8dd1\uff0c"
+                 "\u672c\u9875\u6bcf\u4e00\u6761\u547d\u4ee4\u90fd\u53ef\u4ee5\u8fd9\u4e48\u5199\u3002</p>"),
+            ],
+        ),
+        # ------------------------------------------------------------ 导入
+        (
+            "import",
+            "\u628a\u4e66\u7b7e\u5bfc\u8fdb\u6765",
+            [
+                ("p",
+                 "Chrome\u3001Edge\u3001Brave\u3001Vivaldi\u3001Chromium\u3001Opera \u90fd\u4e0d\u7528\u4f60\u5bfc\u51fa"
+                 "\u4efb\u4f55\u4e1c\u897f\u3002\u5148\u5173\u6389\u6d4f\u89c8\u5668 \u2014\u2014 \u5b83\u5360\u7740\u90a3\u4e2a\u6587\u4ef6 \u2014\u2014 \u7136\u540e\uff1a"),
+                ("cb", "shell", "facetmark import"),
+                ("p",
+                 "\u5b83\u4f1a\u81ea\u5df1\u627e\u5230\u6d4f\u89c8\u5668\u914d\u7f6e\u76ee\u5f55\uff0c\u8bfb\u4e66\u7b7e\u6587\u4ef6\uff0c\u7136\u540e\u6253\u5370\u8bfb\u8fdb\u6765\u591a\u5c11"
+                 "\u6761\u3002Firefox \u548c Safari \u4e0d\u5c5e\u4e8e\u8fd9\u4e00\u5bb6\uff0c\u8fd9\u4e24\u4e2a\u8981\u5148\u4e00\u6b21\u6027\u5bfc\u51fa\u6210 "
+                 "HTML\uff08<a href=\"guide.zh.html#import\">\u600e\u4e48\u5bfc</a>\uff09\uff0c\u518d\u628a\u8def"
+                 "\u5f84\u7ed9\u5b83\uff1a"),
+                ("cb", "shell", "facetmark import ~/Downloads/bookmarks.html"),
+                ("callout", "info", "\u5b83\u4ece\u4e0d\u5f80\u4f60\u6d4f\u89c8\u5668\u91cc\u5199\u4e1c\u897f",
+                 "<p>\u5bfc\u5165\u662f\u5355\u5411\u8bfb\uff1a\u6253\u5f00\u6587\u4ef6\u3001\u8bfb\u3001\u5173\u4e0a\u3002facetmark \u4e0d\u5199\u6d4f\u89c8\u5668\u7684"
+                 "\u914d\u7f6e\u76ee\u5f55\uff0c\u4f60\u5728\u8fd9\u91cc\u505a\u7684\u4efb\u4f55\u4e8b\u90fd\u6539\u4e0d\u4e86\u3001\u4e5f\u5220\u4e0d\u6389\u4f60\u5df2\u6709\u7684\u4e66"
+                 "\u7b7e\u3002</p>"),
+            ],
+        ),
+        # ------------------------------------------------------------ 模型
+        (
+            "model",
+            "\u7ed9\u5b83\u63a5\u4e00\u4e2a\u6a21\u578b \u2014\u2014 \u6216\u8005\u8df3\u8fc7\u8fd9\u6b65",
+            [
+                ("p",
+                 "\u201c\u6309\u610f\u601d\u641c\u201d\u9700\u8981\u4e00\u4e2a\u80fd\u628a\u6587\u5b57\u53d8\u6210\u6570\u5b57\u7684\u4e1c\u897f\u3002\u62ff\u5230\u5b83\u6709\u4e09\u6761"
+                 "\u8def\uff0c\u7b2c\u4e09\u6761\u662f\u5e72\u8106\u4e0d\u8981\u3002"),
+                ("h3", "\u7528\u5728\u7ebf API"),
+                ("p",
+                 "\u4efb\u4f55 OpenAI \u517c\u5bb9\u7684\u63a5\u53e3\u90fd\u884c\u3002\u5199\u8fdb "
+                 "<code>~/.facetmark/.env</code> \u2014\u2014 \u8fd9\u4e2a\u6587\u4ef6\u7b2c\u4e00\u6b21\u8fd0\u884c\u65f6\u4f1a"
+                 "\u81ea\u52a8\u5efa\u597d\uff1a"),
+                ("cb", "dotenv",
+                 "FACETMARK_API_BASE=https://api.openai.com/v1\n"
+                 "FACETMARK_API_KEY=sk-your-key"),
+                ("callout", "warn", "\u6700\u5e38\u89c1\u7684\u4e00\u4e2a\u914d\u7f6e\u9519\u8bef",
+                 "<p>base URL \u5fc5\u987b\u4ee5 <code>/v1</code> \u7ed3\u5c3e\u3002\u5c11\u4e86\u5b83\uff0c\u6bcf\u6b21\u6a21\u578b"
+                 "\u8c03\u7528\u90fd\u8fd4\u56de 404\uff0c\u800c\u9519\u8bef\u662f\u4ee5\u201c\u4f9b\u5e94\u5546\u62a5\u9519\u201d\u7684\u5f62\u5f0f\u5192\u51fa\u6765\u7684\uff0c"
+                 "\u770b\u7740\u5c31\u50cf key \u4e0d\u5bf9\u3002</p>"),
+                ("h3", "\u7528\u4f60\u81ea\u5df1\u673a\u5668\u4e0a\u7684\u6a21\u578b"),
+                ("p",
+                 "\u4e0d\u7528 key\uff0c\u9664\u4e86\u6293\u53d6\u7f51\u9875\u672c\u8eab\uff0c\u6ca1\u6709\u4efb\u4f55\u4e1c\u897f\u79bb\u5f00\u8fd9\u53f0\u673a\u5668\uff1a"),
+                ("cb", "dotenv", "FACETMARK_EMBED_BACKEND=local"),
+                ("p",
+                 "\u7b2c\u4e00\u6b21\u8dd1\u7684\u65f6\u5019\u4f1a\u4e0b\u8f7d\u4e00\u4e2a\u4e0d\u5927\u7684 sentence-transformers \u6a21"
+                 "\u578b\u3002"),
+                ("h3", "\u4e24\u4e2a\u90fd\u4e0d\u8981"),
+                ("p",
+                 "\u8fd9\u4e00\u6b65\u6574\u4e2a\u8df3\u8fc7\uff0c\u4f60\u4ecd\u7136\u6709\u5bf9\u6807\u9898\u3001\u6587\u4ef6\u5939\u548c\u7f51\u5740\u7684\u5173\u952e\u8bcd\u641c\u7d22\uff0c"
+                 "\u5916\u52a0\u4f1a\u8bdd\u56fe \u2014\u2014 \u4e5f\u5c31\u662f\u4f60\u54ea\u4e9b\u4e66\u7b7e\u662f\u540c\u4e00\u6b21\u4e0a\u7f51\u65f6\u5b58\u7684\u3002\u5931\u53bb\u7684"
+                 "\u662f\u6309\u610f\u601d\u641c\u3002\u4ee5\u540e\u968f\u65f6\u53ef\u4ee5\u8865\u4e0a\u6a21\u578b\u518d\u8dd1\u4e00\u904d\u4e0b\u4e00\u6b65\uff1b\u6ca1\u6709\u4ec0\u4e48\u8981"
+                 "\u91cd\u6765\u3002"),
+            ],
+        ),
+        # ---------------------------------------------------------- 建索引
+        (
+            "index",
+            "\u5efa\u7d22\u5f15",
+            [
+                ("p",
+                 "\u8fd9\u662f\u6162\u7684\u90a3\u4e00\u6b65\uff0c\u4e5f\u662f\u552f\u4e00\u6162\u7684\u4e00\u6b65\u3002\u5b83\u4f1a\u53bb\u6293\u6bcf\u4e2a\u9875\u9762\u3001\u62bd\u51fa\u6b63"
+                 "\u6587\u3001\u5982\u679c\u4f60\u914d\u4e86\u5bf9\u8bdd\u6a21\u578b\u5c31\u987a\u624b\u505a\u4e2a\u6458\u8981\u3001\u505a\u5411\u91cf\uff0c\u518d\u7b97\u51fa\u54ea\u4e9b\u4e66"
+                 "\u7b7e\u662f\u4e00\u8d77\u5b58\u7684\u3002"),
+                ("cb", "shell", "facetmark index"),
+                ("p",
+                 "\u82b1\u7684\u65f6\u95f4\u4e3b\u8981\u5728<em>\u6293\u53d6</em>\u4e0a\uff0c\u4e0d\u5728\u6a21\u578b\u4e0a\uff1afacetmark \u9075\u5b88 "
+                 "robots.txt\uff0c\u5e76\u4e14\u6309\u7ad9\u70b9\u7ed9\u81ea\u5df1\u9650\u901f\uff0c\u8fd9\u662f\u6545\u610f\u7684\u3002\u51e0\u5343\u6761\u4e66\u7b7e\u662f"
+                 "\u4e00\u676f\u5496\u5561\u7684\u4e8b\uff0c\u4e0d\u662f\u4e00\u79d2\u949f\u7684\u4e8b\u3002\u8d76\u65f6\u95f4\uff0c\u6216\u8005\u53ea\u60f3\u5148\u770b\u5b83\u80fd\u4e0d\u80fd"
+                 "\u8dd1\uff1a"),
+                ("cb", "shell", "facetmark index --no-fetch"),
+                ("p",
+                 "\u8fd9\u6837\u53ea\u5bf9\u6807\u9898\u5efa\u7d22\u5f15\uff0c\u51e0\u79d2\u949f\u5c31\u5b8c\u3002\u4e4b\u540e\u518d\u6b63\u7ecf\u8dd1\u4e00\u6b21 "
+                 "<code>facetmark index</code> \u2014\u2014 \u5b83\u662f\u5e42\u7b49\u7684\uff0c\u53ea\u4f1a\u6361\u8d77\u8fd8\u6ca1"
+                 "\u505a\u7684\u90a3\u90e8\u5206\uff0c\u5df2\u7ecf\u505a\u8fc7\u7684\u5168\u90e8\u8df3\u8fc7\u3002"),
+                ("callout", "info", "\u53ef\u4ee5\u4e2d\u9014\u505c\uff0c\u4e5f\u53ef\u4ee5\u63a5\u7740\u8dd1",
+                 "<p>\u8fdb\u5ea6\u662f\u8fb9\u8dd1\u8fb9\u5199\u7684\u3002\u7528 <kbd>Ctrl</kbd>+<kbd>C</kbd> \u6253\u65ad\uff0c"
+                 "\u6700\u591a\u4e22\u6389\u6b63\u5728\u6293\u7684\u90a3\u4e00\u4e2a\u9875\u9762\uff0c\u91cd\u65b0\u8dd1\u662f\u63a5\u7740\u505a\uff0c\u4e0d\u662f\u4ece\u5934"
+                 "\u6765\u3002</p>"),
+            ],
+        ),
+        # ------------------------------------------------------------ 打开
+        (
+            "open",
+            "\u6253\u5f00\u9875\u9762",
+            [
+                ("cb", "shell", "facetmark serve"),
+                ("p", "\u5b83\u4f1a\u628a\u5730\u5740\u6253\u51fa\u6765\u3002\u628a\u7b2c\u4e8c\u884c\u90a3\u4e2a\u5728\u6d4f\u89c8\u5668\u91cc\u6253\u5f00\uff1a"),
+                ("cb", "shell",
+                 "facetmark 1.6.1  http://127.0.0.1:8787\n"
+                 "open the search page:     http://127.0.0.1:8787/app"),
+                ("p",
+                 "\u754c\u9762\u5c31\u8fd9\u4e9b\u3002\u7528\u4f60\u5e73\u65f6\u8bf4\u8bdd\u7684\u65b9\u5f0f\u6253\u4e00\u4e2a\u95ee\u9898\u8fdb\u53bb \u2014\u2014 \u4f60\u4e0d\u7528\u8bb0"
+                 "\u5f97\u6807\u9898\uff0c\u4e5f\u4e0d\u7528\u628a\u8bcd\u513f\u8bf4\u51c6\u3002"),
+                ("shot",
+                 "assets/app-search-zh.png",
+                 "facetmark \u641c\u7d22\u9875\uff0c\u8f93\u5165\u4e86\u4e00\u4e2a\u67e5\u8be2\uff0c\u4e0b\u9762\u662f\u6392\u597d\u5e8f\u7684\u7ed3\u679c",
+                 "<b>\u4f60\u5e94\u8be5\u770b\u5230\u4ec0\u4e48\u3002</b>\u7ed3\u679c\u968f\u7740\u4f60\u6253\u5b57\u51fa\u73b0\uff0c\u5148\u662f\u4e00\u4e2a\u4e0d\u82b1\u4efb\u4f55"
+                 "\u4ee3\u4ef7\u7684\u5b57\u9762\u5339\u914d\uff0c\u7b49\u6a21\u578b\u7b54\u5b8c\u518d\u91cd\u65b0\u6392\u4e00\u6b21\u3002\u8fd9\u5f20\u56fe\u4f1a\u8ddf\u7740\u4f60\u6b63\u5728"
+                 "\u8bfb\u7684\u8fd9\u4e2a\u9875\u9762\u5207\u6362\u6df1\u6d45\u8272\u3002",
+                 "assets/app-search-zh-dark.png",
+                 "\u540c\u4e00\u4e2a\u641c\u7d22\u9875\u7684\u6df1\u8272\u6a21\u5f0f"),
+                ("p",
+                 "\u7b2c\u4e8c\u4e2a\u89c6\u56fe\u56de\u7b54\u7684\u662f\u6240\u6709\u4eba\u5230\u8fd9\u4e00\u6b65\u90fd\u4f1a\u6709\u7684\u90a3\u4e2a\u95ee\u9898 \u2014\u2014 "
+                 "<em>\u521a\u624d\u90a3\u4e9b\u5230\u5e95\u6210\u6ca1\u6210\uff1f</em>\u70b9\u9876\u680f\u7684<b>\u4e66\u7b7e\u5e93</b>\u3002"),
+                ("shot",
+                 "assets/app-library-zh.png",
+                 "facetmark \u4e66\u7b7e\u5e93\u89c6\u56fe\uff0c\u5217\u7740\u4e66\u7b7e\u3001\u5411\u91cf\u3001\u4f1a\u8bdd\u548c\u8fb9\u7684\u6570\u91cf",
+                 "<b>\u4e66\u7b7e\u5e93\u3002</b>\u5982\u679c<em>\u5185\u5bb9\u5411\u91cf</em>\u662f 0\uff0c\u6309\u610f\u601d\u641c\u5c31\u8fd8\u6ca1\u5f00"
+                 "\u8d77\u6765\uff1a\u8981\u4e48\u6ca1\u914d\u6a21\u578b\uff0c\u8981\u4e48 <code>facetmark index</code> \u8fd8\u6ca1"
+                 "\u8dd1\u5b8c\u3002\u5982\u679c<em>\u4e66\u7b7e</em>\u662f 0\uff0c\u90a3\u662f\u5bfc\u5165\u6ca1\u6210\u3002",
+                 "assets/app-library-zh-dark.png",
+                 "\u540c\u4e00\u4e2a\u4e66\u7b7e\u5e93\u89c6\u56fe\u7684\u6df1\u8272\u6a21\u5f0f"),
+                ("callout", "info", "\u8ba9\u5b83\u4e00\u76f4\u5f00\u7740",
+                 "<p><code>facetmark serve</code> \u662f\u4e2a\u524d\u53f0\u8fdb\u7a0b\uff1b\u5b83\u5f00\u7740\u9875\u9762\u624d"
+                 "\u80fd\u7528\u3002\u5b83\u76d1\u542c 127.0.0.1\uff0c\u4e5f\u5c31\u662f\u53ea\u6709\u4f60\u8fd9\u53f0\u673a\u5668\uff0c\u7f51\u7edc\u4e0a\u522b\u7684\u673a"
+                 "\u5668\u78b0\u4e0d\u5230\u3002\u6d4f\u89c8\u5668\u6269\u5c55\u3001API \u548c MCP \u5ba2\u6237\u7aef\u8bf4\u8bdd\u7684\u90fd\u662f\u8fd9\u540c\u4e00\u4e2a\u8fdb"
+                 "\u7a0b \u2014\u2014 \u89c1<a href=\"guide.zh.html#webui\">\u4f7f\u7528\u6307\u5357</a>\u3002</p>"),
+            ],
+        ),
+        # ------------------------------------------------------------ 读结果
+        (
+            "read",
+            "\u8bfb\u61c2\u4e00\u6761\u7ed3\u679c",
+            [
+                ("p",
+                 "\u6bcf\u4e00\u884c\u90fd\u4f1a\u8bf4\u5b83\u4e3a\u4ec0\u4e48\u5728\u8fd9\u513f\u3002\u5728\u9875\u9762\u91cc\u628a\u9f20\u6807\u653e\u5230\u6807\u8bb0\u4e0a\u5c31\u6709\u89e3"
+                 "\u91ca\uff1b\u8fd9\u91cc\u662f\u540c\u4e00\u4ef6\u4e8b\u7684\u4e00\u5f20\u8868\u3002"),
+                ("table",
+                 ["\u884c\u4e0a\u7684\u6807\u8bb0", "\u610f\u601d"],
+                 [["<span class=\"chip mk\">\u5185\u5bb9\u76f8\u5173</span>",
+                   "\u9875\u9762\u81ea\u5df1\u7684\u6b63\u6587\u547d\u4e2d\u4e86 \u2014\u2014 \u6309\u610f\u601d\uff0c\u4e0d\u662f\u6309\u5173\u952e\u8bcd\u3002\u60f3\u4e0d\u8d77\u6765"
+                   "\u7528\u8bcd\u7684\u90a3\u79cd\u9875\u9762\uff0c\u5c31\u662f\u9760\u8fd9\u4e2a\u627e\u51fa\u6765\u7684\u3002"],
+                  ["<span class=\"chip mk\">\u8bcd\u8bed</span>",
+                   "\u6807\u9898\u3001\u6587\u4ef6\u5939\u6216\u7f51\u5740\u91cc\u6709\u4e00\u4e2a\u5b8c\u6574\u7684\u8bcd\u547d\u4e2d\u4e86\u3002"],
+                  ["<span class=\"chip mk\">\u5b50\u4e32</span>",
+                   "\u8bcd\u7684\u4e00\u90e8\u5206\u547d\u4e2d\u4e86 \u2014\u2014 \u4e2d\u6587\u67e5\u8be2\u548c\u53ea\u6253\u4e86\u4e00\u534a\u7684\u8bcd\u80fd\u7528\uff0c\u5c31"
+                   "\u662f\u56e0\u4e3a\u5b83\u3002"],
+                  ["<span class=\"chip mk\">\u63d0\u95ee\u65b9\u5f0f</span>",
+                   "\u5f53\u521d\u4e3a\u8fd9\u4e2a\u9875\u9762\u7559\u4e0b\u7684\u67d0\u4e2a\u95ee\u9898\u547d\u4e2d\u4e86\u3002"],
+                  ["<span class=\"badge warn mk\">\u5df2\u51b7\u5374</span>",
+                   "\u5f88\u4e45\u4ee5\u524d\u5b58\u7684\uff0c\u4e00\u76f4\u6ca1\u6253\u5f00\u8fc7\uff0c\u800c\u4e14\u6709\u66f4\u65b0\u7684\u4e1c\u897f\u770b\u8d77\u6765\u628a\u5b83\u53d6"
+                   "\u4ee3\u4e86\u3002\u5f80\u4e0b\u538b\uff0c\u7edd\u4e0d\u5220\u9664\u3002"]]),
+                ("p",
+                 "\u6392\u597d\u5e8f\u7684\u5217\u8868\u4e0b\u9762\uff0c\u6709\u65f6\u4f1a\u6709\u5355\u72ec\u7684\u7b2c\u4e8c\u7ec4\uff0c\u6807\u7740<b>\u5f53\u65f6\u524d\u540e\u4e00\u8d77"
+                 "\u5b58\u7684</b>\u3002\u90a3\u4e9b\u4e0d\u662f\u4f60\u8fd9\u4e2a\u67e5\u8be2\u7684\u7b54\u6848 \u2014\u2014 \u5b83\u4eec\u662f\u4f60\u548c\u4e0a\u9762\u67d0\u6761"
+                 "\u7ed3\u679c\u540c\u4e00\u6b21\u4e0a\u7f51\u65f6\u5b58\u4e0b\u7684\u9875\u9762\uff0c\u800c\u8fd9\u5f80\u5f80\u624d\u662f\u4f60\u771f\u6b63\u8bb0\u5f97\u67d0\u4e2a\u9875\u9762"
+                 "\u5728\u54ea\u513f\u7684\u65b9\u5f0f\u3002\u5b83\u4eec\u88ab\u6545\u610f\u9694\u5f00\uff0c\u7edd\u4e0d\u6df7\u8fdb\u6392\u540d\u3002"),
+                ("p",
+                 "\u5e95\u90e8\u7684<b>\u52a0\u8f7d\u66f4\u591a</b>\u53d6\u7684\u662f\u540c\u4e00\u6b21\u6392\u540d\u7684\u4e0b\u4e00\u9875\uff0c\u800c\u4e0d\u662f\u91cd\u65b0\u641c"
+                 "\u4e00\u904d\uff0c\u6240\u4ee5\u4f60\u5df2\u7ecf\u8bfb\u8fc7\u7684\u987a\u5e8f\u4e0d\u4f1a\u5728\u811a\u5e95\u4e0b\u91cd\u6392\u3002\u5217\u8868\u4e0a\u65b9\u7684\u8ba1\u6570"
+                 "\u544a\u8bc9\u4f60\u73b0\u5728\u770b\u7684\u662f\u54ea\u4e00\u6bb5\u3002"),
+            ],
+        ),
+        # ------------------------------------------------------------ 排错
+        (
+            "trouble",
+            "\u4e0d\u5bf9\u52b2\u7684\u65f6\u5019",
+            [
+                ("h3", "\u9875\u9762\u95ee\u6211\u8981\u4ee4\u724c"),
+                ("p",
+                 "\u4f60\u4e0d\u662f\u901a\u8fc7 127.0.0.1 \u8bbf\u95ee\u5b83\u7684 \u2014\u2014 \u5c40\u57df\u7f51\u5730\u5740\u3001\u4e3b\u673a\u540d\u3001\u53cd\u5411"
+                 "\u4ee3\u7406\uff0c\u5728\u90a3\u4e2a\u68c0\u67e5\u770b\u6765\u90fd\u662f\u4e00\u56de\u4e8b\u3002\u8dd1\u4e00\u4e0b "
+                 "<code>facetmark token</code>\uff0c\u628a\u503c\u7c98\u8fdb\u90a3\u4e2a\u8f93\u5165\u6846\u4e00\u6b21\uff0c\u6d4f\u89c8"
+                 "\u5668\u5c31\u8bb0\u4f4f\u4e86\u3002<a href=\"guide.zh.html#webui\">\u8fd9\u4e2a\u68c0\u67e5\u4e3a\u4ec0\u4e48\u5b58"
+                 "\u5728\u3002</a>"),
+                ("h3", "\u9875\u9762\u6839\u672c\u6253\u4e0d\u5f00"),
+                ("p",
+                 "<code>facetmark serve</code> \u5f97\u4e00\u76f4\u5728\u67d0\u4e2a\u7ec8\u7aef\u91cc\u8dd1\u7740\u3002\u5982\u679c\u5b83"
+                 "\u5e26\u7740 <code>address already in use</code> \u9000\u51fa\u4e86\uff0c\u8bf4\u660e 8787 "
+                 "\u88ab\u522b\u7684\u4e1c\u897f\u5360\u4e86\uff1a\u8dd1 <code>facetmark serve --port 8788</code>\uff0c"
+                 "\u7136\u540e\u6253\u5f00\u90a3\u4e2a\u7aef\u53e3\u3002"),
+                ("h3", "\u641c\u4e0d\u5230\u4e1c\u897f\uff0c\u6216\u8005\u53ea\u80fd\u641c\u5230\u4e00\u6a21\u4e00\u6837\u7684\u8bcd"),
+                ("p",
+                 "\u6253\u5f00<b>\u4e66\u7b7e\u5e93</b>\u3002<em>\u5185\u5bb9\u5411\u91cf</em>\u662f 0\uff0c\u8bf4\u660e\u6309\u610f\u601d\u641c\u6ca1\u5f00"
+                 "\u8d77\u6765\uff1a\u6ca1\u914d\u6a21\u578b\uff0c\u6216\u8005 <code>facetmark index</code> \u6ca1\u8dd1\u5b8c\u3002"
+                 "<em>\u6293\u53d6\u961f\u5217</em>\u4e0d\u7a7a\uff0c\u8bf4\u660e\u8fd8\u5728\u5904\u7406\u4f60\u7684\u4e66\u7b7e\u5e93\uff0c\u7ed3\u679c\u4f1a\u7ee7\u7eed\u53d8"
+                 "\u597d\u3002"),
+                ("h3", "\u6bcf\u6b21\u6a21\u578b\u8c03\u7528\u90fd\u8fd4\u56de 404"),
+                ("p",
+                 "base URL \u5c11\u4e86 <code>/v1</code>\u3002\u8fd9\u662f\u9065\u9065\u9886\u5148\u7684\u7b2c\u4e00\u5927\u6545\u969c"
+                 "\u539f\u56e0\u3002"),
+                ("h3", "\u6211\u7684\u6570\u636e\u5728\u54ea\u513f"),
+                ("p",
+                 "\u4e00\u4e2a\u76ee\u5f55\uff1amacOS \u548c Linux \u4e0a\u662f <code>~/.facetmark</code>\uff0c"
+                 "Windows \u4e0a\u662f <code>%USERPROFILE%\\.facetmark</code>\u3002\u91cc\u9762\u662f"
+                 "\u4e00\u4e2a SQLite \u6587\u4ef6\u52a0\u4e00\u4e2a\u914d\u5bf9\u4ee4\u724c\u3002\u642c\u8d70\u3001\u5907\u4efd\u3001\u62f7\u5230\u53e6\u4e00\u53f0\u673a"
+                 "\u5668 \u2014\u2014 \u8fd9\u5c31\u662f\u5168\u90e8\u72b6\u6001\u3002<code>FACETMARK_DATA_DIR</code> \u53ef\u4ee5"
+                 "\u628a\u5b83\u653e\u5230\u522b\u5904\u3002"),
+                ("h3", "\u600e\u4e48\u628a\u5b83\u5168\u90e8\u5220\u6389"),
+                ("p",
+                 "\u5220\u6389\u90a3\u4e2a\u76ee\u5f55\u3002\u6ca1\u6709\u5378\u8f7d\u6b65\u9aa4\uff0c\u5916\u9762\u4e5f\u6ca1\u6709\u522b\u7684\u4e1c\u897f \u2014\u2014 \u6ca1\u6709\u6ce8"
+                 "\u518c\u8868\u9879\uff0c\u6ca1\u6709\u6539\u8fc7\u6d4f\u89c8\u5668\uff0c\u54ea\u513f\u4e5f\u6ca1\u6709\u8d26\u53f7\u3002"
+                 "<code>pip uninstall facetmark</code> \u5220\u6389\u7a0b\u5e8f\u672c\u8eab\u3002"),
+                ("h3", "\u522b\u7684\u95ee\u9898"),
+                ("p",
+                 "<code>facetmark stats</code> \u4f1a\u6253\u5370\u7d22\u5f15\u91cc\u5230\u5e95\u6709\u4ec0\u4e48\uff0c\u5927\u90e8\u5206"
+                 "\u56f0\u60d1\u770b\u4e00\u773c\u5c31\u6e05\u695a\u4e86\uff0c"
+                 "<a href=\"guide.zh.html#trouble\">\u4f7f\u7528\u6307\u5357\u91cc\u6709\u66f4\u957f\u7684\u6392\u9519"
+                 "\u6e05\u5355</a>\u3002\u518d\u4e0d\u884c\uff0c\u5c31\u53bb "
+                 "<a href=\"https://github.com/88lin/facetmark/issues\" "
+                 "rel=\"noopener\">\u63d0\u4e2a issue</a>\u3002"),
+            ],
+        ),
+    ],
+}
+
 
 ZH["guide"] = {
     "h1": "\u4f7f\u7528\u6307\u5357",
@@ -1084,8 +1382,9 @@ ZH["guide"] = {
                 ("cb", "shell", "facetmark serve        # 127.0.0.1:8787"),
                 ("callout", "warn",
                  "\u53ea\u542c\u56de\u73af\u5730\u5740\u4e0d\u7b97\u9274\u6743",
-                 "<p>\u9664\u4e86 <code>/</code> \u548c <code>/health</code>\uff0c\u6bcf"
-                 "\u6761\u8def\u7531\u90fd\u8981\u4ee4\u724c\uff0c\u5728 localhost \u4e0a"
+                 "<p>\u9664\u4e86 <code>/</code>\u3001<code>/health</code>\uff0c\u4ee5\u53ca\u672c\u5730\u9875"
+                 "\u9762\u52a0\u8f7d\u81ea\u5df1\u7528\u7684 <code>/app</code> \u548c <code>/app/boot</code>\uff0c"
+                 "\u6bcf\u6761\u8def\u7531\u90fd\u8981\u4ee4\u724c\uff0c\u5728 localhost \u4e0a"
                  "\u4e5f\u8981 \u2014\u2014 \u56e0\u4e3a\u4f60\u673a\u5668\u4e0a\u4efb\u4f55"
                  "\u4e00\u4e2a\u8fdb\u7a0b\u90fd\u80fd\u8bbf\u95ee 127.0.0.1\u3002"
                  "<code>--host</code> \u4e0d\u662f\u56de\u73af\u5730\u5740\u65f6\uff0c"
@@ -1127,6 +1426,10 @@ ZH["guide"] = {
                  ["\u5206\u7ec4", "\u8def\u7531"],
                  [["\u516c\u5f00",
                    "<code>GET /</code> \u00b7 <code>GET /health</code>"],
+                  ["\u672c\u5730\u9875\u9762 \u2014\u2014 \u540c\u6837\u516c\u5f00",
+                   "<code>GET /app</code> \u00b7 "
+                   "<code>GET /app/static/*</code> \u00b7 "
+                   "<code>GET /app/boot</code>"],
                   ["\u641c\u7d22",
                    "<code>GET /stats</code> \u00b7 <code>GET /quick</code> "
                    "\u00b7 <code>POST /search</code> \u00b7 "
@@ -1155,6 +1458,176 @@ ZH["guide"] = {
                    "<code>POST /karakeep/search</code> \u00b7 "
                    "<code>POST /karakeep/clear</code> \u00b7 "
                    "<code>GET /karakeep/stats</code>"]]),
+            ],
+        ),
+        (
+            "webui",
+            "\u672c\u5730\u9875\u9762",
+            [
+                ("p",
+                 "<code>facetmark serve</code> \u540c\u65f6\u8fd8\u6258\u7ba1\u7740\u4e00\u4e2a\u641c\u7d22\u9875\u3002\u5b83\u662f\u552f"
+                 "\u4e00\u4e00\u4e2a\u9664\u4e86 facetmark \u672c\u8eab\u4ec0\u4e48\u90fd\u4e0d\u7528\u88c5\u7684\u5165\u53e3 \u2014\u2014 \u4e0d\u7528\u52a0\u8f7d\u6d4f"
+                 "\u89c8\u5668\u6269\u5c55\uff0c\u4e0d\u7528\u914d\u7f16\u8f91\u5668\uff0c\u4e5f\u4e0d\u7528 <code>curl</code>\u3002"),
+                ("cb", "shell",
+                 "facetmark serve\n"
+                 "# facetmark 1.6.1  http://127.0.0.1:8787\n"
+                 "# open the search page:     http://127.0.0.1:8787/app\n"
+                 "# pairing token written to: ~/.facetmark/pairing-token.txt"),
+                ("p",
+                 "Python \u5305\u91cc\u7684\u7eaf HTML\u3001CSS \u548c ES \u6a21\u5757\uff1a\u6ca1\u6709 Node\uff0c\u6ca1\u6709\u6253\u5305\u5668\uff0c"
+                 "\u4e5f\u5c31\u6ca1\u6709\u4f1a\u548c\u670d\u52a1\u7aef\u5bf9\u4e0d\u4e0a\u7684\u6784\u5efa\u4ea7\u7269\u3002\u9875\u9762\u548c API \u7531\u540c\u4e00\u4e2a\u8fdb\u7a0b"
+                 "\u53d1\u51fa\uff0c\u6240\u4ee5\u662f\u540c\u6e90\u7684 \u2014\u2014 \u8fd9\u4e5f\u662f\u5b83\u6ca1\u6cd5\u6258\u7ba1\u5230\u522b\u5904\u53bb\u7684\u539f\u56e0\uff1a"
+                 "\u8fd9\u4e2a\u670d\u52a1\u7684 CORS \u53ea\u5bf9\u6d4f\u89c8\u5668\u6269\u5c55\u7684\u6765\u6e90\u5f00\u653e\u3002"),
+                ("h3", "\u4e24\u4e2a\u89c6\u56fe"),
+                ("table",
+                 ["\u89c6\u56fe", "\u5730\u5740", "\u5e72\u4ec0\u4e48\u7528"],
+                 [["\u641c\u7d22", "<code>/app#/search</code>",
+                   "\u641c\u7d22\u6846\u548c\u6392\u597d\u5e8f\u7684\u5217\u8868\u3002\u4e00\u6572\u5b57\u5148\u51fa\u5b57\u9762\u5339\u914d\u7684\u7ed3\u679c\uff0c\u5b8c\u5168\u4e0d\u8c03"
+                   "\u6a21\u578b\uff1b\u6392\u597d\u5e8f\u7684\u7b54\u6848\u5230\u4e86\u5c31\u66ff\u6362\u6389\uff0c<b>\u52a0\u8f7d\u66f4\u591a</b>\u7ffb\u540e\u9762\u7684\u3002"],
+                  ["\u4e66\u7b7e\u5e93", "<code>/app#/library</code>",
+                   "<code>facetmark stats</code> \u6253\u5370\u7684\u6240\u6709\u4e1c\u897f\uff0c\u6309\u884c\u5217\u51fa\u6765\uff1a"
+                   "\u4e66\u7b7e\u6570\u3001\u591a\u5c11\u6761\u6293\u5230\u4e86\u6b63\u6587\u3001\u591a\u5c11\u6761\u505a\u4e86\u5411\u91cf\u3001\u4f1a\u8bdd\u3001\u6309\u7c7b\u578b\u5206"
+                   "\u7684\u8fb9\u3001\u6293\u53d6\u961f\u5217\u3001\u94fe\u63a5\u5065\u5eb7\uff0c\u8fd8\u6709\u51b7\u5c42\u6e05\u70b9\u3002\u201c\u6211\u641c\u4e86\u4f46\u4ec0\u4e48\u90fd\u6ca1"
+                   "\u6709\u201d \u8fd9\u4e2a\u95ee\u9898\u5c31\u9760\u8fd9\u4e2a\u89c6\u56fe\u56de\u7b54\u3002"]]),
+                ("callout", "info", "\u5b83\u6545\u610f\u4e0d\u505a\u7684\u4e8b",
+                 "<p>\u5b83\u53ea\u8bfb\u3002\u6ca1\u6709\u5220\u9664\uff0c\u6ca1\u6709\u7f16\u8f91\uff0c\u6ca1\u6709\u961f\u5217\u63a7\u5236\uff0c\u4e5f\u6ca1\u6709\u7efc\u8ff0\u6309"
+                 "\u94ae\u3002\u90a3\u4e9b\u5728\u547d\u4ee4\u884c\u548c API \u91cc\u6709\uff0c\u5728\u90a3\u513f\u72af\u9519\u81f3\u5c11\u662f\u4e3b\u52a8\u72af\u7684\u3002\u9875\u9762"
+                 "\u552f\u4e00\u5199\u7684\u4e00\u6b21\uff0c\u662f\u4f60\u70b9\u5f00\u67d0\u6761\u7ed3\u679c\u65f6\u7684 <code>POST /open</code>\uff0c"
+                 "\u51b7\u5c42\u5c31\u662f\u9760\u5b83\u5582\u7684\u3002</p>"),
+                ("h3", "\u7ed3\u679c\u884c\u4e0a\u7684\u6807\u8bb0\u662f\u4ec0\u4e48\u610f\u601d"),
+                ("p",
+                 "\u548c\u6269\u5c55\u5f39\u7a97\u7528\u7684\u662f\u540c\u4e00\u5957\u8bcd\u3002\u5728\u9875\u9762\u91cc\uff0c\u6bcf\u4e2a\u6807\u8bb0\u9f20\u6807\u60ac\u505c\u90fd\u6709\u4e00"
+                 "\u884c\u89e3\u91ca\uff1b\u8fd9\u5f20\u8868\u662f\u4e3a\u4e86\u8ba9\u4f60\u4e00\u6b21\u770b\u5168\u3002"),
+                ("table",
+                 ["\u6807\u8bb0", "\u610f\u601d", "\u9ed8\u8ba4"],
+                 [["<span class=\"chip mk\">\u5185\u5bb9\u76f8\u5173</span>",
+                   "\u547d\u4e2d\u4e86<b>\u5185\u5bb9</b>\u9762 \u2014\u2014 \u9875\u9762\u81ea\u5df1\u6b63\u6587\u7684\u5411\u91cf\u3002",
+                   "<span class=\"badge info\">\u5f00</span>"],
+                  ["<span class=\"chip mk\">\u63d0\u95ee\u65b9\u5f0f</span>",
+                   "\u547d\u4e2d\u4e86<b>\u610f\u56fe</b>\u9762 \u2014\u2014 \u7ed9\u8fd9\u4e2a\u9875\u9762\u751f\u6210\u7684\u95ee\u9898\u7684\u5411\u91cf\u3002",
+                   "\u5173"],
+                  ["<span class=\"chip mk\">\u8bcd\u8bed</span>",
+                   "\u547d\u4e2d\u4e86<b>\u5b57\u9762 \u00b7 \u5206\u8bcd</b>\u9762 \u2014\u2014 \u5bf9\u6807\u9898\u3001\u6587\u4ef6\u5939\u3001\u7f51\u5740\u91cc"
+                   "\u5b8c\u6574\u8bcd\u7684 FTS5\u3002", "\u5173"],
+                  ["<span class=\"chip mk\">\u5b50\u4e32</span>",
+                   "\u547d\u4e2d\u4e86<b>\u5b57\u9762 \u00b7 \u4e09\u5143\u7ec4</b>\u9762 \u2014\u2014 \u5bf9\u5b57\u7b26\u7684 FTS5\uff0c\u4e2d\u6587"
+                   "\u67e5\u8be2\u548c\u53ea\u6253\u4e86\u4e00\u534a\u7684\u8bcd\u80fd\u547d\u4e2d\uff0c\u9760\u7684\u5c31\u662f\u5b83\u3002", "\u5173"],
+                  ["<span class=\"badge warn mk\">\u5df2\u51b7\u5374</span>",
+                   "\u5f88\u4e45\u4ee5\u524d\u5b58\u7684\uff0c\u4e00\u76f4\u6ca1\u6253\u5f00\u8fc7\uff0c\u800c\u4e14\u6709\u66f4\u65b0\u7684\u4e1c\u897f\u770b\u8d77\u6765\u628a\u5b83\u53d6"
+                   "\u4ee3\u4e86\u3002\u6392\u540d\u538b\u4f4e\uff0c\u7edd\u4e0d\u5220\u9664\u3002",
+                   "<span class=\"badge info\">\u5f00</span>"],
+                  ["<span class=\"gmk mk\">\u5f53\u65f6\u524d\u540e\u4e00\u8d77\u5b58\u7684</span>",
+                   "\u7b2c\u4e8c\u7ec4\uff1a\u4ece\u4e0a\u9762\u67d0\u6761\u7ed3\u679c\u51fa\u53d1\uff0c\u5728\u94fe\u63a5\u56fe\u4e0a\u8d70\u4e00\u8df3\u3002\u7edd\u4e0d\u6df7\u8fdb\u6392"
+                   "\u540d\u91cc\u3002",
+                   "<span class=\"badge info\">\u5f00</span>"]]),
+                ("p",
+                 "\u7b2c\u4e8c\u7ec4\u91cc\u6bcf\u4e00\u884c\u90fd\u5e26\u7740\u8d70\u5230\u5b83\u7684\u90a3\u6761\u8fb9 \u2014\u2014 <em>\u540c\u4e00\u6b21\u6d4f\u89c8</em>"
+                 "\uff08\u540c\u4e00\u6b21\u4e0a\u7f51\u65f6\u5b58\u7684\uff09\u3001<em>\u8bed\u4e49\u76f8\u8fd1</em>\u3001<em>\u5df2\u88ab\u53d6\u4ee3</em>\u3001"
+                 "<em>\u540c\u4e00\u9875\u9762</em>\u3001<em>\u540c\u4e00\u7ad9\u70b9</em>\u3002\u8fd9\u4e9b\u540d\u5b57\u80cc\u540e\u7684\u6743\u91cd\u5728"
+                 "<a href=\"#env\">\u914d\u7f6e\u8868</a>\u91cc\u3002"),
+                ("h3", "\u9875\u9762\u600e\u4e48\u62ff\u5230\u4ee4\u724c"),
+                ("p",
+                 "\u5b83\u53bb\u95ee <code>GET /app/boot</code>\u3002\u8fd9\u662f\u552f\u4e00\u4e00\u6761\u80fd\u628a\u914d\u5bf9\u4ee4\u724c"
+                 "\u4ea4\u51fa\u53bb\u7684\u8def\u7531\uff0c\u800c\u4e14\u53ea\u5728\u8c03\u7528\u65b9\u548c\u8bf7\u6c42\u91cc\u5199\u7684\u5730\u5740\u4e24\u8005\u90fd\u662f\u56de\u73af\u5730"
+                 "\u5740\u65f6\u624d\u4ea4\u3002\u5728\u4f60\u81ea\u5df1\u673a\u5668\u4e0a\u4e24\u6761\u90fd\u6210\u7acb\uff0c\u9875\u9762\u5c31\u81ea\u5df1\u914d\u5bf9\u597d\u4e86\uff0c\u6ca1"
+                 "\u6709\u4ec0\u4e48\u8981\u590d\u5236\u7684\u3002"),
+                ("callout", "warn", "\u7b2c\u4e8c\u4e2a\u6761\u4ef6\u662f\u5e72\u4ec0\u4e48\u7684",
+                 "<p>\u516c\u7f51\u4e0a\u7684\u4e00\u4e2a\u9875\u9762\u53ef\u4ee5\u628a\u67d0\u4e2a\u57df\u540d\u89e3\u6790\u5230 127.0.0.1\uff0c\u7136\u540e\u8ba9"
+                 "<em>\u4f60\u7684</em>\u6d4f\u89c8\u5668\u53bb\u53d1\u8fd9\u4e2a\u8bf7\u6c42 \u2014\u2014 \u8c03\u7528\u65b9\u786e\u5b9e\u662f\u56de\u73af\u5730\u5740\u3002"
+                 "\u4f46\u5b83\u6539\u4e0d\u4e86 <code>Host</code> \u5934\uff0c\u90a3\u91cc\u9762\u8fd8\u5199\u7740\u653b\u51fb\u8005\u7684\u57df\u540d\u3002"
+                 "\u67e5\u8fd9\u4e00\u9879\uff0c\u624d\u662f\u62e6\u4f4f\u4e00\u4e2a\u7f51\u7ad9\u8bfb\u8d70\u4f60\u4ee4\u724c\u7684\u4e1c\u897f\uff1b\u8fd9\u4e5f\u662f\u4e3a\u4ec0\u4e48\u5b83"
+                 "\u662f\u4e00\u6761\u5355\u72ec\u7684\u8def\u7531\uff0c\u800c\u4e0d\u662f\u6302\u5728\u73b0\u6709\u8def\u7531\u4e0a\u7684\u4e00\u4e2a\u5f00\u5173\u3002</p><p>\u5728"
+                 "\u53cd\u5411\u4ee3\u7406\u540e\u9762\uff0c\u6216\u8005\u7528\u5c40\u57df\u7f51\u5730\u5740\u8bbf\u95ee\u65f6\uff0c\u8fd9\u4e2a\u68c0\u67e5\u4f1a\u4e0d\u901a\u8fc7 \u2014\u2014 "
+                 "\u8fd9\u662f\u6545\u610f\u7684\uff1a\u9875\u9762\u8fd9\u65f6\u7ed9\u4f60\u4e00\u4e2a\u8f93\u5165\u6846\uff0c\u628a "
+                 "<code>facetmark token</code> \u7c98\u4e00\u6b21\u5c31\u884c\u3002\u5b83\u5b58\u5728\u90a3\u4e2a\u6d4f\u89c8\u5668\u7684"
+                 "\u672c\u5730\u5b58\u50a8\u91cc\uff0c\u4e0d\u5728\u9875\u9762\u91cc\u3002</p>"),
+                ("h3", "\u952e\u76d8"),
+                ("table",
+                 ["\u6309\u952e", "\u4f5c\u7528"],
+                 [["<kbd>/</kbd>", "\u5728\u9875\u9762\u4efb\u4f55\u5730\u65b9\u805a\u7126\u5230\u641c\u7d22\u6846\u3002"],
+                  ["<kbd>Enter</kbd>", "\u641c\u7d22\u3002"],
+                  ["<kbd>\u2191</kbd> <kbd>\u2193</kbd>",
+                   "\u5728\u7ed3\u679c\u4e4b\u95f4\u79fb\u52a8\u3002\u5728\u641c\u7d22\u6846\u91cc\u6309 <kbd>\u2193</kbd> \u8fdb\u5165\u5217\u8868\u3002"],
+                  ["<kbd>Esc</kbd>", "\u6e05\u7a7a\u67e5\u8be2\uff0c\u56de\u5230\u641c\u7d22\u6846\u3002"]]),
+                ("h3", "\u8bed\u8a00\u548c\u4e3b\u9898"),
+                ("p",
+                 "\u4e2d\u82f1\u6587\uff0c\u9876\u680f\u5207\u6362\uff0c\u4e0b\u6b21\u8bb0\u5f97\u3002\u6ca1\u5b58\u8fc7\u9009\u62e9\u65f6\u8ddf\u968f\u6d4f\u89c8\u5668\u8bed\u8a00\u3002\u4e3b"
+                 "\u9898\u5f00\u5173\u5728 \u8ddf\u968f\u7cfb\u7edf \u2192 \u6d45\u8272 \u2192 \u6df1\u8272 \u4e4b\u95f4\u5faa\u73af\uff0c\u800c\u4e14\u548c\u672c\u7ad9\u5171\u7528"
+                 "\u540c\u4e00\u4e2a\u5b58\u50a8\u952e\uff0c\u6240\u4ee5\u5728\u8fd9\u91cc\u9009\u4e86\u6df1\u8272\u7684\u4eba\uff0c\u90a3\u8fb9\u4e5f\u662f\u6df1\u8272\u3002\u6240\u6709\u52a8"
+                 "\u6548\u90fd\u5305\u5728 <code>prefers-reduced-motion</code> \u67e5\u8be2\u91cc\u3002"),
+            ],
+        ),
+        # ------------------------------------------------------------- 翻页
+        (
+            "paging",
+            "\u7ffb\u9875\uff1alimit\u3001offset \u548c depth",
+            [
+                ("p",
+                 "\u6bcf\u4e2a\u641c\u7d22\u5165\u53e3\u90fd\u6536 <code>limit</code>\u3001<code>offset</code> \u548c "
+                 "<code>depth</code>\uff0c\u800c\u6bcf\u4e2a\u641c\u7d22\u54cd\u5e94\u62a5\u7684\u662f\u5b83<em>\u5b9e\u9645</em>\u7ed9\u51fa"
+                 "\u7684\u90a3\u4e2a\u7a97\u53e3\uff0c\u4e0d\u662f\u628a\u4f60\u8981\u7684\u539f\u6837\u56de\u663e\u3002"),
+                ("cb", "shell",
+                 'facetmark search "kafka rebalance" -n 20\n'
+                 'facetmark search "kafka rebalance" -n 20 -o 20 --depth 60'),
+                ("p",
+                 "\u53ea\u8981\u8fd8\u6709\u4e0b\u4e00\u9875\uff0cCLI \u5c31\u4f1a\u628a\u4e0b\u4e00\u9875\u7684 <code>--offset</code> \u548c "
+                 "<code>--depth</code> \u6253\u51fa\u6765\u3002\u8d70 HTTP \u65f6\uff0c\u540c\u6837\u8fd9\u4e09\u4e2a\u5b57\u6bb5\u653e\u5728 "
+                 "<code>POST /search</code> \u7684\u8bf7\u6c42\u4f53\u91cc\uff1a"),
+                ("cb", "json",
+                 "{\n"
+                 '  "hits": [ ],\n'
+                 '  "limit": 20,          // \u5b9e\u9645\u7ed9\u7684\uff0c\u5df2\u7ecf\u5939\u8fc7\n'
+                 '  "offset": 20,\n'
+                 '  "depth": 60,          // \u8fd9\u6b21\u6392\u540d\u8dd1\u7684\u6df1\u5ea6\n'
+                 '  "total": 137,         // \u5df2\u7ecf\u6392\u8fc7\u7684\u6761\u6570\uff1b\u5c01\u9876\u65f6\u662f\u4e0b\u754c\n'
+                 '  "has_more": true,\n'
+                 '  "depth_capped": false\n'
+                 "}"),
+                ("table",
+                 ["\u5b57\u6bb5", "\u542b\u4e49"],
+                 [["<code>limit</code>",
+                   "\u8fd9\u4e00\u9875\u7684\u6761\u6570\u3002\u4f1a\u5939\u5230 <code>MAX_PAGE_SIZE</code>\uff0c\u9ed8\u8ba4 "
+                   "200\u3002"],
+                  ["<code>offset</code>",
+                   "\u8df3\u8fc7\u7684\u6761\u6570\u3002\u4f1a\u5939\u5728 <code>MAX_CANDIDATE_DEPTH</code> \u4ee5\u4e0b\u3002"],
+                  ["<code>depth</code>",
+                   "\u878d\u5408\u4e4b\u524d\u6bcf\u4e2a\u9762\u5404\u8bfb\u591a\u6df1\u3002\u4e0d\u586b\u5c31\u6309\u7a97\u53e3\u63a8\u7b97\uff1b\u628a\u4e0a\u4e00\u9875\u62a5\u7684\u503c"
+                   "\u539f\u6837\u9001\u56de\u6765\uff0c\u8fd9\u4e00\u9875\u5c31\u63a5\u7740<em>\u540c\u4e00\u6b21</em>\u6392\u540d\u5f80\u4e0b\u8d70\u3002"],
+                  ["<code>total</code>",
+                   "\u878d\u5408\u8fd9\u4e00\u6b65\u6392\u8fc7\u7684\u6587\u6863\u6570\u3002\u662f\u4e2a\u4e0b\u754c\uff0c\u4e0d\u662f\u4e66\u7b7e\u5e93\u7684\u603b\u6570\uff1b"
+                   "<code>depth_capped</code> \u4e3a\u771f\u65f6\u66f4\u662f\u660e\u786e\u53ea\u5f53\u4e0b\u754c\u770b\u3002"],
+                  ["<code>has_more</code>",
+                   "\u8fd9\u4e2a\u7a97\u53e3\u540e\u9762\u8fd8\u6709\u4e1c\u897f\u3002\u5728\u51fa\u5382\u7684\u5355\u9762\u9ed8\u8ba4\u6863\u4e0b\u662f\u51c6\u7684\uff1b\u5f00\u4e86\u597d"
+                   "\u51e0\u4e2a\u9762\u65f6\u662f\u4e0a\u754c \u2014\u2014 \u591a\u51fa\u6765\u7684\u90a3\u4e00\u6761\u6709\u53ef\u80fd\u662f\u5019\u9009\u6c60\u91cc\u5df2\u7ecf"
+                   "\u6709\u7684\u6587\u6863\u3002"],
+                  ["<code>depth_capped</code>",
+                   "\u540e\u9762<em>\u786e\u5b9e</em>\u8fd8\u6709\uff0c\u800c\u4e14\u505c\u4e0b\u6765\u7684\u539f\u56e0\u662f\u649e\u5230\u4e86\u6df1\u5ea6\u4e0a\u9650\uff0c"
+                   "\u4e0d\u662f\u4f60\u7684\u7a97\u53e3 \u2014\u2014 \u8fd9\u662f\u201c\u70b9\u4e0b\u4e00\u9875\u201d\u548c\u201c\u628a\u6df1\u5ea6\u8c03\u5927\uff0c\u6216\u8005"
+                   "\u628a\u67e5\u8be2\u6536\u7a84\u201d\u4e4b\u95f4\u7684\u533a\u522b\u3002"]]),
+                ("h3", "\u4e3a\u4ec0\u4e48 depth \u662f\u4e2a\u53c2\u6570\uff0c\u800c\u4e0d\u662f\u5b9e\u73b0\u7ec6\u8282"),
+                ("p",
+                 "\u4ee5\u524d\u9875\u5927\u5c0f\u548c\u68c0\u7d22\u6df1\u5ea6\u662f\u540c\u4e00\u4e2a\u6570\uff1a\u8981\u66f4\u591a\u6761\u5c31\u4f1a\u6084\u6084\u68c0\u7d22\u5f97\u66f4"
+                 "\u6df1\uff0c\u800c\u7b2c 51 \u6761\u5728\u4efb\u4f55\u9875\u5927\u5c0f\u4e0b\u90fd\u591f\u4e0d\u7740\uff0c\u56e0\u4e3a\u5019\u9009\u6c60\u4e0d\u7ba1\u600e\u6837\u90fd"
+                 "\u662f 50 \u6761\u3002\u73b0\u5728\uff0c\u9875\u662f\u4e00\u4e2a\u7a97\u53e3\uff0c\u770b\u7684\u662f\u4e00\u4e2a\u4f60\u80fd\u770b\u89c1\u3001\u4e5f\u80fd\u9489\u4f4f"
+                 "\u7684\u5019\u9009\u6c60\u3002"),
+                ("callout", "warn", "\u9489\u4f4f depth\uff0c\u5426\u5219\u7b2c\u4e8c\u9875\u4f1a\u548c\u7b2c\u4e00\u9875\u6253\u67b6",
+                 "<p>\u53ea\u6709\u5728<em>\u4e00\u4e2a</em>\u9762\u7684\u65f6\u5019\uff0cRRF \u624d\u5728\u5019\u9009\u6c60\u53d8\u5927\u65f6\u4fdd\u6301\u540d"
+                 "\u6b21\u7a33\u5b9a\u3002\u4e00\u4e2a\u6587\u6863\u7684\u5206\u6570\uff0c\u662f\u5b83\u5728\u201c\u6df1\u5ea6\u4ee5\u5185\u6392\u5230\u4e86\u5b83\u201d\u7684\u90a3\u4e9b\u9762"
+                 "\u4e0a\u6c42\u548c\uff0c\u6240\u4ee5\u66f4\u6df1\u7684\u6c60\u5b50\u53ef\u80fd\u51ed\u7a7a\u7ed9\u67d0\u4e2a\u6587\u6863\u8865\u4e0a\u4e00\u9879 \u2014\u2014 \u800c\u8fd9"
+                 "\u4e00\u9879\u53ef\u80fd\u538b\u8fc7\u5bf9\u624b\u7684\u6574\u4e2a\u5206\u6570\u3002\u5728\u4e00\u4e2a\u9762\u4e0a\u6392\u7b2c 2\u3001\u5728\u53e6\u4e00\u4e2a\u9762\u4e0a"
+                 "\u6392\u7b2c 40\uff0c\u5408\u8d77\u6765\u8d62\u8fc7\u53ea\u5728\u4e00\u4e2a\u9762\u4e0a\u6392\u7b2c 1 \u7684\uff081/62 + 1/100 \u5bf9 "
+                 "1/61\uff09\uff0c\u4f46\u5728\u6df1\u5ea6 30 \u65f6\u540e\u9762\u90a3\u4e00\u9879\u6839\u672c\u4e0d\u5b58\u5728\u3002</p><p>\u6240\u4ee5\u5f00\u4e86"
+                 "\u597d\u51e0\u4e2a\u9762\u65f6\uff0c\u4e3a\u4e86\u7ffb\u5230\u7b2c 2 \u9875\u800c\u628a\u6df1\u5ea6\u52a0\u5927\uff0c\u4f1a\u8ba9\u7b2c 2 \u9875\u5bf9\u201c\u7b2c "
+                 "1 \u9875\u662f\u4ec0\u4e48\u201d\u8fd9\u4ef6\u4e8b\u548c\u7b2c 1 \u9875\u4ea7\u751f\u5206\u6b67\u3002\u89e3\u6cd5\u4e0d\u662f\u52a0\u5927\u5b83\uff1a\u628a\u4e0a\u4e00"
+                 "\u9875\u62a5\u7684 <code>depth</code> \u539f\u6837\u9001\u56de\u6765\uff0c\u6bcf\u4e00\u9875\u5c31\u90fd\u662f\u540c\u4e00\u6b21\u6392\u540d"
+                 "\u7684\u4e00\u4e2a\u5207\u7247\u3002\u672c\u5730\u9875\u9762\u548c\u6d4f\u89c8\u5668\u6269\u5c55\u90fd\u662f\u8fd9\u4e48\u505a\u7684\u3002</p>"),
+                ("h3", "\u4e24\u4e2a\u4e0a\u9650"),
+                ("p",
+                 "<code>MAX_PAGE_SIZE</code>\uff08200\uff09\u9650\u4f4f\u4e00\u9875\u3002"
+                 "<code>MAX_CANDIDATE_DEPTH</code>\uff082000\uff09\u9650\u4f4f\u5b83\u4eec\u80cc\u540e\u7684\u6574\u4e2a\u5019"
+                 "\u9009\u6c60\uff0c\u649e\u4e0a\u5b83\u5c31\u662f <code>depth_capped</code> \u88ab\u7f6e\u4e0a\u7684\u539f\u56e0\u3002\u4e24"
+                 "\u4e2a\u90fd\u5728\u540c\u4e00\u4e2a\u5730\u65b9\u3001\u5728\u4efb\u4f55\u67e5\u8be2\u5f00\u8dd1\u4e4b\u524d\u5939\u597d\uff0c\u6240\u4ee5\u4e00\u4e2a\u8d85\u5927\u7684\u8bf7"
+                 "\u6c42\u4e0d\u82b1\u4ec0\u4e48\u4ee3\u4ef7\uff0c\u56de\u7ed9\u4f60\u7684\u5c31\u662f\u5b9e\u9645\u7ed9\u51fa\u7684\u90a3\u4e2a\u7a97\u53e3\u3002"),
             ],
         ),
         (
@@ -2199,6 +2672,790 @@ ZH["measured"] = {
                  "\u8bf7\u6c42\u90fd\u6709\u4ef7\u503c\uff0c\u800c\u4e14\u5b83\u6070\u597d"
                  "\u662f\u4f5c\u8005\u5728\u7ed3\u6784\u4e0a\u505a\u4e0d\u4e86\u7684\u90a3"
                  "\u4ef6\u4e8b\u3002</p>"),
+            ],
+        ),
+    ],
+}
+
+
+# --------------------------------------------------------------------------
+# 浏览器里的那个页面
+# --------------------------------------------------------------------------
+
+ZH["nav"]["webui"] = "界面"
+ZH["nav"]["config"] = "配置"
+ZH["nav"]["integrations"] = "连接"
+
+ZH["meta"]["webui"] = (
+    "浏览器界面 — facetmark",
+    "界面上每一屏是干什么的、一行搜索结果该怎么读、以及它认哪些快捷键。",
+)
+ZH["meta"]["config"] = (
+    "配置 — facetmark",
+    "每一项配置用人话讲一遍，八家模型服务商的现成配置块，以及完全不用 API key 怎么跑。",
+)
+ZH["meta"]["integrations"] = (
+    "连起来 — facetmark",
+    "浏览器扩展、给 Claude 和 Cursor 用的 MCP 服务、karakeep 插件、全部命令行，以及怎么备份。",
+)
+
+ZH["webui"] = {
+    "h1": "浏览器里的那个页面",
+    "lede": "六屏，其中一屏你大概不会打开第二次。命令行能做的它都能做，"
+    "外加两件命令行做不到的事：告诉你一条结果<em>为什么</em>排在这里，"
+    "以及让你不用手写配置文件就能把它装起来。",
+    "toc_title": "本页目录",
+    "sections": [
+        (
+            "open",
+            "打开它",
+            [
+                ("cb", "一条命令", "facetmark serve"),
+                (
+                    "p",
+                    "它会打印一个网址——默认是 <code>http://127.0.0.1:8765</code>"
+                    "——然后一直跑着。打开这个网址。终端别动，关掉终端服务就停了。",
+                ),
+                (
+                    "dashed",
+                    "",
+                    "为什么它什么都不问你",
+                    [
+                        (
+                            "p",
+                            "服务只绑在你自己这台机器上，页面在能证明两头都是本机的时候"
+                            "会自己给自己发一个令牌。所以没有登录页，也没有什么账号需要注册。",
+                        ),
+                        (
+                            "p",
+                            "如果你用别的名字访问它——局域网地址、内网穿透、反向代理——"
+                            "这次握手会被<strong>故意</strong>拒绝，页面会让你手动粘贴令牌。"
+                            "用 <code>facetmark token</code> 取。",
+                        ),
+                    ],
+                ),
+                (
+                    "callout",
+                    "warn",
+                    "不要把它挂到公网域名上",
+                    "<p>只有一个令牌，也没有限流。它是为「你现在坐的这把椅子」设计的。</p>",
+                ),
+            ],
+        ),
+        (
+            "firstrun",
+            "第一次：三步",
+            [
+                (
+                    "p",
+                    "库是空的时候，页面开在一个安装屏而不是搜索屏——"
+                    "零条书签上面架一个搜索框是条死路。三个带框的步骤，按顺序来，"
+                    "全都在浏览器里完成：",
+                ),
+                (
+                    "steps",
+                    [
+                        "<b>把书签导进来。</b>从浏览器导出（<i>书签 → 管理 → 导出</i>），"
+                        "把那个 HTML 文件丢到按钮上。Chrome 的 <code>Bookmarks</code> "
+                        "JSON 文件也认；导入器会自己判断你给的是哪种。",
+                        "<b>指一个模型，或者不指。</b>粘贴 API key，"
+                        "或者把向量后端切成本地、完全不用 key。两种走法页面都会"
+                        "先测一遍连通性，再让你依赖它。",
+                        "<b>建索引。</b>一个按钮。七个阶段，跑到哪显示到哪，带日志。"
+                        "你可以关掉标签页再回来——任务跑在服务里，不在页面里。",
+                    ],
+                ),
+                (
+                    "p",
+                    "三个框都打上勾之后，这屏会把搜索框递给你然后让开。"
+                    "除非库又空了，它不会再出现。",
+                ),
+            ],
+        ),
+        (
+            "tabs",
+            "五个标签，加一个齿轮",
+            [
+                (
+                    "table",
+                    ["屏", "干什么用"],
+                    [
+                        [
+                            "<b>搜索</b>",
+                            "主角。打字，拿到排好序的页面，并看到四条路里是哪几条找到了它。",
+                        ],
+                        [
+                            "<b>提问</b>",
+                            "用一句话问，答案从你自己的页面里来，每句话都能追回它出自哪条书签。"
+                            "它引用，不编造。",
+                        ],
+                        [
+                            "<b>库</b>",
+                            "索引里到底有什么：多少页有正文、多少页有向量、"
+                            "哪些链接已经死了、队列里排着什么、哪些从来没被打开过。",
+                        ],
+                        [
+                            "<b>时段</b>",
+                            "同一段时间里存下来的书签，成组显示。"
+                            "当你只记得<i>什么时候</i>、别的都不记得时很有用。",
+                        ],
+                        [
+                            "<b>系统</b>",
+                            "版本、数据库路径、模型服务、运行时长。提 bug 时截这一屏。",
+                        ],
+                        [
+                            "<b>⚙ 设置</b>",
+                            "模型、限流、隐私，以及索引任务。放在齿轮后面而不是标签栏里，"
+                            "因为你一年才开两次。",
+                        ],
+                    ],
+                ),
+                (
+                    "p",
+                    "英文界面里那个「Sittings」不是「Settings」写错了。"
+                    "一个 sitting 是一段存书签的时间——你晚上十一点一口气归档的那二十个标签页。"
+                    "设置在齿轮里。",
+                ),
+            ],
+        ),
+        (
+            "read",
+            "一行结果怎么读",
+            [
+                (
+                    "p",
+                    "一行是：名次、标题、来自哪里、一段把你的词标出来的摘要，"
+                    "然后是别的书签搜索都不给你看的那部分——找到它的那几条路。",
+                ),
+                (
+                    "tintrow",
+                    [
+                        (
+                            "",
+                            "关于",
+                            [
+                                (
+                                    "p",
+                                    "正文的向量。它被找到，是因为这个页面<i>就是在讲</i>"
+                                    "你问的东西——不管它有没有用你那几个词。",
+                                )
+                            ],
+                        ),
+                        (
+                            "lex",
+                            "词 / 子串",
+                            [
+                                (
+                                    "p",
+                                    "全文检索，按词切和按三字符切各一路。"
+                                    "它被找到，是因为你打的那串字就在里面。"
+                                    "你记得一个专有名词的时候，救你的是这条路。",
+                                )
+                            ],
+                        ),
+                        (
+                            "intent",
+                            "被这样问过",
+                            [
+                                (
+                                    "p",
+                                    "从页面生成的问题的向量。它被找到，"
+                                    "是因为有人可能拿你这个问题去问<i>这个</i>页面。",
+                                )
+                            ],
+                        ),
+                        (
+                            "context",
+                            "相邻",
+                            [
+                                (
+                                    "p",
+                                    "这一路根本不参与排名：图上距离一跳的页面，"
+                                    "在结果下面单独成组。包括「存在一起的」和「意思相近的」。",
+                                )
+                            ],
+                        ),
+                    ],
+                ),
+                (
+                    "p",
+                    "徽章下面那条短横条用的是同一套颜色。那是配比："
+                    "这一条融合分里，每条路各出了多少。两行偏金、一行偏蓝，"
+                    "意思是前两条对上了你的拼写、第三条对上了你的意思——"
+                    "而这通常正是你开始看懂自己那句 query 的时刻。",
+                ),
+                (
+                    "ul",
+                    [
+                        "<b>从未打开</b>——facetmark 没见你打开过这一条。"
+                        "浏览器导出里根本不带使用记录，所以第一天所有条目都是这样。",
+                        "每行末尾那个 <b>⋯</b> 按钮——不离开结果列表，就地打开这个页面自己的面板："
+                        "正文统计、链接、它属于哪个时段。",
+                        "<b>更多选项</b>——选四条路里跑几条。默认跑一条；"
+                        "最后一档四条全跑还加重排。它更慢，而且在含糊的问题上"
+                        "有实测的提升。",
+                    ],
+                ),
+            ],
+        ),
+        (
+            "keys",
+            "快捷键，以及按你的习惯读",
+            [
+                (
+                    "table",
+                    ["键", "作用"],
+                    [
+                        ["<kbd>/</kbd>", "从任何地方跳到搜索框"],
+                        ["<kbd>↑</kbd> <kbd>↓</kbd>", "在候选里上下走"],
+                        ["<kbd>Enter</kbd>", "搜索，或者采用高亮的那条候选"],
+                        ["<kbd>Esc</kbd>", "关掉面板，或者清空输入框"],
+                        ["<kbd>Tab</kbd>", "按阅读顺序走过每一个控件"],
+                    ],
+                ),
+                (
+                    "ul",
+                    [
+                        "太阳／月亮那个按钮切主题；你没碰过它之前它跟随系统，碰过之后它记住。",
+                        "<b>中文 / EN</b> 切语言。切的是界面，不是你的数据。",
+                        "所有东西都是正常字号的真文字，所以浏览器缩放有效，选中复制也有效。",
+                        "如果你的系统要求减少动效，这个页面就没有动效。"
+                        "没有任何数字要等一个动画播完才肯出现。",
+                    ],
+                ),
+            ],
+        ),
+        (
+            "trouble",
+            "它不听话的时候",
+            [
+                (
+                    "table",
+                    ["你看到的", "是怎么回事"],
+                    [
+                        [
+                            "页面打开了但要令牌",
+                            "你用的不是 <code>127.0.0.1</code> 或 "
+                            "<code>localhost</code>。运行 "
+                            "<code>facetmark token</code> 粘贴进去，或者改用本机地址。",
+                        ],
+                        [
+                            "<code>address already in use</code>",
+                            "端口被别的东西占了。<code>facetmark serve --port 8790</code>。",
+                        ],
+                        [
+                            "搜不出东西，库里显示 0 个向量",
+                            "索引没建过。齿轮 → 运行，或者 <code>facetmark index</code>。",
+                        ],
+                        [
+                            "每条结果都写着<i>从未打开</i>",
+                            "没错，而且是暂时的。等 facetmark 通过它自己看你打开过几个页面之后，"
+                            "这个标记才开始有意义。",
+                        ],
+                        [
+                            "索引任务卡在<i>抓取</i>",
+                            "有些页面打不开。它会跳过去；死链会出现在「库」里，"
+                            "那些页面也仍然会靠标题进索引。",
+                        ],
+                    ],
+                ),
+            ],
+        ),
+    ],
+}
+
+
+# --------------------------------------------------------------------------
+# 配置
+# --------------------------------------------------------------------------
+
+ZH["config"] = {
+    "h1": "配置，用人话讲",
+    "lede": "旋钮很多。你需要的是其中四个，而且只有在你确实要用云端模型的时候才需要。"
+    "这一页先讲那四个，再讲其余的，最后给你八家服务商各一段可以直接粘贴的配置。",
+    "toc_title": "本页目录",
+    "sections": [
+        (
+            "where",
+            "一项配置是从哪来的",
+            [
+                ("p", "三个地方，越靠左的越大："),
+                ("cb", "优先级", "环境变量   >   config.toml   >   内置默认值"),
+                (
+                    "p",
+                    "设置屏会告诉你每个值来自这三者中的哪一个；"
+                    "如果是环境变量在压着它，那个输入框会变成只读并说明原因，"
+                    "而不是放你写一个根本不会生效的值。"
+                    "在浏览器里改会写进文件，永远不会去动你的环境变量。",
+                ),
+                ("cb", "文件在哪", "facetmark config path"),
+                (
+                    "p",
+                    "第一次有东西往里写的时候它才被创建。"
+                    "并不要求你必须有这个文件——没有文件、没有环境变量，"
+                    "全用默认值跑起来也是完全正常的一次运行。",
+                ),
+                (
+                    "callout",
+                    "",
+                    "有三项要重启才生效",
+                    "<p><code>embed_backend</code>、<code>embed_dim</code> 和 "
+                    "<code>local_embed_path</code> 决定向量库的形状。"
+                    "这一屏会把它们存下来，然后明确告诉你要下次启动才生效。</p>",
+                ),
+            ],
+        ),
+        (
+            "model",
+            "真正要紧的四项",
+            [
+                (
+                    "table",
+                    ["配置项", "人话"],
+                    [
+                        [
+                            "<code>api_key</code>",
+                            "你的 key。存在文件里，回显给你看的是掩码，"
+                            "而且你保存别的字段时它不会被重新写一遍。",
+                        ],
+                        [
+                            "<code>base_url</code>",
+                            "请求发到哪。任何说 OpenAI 那套 API 的都行，"
+                            "包括跑在你自己机器上的东西。",
+                        ],
+                        [
+                            "<code>chat_model</code>",
+                            "用来读页面，以及在「提问」屏上回答。"
+                            "这里便宜快比聪明重要。",
+                        ],
+                        [
+                            "<code>embed_model</code>",
+                            "把文字变成向量。决定搜索质量的是这一项。",
+                        ],
+                    ],
+                ),
+                (
+                    "callout",
+                    "warn",
+                    "换向量模型就要重建索引",
+                    "<p>两个不同模型出来的向量不可比。换了就跑一次重建，"
+                    "否则搜索会悄悄变差，而且没有任何报错会告诉你。</p>",
+                ),
+                (
+                    "p",
+                    "设置屏上的<b>测试</b>按钮会分别调用对话和向量，并分别报结果，"
+                    "因为实际上通常只有其中一个是坏的——"
+                    "有对话权限、没有向量权限的账号是非常常见的一种形态。",
+                ),
+            ],
+        ),
+        (
+            "presets",
+            "八家服务商，直接粘贴",
+            [
+                (
+                    "p",
+                    "把这些放进 <code>facetmark config path</code> 指出来的那个文件，"
+                    "或者把同样的值填到设置屏里。模型名字是会变的；"
+                    "如果某个名字被拒了，去查服务商当前的列表，别信这一页。",
+                ),
+                (
+                    "cb",
+                    "OpenAI",
+                    'api_key = "sk-..."\n'
+                    'base_url = "https://api.openai.com/v1"\n'
+                    'chat_model = "gpt-4o-mini"\n'
+                    'embed_model = "text-embedding-3-small"\n'
+                    "embed_dim = 1536",
+                ),
+                (
+                    "cb",
+                    "DeepSeek（只有对话——向量要另找一家）",
+                    'api_key = "sk-..."\n'
+                    'base_url = "https://api.deepseek.com/v1"\n'
+                    'chat_model = "deepseek-chat"',
+                ),
+                (
+                    "cb",
+                    "月之暗面 Kimi",
+                    'api_key = "sk-..."\n'
+                    'base_url = "https://api.moonshot.cn/v1"\n'
+                    'chat_model = "moonshot-v1-8k"',
+                ),
+                (
+                    "cb",
+                    "智谱 GLM",
+                    'api_key = "..."\n'
+                    'base_url = "https://open.bigmodel.cn/api/paas/v4"\n'
+                    'chat_model = "glm-4-flash"\n'
+                    'embed_model = "embedding-3"\n'
+                    "embed_dim = 2048",
+                ),
+                (
+                    "cb",
+                    "硅基流动 SiliconFlow",
+                    'api_key = "sk-..."\n'
+                    'base_url = "https://api.siliconflow.cn/v1"\n'
+                    'chat_model = "Qwen/Qwen2.5-7B-Instruct"\n'
+                    'embed_model = "BAAI/bge-m3"\n'
+                    "embed_dim = 1024",
+                ),
+                (
+                    "cb",
+                    "阿里云百炼（OpenAI 兼容端点）",
+                    'api_key = "sk-..."\n'
+                    'base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"\n'
+                    'chat_model = "qwen-plus"\n'
+                    'embed_model = "text-embedding-v3"\n'
+                    "embed_dim = 1024",
+                ),
+                (
+                    "cb",
+                    "Ollama（跑在你自己机器上，不用 key）",
+                    'base_url = "http://127.0.0.1:11434/v1"\n'
+                    'api_key = "ollama"\n'
+                    'chat_model = "qwen2.5:7b"\n'
+                    'embed_model = "bge-m3"\n'
+                    "embed_dim = 1024",
+                ),
+                (
+                    "cb",
+                    "vLLM（你自己的服务）",
+                    'base_url = "http://127.0.0.1:8000/v1"\n'
+                    'api_key = "not-used"\n'
+                    'chat_model = "Qwen/Qwen2.5-7B-Instruct"',
+                ),
+                (
+                    "callout",
+                    "",
+                    "混着用是常态",
+                    "<p>facetmark 只发两种请求：对话的和向量的。"
+                    "很多人对话用最便宜的、向量用最好的。"
+                    "把 <code>base_url</code> 指向做向量那家、"
+                    "对话模型写全名；或者向量放本地跑，API 只留给对话。</p>",
+                ),
+            ],
+        ),
+        (
+            "local",
+            "完全不用 API",
+            [
+                ("p", "向量可以在你自己机器上算。不要 key、不联网、什么都不出这台笔记本："),
+                (
+                    "cb",
+                    "本地向量",
+                    'embed_backend = "local"\n'
+                    'local_embed_path = "BAAI/bge-m3"\n'
+                    "embed_dim = 1024",
+                ),
+                (
+                    "p",
+                    "建索引更慢，而且模型要先下载一次。搜索质量不错："
+                    "在 1024 token 的窗口上，bge-m3 两次跑出来的向量自身余弦是 0.999976，"
+                    "而这正是一个「要长期留着而不是天天重建」的索引最需要的性质。",
+                ),
+                (
+                    "dashed",
+                    "context",
+                    "你放弃了什么",
+                    [
+                        (
+                            "p",
+                            "有两条路是建立在「让语言模型读一遍你的页面」上的："
+                            "一个页面能回答的那些问题，以及主题标签。"
+                            "没有对话模型，这两块就是空的，你搜的是正文和全文检索"
+                            "——仍然是最强的两条路，也仍然比你浏览器给你的强。",
+                        ),
+                        (
+                            "p",
+                            "你也可以先从这里开始，以后再加 key。"
+                            "什么都不用丢掉；索引会把之前建不出来的那部分补上。",
+                        ),
+                    ],
+                ),
+            ],
+        ),
+        (
+            "groups",
+            "其余的",
+            [
+                ("h3", "向量"),
+                (
+                    "table",
+                    ["配置项", "人话"],
+                    [
+                        [
+                            "<code>embed_backend</code>",
+                            "<code>api</code> 或 <code>local</code>。要重启生效。",
+                        ],
+                        [
+                            "<code>embed_dim</code>",
+                            "每个向量多长。必须和模型实际返回的一致。要重启生效。",
+                        ],
+                        [
+                            "<code>local_embed_path</code>",
+                            "本地后端用的模型 id 或目录。要重启生效。",
+                        ],
+                    ],
+                ),
+                ("h3", "它使多大劲"),
+                (
+                    "table",
+                    ["配置项", "人话"],
+                    [
+                        [
+                            "<code>request_timeout</code>",
+                            "多少秒之后放弃一次调用。网慢就调大；某家服务卡住就调小。",
+                        ],
+                        [
+                            "<code>fetch_concurrency</code>",
+                            "同时下载几个页面。你的网络抗议的时候调小。",
+                        ],
+                        [
+                            "<code>enrich_concurrency</code>",
+                            "同时往模型发几个页面。被限流的时候，要调小的是这一项。",
+                        ],
+                    ],
+                ),
+                ("h3", "不许它看的东西"),
+                (
+                    "table",
+                    ["配置项", "人话"],
+                    [
+                        [
+                            "<code>privacy_excluded_domains</code>",
+                            "永远不抓、永远不外发的域名。银行、健康、公司内网。"
+                            "书签还在，只有标题进索引。",
+                        ],
+                        [
+                            "<code>chat_model_fallbacks</code>",
+                            "第一个模型不干的时候，按顺序往下试的那些。",
+                        ],
+                    ],
+                ),
+                (
+                    "callout",
+                    "",
+                    "排除名单要在第一次建索引之前设",
+                    "<p>一个页面的正文一旦进了数据库，把它的域名加进名单只会阻止以后再抓，"
+                    "不会让它忘掉已经记住的。你在意的话，改完名单跑一次重建。</p>",
+                ),
+            ],
+        ),
+        (
+            "faq",
+            "你真会遇到的报错",
+            [
+                (
+                    "table",
+                    ["报错", "怎么办"],
+                    [
+                        [
+                            "<code>401</code> / <code>invalid_api_key</code>",
+                            "key 不对，或者这个 <code>base_url</code> 配了另一家的 key。"
+                            "在设置屏上测一下——它会告诉你是哪一半挂了。",
+                        ],
+                        [
+                            "模型名报 <code>404</code>",
+                            "这个端点上没有这个名字。去查服务商的模型列表。",
+                        ],
+                        [
+                            "<code>429</code>",
+                            "被限流。把 <code>enrich_concurrency</code> 调小再跑一次；"
+                            "已经完成的阶段不会重做。",
+                        ],
+                        [
+                            "<code>dim mismatch</code>",
+                            "<code>embed_dim</code> 和模型不一致。改对，重启，重建。",
+                        ],
+                        [
+                            "对话能用，向量 403",
+                            "很常见。这个账号有一种权限没有另一种。"
+                            "把 <code>embed_backend</code> 切成本地，或者把向量指到另一家。",
+                        ],
+                        [
+                            "保存时报 <code>unknown setting</code>",
+                            "某个键名打错了。写入器会拒绝不认识的键，"
+                            "而不是存一个从此被永久忽略的东西。",
+                        ],
+                    ],
+                ),
+            ],
+        ),
+    ],
+}
+
+
+# --------------------------------------------------------------------------
+# 连接
+# --------------------------------------------------------------------------
+
+ZH["integrations"] = {
+    "h1": "把它接到你桌面上的其他东西",
+    "lede": "数据库就是一个 SQLite 文件，这一页里的每一样都只是通往它的另一道门："
+    "你的浏览器、你的编辑器、你的 agent、你的终端。",
+    "toc_title": "本页目录",
+    "sections": [
+        (
+            "extension",
+            "浏览器扩展",
+            [
+                (
+                    "p",
+                    "从地址栏搜你的书签，以及不离开当前页面就把它存下来。"
+                    "扩展连的是网页界面连的同一个本机服务。",
+                ),
+                (
+                    "steps",
+                    [
+                        "先起服务：<code>facetmark serve</code>。",
+                        "从仓库里的 <code>extension/</code> 加载扩展——Chrome："
+                        "<i>chrome://extensions</i>，开开发者模式，<i>加载已解压的扩展程序</i>。",
+                        "打开它的选项。服务在默认端口上它会自己配对；"
+                        "否则把 <code>facetmark token</code> 的输出粘进去。",
+                    ],
+                ),
+                (
+                    "callout",
+                    "",
+                    "它是配对，不是同步",
+                    "<p>什么都不上传，也没有账号。服务没跑的时候，扩展什么也不做。</p>",
+                ),
+            ],
+        ),
+        (
+            "mcp",
+            "Claude、Cursor，以及任何说 MCP 的东西",
+            [
+                (
+                    "p",
+                    "facetmark 自带一个 MCP 服务，所以助手可以把「搜你的书签」当成一个工具来用，"
+                    "而不是你手动往对话框里粘链接。",
+                ),
+                ("cb", "先手动跑一下", "facetmark mcp"),
+                (
+                    "cb",
+                    "Claude Desktop — claude_desktop_config.json",
+                    "{\n"
+                    '  "mcpServers": {\n'
+                    '    "facetmark": {\n'
+                    '      "command": "facetmark",\n'
+                    '      "args": ["mcp"]\n'
+                    "    }\n"
+                    "  }\n"
+                    "}",
+                ),
+                (
+                    "p",
+                    "Cursor 在它自己的 MCP 设置里是同样的形状。"
+                    "如果编辑器看到的 PATH 里没有 <code>facetmark</code>，就写绝对路径"
+                    "——几乎每一份「工具一直不出现」的反馈都是这个原因。",
+                ),
+                (
+                    "dashed",
+                    "intent",
+                    "助手能做什么、不能做什么",
+                    [
+                        (
+                            "p",
+                            "它能搜索、能读一条书签、能列时段、能在你的库上提问。"
+                            "它不能删任何东西，不能写配置，也碰不到数据库以外的地方。",
+                        )
+                    ],
+                ),
+            ],
+        ),
+        (
+            "karakeep",
+            "karakeep",
+            [
+                (
+                    "p",
+                    "如果你的链接都放在 karakeep 里，facetmark 可以从那边建索引，"
+                    "而不是从浏览器导出文件。",
+                ),
+                (
+                    "callout",
+                    "warn",
+                    "有实测，值得在你投入之前先知道",
+                    "<p>经 karakeep 自己的关键词抽取绕一圈，代价是 "
+                    "<b>Recall@5 掉 0.81 个百分点</b>（CI95 −2.44 到 +0.81），"
+                    "并且和直接建索引在第一名上只有 <b>79.06%</b> 一致。"
+                    "词表会塌缩：19,016 个不同词项变成 13 个。"
+                    "仓库里记下来的结论是 <code>roundtrip_unfaithful</code>"
+                    "——能用，但不等价。能直接索引页面就直接索引。</p>",
+                ),
+            ],
+        ),
+        (
+            "cli",
+            "命令行",
+            [
+                (
+                    "p",
+                    "页面能做的都在这里，还有几样页面做不到的。"
+                    "任何一条后面都能加 <code>--help</code>。",
+                ),
+                (
+                    "table",
+                    ["命令", "作用"],
+                    [
+                        ["<code>facetmark import</code>", "读入一个书签导出文件"],
+                        ["<code>facetmark browsers</code>", "找出这台机器上已有的书签文件"],
+                        ["<code>facetmark index</code>", "建索引，或者补齐"],
+                        ["<code>facetmark reindex</code>", "全部从头再建一遍"],
+                        ["<code>facetmark search</code>", "在终端里搜"],
+                        ["<code>facetmark show</code>", "一条书签的全部信息"],
+                        ["<code>facetmark sessions</code>", "列出所有时段"],
+                        ["<code>facetmark stats</code>", "「库」那一屏的文字版"],
+                        ["<code>facetmark health</code>", "找死链"],
+                        ["<code>facetmark serve</code>", "网页界面和 API"],
+                        ["<code>facetmark mcp</code>", "MCP 服务"],
+                        ["<code>facetmark token</code>", "打印配对令牌"],
+                        ["<code>facetmark config path</code>", "配置写到哪"],
+                        ["<code>facetmark config show</code>", "所有配置，敏感项掩码"],
+                        ["<code>facetmark migrate</code>", "把旧数据库升上来"],
+                        ["<code>facetmark demo</code>", "一个假的库，用来到处点点看"],
+                        ["<code>facetmark eval</code>", "重跑那些检索实测"],
+                        ["<code>facetmark version</code>", "版本"],
+                    ],
+                ),
+                (
+                    "p",
+                    "<code>facetmark demo</code> 是判断你到底要不要用这东西最实在的办法："
+                    "它用生成的页面搭出一个库，不要 key 不联网，"
+                    "让你在导入任何自己的东西之前先把每一屏都点一遍。",
+                ),
+            ],
+        ),
+        (
+            "backup",
+            "备份，以及搬机器",
+            [
+                (
+                    "p",
+                    "一个文件。复制它就等于复制了全部——书签、正文、向量、图、历史。",
+                ),
+                ("cb", "它在哪", "facetmark stats"),
+                (
+                    "callout",
+                    "warn",
+                    "先把服务停掉",
+                    "<p>数据库跑在 WAL 模式下，所以在有东西正在写的时候拷走，"
+                    "可能会漏掉日志的尾巴。停掉 <code>facetmark serve</code>，"
+                    "拷完再起。</p>",
+                ),
+                (
+                    "ul",
+                    [
+                        "搬机器：把文件拷过去，版本不一样就再跑一次 "
+                        "<code>facetmark migrate</code>。",
+                        "你的书签本来也还在浏览器里。最坏的情况是重新导入重新建索引，"
+                        "代价是时间和几次模型调用，不是数据。",
+                        "配置文件是单独的，里面有你的 API key。"
+                        "要么备份到你会放密码的地方，要么干脆不备份。",
+                    ],
+                ),
             ],
         ),
     ],
