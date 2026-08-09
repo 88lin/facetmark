@@ -567,6 +567,67 @@ def token(
     err.print(f"[dim]stored at {st.token_path}[/dim]")
 
 
+def _mask(value: str) -> str:
+    """Enough of a key to recognise, not enough to use."""
+    if not value:
+        return ""
+    return value if len(value) <= 8 else f"{value[:3]}...{value[-4:]}"
+
+
+config_app = typer.Typer(help="The settings file the web UI writes.", no_args_is_help=True)
+app.add_typer(config_app, name="config")
+
+
+@config_app.command("path")
+def config_path_cmd() -> None:
+    """Print where ``config.toml`` lives, whether or not it exists yet."""
+    from .configfile import config_path
+
+    p = config_path()
+    console.print(str(p))
+    err.print(f"[dim]{'exists' if p.is_file() else 'not created yet'}[/dim]")
+
+
+@config_app.command("show")
+def config_show_cmd(json_out: bool = typer.Option(False, "--json")) -> None:
+    """Effective settings and where each one came from.
+
+    The ``source`` column is the point. "It works on my machine" is nearly
+    always a variable exported in one shell and not another, and the only way
+    to see that is to print the winner alongside its origin.
+    """
+    import os
+
+    from .configfile import config_path, read_config
+
+    file_keys = set(read_config())
+    st = get_settings()
+    rows = []
+    for name in sorted(Settings.model_fields):
+        if os.environ.get(f"FACETMARK_{name.upper()}") is not None:
+            source = "env"
+        elif name in file_keys:
+            source = "file"
+        else:
+            source = "default"
+        value = getattr(st, name)
+        if name == "api_key":
+            value = _mask(str(value))
+        rows.append({"key": name, "value": value, "source": source})
+    if _emit({"path": str(config_path()), "settings": rows}, json_out):
+        return
+    from rich import box
+
+    table = Table(box=box.SIMPLE, show_edge=False)
+    table.add_column("setting")
+    table.add_column("value", overflow="fold")
+    table.add_column("from", style="dim")
+    for row in rows:
+        table.add_row(row["key"], str(row["value"]), row["source"])
+    console.print(table)
+    err.print(f"[dim]file: {config_path()}[/dim]")
+
+
 @app.command()
 def serve(
     db: Path | None = typer.Option(None, "--db"),
