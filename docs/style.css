@@ -1,0 +1,885 @@
+/* facetmark site — design system shared with the browser extension.
+   Tokens first, components second. One stylesheet for all six pages. */
+
+:root {
+  color-scheme: light;
+  --cream: #faf9f3;
+  /* paper-2 carries the band alternation. Anything lighter than this reads as
+     "no alternation at all": #f2efe6 measured 1.09:1 against paper, which is
+     below the 1.15:1 floor a sighted reader can actually see. */
+  --cream-dark: #ece8da;
+  /* Deliberately NOT palette A's `--cream-dark` (#faf6eb). That value is a
+     card wash sitting on white; here the token has to alternate whole page
+     bands against paper, and #faf6eb on #faf9f3 measures 1.02:1 -- a band
+     nobody can see is not a band. The chromatic tokens above are palette A
+     exactly; this one pair is the site's own, for that reason. */
+  --card-bg: #ffffff;
+  --surface-2: #f7f5ee;
+  --ink: #17160f;
+  --ink-light: #55534a;
+  /* ink-3 is for hairlines, arrowheads and bar fills only. Small text uses
+     ink-2: ink-3 measures 3.09:1 on paper-2, which fails WCAG AA. */
+  --ink-faint: #86837a;
+  --border: #ddd9cc;
+  --hairline: #e7e2d4;
+  --brand: #2b7fd8;
+  --brand-deep: #1e5ba8;
+  /* the brand blue measures 4.00:1 on paper, so it fills shapes and sets
+     borders but never sets small text. accent-ink does that. */
+  --accent-ink: #2674c5;
+  --accent-ink-2: #1e5ba8;
+  /* the filled pill carries a 15px label, so it is held to the body-text bar:
+     accent itself is only 4.22:1 against white and cannot be the background */
+  --btn-bg: #2674c5;
+  --btn-bg-h: #1e5ba8;
+  --btn-fg: #ffffff;
+  --info-soft: #e9f1fb;
+  --warning: #8a6a00;
+  --success: #2e7955;
+  --success-soft: #e7f4ec;
+  --danger-strong: #bd3a1a;
+  --danger-soft: #fbeae5;
+  --code-bg: #17160f;
+  --code-ink: #ece9e2;
+  --code-dim: #9c988c;
+  --code-line: #2a2a24;
+  --code-bar: #1e1e1a;
+  --code-note: #1a1a16;
+  --shadow-1: 0 1px 2px rgba(23, 22, 15, 0.05), 0 2px 8px rgba(23, 22, 15, 0.04);
+  --shadow-2: 0 2px 4px rgba(23, 22, 15, 0.06), 0 12px 28px rgba(23, 22, 15, 0.08);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --maxw: 1120px;
+  --readw: 760px;
+  --sans: "Liberation Sans", Arimo, "Helvetica Neue", Arial, system-ui,
+          "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC",
+          sans-serif;
+  --mono: "Liberation Mono", "SF Mono", "Cascadia Code", Consolas, monospace;
+  /* display serif: Fraunces for Latin, Noto Serif SC for Han, then the
+     system serif stack. Loaded from Google Fonts in build.py shell(). */
+  --font-serif: "Fraunces", "Noto Serif SC", "Huiwen Mincho", "Songti SC",
+          Georgia, "Times New Roman", serif;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --cream: #131310;
+  --cream-dark: #21211c;
+  --card-bg: #1c1c18;
+  --surface-2: #232320;
+  --ink: #eceae2;
+  --ink-light: #a8a59b;
+  --ink-faint: #807d74;
+  --border: #33332d;
+  --hairline: #282824;
+  --brand: #7db4ee;
+  --brand-deep: #a5cbf3;
+  --accent-ink: #7db4ee;
+  --accent-ink-2: #a5cbf3;
+  --btn-bg: #7db4ee;
+  --btn-bg-h: #a5cbf3;
+  --btn-fg: #131310;
+  --info-soft: #12283c;
+  --warning: #e8c65a;
+  --success: #6cc394;
+  --success-soft: #1e2614;
+  --danger-strong: #f2879a;
+  --danger-soft: #2e1711;
+  /* in dark mode the code panel has to sit ABOVE the page, not below it.
+     #0d0d0b was darker than the page and read as a hole. */
+  --code-bg: #23231d;
+  --code-ink: #eceae2;
+  --code-dim: #a3a094;
+  --code-line: #3a3931;
+  --code-bar: #2a2a23;
+  --code-note: #26261f;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.4), 0 14px 32px rgba(0, 0, 0, 0.45);
+}
+
+/* A band that inverts the palette inside its own subtree. Two of these break
+   the ten-identical-screens rhythm without adding a second colour system: every
+   component below already reads its colours from these tokens, including the
+   SVG pipeline diagram. Under the dark theme it inverts the other way, so the
+   band is always the one that differs from its neighbours. */
+.band.invert {
+  --cream: #17160f;
+  --cream-dark: #1f1e16;
+  --card-bg: #201f17;
+  --surface-2: #2a2921;
+  --ink: #f4f2ea;
+  --ink-light: #bab7ab;
+  --ink-faint: #928f84;
+  --border: #3a3931;
+  --hairline: #2e2d26;
+  --brand: #6cb6ff;
+  --brand-deep: #9fd0ff;
+  --accent-ink: #6cb6ff;
+  --accent-ink-2: #9fd0ff;
+  --info-soft: #17293a;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.35), 0 14px 32px rgba(0, 0, 0, 0.4);
+  background: var(--cream);
+  color: var(--ink);
+}
+:root[data-theme="dark"] .band.invert {
+  --cream: #f7f5ee;
+  --cream-dark: #efece2;
+  --card-bg: #ffffff;
+  --surface-2: #f4f2e9;
+  --ink: #17160f;
+  --ink-light: #55534a;
+  --ink-faint: #86837a;
+  --border: #ddd9cc;
+  --hairline: #e7e2d4;
+  --brand: #0279ee;
+  --brand-deep: #0163c4;
+  --accent-ink: #0163c4;
+  --accent-ink-2: #014e9c;
+  --info-soft: #e7f1fd;
+  --shadow-1: 0 1px 2px rgba(23, 22, 15, 0.05), 0 2px 8px rgba(23, 22, 15, 0.04);
+  --shadow-2: 0 2px 4px rgba(23, 22, 15, 0.06), 0 12px 28px rgba(23, 22, 15, 0.08);
+}
+/* one pill rule that works in both inversions: the button takes the ink colour
+   of the band it sits in, so it is always maximum contrast against it */
+.band.invert .btn.primary {
+  background: var(--ink); border-color: var(--ink); color: var(--cream);
+}
+.band.invert .btn.primary:hover {
+  background: var(--accent-ink-2); border-color: var(--accent-ink-2); color: var(--cream);
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+
+body {
+  margin: 0;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16.5px;
+  line-height: 1.68;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent-ink); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { color: var(--accent-ink-2); }
+
+h1, h2, h3, h4 { line-height: 1.22; letter-spacing: -0.018em; margin: 0 0 0.5em; }
+h1 { font-size: clamp(2.1rem, 5.2vw, 3.5rem); }
+h2 { font-size: clamp(1.5rem, 3.2vw, 2.1rem); }
+/* display headings (hero, section titles, page heads) use the serif */
+.hero h1, .wrap > h2, .pagehead h1 { font-family: var(--font-serif); letter-spacing: -0.02em; }
+h3 { font-size: 1.16rem; letter-spacing: -0.01em; }
+h4 { font-size: 1rem; }
+p { margin: 0 0 1em; }
+ul, ol { margin: 0 0 1em; padding-left: 1.35em; }
+li { margin-bottom: 0.35em; }
+strong { font-weight: 700; }
+hr { border: 0; border-top: 1px solid var(--border); margin: 3rem 0; }
+
+.wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+.read { max-width: var(--readw); }
+.muted { color: var(--ink-light); }
+.tiny { font-size: 0.85rem; color: var(--ink-light); }
+.center { text-align: center; }
+.nowrap { white-space: nowrap; }
+
+/* ---------- header ---------- */
+
+/* the first thing a keyboard user meets, so it takes the highest contrast
+   pair we have rather than white on the brand blue (4.22:1 light, 2.50:1 dark) */
+.skip {
+  position: absolute; left: -9999px; top: 0; z-index: 90;
+  background: var(--ink); color: var(--cream); padding: 10px 16px;
+  border-radius: 0 0 var(--radius-sm) 0; font-weight: 600; text-decoration: none;
+}
+.skip:focus { left: 0; outline: 2px solid var(--brand); outline-offset: 2px; }
+
+.progress {
+  position: fixed; top: 0; left: 0; height: 2px; width: 0;
+  background: var(--brand); z-index: 60; transition: width 0.1s linear;
+}
+
+header.site {
+  position: sticky; top: 0; z-index: 50;
+  /* Literal rgba rather than color-mix: the design system bans color-mix,
+     and a sticky header is the one place a fallback-to-nothing is fatal. */
+  background: rgba(250, 249, 243, 0.86);
+  backdrop-filter: saturate(1.4) blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.site-inner {
+  max-width: var(--maxw); margin: 0 auto; padding: 11px 24px;
+  display: flex; align-items: center; gap: 18px;
+}
+.logo {
+  display: inline-flex; align-items: center; gap: 9px;
+  font-weight: 700; font-size: 1.02rem; color: var(--ink); text-decoration: none;
+  letter-spacing: -0.02em;
+}
+.logo .mark {
+  width: 20px; height: 20px; border-radius: 5px; flex: none;
+  background:
+    linear-gradient(135deg, var(--brand) 0 50%, transparent 50% 100%),
+    linear-gradient(135deg, var(--warning) 0 100%);
+}
+nav.top { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+nav.top a {
+  color: var(--ink-light); text-decoration: none; font-size: 0.93rem; font-weight: 500;
+  padding: 7px 11px; border-radius: var(--radius-sm);
+}
+nav.top a:hover { color: var(--ink); background: var(--surface-2); }
+nav.top a.on { color: var(--accent-ink); background: var(--info-soft); }
+.ctl {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 32px; min-width: 32px; padding: 0 9px; margin-left: 4px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--card-bg); color: var(--ink-light);
+  font: 600 0.84rem/1 var(--sans); text-decoration: none; cursor: pointer;
+}
+.ctl:hover { color: var(--ink); border-color: var(--ink-faint); }
+/* below 700px the text nav drops the repo link, so the control cluster carries
+   a mark instead: a GitHub project with no way back to GitHub is a dead end */
+.ctl.gh { display: none; }
+.ctl.gh svg { display: block; width: 17px; height: 17px; fill: currentColor; }
+
+/* ---------- hero ---------- */
+
+.hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--border); }
+/* the hero already draws the rule; the band below it must not draw a second */
+.hero + .band.alt { border-top: 0; }
+.hero::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 20%, transparent 75%);
+  opacity: 0.85;
+}
+.hero-inner {
+  position: relative; max-width: var(--maxw); margin: 0 auto;
+  padding: clamp(34px, 5.4vw, 62px) 24px clamp(38px, 5.2vw, 62px);
+  display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  /* the text column runs taller than the terminal; top-aligning the two
+     parked a ~190px void under the terminal at 1440px */
+  gap: clamp(28px, 5vw, 56px); align-items: center;
+}
+.kicker {
+  display: inline-block; margin: 0 0 14px;
+  font-size: 0.76rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent-ink); background: var(--info-soft);
+  padding: 5px 11px; border-radius: 999px;
+}
+.hero h1 em {
+  font-style: normal; color: var(--accent-ink);
+  /* a soft highlighter wash behind the keyword, from the design system */
+  background: linear-gradient(transparent 62%, rgba(var(--highlight-rgb), 0.4) 62%);
+  padding: 0 0.06em; border-radius: 2px;
+}
+.lede { font-size: clamp(1.03rem, 1.6vw, 1.16rem); color: var(--ink-light); margin-bottom: 1.4em; }
+.lede strong { color: var(--ink); }
+.cta { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 20px; border-radius: 999px; font-weight: 600; font-size: 0.95rem;
+  text-decoration: none; border: 1px solid var(--border); color: var(--ink);
+  background: var(--card-bg); box-shadow: var(--shadow-1);
+}
+.btn:hover { border-color: var(--ink-faint); color: var(--ink); transform: translateY(-1px); }
+.btn.primary { background: var(--btn-bg); border-color: var(--btn-bg); color: var(--btn-fg); }
+.btn.primary:hover { background: var(--btn-bg-h); border-color: var(--btn-bg-h); color: var(--btn-fg); }
+.chips { display: flex; flex-wrap: wrap; gap: 7px; padding-top: 16px; border-top: 1px solid var(--border); }
+.chip {
+  font-size: 0.8rem; font-weight: 600; color: var(--ink-light);
+  border: 1px solid var(--border); border-radius: 999px; padding: 4px 11px;
+  background: var(--card-bg);
+}
+.chip b { color: var(--ink); }
+
+/* ---------- terminal ---------- */
+
+.term {
+  background: var(--code-bg); border-radius: var(--radius);
+  box-shadow: var(--shadow-2); overflow: hidden; font-family: var(--mono);
+  font-size: 0.83rem; line-height: 1.62; color: var(--code-ink);
+  border: 1px solid var(--code-line);
+}
+.term-bar {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 13px; border-bottom: 1px solid var(--code-line); background: var(--code-bar);
+}
+.term-bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--code-line); flex: none; }
+.term-bar i:first-child { background: #d9584a; }
+.term-bar i:nth-child(2) { background: #d9a441; }
+.term-bar i:nth-child(3) { background: #6aa84f; }
+.term-bar span {
+  margin-left: 6px; font-size: 0.74rem; color: var(--code-dim);
+  font-family: var(--sans); font-weight: 600; letter-spacing: 0.02em;
+}
+.term-body { padding: 14px 16px 16px; }
+.term .pr { color: #6aa84f; }
+.term .q { color: #ffd166; }
+.term .dim { color: var(--code-dim); }
+.term .hit { display: flex; gap: 9px; padding: 1px 0; }
+.term .hit .n { color: var(--code-dim); width: 1.2em; flex: none; text-align: right; }
+.term .hit .t { flex: 1; min-width: 0; }
+.term .hit.tgt .t { color: #8fd3ff; font-weight: 700; }
+.term .hit .sc { color: var(--code-dim); flex: none; }
+.term .caret {
+  display: inline-block; width: 7px; height: 1.05em; margin-left: 1px;
+  background: var(--code-ink); vertical-align: text-bottom; animation: blink 1.1s steps(1) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+.term-note {
+  padding: 9px 16px; border-top: 1px solid var(--code-line); background: var(--code-note);
+  font-family: var(--sans); font-size: 0.8rem; color: var(--code-dim);
+}
+/* this note sits on the dark terminal footer, so an inline code chip must not
+   inherit the light page chip: that pairing measured 2.64:1 */
+.term-note code {
+  background: var(--code-bar); color: var(--code-ink);
+  /* the inherited --hairline border is a light value: too bright here in the
+     light theme and invisible in the dark one */
+  border-color: var(--code-dim);
+  font-size: 1em; padding: 1px 5px;
+}
+
+/* ---------- sections ---------- */
+
+section.band { padding: clamp(48px, 7vw, 84px) 0; border-bottom: 1px solid var(--border); }
+section.band.alt { background: var(--cream-dark); border-top: 1px solid var(--hairline); }
+.seclabel {
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-light); margin: 0 0 10px;
+}
+/* a 32px rule under the eyebrow: the only thing that gave ten identical
+   left-aligned section headers any shape of their own */
+.seclabel::after {
+  content: ""; display: block; width: 32px; height: 2px; border-radius: 2px;
+  margin: 10px 0 0; background: var(--brand);
+}
+/* the two inverted bands and the closing call to action centre their header */
+.wrap.hcenter > .seclabel, .wrap.hcenter > h2, .wrap.hcenter > .lede { text-align: center; }
+.wrap.hcenter > .seclabel::after { margin-left: auto; margin-right: auto; }
+.wrap.hcenter > .lede { margin-left: auto; margin-right: auto; }
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  html { scroll-behavior: auto; }
+}
+
+/* ---------- grids and cards ---------- */
+
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.g3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.g4 { grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); }
+/* five items without an orphan: 3 + 2 on one six-column track. auto-fit fitted
+   only four columns in a 1120px container and left the fifth card alone. */
+.g5 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.g5 > * { grid-column: span 2; }
+.g5 > :nth-child(4), .g5 > :nth-child(5) { grid-column: span 3; }
+/* six interface cards: 3 x 2. `.g5` hand-splits five as 3 + 2, which strands a
+   sixth card alone on a third row; an even split is the only one of the two
+   that stays even when a seventh is added. */
+.g6 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* the extension band: one tall popup frame beside a stacked frame + legend */
+/* 0.72/1.28 is solved, not tuned by eye: the popup mock is portrait (840x1054)
+   and the options mock is landscape (1120x864), and this is the split at which
+   both frames plus their captions end on the same line. */
+.gext { grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr); gap: 16px; align-items: start; }
+.ecol { display: grid; gap: 16px; align-content: start; }
+
+.card {
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px 22px; box-shadow: var(--shadow-1);
+}
+.card h3 { margin-bottom: 6px; }
+.card p:last-child { margin-bottom: 0; }
+.card .eyebrow {
+  font-family: var(--mono); font-size: 0.74rem; color: var(--accent-ink);
+  text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700;
+}
+.card .ex {
+  margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border);
+  color: var(--accent-ink); font-size: 0.92rem;
+}
+.card.off { background: var(--surface-2); }
+.card.off h3 { color: var(--ink-light); }
+
+.stat {
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 20px; box-shadow: var(--shadow-1);
+}
+/* a stat inside a card is a footer of that card, not a second box: one border,
+   one shadow, one background per object */
+.card .stat {
+  background: none; border: 0; border-radius: 0; box-shadow: none;
+  margin-top: 12px; padding: 12px 0 0; border-top: 1px dashed var(--border);
+}
+.stat .v { font-size: clamp(1.6rem, 3.4vw, 2.2rem); font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.stat .v.good { color: var(--success); }
+.stat .v.bad { color: var(--danger-strong); }
+.stat .k { font-size: 0.85rem; color: var(--ink-light); }
+
+/* ---------- tables ---------- */
+
+.tw {
+  overflow-x: auto; margin: 0 0 1.2em;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  /* scroll shadows: the two `local` layers ride with the content and cover the
+     two `scroll` layers whenever that edge is already reached, so the shadow
+     only shows on the side that still has hidden columns */
+  background:
+    linear-gradient(to right, var(--card-bg) 40%, transparent) left / 26px 100% no-repeat local,
+    linear-gradient(to left, var(--card-bg) 40%, transparent) right / 26px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, 0.13), transparent) left / 11px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.13), transparent) right / 11px 100% no-repeat scroll,
+    var(--card-bg);
+}
+.tw::-webkit-scrollbar, .diagram .dscroll::-webkit-scrollbar { height: 7px; }
+.tw::-webkit-scrollbar-thumb, .diagram .dscroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.tw::-webkit-scrollbar-track, .diagram .dscroll::-webkit-scrollbar-track { background: transparent; }
+table { border-collapse: collapse; width: 100%; font-size: 0.93rem; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+th { background: var(--surface-2); font-size: 0.79rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-light); font-weight: 700; white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover td { background: var(--surface-2); }
+td code, th code { white-space: nowrap; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.win td { background: var(--info-soft); }
+tr.win:hover td { background: var(--info-soft); }
+
+code {
+  font-family: var(--mono); font-size: 0.88em;
+  background: var(--surface-2); border: 1px solid var(--hairline);
+  padding: 1px 5px; border-radius: 5px;
+  /* long paths in prose must be allowed to break, or they widen the page */
+  overflow-wrap: anywhere;
+}
+kbd {
+  font-family: var(--mono); font-size: 0.82em; padding: 2px 6px;
+  border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px;
+  background: var(--card-bg);
+}
+
+/* ---------- code blocks ---------- */
+
+.cb { margin: 0 0 1.2em; border-radius: var(--radius); overflow: hidden; background: var(--code-bg); border: 1px solid var(--code-line); }
+.cb-bar {
+  display: flex; align-items: center; gap: 10px; padding: 7px 12px;
+  background: var(--code-bar); border-bottom: 1px solid var(--code-line);
+  font: 600 0.74rem/1 var(--sans); color: var(--code-dim);
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.cb-bar button {
+  margin-left: auto; background: none; border: 1px solid var(--code-line); color: var(--code-dim);
+  border-radius: 6px; padding: 3px 9px; font: 600 0.72rem/1.5 var(--sans); cursor: pointer;
+  text-transform: none; letter-spacing: 0;
+}
+.cb-bar button:hover { color: var(--code-ink); border-color: var(--code-dim); }
+.cb pre { margin: 0; padding: 14px 16px; overflow-x: auto; }
+.cb code {
+  background: none; border: 0; padding: 0; color: var(--code-ink);
+  font-family: var(--mono); font-size: 0.85rem; line-height: 1.72; white-space: pre;
+}
+.cb .c { color: var(--code-dim); }
+
+/* ---------- diagram ---------- */
+
+.diagram { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow-1); }
+.diagram .dscroll { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+.diagram svg { width: 100%; min-width: 860px; height: auto; display: block; }
+/* narrow-screen rewrite of the same pipeline: same nodes, stacked */
+.dstack { display: none; }
+.dstack .dn {
+  border: 1.5px solid var(--border); background: var(--surface-2);
+  border-radius: 9px; padding: 9px 12px; text-align: center;
+}
+.dstack .dn b { display: block; font-size: 0.93rem; color: var(--ink); }
+.dstack .dn i { display: block; font-style: normal; font-size: 0.8rem; color: var(--ink-light); margin-top: 1px; }
+.dstack .dn s { display: block; text-decoration: none; font-style: italic; font-size: 0.77rem; color: var(--ink-light); margin-top: 1px; }
+.dstack .dn.on { background: var(--info-soft); border-color: var(--brand); }
+.dstack .dn.key { background: var(--card-bg); border-color: var(--ink-faint); }
+/* the four facets fan out in parallel. Stacked in one column with no group
+   boundary they read as a five-step sequence, which is the wrong architecture:
+   they are wrapped in a labelled bracket and laid out two-up wherever there is
+   room for two. */
+.dpar { position: relative; margin: 0; padding: 10px 0 10px 13px; border-left: 2px solid var(--brand); border-radius: 3px 0 0 3px; }
+.dpar::before, .dpar::after {
+  content: ""; position: absolute; left: -2px; width: 11px; height: 2px; background: var(--brand);
+}
+.dpar::before { top: 0; }
+.dpar::after { bottom: 0; }
+.dpar-h { margin: 0 0 9px; font-size: 0.79rem; line-height: 1.5; }
+.dpar-h b { color: var(--ink); font-weight: 700; letter-spacing: 0.02em; }
+.dpar-h i { font-style: normal; color: var(--ink-light); }
+.dpar-h i::before { content: " \00b7\00a0"; color: var(--ink-faint); }
+.dstack .dgrid { display: grid; gap: 7px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 419px) { .dstack .dgrid { grid-template-columns: minmax(0, 1fr); } }
+.dstack .darr { position: relative; height: 22px; }
+.dstack .darr::before {
+  content: ""; position: absolute; left: 50%; top: 0; bottom: 6px; width: 2px;
+  transform: translateX(-50%); background: var(--brand);
+}
+.dstack .darr::after {
+  content: ""; position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+  border: 5px solid transparent; border-top-color: var(--brand); border-bottom: 0;
+}
+.dstack .darr.mut::before { background: var(--ink-faint); width: 1.5px; }
+.dstack .darr.mut::after { border-top-color: var(--ink-faint); }
+.dstack .dbr {
+  margin: 14px 0 10px; padding-top: 12px; border-top: 1px dashed var(--border);
+  font-size: 0.8rem; color: var(--ink-light); text-align: center;
+}
+.dstack .dlegend { margin: 14px 0 0; font-size: 0.78rem; color: var(--ink-light); line-height: 2; }
+.dstack .dlegend .k { display: inline-block; width: 22px; height: 2px; margin: 0 7px 0 0; vertical-align: middle; }
+.dstack .dlegend .k.on { background: var(--brand); height: 3px; }
+.dstack .dlegend .k.off { background: var(--ink-faint); margin-left: 14px; }
+
+@media (max-width: 880px) {
+  .diagram .dscroll { display: none; }
+  .dstack { display: block; }
+  .diagram { padding: 16px 14px; }
+}
+.diagram svg text { font-family: var(--sans); fill: var(--ink); }
+.d-box { fill: var(--surface-2); stroke: var(--border); }
+.d-box-on { fill: var(--info-soft); stroke: var(--brand); }
+.d-box-key { fill: var(--card-bg); stroke: var(--ink-faint); }
+.d-arrow { stroke: var(--ink-faint); fill: none; }
+.d-arrow-on { stroke: var(--brand); fill: none; }
+.d-t { font-size: 13px; font-weight: 700; }
+.d-s { font-size: 11px; fill: var(--ink-light); }
+.d-s-off { font-size: 10.5px; fill: var(--ink-light); font-style: italic; }
+.d-head { fill: var(--ink-faint); }
+.d-head-on { fill: var(--brand); }
+
+/* ---------- bars ---------- */
+
+.bars { display: grid; gap: 9px; margin: 4px 0 14px; }
+.bar-row { display: grid; grid-template-columns: minmax(150px, 210px) 1fr 58px; gap: 12px; align-items: center; font-size: 0.9rem; }
+.bar-row .lb { color: var(--ink-light); }
+.bar-row .lb b { color: var(--ink); }
+.bar-track { height: 20px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--hairline); overflow: hidden; }
+.bar-fill { height: 100%; width: 0; background: var(--ink-faint); transition: width 1.05s cubic-bezier(0.22, 1, 0.36, 1); }
+.bars.go .bar-fill { width: var(--w); }
+.bar-fill.win { background: var(--brand); }
+.bar-row .vv { font-variant-numeric: tabular-nums; font-weight: 700; text-align: right; }
+
+.bigstat { font-size: clamp(2.3rem, 6vw, 3.4rem); font-weight: 800; letter-spacing: -0.035em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.bigstat.bad { color: var(--danger-strong); }
+.bigstat small { display: block; font-size: 0.26em; font-weight: 600; letter-spacing: 0.02em; color: var(--ink-light); margin-top: 6px; }
+
+/* ---------- badges ---------- */
+
+.badge {
+  display: inline-block; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.04em;
+  padding: 2px 9px; border-radius: 999px; text-transform: uppercase; white-space: nowrap;
+  max-width: 100%; overflow-wrap: anywhere;
+}
+@media (max-width: 700px) { .badge { white-space: normal; } }
+.badge.pass { background: var(--success-soft); color: var(--success); }
+.badge.fail { background: var(--danger-soft); color: var(--danger-strong); }
+.badge.info { background: var(--info-soft); color: var(--accent-ink); }
+.badge.warn { background: #fff2dd; color: #9a5b00; }
+:root[data-theme="dark"] .badge.warn { background: #2e2313; color: var(--warning); }
+
+.callout {
+  border-left: 3px solid var(--brand); background: var(--info-soft);
+  padding: 14px 18px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin: 0 0 1.2em;
+}
+.callout.warn { border-color: var(--warning); background: var(--warning-soft); }
+.callout.bad { border-color: var(--danger-strong); background: var(--danger-soft); }
+.callout p:last-child { margin-bottom: 0; }
+.callout .t { font-weight: 700; }
+
+/* ---------- shots ---------- */
+
+.shot { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-1); overflow: hidden; }
+.shot .cap { padding: 11px 15px; border-top: 1px solid var(--border); font-size: 0.86rem; color: var(--ink-light); }
+.shot .cap b { color: var(--ink); }
+.shot img { display: block; width: 100%; height: auto; background: var(--surface-2); }
+/* the dark-mode popup is a fact about the extension, not a second screenshot:
+   the frame swaps its image with the site theme instead of taking a column */
+.only-dark { display: none; }
+:root[data-theme="dark"] .only-light { display: none; }
+:root[data-theme="dark"] .only-dark { display: block; }
+
+/* what each marker in a result row means - the part readers actually ask about */
+.mlegend { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow-1); }
+/* full-width variant: the legend reads across the band under both frames, so
+   the popup column no longer ends a third of the band above the options one */
+.mlegend.wide { margin-top: 16px; }
+.mlegend.wide .mlist { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px 40px; }
+.mlegend h3 { margin-bottom: 12px; }
+.mlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 11px; }
+.mlist > li { margin: 0; display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: 10px; align-items: baseline; font-size: 0.9rem; color: var(--ink-light); }
+.mlist .mk { justify-self: start; }
+.mlist b { color: var(--ink); font-weight: 600; }
+.gmk { font-size: 0.74rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-light); background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+
+/* ---------- questions and boundaries ---------- */
+
+/* answers are always visible. Six collapsed rows with a blank right half was
+   the emptiest screen on the site, and hiding the answers is the opposite of
+   what this page is for. */
+.qa { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 40px; }
+.qa-i { padding: 17px 0 3px; border-top: 1px solid var(--border); }
+.qa-i h3 { font-size: 1.05rem; margin-bottom: 7px; }
+.qa-i .a { color: var(--ink-light); font-size: 0.95rem; }
+.qa-i .a p:last-child { margin-bottom: 0; }
+
+/* the five boundaries: a marked list, not five cards that wrap 4 + 1 */
+.plist { list-style: none; padding: 0; margin: 0; gap: 4px 40px; }
+.plist > li { margin: 0; padding: 17px 0 3px; border-top: 1px solid var(--border); display: grid; grid-template-columns: 21px minmax(0, 1fr); gap: 12px; align-items: start; }
+.plist h3 { font-size: 1.02rem; margin: 0 0 5px; }
+.plist p { margin: 0; color: var(--ink-light); font-size: 0.95rem; }
+.pmk { width: 21px; height: 21px; margin-top: 3px; fill: none; stroke: var(--brand); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- doc layout (guide / measured) ---------- */
+
+.pagehead { padding: clamp(36px, 5vw, 60px) 0 clamp(24px, 3vw, 34px); border-bottom: 1px solid var(--border); background: var(--cream-dark); }
+.pagehead h1 { font-size: clamp(1.9rem, 4.2vw, 2.8rem); }
+.pagehead p { color: var(--ink-light); max-width: var(--readw); margin-bottom: 0; }
+
+.doc { display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 44px; align-items: start; padding: 40px 0 72px; }
+/* grid items default to min-width:auto, which lets a wide table or code block
+   stretch the whole column past the viewport. Pin them to 0. */
+.doc > * { min-width: 0; }
+.toc { position: sticky; top: 84px; font-size: 0.9rem; }
+.toc .h { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.13em; color: var(--ink-light); font-weight: 700; margin-bottom: 9px; }
+.toc ol { list-style: none; margin: 0; padding: 0; counter-reset: t; }
+.toc li { margin: 0; counter-increment: t; }
+.toc a {
+  display: block; padding: 5px 10px 5px 36px; color: var(--ink-light); text-decoration: none;
+  border-left: 2px solid var(--hairline); position: relative; border-radius: 0 6px 6px 0;
+}
+.toc a::before {
+  content: counter(t, decimal-leading-zero); position: absolute; left: 9px; width: 20px;
+  text-align: right; color: var(--ink-light); font-variant-numeric: tabular-nums; font-size: 0.85em;
+}
+.toc a:hover { color: var(--ink); background: var(--surface-2); }
+.toc a.on { color: var(--accent-ink); border-left-color: var(--brand); background: var(--info-soft); font-weight: 600; }
+
+.doc article > section { padding-bottom: 40px; }
+.doc article > section + section { border-top: 1px solid var(--border); padding-top: 36px; }
+.doc article h2 { display: flex; align-items: baseline; gap: 12px; }
+.doc article h2 .n { font-size: 0.8em; color: var(--ink-light); font-variant-numeric: tabular-nums; font-weight: 700; }
+.doc article h3 { margin-top: 1.7em; }
+.doc article > section > p, .doc article > section > ul, .doc article > section > ol { max-width: var(--readw); }
+.steps { counter-reset: s; list-style: none; padding: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 38px; margin-bottom: 14px; }
+.steps > li::before {
+  content: counter(s); position: absolute; left: 0; top: 1px;
+  width: 25px; height: 25px; border-radius: 50%;
+  background: var(--info-soft); color: var(--accent-ink);
+  font: 700 0.82rem/25px var(--sans); text-align: center;
+}
+
+/* ---------- footer ---------- */
+
+footer.site { padding: 40px 0 56px; background: var(--cream-dark); border-top: 1px solid var(--border); }
+.foot { display: flex; flex-wrap: wrap; gap: 28px 48px; justify-content: space-between; }
+.foot h3 { font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.13em; color: var(--ink-light); margin-bottom: 9px; }
+.foot ul { list-style: none; padding: 0; margin: 0; font-size: 0.92rem; }
+.foot li { margin-bottom: 5px; }
+.foot a { color: var(--ink-light); text-decoration: none; }
+.foot a:hover { color: var(--accent-ink); }
+.foot-bar { margin-top: 30px; padding-top: 18px; border-top: 1px solid var(--border); font-size: 0.86rem; color: var(--ink-light); display: flex; flex-wrap: wrap; gap: 8px 20px; }
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 900px) {
+  .gext { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 820px) {
+  .g6 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .g5 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .g5 > *, .g5 > :nth-child(4) { grid-column: span 1; }
+  .g5 > :nth-child(5) { grid-column: 1 / -1; }
+}
+@media (max-width: 780px) {
+  .qa, .plist { grid-template-columns: minmax(0, 1fr); }
+  .mlegend.wide .mlist { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .g6 { grid-template-columns: minmax(0, 1fr); }
+  .g5 { grid-template-columns: minmax(0, 1fr); }
+  .g5 > *, .g5 > :nth-child(4), .g5 > :nth-child(5) { grid-column: 1 / -1; }
+}
+@media (max-width: 980px) {
+  .hero-inner { grid-template-columns: 1fr; }
+  .doc { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .toc { position: static; border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; background: var(--card-bg); }
+  .toc ol { columns: 2; column-gap: 20px; }
+}
+@media (max-width: 700px) {
+  body { font-size: 16px; }
+  h1 { font-size: clamp(1.82rem, 7.4vw, 2.4rem); }
+  nav.top a.hide-sm { display: none; }
+  .ctl.gh { display: inline-flex; }
+  .site-inner { gap: 8px; padding: 9px 14px; }
+  .logo { font-size: 0.95rem; gap: 7px; }
+  nav.top { gap: 0; min-width: 0; }
+  nav.top a { font-size: 0.85rem; padding: 6px 7px; }
+  .ctl { height: 30px; min-width: 30px; padding: 0 7px; margin-left: 3px; font-size: 0.8rem; }
+  .wrap { padding: 0 16px; }
+  .hero-inner { padding: 36px 16px 34px; }
+  .bar-row { grid-template-columns: 1fr auto; grid-template-areas: "lb vv" "tr tr"; gap: 4px 10px; }
+  .bar-row .lb { grid-area: lb; }
+  .bar-row .vv { grid-area: vv; }
+  .bar-row .bar-track { grid-area: tr; }
+  .toc ol { columns: 1; }
+  .foot { gap: 20px 28px; }
+  table { font-size: 0.88rem; }
+  th, td { padding: 9px 10px; }
+}
+@media (max-width: 430px) {
+  /* the mark alone still reads as the home link; the nav needs the room */
+  .logo .word { display: none; }
+  nav.top a { padding: 6px 6px; }
+}
+@media (max-width: 380px) {
+  /* three nav links plus three controls: at 320px every pixel of chrome
+     has to come out of the header or the whole page scrolls sideways */
+  .site-inner { padding: 8px 10px; gap: 4px; }
+  nav.top a { font-size: 0.81rem; padding: 6px 4px; }
+  .ctl { height: 28px; min-width: 28px; padding: 0 5px; margin-left: 2px; font-size: 0.76rem; }
+  .ctl.gh svg { width: 16px; height: 16px; }
+  .wrap { padding: 0 13px; }
+  .hero-inner { padding: 30px 13px 30px; }
+}
+
+@media print {
+  header.site, footer.site, .toc, .progress { display: none; }
+  body { background: #fff; }
+}
+
+/* ==========================================================================
+   hand-drawn frames and tinted base cards
+   --------------------------------------------------------------------------
+   The two shapes this site borrows from the design system, and the two the
+   app uses as well, so a reader who has seen one recognises the other.
+
+   The frame is a dashed rule in one of four hues with a Caveat label sitting
+   on the top edge. Colour is never the only signal: the label always names
+   the thing. The tinted card is a low-alpha wash of the same hue, written as
+   a single `background` gradient -- a `background-color` plus a
+   `background-image` composite to 1-(1-a)^2, which is how a "0.08 wash"
+   silently becomes 0.15 and stops matching the number in the comment.
+   ========================================================================== */
+
+.sketch {
+  position: relative;
+  margin: 30px 0;
+  padding: 26px 24px 22px;
+  border: 2px dashed var(--brand);
+  border-radius: 16px;
+  background: var(--card-bg);
+}
+
+.sketch > .label {
+  position: absolute;
+  top: -13px;
+  left: 20px;
+  padding: 0 10px;
+  background: var(--cream);
+  color: var(--accent-ink);
+  font-family: Caveat, var(--font-body);
+  font-size: 1.18rem;
+  line-height: 1.2;
+}
+
+.sketch.lex { border-color: var(--highlight); }
+.sketch.lex > .label { color: var(--warning); }
+.sketch.intent { border-color: var(--pop); }
+.sketch.intent > .label { color: var(--danger-strong); }
+.sketch.context { border-color: var(--success); }
+.sketch.context > .label { color: var(--success); }
+
+.sketch > :first-child + * { margin-top: 0; }
+.sketch > :last-child { margin-bottom: 0; }
+
+/* Inside a band that already alternates to paper-2, the label's own paper has
+   to follow, or it reads as a white sticker pasted over the frame. */
+.band.alt .sketch > .label,
+.alt .sketch > .label { background: var(--cream-dark); }
+
+.tintcard {
+  margin: 30px 0;
+  padding: 24px;
+  /* The border is the hue's second chance. Blue at 0.10 alpha over cream is
+     very nearly cream; measured beside a gold sibling it read as the one
+     white card in a coloured set. The hairline is what makes it a member. */
+  border: 1px solid rgba(43, 127, 216, 0.28);
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(43, 127, 216, 0.1), rgba(43, 127, 216, 0.03));
+}
+
+.tintcard.lex {
+  border-color: rgba(202, 170, 20, 0.42);
+  background: linear-gradient(145deg, rgba(244, 215, 88, 0.22), rgba(244, 215, 88, 0.05));
+}
+
+.tintcard.intent {
+  border-color: rgba(232, 74, 95, 0.3);
+  background: linear-gradient(145deg, rgba(232, 74, 95, 0.1), rgba(232, 74, 95, 0.03));
+}
+
+.tintcard.context {
+  border-color: rgba(46, 121, 85, 0.3);
+  background: var(--success-soft);
+}
+
+.tintcard > .t {
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.tintcard > .t::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 50%;
+  vertical-align: 1px;
+  background: var(--brand);
+}
+
+.tintcard.lex > .t::before { background: var(--highlight); }
+.tintcard.intent > .t::before { background: var(--pop); }
+.tintcard.context > .t::before { background: var(--success); }
+
+.tintcard > :last-child { margin-bottom: 0; }
+
+:root[data-theme="dark"] .tintcard {
+  background: linear-gradient(145deg, rgba(125, 180, 238, 0.1), rgba(125, 180, 238, 0.03));
+}
+
+:root[data-theme="dark"] .tintcard.lex {
+  background: linear-gradient(145deg, rgba(232, 198, 90, 0.09), rgba(232, 198, 90, 0.02));
+}
+
+:root[data-theme="dark"] .tintcard.intent {
+  background: linear-gradient(145deg, rgba(242, 135, 154, 0.09), rgba(242, 135, 154, 0.02));
+}
+
+/* Three-up grid of small tinted cards, for the "four facets" and "which
+   provider" rows that are four short things rather than one long one. */
+.tintrow {
+  display: grid;
+  gap: 18px;
+  margin: 30px 0;
+}
+
+/* Two columns, not auto-fit. Auto-fit fitted three at the reading width and
+   left the fourth card alone on its own row beside a hole; four things that
+   belong together have to look like four things that belong together. */
+@media (min-width: 700px) {
+  .tintrow { grid-template-columns: 1fr 1fr; }
+}
+
+.tintrow > .tintcard { margin: 0; }

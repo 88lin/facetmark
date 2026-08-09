@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN" data-palette="A">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>配置 — facetmark</title>
+<meta name="description" content="每一项配置用人话讲一遍，八家模型服务商的现成配置块，以及完全不用 API key 怎么跑。">
+<meta name="color-scheme" content="light dark">
+<meta property="og:title" content="配置 — facetmark">
+<meta property="og:description" content="每一项配置用人话讲一遍，八家模型服务商的现成配置块，以及完全不用 API key 怎么跑。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="facetmark">
+<meta property="og:url" content="https://88lin.github.io/facetmark/config.zh.html">
+<meta property="og:image" content="https://88lin.github.io/facetmark/assets/og-zh.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="配置 — facetmark">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="配置 — facetmark">
+<meta name="twitter:description" content="每一项配置用人话讲一遍，八家模型服务商的现成配置块，以及完全不用 API key 怎么跑。">
+<meta name="twitter:image" content="https://88lin.github.io/facetmark/assets/og-zh.png">
+<link rel="canonical" href="https://88lin.github.io/facetmark/config.zh.html">
+<link rel="alternate" hreflang="en" href="config.html">
+<link rel="alternate" hreflang="zh-CN" href="config.zh.html">
+<link rel="alternate" hreflang="x-default" href="config.html">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="mask-icon" href="assets/favicon.svg" color="#2b7fd8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Noto+Serif+SC:wght@400..700&family=Caveat:wght@500&display=swap">
+<link rel="stylesheet" href="palettes.css">
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var t=localStorage.getItem('fm-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+</head>
+<body>
+<a class="skip" href="#main">跳到正文</a>
+<div class="progress" aria-hidden="true"></div>
+<header class="site"><div class="site-inner"><a class="logo" href="index.zh.html"><span class="mark" aria-hidden="true"></span><span class="word">facetmark</span></a><nav class="top"><a href="index.zh.html">首页</a><a href="quickstart.zh.html">上手</a><a href="webui.zh.html">界面</a><a href="config.zh.html" class="on hide-sm">配置</a><a href="integrations.zh.html" class="hide-sm">连接</a><a href="guide.zh.html">使用指南</a><a href="measured.zh.html" class="hide-sm">实测记录</a><a href="https://github.com/88lin/facetmark" class="hide-sm" rel="noopener">GitHub</a><a class="ctl" data-lang-switch href="#" title="Switch to English" hreflang="en">EN</a><a class="ctl gh" href="https://github.com/88lin/facetmark" rel="noopener" title="GitHub" aria-label="GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a5.4 5.4 0 0 1 1.5-.2c.51 0 1.02.07 1.5.2 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A7.99 7.99 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a><button class="ctl" type="button" data-theme-toggle aria-label="切换深色模式">☾</button></nav></div></header>
+<main id="main"><div class="pagehead"><div class="wrap"><h1>配置，用人话讲</h1><p class="lede">旋钮很多。你需要的是其中四个，而且只有在你确实要用云端模型的时候才需要。这一页先讲那四个，再讲其余的，最后给你八家服务商各一段可以直接粘贴的配置。</p></div></div><div class="wrap"><div class="doc"><aside class="toc"><div class="h">本页目录</div><ol><li><a href="#where">一项配置是从哪来的</a></li><li><a href="#model">真正要紧的四项</a></li><li><a href="#presets">八家服务商，直接粘贴</a></li><li><a href="#local">完全不用 API</a></li><li><a href="#groups">其余的</a></li><li><a href="#faq">你真会遇到的报错</a></li></ol></aside><article><section id="where"><h2><span class="n">01</span><span>一项配置是从哪来的</span></h2><p>三个地方，越靠左的越大：</p><div class="cb"><div class="cb-bar"><span>优先级</span><button type="button" data-copy data-label="复制" data-done="已复制">复制</button></div><pre><code>环境变量   &gt;   config.toml   &gt;   内置默认值</code></pre></div><p>设置屏会告诉你每个值来自这三者中的哪一个；如果是环境变量在压着它，那个输入框会变成只读并说明原因，而不是放你写一个根本不会生效的值。在浏览器里改会写进文件，永远不会去动你的环境变量。</p><div class="cb"><div class="cb-bar"><span>文件在哪</span><button type="button" data-copy data-label="复制" data-done="已复制">复制</button></div><pre><code>facetmark config path</code></pre></div><p>第一次有东西往里写的时候它才被创建。并不要求你必须有这个文件——没有文件、没有环境变量，全用默认值跑起来也是完全正常的一次运行。</p><div class="callout "><div class="t">有三项要重启才生效</div><p><code>embed_backend</code>、<code>embed_dim</code> 和 <code>local_embed_path</code> 决定向量库的形状。这一屏会把它们存下来，然后明确告诉你要下次启动才生效。</p></div></section><section id="model"><h2><span class="n">02</span><span>真正要紧的四项</span></h2><div class="tw"><table><thead><tr><th>配置项</th><th>人话</th></tr></thead><tbody><tr><td><code>api_key</code></td><td>你的 key。存在文件里，回显给你看的是掩码，而且你保存别的字段时它不会被重新写一遍。</td></tr><tr><td><code>base_url</code></td><td>请求发到哪。任何说 OpenAI 那套 API 的都行，包括跑在你自己机器上的东西。</td></tr><tr><td><code>chat_model</code></td><td>用来读页面，以及在「提问」屏上回答。这里便宜快比聪明重要。</td></tr><tr><td><code>embed_model</code></td><td>把文字变成向量。决定搜索质量的是这一项。</td></tr></tbody></table></div><div class="callout warn"><div class="t">换向量模型就要重建索引</div><p>两个不同模型出来的向量不可比。换了就跑一次重建，否则搜索会悄悄变差，而且没有任何报错会告诉你。</p></div><p>设置屏上的<b>测试</b>按钮会分别调用对话和向量，并分别报结果，因为实际上通常只有其中一个是坏的——有对话权限、没有向量权限的账号是非常常见的一种形态。</p></section><section id="presets"><h2><span class="n">03</span><span>八家服务商，直接粘贴</span></h2><p>把这些放进 <code>facetmark config path</code> 指出来的那个文件，或者把同样的值填到设置屏里。模型名字是会变的；如果某个名字被拒了，去查服务商当前的列表，别信这一页。</p><div class="cb"><div class="cb-bar"><span>OpenAI</span><button type="button" data-copy data-label="复制" data-done="已复制">复制</button></div><pre><code>api_key = "sk-..."
+base_url = "https://api.openai.com/v1"
+chat_model = "gpt-4o-mini"
+embed_model = "text-embedding-3-small"
+embed_dim = 1536</code></pre></div><div class="cb"><div class="cb-bar"><span>DeepSeek（只有对话——向量要另找一家）</span><button type="button" data-copy data-label="复制" data-done="已复制">复制</button></div><pre><code>api_key = "sk-..."
+base_url = "https://api.deepseek.com/v1"
+chat_model = "deepseek-chat"</code></pre></div><div class="cb"><div class="cb-bar"><span>月之暗面 Kimi</span><button type="button" data-copy data-label="复制" data-done="已复制">复制</button></div><pre><code>api_key = "sk-..."
+base_url = "https://api.moonshot.cn/v1"
+chat_model = "moonshot-v1-8k"</code></pre></div><div class="cb"><div class="cb-bar"><span>智谱 GLM</span><button type="button" data-copy data-label="复制" data-done="已复制">复制</button></div><pre><code>api_key = "..."
+base_url = "https://open.bigmodel.cn/api/paas/v4"
+chat_model = "glm-4-flash"
+embed_model = "embedding-3"
+embed_dim = 2048</code></pre></div><div class="cb"><div class="cb-bar"><span>硅基流动 SiliconFlow</span><button type="button" data-copy data-label="复制" data-done="已复制">复制</button></div><pre><code>api_key = "sk-..."
+base_url = "https://api.siliconflow.cn/v1"
+chat_model = "Qwen/Qwen2.5-7B-Instruct"
+embed_model = "BAAI/bge-m3"
+embed_dim = 1024</code></pre></div><div class="cb"><div class="cb-bar"><span>阿里云百炼（OpenAI 兼容端点）</span><button type="button" data-copy data-label="复制" data-done="已复制">复制</button></div><pre><code>api_key = "sk-..."
+base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+chat_model = "qwen-plus"
+embed_model = "text-embedding-v3"
+embed_dim = 1024</code></pre></div><div class="cb"><div class="cb-bar"><span>Ollama（跑在你自己机器上，不用 key）</span><button type="button" data-copy data-label="复制" data-done="已复制">复制</button></div><pre><code>base_url = "http://127.0.0.1:11434/v1"
+api_key = "ollama"
+chat_model = "qwen2.5:7b"
+embed_model = "bge-m3"
+embed_dim = 1024</code></pre></div><div class="cb"><div class="cb-bar"><span>vLLM（你自己的服务）</span><button type="button" data-copy data-label="复制" data-done="已复制">复制</button></div><pre><code>base_url = "http://127.0.0.1:8000/v1"
+api_key = "not-used"
+chat_model = "Qwen/Qwen2.5-7B-Instruct"</code></pre></div><div class="callout "><div class="t">混着用是常态</div><p>facetmark 只发两种请求：对话的和向量的。很多人对话用最便宜的、向量用最好的。把 <code>base_url</code> 指向做向量那家、对话模型写全名；或者向量放本地跑，API 只留给对话。</p></div></section><section id="local"><h2><span class="n">04</span><span>完全不用 API</span></h2><p>向量可以在你自己机器上算。不要 key、不联网、什么都不出这台笔记本：</p><div class="cb"><div class="cb-bar"><span>本地向量</span><button type="button" data-copy data-label="复制" data-done="已复制">复制</button></div><pre><code>embed_backend = "local"
+local_embed_path = "BAAI/bge-m3"
+embed_dim = 1024</code></pre></div><p>建索引更慢，而且模型要先下载一次。搜索质量不错：在 1024 token 的窗口上，bge-m3 两次跑出来的向量自身余弦是 0.999976，而这正是一个「要长期留着而不是天天重建」的索引最需要的性质。</p><div class="sketch context"><span class="label">你放弃了什么</span><p>有两条路是建立在「让语言模型读一遍你的页面」上的：一个页面能回答的那些问题，以及主题标签。没有对话模型，这两块就是空的，你搜的是正文和全文检索——仍然是最强的两条路，也仍然比你浏览器给你的强。</p><p>你也可以先从这里开始，以后再加 key。什么都不用丢掉；索引会把之前建不出来的那部分补上。</p></div></section><section id="groups"><h2><span class="n">05</span><span>其余的</span></h2><h3>向量</h3><div class="tw"><table><thead><tr><th>配置项</th><th>人话</th></tr></thead><tbody><tr><td><code>embed_backend</code></td><td><code>api</code> 或 <code>local</code>。要重启生效。</td></tr><tr><td><code>embed_dim</code></td><td>每个向量多长。必须和模型实际返回的一致。要重启生效。</td></tr><tr><td><code>local_embed_path</code></td><td>本地后端用的模型 id 或目录。要重启生效。</td></tr></tbody></table></div><h3>它使多大劲</h3><div class="tw"><table><thead><tr><th>配置项</th><th>人话</th></tr></thead><tbody><tr><td><code>request_timeout</code></td><td>多少秒之后放弃一次调用。网慢就调大；某家服务卡住就调小。</td></tr><tr><td><code>fetch_concurrency</code></td><td>同时下载几个页面。你的网络抗议的时候调小。</td></tr><tr><td><code>enrich_concurrency</code></td><td>同时往模型发几个页面。被限流的时候，要调小的是这一项。</td></tr></tbody></table></div><h3>不许它看的东西</h3><div class="tw"><table><thead><tr><th>配置项</th><th>人话</th></tr></thead><tbody><tr><td><code>privacy_excluded_domains</code></td><td>永远不抓、永远不外发的域名。银行、健康、公司内网。书签还在，只有标题进索引。</td></tr><tr><td><code>chat_model_fallbacks</code></td><td>第一个模型不干的时候，按顺序往下试的那些。</td></tr></tbody></table></div><div class="callout "><div class="t">排除名单要在第一次建索引之前设</div><p>一个页面的正文一旦进了数据库，把它的域名加进名单只会阻止以后再抓，不会让它忘掉已经记住的。你在意的话，改完名单跑一次重建。</p></div></section><section id="faq"><h2><span class="n">06</span><span>你真会遇到的报错</span></h2><div class="tw"><table><thead><tr><th>报错</th><th>怎么办</th></tr></thead><tbody><tr><td><code>401</code> / <code>invalid_api_key</code></td><td>key 不对，或者这个 <code>base_url</code> 配了另一家的 key。在设置屏上测一下——它会告诉你是哪一半挂了。</td></tr><tr><td>模型名报 <code>404</code></td><td>这个端点上没有这个名字。去查服务商的模型列表。</td></tr><tr><td><code>429</code></td><td>被限流。把 <code>enrich_concurrency</code> 调小再跑一次；已经完成的阶段不会重做。</td></tr><tr><td><code>dim mismatch</code></td><td><code>embed_dim</code> 和模型不一致。改对，重启，重建。</td></tr><tr><td>对话能用，向量 403</td><td>很常见。这个账号有一种权限没有另一种。把 <code>embed_backend</code> 切成本地，或者把向量指到另一家。</td></tr><tr><td>保存时报 <code>unknown setting</code></td><td>某个键名打错了。写入器会拒绝不认识的键，而不是存一个从此被永久忽略的东西。</td></tr></tbody></table></div></section></article></div></div></main>
+<footer class="site"><div class="wrap"><div class="foot"><div><h3>从这里开始</h3><ul><li><a href="quickstart.zh.html">快速上手</a></li><li><a href="guide.zh.html#install">安装</a></li><li><a href="guide.zh.html#import">把书签导进来</a></li><li><a href="guide.zh.html#models">模型接入</a></li><li><a href="guide.zh.html#index">建索引</a></li><li><a href="guide.zh.html#trouble">排错</a></li></ul></div><div><h3>接口</h3><ul><li><a href="guide.zh.html#webui">本地页面</a></li><li><a href="guide.zh.html#commands">命令行</a></li><li><a href="guide.zh.html#serve">HTTP API</a></li><li><a href="guide.zh.html#mcp">MCP 服务器</a></li><li><a href="guide.zh.html#extension">浏览器扩展</a></li><li><a href="guide.zh.html#karakeep">karakeep 插件</a></li></ul></div><div><h3>证据</h3><ul><li><a href="measured.zh.html">全部实测</a></li><li><a href="measured.zh.html#w1">四路融合</a></li><li><a href="measured.zh.html#gate">情景门</a></li><li><a href="measured.zh.html#decay">衰减层测了两次</a></li><li><a href="measured.zh.html#gaps">这些都没测到什么</a></li></ul></div><div><h3>项目</h3><ul><li><a href="https://github.com/88lin/facetmark" rel="noopener">源码</a></li><li><a href="https://github.com/88lin/facetmark/releases" rel="noopener">发行版</a></li><li><a href="https://github.com/88lin/facetmark/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/88lin/facetmark/blob/main/LICENSE" rel="noopener">MIT 许可证</a></li></ul></div></div><div class="foot-bar"><span>facetmark v1.6.1 · MIT</span><span>Python 3.10+ · 一个 SQLite 文件</span><span>这个站上没有一个数字是没有协议撑着的。</span></div></div></footer>
+<script src="site.js" defer></script>
+</body>
+</html>
