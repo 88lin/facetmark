@@ -25,9 +25,84 @@ let doc = null;
 let asked = "";
 let generation = 0;
 let limit = 8;
+let sugTimer;
+let sugGeneration = 0;
+let sugRows = [];
+let sugAt = -1;
+
+// Slower than a search debounce on purpose, and the same floor as the search
+// box: suggestions are a second opinion while you type, not the answer.
+const SUGGEST_MS = 200;
+const SUGGEST_MIN = 4;
 
 export function focus() {
   ui?.q.focus();
+}
+
+// -------------------------------------------------------------- suggestions
+
+// The same listbox the search box drives, with one difference: choosing a
+// suggestion here only fills the box. Ask is a synthesize action, not a
+// navigation, so a click never fires the model -- the reader still has to
+// press the button.
+function closeSuggest() {
+  sugRows = [];
+  sugAt = -1;
+  ui.sugg.replaceChildren();
+  ui.sugg.hidden = true;
+  ui.q.setAttribute("aria-expanded", "false");
+}
+
+function drawSuggest() {
+  ui.sugg.replaceChildren();
+  sugRows.forEach((h, i) => {
+    const li = el("li");
+    li.setAttribute("role", "presentation");
+    const b = el("button");
+    b.type = "button";
+    b.id = `asug-${i}`;
+    b.setAttribute("role", "option");
+    b.setAttribute("aria-selected", i === sugAt ? "true" : "false");
+    b.appendChild(el("span", "t", h.title || shortUrl(h.url)));
+    b.appendChild(el("span", "w", [h.domain, h.folder].filter(Boolean).join(" · ")));
+    b.addEventListener("click", () => {
+      ui.q.value = h.title || shortUrl(h.url);
+      closeSuggest();
+      ui.q.focus();
+    });
+    li.appendChild(b);
+    ui.sugg.appendChild(li);
+  });
+  const foot = el("li", "sugg-foot", t("sugg.foot"));
+  foot.setAttribute("role", "presentation");
+  ui.sugg.appendChild(foot);
+  ui.sugg.hidden = false;
+  ui.q.setAttribute("aria-expanded", "true");
+  ui.q.setAttribute("aria-activedescendant", sugAt >= 0 ? `asug-${sugAt}` : "");
+}
+
+function moveSuggest(step) {
+  if (!sugRows.length) return false;
+  sugAt = (sugAt + step + sugRows.length + 1) % (sugRows.length + 1);
+  if (sugAt === sugRows.length) sugAt = -1;
+  drawSuggest();
+  return true;
+}
+
+async function askSuggest(text) {
+  if (text.length < SUGGEST_MIN) return closeSuggest();
+  const mine = ++sugGeneration;
+  try {
+    const r = await api.suggest(text, 6);
+    if (mine !== sugGeneration) return;
+    sugRows = r.hits ?? [];
+    sugAt = -1;
+    if (!sugRows.length) return closeSuggest();
+    drawSuggest();
+  } catch {
+    // A suggestion list is an optimisation. It never gets to interrupt.
+    closeSuggest();
+  }
 }
 
 // ------------------------------------------------------------------ notices
@@ -149,8 +224,13 @@ function draw() {
   // notice above already explains why in more useful words. Two stacked
   // panels saying the same thing is how a page starts feeling like a form.
   if (doc.degraded && S.health?.provider !== "mock") {
-    const box = el("div", "panel bad");
-    box.appendChild(el("h2", null, t("ask.degraded")));
+    const box = el("div", "panel bad degraded");
+    // A warning glyph, because the difference between this and a real answer
+    // is the one thing on the page a reader must not skim past.
+    const head = el("div", "degraded-head");
+    head.appendChild(el("span", "glyph", "⚠"));
+    head.appendChild(el("h2", null, t("ask.degraded")));
+    box.appendChild(head);
     box.appendChild(el("p", null, t("ask.degraded.why")));
     ui.out.appendChild(box);
   }
@@ -231,15 +311,39 @@ export function mount() {
     form: $("#askform"),
     q: $("#aq"),
     go: $("#ago"),
+    sugg: $("#asugg"),
     limit: $("#alimit"),
     panel: $("#apanel"),
     out: $("#aout"),
   };
 
+  ui.q.addEventListener("input", () => {
+    const v = ui.q.value.trim();
+    clearTimeout(sugTimer);
+    sugTimer = setTimeout(() => void askSuggest(v), SUGGEST_MS);
+  });
+
   ui.form.addEventListener("submit", (e) => {
     e.preventDefault();
+    clearTimeout(sugTimer);
+    closeSuggest();
     void run(ui.q.value.trim());
   });
+
+  ui.q.addEventListener("keydown", (e) => {
+    if (ui.sugg.hidden) return;
+    if (e.key === "ArrowDown" && moveSuggest(1)) return e.preventDefault();
+    if (e.key === "ArrowUp" && moveSuggest(-1)) return e.preventDefault();
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      return closeSuggest();
+    }
+    if (e.key === "Enter" && sugAt >= 0) {
+      e.preventDefault();
+      ui.sugg.querySelector(`#asug-${sugAt}`)?.click();
+    }
+  });
+  ui.q.addEventListener("blur", () => setTimeout(closeSuggest, 140));
 
   ui.limit.addEventListener("change", () => {
     const v = Number(ui.limit.value);

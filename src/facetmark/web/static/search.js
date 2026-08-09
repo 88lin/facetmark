@@ -9,8 +9,8 @@
 // one facet in play, RRF is not order-stable as the candidate pool deepens.
 
 import { api, getToken } from "./api.js";
-import { RUNGS } from "./derive.js";
-import { $, btn, el, pill, skeleton, togglePill } from "./dom.js";
+import { ADVANCED_RUNGS, RUNGS } from "./derive.js";
+import { $, btn, el, numberCard, numbers, pill, skeleton, togglePill } from "./dom.js";
 import { FACET_KEYS, count, shortUrl, totalMs, whenAdded } from "./format.js";
 import { advance, mergePage, nextRequest, pageLabel, startCursor } from "./paging.js";
 import { failPanel, showPanel, tokenPanel } from "./panels.js";
@@ -63,8 +63,32 @@ function drawRungs() {
       }),
     );
   }
-  const chosen = RUNGS.find((r) => r.id === rung) ?? RUNGS[0];
+  drawAdvanced();
+  const chosen = [...RUNGS, ...ADVANCED_RUNGS].find((r) => r.id === rung) ?? RUNGS[0];
   ui.rungNote.textContent = t(chosen.why);
+}
+
+/**
+ * The two expensive rungs, inside the "More options" drawer.
+ *
+ * They are the same choice as the four in the pillbar -- one `rung` variable,
+ * one `config` on the request -- so they render as a second pill group rather
+ * than as a separate control. Keeping them in the drawer is what stops a
+ * reader from landing on a model-call-per-keystroke rung by brushing past it.
+ */
+function drawAdvanced() {
+  if (!ui.advRungs) return;
+  ui.advRungs.replaceChildren();
+  for (const r of ADVANCED_RUNGS) {
+    ui.advRungs.appendChild(
+      togglePill(t(r.key), r.id === rung, () => {
+        if (rung === r.id) return;
+        rung = r.id;
+        drawRungs();
+        if (cursor.query) void run(cursor.query, { force: true });
+      }),
+    );
+  }
 }
 
 // -------------------------------------------------------------- suggestions
@@ -138,6 +162,54 @@ function chip(tone, key, fallbackKey) {
   return pill(tone, tOr(key, fallbackKey), hint && !hint.endsWith(".why") ? hint : undefined);
 }
 
+/**
+ * The snippet with the query terms marked.
+ *
+ * Built from DOM text nodes, never `innerHTML`: the snippet is whatever the
+ * scraped page contained and the query is whatever the reader typed, and
+ * either one can carry a `<`. Case-insensitive on the assumption that the
+ * reader is matching a memory, not a token; CJK queries match the raw
+ * substring, which is the only segmentation-independent rule.
+ */
+function snippetNode(text, query) {
+  const box = el("div", "snippet");
+  const terms = [...new Set((query ?? "").split(/\s+/).filter(Boolean))];
+  if (!text || !terms.length) {
+    box.textContent = text ?? "";
+    return box;
+  }
+  const lower = text.toLowerCase();
+  // One pass, longest term first at each position, so "vector search" marks
+  // the phrase where both words are present rather than the two words apart.
+  const sorted = terms.map((w) => w.toLowerCase()).sort((a, b) => b.length - a.length);
+  let at = 0;
+  while (at < text.length) {
+    let hitLen = 0;
+    for (const term of sorted) {
+      if (term && lower.startsWith(term, at)) {
+        hitLen = term.length;
+        break;
+      }
+    }
+    if (hitLen) {
+      box.appendChild(el("mark", null, text.slice(at, at + hitLen)));
+      at += hitLen;
+    } else {
+      // Extend the plain run to just before the next match, so the text is a
+      // handful of nodes rather than one per character.
+      let next = text.length;
+      for (const term of sorted) {
+        if (!term) continue;
+        const i = lower.indexOf(term, at + 1);
+        if (i !== -1 && i < next) next = i;
+      }
+      box.appendChild(document.createTextNode(text.slice(at, next)));
+      at = next;
+    }
+  }
+  return box;
+}
+
 function hitCard(h, rank, neighbour) {
   const li = el("li", "row-wrap");
   const a = el("a", neighbour ? "hit near" : "hit");
@@ -148,7 +220,7 @@ function hitCard(h, rank, neighbour) {
   if (!neighbour) a.appendChild(el("span", "rank", rank));
   a.appendChild(el("div", "title", h.title || shortUrl(h.url)));
   a.appendChild(el("div", "where", [h.domain, h.folder].filter(Boolean).join(" \u00b7 ")));
-  if (h.snippet) a.appendChild(el("div", "snippet", h.snippet));
+  if (h.snippet) a.appendChild(snippetNode(h.snippet, neighbour ? "" : cursor.query));
 
   const marks = el("div", "marks");
   if (neighbour) {
@@ -246,6 +318,19 @@ function emptyPanel(queried) {
     });
   }
   if (!queried) {
+    // A library that already holds pages earns its census on the first screen:
+    // the four headline numbers above the invitation copy, so the page is not
+    // a search box floating in whitespace. The same four cards the library
+    // view leads with, so the two screens agree about what counts.
+    if (s && s.bookmarks) {
+      const strip = numbers([
+        numberCard(count(s.bookmarks, S.lang), t("stats.bookmarks"), "ink"),
+        numberCard(count(s.indexable, S.lang), t("stats.indexable")),
+        numberCard(count(s.enriched, S.lang), t("stats.enriched"), "gold"),
+        numberCard(count(s.sessions, S.lang), t("stats.sessions"), "pop"),
+      ]);
+      return showPanel({ title: t("start.title"), body: t("start.body"), extra: [strip], into });
+    }
     return showPanel({ title: t("start.title"), body: t("start.body"), into });
   }
   const waiting = s ? (s.queue?.pending ?? 0) + (s.queue?.leased ?? 0) : 0;
@@ -402,6 +487,7 @@ export function mount() {
     rungNote: $("#rung-note"),
     optsToggle: $("#opts-toggle"),
     opts: $("#opts"),
+    advRungs: $("#adv-rungs"),
     expand: $("#expand"),
     status: $("#status"),
     panel: $("#panel"),

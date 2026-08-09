@@ -31,7 +31,15 @@
     <link rel="stylesheet" href="/app/static/app.css" />
     <!-- Same key and same shape as the site's theme boot, so the two surfaces
          cannot disagree about what "dark" is. Inline because it has to run
-         before first paint; deferring it produces a white flash. -->
+         before first paint; deferring it produces a white flash.
+
+         The language half mirrors the prefix rule in `i18n.js` `pickLang`:
+         a stored choice wins, else the first navigator language we have
+         strings for, else English. Setting `<html lang>` here means a Chinese
+         reader's first paint is already labelled (and font-matched) as
+         Chinese, rather than one English frame that `boot()` later corrects.
+         The visible text still swaps when `strings.json` lands; this only
+         fixes the document's own metadata ahead of that fetch. -->
     <script>
       (function () {
         try {
@@ -39,6 +47,18 @@
           if (!t || t === "system")
             t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
           document.documentElement.setAttribute("data-theme", t);
+
+          var lang = localStorage.getItem("fm-lang");
+          if (lang !== "zh" && lang !== "en") {
+            lang = "en";
+            var navs = navigator.languages || [navigator.language];
+            for (var i = 0; i < navs.length; i++) {
+              var l = String(navs[i]).toLowerCase();
+              if (l.indexOf("zh") === 0) { lang = "zh"; break; }
+              if (l.indexOf("en") === 0) { lang = "en"; break; }
+            }
+          }
+          document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
         } catch (e) {}
       })();
     </script>
@@ -164,6 +184,16 @@
             How many neighbours of the answers to walk out to through the link graph. 0 turns the
             group off.
           </p>
+          <div class="opt-group">
+            <span class="opt-label" data-i18n="opts.advanced">Advanced rungs</span>
+            <div
+              class="pillbar"
+              id="adv-rungs"
+              role="group"
+              data-i18n-attr="aria-label:opts.advanced"
+              aria-label="Advanced rungs"
+            ></div>
+          </div>
         </div>
 
         <p id="status" class="status" role="status" aria-live="polite"></p>
@@ -200,11 +230,23 @@
             type="search"
             enterkeyhint="go"
             spellcheck="false"
+            role="combobox"
+            aria-expanded="false"
+            aria-controls="asugg"
+            aria-autocomplete="list"
             data-i18n-attr="placeholder:ask.placeholder, aria-label:ask.label"
             placeholder="what do your saved pages say about…"
             aria-label="Ask across your library"
           />
           <button type="submit" id="ago" class="btn primary go" data-i18n="ask.go">Synthesise</button>
+          <ul
+            id="asugg"
+            class="sugg"
+            role="listbox"
+            hidden
+            data-i18n-attr="aria-label:sugg.label"
+            aria-label="Suggestions"
+          ></ul>
         </form>
 
         <div class="controls">
@@ -225,6 +267,19 @@
           What facetmark has actually indexed. If a search came back empty, the answer is usually on
           this page.
         </p>
+        <div class="controls">
+          <button
+            type="button"
+            id="lib-refresh"
+            class="btn small"
+            data-i18n="library.refresh"
+            data-i18n-attr="aria-label:library.refresh, title:library.refresh"
+            aria-label="Refresh"
+            title="Refresh"
+          >
+            Refresh
+          </button>
+        </div>
         <div id="stats"></div>
       </section>
 

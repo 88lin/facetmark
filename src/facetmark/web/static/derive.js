@@ -31,6 +31,22 @@ export const RUNGS = [
   { id: "C", key: "mode.C", why: "mode.C.why" },
 ];
 
+/**
+ * The two rungs the main pillbar does not offer.
+ *
+ * D and E are real configurations in `pipeline.py` -- the server accepts them
+ * and they change the ranking -- but they add a context pass, a graph walk and
+ * (for E) a reranker on top of the four facets, which is a model call's worth
+ * of latency per keystroke on a deployment that has one configured. That is a
+ * reasonable thing to ask for deliberately and a terrible thing to land on by
+ * accident, so they live in the "More options" drawer rather than beside the
+ * four cheap rungs. Selecting one sets the same `rung` the pillbar drives.
+ */
+export const ADVANCED_RUNGS = [
+  { id: "D", key: "mode.D", why: "mode.D.why" },
+  { id: "E", key: "mode.E", why: "mode.E.why" },
+];
+
 /** `edges.WEIGHTS`, mirrored so the graph card can say what an edge is worth. */
 export const EDGE_WEIGHTS = {
   session: 1.0,
@@ -77,6 +93,35 @@ export function healthBands(health) {
     const n = keys.reduce((a, k) => a + (Number(h[k]) || 0), 0);
     return { cls, n, pct: total ? (n / total) * 100 : 0 };
   }).filter((b) => b.n > 0);
+  return { total, bands };
+}
+
+/**
+ * The fetch queue as one bar, in drawing order.
+ *
+ * `done` is the only state that is finished, so it is the only green segment;
+ * `leased` is in flight (warn), `pending` is waiting its turn (mute) and
+ * `failed` is the one that needs a reader (bad). The denominator is every item
+ * the queue holds, so the bar answers "how drained is the queue" rather than
+ * "of the items that finished, how many succeeded".
+ *
+ * @returns {{total: number, bands: Array<{cls: string, n: number, pct: number}>}}
+ */
+export function queueBands(queue) {
+  const q = queue ?? {};
+  const order = [
+    { cls: "ok", key: "done" },
+    { cls: "warn", key: "leased" },
+    { cls: "mute", key: "pending" },
+    { cls: "bad", key: "failed" },
+  ];
+  const total = order.reduce((a, { key }) => a + (Number(q[key]) || 0), 0);
+  const bands = order
+    .map(({ cls, key }) => {
+      const n = Number(q[key]) || 0;
+      return { cls, n, pct: total ? (n / total) * 100 : 0 };
+    })
+    .filter((b) => b.n > 0);
   return { total, bands };
 }
 

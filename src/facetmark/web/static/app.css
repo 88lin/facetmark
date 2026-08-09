@@ -723,6 +723,16 @@ main.wide {
   overflow: hidden;
 }
 
+/* The matched terms inside a snippet. The palette's highlighter wash, so the
+   mark reads as a marker pen rather than as a link or a selection. */
+.snippet mark {
+  background: var(--highlight-soft);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+  box-shadow: inset 0 -0.5em 0 var(--highlight-soft);
+}
+
 /* Sitting neighbours are not ranked, so they carry no rank number and the
    gutter that number sits in would otherwise be empty. */
 .hit.near {
@@ -852,6 +862,25 @@ main.wide {
   color: var(--ink-light);
 }
 
+/* A labelled group inside the options drawer: the advanced rungs sit under
+   their own caption so they are not misread as more values of the number
+   input above them. */
+.opt-group {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+}
+
+.opt-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
 .field.num {
   width: 84px;
   padding: 7px 10px;
@@ -929,6 +958,29 @@ main.wide {
 .panel.bad {
   background: var(--danger-soft);
   border-color: var(--danger-soft);
+}
+
+/* A degraded synthesis is not a generic failure notice: it is the one panel
+   whose whole job is to stop a reader trusting the text below it, so it gets
+   the strong border and a leading glyph that a plain `.panel.bad` does not. */
+.panel.bad.degraded {
+  border: 1.5px solid var(--danger-strong);
+}
+
+.panel.bad.degraded .degraded-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.panel.bad.degraded .degraded-head .glyph {
+  color: var(--danger-strong);
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.panel.bad.degraded .degraded-head h2 {
+  color: var(--danger-strong);
 }
 
 .panel.warn {

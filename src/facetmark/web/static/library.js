@@ -11,7 +11,7 @@
 // about this database; they say nothing about whether retrieval is any good.
 
 import { api } from "./api.js";
-import { HEALTH_TONE, coverageRows, edgeRows, healthBands } from "./derive.js";
+import { HEALTH_TONE, coverageRows, edgeRows, healthBands, queueBands } from "./derive.js";
 import { $, barRow, block, card, el, facts, numberCard, numbers, pill, skeleton, stackBar } from "./dom.js";
 import { count, pct } from "./format.js";
 import { failPanel } from "./panels.js";
@@ -138,6 +138,10 @@ function graph(s) {
 function queue(s) {
   const sec = block(t("stats.group.queue"), t("stats.note.queue"));
   const box = card();
+  // The bar first: how drained the queue is, at a glance. The fact rows under
+  // it carry the exact counts, so the two never print the same number twice.
+  const { total, bands } = queueBands(s.queue);
+  if (total) box.appendChild(stackBar(bands));
   box.appendChild(
     factsFrom(s.queue, "queue", [
       { label: t("queue.waiting"), value: count(s.queue_waiting, S.lang), zero: !s.queue_waiting },
@@ -226,5 +230,12 @@ export async function render() {
 }
 
 export function mount() {
-  ui = { stats: $("#stats") };
+  ui = { stats: $("#stats"), refresh: $("#lib-refresh") };
+  // A manual refresh, because the dashboard is a snapshot and the queue moves.
+  // Clearing the cache is what makes the re-render a real refetch rather than
+  // a redraw of the numbers already on screen.
+  ui.refresh?.addEventListener("click", () => {
+    S.stats = null;
+    void render();
+  });
 }

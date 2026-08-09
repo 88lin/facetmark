@@ -13,6 +13,8 @@ import {
   count,
   whenAdded,
   shortUrl,
+  pct,
+  uptimeParts,
   interpolate,
 } from "../../src/facetmark/web/static/format.js";
 
@@ -126,6 +128,61 @@ describe("shortUrl", () => {
     assert.equal(shortUrl("not a url"), "not a url");
     assert.equal(shortUrl(""), "");
     assert.equal(shortUrl(undefined), "");
+  });
+});
+
+describe("pct", () => {
+  test("rounds a share of a whole", () => {
+    assert.equal(pct(1, 3), 33);
+    assert.equal(pct(2, 3), 67);
+  });
+
+  test("is zero rather than NaN when there is no denominator", () => {
+    // A fresh library has zero indexable rows; every coverage bar divides by
+    // it. `NaN%` on screen is the bug this guard exists to prevent.
+    assert.equal(pct(5, 0), 0);
+    assert.equal(pct(5, undefined), 0);
+    assert.equal(pct(5, -1), 0);
+  });
+
+  test("clamps to 100 when the numerator overruns, and to 0 below", () => {
+    assert.equal(pct(11, 10), 100);
+    assert.equal(pct(-2, 10), 0);
+  });
+
+  test("treats a missing numerator as zero", () => {
+    assert.equal(pct(undefined, 10), 0);
+    assert.equal(pct(null, 10), 0);
+  });
+});
+
+describe("uptimeParts", () => {
+  test("shows at most two units, biggest first", () => {
+    assert.deepEqual(uptimeParts(90061), [
+      { n: 1, unit: "d" },
+      { n: 1, unit: "h" },
+    ]);
+    assert.deepEqual(uptimeParts(3660), [
+      { n: 1, unit: "h" },
+      { n: 1, unit: "m" },
+    ]);
+  });
+
+  test("drops a zero second unit rather than pad with it", () => {
+    assert.deepEqual(uptimeParts(86400), [{ n: 1, unit: "d" }]);
+    assert.deepEqual(uptimeParts(7200), [{ n: 2, unit: "h" }]);
+  });
+
+  test("shows seconds only on their own", () => {
+    // A server up for four hours and nine seconds has been up for four hours.
+    assert.deepEqual(uptimeParts(4 * 3600 + 9), [{ n: 4, unit: "h" }]);
+    assert.deepEqual(uptimeParts(45), [{ n: 45, unit: "s" }]);
+  });
+
+  test("floors a fraction and clamps a negative to zero", () => {
+    assert.deepEqual(uptimeParts(59.9), [{ n: 59, unit: "s" }]);
+    assert.deepEqual(uptimeParts(-5), [{ n: 0, unit: "s" }]);
+    assert.deepEqual(uptimeParts(undefined), [{ n: 0, unit: "s" }]);
   });
 });
 
