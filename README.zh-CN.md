@@ -92,8 +92,8 @@ pip install facetmark            # 或者：uv pip install facetmark
 facetmark init                                  # 建 ~/.facetmark/facetmark.db
 facetmark import bookmarks.html                 # Chrome/Firefox/Edge/Safari 的导出文件
 facetmark index                                 # fetch → enrich → embed → sessions → edges
-facetmark search "那个讲 Postgres 索引类型的"
-facetmark serve                                 # http://127.0.0.1:8787
+facetmark search "那个讲 Postgres 索引类型的"     # 也可以直接用网页界面
+facetmark serve                                 # 然后打开 http://127.0.0.1:8787/app
 ```
 
 导出书签：Chrome/Edge → `chrome://bookmarks` → ⋮ → 导出书签。Firefox → 管理书签 →
@@ -177,11 +177,17 @@ export FACETMARK_LOCAL_EMBED_MAX_SEQ=1024
 
 ## 配置
 
-所有配置项都是 `FACETMARK_` 前缀的环境变量，也可以写进 `~/.facetmark/config.toml`。
+所有配置项都可以是 `FACETMARK_` 前缀的环境变量、工作目录下 `.env` 里的一行，或者
+`<DATA_DIR>/config.toml` 里的一个键。这也是优先级顺序，从高到低——网页 UI 写下的文件
+永远压不过你手动导出的环境变量。网页 UI 的「设置」面板改的就是这个文件，
+`facetmark config path` 会打印它在哪。
+
+`DATA_DIR` 按系统取默认值：Windows 是 `%LOCALAPPDATA%\facetmark`，设了
+`XDG_DATA_HOME` 就是 `$XDG_DATA_HOME/facetmark`，否则 `~/.local/share/facetmark`。
 
 | 变量 | 默认值 | 作用 |
 |---|---|---|
-| `DATA_DIR` | `~/.facetmark` | 数据库和缓存放哪 |
+| `DATA_DIR` | 见上，按系统 | 数据库和缓存放哪 |
 | `DB_NAME` | `facetmark.db` | `DATA_DIR` 里的数据库文件名 |
 | `API_KEY` | — | OpenAI 协议端点的 key |
 | `BASE_URL` | `https://api.openai.com/v1` | 端点根地址，**必须**带 `/v1` |

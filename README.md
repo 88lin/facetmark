@@ -97,7 +97,7 @@ facetmark init                                  # create ~/.facetmark/facetmark.
 facetmark import bookmarks.html                 # Chrome/Firefox/Edge/Safari export
 facetmark index                                 # fetch → enrich → embed → sessions → edges
 facetmark search "那个讲 Postgres 索引类型的"     # or use the web UI
-facetmark serve                                 # http://127.0.0.1:8787
+facetmark serve                                 # then open http://127.0.0.1:8787/app
 ```
 
 Exporting bookmarks: Chrome/Edge → `chrome://bookmarks` → ⋮ → Export. Firefox → Manage
@@ -184,12 +184,19 @@ mix dimensions rather than silently returning nonsense; re-index with `--force`.
 
 ## Configuration
 
-Every setting is an environment variable prefixed `FACETMARK_`, or a key in
-`~/.facetmark/config.toml`.
+Every setting is an environment variable prefixed `FACETMARK_`, a key in a
+`.env` beside the working directory, or a key in `<DATA_DIR>/config.toml`. That
+is also the precedence order, highest first — a file the web UI wrote never
+overrides a variable you exported. The web UI's Settings panel edits the file;
+`facetmark config path` prints it.
+
+`DATA_DIR` defaults per OS: `%LOCALAPPDATA%\facetmark` on Windows,
+`$XDG_DATA_HOME/facetmark` when that is set, otherwise
+`~/.local/share/facetmark`.
 
 | Variable | Default | What it does |
 |---|---|---|
-| `DATA_DIR` | `~/.facetmark` | Where the database and caches live |
+| `DATA_DIR` | per OS, above | Where the database and caches live |
 | `DB_NAME` | `facetmark.db` | Database filename inside `DATA_DIR` |
 | `API_KEY` | — | Key for the OpenAI-compatible endpoint |
 | `BASE_URL` | `https://api.openai.com/v1` | Endpoint root; **must** include `/v1` |

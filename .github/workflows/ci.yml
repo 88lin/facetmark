@@ -64,6 +64,53 @@ jobs:
           name: facetmark-extension
           path: extension/dist
 
+  webui:
+    # The search page at /app is four ES modules with no bundler and no test
+    # runner, so the pure ones are tested with node's own. Sources live under
+    # tests/ rather than inside the package: they must not ship in the wheel.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # No install step on purpose. These modules import nothing, which is the
+      # property that lets a page served out of a Python wheel have unit tests
+      # at all, and a package.json here would quietly make that untrue.
+      - run: node --test tests/web/*.test.mjs
+
+  wheel:
+    # .gitignore line 23 is `*.html`, and hatchling honours VCS ignore files
+    # when it selects wheel contents. Without the negation added for this
+    # feature, `pip install facetmark` builds cleanly, starts cleanly, and
+    # serves a 404 at /app -- a failure that is invisible to every test in this
+    # repository because they all run from the source tree. So: build the wheel
+    # and look inside it.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv build --wheel
+      - name: the web assets are in the wheel
+        run: |
+          python - <<'EOF'
+          import pathlib, sys, zipfile
+          wheel = sorted(pathlib.Path("dist").glob("*.whl"))[-1]
+          names = set(zipfile.ZipFile(wheel).namelist())
+          # Every static file the source tree ships, plus the page itself. The
+          # list is read off the source rather than written out here, so adding
+          # a module cannot silently ship a wheel that 404s on it.
+          static = pathlib.Path("src/facetmark/web/static")
+          want = ["facetmark/web/index.html"] + [
+              f"facetmark/web/static/{p.name}" for p in sorted(static.iterdir())
+          ]
+          missing = [w for w in want if w not in names]
+          if missing:
+              print(f"{wheel.name} is missing: {missing}", file=sys.stderr)
+              sys.exit(1)
+          print(f"{wheel.name}: all {len(want)} web assets present")
+          EOF
+
   karakeep-plugin:
     # The karakeep search plugin is TypeScript that this repository ships but
     # never runs: it executes inside a karakeep checkout that is not here. What

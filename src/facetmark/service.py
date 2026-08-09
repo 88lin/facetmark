@@ -705,6 +705,25 @@ def import_file(
 ) -> dict:
     stats = import_bookmarks(conn, path, settings=settings)
     conn.commit()
+    return _import_stats(stats)
+
+
+def import_content(
+    conn: sqlite3.Connection, content: str, *, settings: Settings | None = None
+) -> dict:
+    """Same import, from text already in memory.
+
+    The web UI receives an upload as bytes and has nowhere to put a file. The
+    importer already sniffs Netscape HTML from Chrome JSON out of the content
+    itself, so writing a temporary file just to read it back would add a
+    failure mode (a full or unwritable temp directory) and buy nothing.
+    """
+    stats = import_bookmarks(conn, content=content, settings=settings)
+    conn.commit()
+    return _import_stats(stats)
+
+
+def _import_stats(stats) -> dict:
     return {
         "parsed": stats.total_parsed, "inserted": stats.inserted, "updated": stats.updated,
         "merged_duplicates": stats.merged_duplicates,
@@ -724,6 +743,7 @@ __all__ = [
     "IndexReport",
     "Synthesis",
     "bookmark_record",
+    "import_content",
     "import_file",
     "index_all",
     "library_stats",
