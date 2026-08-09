@@ -34,6 +34,11 @@ dependencies = [
   "fastmcp>=2.0",
   "pydantic>=2.7",
   "pydantic-settings>=2.3",
+  # Reading `<data_dir>/config.toml`, which both READMEs have promised since
+  # 1.0. `tomllib` covers this from 3.11; 3.10 is still supported and has no
+  # TOML parser at all. Nothing is needed for writing -- every settings field
+  # is a scalar, a path or a homogeneous tuple, so the file is one flat table.
+  "tomli>=2.0; python_version < '3.11'",
   "typer>=0.12",
   "rich>=13.7",
   "numpy>=1.26",
