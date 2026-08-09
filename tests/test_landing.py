@@ -26,6 +26,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.palette import strip_comments
+
 REPO = Path(__file__).resolve().parents[1]
 LANDING = REPO / "docs" / "landing"
 
@@ -248,26 +250,57 @@ class TestThePaletteWiring:
         assert sheets.index("palettes.css") < sheets.index("style.css"), name
 
     @pytest.mark.parametrize("name", PAGES)
-    def test_the_display_serif_is_loaded_with_a_preconnect(self, name):
-        """Fraunces and Noto Serif SC come from Google Fonts. The preconnect
-        hides the handshake; without it the first paint waits on a second
-        origin's TLS before the heading can draw."""
+    def test_no_page_asks_a_font_cdn_for_anything(self, name):
+        """These pages used to load Fraunces, Noto Serif SC and Caveat from
+        Google Fonts. The project owner's own derived site loads no faces at
+        all -- its stacks are `-apple-system` first -- and this site now
+        matches it. A CDN request here would also be the one thing on the page
+        that phones a third party, which a local-first tool should not do."""
         html = (LANDING / name).read_text(encoding="utf-8")
-        assert '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' in html
-        assert "fonts.googleapis.com/css2?" in html, f"{name}: no Google Fonts stylesheet"
-        assert "Fraunces" in html and "Noto+Serif+SC" in html, name
+        for host in ("fonts.googleapis.com", "fonts.gstatic.com", "@import url(http"):
+            assert host not in html, f"{name} reaches out to {host}"
+        for family in ("Fraunces", "Noto+Serif+SC", "Caveat"):
+            assert family not in html, f"{name} still names {family}"
 
-    def test_the_stylesheet_defines_the_display_serif_token(self):
-        """The headings read `--font-serif`; if the token vanished they would
+    def test_the_stylesheet_defines_the_display_stack(self):
+        """The headings read `--display`; if the token vanished they would
         fall back to the body sans with no error anywhere."""
         css = (LANDING / "style.css").read_text(encoding="utf-8")
-        assert "--font-serif:" in css, "no --font-serif token"
-        assert "Fraunces" in css, "--font-serif does not name Fraunces"
+        assert "--display:" in css, "no --display token"
+        assert "--font-serif" not in css, "the CDN serif token is back"
 
-    def test_the_display_headings_use_the_serif(self):
+    def test_the_display_headings_use_the_display_stack(self):
         css = (LANDING / "style.css").read_text(encoding="utf-8")
-        assert re.search(r"\.hero h1[^{]*\{[^}]*var\(--font-serif\)", css), "hero h1 is not serif"
-        assert re.search(r"\.pagehead h1[^{]*\{[^}]*var\(--font-serif\)", css), "pagehead h1 is not serif"
+        rule = re.search(r"\.hero h1[^{]*\{([^}]*)\}", css)
+        assert rule and "var(--display)" in rule.group(1), "hero h1 is not the display stack"
+        assert "800" in rule.group(1), "hero h1 is not at the reference site's 800 weight"
+
+    def test_the_text_stack_is_the_one_the_owner_specified(self):
+        """Verbatim from `--f-sans` on repair.88lin.eu.org.
+
+        The stack this replaced led with "Liberation Sans", Arimo, Arial.
+        Arial is on the design system's own banned list, and the first Han
+        face appeared only after three Latin ones, so Chinese fell through to
+        whatever the browser picked. Order matters and is asserted: Apple
+        first, then PingFang SC ahead of the Windows face.
+        """
+        css = (LANDING / "style.css").read_text(encoding="utf-8")
+        stack = re.search(r"--sans:\s*([^;]+);", css)
+        assert stack, "no --sans token"
+        families = [f.strip().strip("\"'") for f in stack.group(1).split(",")]
+        assert families[:2] == ["-apple-system", "BlinkMacSystemFont"], families[:2]
+        assert "PingFang SC" in families, "the text stack names no Apple Han face"
+        assert families.index("PingFang SC") < families.index("Microsoft YaHei")
+
+    @pytest.mark.parametrize(
+        "family", ["Inter", "Roboto", "Arial", "Fraunces", "Caveat", "Liberation Sans"]
+    )
+    def test_no_banned_family_is_named_anywhere(self, family):
+        """The first three are banned by the design system. The last three
+        were what this site actually shipped, which is how the ban went
+        unnoticed: nothing was checking."""
+        css = strip_comments((LANDING / "style.css").read_text(encoding="utf-8"))
+        assert not re.search(rf"\b{re.escape(family)}\b", css), f"style.css still names {family}"
 
     def test_the_stat_numerals_align(self):
         """Dashboard-style numbers are tabular so a column of them does not

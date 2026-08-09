@@ -44,6 +44,7 @@ from tests.palette import (
     painted,
     ratio,
     rules,
+    strip_comments,
     value_of,
 )
 
@@ -605,20 +606,83 @@ class TestTheBrand:
         assert "/app/static/palettes.css" in sheets, "the palette is not linked"
         assert sheets.index("/app/static/palettes.css") < sheets.index("/app/static/app.css")
 
+    #: The only literal colours allowed above the dark block, and the only
+    #: place they may appear: inside the fence in `:root`. Every one is
+    #: copied from `:root` on repair.88lin.eu.org, the project owner's own
+    #: derived site, except the four `-ink` steps, which that site does not
+    #: publish because it sets no text in those hues. Those were derived by
+    #: walking lightness down until each cleared 4.5:1 on every surface it can
+    #: reach; `TestTheContrast` re-measures them on every run, so a wrong
+    #: value here fails there rather than shipping.
+    EXTENDED = {
+        "--blue-wash": "#dfecfb",
+        "--yellow-soft": "#fff3cd",
+        "--rose-soft": "#fff0f2",
+        "--mint": "#4f9a6b",
+        "--mint-ink": "#3b724f",
+        "--mint-soft": "#edf8f1",
+        "--lilac": "#8b69b6",
+        "--lilac-ink": "#7b54ac",
+        "--lilac-soft": "#f5f0fb",
+        "--aqua": "#3e9290",
+        "--aqua-ink": "#307170",
+        "--aqua-soft": "#ecf8f7",
+        "--peach": "#c97845",
+        "--peach-ink": "#98562d",
+        "--peach-soft": "#fff3ea",
+    }
+
+    FENCE = re.compile(
+        r"/\* extended palette --[^*]*(?:\*(?!/)[^*]*)*\*/(.*?)/\* end extended palette \*/",
+        re.S,
+    )
+
     def test_the_stylesheet_names_no_colour_the_palette_did_not(self):
-        """Everything above the dark block must be a token reference.
+        """Everything above the dark block must be a token reference, with one
+        fenced exception.
 
         The design system's brand rules forbid hardcoded colour values in
         shared components, and a stray hex is how a palette swap silently
         stops working. Black shadows and the modal scrim are exempt: they are
         the design system's own literals, and they are not brand colour.
+
+        The exception is deliberate and is the reason the rebuild could
+        happen at all. Palette A ships three hues, which is what produced a
+        search screen of twenty identical white cards. The owner's own derived
+        site runs nine. The extra six cannot go in `palettes.css` -- that file
+        is vendored verbatim and pinned byte-for-byte against the site's copy
+        by `tests/test_landing.py` -- so they live in `:root` between two
+        markers, and this test still refuses every hex outside them and every
+        name inside them that is not on the list above.
         """
         css, night = self._split()
-        assert not re.findall(r"#[0-9a-fA-F]{3,8}\b", css), "hardcoded hex above the dark block"
-        for literal in re.findall(r"rgba?\(\s*\d[^)]*\)", css):
+        fenced = self.FENCE.search(css)
+        assert fenced, "the extended palette fence is missing or malformed"
+
+        outside = css[: fenced.start()] + css[fenced.end() :]
+        assert not re.findall(r"#[0-9a-fA-F]{3,8}\b", outside), "hardcoded hex outside the fence"
+        for literal in re.findall(r"rgba?\(\s*\d[^)]*\)", outside):
             channels = [c.strip() for c in literal.split("(")[1].rstrip(")").split(",")]
             assert set(channels[:3]) == {"0"}, f"{literal} is a colour, not a shadow"
+
+        inside = dict(re.findall(r"(--[\w-]+):\s*(#[0-9a-fA-F]{3,8})\s*;", fenced.group(1)))
+        assert inside == self.EXTENDED, (
+            "the fence no longer matches the list this test names; "
+            f"unexpected {sorted(set(inside) - set(self.EXTENDED))}, "
+            f"missing {sorted(set(self.EXTENDED) - set(inside))}"
+        )
+        assert not re.findall(
+            r"rgba?\(\s*\d[^)]*\)", fenced.group(1)
+        ), "the fence is for named hexes only; an rgba here would dodge the sweep"
         assert night, "the dark block vanished; this test is now measuring nothing"
+
+    def test_the_fence_sits_inside_the_root_block(self):
+        """A fence anywhere else would be a licence to hardcode colour in a
+        component, which is the thing the test above exists to prevent."""
+        css, _ = self._split()
+        root = re.search(r":root\s*\{(.*?)\n\}", css, re.S)
+        assert root, "no :root block"
+        assert self.FENCE.search(root.group(1)), "the extended palette is not inside :root"
 
     def test_the_night_block_only_darkens_what_the_palette_already_named(self):
         """The dark theme is facetmark's own extension -- upstream ships light
@@ -647,7 +711,12 @@ class TestTheBrand:
             "--tint-lex must be re-pointed for dark: daylight-strength yellow over "
             "a near-black panel reads olive, not as a tint of the page"
         )
-        assert len(night) == 26, f"the dark block is now {len(night)} tokens; review each addition"
+        for token in self.EXTENDED:
+            assert token in night, (
+                f"{token} has no night step: the extended palette is tuned for a cream page "
+                "and renders at daylight strength on a near-black one"
+            )
+        assert len(night) == 41, f"the dark block is now {len(night)} tokens; review each addition"
 
     @staticmethod
     def _split() -> tuple[str, str]:
@@ -674,17 +743,54 @@ class TestTheAppScene:
         offenders = [sel for sel, body in rules(light) if "--dark-panel" in body]
         assert not offenders, f"dark panel painted in: {offenders}"
 
+    #: Selectors allowed past the body ceiling, and why each one is on the
+    #: list. Everything absent from it is body-level text and still capped at
+    #: 1.2rem, which is what keeps a dense result list dense.
+    DISPLAY = {
+        r"\.num\b": "dashboard numerals -- the whole point of that card",
+        r"\.page-title\b": "the one heading per screen; without it a screen starts mid-list",
+        r"\.stepnum\b": "design system component 8, the oversized decorative numeral",
+    }
+    CEILING_BODY = 1.2
+    CEILING_DISPLAY = 2.6
+
     def test_no_heading_is_larger_than_the_scene_allows(self):
-        """`App内标题控制在1.2rem以内`. The dashboard numerals are not headings
-        and are not covered; they are the whole point of that card."""
+        """`App内标题控制在1.2rem以内`, with five named exceptions.
+
+        The 1.2rem cap came from `scene-app.md` and was applied to everything,
+        including the page title and the setup wizard's step numerals. The
+        result was a screen with no typographic top: every line the same size,
+        so nothing read as a heading and the eye had nowhere to land. The
+        project owner rejected it and pointed at their own derived site, whose
+        section heads run 800 weight and well past 1.2rem.
+
+        So the cap now applies to body-level text, where it is doing real
+        work, and five display selectors are named and given a ceiling of
+        their own. The list is the point: an unnamed selector is still capped,
+        so the exception cannot spread by being convenient.
+        """
         light, _ = TestTheBrand._split()
-        numerals = re.compile(r"\.num\b")
+        display = {re.compile(p) for p in self.DISPLAY}
         for selector, body in rules(light):
             size = value_of(body, "font-size")
-            if not size or numerals.search(selector):
+            if not size:
                 continue
+            cap = (
+                self.CEILING_DISPLAY
+                if any(p.search(selector) for p in display)
+                else self.CEILING_BODY
+            )
             for rem in re.findall(r"([\d.]+)rem", size):
-                assert float(rem) <= 1.2, f"{selector} sets {size}, over the 1.2rem cap"
+                assert float(rem) <= cap, f"{selector} sets {size}, over the {cap}rem cap"
+
+    def test_the_display_exceptions_are_all_still_used(self):
+        """An exception that no longer matches anything is an exception
+        someone can widen without noticing what it was for."""
+        light, _ = TestTheBrand._split()
+        selectors = [s for s, _ in rules(light)]
+        for pattern, why in self.DISPLAY.items():
+            probe = re.compile(pattern)
+            assert any(probe.search(s) for s in selectors), f"nothing matches {pattern} ({why})"
 
     def test_the_page_does_not_wait_for_an_animation_to_show_its_data(self):
         """`不要用Scroll Reveal（App页面要即时加载）`. The landing site reveals
@@ -945,70 +1051,99 @@ class TestTheTint:
             assert got >= 4.5, f"{theme}: --ink on the band over {surface} is {got:.2f}:1"
 
 
-class TestTheFonts:
-    """The page renders its own typography, from its own directory.
+class TestTheFontPolicy:
+    """The page renders in the reader's system faces and downloads nothing.
 
-    The design system loads Fraunces and Caveat from Google Fonts, which is
-    right for a public marketing page and wrong for this one: `/app` is served
-    by a process on the reader's machine, indexing the reader's bookmarks, and
-    a stylesheet that reaches fonts.gstatic.com on every load both leaks the
-    visit and renders the wrong face on a laptop with no network. So the two
-    Latin faces are vendored, and these tests hold that line.
+    The earlier version vendored two decorative Latin faces under
+    `static/fonts/`: Caveat for a handwritten corner label and Fraunces for a
+    numeral. 94 KB of woff2, neither containing a single Han glyph, shipped in
+    the wheel and served to every reader including the Chinese ones the label
+    was written for.
+
+    The project owner's own derived site, repair.88lin.eu.org, loads no faces
+    at all. Its four stacks are system faces led by `-apple-system`, and its
+    `--f-sans` puts `PingFang SC` ahead of any Windows face. facetmark now
+    ships exactly those stacks, on both surfaces, and these tests hold that:
+    no `@font-face`, no CDN, no banned family, Apple first, Han second.
     """
 
-    FONTS = STATIC_DIR / "fonts"
+    BANNED = (
+        # The design system's own list.
+        "Inter",
+        "Roboto",
+        "Arial",
+        # What this project actually shipped, which is how the ban went
+        # unnoticed for as long as it did: nothing was checking.
+        "Fraunces",
+        "Caveat",
+        "Liberation Sans",
+    )
 
-    def test_the_faces_the_stylesheet_declares_are_faces_that_exist(self):
-        css = (STATIC_DIR / "app.css").read_text(encoding="utf-8")
-        declared = re.findall(r'src:\s*url\("([^"]+)"\)', css)
-        assert declared, "no @font-face src in app.css"
-        for url in declared:
-            assert url.startswith("/app/static/fonts/"), f"{url} is not served from the page"
-            assert (self.FONTS / Path(url).name).is_file(), f"{url} has no file behind it"
+    @staticmethod
+    def _surfaces() -> dict[str, str]:
+        """Every surface that can name a face, with comments removed.
+
+        Comments have to go or the test measures its own prose: the paragraph
+        in `app.css` explaining why Caveat was deleted contains the word
+        Caveat, and this class's own docstring names all six banned families.
+        """
+        out = {"index.html": re.sub(r"<!--.*?-->", "", INDEX_HTML.read_text(encoding="utf-8"), flags=re.S)}
+        for path in sorted(STATIC_DIR.glob("*.css")):
+            out[path.name] = strip_comments(path.read_text(encoding="utf-8"))
+        return out
+
+    def test_the_page_downloads_no_face_at_all(self):
+        css = strip_comments((STATIC_DIR / "app.css").read_text(encoding="utf-8"))
+        assert "@font-face" not in css, "app.css declares a downloadable face"
+        assert not (STATIC_DIR / "fonts").exists(), "static/fonts is back"
 
     def test_no_stylesheet_or_page_reaches_a_font_cdn(self):
         """The failure this prevents is silent: the page looks right on the
         machine that built it and leaks on every other one."""
-        surfaces = {"index.html": INDEX_HTML.read_text(encoding="utf-8")}
-        for path in STATIC_DIR.glob("*.css"):
-            surfaces[path.name] = path.read_text(encoding="utf-8")
-        for name, text in surfaces.items():
+        for name, text in self._surfaces().items():
             for host in ("fonts.googleapis.com", "fonts.gstatic.com", "@import url(http"):
                 assert host not in text, f"{name} reaches out to {host}"
 
-    def test_the_vendored_faces_carry_their_licence(self):
-        """Both are SIL OFL 1.1, which requires the notice to travel with the
-        binary. It travels in the wheel too -- see `TestPackaging`."""
-        licence = (self.FONTS / "LICENSE.txt").read_text(encoding="utf-8")
-        assert "SIL Open Font License, Version 1.1" in licence
-        for family in ("Caveat", "Fraunces"):
-            assert f"The {family} Project Authors" in licence, f"{family} has no copyright line"
-        for face in self.FONTS.glob("*.woff2"):
-            assert face.stem.split("-")[0].capitalize() in licence, f"{face.name} is unlicensed"
-
-    def test_the_faces_are_latin_subsets_and_say_so(self):
-        """A Han subset would be larger than the rest of the wheel put
-        together, so the CJK families in the stacks are system fonts. The
-        `unicode-range` is what stops a browser downloading Caveat to render
-        Chinese it has no glyphs for."""
+    def test_the_text_stack_is_the_one_the_owner_specified(self):
+        """Verbatim from `--f-sans` on the reference site. Order is asserted
+        because order is the whole point: the stack this replaced had
+        `"Segoe UI"` in second place, so a Windows reader got the Windows UI
+        face and a Chinese reader reached PingFang SC only after it."""
         css = (STATIC_DIR / "app.css").read_text(encoding="utf-8")
-        blocks = re.findall(r"@font-face\s*\{(.*?)\}", css, re.S)
-        assert len(blocks) == 2, f"{len(blocks)} @font-face blocks; review each addition"
-        for block in blocks:
-            assert "unicode-range:" in block, "a face with no unicode-range downloads for Han"
-            assert "font-display: swap" in block, "a blocking face delays first paint"
-        assert sum(f.stat().st_size for f in self.FONTS.glob("*.woff2")) < 150_000
+        stack = re.search(r"--font-sans:\s*([^;]+);", css)
+        assert stack, "no --font-sans token"
+        families = [f.strip().strip('"') for f in stack.group(1).split(",")]
+        assert families[:2] == ["-apple-system", "BlinkMacSystemFont"], families[:2]
+        assert "PingFang SC" in families, "the text stack names no Apple Han face"
+        assert families.index("PingFang SC") < families.index("Microsoft YaHei")
+        assert families[-1] == "sans-serif", "the stack has no generic tail"
 
-    def test_the_faces_reach_the_wheel(self):
-        """`TestPackaging` checks the html and the js. Fonts are a third kind
-        of asset and are selected by a different hatchling rule, so they get
-        their own check: without it the page falls back to a system cursive
-        and nobody notices until a screenshot looks wrong."""
-        import facetmark.web as web
+    def test_the_display_and_mono_stacks_are_too(self):
+        css = (STATIC_DIR / "app.css").read_text(encoding="utf-8")
+        display = re.search(r"--font-display:\s*([^;]+);", css)
+        assert display and display.group(1).strip().startswith("-apple-system"), display
+        mono = re.search(r"--font-mono:\s*([^;]+);", css)
+        assert mono and mono.group(1).strip().startswith("ui-monospace"), mono
 
-        shipped = Path(web.__file__).parent / "static" / "fonts"
-        assert sorted(p.name for p in shipped.glob("*")) == [
-            "LICENSE.txt",
-            "caveat-700-latin.woff2",
-            "fraunces-italic-600-latin.woff2",
-        ]
+    @pytest.mark.parametrize("family", BANNED)
+    def test_no_banned_family_is_named_anywhere(self, family):
+        """Word boundaries, because `setInterval` and `Interleaving` are not
+        the typeface Inter and a test that says they are gets disabled."""
+        pattern = re.compile(rf"\b{re.escape(family)}\b")
+        for name, text in self._surfaces().items():
+            assert not pattern.search(text), f"{name} still names {family}"
+
+    def test_the_two_surfaces_agree_on_the_text_stack(self):
+        """A reader who moves from the site to the app should not watch the
+        typeface change. Both files now carry the same four stacks, so the
+        only way they can drift is if someone edits one of them."""
+        app = re.search(
+            r"--font-sans:\s*([^;]+);", (STATIC_DIR / "app.css").read_text(encoding="utf-8")
+        )
+        site = re.search(
+            r"--sans:\s*([^;]+);",
+            (REPO / "docs" / "landing" / "style.css").read_text(encoding="utf-8"),
+        )
+        assert app and site
+        norm = lambda m: [f.strip().strip("\"'") for f in m.group(1).split(",")]  # noqa: E731
+        assert norm(app) == norm(site), "the app and the site disagree about the text stack"

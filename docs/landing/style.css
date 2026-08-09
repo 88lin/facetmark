@@ -51,14 +51,42 @@
   --radius-sm: 8px;
   --maxw: 1120px;
   --readw: 760px;
-  --sans: "Liberation Sans", Arimo, "Helvetica Neue", Arial, system-ui,
-          "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC",
-          sans-serif;
-  --mono: "Liberation Mono", "SF Mono", "Cascadia Code", Consolas, monospace;
-  /* display serif: Fraunces for Latin, Noto Serif SC for Han, then the
-     system serif stack. Loaded from Google Fonts in build.py shell(). */
-  --font-serif: "Fraunces", "Noto Serif SC", "Huiwen Mincho", "Songti SC",
-          Georgia, "Times New Roman", serif;
+  /* Verbatim from the derived site's `--f-sans` / `--f-display` / `--f-mono`.
+     The previous stack led with "Liberation Sans", Arimo, Arial -- Arial is
+     on the design system's banned list, and no Han face appeared until after
+     three Latin ones. Nothing is downloaded here either: the Google Fonts
+     request that used to load Fraunces, Noto Serif SC and Caveat is gone. */
+  --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",
+          "Hiragino Sans GB", "Noto Sans SC", sans-serif;
+  --display: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+          "Microsoft YaHei", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo,
+          monospace;
+
+  /* extended palette -- sourced from repair.88lin.eu.org
+     The same block the app carries, so the two surfaces agree on what "mint"
+     is. Palette A ships three hues; the derived site runs nine, and the extra
+     six are what let a page of section cards rotate hue instead of repeating
+     one. `palettes.css` cannot hold them -- it is pinned byte-for-byte
+     against the app's copy -- so they live in both `:root`s instead.
+     Each `-ink` clears 4.5:1 on this file's surfaces, which are darker than
+     the app's: measured worst cases 4.62, 4.62, 4.60, 4.62. */
+  --blue-wash: #dfecfb;
+  --yellow-soft: #fff3cd;
+  --rose-soft: #fff0f2;
+  --mint: #4f9a6b;
+  --mint-ink: #3b724f;
+  --mint-soft: #edf8f1;
+  --lilac: #8b69b6;
+  --lilac-ink: #7b54ac;
+  --lilac-soft: #f5f0fb;
+  --aqua: #3e9290;
+  --aqua-ink: #307170;
+  --aqua-soft: #ecf8f7;
+  --peach: #c97845;
+  --peach-ink: #98562d;
+  --peach-soft: #fff3ea;
+  /* end extended palette */
 }
 
 :root[data-theme="dark"] {
@@ -95,6 +123,25 @@
   --code-note: #26261f;
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.4), 0 14px 32px rgba(0, 0, 0, 0.45);
+  /* Night steps for the extended palette. Lightened until each clears 4.5:1
+     on the night surfaces and on its own night wash: measured 4.82, 4.86,
+     4.82, 4.78. On a near-black panel the lightened step is both readable as
+     text and visible as a border, so hue and ink converge. */
+  --blue-wash: rgba(125, 180, 238, 0.14);
+  --yellow-soft: rgba(232, 198, 90, 0.14);
+  --rose-soft: rgba(242, 135, 154, 0.14);
+  --mint: #58a976;
+  --mint-ink: #58a976;
+  --mint-soft: rgba(79, 154, 107, 0.16);
+  --lilac: #a58bc6;
+  --lilac-ink: #a58bc6;
+  --lilac-soft: rgba(139, 105, 182, 0.16);
+  --aqua: #47a6a4;
+  --aqua-ink: #47a6a4;
+  --aqua-soft: rgba(62, 146, 144, 0.16);
+  --peach: #cf885b;
+  --peach-ink: #cf885b;
+  --peach-soft: rgba(201, 120, 69, 0.16);
 }
 
 /* A band that inverts the palette inside its own subtree. Two of these break
@@ -169,8 +216,15 @@ a:hover { color: var(--accent-ink-2); }
 h1, h2, h3, h4 { line-height: 1.22; letter-spacing: -0.018em; margin: 0 0 0.5em; }
 h1 { font-size: clamp(2.1rem, 5.2vw, 3.5rem); }
 h2 { font-size: clamp(1.5rem, 3.2vw, 2.1rem); }
-/* display headings (hero, section titles, page heads) use the serif */
-.hero h1, .wrap > h2, .pagehead h1 { font-family: var(--font-serif); letter-spacing: -0.02em; }
+/* Display headings are the system sans at 800, the weight and leading the
+   reference site uses. The serif they used to run in was Fraunces, which was
+   a CDN download and is not a face this project's design system names. */
+.hero h1, .wrap > h2, .pagehead h1 {
+  font-family: var(--display);
+  font-weight: 800;
+  line-height: 1.22;
+  letter-spacing: -0.025em;
+}
 h3 { font-size: 1.16rem; letter-spacing: -0.01em; }
 h4 { font-size: 1rem; }
 p { margin: 0 0 1em; }
@@ -787,9 +841,12 @@ footer.site { padding: 40px 0 56px; background: var(--cream-dark); border-top: 1
   padding: 0 10px;
   background: var(--cream);
   color: var(--accent-ink);
-  font-family: Caveat, var(--font-body);
-  font-size: 1.18rem;
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  font-weight: 800;
   line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .sketch.lex { border-color: var(--highlight); }

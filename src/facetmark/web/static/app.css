@@ -8,71 +8,57 @@
  * its own night surfaces there, and `tests/test_web.py` holds that block to an
  * allowlist so it cannot quietly grow into a second palette.
  *
- * The scene is `references/scene-app.md`, not the landing-page scene: function
- * first, restrained visuals, high information density, headings capped at
- * 1.2rem, no scroll reveal, no decorative dark panels inside functional areas.
+ * The scene was `references/scene-app.md` -- function first, restrained
+ * visuals, headings capped at 1.2rem. Read literally, that produced a search
+ * screen of twenty near-identical white cards, which is the first entry on
+ * the design system's own taboo list, and a setup wizard whose tinted frames
+ * were pushed down to alpha 0.03 and read as blank. The project owner looked
+ * at it and rejected it.
  *
- * That scene forbids decoration in the places a reader looks at fifty times a
- * day, which is not the same as forbidding it everywhere. The page therefore
- * runs three tiers, and the tier is chosen by how often the surface is read
- * rather than by how important it is:
+ * So the scene is now the one the owner's own derived site ships:
+ * repair.88lin.eu.org. Its density is the target, not a ceiling to approach
+ * cautiously. `scene-app.md` still governs one thing -- data must render
+ * immediately, so no scroll reveal in the app -- and is overridden on visual
+ * intensity. `tests/test_web.py` records both halves of that decision.
  *
- *   Tier 0  the result list, the search field, the tab bar, the status table.
- *           Plain cards, colour only where it carries meaning. `scene-app.md`
- *           applies literally.
- *   Tier 1  the panels that frame those: dashboard tiles, the facet legend,
- *           the retrieval-mode chooser, the import and index job cards. These
- *           get the tinted base card (`.tint`, design system component 10D).
- *   Tier 2  first-run setup, empty states, error states, the explainers. Read
- *           once or twice and then never again, so they carry the full hand
- *           drawn treatment (`.sketch`, component 10C) and the highlighter.
+ * Colour still has to earn its place, but it earns it by carrying rank and
+ * facet rather than by being withheld. The page runs three tiers, chosen by
+ * how often a surface is read:
  *
- * Fonts follow the same local-first rule as the colours: the two decorative
- * Latin faces are vendored under `static/fonts/` rather than pulled from a
- * CDN, because a bookmark index that phones a third party on every page load
- * is not local-first and would render wrong offline. Han glyphs fall through
- * to whatever serif the reader's system already has; a vendored CJK subset
- * would be larger than everything else in the wheel put together.
+ *   Tier 0  the top-ranked results, the dashboard tiles, the setup steps.
+ *           Tinted base card (`.tint`, design system component 10D) plus a
+ *           hand-drawn dashed frame (`.sketch`, component 10C) in the hue the
+ *           row's dominant facet already uses.
+ *   Tier 1  the rest of the result list and the status tables. Light rows,
+ *           hairline separators, colour only in the badges -- so that the
+ *           tier above it reads as ranked rather than as decorated.
+ *   Tier 2  empty states, error states, explainers. Full hand-drawn treatment
+ *           and the highlighter.
+ *
+ * Fonts are the system stack and nothing else. The earlier version vendored
+ * two decorative Latin faces, Caveat and Fraunces, 94 KB of woff2 that a
+ * Chinese reader downloads to render glyphs the faces do not contain. The
+ * stacks below are copied verbatim from the same derived site the scene comes
+ * from -- `-apple-system` first, then `PingFang SC` before any Windows face,
+ * so Han renders in the family the owner actually specified. Nothing is
+ * downloaded: no `@font-face`, no CDN, correct offline, correct on first
+ * paint. `TestTheFontPolicy` in `tests/test_web.py` holds that line.
  */
-
-/* ------------------------------------------------------------------ font */
-
-@font-face {
-  font-family: Caveat;
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url("/app/static/fonts/caveat-700-latin.woff2") format("woff2");
-  unicode-range:
-    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
-    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
-    U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-@font-face {
-  font-family: Fraunces;
-  font-style: italic;
-  font-weight: 600;
-  font-display: swap;
-  src: url("/app/static/fonts/fraunces-italic-600-latin.woff2") format("woff2");
-  unicode-range:
-    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
-    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
-    U+2212, U+2215, U+FEFF, U+FFFD;
-}
 
 /* ------------------------------------------------------------------ base */
 
 :root {
+  /* Verbatim from the derived site's `--f-sans` / `--f-display` / `--f-mono`.
+     Do not reorder: `PingFang SC` sits ahead of `Microsoft YaHei` on purpose,
+     and the Windows UI face is absent from the text stack on purpose. */
   --font-sans:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
-    "Microsoft YaHei", "Noto Sans SC", "Helvetica Neue", sans-serif;
-  --font-serif: Fraunces, "Huiwen Mincho", "Noto Serif SC", "Songti SC", Georgia, serif;
-  --font-mono: ui-monospace, "Fira Code", SFMono-Regular, Menlo, Consolas, monospace;
-  /* Caveat has no Han glyphs, so a Chinese corner label falls straight through
-     to a brush face if the reader has one and a serif if they do not. That is
-     the same substitution the design system's own Chinese demos make. */
-  --font-hand: Caveat, "Xingkai SC", "Kaiti SC", KaiTi, STKaiti, cursive;
+    -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",
+    "Hiragino Sans GB", "Noto Sans SC", sans-serif;
+  --font-display:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
 
   /* Radii. The design system's app scene uses 12px cards, 16px modals and
      8px inputs; `--r-pill` is the shape the whole interface is named after.
@@ -166,6 +152,46 @@
   --tint-intent: rgba(var(--pop-rgb), 0.08);
   --tint-context: var(--success-soft);
   --tint-plain: var(--cream-dark);
+
+  /* extended palette -- sourced from repair.88lin.eu.org
+   *
+   * Palette A ships three hues. The owner's own derived site runs nine, and
+   * the extra six are the reason a screen of twenty results there does not
+   * read as twenty identical cards. These are copied from that site's `:root`
+   * rather than invented, so the two surfaces agree on what "mint" is.
+   *
+   * They cannot live in `palettes.css`: that file is vendored verbatim and
+   * pinned byte-for-byte against the site's copy by `tests/test_landing.py`.
+   * So they live here, between these two markers, and
+   * `test_the_stylesheet_names_no_colour_the_palette_did_not` permits literal
+   * hexes only inside the fence and only for the names it lists.
+   *
+   * The reference site sets no text in mint, lilac, aqua or peach, so it
+   * publishes no `-ink` step for them. facetmark does -- a tinted card puts a
+   * coloured label on a coloured wash -- so each `-ink` here was derived by
+   * walking lightness down until the hue cleared 4.5:1 on every surface it
+   * can reach, with headroom. One value is shipped per hue rather than one
+   * per file: the landing site runs a darker band colour and needs the deeper
+   * step, so that step is used here too and this file simply gains margin.
+   * Measured worst cases here: mint 5.21, lilac 5.06, aqua 5.20, peach 5.20.
+   * The display hues never carry text.
+   */
+  --blue-wash: #dfecfb;
+  --yellow-soft: #fff3cd;
+  --rose-soft: #fff0f2;
+  --mint: #4f9a6b;
+  --mint-ink: #3b724f;
+  --mint-soft: #edf8f1;
+  --lilac: #8b69b6;
+  --lilac-ink: #7b54ac;
+  --lilac-soft: #f5f0fb;
+  --aqua: #3e9290;
+  --aqua-ink: #307170;
+  --aqua-soft: #ecf8f7;
+  --peach: #c97845;
+  --peach-ink: #98562d;
+  --peach-soft: #fff3ea;
+  /* end extended palette */
 }
 
 *,
@@ -304,9 +330,9 @@ button {
   align-items: center;
   gap: 9px;
   color: var(--ink);
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 1.08rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.01em;
 }
 
@@ -910,12 +936,16 @@ main.wide {
   display: none;
 }
 
-/* `scene-app.md` caps in-app headings at 1.2rem. This is a tool, not a
-   landing page: a 3rem display serif here would be decoration. */
+/* The page title is one of the five selectors allowed past the 1.2rem body
+   ceiling (see `test_no_heading_is_larger_than_the_scene_allows`). At 800 it
+   is the same weight the reference site gives its section heads, which is
+   what makes a screen read as having a top rather than starting mid-list. */
 .page-title {
-  font-family: var(--font-serif);
-  font-size: 1.2rem;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1.22;
+  letter-spacing: -0.02em;
 }
 
 .lede {
@@ -1345,11 +1375,12 @@ main.wide {
   padding: 0 9px;
   background: var(--cream);
   color: var(--facet-content-ink);
-  font-family: var(--font-hand);
-  font-size: 1.1rem;
-  font-weight: 700;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 800;
   line-height: 1.2;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .sketch.lex {
@@ -1376,17 +1407,18 @@ main.wide {
   color: var(--facet-context-ink);
 }
 
-/* The numbered step, Fraunces italic. This is the one place the app borrows
-   the landing page's display face, and it is capped at the scene's 1.2rem
-   ceiling rather than the 2rem the tutorial scene would allow. Inside a frame
-   it takes the frame's colour: a blue numeral in a red frame reads as two
-   unrelated marks rather than one card. */
+/* The numbered step -- design system component 8, the oversized decorative
+   numeral. It used to sit at 1.2rem outside the frame's top-left corner,
+   which read as a stray glyph rather than as the step's number. It now sits
+   inside the frame at the size the component actually calls for. Inside a
+   frame it takes the frame's colour: a blue numeral in a red frame reads as
+   two unrelated marks rather than one card. */
 .stepnum {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-weight: 600;
-  font-size: 1.2rem;
-  line-height: 1;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 2.4rem;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
   color: var(--facet-content-ink);
 }
 
@@ -2210,4 +2242,26 @@ html[data-theme="dark"] {
   --link: var(--brand-text);
   --mark-band: rgba(244, 215, 88, 0.26);
   --tint-lex: rgba(244, 215, 88, 0.09);
+  /* Night steps for the extended palette. The hues are lightened until they
+     clear 4.5:1 on the night surfaces and on their own night wash (measured
+     4.61, 4.64, 4.64, 4.63); the washes are the daylight hue at .16 over the
+     card, which is the grammar the tokens above already use. `-ink` and the
+     display hue converge here: on a near-black panel the lightened step is
+     both readable as text and visible as a border, so a second value would
+     be a distinction with no rendering behind it. */
+  --blue-wash: rgba(125, 180, 238, 0.14);
+  --yellow-soft: rgba(244, 215, 88, 0.14);
+  --rose-soft: rgba(242, 135, 154, 0.14);
+  --mint: #58a976;
+  --mint-ink: #58a976;
+  --mint-soft: rgba(79, 154, 107, 0.16);
+  --lilac: #a58bc6;
+  --lilac-ink: #a58bc6;
+  --lilac-soft: rgba(139, 105, 182, 0.16);
+  --aqua: #47a6a4;
+  --aqua-ink: #47a6a4;
+  --aqua-soft: rgba(62, 146, 144, 0.16);
+  --peach: #cf885b;
+  --peach-ink: #cf885b;
+  --peach-soft: rgba(201, 120, 69, 0.16);
 }

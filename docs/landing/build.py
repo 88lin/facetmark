@@ -537,18 +537,16 @@ def shell(t: dict, page: str, body: str) -> str:
         f'<link rel="alternate" hreflang="en" href="{canon_en}">\n'
         f'<link rel="alternate" hreflang="zh-CN" href="{canon_zh}">\n'
         f'<link rel="alternate" hreflang="x-default" href="{canon_en}">\n'
-        # Four bars in the four facet colours on a rounded cream square: the
-        # same grammar as the mark on repair.88lin.eu.org, drawn for this
-        # project. The old inline square used #ff9400 and #0279ee, neither of
-        # which is in any palette this project ships.
+        # The project owner's own mark, taken verbatim from
+        # computer-repair-skill/docs/assets/img/favicon.svg. An earlier version
+        # redrew the same grammar as four equal bars; the owner's reading of
+        # that was that the icon had not been changed, so it is now the file
+        # itself with only the title and aria-label renamed.
         '<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">\n'
         '<link rel="mask-icon" href="assets/favicon.svg" color="#2b7fd8">\n'
-        '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
-        '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
-        '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?'
-        "family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700"
-        "&family=Noto+Serif+SC:wght@400..700"
-        '&family=Caveat:wght@500&display=swap">\n'
+        # No font request. The stacks in style.css are system faces, which is
+        # what the reference site ships and what keeps the page correct with
+        # no network. See `TestTheFontPolicy` in tests/test_web.py.
         '<link rel="stylesheet" href="palettes.css">\n'
         '<link rel="stylesheet" href="style.css">\n'
         f"<script>{THEME_BOOT}</script>\n"
