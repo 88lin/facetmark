@@ -46,6 +46,15 @@ WIDTH = 1440
 # Chinese quickstart illustrated with an English screenshot was getting wrong.
 QUERY = "vector index"
 
+# A search view is an endless list, and a full-page capture of one is 4,798px
+# tall -- which the landing page then renders as a 3,550px column, a third of
+# the whole document.  The frame is a picture of the interface, not an archive
+# of the corpus.  Clip it to the last result that fits under TALL so it ends
+# on a card edge rather than through the middle of one, and so it stops
+# growing when the demo library does.  The library view is a fixed dashboard
+# and stays whole.
+TALL = 1950
+
 
 async def main() -> int:
     noise: list[str] = []
@@ -78,7 +87,7 @@ async def main() -> int:
                     # paint, not for a timer.
                     await page.wait_for_selector("#results li:nth-child(4)", timeout=20000)
                     await page.wait_for_timeout(900)
-                    await shoot(page, f"app-search{suffix}.png")
+                    await shoot(page, f"app-search{suffix}.png", clip=await cut(page))
 
                     await page.click('[data-view="library"]')
                     await page.wait_for_selector("#stats .block", timeout=20000)
@@ -94,10 +103,29 @@ async def main() -> int:
     return 0
 
 
-async def shoot(page, name: str) -> None:
+async def cut(page) -> dict[str, int]:
+    """The tallest whole number of result cards that fits under TALL."""
+    height = await page.evaluate(
+        """(tall) => {
+          let bottom = 0;
+          for (const li of document.querySelectorAll('#results li')) {
+            const edge = li.getBoundingClientRect().bottom + scrollY;
+            if (edge > tall) break;
+            bottom = edge;
+          }
+          const whole = document.documentElement.scrollHeight;
+          return Math.round(bottom ? bottom + 24 : Math.min(tall, whole));
+        }""",
+        TALL,
+    )
+    return {"x": 0, "y": 0, "width": WIDTH, "height": height}
+
+
+async def shoot(page, name: str, clip: dict[str, int] | None = None) -> None:
     path = OUT / name
-    await page.screenshot(path=str(path), full_page=True)
-    print(f"  {name:<28} {path.stat().st_size / 1024:.0f} KB")
+    await page.screenshot(path=str(path), full_page=True, clip=clip)
+    size = clip["height"] if clip else "full"
+    print(f"  {name:<28} {path.stat().st_size / 1024:>4.0f} KB  h={size}")
 
 
 if __name__ == "__main__":

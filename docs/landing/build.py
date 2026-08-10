@@ -549,6 +549,14 @@ def shell(t: dict, page: str, body: str) -> str:
         # no network. See `TestTheFontPolicy` in tests/test_web.py.
         '<link rel="stylesheet" href="palettes.css">\n'
         '<link rel="stylesheet" href="style.css">\n'
+        # `.reveal` starts at `opacity: 0` and a scroll observer puts it back.
+        # There was a fallback for a browser without IntersectionObserver and
+        # none at all for a browser that never runs the script, so with
+        # scripting off these pages served a header, a footer, and thirteen
+        # thousand characters of nothing. The bars had the same shape: their
+        # fill is `width: 0` until the observer arrives.
+        '<noscript><style>.reveal{opacity:1;transform:none}'
+        ".bar-fill{width:var(--w);transition:none}</style></noscript>\n"
         f"<script>{THEME_BOOT}</script>\n"
         "</head>\n<body>\n"
         f'<a class="skip" href="#main">{esc(t["skip"])}</a>\n'

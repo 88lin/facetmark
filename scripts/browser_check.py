@@ -192,6 +192,31 @@ class Report:
 # docs/landing/tools hold the same bar.
 NOISE = ("error", "warning")
 
+# An embedded screenshot is a box in somebody else's layout, and nothing in
+# the suites can see how big that box is: the file is committed, the link
+# resolves, the page does not scroll sideways.  A full-page capture of the
+# search view -- an endless list -- came out 4,798px tall and rendered as a
+# 3,550px column that swallowed a third of the landing page.  Height is the
+# measurement that catches it.  Two and a half screens is generous for a
+# figure and nowhere near 3,550.
+TALLEST = 2.5
+
+# `loading="lazy"` means a picture below the fold has not been fetched yet, so
+# its box is zero tall and any question about its size answers itself wrongly.
+# Force the fetch, wait for the decode, then measure.
+SETTLED_IMAGES = """
+async () => {
+  const imgs = [...document.images];
+  imgs.forEach((i) => { i.loading = 'eager'; });
+  await Promise.all(imgs.map((i) => i.decode().catch(() => {})));
+  return imgs.filter((i) => i.naturalWidth > 0).map((i) => ({
+    src: i.currentSrc.split('/').pop(),
+    h: Math.round(i.getBoundingClientRect().height),
+    nat: `${i.naturalWidth}x${i.naturalHeight}`,
+  }));
+}
+"""
+
 
 async def open_page(browser, *, width: int, lang: str, theme: str, height: int = 900):
     ctx = await browser.new_context(
@@ -373,6 +398,12 @@ async def sweep_site(browser, land: Landing, rep: Report) -> None:
                         "() => [...document.images].filter((i) => i.complete "
                         "&& i.naturalWidth === 0).map((i) => i.getAttribute('src'))")
                     rep.ok(where, not broken, f"images did not load: {broken}")
+                    if width == 1280:
+                        ceiling = TALLEST * page.viewport_size["height"]
+                        tall = [s for s in await page.evaluate(SETTLED_IMAGES)
+                                if s["h"] > ceiling]
+                        rep.ok(where, not tall,
+                               f"a picture is taller than {TALLEST} screens: {tall}")
                 rep.ok(f"site {lang}/{theme} @{width}", not logged,
                        f"console: {list(dict.fromkeys(logged))[:6]}")
                 fonts = [u for u in requested if "fonts.googleapis" in u or "gstatic" in u]
@@ -558,6 +589,39 @@ async def the_highlighted_phrase_stays_on_one_line(browser, land: Landing, rep: 
             await ctx.close()
 
 
+async def the_site_reads_with_scripting_off(browser, land: Landing, rep: Report) -> None:
+    """Every word of every page was invisible without JavaScript.
+
+    `.reveal` ships at `opacity: 0` and a scroll observer adds the class that
+    brings it back.  There was a fallback for a browser that lacks
+    IntersectionObserver and none for a browser that never runs the script, so
+    with scripting off the pages rendered a header, a footer, and 13,148
+    characters of nothing -- which is also what a reader gets from Ctrl-P
+    before scrolling, and what a text-mode crawler got every time.
+    """
+    for lang in ("en", "zh"):
+        ctx = await browser.new_context(
+            viewport={"width": 1280, "height": 900},
+            device_scale_factor=1,
+            locale="zh-CN" if lang == "zh" else "en-US",
+            java_script_enabled=False,
+        )
+        page = await ctx.new_page()
+        for name in PAGES:
+            fn = f"{name}.html" if lang == "en" else f"{name}.zh.html"
+            await page.goto(land.url(fn), wait_until="load")
+            m = await page.evaluate("""() => {
+              const rev = [...document.querySelectorAll('.reveal')];
+              const dark = rev.filter((e) => +getComputedStyle(e).opacity < 0.05);
+              const chars = (n) => n.reduce((s, e) => s + (e.innerText || '').length, 0);
+              return {n: rev.length, hidden: dark.length, lost: chars(dark)};
+            }""")
+            rep.ok(f"regression/noscript {fn}", m["hidden"] == 0,
+                   f"{m['hidden']} of {m['n']} blocks -- {m['lost']} characters -- "
+                   "are invisible with scripting off")
+        await ctx.close()
+
+
 async def the_page_uses_the_system_face(browser, app: App, land: Landing, rep: Report) -> None:
     """Both surfaces should resolve to the platform UI face, with no CDN."""
     for what, url in (("app", f"{app.base}/app"), ("site", land.url("index.html"))):
@@ -598,6 +662,7 @@ async def run(only: str) -> int:
                 await dark_mode_is_actually_dark(browser, land, rep)
                 await a_named_page_stays_on_that_page(browser, land, rep)
                 await the_highlighted_phrase_stays_on_one_line(browser, land, rep)
+                await the_site_reads_with_scripting_off(browser, land, rep)
                 await the_page_uses_the_system_face(browser, app, land, rep)
                 say("regressions measured")
             await browser.close()
