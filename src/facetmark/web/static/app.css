@@ -2623,15 +2623,37 @@ main.wide {
 /* --------------------------------------------------------- responsive */
 
 @media (max-width: 720px) {
+  /* A scrolling row was the old answer and it was the wrong one: the scrollbar
+     is hidden, so on a 390px phone the fifth tab simply sat off the right edge
+     with nothing to say so, and in Chinese the row instead squeezed itself to
+     81px tall with every label wrapped onto three lines. Five equal columns
+     fit five views at any phone width, on one line, with nothing hidden. */
   .tabs {
-    padding: 8px 12px;
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    scrollbar-width: none;
+    padding: 8px 10px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    overflow: visible;
   }
 
-  .tabs::-webkit-scrollbar {
-    display: none;
+  .tab {
+    justify-content: center;
+    min-width: 0;
+    gap: 5px;
+    padding: 8px 5px;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+
+  .tab > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tab .n {
+    flex: none;
+    padding: 1px 5px;
+    font-size: 0.66rem;
   }
 
   .bar-row {
@@ -2651,6 +2673,32 @@ main.wide {
     max-height: 100vh;
     min-height: 100vh;
     border-radius: 0;
+  }
+}
+
+/* Below this the five columns are ~64px each and the count badge is what
+   pushes a label into an ellipsis. The label is the navigation; the badge is
+   a nicety, and the same number is on the page it leads to. */
+@media (max-width: 480px) {
+  .tabs {
+    padding: 8px 8px;
+    gap: 4px;
+  }
+
+  .tab {
+    padding: 8px 3px;
+    font-size: 0.74rem;
+  }
+
+  .tab .n {
+    display: none;
+  }
+}
+
+/* A keyboard shortcut is not advice a touch device can act on. */
+@media (hover: none), (max-width: 560px) {
+  .ask .hint {
+    display: none;
   }
 }
 

@@ -243,6 +243,11 @@ function showTab(next) {
 function trap(e) {
   if (e.key === "Escape") {
     e.preventDefault();
+    // The page-level handler bows out while the dialog is open, but this
+    // listener is on the capture phase: by the time the event bubbles the
+    // dialog is already shut, the guard reads false, and Escape went on to
+    // clear the query behind it. Stop the key here.
+    e.stopPropagation();
     return close();
   }
   if (e.key !== "Tab") return;
