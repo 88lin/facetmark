@@ -11,7 +11,7 @@
 // button only if the last one came back full.
 
 import { api, getToken } from "./api.js";
-import { $, btn, card, el, link, pill, togglePill } from "./dom.js";
+import { $, btn, el, link, togglePill } from "./dom.js";
 import { count, shortUrl, uptimeParts, whenAdded } from "./format.js";
 import { failPanel, showPanel, tokenPanel } from "./panels.js";
 import { S, t } from "./state.js";
@@ -28,6 +28,15 @@ let generation = 0;
 const opened = new Map();
 /** One sitting, reached from the detail dialog rather than from this list. */
 let focused = null;
+/**
+ * A sitting the detail dialog asked for, not yet fetched.
+ *
+ * The request and the route change arrive together, so this has to be recorded
+ * before the router runs: `render()` used to start a list load whose
+ * `generation` bump then threw away the single-sitting reply that was already
+ * in flight, and the dialog's "Open" landed you on the full list instead.
+ */
+let wanted = null;
 
 /** A span in at most two units. The units are translated; the numbers are not. */
 function dur(seconds) {
@@ -74,10 +83,13 @@ function membersOf(rec) {
 /** Five hues, dealt by position. Decoration -- see `.sitting` in app.css. */
 const HUES = ["", "f-lex", "f-edge", "f-intent", "f-tri"];
 
-function sittingCard(s, expanded, i) {
-  const box = el("div", ["sitting", HUES[i % HUES.length], expanded ? "open" : ""]
-    .filter(Boolean)
-    .join(" "));
+/**
+ * The frame a sitting is drawn in, wherever it appears: a dashed box in one of
+ * five hues, with the page count set large in the gutter. `trailing` is the
+ * control the row ends with -- expand, or the way back out of a focused one.
+ */
+function sittingBox(s, { hue = "", expanded = false, trailing }) {
+  const box = el("div", ["sitting", hue, expanded ? "open" : ""].filter(Boolean).join(" "));
   // The page count, set large: it is the one number that makes a sitting a
   // sitting, and it was previously a chip the same size as everything else.
   // Numeral and unit are split so the numeral can be display-sized without
@@ -98,15 +110,17 @@ function sittingCard(s, expanded, i) {
         .join(" \u00b7 "),
     ),
   );
-  head.appendChild(grow);
+  head.append(grow, trailing);
+  box.appendChild(head);
+  return box;
+}
 
+function sittingCard(s, expanded, i) {
   const toggle = btn(expanded ? t("sitting.hide") : t("sitting.see"), "small", () =>
     void flip(s.session_id, toggle),
   );
   toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
-  head.appendChild(toggle);
-  box.appendChild(head);
-
+  const box = sittingBox(s, { hue: HUES[i % HUES.length], expanded, trailing: toggle });
   const rec = opened.get(s.session_id);
   if (expanded && rec) box.appendChild(membersOf(rec));
   return box;
@@ -154,22 +168,13 @@ function drawFocused() {
     focused = null;
     drawList();
   });
-  const box = card();
-  const head = el("div", "line");
-  const grow = el("div", "grow");
-  grow.appendChild(el("div", "t", titleOf(focused)));
-  grow.appendChild(
-    el(
-      "div",
-      "w",
-      [whenAdded(focused.started_at, S.lang), focused.span_seconds ? dur(focused.span_seconds) : ""]
-        .filter(Boolean)
-        .join(" \u00b7 "),
-    ),
-  );
-  head.append(grow, pill("vec", t("sitting.size", { n: count(focused.size, S.lang) })), back);
-  box.append(head, membersOf(focused));
-  ui.list.appendChild(box);
+  // One sitting on its own gets the same frame it had in the list, so arriving
+  // here from the detail dialog does not look like arriving somewhere else.
+  const box = sittingBox(focused, { expanded: true, trailing: back });
+  box.appendChild(membersOf(focused));
+  const stack = el("div", "sittings");
+  stack.appendChild(box);
+  ui.list.appendChild(stack);
 }
 
 // -------------------------------------------------------------------- load
@@ -215,8 +220,13 @@ async function load({ reset = false, button } = {}) {
 
 // ------------------------------------------------------------------- shell
 
+/** Ask for one sitting. Honoured by the next `render()`, not before it. */
+export function focus(id) {
+  wanted = id;
+}
+
 /** Show one sitting on its own. The detail dialog links here. */
-export async function openSitting(id) {
+async function openSitting(id) {
   const mine = ++generation;
   ui.list.replaceChildren(el("p", "status", t("sitting.loading")));
   ui.more.replaceChildren();
@@ -233,6 +243,11 @@ export async function openSitting(id) {
 export async function render() {
   drawSizes();
   if (!getToken()) return tokenPanel(false, ui.list);
+  if (wanted !== null) {
+    const id = wanted;
+    wanted = null;
+    return openSitting(id);
+  }
   if (focused) return drawFocused();
   if (rows.length) return drawList();
   return load({ reset: true });

@@ -218,8 +218,8 @@ async function boot() {
     else location.hash = next;
   };
   S.sitting = (id) => {
+    sessions.focus(id);
     S.go("sessions");
-    void sessions.openSitting(id);
   };
   S.redraw = () => VIEWS[viewName()].mod.render();
 
