@@ -235,14 +235,46 @@ function contributionBar(h) {
   );
 }
 
+/** How many rows are drawn at Tier 0. Three is the fold on a laptop. */
+const LEADS = 3;
+
+/**
+ * Which path did the most for this row -- the row's colour.
+ *
+ * `contributions` is the honest answer where the server sends it: it is the
+ * per-facet share of the fused score, so the largest entry is the path that
+ * actually put this page here. Where it is absent -- the quick FTS5 pass does
+ * not compute one -- the first facet in the drawing order that fired is the
+ * fallback, which is stable rather than correct and is only ever used for the
+ * few hundred milliseconds before the real ranking lands.
+ */
+function dominant(h) {
+  const c = h.contributions;
+  if (c) {
+    let best = null;
+    for (const f of FACET_ORDER) {
+      if (c[f] > 0 && (best === null || c[f] > c[best])) best = f;
+    }
+    if (best) return best;
+  }
+  for (const f of FACET_ORDER) if ((h.facets ?? []).includes(f)) return f;
+  return "content";
+}
+
 function hitCard(h, rank, neighbour) {
   const li = el("li", "row-wrap");
-  const a = el("a", neighbour ? "hit near" : "hit");
+  // Three tiers, because a ranked list drawn as twenty identical cards is a
+  // list that says the twentieth result is the same kind of object as the
+  // first. Tier 0 is the top few, in the hue of the path that found them;
+  // Tier 1 is a light row; neighbours are neither, and say so in peach.
+  const lead = !neighbour && rank <= LEADS;
+  const tone = lead ? FACET_TONE[dominant(h)] : "";
+  const a = el("a", neighbour ? "hit near" : lead ? `hit lead${tone ? ` f-${tone}` : ""}` : "hit");
   a.href = h.url;
   a.target = "_blank";
   a.rel = "noopener";
 
-  if (!neighbour) a.appendChild(el("span", "rank", rank));
+  if (!neighbour) a.appendChild(el("span", lead ? "rank bignum" : "rank", rank));
   a.appendChild(el("div", "title", h.title || shortUrl(h.url)));
   a.appendChild(el("div", "where", [h.domain, h.folder].filter(Boolean).join(" \u00b7 ")));
   if (h.snippet) a.appendChild(snippetNode(h.snippet, neighbour ? "" : cursor.query));
@@ -363,7 +395,7 @@ function emptyPanel(queried) {
         numberCard(count(s.bookmarks, S.lang), t("stats.bookmarks"), "ink"),
         numberCard(count(s.indexable, S.lang), t("stats.indexable")),
         numberCard(count(s.enriched, S.lang), t("stats.enriched"), "gold"),
-        numberCard(count(s.sessions, S.lang), t("stats.sessions"), "pop"),
+        numberCard(count(s.sessions, S.lang), t("stats.sessions"), "edge"),
       ]);
       return showPanel({ title: t("start.title"), body: t("start.body"), extra: [strip], into });
     }

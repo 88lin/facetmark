@@ -57,7 +57,7 @@ function drawServer(sec, h) {
       numberCard(count(h.bookmarks, S.lang), t("stats.bookmarks")),
     ]),
   );
-  const box = card();
+  const box = card("hue");
   // A labelled table rather than a headline with badges beside it: the version
   // and the provider are two different facts and a single caption under both
   // of them can only describe one.
@@ -86,7 +86,7 @@ function drawServer(sec, h) {
 // ------------------------------------------------------------------- queue
 
 function drawQueue(sec, q) {
-  const box = card();
+  const box = card("hue lex");
   const known = ["pending", "leased", "done", "failed"];
   const rows = known
     .filter((k) => q[k] !== undefined)
@@ -99,7 +99,7 @@ function drawQueue(sec, q) {
 // ------------------------------------------------------------------- links
 
 function drawReport(rep, into) {
-  const box = card();
+  const box = card("hue ctx");
   box.appendChild(
     facts([
       { label: t("sys.check.considered"), value: count(rep.considered, S.lang) },
@@ -145,7 +145,7 @@ async function runCheck(into) {
 
 function checkControl() {
   const wrap = el("div");
-  const start = btn(t("sys.check"), "small", () => {
+  const start = btn(t("sys.check"), "primary", () => {
     const ask = el("div", "panel warn");
     ask.appendChild(el("h2", null, t("sys.check.confirm")));
     ask.appendChild(el("p", null, t("sys.check.confirm.body", { n: CHECK_LIMIT })));
@@ -161,7 +161,7 @@ function checkControl() {
 
 function linkBody(summary) {
   const { total, bands } = healthBands(summary);
-  const box = card();
+  const box = card("hue ctx");
   // The bar carries the proportions and the legend carries the counts. A third
   // row spelling out one band again was the same number printed three times.
   box.appendChild(stackBar(bands));
@@ -254,7 +254,7 @@ function graveLine(r) {
 }
 
 function drawGrave(sec, list) {
-  const box = card();
+  const box = card("hue edge");
   if (!list.length) {
     box.appendChild(el("p", "dim", t("sys.grave.none")));
   } else {

@@ -20,18 +20,34 @@ export const FACET_KEYS = {
  * The four paths, in the order they are always drawn.
  *
  * Not the server's order and not alphabetical: the two lexical paths are
- * adjacent so their two bands read as one gold stripe rather than as two gold
- * stripes with a blue one between them. The bar is a picture of a mixture, and
- * a mixture drawn in a different order every row is not a picture of anything.
+ * adjacent because they are the same kind of evidence -- a word that was
+ * literally on the page -- and a reader scanning a row of badges should not
+ * have to reassemble that from two ends of the list. The bar is a picture of a
+ * mixture, and a mixture drawn in a different order every row is not a picture
+ * of anything.
  */
 export const FACET_ORDER = ["content", "intent", "lex_seg", "lex_tri"];
 
-/** Facet -> the colour class `.fdot`, `.fbadge` and `.fbar > span` share. */
+/**
+ * Facet -> the colour class `.fdot`, `.fbadge` and `.fbar > span` share.
+ *
+ * Four facets, four colours. `lex_tri` used to return "lex", so a page found
+ * by trigram overlap and a page found by segmented-word overlap drew the
+ * identical gold badge and the contribution bar drew them as one band. On the
+ * one screen whose job is to show that four different paths found four
+ * different things, two of the four were invisible. `lex_tri` now takes aqua.
+ *
+ * `intent` used to return "intent", which was red. Red is also `cold`, also
+ * `danger`, also every failed probe on the system page, and a single result
+ * row can carry an intent badge and a cold chip at once in the same red. The
+ * class name stayed; the colour behind it is now lilac, and red went back to
+ * meaning only that something is wrong.
+ */
 export const FACET_TONE = {
   content: "",
   intent: "intent",
   lex_seg: "lex",
-  lex_tri: "lex",
+  lex_tri: "tri",
 };
 
 /** `took_ms` is a per-stage breakdown. `${took} ms` renders "[object Object] ms". */

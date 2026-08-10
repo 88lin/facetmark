@@ -41,7 +41,7 @@ function topNumbers(s) {
     numberCard(count(s.bookmarks, S.lang), t("stats.bookmarks"), "ink"),
     numberCard(count(s.indexable, S.lang), t("stats.indexable")),
     numberCard(count(s.enriched, S.lang), t("stats.enriched"), "gold"),
-    numberCard(count(s.sessions, S.lang), t("stats.sessions"), "pop"),
+    numberCard(count(s.sessions, S.lang), t("stats.sessions"), "edge"),
   ]);
 }
 

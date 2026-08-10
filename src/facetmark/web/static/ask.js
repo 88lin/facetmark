@@ -14,7 +14,7 @@
 
 import { api, getToken } from "./api.js";
 import { HEALTH_TONE, sourceIndex } from "./derive.js";
-import { $, btn, card, el, link, pill, skeleton } from "./dom.js";
+import { $, btn, el, link, pill, skeleton } from "./dom.js";
 import { count, shortUrl } from "./format.js";
 import { failPanel, showPanel, tokenPanel } from "./panels.js";
 import { S, ensureHealth, t } from "./state.js";
@@ -150,7 +150,7 @@ function cite(n) {
 
 function claimCard(claim, i) {
   const box = el("div", "claim");
-  box.appendChild(el("span", "n", i + 1));
+  box.appendChild(el("i", "bignum", i + 1));
   box.appendChild(el("p", null, claim.text));
   const cites = el("div", "cites");
   for (const n of claim.sources ?? []) cites.appendChild(cite(n));
@@ -166,7 +166,7 @@ function claimCard(claim, i) {
 // ------------------------------------------------------------------ sources
 
 function sourceCard(s) {
-  const box = card("src");
+  const box = el("div", "src");
   box.id = `src-${s.n}`;
 
   const head = el("div", "line");
@@ -203,7 +203,7 @@ function sourceCard(s) {
 
 function drawGaps(gaps) {
   if (!gaps?.length) return null;
-  const box = el("div", "panel warn");
+  const box = el("div", "panel edge");
   box.appendChild(el("h2", null, t("ask.gaps")));
   box.appendChild(el("p", null, t("ask.gaps.why")));
   const list = el("ul", "points");
@@ -239,7 +239,7 @@ function draw() {
   if (claims.length) {
     const sec = el("section", "block");
     sec.appendChild(el("h2", null, t("ask.claims", { n: count(claims.length, S.lang) })));
-    const stack = el("div", "rows");
+    const stack = el("div", "claims");
     claims.forEach((c, i) => stack.appendChild(claimCard(c, i)));
     sec.appendChild(stack);
     ui.out.appendChild(sec);
@@ -255,7 +255,7 @@ function draw() {
     const sec = el("section", "block");
     sec.appendChild(el("h2", null, t("ask.sources", { n: count(sources.length, S.lang) })));
     sec.appendChild(el("p", "lede", t("ask.sources.lede")));
-    const stack = el("div", "rows");
+    const stack = el("div", "rows srcs");
     for (const s of sources) stack.appendChild(sourceCard(s));
     sec.appendChild(stack);
     ui.out.appendChild(sec);

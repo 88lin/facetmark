@@ -749,7 +749,7 @@ class TestTheAppScene:
     DISPLAY = {
         r"\.num\b": "dashboard numerals -- the whole point of that card",
         r"\.page-title\b": "the one heading per screen; without it a screen starts mid-list",
-        r"\.stepnum\b": "design system component 8, the oversized decorative numeral",
+        r"\.bignum\b": "design system component 8, the oversized decorative numeral",
     }
     CEILING_BODY = 1.2
     CEILING_DISPLAY = 2.6
@@ -824,7 +824,7 @@ class TestTheContrast:
 
     #: WCAG 1.4.3 scores 18.66px bold and up at 3:1. These are the dashboard
     #: numerals, `clamp(1.7rem, 4vw, 2.4rem)` at weight 700.
-    LARGE = {".num b", ".num.pop b", ".num.ok b", ".num.warn b"}
+    LARGE = {".num b", ".num.gold b", ".num.edge b", ".num.ink b"}
 
     #: WCAG 1.4.3 exempts disabled controls.
     EXEMPT = {".btn:disabled"}
@@ -832,9 +832,19 @@ class TestTheContrast:
     def test_these_are_the_only_surfaces_the_page_sits_text_on(self):
         """`SURFACES` is an input to the sweep below, so it is derived rather
         than trusted. Anything else painting a full-width background would
-        widen the sweep, and this is where that shows up."""
+        widen the sweep, and this is where that shows up.
+
+        `.hit` and `.num` used to be on this list and are not any more, because
+        neither is a surface now. A result row below the fold paints nothing at
+        all -- it is a line with a hairline under it -- and the rows and KPI
+        cards that do paint carry a coloured wash rather than one of the three
+        page colours. That is the rebuild: a wash is not a surface, it is a
+        layer over one, and the right machine for grading a layer is
+        ``TestTheTint``, which reads both ends of it. Every one of them is
+        named there.
+        """
         surfaces = painted((STATIC_DIR / "app.css").read_text(encoding="utf-8"))
-        wide = {"body", ".top", ".sheet", ".card", ".hit", ".num"}
+        wide = {"body", ".top", ".sheet", ".card"}
         used = {v for k, v in surfaces.items() if k in wide}
         assert used <= {f"var({s})" for s in self.SURFACES}, f"unlisted page surface: {used}"
 
@@ -941,12 +951,50 @@ class TestTheTint:
     #: most contrast. The test below checks the claim against the stylesheet
     #: rather than trusting it, and the sweep grades every stop, not just this
     #: one, because a thin corner on a dark page is the worse end there.
+    #:
+    #: This was five entries when the only tinted things on the page were the
+    #: base cards. The rebuild puts a wash under the top three result rows, the
+    #: graph-expansion rows, the three setup frames and the four KPI cards --
+    #: that is the point of it, and it is also eleven new surfaces with text on
+    #: them. Listing them here is what puts them through the same machine.
     TINTS = {
         ".tint": "var(--tint-content)",
         ".tint.lex": "var(--tint-lex)",
         ".tint.intent": "var(--tint-intent)",
         ".tint.context": "var(--tint-context)",
         ".tint.plain": "var(--tint-plain)",
+        # The result list. Hue by the path that found the row; peach for the
+        # rows that were walked to rather than ranked.
+        ".hit.lead": "var(--blue-wash)",
+        ".hit.lead.f-lex": "var(--yellow-soft)",
+        ".hit.lead.f-tri": "var(--aqua-soft)",
+        ".hit.lead.f-intent": "var(--lilac-soft)",
+        ".hit.near": "var(--peach-soft)",
+        # The three first-run frames.
+        ".sketch": "var(--blue-wash)",
+        ".sketch.lex": "var(--yellow-soft)",
+        ".sketch.intent": "var(--lilac-soft)",
+        # The dashboard KPI row.
+        ".num": "var(--blue-wash)",
+        ".num.gold": "var(--yellow-soft)",
+        ".num.edge": "var(--peach-soft)",
+        ".num.ink": "var(--cream-dark)",
+        # Synthesis: the claim list is one frame, and a source jumped to from
+        # a citation is lit rather than bordered.
+        ".claims": "var(--blue-wash)",
+        ".src.lit": "var(--yellow-soft)",
+        # Sittings, component 34. The hue rotates and means nothing; it is
+        # measured here anyway, because a reader still has to read off it.
+        ".sitting": "var(--blue-wash)",
+        ".sitting.f-lex": "var(--yellow-soft)",
+        ".sitting.f-edge": "var(--peach-soft)",
+        ".sitting.f-intent": "var(--lilac-soft)",
+        ".sitting.f-tri": "var(--aqua-soft)",
+        # The system page, where the hue does mean something.
+        ".card.hue": "var(--blue-wash)",
+        ".card.hue.lex": "var(--yellow-soft)",
+        ".card.hue.ctx": "var(--mint-soft)",
+        ".card.hue.edge": "var(--peach-soft)",
     }
 
     #: The inks that can land on a tint by inheritance. `--ink-faint` is

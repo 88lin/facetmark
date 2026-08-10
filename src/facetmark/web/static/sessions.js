@@ -71,8 +71,21 @@ function membersOf(rec) {
   return box;
 }
 
-function sittingCard(s, expanded) {
-  const box = card();
+/** Five hues, dealt by position. Decoration -- see `.sitting` in app.css. */
+const HUES = ["", "f-lex", "f-edge", "f-intent", "f-tri"];
+
+function sittingCard(s, expanded, i) {
+  const box = el("div", ["sitting", HUES[i % HUES.length], expanded ? "open" : ""]
+    .filter(Boolean)
+    .join(" "));
+  // The page count, set large: it is the one number that makes a sitting a
+  // sitting, and it was previously a chip the same size as everything else.
+  // Numeral and unit are split so the numeral can be display-sized without
+  // dragging the word up with it -- and so the row is not printing "6" twice.
+  const size = el("div", "count");
+  size.appendChild(el("i", "bignum", count(s.size, S.lang)));
+  size.appendChild(el("div", "caps", t("sitting.unit")));
+  box.appendChild(size);
   const head = el("div", "line");
   const grow = el("div", "grow");
   grow.appendChild(el("div", "t", titleOf(s)));
@@ -86,7 +99,6 @@ function sittingCard(s, expanded) {
     ),
   );
   head.appendChild(grow);
-  head.appendChild(pill("vec", t("sitting.size", { n: count(s.size, S.lang) })));
 
   const toggle = btn(expanded ? t("sitting.hide") : t("sitting.see"), "small", () =>
     void flip(s.session_id, toggle),
@@ -122,8 +134,8 @@ function drawList() {
     ui.more.replaceChildren();
     return;
   }
-  const stack = el("div", "rows");
-  for (const s of rows) stack.appendChild(sittingCard(s, opened.has(s.session_id)));
+  const stack = el("div", "sittings");
+  rows.forEach((s, i) => stack.appendChild(sittingCard(s, opened.has(s.session_id), i)));
   ui.list.appendChild(stack);
 
   ui.more.replaceChildren();

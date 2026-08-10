@@ -265,9 +265,14 @@ function jobSection() {
   const bar = el("div", "stages");
   bar.setAttribute("role", "group");
   bar.setAttribute("aria-label", t("settings.job.title"));
-  for (const name of STAGES) {
+  // Component 11, the system flow bar. The ordinal is not decoration here:
+  // the seven stage names include `embed_content` and `embed_intents`, which
+  // are the same two words in both languages, so the number is what tells a
+  // reader where in the run they are.
+  for (const [i, name] of STAGES.entries()) {
     const s = stageState(job, name);
     const seg = el("div", `stage ${s}`);
+    seg.appendChild(el("i", "bignum", String(i + 1)));
     seg.appendChild(el("span", "nm", t(`stage.${name}`)));
     const got = job?.stages?.find((x) => x.name === name);
     seg.appendChild(el("span", "vl", got ? String(got.value) : s === "now" ? "\u2026" : ""));

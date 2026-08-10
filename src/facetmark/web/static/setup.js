@@ -63,16 +63,21 @@ export function settled(p) {
 function step(n, tone, done, titleKey, bodyKey, controls) {
   const box = el("section", tone ? `sketch ${tone}` : "sketch");
   if (done) box.classList.add("done");
-  // The visible label is one glyph -- a serif numeral, or a tick. "Step 2"
-  // beside a numeral 2 is the same fact twice, and the frame is only tall
-  // enough for one of them. The words go to the accessible name instead, where
-  // "Step 2 of 3" is worth having and costs no room.
+  // The visible label is one glyph -- the numeral, or a tick. "Step 2" beside
+  // a numeral 2 is the same fact twice. The words go to the accessible name
+  // instead, where "Step 2 of 3" is worth having and costs no room.
   box.setAttribute("aria-label", t(done ? "setup.done" : "setup.step", { n }));
-  const label = el("span", "label");
-  label.appendChild(el("i", "stepnum", done ? "\u2713" : String(n)));
-  box.appendChild(label);
-  box.appendChild(el("h2", null, t(titleKey)));
-  box.appendChild(el("p", null, t(bodyKey)));
+  // Numeral and heading on one line. The numeral used to be parked in the
+  // frame's top-left notch, absolutely positioned outside the border, where
+  // an oversized glyph reads as a stray character rather than as this step's
+  // number -- which is exactly how it looked in the shipped screenshot.
+  const head = el("div", "step-head");
+  head.appendChild(el("i", "bignum", done ? "\u2713" : String(n)));
+  const text = el("div", "step-text");
+  text.appendChild(el("h2", null, t(titleKey)));
+  text.appendChild(el("p", null, t(bodyKey)));
+  head.appendChild(text);
+  box.appendChild(head);
   for (const node of controls) if (node) box.appendChild(node);
   return box;
 }
@@ -104,7 +109,7 @@ function importControls(host) {
   input.type = "file";
   input.accept = ".html,.htm,.json";
   input.hidden = true;
-  const pick = btn(t("setup.import.pick"), "primary");
+  const pick = btn(t("setup.import.pick"), "primary big");
   pick.addEventListener("click", () => input.click());
   input.addEventListener("change", () => {
     const file = input.files?.[0];
@@ -144,7 +149,7 @@ async function runImport(file, host) {
 // ------------------------------------------------------------------- index
 
 function indexControls(p, host) {
-  const go = btn(t("setup.index.run"), "primary");
+  const go = btn(t("setup.index.run"), "primary big");
   go.disabled = !p.imported;
   go.addEventListener("click", () => void startIndex(host));
   return row(go, p.imported ? null : el("span", "dim", t("setup.index.need")));
@@ -194,7 +199,19 @@ function draw(p) {
     p.model,
     "setup.model.title",
     p.local ? "setup.model.local" : p.model ? "setup.model.have" : "setup.model.body",
-    [row(btn(t(p.model ? "setup.model.review" : "setup.model.set"), "", () => S.go("settings")))],
+    // Not a white outline button. This is the step a first run stops on --
+    // the index cannot be built without a model -- and the shipped version
+    // drew it as the quietest control on the page. It is the CTA until it is
+    // done, and a plain link back to the form afterwards.
+    [
+      row(
+        btn(
+          t(p.model ? "setup.model.review" : "setup.model.set"),
+          p.model ? "" : "primary big",
+          () => S.go("settings"),
+        ),
+      ),
+    ],
   );
   host.appendChild(model);
 
@@ -215,7 +232,7 @@ function draw(p) {
     const done = el("div", "tint context setup-done");
     done.appendChild(el("h2", null, t("setup.ready.title")));
     done.appendChild(el("p", null, t("setup.ready.body")));
-    done.appendChild(row(btn(t("setup.ready.go"), "primary", () => S.go("search"))));
+    done.appendChild(row(btn(t("setup.ready.go"), "primary big", () => S.go("search"))));
     host.appendChild(done);
   }
 
