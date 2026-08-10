@@ -109,6 +109,9 @@
   --btn-fg: #131310;
   --info-soft: #12283c;
   --warning: #e8c65a;
+  /* success and danger had night steps; warning did not, so every .callout.warn
+     kept a daylight yellow panel and put near-white text on it. */
+  --warning-soft: #2e2313;
   --success: #6cc394;
   --success-soft: #1e2614;
   --danger-strong: #f2879a;
@@ -264,6 +267,9 @@ header.site {
   backdrop-filter: saturate(1.4) blur(10px);
   border-bottom: 1px solid var(--border);
 }
+/* the literal above is the day paper. Without this line the night page kept a
+   cream header, and the logo -- which is var(--ink) -- went white on cream. */
+:root[data-theme="dark"] header.site { background: rgba(19, 19, 16, 0.86); }
 .site-inner {
   max-width: var(--maxw); margin: 0 auto; padding: 11px 24px;
   display: flex; align-items: center; gap: 18px;
@@ -285,11 +291,16 @@ nav.top a {
   padding: 7px 11px; border-radius: var(--radius-sm);
 }
 nav.top a:hover { color: var(--ink); background: var(--surface-2); }
-nav.top a.on { color: var(--accent-ink); background: var(--info-soft); }
+/* the current page is marked the way the reference site marks it: a yellow
+   band under the word, not a blue tablet around it */
+nav.top a.on {
+  color: var(--ink); background: transparent; border-radius: 0;
+  box-shadow: inset 0 -3px 0 var(--highlight);
+}
 .ctl {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   height: 32px; min-width: 32px; padding: 0 9px; margin-left: 4px;
-  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  border: 1px solid var(--border); border-radius: 999px;
   background: var(--card-bg); color: var(--ink-light);
   font: 600 0.84rem/1 var(--sans); text-decoration: none; cursor: pointer;
 }
@@ -330,9 +341,20 @@ nav.top a.on { color: var(--accent-ink); background: var(--info-soft); }
   /* a soft highlighter wash behind the keyword, from the design system */
   background: linear-gradient(transparent 62%, rgba(var(--highlight-rgb), 0.4) 62%);
   padding: 0 0.06em; border-radius: 2px;
+  /* Chinese breaks between any two characters, so the marked phrase was being
+     split mid-word and the wash was cut with it. The phrase is short in both
+     languages; keep it whole. */
+  white-space: nowrap;
 }
 .lede { font-size: clamp(1.03rem, 1.6vw, 1.16rem); color: var(--ink-light); margin-bottom: 1.4em; }
 .lede strong { color: var(--ink); }
+/* the reference site's hero sub-heading: brand blue at 800 with a dashed rule
+   under it, so the one sentence that says what this is does not read as body */
+.hero .lede strong {
+  color: var(--accent-ink); font-weight: 800;
+  text-decoration: underline dashed rgba(var(--brand-rgb), 0.45);
+  text-underline-offset: 5px; text-decoration-thickness: 1.5px;
+}
 .cta { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
 .btn {
   display: inline-flex; align-items: center; gap: 8px;
@@ -343,59 +365,80 @@ nav.top a.on { color: var(--accent-ink); background: var(--info-soft); }
 .btn:hover { border-color: var(--ink-faint); color: var(--ink); transform: translateY(-1px); }
 .btn.primary { background: var(--btn-bg); border-color: var(--btn-bg); color: var(--btn-fg); }
 .btn.primary:hover { background: var(--btn-bg-h); border-color: var(--btn-bg-h); color: var(--btn-fg); }
-.chips { display: flex; flex-wrap: wrap; gap: 7px; padding-top: 16px; border-top: 1px solid var(--border); }
-.chip {
-  font-size: 0.8rem; font-weight: 600; color: var(--ink-light);
-  border: 1px solid var(--border); border-radius: 999px; padding: 4px 11px;
-  background: var(--card-bg);
+/* Five facts about the project, as component 10C/10D: a dashed frame on a
+   visible wash, a different hue each, numeral set large. They were five
+   identical grey pills, which is the uniform row the design system bans. */
+/* 3 + 2 on a six-column track, the same solve `.g5` uses further down: five
+   equal cards in an auto-fit grid leave the fifth alone on its own row. */
+.chips {
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px; margin-top: 4px; padding-top: 20px;
 }
-.chip b { color: var(--ink); }
+.chip { grid-column: span 2; }
+.chip:nth-child(4), .chip:nth-child(5) { grid-column: span 3; }
+.chip {
+  display: block; padding: 10px 13px 12px;
+  border: 1.6px dashed var(--brand); border-radius: var(--radius);
+  background: var(--blue-wash); color: var(--ink-light);
+  font-size: 0.71rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+}
+.chip b {
+  display: block; margin-top: 2px; color: var(--ink); text-transform: none;
+  font-family: var(--display); font-size: 1.1rem; font-weight: 800;
+  letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+}
+.chip:nth-child(2) { border-color: var(--warning); background: var(--yellow-soft); }
+.chip:nth-child(3) { border-color: var(--mint); background: var(--mint-soft); }
+.chip:nth-child(4) { border-color: var(--lilac); background: var(--lilac-soft); }
+.chip:nth-child(5) { border-color: var(--peach); background: var(--peach-soft); }
 
 /* ---------- terminal ---------- */
 
+/* The demo used to be a black terminal. The design system bans the dark panel
+   in a functional area, and a page whose whole argument is "warm paper" cannot
+   open on a slab of #17160f. Same mac dots, same monospace, but drawn as
+   component 10C: a dashed frame on a visible blue wash. */
 .term {
-  background: var(--code-bg); border-radius: var(--radius);
-  box-shadow: var(--shadow-2); overflow: hidden; font-family: var(--mono);
-  font-size: 0.83rem; line-height: 1.62; color: var(--code-ink);
-  border: 1px solid var(--code-line);
+  background: var(--blue-wash); border-radius: var(--radius);
+  box-shadow: none; overflow: hidden; font-family: var(--mono);
+  font-size: 0.83rem; line-height: 1.62; color: var(--ink);
+  border: 1.6px dashed var(--brand);
 }
 .term-bar {
   display: flex; align-items: center; gap: 7px;
-  padding: 9px 13px; border-bottom: 1px solid var(--code-line); background: var(--code-bar);
+  padding: 9px 13px; border-bottom: 1.6px dashed var(--brand); background: transparent;
 }
-.term-bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--code-line); flex: none; }
-.term-bar i:first-child { background: #d9584a; }
-.term-bar i:nth-child(2) { background: #d9a441; }
-.term-bar i:nth-child(3) { background: #6aa84f; }
+.term-bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--border); flex: none; }
+.term-bar i:first-child { background: var(--pop); }
+.term-bar i:nth-child(2) { background: var(--highlight); }
+.term-bar i:nth-child(3) { background: var(--mint); }
 .term-bar span {
-  margin-left: 6px; font-size: 0.74rem; color: var(--code-dim);
+  margin-left: 6px; font-size: 0.74rem; color: var(--ink-light);
   font-family: var(--sans); font-weight: 600; letter-spacing: 0.02em;
 }
 .term-body { padding: 14px 16px 16px; }
-.term .pr { color: #6aa84f; }
-.term .q { color: #ffd166; }
-.term .dim { color: var(--code-dim); }
+.term .pr { color: var(--mint-ink); }
+.term .q { color: var(--warning); font-weight: 700; }
+.term .dim { color: var(--ink-light); }
 .term .hit { display: flex; gap: 9px; padding: 1px 0; }
-.term .hit .n { color: var(--code-dim); width: 1.2em; flex: none; text-align: right; }
+.term .hit .n { color: var(--ink-light); width: 1.2em; flex: none; text-align: right; }
 .term .hit .t { flex: 1; min-width: 0; }
-.term .hit.tgt .t { color: #8fd3ff; font-weight: 700; }
-.term .hit .sc { color: var(--code-dim); flex: none; }
+.term .hit.tgt .t { color: var(--accent-ink); font-weight: 700; }
+.term .hit .sc { color: var(--ink-light); flex: none; }
 .term .caret {
   display: inline-block; width: 7px; height: 1.05em; margin-left: 1px;
-  background: var(--code-ink); vertical-align: text-bottom; animation: blink 1.1s steps(1) infinite;
+  background: var(--ink); vertical-align: text-bottom; animation: blink 1.1s steps(1) infinite;
 }
 @keyframes blink { 50% { opacity: 0; } }
 .term-note {
-  padding: 9px 16px; border-top: 1px solid var(--code-line); background: var(--code-note);
-  font-family: var(--sans); font-size: 0.8rem; color: var(--code-dim);
+  padding: 9px 16px; border-top: 1.6px dashed var(--brand); background: transparent;
+  font-family: var(--sans); font-size: 0.8rem; color: var(--ink-light);
 }
-/* this note sits on the dark terminal footer, so an inline code chip must not
-   inherit the light page chip: that pairing measured 2.64:1 */
+/* the note now sits on the same wash as the rest of the frame, so the code
+   chip goes back to the page's own chip -- one fewer special case */
 .term-note code {
-  background: var(--code-bar); color: var(--code-ink);
-  /* the inherited --hairline border is a light value: too bright here in the
-     light theme and invisible in the dark one */
-  border-color: var(--code-dim);
+  background: var(--card-bg); color: var(--ink);
+  border-color: var(--border);
   font-size: 1em; padding: 1px 5px;
 }
 
@@ -462,6 +505,29 @@ section.band.alt { background: var(--cream-dark); border-top: 1px solid var(--ha
 }
 .card.off { background: var(--surface-2); }
 .card.off h3 { color: var(--ink-light); }
+
+/* Component 10D. A grid of six identical white boxes is the pattern the design
+   system names outright as the thing not to ship, and this site had ten of
+   them. The cards keep their copy and their order; what changes is that each
+   one arrives in its own hue behind a hand-drawn frame, so a reader can point
+   at "the mint one" instead of "the third one". Six hues, dealt by position. */
+/* column + `margin-top:auto` on the footer stat: the three cards hold copy of
+   different lengths, and the numerals used to land at three different heights */
+.grid > .card {
+  border-width: 1.6px; border-style: dashed; box-shadow: none;
+  display: flex; flex-direction: column;
+}
+.grid > .card > .stat { margin-top: auto; }
+.grid > .card:nth-child(6n + 1) { background: var(--blue-wash); border-color: var(--brand); }
+.grid > .card:nth-child(6n + 2) { background: var(--yellow-soft); border-color: var(--warning); }
+.grid > .card:nth-child(6n + 3) { background: var(--mint-soft); border-color: var(--mint); }
+.grid > .card:nth-child(6n + 4) { background: var(--lilac-soft); border-color: var(--lilac); }
+.grid > .card:nth-child(6n + 5) { background: var(--aqua-soft); border-color: var(--aqua); }
+.grid > .card:nth-child(6n + 6) { background: var(--peach-soft); border-color: var(--peach); }
+/* a disabled card keeps its grey: the hue would read as a state it is not in */
+.grid > .card.off { background: var(--surface-2); border-color: var(--border); }
+/* the faintest ink does not clear 4.5:1 on a wash -- measured 4.17 at worst */
+.grid > .card .tiny, .grid > .card .muted { color: var(--ink-light); }
 
 .stat {
   background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius);

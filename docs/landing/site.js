@@ -51,8 +51,17 @@
 
   /* ---------- language --------------------------------------------------- */
   /* Two files per page: `guide.html` and `guide.zh.html`. The switch is a real
-     link (works without JS); JS only remembers the choice and, on a first
-     visit, follows the browser's own language preference once. */
+     link (works without JS); JS only remembers the choice and, on a bare
+     directory URL, follows the browser's own language preference once.
+     The URL wins over the stored preference: a named file names its own
+     language, so a shared `guide.html` opens in English even for a reader who
+     once clicked 中文. Before this rule the stored preference bounced every
+     explicit link and one of the two languages was simply unreachable. */
+
+  function filename() {
+    var p = location.pathname;
+    return p.slice(p.lastIndexOf("/") + 1);
+  }
 
   function counterpart() {
     var p = location.pathname;
@@ -81,11 +90,21 @@
 
     if (!LS) return;
     var saved = LS.getItem("fm-lang");
+    /* Whatever the reader is actually reading becomes the remembered choice,
+       so the next bare visit lands in the same language. */
+    try {
+      LS.setItem("fm-lang", here);
+    } catch (e) {
+      return;
+    }
+    /* A named file is an explicit request. Never redirect away from one. */
+    if (filename() !== "") return;
+    /* Only the bare directory URL carries no language. Follow the browser
+       there, once, and only if the reader has never chosen. */
     if (saved) {
       if (saved !== here) location.replace(target);
       return;
     }
-    /* First visit, no stored choice: follow the browser once, then stop. */
     if (sessionStorage.getItem("fm-auto")) return;
     try {
       sessionStorage.setItem("fm-auto", "1");
