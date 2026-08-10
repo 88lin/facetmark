@@ -79,6 +79,37 @@ jobs:
       # at all, and a package.json here would quietly make that untrue.
       - run: node --test tests/web/*.test.mjs
 
+  browser:
+    # The three suites above read the interface as text. This one looks at it.
+    #
+    # `node --test` imports the pure modules and never builds a DOM;
+    # tests/test_web.py greps the stylesheet, so it can say a media query
+    # exists but not that the rule leaves the fifth tab on screen;
+    # tests/test_landing.py diffs the committed HTML against a fresh render.
+    # Four defects shipped straight through all three: a tab row that put the
+    # fifth view off the right edge of a 390px phone with the scrollbar
+    # hidden, an Escape handler that closed the dialog and then wiped the
+    # search behind it, two colours with no dark-mode step, and a language
+    # redirect that made one of the two languages unreachable. Each is one
+    # measurement away from being caught, and this job is the measurement.
+    #
+    # It needs no fixtures and no secrets: `facetmark demo` builds a synthetic
+    # forty-page library offline in about three seconds, and the landing pages
+    # are already committed. The whole job is a couple of minutes.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: install
+        run: uv pip install --system -e ".[dev]" playwright
+      - name: browser
+        run: python -m playwright install --with-deps chromium
+      - name: drive the shipped pages
+        run: python scripts/browser_check.py
+
   wheel:
     # .gitignore line 23 is `*.html`, and hatchling honours VCS ignore files
     # when it selects wheel contents. Without the negation added for this
