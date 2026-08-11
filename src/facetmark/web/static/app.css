@@ -1149,6 +1149,21 @@ main.wide {
   letter-spacing: -0.02em;
 }
 
+/* Spoken, not drawn. `display: none` would take it out of the accessibility
+   tree along with the layout, which defeats the purpose; the 1px clipped box
+   is the recipe that leaves it in. Used once, by the search view's h1. */
+.vh {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 .lede {
   margin-top: 6px;
   max-width: 62ch;
@@ -2317,6 +2332,38 @@ main.wide {
 
 .facts dd.t-ok {
   color: var(--success);
+}
+
+/* The same wash problem as `.tint`, one level further in. A fact list inside
+   a hued card sits on `--blue-wash`, and three of its inks do not survive the
+   move off paper: the faint ink for the term measures 4.17, the gold verdict
+   4.23, the green verdict 4.40 -- all three under AA, all three by a margin
+   small enough that they read as "slightly washed out" rather than as a
+   failure. The term takes the second ink; the two verdicts take the extended
+   palette's inks for the same two meanings, which were walked down to clear
+   4.5:1 on exactly these washes (measured 4.73 each) and keep the semantics:
+   green stays a health reading, burnt orange stays a caution. */
+.card.hue .facts dt,
+.card.hue .facts .zero dd {
+  color: var(--ink-light);
+}
+
+/* The two verdicts are the one place in this file where the theme has to be
+   named in a selector. There is no single token that clears 4.5:1 on this
+   wash in both themes: daylight needs the extended palette's walked-down inks
+   (4.73 each, against 4.23 and 4.40 for the palette's own gold and green),
+   and at night those same inks are the lightened night steps, which were
+   tuned against the 0.16-alpha soft washes and land at 4.38 and 4.39 on this
+   0.14-alpha one -- while the palette's own night gold and green clear 7.56
+   and 5.90 there. So each theme keeps the pair that measures better on it.
+   `tests/test_web.py::TestTheContrast` now measures a theme-scoped rule only
+   in the theme that can switch it on. */
+html:not([data-theme="dark"]) .card.hue .facts dd.t-warn {
+  color: var(--peach-ink);
+}
+
+html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
+  color: var(--mint-ink);
 }
 
 /* --------------------------------------------------------------- claims */

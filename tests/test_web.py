@@ -41,6 +41,7 @@ from tests.palette import (
     declarations,
     first_colour,
     gradient_stops,
+    luminance,
     painted,
     ratio,
     rules,
@@ -59,6 +60,13 @@ PALETTE_BLOCKS = (
     r':root:not\(\[data-palette\]\),\s*\n\[data-palette="A"\]',
 )
 DARK = r'html\[data-theme="dark"\]'
+# The two selector prefixes that pin a rule to one theme. `:not(...)` rather
+# than `[data-theme="light"]` for the light one, so the rule is also in force
+# in the instant before the boot script writes the attribute.
+THEME_SCOPE = {
+    "dark": 'html[data-theme="dark"]',
+    "light": 'html:not([data-theme="dark"])',
+}
 
 
 def _palette_tokens() -> dict[str, str]:
@@ -735,13 +743,93 @@ class TestTheAppScene:
     review.
     """
 
+    #: A light page's surfaces have to stay light. Shared with
+    #: `tests/test_landing.py`, deliberately: the two stylesheets should agree
+    #: on where a tint stops being a tint and starts being a panel. 0.05 is an
+    #: order of magnitude above `--ink`.
+    DAYLIGHT_FLOOR = 0.05
+
+    #: The modal scrim, and the only thing on the page allowed to be darker
+    #: than the page. It is `rgba(0, 0, 0, .6)` over the whole viewport and
+    #: dimming what is behind it is the entire job; the same literal is
+    #: already exempted by name in
+    #: `test_the_stylesheet_names_no_colour_the_palette_did_not`.
+    SCRIM = ".overlay"
+
     def test_no_dark_panel_in_a_functional_area(self):
         """`深色只用于夜间模式场景`. A dark slab in the middle of a light page
         reads as a terminal, and the one place it crept in was a shell command
-        inside a warning notice."""
+        inside a warning notice.
+
+        Two halves, because the first one on its own was decorative. Naming
+        the `--dark-panel` token catches the copy-paste that started this, but
+        that token is declared in `palettes.css` and consumed nowhere, so the
+        check has never had anything to measure and could not fire. The
+        landing stylesheet proved what that blindness costs: it painted every
+        command block `#17160f`, a hand-written hex no token scan would ever
+        see, and the owner's "黑不溜秋的黑色的统统全部换掉" was aimed straight
+        at it. So the second half resolves every background this stylesheet
+        paints -- token, literal, or wash -- composites it over the page it
+        lands on, and reads the luminance back.
+        """
         light, _ = TestTheBrand._split()
         offenders = [sel for sel, body in rules(light) if "--dark-panel" in body]
         assert not offenders, f"dark panel painted in: {offenders}"
+
+        css = (STATIC_DIR / "app.css").read_text(encoding="utf-8")
+        palette = _resolved("light")
+        page = palette.rgb("var(--cream)", (255, 255, 255))
+        failures = []
+        for selector, shade, measured in self._backgrounds(css, "light", palette, page):
+            if selector == self.SCRIM or measured >= self.DAYLIGHT_FLOOR:
+                continue
+            failures.append(f"{selector} paints {shade} (luminance {measured:.4f})")
+        assert not failures, (
+            f"slabs below the {self.DAYLIGHT_FLOOR} daylight floor: " + "; ".join(failures)
+        )
+
+    def test_the_night_page_has_no_holes_punched_in_it(self):
+        """The same rule read from the other side.
+
+        Dark mode does not ban darkness, so the floor above says nothing here.
+        What it can still get wrong is depth: a surface painted *below* the
+        page reads as a hole cut through the screen rather than a card resting
+        on it, and it is the same mistake -- a slab that ignores the scene --
+        wearing the other theme. The night stack is built upward from
+        `--cream`, so the page itself is the floor.
+        """
+        css = (STATIC_DIR / "app.css").read_text(encoding="utf-8")
+        palette = _resolved("dark")
+        page = palette.rgb("var(--cream)", (0, 0, 0))
+        floor = luminance(page)
+        failures = []
+        for selector, shade, measured in self._backgrounds(css, "dark", palette, page):
+            if selector == self.SCRIM or measured >= floor - 1e-6:
+                continue
+            failures.append(f"{selector} paints {shade} (luminance {measured:.4f})")
+        assert not failures, (
+            f"surfaces sunk below the night page ({floor:.4f}): " + "; ".join(failures)
+        )
+
+    @staticmethod
+    def _backgrounds(css, theme, palette, page):
+        """Every background this theme can actually paint, already composited.
+
+        A rule whose selector names the other theme cannot fire here, and
+        grading it anyway asks a question the interface never poses -- the
+        same filter `TestTheContrast` applies for the same reason.
+        """
+        other = 'html[data-theme="dark"]' if theme == "light" else 'html:not([data-theme="dark"])'
+        for selector, body in rules(css):
+            if other in selector:
+                continue
+            value = value_of(body, "background-color") or value_of(body, "background")
+            shade = first_colour(value) if value else None
+            if not shade:
+                continue
+            measured = luminance(palette.rgb(shade, page))
+            for one in (s.strip() for s in selector.split(",")):
+                yield one, shade, measured
 
     #: Selectors allowed past the body ceiling, and why each one is on the
     #: list. Everything absent from it is body-level text and still capped at
@@ -887,6 +975,15 @@ class TestTheContrast:
             own = first_colour(value_of(body, "background-color") or value_of(body, "background") or "")
             for one in (s.strip() for s in selector.split(",")):
                 if one in self.EXEMPT:
+                    continue
+                # A rule that names a theme in its selector can only fire in
+                # that theme, so grading it in the other one asks a question
+                # the page never poses -- and answers it with tokens that rule
+                # will never see. Two rules use this; both are commented at
+                # the site of the exception.
+                if one.startswith(THEME_SCOPE["dark"]) and theme != "dark":
+                    continue
+                if one.startswith(THEME_SCOPE["light"]) and theme != "light":
                     continue
                 checked += 1
                 stack = [layer for layer in (own, backdrop_of(one, surfaces)) if layer]

@@ -61,11 +61,15 @@ def esc(text: str) -> str:
 def r_cb(label: str, code: str) -> str:
     """A code block with a copy button.  ``code`` is escaped, never trusted."""
     return (
-        '<div class="cb">'
-        f'<div class="cb-bar"><span>{esc(label)}</span>'
+        '<div class="win lite cb">'
+        '<div class="win-bar"><i></i><i></i><i></i>'
+        f'<span class="win-name">{esc(label)}</span>'
         f'<button type="button" data-copy data-label="{esc(COPY["label"])}" '
         f'data-done="{esc(COPY["done"])}">{esc(COPY["label"])}</button></div>'
-        f"<pre><code>{esc(code.strip(chr(10)))}</code></pre>"
+        # tabindex: the block scrolls sideways on a narrow screen, and a
+        # scrollable region a keyboard cannot reach is an axe violation
+        # (`scrollable-region-focusable`) on every page that has one.
+        f'<pre tabindex="0"><code>{esc(code.strip(chr(10)))}</code></pre>'
         "</div>"
     )
 
@@ -629,9 +633,10 @@ def page_index(t: dict) -> str:
         o.append(f'<span class="chip">{esc(k)} <b>{esc(v)}</b></span>')
     o.append("</div></div><div>")
     o.append(
-        '<div class="term"><div class="term-bar">'
+        '<div class="win dark term"><div class="win-bar">'
         "<i></i><i></i><i></i>"
-        f'<span>{esc(i["term_title"])}</span></div>'
+        f'<span class="win-name">{esc(i["term_title"])}</span>'
+        '<span class="pad"></span></div>'
         f'<div class="term-body" id="term-body"'
         f' data-t-hits="{html.escape(lab["hits"], quote=True)}"'
         f' data-t-found="{html.escape(lab["found"], quote=True)}"'
@@ -640,7 +645,7 @@ def page_index(t: dict) -> str:
         f' data-t-vague="{html.escape(lab["vague"], quote=True)}"'
         f' data-t-episodic="{html.escape(lab["episodic"], quote=True)}">'
         f"{term_static(t)}</div>"
-        f'<div class="term-note">{i["term_note"]}</div></div>'
+        f'<div class="win-note">{i["term_note"]}</div></div>'
     )
     o.append("</div></div></section>")
 

@@ -2468,7 +2468,7 @@ ZH["measured"] = {
                  "\u518d\u8bfb\u56de\u6765\uff0c\u5b83\u8fd8\u662f\u540c\u4e00\u4e2a\u5e93"
                  "\u5417\uff1f\u4e09\u6761\u6807\u51c6\u5148\u5199\u597d\u3002"),
                 ("table",
-                 ["\u6807\u51c6", "\u7ebf", "\u5b9e\u6d4b", ""],
+                 ["\u6807\u51c6", "\u7ebf", "\u5b9e\u6d4b", "\u5224\u5b9a"],
                  [["\u6307\u6807\u5fe0\u5b9e\u5ea6",
                    "|\u0394Recall@5| \u2264 3pp \u4e14 CI95 \u843d\u5728 \u00b15pp "
                    "\u5185",

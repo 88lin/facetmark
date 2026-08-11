@@ -313,6 +313,160 @@ OVERFLOW = """
 }
 """
 
+# Two questions the owner asked in one sentence -- "文字布局压根就不对，又是
+# 偏上，挤压在一起，不对齐" -- and neither can be answered from the stylesheet.
+# A left edge is the sum of every margin, padding and border between the text
+# and the band, so a rule that reads correct in isolation still lands a
+# paragraph two pixels off the heading above it.  And a heading with more air
+# below it than above it attaches itself to the *previous* block: the reader
+# sees a label floating over the wrong paragraph, which is the "偏上" half.
+# Both are geometry, so both are measured here.
+#
+# Only band-level prose is graded.  Text inside anything that paints, pads,
+# lays out on a grid, or is a table or list item has its own left edge by
+# design; the check follows transparent wrappers through and stops at those.
+ALIGN = r"""
+(root) => {
+  const px = (v) => parseFloat(v) || 0;
+  const opaque = (c) => c && c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent';
+  const insets = (el) => {
+    const s = getComputedStyle(el);
+    return px(s.paddingLeft) > 0 || px(s.borderLeftWidth) > 0 ||
+           opaque(s.backgroundColor) || s.backgroundImage !== 'none' ||
+           s.display === 'grid' || s.display === 'flex' ||
+           s.position === 'absolute' || s.position === 'fixed' ||
+           ['TABLE', 'FIGURE', 'DETAILS', 'LI', 'NAV'].includes(el.tagName);
+  };
+  const out = [];
+  for (const wrap of document.querySelectorAll(root)) {
+    if (!wrap.getBoundingClientRect().height) continue;
+    const rows = [];
+    for (const el of wrap.querySelectorAll('h1,h2,h3,h4,p')) {
+      let inset = false;
+      for (let n = el.parentElement; n && n !== wrap; n = n.parentElement) {
+        if (insets(n)) { inset = true; break; }
+      }
+      if (inset) continue;
+      const s = getComputedStyle(el);
+      if (s.display === 'none' || s.visibility === 'hidden') continue;
+      if (s.textAlign === 'center' || s.textAlign === 'right') continue;
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      rows.push({ tag: el.tagName.toLowerCase(),
+                  cls: (el.className || '').toString().slice(0, 24),
+                  x: +(r.x + px(s.paddingLeft)).toFixed(1),
+                  top: +r.top.toFixed(1), bottom: +r.bottom.toFixed(1) });
+    }
+    if (rows.length < 2) continue;
+    rows.sort((a, b) => a.top - b.top);
+    const xs = rows.map((r) => r.x);
+    const drift = [];
+    const home = Math.min(...xs);
+    for (const r of rows) if (r.x - home > 1) drift.push(`${r.tag}.${r.cls} +${(r.x - home).toFixed(1)}px`);
+    // A kicker is not the previous block, it is the top half of the heading.
+    // `.seclabel` sits 8px over its h2 and the lede sits 12px under it, and
+    // reading those two numbers naively says the heading is orphaned when the
+    // three lines are in fact one unit with air on both sides of it.
+    const kicker = /seclabel|kicker|eyebrow/;
+    const orphans = [];
+    for (let i = 1; i < rows.length - 1; i++) {
+      if (!rows[i].tag.startsWith('h')) continue;
+      let j = i - 1;
+      while (j > 0 && kicker.test(rows[j].cls)) j--;
+      if (kicker.test(rows[j].cls)) continue;   // nothing above the unit to measure
+      const above = rows[i].top - rows[j].bottom;
+      const below = rows[i + 1].top - rows[i].bottom;
+      if (above <= below) orphans.push(`${rows[i].tag}.${rows[i].cls} above=${above.toFixed(0)} below=${below.toFixed(0)}`);
+    }
+    out.push({ where: wrap.closest('section, footer, header')?.id || wrap.className,
+               drift, orphans });
+  }
+  return out;
+}
+"""
+
+# The colour-contrast rule, reimplemented.  axe-core answers this too and
+# answered it for this rebuild -- 0 violations across 56 page-theme-language
+# combinations -- but it is a 580KB bundle that would have to be vendored or
+# fetched, and CI fetches nothing.  So the rule comes in and the bundle stays
+# out.  `tests/test_web.py` and `tests/test_landing.py` already grade the same
+# colours from the stylesheet; what they cannot do is composite.  A token pair
+# that measures 7:1 in isolation is 1.07:1 once four translucent ancestors and
+# a cascade have had their turn, and that is exactly how the inverted band
+# shipped with invisible cards.
+#
+# Deliberately conservative.  Text over a raster background is scored
+# "incomplete" by axe rather than failed, because the pixel behind a glyph is
+# unknown; the same cases are skipped here rather than guessed at.
+CONTRAST = r"""
+() => {
+  const parse = (s) => {
+    const m = String(s).match(/[\d.]+/g) || [];
+    return { r: +m[0] || 0, g: +m[1] || 0, b: +m[2] || 0, a: m.length > 3 ? +m[3] : 1 };
+  };
+  const over = (f, b) => ({ r: f.r * f.a + b.r * (1 - f.a), g: f.g * f.a + b.g * (1 - f.a),
+                            b: f.b * f.a + b.b * (1 - f.a), a: 1 });
+  const lum = (c) => {
+    const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+    return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+  };
+  const ratio = (x, y) => { const [a, b] = [lum(x), lum(y)].sort((p, q) => q - p);
+                            return (a + 0.05) / (b + 0.05); };
+  const root = parse(getComputedStyle(document.body).backgroundColor);
+  const page = root.a ? { r: root.r, g: root.g, b: root.b, a: 1 }
+                      : { r: 255, g: 255, b: 255, a: 1 };
+  const bad = [];
+  let graded = 0;
+  for (const el of document.querySelectorAll('body *')) {
+    if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
+    if (el.closest('[aria-hidden="true"]')) continue;
+    if (['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(el.tagName)) continue;
+    const s = getComputedStyle(el);
+    if (s.display === 'none' || s.visibility === 'hidden' || +s.opacity === 0) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) continue;
+    let raster = false;
+    let bg = { ...page };
+    const chain = [];
+    for (let n = el; n && n !== document.documentElement; n = n.parentElement) chain.unshift(n);
+    for (const n of chain) {
+      const cs = getComputedStyle(n);
+      if (cs.backgroundImage !== 'none' && !/gradient/.test(cs.backgroundImage)) raster = true;
+      const c = parse(cs.backgroundColor);
+      if (c.a > 0) bg = over(c, bg);
+      if (+cs.opacity < 1 && +cs.opacity > 0) bg = over({ ...bg, a: +cs.opacity }, page);
+    }
+    if (raster) continue;
+    const fg = over(parse(s.color), bg);
+    const size = parseFloat(s.fontSize);
+    const need = (size >= 24 || (size >= 18.66 && (+s.fontWeight || 400) >= 700)) ? 3 : 4.5;
+    const got = ratio(fg, bg);
+    graded++;
+    if (got + 0.005 < need) {
+      bad.push({ sel: el.tagName.toLowerCase() + (el.className
+                   ? '.' + String(el.className).trim().split(/\s+/).join('.') : ''),
+                 got: +got.toFixed(2), need,
+                 fg: s.color, bg: `rgb(${bg.r | 0}, ${bg.g | 0}, ${bg.b | 0})`,
+                 text: el.textContent.trim().slice(0, 32) });
+    }
+  }
+  const seen = new Set();
+  return { graded, bad: bad.filter((x) => !seen.has(x.sel) && seen.add(x.sel)) };
+}
+"""
+
+# A page mid-transition has the colours of neither end.  The landing pages fade
+# sections in on scroll and cross-fade on a theme switch, and reading a colour
+# while either is running produced 807 phantom findings the first time this ran.
+FROZEN = """
+() => {
+  const s = document.createElement('style');
+  s.textContent = '*,*::before,*::after{transition:none!important;animation:none!important}'
+    + '.reveal{opacity:1!important;transform:none!important}';
+  document.documentElement.appendChild(s);
+}
+"""
+
 TABS = """
 () => {
   const bar = document.getElementById('tabs');
@@ -337,6 +491,34 @@ async def settle(page, ms: int = 350) -> None:
     with suppress(Exception):
         await page.wait_for_load_state("networkidle", timeout=8000)
     await page.wait_for_timeout(ms)
+
+
+#: How many text nodes a page has to offer the contrast sweep before the sweep
+#: itself is suspect.  Zero findings is the goal and also what a broken
+#: selector returns, so the two are told apart by counting what was graded.
+#: 12 rather than something comfortable because the ask view before a question
+#: is asked is a heading, a hint and a text box, and that is the floor of what
+#: this interface can legitimately show.
+GRADED_FLOOR = 12
+
+
+async def check_layout(page, rep: Report, where: str, container: str) -> None:
+    for band in await page.evaluate(ALIGN, container):
+        rep.ok(where, not band["drift"],
+               f"prose in {band['where']} does not share a left edge: {band['drift'][:4]}")
+        rep.ok(where, not band["orphans"],
+               f"a heading in {band['where']} sits closer to what it follows "
+               f"than to what it introduces: {band['orphans'][:3]}")
+
+
+async def check_contrast(page, rep: Report, where: str) -> None:
+    m = await page.evaluate(CONTRAST)
+    rep.ok(where, m["graded"] >= GRADED_FLOOR,
+           f"the contrast sweep only found {m['graded']} text nodes to grade")
+    rep.ok(where, not m["bad"],
+           "text below its WCAG AA threshold: " + "; ".join(
+               f"{x['sel'][:38]} {x['got']}/{x['need']} ({x['fg']} on {x['bg']})"
+               for x in m["bad"][:4]))
 
 
 async def sweep_app(browser, app: App, rep: Report) -> None:
@@ -367,6 +549,17 @@ async def sweep_app(browser, app: App, rep: Report) -> None:
                                f"the tab bar wrapped onto {t['rows']} rows: {t['tabs']}")
                         rep.ok(where, len(t["tabs"]) == 5,
                                f"expected five tabs, found {len(t['tabs'])}")
+                    await page.evaluate(FROZEN)
+                    # `check_layout` is not run here, and the reason is the
+                    # reason the design system splits `scene-site` from
+                    # `scene-app`.  It grades a column of stacked prose, which
+                    # is what a documentation band is.  A functional view is a
+                    # grid: the library's second column starts 585px in and its
+                    # headings sit *beside* their neighbours rather than under
+                    # them, so "share a left edge" and "a heading belongs to
+                    # what follows it" are answering a question this scene does
+                    # not ask.  Contrast is scene-independent and does run.
+                    await check_contrast(page, rep, where)
                     if lang == "en":
                         text = await page.inner_text("body")
                         rep.ok(where, "itting" not in text,
@@ -404,6 +597,9 @@ async def sweep_site(browser, land: Landing, rep: Report) -> None:
                                 if s["h"] > ceiling]
                         rep.ok(where, not tall,
                                f"a picture is taller than {TALLEST} screens: {tall}")
+                    await page.evaluate(FROZEN)
+                    await check_layout(page, rep, where, ".wrap")
+                    await check_contrast(page, rep, where)
                 rep.ok(f"site {lang}/{theme} @{width}", not logged,
                        f"console: {list(dict.fromkeys(logged))[:6]}")
                 fonts = [u for u in requested if "fonts.googleapis" in u or "gstatic" in u]

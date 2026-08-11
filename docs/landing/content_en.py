@@ -2362,7 +2362,7 @@ EN["measured"] = {
                  "bridge and read back, is it the same library? Three "
                  "criteria were registered first."),
                 ("table",
-                 ["Criterion", "Bar", "Measured", ""],
+                 ["Criterion", "Bar", "Measured", "Verdict"],
                  [["Metric fidelity", "|\u0394Recall@5| \u2264 3pp with CI95 "
                    "inside \u00b15pp",
                    "<b>\u22120.81pp</b>, CI95 [\u22122.44, +0.81]",
