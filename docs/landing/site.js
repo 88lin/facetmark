@@ -409,9 +409,29 @@
       });
     }
 
+    /* The first pass shows rather than types, and that is the whole point of
+       it. `fit()` reserves the tallest frame's height -- 255px to 492px -- so
+       a terminal that begins empty begins as half a screen of near-black with
+       two lines at the top of it, in the hero, above the fold. It stayed that
+       way for about 1.1s: 900ms to type the query, 240ms of pause, then five
+       rows at 115ms each. Nobody waits through that to find out the panel has
+       content; they read it as a broken picture, which is what it looked like
+       in every screenshot taken of this page. So the first thing on screen is
+       the finished frame -- byte-for-byte what the no-JS markup already shows
+       -- and the replay starts one cycle in, on the second query, where it is
+       an enhancement instead of a regression. */
+    var first = true;
+
     async function loop() {
       while (running) {
         var d = DEMO[qi % DEMO.length];
+        if (first) {
+          first = false;
+          frame(d, d.q, d.hits.length, true);
+          await wait(3200);
+          qi++;
+          continue;
+        }
         await type(d);
         await wait(240);
         for (var r = 1; r <= d.hits.length; r++) {
@@ -426,7 +446,7 @@
     }
 
     /* Only animate while the terminal is actually on screen. */
-    frame(DEMO[0], "", -1, false);
+    frame(DEMO[0], DEMO[0].q, DEMO[0].hits.length, true);
     if ("IntersectionObserver" in window) {
       var started = false;
       new IntersectionObserver(function (en) {

@@ -86,6 +86,39 @@ def _resolved(theme: str) -> Palette:
     return Palette(tokens)
 
 
+def _app_css() -> str:
+    return (STATIC_DIR / "app.css").read_text(encoding="utf-8")
+
+
+def _ladder(css: str, prefix: str) -> dict[str, str]:
+    """Every `:root` custom property whose name starts with ``prefix``."""
+    return {k: v for k, v in declarations(css, r":root").items() if k.startswith(prefix)}
+
+
+def _used(css: str, prop: str) -> list[tuple[str, str]]:
+    """(selector, value) for every declaration of ``prop``.
+
+    Matching is on the whole property name, so `font-size` does not also
+    collect `font-size-adjust` and `gap` does not collect `column-gap` twice.
+    """
+    out = []
+    for selector, body in rules(css):
+        for name, value in re.findall(r"([a-z-][\w-]*)\s*:\s*([^;{}]+)", body):
+            if name == prop:
+                out.append((selector, " ".join(value.split())))
+    return out
+
+
+def _used_family(css: str, *stems: str) -> list[tuple[str, str, str]]:
+    """(selector, property, value) for a property and all of its longhands."""
+    out = []
+    for selector, body in rules(css):
+        for name, value in re.findall(r"([a-z-][\w-]*)\s*:\s*([^;{}]+)", body):
+            if any(name == s or name.startswith(f"{s}-") for s in stems):
+                out.append((selector, name, " ".join(value.split())))
+    return out
+
+
 def _alpha_of(pal: Palette, value: str) -> float:
     """How opaque a colour expression is, measured rather than parsed.
 
@@ -733,6 +766,132 @@ class TestTheBrand:
         return css[:cut], css[cut:]
 
 
+class TestTheAppScale:
+    """One ladder for size, one for leading, one for tracking, one for space
+    -- and the same four the landing site climbs.
+
+    This half of the product was left behind. Stage 6 collapsed
+    `docs/landing/style.css` from 33 absolute sizes to nine rungs and from 58
+    ad-hoc paddings to an eight-step grid; `app.css` kept shipping 30 distinct
+    font sizes -- the run 0.72 / 0.74 / 0.75 / 0.76 / 0.78 / 0.80 / 0.82 /
+    0.84 / 0.85 / 0.86rem is nine neighbours inside three pixels -- and 54
+    distinct spacing literals. A browser measuring the library view found its
+    section gaps at 30 / 22 / 18 / 16 / 14 / 12 / 10 / 9 / 8 / 6px. That is
+    what "挤压在一起，不对齐" looks like from the outside, and no amount of
+    care in any one rule fixes it; only a grid does.
+
+    The rungs are asserted equal to the landing site's rather than merely
+    present. Two scales that agree today and are pinned nowhere are two scales
+    that disagree in six months, which is exactly the state this class was
+    written to end.
+    """
+
+    #: Below this a value is a hairline -- the 1px that keeps inline code off
+    #: its own background edge, the 2-3px nudge that centres a glyph in a
+    #: pill. Snapping those to 4px is visible and wrong, and nothing is
+    #: aligned to within 3px by eye anyway.
+    HAIRLINE = 3
+
+    def test_the_two_surfaces_agree_on_the_scale(self):
+        """The app and the site are one product. A reader moves between them
+        in one click, and a 13px caption on one side next to a 13.6px caption
+        on the other is the drift this pins shut."""
+        app, site = _app_css(), (REPO / "docs" / "landing" / "style.css").read_text("utf-8")
+        for prefix in ("--fs-", "--lh-", "--ls-", "--sp-"):
+            mine, theirs = _ladder(app, prefix), _ladder(site, prefix)
+            assert mine == theirs, (
+                f"the {prefix} ladders have drifted: app {mine} vs site {theirs}"
+            )
+
+    def test_no_rule_names_a_size_the_ladder_does_not(self):
+        """A rung is only a rung while everything stands on it."""
+        css = _app_css()
+        rungs = _ladder(css, "--fs-")
+        assert sorted(rungs) == [f"--fs-{n}" for n in range(9)], sorted(rungs)
+        for selector, value in _used(css, "font-size"):
+            assert re.fullmatch(r"var\(--fs-[0-8]\)", value), (
+                f"{selector} sets font-size: {value}, off the ladder"
+            )
+
+    def test_the_leading_and_tracking_come_off_the_ladder_too(self):
+        """`line-height: 1` is exempt and is not a sixth rung: it is what a
+        box holding exactly one line -- a 32px numeral, a round close button
+        -- needs to centre its own glyph. The file had ten leadings and four
+        unrelated trackings before this."""
+        css = _app_css()
+        assert sorted(_ladder(css, "--lh-")) == [
+            "--lh-body", "--lh-cjk", "--lh-code", "--lh-snug", "--lh-tight",
+        ]
+        assert sorted(_ladder(css, "--ls-")) == [
+            "--ls-caps", "--ls-caps-wide", "--ls-display", "--ls-none",
+        ]
+        for selector, value in _used(css, "line-height"):
+            assert re.fullmatch(r"var\(--lh-[a-z]+\)|1", value), (
+                f"{selector} sets line-height: {value}, off the ladder"
+            )
+        for selector, value in _used(css, "letter-spacing"):
+            assert re.fullmatch(r"var\(--ls-[a-z-]+\)", value), (
+                f"{selector} sets letter-spacing: {value}, off the ladder"
+            )
+
+    def test_every_gap_and_pad_comes_from_the_grid(self):
+        css = _app_css()
+        grid = _ladder(css, "--sp-")
+        assert sorted(grid) == [f"--sp-{n}" for n in range(1, 9)], sorted(grid)
+        offenders = []
+        for selector, prop, value in _used_family(
+            css, "padding", "margin", "gap", "row-gap", "column-gap"
+        ):
+            for raw in re.findall(r"-?[\d.]+px", value):
+                if abs(float(raw[:-2])) > self.HAIRLINE:
+                    offenders.append(f"{selector} {{ {prop}: {value} }}")
+                    break
+        assert not offenders, "off-grid spacing: " + "; ".join(offenders)
+
+    def test_the_ladders_are_actually_used(self):
+        """Every assertion above is also satisfied by a stylesheet that sets
+        no sizes and no spacing at all. This is the one that fails if the
+        tokens are declared and then ignored -- the mistake `--dark-panel`
+        already made in this file, where a token nothing consumed left a test
+        with nothing to measure for the whole life of the page.
+        """
+        css = _app_css()
+        sizes = [v for _, v in _used(css, "font-size") if "var(--fs-" in v]
+        space = [
+            v
+            for _, _, v in _used_family(css, "padding", "margin", "gap",
+                                        "row-gap", "column-gap")
+            if "var(--sp-" in v
+        ]
+        assert len(sizes) > 60, f"only {len(sizes)} rules read the size ladder"
+        assert len(space) > 120, f"only {len(space)} rules read the spacing grid"
+
+    def test_the_chinese_interface_gets_its_own_leading(self):
+        """Han glyphs fill their em box edge to edge, so 1.65 reads as
+        comfortable in Latin and as packed in Chinese, and the -0.022em that
+        tightens a Latin heading has no sidebearing to take it out of and
+        collides the characters instead.
+
+        `app.js` writes `lang="zh-CN"` on the root when the language pill is
+        used, and until now nothing in this stylesheet read it: the Chinese
+        app was the English app with Chinese words in it. Asserted by effect
+        rather than by selector text, so a different fix with the same result
+        still passes.
+        """
+        css = strip_comments(_app_css())
+        zh = [(s, b) for s, b in rules(css) if ":lang(zh)" in s or 'lang="zh"' in s]
+        assert zh, "nothing in the stylesheet is scoped to Chinese"
+        assert any(
+            re.search(r"\bbody\b", s) and "var(--lh-cjk)" in b for s, b in zh
+        ), f"the Chinese interface still reads at the Latin measure; zh rules: {[s for s, _ in zh]}"
+        zeroed = " ".join(s for s, b in zh if "letter-spacing: var(--ls-none)" in b)
+        assert zeroed, "no zh rule zeroes tracking"
+        for element in ("h1", "h2", "h3", ".page-title"):
+            assert re.search(rf"{re.escape(element)}\b", zeroed), (
+                f"the zh tracking reset does not reach {element}: {zeroed}"
+            )
+
+
 class TestTheAppScene:
     """The four things the design system forbids on a functional page.
 
@@ -811,6 +970,42 @@ class TestTheAppScene:
             f"surfaces sunk below the night page ({floor:.4f}): " + "; ".join(failures)
         )
 
+    #: The night stack, page first, each surface resting on the one before it:
+    #: the page, the sunken well a KPI tile sits in, the card, the preview
+    #: panel inside a card.
+    NIGHT_STACK = ("--cream", "--cream-dark", "--card-bg", "--preview-bg")
+
+    #: How far apart two neighbouring night surfaces have to be before the
+    #: step between them is a step a reader can see. 1.12 with the stack as
+    #: shipped measuring 1.17 / 1.15 / 1.16 -- and the stack this replaced
+    #: measuring 1.08 / 1.01 / 1.04, a card one percent brighter than the well
+    #: it sat in, which is why the night app photographed as one flat slab.
+    NIGHT_STEP = 1.12
+
+    def test_the_night_surfaces_are_a_ladder_and_not_one_slab(self):
+        """The rule above says no surface may sink below the page. That is
+        satisfied perfectly by painting all four the same colour, which is
+        very nearly what this file shipped: `#14161c`, `#1b1e26`, `#1c1f28`,
+        `#23252c` -- a card 0.8% brighter than the well behind it.
+
+        Depth in a dark interface is the only thing separating a card from the
+        page, because the shadows that do that job in daylight are invisible
+        on a near-black background. So the stack is asserted as a ladder:
+        strictly increasing, and every rung far enough from its neighbour to
+        be seen rather than merely to differ.
+        """
+        palette = _resolved("dark")
+        rungs = [
+            (token, luminance(palette.rgb(f"var({token})", (0, 0, 0))))
+            for token in self.NIGHT_STACK
+        ]
+        for (lower, dim), (upper, lit) in zip(rungs, rungs[1:], strict=False):
+            step = (lit + 0.05) / (dim + 0.05)
+            assert step >= self.NIGHT_STEP, (
+                f"{upper} ({lit:.4f}) is only {step:.3f}x above {lower} ({dim:.4f}); "
+                f"the night stack needs {self.NIGHT_STEP}x to read as a step"
+            )
+
     @staticmethod
     def _backgrounds(css, theme, palette, page):
         """Every background this theme can actually paint, already composited.
@@ -856,20 +1051,36 @@ class TestTheAppScene:
         work, and five display selectors are named and given a ceiling of
         their own. The list is the point: an unnamed selector is still capped,
         so the exception cannot spread by being convenient.
+
+        The sizes are tokens now, and a `rem` scan of `var(--fs-4)` finds no
+        digits at all -- which would have left this test passing every rule in
+        the file without measuring one of them, the same silent retirement
+        `test_no_dark_panel_in_a_functional_area` suffered. So the rung is
+        resolved through the ladder first, and the count of what was graded is
+        asserted alongside the caps.
         """
         light, _ = TestTheBrand._split()
+        ladder = _ladder(_app_css(), "--fs-")
         display = {re.compile(p) for p in self.DISPLAY}
+        graded = 0
         for selector, body in rules(light):
             size = value_of(body, "font-size")
             if not size:
                 continue
+            rung = re.fullmatch(r"var\((--fs-\d)\)", size)
+            assert rung and rung.group(1) in ladder, f"{selector} sets {size}, off the ladder"
+            resolved = ladder[rung.group(1)]
             cap = (
                 self.CEILING_DISPLAY
                 if any(p.search(selector) for p in display)
                 else self.CEILING_BODY
             )
-            for rem in re.findall(r"([\d.]+)rem", size):
-                assert float(rem) <= cap, f"{selector} sets {size}, over the {cap}rem cap"
+            for rem in re.findall(r"([\d.]+)rem", resolved):
+                assert float(rem) <= cap, (
+                    f"{selector} sets {size} = {resolved}, over the {cap}rem cap"
+                )
+            graded += 1
+        assert graded >= 60, f"only {graded} sized rules were graded; the cap has gone quiet"
 
     def test_the_display_exceptions_are_all_still_used(self):
         """An exception that no longer matches anything is an exception

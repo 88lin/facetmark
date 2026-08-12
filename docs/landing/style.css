@@ -472,7 +472,16 @@ header.site {
 }
 .site-inner {
   max-width: var(--maxw); margin: 0 auto;
-  padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-5);
+  /* The horizontal padding is geometry, not taste. A 999px radius on a 48px
+     island puts a 24px arc in each corner, and the arc is at its widest where
+     a full-height child's own corner is: 5px down from the top edge it has
+     already cut 24 - sqrt(24² - 19²) = 9.3px inward. The right padding used
+     to be var(--sp-2) -- 8px -- so the island's border ran straight through
+     the theme toggle, which is what a pill inside a pill costs if you pad it
+     like a rectangle. var(--sp-4) clears the arc with 6.7px to spare, and
+     matching left to right is the other half of the fix: 24 against 8 read as
+     a bar whose contents had drifted right. */
+  padding: var(--sp-2) var(--sp-4);
   display: flex; align-items: center; gap: var(--sp-4);
   border-radius: 999px;
   /* Literal rgba rather than color-mix: the design system bans color-mix,

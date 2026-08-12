@@ -325,10 +325,25 @@ OVERFLOW = """
 # Only band-level prose is graded.  Text inside anything that paints, pads,
 # lays out on a grid, or is a table or list item has its own left edge by
 # design; the check follows transparent wrappers through and stops at those.
+#
+# The two halves are measured differently on purpose.  A left edge is a
+# question about a *column*, so it is answered by collecting every ungraded
+# prose row in a container and comparing them to the leftmost.  Ownership is a
+# question about a heading's two *neighbours*, so it is answered by walking
+# real element siblings -- the first cut of this probe compared a heading to
+# the next graded paragraph instead, which reads straight past a table or a
+# code window and then reports a heading as orphaned because the prose after
+# the table is 400px down.  Both halves report how many comparisons they made:
+# a probe that grades nothing passes just as quietly as a probe that works,
+# and this repository already shipped one of those.
 ALIGN = r"""
 (root) => {
   const px = (v) => parseFloat(v) || 0;
   const opaque = (c) => c && c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent';
+  const stacked = (el) => {
+    const d = getComputedStyle(el).display;
+    return d !== 'grid' && d !== 'flex' && d !== 'inline-grid' && d !== 'inline-flex';
+  };
   const insets = (el) => {
     const s = getComputedStyle(el);
     return px(s.paddingLeft) > 0 || px(s.borderLeftWidth) > 0 ||
@@ -337,6 +352,19 @@ ALIGN = r"""
            s.position === 'absolute' || s.position === 'fixed' ||
            ['TABLE', 'FIGURE', 'DETAILS', 'LI', 'NAV'].includes(el.tagName);
   };
+  const shown = (el) => {
+    const s = getComputedStyle(el);
+    if (s.display === 'none' || s.visibility === 'hidden') return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
+  const name = (el) => el.tagName.toLowerCase() +
+    (el.className ? '.' + el.className.toString().trim().split(/\s+/)[0] : '');
+  // A kicker is not the previous block, it is the top half of the heading.
+  // `.seclabel` sits 8px over its h2 and the lede sits 12px under it, and
+  // reading those two numbers naively says the heading is orphaned when the
+  // three lines are in fact one unit with air on both sides of it.
+  const kicker = /seclabel|kicker|eyebrow/;
   const out = [];
   for (const wrap of document.querySelectorAll(root)) {
     if (!wrap.getBoundingClientRect().height) continue;
@@ -354,32 +382,31 @@ ALIGN = r"""
       if (!r.width || !r.height) continue;
       rows.push({ tag: el.tagName.toLowerCase(),
                   cls: (el.className || '').toString().slice(0, 24),
-                  x: +(r.x + px(s.paddingLeft)).toFixed(1),
-                  top: +r.top.toFixed(1), bottom: +r.bottom.toFixed(1) });
+                  x: +(r.x + px(s.paddingLeft)).toFixed(1) });
     }
-    if (rows.length < 2) continue;
-    rows.sort((a, b) => a.top - b.top);
-    const xs = rows.map((r) => r.x);
     const drift = [];
-    const home = Math.min(...xs);
-    for (const r of rows) if (r.x - home > 1) drift.push(`${r.tag}.${r.cls} +${(r.x - home).toFixed(1)}px`);
-    // A kicker is not the previous block, it is the top half of the heading.
-    // `.seclabel` sits 8px over its h2 and the lede sits 12px under it, and
-    // reading those two numbers naively says the heading is orphaned when the
-    // three lines are in fact one unit with air on both sides of it.
-    const kicker = /seclabel|kicker|eyebrow/;
+    if (rows.length >= 2) {
+      const home = Math.min(...rows.map((r) => r.x));
+      for (const r of rows) if (r.x - home > 1) drift.push(`${r.tag}.${r.cls} +${(r.x - home).toFixed(1)}px`);
+    }
     const orphans = [];
-    for (let i = 1; i < rows.length - 1; i++) {
-      if (!rows[i].tag.startsWith('h')) continue;
-      let j = i - 1;
-      while (j > 0 && kicker.test(rows[j].cls)) j--;
-      if (kicker.test(rows[j].cls)) continue;   // nothing above the unit to measure
-      const above = rows[i].top - rows[j].bottom;
-      const below = rows[i + 1].top - rows[i].bottom;
-      if (above <= below) orphans.push(`${rows[i].tag}.${rows[i].cls} above=${above.toFixed(0)} below=${below.toFixed(0)}`);
+    let owned = 0;
+    for (const h of wrap.querySelectorAll('h2,h3,h4')) {
+      if (!shown(h) || !h.parentElement || !stacked(h.parentElement)) continue;
+      let prev = h.previousElementSibling;
+      while (prev && (!shown(prev) || kicker.test(prev.className || ''))) prev = prev.previousElementSibling;
+      let next = h.nextElementSibling;
+      while (next && !shown(next)) next = next.nextElementSibling;
+      // A heading that opens or closes its parent is bounded by the parent's
+      // own padding, which is a spacing question, not an ownership one.
+      if (!prev || !next) continue;
+      owned++;
+      const above = h.getBoundingClientRect().top - prev.getBoundingClientRect().bottom;
+      const below = next.getBoundingClientRect().top - h.getBoundingClientRect().bottom;
+      if (above <= below) orphans.push(`${name(h)} above=${above.toFixed(0)} below=${below.toFixed(0)}`);
     }
     out.push({ where: wrap.closest('section, footer, header')?.id || wrap.className,
-               drift, orphans });
+               drift, orphans, edges: rows.length, owned });
   }
   return out;
 }
@@ -467,6 +494,148 @@ FROZEN = """
 }
 """
 
+# "官网导航栏为什么不用胶囊形状" is now answered -- the header is a floating
+# island with `border-radius: 999px` and pill links inside it -- and answering
+# it introduced a defect that only exists once a shape is round.  A pill has no
+# usable corner: a 999px radius on a 48px island puts a 24px arc in each end,
+# and 5px down from the top edge that arc has already eaten 9.3px of width.
+# The island was padded like a rectangle, 8px on the right, so its own border
+# ran straight through the theme toggle.
+#
+# Nothing else can see this.  The box model says the button is inside its
+# parent, `OVERFLOW` says nothing hangs off the viewport, and the stylesheet
+# says `padding: 8px` next to `border-radius: 999px` without either value
+# knowing about the other.  It is trigonometry, so it gets measured.
+ARC = r"""
+() => {
+  const CLEAR = 2;   // px of daylight demanded between a child and the arc
+  const bad = [];
+  let checked = 0;
+  for (const parent of document.querySelectorAll('body *')) {
+    const pr = parent.getBoundingClientRect();
+    if (pr.height < 8 || pr.width < 8) continue;
+    const ps = getComputedStyle(parent);
+    const radius = Math.min(parseFloat(ps.borderTopLeftRadius) || 0, pr.height / 2);
+    if (radius < pr.height / 2 - 0.5) continue;          // not a pill
+    if (ps.overflow === 'hidden' || ps.overflow === 'clip') continue;
+    const R = pr.height / 2;
+    const cy = pr.y + R;
+    for (const child of parent.children) {
+      const cr = child.getBoundingClientRect();
+      if (cr.height < 2 || cr.width < 2) continue;
+      const cs = getComputedStyle(child);
+      if (cs.position === 'absolute' || cs.position === 'fixed') continue;
+      // The corner of the child furthest from the parent's waist is where the
+      // arc has cut in the most.
+      const dy = Math.min(Math.max(Math.abs(cr.y - cy), Math.abs(cr.bottom - cy)), R);
+      const need = R - Math.sqrt(Math.max(R * R - dy * dy, 0)) + CLEAR;
+      checked++;
+      for (const [side, gap] of [['left', cr.x - pr.x], ['right', pr.right - cr.right]]) {
+        if (gap < need - 0.2) {
+          bad.push(`${child.tagName.toLowerCase()}.${String(child.className).slice(0, 18)}`
+            + ` is ${gap.toFixed(1)}px from the ${side} end of `
+            + `${parent.tagName.toLowerCase()}.${String(parent.className).slice(0, 18)}`
+            + ` but its arc needs ${need.toFixed(1)}px there`);
+        }
+      }
+    }
+  }
+  const seen = new Set();
+  return { checked, bad: bad.filter((x) => !seen.has(x) && seen.add(x)) };
+}
+"""
+
+# The rhythm probe I wrote while migrating the app onto the spacing grid asked
+# one question of every gap: is it a multiple of four.  Zero is a multiple of
+# four.  So the seam where the full-width facet legend hands over to the
+# two-column pack -- a seam of exactly 0px, the legend's bottom border resting
+# on the next heading -- was reported as being on the grid, and it was.
+#
+# This asks the two questions the grid cannot: is there any air at all, and is
+# each block of text nearer the thing it belongs to than the thing it does not.
+SEAM = r"""
+() => {
+  const FLOOR = 16;   // px of air a section-level break may never fall below
+  const bad = [];
+  let judged = 0;
+  const box = (el) => el.getBoundingClientRect();
+  const seen = (el) => { const r = box(el); return r.height > 4 && r.width > 40; };
+  // The border box of a line of text is taller than the text: half the leading
+  // hangs off each end.  Proximity is read off the ink, so measure the ink.
+  const ink = (el) => {
+    const r = document.createRange();
+    r.selectNodeContents(el);
+    const b = r.getBoundingClientRect();
+    return b.height ? b : box(el);
+  };
+  const name = (el) => el.tagName.toLowerCase()
+    + (el.id ? '#' + el.id : '')
+    + (el.className ? '.' + String(el.className).trim().split(/\s+/)[0] : '');
+  // A wrapper that paints nothing has no edge of its own, and on a narrow
+  // screen the two-column pack is exactly that: its air is the top margin of
+  // the first block inside it, which sits inside its own border box.  Measure
+  // the break where the eye sees it, at the first and last thing that paints.
+  const bare = (el) => {
+    const cs = getComputedStyle(el);
+    return cs.backgroundColor === 'rgba(0, 0, 0, 0)'
+      && parseFloat(cs.borderTopWidth) === 0
+      && parseFloat(cs.borderBottomWidth) === 0
+      && parseFloat(cs.paddingTop) === 0 && parseFloat(cs.paddingBottom) === 0;
+  };
+  const edge = (el, end) => {
+    for (let hop = 0; hop < 6 && bare(el); hop++) {
+      const kids = [...el.children].filter(seen);
+      if (!kids.length) break;
+      el = end === 'top' ? kids[0] : kids[kids.length - 1];
+    }
+    return end === 'top' ? box(el).top : box(el).bottom;
+  };
+
+  // 1.  The three things this interface stacks at the top of a view: a
+  //     section, a two-column pack, and the row of headline numbers.  None of
+  //     them may sit on the one before it.
+  for (const el of document.querySelectorAll('section.block, .cols2, .nums')) {
+    if (!seen(el)) continue;
+    let prev = el.previousElementSibling;
+    while (prev && !seen(prev)) prev = prev.previousElementSibling;
+    if (!prev) continue;
+    // Multicol breaks DOM order away from reading order: the first block of
+    // the second column follows the last block of the first in the markup and
+    // sits a thousand pixels above it on screen.  Two boxes are only stacked
+    // if they share horizontal ground.
+    const a = box(prev), b = box(el);
+    if (b.right <= a.left + 8 || a.right <= b.left + 8) continue;
+    const gap = edge(el, 'top') - edge(prev, 'bottom');
+    if (gap < -1) continue;                        // not in the same flow
+    judged++;
+    if (gap < FLOOR - 0.6) {
+      bad.push(`${name(prev)} and ${name(el)} are ${gap.toFixed(1)}px apart, `
+        + `and a section break needs ${FLOOR}`);
+    }
+  }
+
+  // 2.  A section's standfirst was written for the heading above it.  If the
+  //     card below it is nearer, the eye reads a caption instead.
+  for (const s of document.querySelectorAll('section.block')) {
+    if (!seen(s)) continue;
+    const h = s.querySelector(':scope > h2');
+    const lede = s.querySelector(':scope > .lede');
+    const body = s.querySelector(':scope > .card, :scope > .tint, :scope > .grid');
+    if (!h || !lede || !body || !seen(body)) continue;
+    judged++;
+    const toHead = ink(lede).top - ink(h).bottom;
+    const toBody = box(body).top - ink(lede).bottom;
+    if (toBody <= toHead) {
+      bad.push(`the standfirst under "${h.textContent.trim().slice(0, 22)}" is `
+        + `${toHead.toFixed(1)}px below its heading and ${toBody.toFixed(1)}px `
+        + `above the card it introduces`);
+    }
+  }
+  const once = new Set();
+  return { judged, bad: bad.filter((x) => !once.has(x) && once.add(x)) };
+}
+"""
+
 TABS = """
 () => {
   const bar = document.getElementById('tabs');
@@ -502,13 +671,62 @@ async def settle(page, ms: int = 350) -> None:
 GRADED_FLOOR = 12
 
 
-async def check_layout(page, rep: Report, where: str, container: str) -> None:
-    for band in await page.evaluate(ALIGN, container):
-        rep.ok(where, not band["drift"],
-               f"prose in {band['where']} does not share a left edge: {band['drift'][:4]}")
-        rep.ok(where, not band["orphans"],
-               f"a heading in {band['where']} sits closer to what it follows "
-               f"than to what it introduces: {band['orphans'][:3]}")
+#: The landing pages are two shapes.  A band is one column under a `.wrap`, so
+#: `.wrap` is its own alignment container.  A documentation page puts a table
+#: of contents beside the prose in a grid, and a grid track has its own left
+#: edge by design -- which meant grading `.wrap` alone walked into `.doc`,
+#: called it inset, and returned nothing at all for six of the seven pages.
+#: The article column is the container there.
+CONTAINERS = (".wrap", ".doc article > section")
+
+#: Comparisons a whole page must make before the layout sweep is believed.
+#: A landing page carries ten bands of prose; a doc page carries a heading and
+#: a paragraph per section at minimum.  Ownership has no floor per page --
+#: `webui.html` legitimately opens every section with its heading, and a
+#: heading with nothing above it inside its parent is not an ownership
+#: question -- so that floor is checked once across the whole sweep instead.
+EDGE_FLOOR = 8
+
+#: And the same guard for ownership, counted over the whole site sweep.
+OWNERSHIP_FLOOR = 200
+
+#: Section breaks and standfirsts the app sweep has to weigh before its silence
+#: means anything.  The first draft of the seam probe pointed at `.view`, which
+#: is not a class this markup uses, judged nothing on all five views and
+#: reported the page perfect.  Counted across the whole app sweep because the
+#: search and ask views have no `section.block` at all.  The whole sweep
+#: weighs 188; the floor is set below that with room for the markup to move,
+#: and far above what a selector that has stopped matching would return.
+SEAM_FLOOR = 120
+
+
+async def check_layout(page, rep: Report, where: str) -> int:
+    edges = owned = 0
+    for container in CONTAINERS:
+        for band in await page.evaluate(ALIGN, container):
+            edges += band["edges"]
+            owned += band["owned"]
+            rep.ok(where, not band["drift"],
+                   f"prose in {band['where']} does not share a left edge: {band['drift'][:4]}")
+            rep.ok(where, not band["orphans"],
+                   f"a heading in {band['where']} sits closer to what it follows "
+                   f"than to what it introduces: {band['orphans'][:3]}")
+    rep.ok(where, edges >= EDGE_FLOOR,
+           f"the layout sweep only found {edges} prose rows to align")
+    return owned
+
+
+async def check_pills(page, rep: Report, where: str) -> None:
+    m = await page.evaluate(ARC)
+    rep.ok(where, not m["bad"], "a pill sits inside another pill's corner arc: "
+           + "; ".join(m["bad"][:3]))
+
+
+async def check_seams(page, rep: Report, where: str) -> int:
+    m = await page.evaluate(SEAM)
+    rep.ok(where, not m["bad"],
+           "the vertical rhythm collapses: " + "; ".join(m["bad"][:3]))
+    return m["judged"]
 
 
 async def check_contrast(page, rep: Report, where: str) -> None:
@@ -523,6 +741,7 @@ async def check_contrast(page, rep: Report, where: str) -> None:
 
 async def sweep_app(browser, app: App, rep: Report) -> None:
     """Every view, both languages, both themes, three widths."""
+    seams = 0
     for width in APP_WIDTHS:
         for lang in ("en", "zh"):
             # Themes only need the wide pass: dark mode is a colour question,
@@ -550,6 +769,7 @@ async def sweep_app(browser, app: App, rep: Report) -> None:
                         rep.ok(where, len(t["tabs"]) == 5,
                                f"expected five tabs, found {len(t['tabs'])}")
                     await page.evaluate(FROZEN)
+                    await check_pills(page, rep, where)
                     # `check_layout` is not run here, and the reason is the
                     # reason the design system splits `scene-site` from
                     # `scene-app`.  It grades a column of stacked prose, which
@@ -558,7 +778,11 @@ async def sweep_app(browser, app: App, rep: Report) -> None:
                     # headings sit *beside* their neighbours rather than under
                     # them, so "share a left edge" and "a heading belongs to
                     # what follows it" are answering a question this scene does
-                    # not ask.  Contrast is scene-independent and does run.
+                    # not ask.  `check_seams` is the half of it that this scene
+                    # does ask -- a section break and a standfirst mean the
+                    # same thing in a grid as in a column.  Contrast is
+                    # scene-independent and also runs.
+                    seams += await check_seams(page, rep, where)
                     await check_contrast(page, rep, where)
                     if lang == "en":
                         text = await page.inner_text("body")
@@ -568,9 +792,12 @@ async def sweep_app(browser, app: App, rep: Report) -> None:
                        f"console: {list(dict.fromkeys(logged))[:6]}")
                 await ctx.close()
         say(f"app swept at {width}px")
+    rep.ok("app", seams >= SEAM_FLOOR,
+           f"the seam sweep only weighed {seams} breaks and standfirsts")
 
 
 async def sweep_site(browser, land: Landing, rep: Report) -> None:
+    owned = 0
     for width in SITE_WIDTHS:
         for lang in ("en", "zh"):
             themes = ("light", "dark") if width == 1280 else ("light",)
@@ -598,7 +825,8 @@ async def sweep_site(browser, land: Landing, rep: Report) -> None:
                         rep.ok(where, not tall,
                                f"a picture is taller than {TALLEST} screens: {tall}")
                     await page.evaluate(FROZEN)
-                    await check_layout(page, rep, where, ".wrap")
+                    await check_pills(page, rep, where)
+                    owned += await check_layout(page, rep, where)
                     await check_contrast(page, rep, where)
                 rep.ok(f"site {lang}/{theme} @{width}", not logged,
                        f"console: {list(dict.fromkeys(logged))[:6]}")
@@ -607,6 +835,13 @@ async def sweep_site(browser, land: Landing, rep: Report) -> None:
                        f"a web font was fetched from a CDN: {fonts[:3]}")
                 await ctx.close()
         say(f"site swept at {width}px")
+    # Checked once across the sweep rather than per page.  The first version of
+    # this probe skipped every heading whose only predecessor was a kicker,
+    # which is every heading on the landing page, and skipped the doc pages
+    # entirely for being a grid -- so it made zero comparisons on all fourteen
+    # pages and passed.  This is the line that would have said so.
+    rep.ok("site", owned >= OWNERSHIP_FLOOR,
+           f"the layout sweep only judged {owned} headings against their neighbours")
 
 
 # ------------------------------------------------------------- regressions

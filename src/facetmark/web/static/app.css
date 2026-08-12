@@ -51,14 +51,11 @@
   /* Verbatim from the derived site's `--f-sans` / `--f-display` / `--f-mono`.
      Do not reorder: `PingFang SC` sits ahead of `Microsoft YaHei` on purpose,
      and the Windows UI face is absent from the text stack on purpose. */
-  --font-sans:
-    -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",
+  --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",
     "Hiragino Sans GB", "Noto Sans SC", sans-serif;
-  --font-display:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+  --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
     "Microsoft YaHei", sans-serif;
-  --font-mono:
-    ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
 
   /* Radii. The design system's app scene uses 12px cards, 16px modals and
      8px inputs; `--r-pill` is the shape the whole interface is named after.
@@ -75,6 +72,64 @@
   --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.04);
   --shadow-lift: 0 8px 24px rgba(0, 0, 0, 0.08);
   --shadow-pop: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+  /* ---- type scale ----------------------------------------------------
+     The same nine rungs `docs/landing/style.css` runs, value for value, and
+     `test_the_two_surfaces_agree_on_the_scale` pins them equal so they cannot
+     drift apart the way they already did once.
+
+     What this replaces here: 30 distinct absolute sizes, including the run
+     0.72 / 0.74 / 0.75 / 0.76 / 0.78 / 0.80 / 0.82 / 0.84 / 0.85 / 0.86rem.
+     Those neighbours are a fifth of a pixel apart. Nobody sees a fifth of a
+     pixel; what a reader sees is that nothing lines up.
+
+     The app uses rungs 0 to 7. Rung 8 is a landing headline and would put a
+     52px numeral in a dashboard tile, so `scene-app.md`'s display ceiling
+     keeps it out -- and rung 5 is over the 1.2rem body cap, which is why a
+     section heading here lands on rung 4 and earns its rank from weight. */
+  --fs-0: 0.6875rem;                    /* 11px  in-diagram labels only     */
+  --fs-1: 0.75rem;                      /* 12px  eyebrow, badge, caption    */
+  --fs-2: 0.8125rem;                    /* 13px  meta, terminal, code       */
+  --fs-3: 0.9375rem;                    /* 15px  body, field, secondary     */
+  --fs-4: 1.0625rem;                    /* 17px  heading, logo, lead title  */
+  --fs-5: 1.25rem;                      /* 20px  display only               */
+  --fs-6: 1.5rem;                       /* 24px  display only               */
+  --fs-7: clamp(1.5rem, 3.4vw, 2rem);   /* 24-32px  page title, big numeral */
+  --fs-8: clamp(2rem, 5.2vw, 3.25rem);  /* 32-52px  landing only            */
+
+  /* ---- leading -------------------------------------------------------
+     Five values, down from ten. `line-height: 1` is not a sixth: it is what
+     a single-line box -- a 32px numeral, a round close button -- needs to
+     centre its own text, and the test exempts it by name. */
+  --lh-tight: 1.15;                     /* display numerals, page title     */
+  --lh-snug: 1.4;                       /* headings, titles, chips          */
+  --lh-body: 1.65;                      /* Latin prose                      */
+  --lh-cjk: 1.85;                       /* Han prose -- see the :lang rule  */
+  --lh-code: 1.7;                       /* the log pane                     */
+
+  /* ---- tracking ------------------------------------------------------
+     Four values, down from four ad-hoc ones that happened to be different.
+     The negative step is Latin-only; Han has no sidebearing to take it out
+     of, so the :lang rule below zeroes it. */
+  --ls-display: -0.022em;
+  --ls-none: 0;
+  --ls-caps: 0.08em;
+  --ls-caps-wide: 0.14em;
+
+  /* ---- spacing -------------------------------------------------------
+     A 4px grid, eight steps, replacing 54 distinct literals. The browser
+     measured this page's section gaps at 30 / 22 / 18 / 16 / 14 / 12 / 10 /
+     9 / 8 / 6px before this; two panels 22px and 24px apart do not read as
+     slightly different, they read as broken. 1-3px survive as literals
+     because a hairline and a one-pixel optical nudge are not rhythm. */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 72px;
 
   --head-h: 56px;
   --w-read: 900px;
@@ -232,17 +287,36 @@ body {
   background: var(--cream);
   color: var(--ink);
   font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 1.6;
+  font-size: var(--fs-3);
+  line-height: var(--lh-body);
   font-variant-numeric: tabular-nums;
 }
+
+/* The Chinese interface is not the English one in another font. Han glyphs
+   are full-width and square, so the leading that reads as generous in Latin
+   reads as packed, and the negative tracking that tightens a Latin heading
+   has no sidebearing to take it out of and simply collides the characters.
+   Both are switched off on the root, keyed on the `lang` attribute `app.js`
+   already writes when the language pill is used -- the landing stylesheet
+   carries the same pair, and until now this file carried neither, so the
+   Chinese app was the English app with Chinese words in it. */
+:root:lang(zh) body { line-height: var(--lh-cjk); }
+/* `:is()` takes the specificity of its heaviest argument, so this lands at
+   (0,3,1) and beats the (0,1,1) the tracked rules carry without repeating
+   their selectors. Numerals keep their tracking: -0.022em on digits is a
+   fit, not a collision, and a Chinese dashboard still wants its columns to
+   line up. */
+:root:lang(zh) :is(h1, h2, h3, .page-title, .logo, .caps, .opt-label) {
+  letter-spacing: var(--ls-none);
+}
+:root:lang(zh) :is(h1, h2, h3, .page-title) { line-height: var(--lh-snug); }
 
 h1,
 h2,
 h3 {
   margin: 0;
   font-weight: 700;
-  line-height: 1.35;
+  line-height: var(--lh-snug);
 }
 
 p {
@@ -279,21 +353,21 @@ button {
 
 .mono {
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: var(--fs-1);
 }
 
 /* Small all-caps label with the letter-spacing the design system asks for. */
 .caps {
-  font-size: 0.72rem;
+  font-size: var(--fs-0);
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: var(--ls-caps-wide);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
 .dim {
   color: var(--ink-faint);
-  font-size: 0.8rem;
+  font-size: var(--fs-2);
 }
 
 .skip {
@@ -301,7 +375,7 @@ button {
   left: -9999px;
   top: 0;
   z-index: 60;
-  padding: 10px 18px;
+  padding: var(--sp-3) var(--sp-5);
   border-radius: var(--r-pill);
   background: var(--brand-surface);
   color: var(--on-brand);
@@ -339,21 +413,21 @@ button {
   height: var(--head-h);
   max-width: var(--w-wide);
   margin: 0 auto;
-  padding: 0 clamp(16px, 3vw, 28px);
+  padding: 0 clamp(var(--sp-4), 3vw, var(--sp-6));
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--sp-4);
 }
 
 .logo {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--sp-2);
   color: var(--ink);
   font-family: var(--font-display);
-  font-size: 1.08rem;
+  font-size: var(--fs-4);
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: var(--ls-display);
 }
 
 .logo:hover {
@@ -372,7 +446,7 @@ button {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-2);
 }
 
 /* Round icon button, and its wider sibling for the language pill. */
@@ -387,15 +461,14 @@ button {
   border-radius: var(--r-pill);
   background: var(--card-bg);
   color: var(--ink-light);
-  font-size: 0.8rem;
+  font-size: var(--fs-2);
   cursor: pointer;
-  transition:
-    border-color 0.2s var(--ease),
+  transition: border-color 0.2s var(--ease),
     color 0.2s var(--ease);
 }
 
 .ctl.wide {
-  padding: 0 13px;
+  padding: 0 var(--sp-3);
 }
 
 .ctl:hover {
@@ -408,26 +481,25 @@ button {
 .tabs {
   max-width: var(--w-wide);
   margin: 0 auto;
-  padding: 10px clamp(16px, 3vw, 28px);
+  padding: var(--sp-3) clamp(var(--sp-4), 3vw, var(--sp-6));
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--sp-2);
 }
 
 .tab {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 7px 15px;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
   border: 1px solid var(--border);
   border-radius: var(--r-pill);
   background: var(--card-bg);
   color: var(--ink-light);
-  font-size: 0.85rem;
+  font-size: var(--fs-2);
   font-weight: 500;
   cursor: pointer;
-  transition:
-    background 0.2s var(--ease),
+  transition: background 0.2s var(--ease),
     color 0.2s var(--ease),
     border-color 0.2s var(--ease);
 }
@@ -445,9 +517,9 @@ button {
 }
 
 .tab .n {
-  font-size: 0.72rem;
+  font-size: var(--fs-0);
   font-weight: 600;
-  padding: 1px 7px;
+  padding: 1px var(--sp-2);
   border-radius: var(--r-pill);
   background: rgba(var(--ink-rgb), 0.07);
   color: var(--ink-light);
@@ -466,7 +538,7 @@ main {
   width: 100%;
   max-width: var(--w-read);
   margin: 0 auto;
-  padding: clamp(18px, 3vw, 30px) clamp(16px, 3vw, 28px) 60px;
+  padding: clamp(var(--sp-5), 3vw, var(--sp-6)) clamp(var(--sp-4), 3vw, var(--sp-6)) var(--sp-8);
 }
 
 main.wide {
@@ -476,12 +548,12 @@ main.wide {
 .bottom {
   flex: none;
   border-top: 1px solid var(--hairline);
-  padding: 18px clamp(16px, 3vw, 28px);
+  padding: var(--sp-5) clamp(var(--sp-4), 3vw, var(--sp-6));
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 6px 18px;
-  font-size: 0.78rem;
+  gap: var(--sp-2) var(--sp-5);
+  font-size: var(--fs-1);
   color: var(--ink-faint);
 }
 
@@ -499,17 +571,16 @@ main.wide {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 9px 20px;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-5);
   border: 1px solid var(--border);
   border-radius: var(--r-pill);
   background: var(--card-bg);
   color: var(--ink);
-  font-size: 0.86rem;
+  font-size: var(--fs-2);
   font-weight: 600;
   cursor: pointer;
-  transition:
-    transform 0.2s var(--ease),
+  transition: transform 0.2s var(--ease),
     box-shadow 0.2s var(--ease),
     border-color 0.2s var(--ease);
 }
@@ -537,8 +608,8 @@ main.wide {
 }
 
 .btn.small {
-  padding: 5px 13px;
-  font-size: 0.78rem;
+  padding: var(--sp-1) var(--sp-3);
+  font-size: var(--fs-1);
   font-weight: 500;
 }
 
@@ -546,8 +617,8 @@ main.wide {
    action on a page a reader passes through once, where the button is the
    point of the page rather than one control among six. */
 .btn.big {
-  padding: 14px 32px;
-  font-size: 0.95rem;
+  padding: var(--sp-4) var(--sp-6);
+  font-size: var(--fs-3);
 }
 
 .btn.round {
@@ -574,13 +645,13 @@ main.wide {
 
 .field {
   width: 100%;
-  padding: 10px 14px;
+  padding: var(--sp-3) var(--sp-4);
   border: 1.5px solid var(--border);
   border-radius: var(--r-input);
   background: var(--card-bg);
   color: var(--ink);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--fs-3);
 }
 
 .field:focus {
@@ -596,9 +667,9 @@ main.wide {
 
 .ask .field {
   height: 50px;
-  padding: 0 74px 0 46px;
+  padding: 0 var(--sp-8) 0 var(--sp-7);
   border-radius: var(--r-pill);
-  font-size: 0.98rem;
+  font-size: var(--fs-3);
 }
 
 .ask .field::placeholder {
@@ -616,17 +687,17 @@ main.wide {
 
 .ask .lens {
   left: 17px;
-  font-size: 0.95rem;
+  font-size: var(--fs-3);
 }
 
 .ask .hint {
   right: 16px;
-  padding: 2px 8px;
+  padding: 2px var(--sp-2);
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--cream-dark);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: var(--fs-0);
 }
 
 .ask .go {
@@ -637,7 +708,7 @@ main.wide {
 }
 
 .ask.with-go .field {
-  padding-right: 106px;
+  padding-right: calc(var(--sp-8) + var(--sp-6));
 }
 
 .ask.with-go .hint {
@@ -651,7 +722,7 @@ main.wide {
   left: 0;
   right: 0;
   top: calc(100% + 6px);
-  padding: 6px;
+  padding: var(--sp-2);
   border: 1px solid var(--border);
   border-radius: var(--r-card);
   background: var(--card-bg);
@@ -661,7 +732,7 @@ main.wide {
 .sugg li > button {
   display: block;
   width: 100%;
-  padding: 8px 11px;
+  padding: var(--sp-2) var(--sp-3);
   border: 0;
   border-radius: var(--r-chip);
   background: none;
@@ -675,7 +746,7 @@ main.wide {
 }
 
 .sugg .t {
-  font-size: 0.86rem;
+  font-size: var(--fs-2);
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -683,16 +754,16 @@ main.wide {
 }
 
 .sugg .w {
-  font-size: 0.74rem;
+  font-size: var(--fs-1);
   color: var(--ink-faint);
 }
 
 .sugg-foot {
-  padding: 6px 11px 2px;
-  font-size: 0.72rem;
+  padding: var(--sp-2) var(--sp-3) 2px;
+  font-size: var(--fs-0);
   color: var(--ink-faint);
   border-top: 1px solid var(--hairline);
-  margin-top: 4px;
+  margin-top: var(--sp-1);
 }
 
 /* Filter pills: the retrieval-rung row, the edge-kind row, the session sizes. */
@@ -700,19 +771,18 @@ main.wide {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-2);
 }
 
 .pill.act {
-  padding: 5px 13px;
+  padding: var(--sp-1) var(--sp-3);
   border: 1px solid var(--border);
   border-radius: var(--r-pill);
   background: var(--card-bg);
   color: var(--ink-light);
-  font-size: 0.78rem;
+  font-size: var(--fs-1);
   cursor: pointer;
-  transition:
-    background 0.2s var(--ease),
+  transition: background 0.2s var(--ease),
     border-color 0.2s var(--ease);
 }
 
@@ -728,7 +798,7 @@ main.wide {
 }
 
 .pill.act .n {
-  margin-left: 6px;
+  margin-left: var(--sp-2);
   opacity: 0.7;
 }
 
@@ -738,14 +808,14 @@ main.wide {
 .pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 2px 10px;
+  gap: var(--sp-1);
+  padding: 2px var(--sp-3);
   border-radius: var(--r-pill);
   background: rgba(var(--ink-rgb), 0.06);
   color: var(--ink-light);
-  font-size: 0.72rem;
+  font-size: var(--fs-0);
   font-weight: 500;
-  line-height: 1.7;
+  line-height: var(--lh-snug);
   white-space: nowrap;
 }
 
@@ -788,11 +858,11 @@ main.wide {
 }
 
 .pill.cite {
-  padding: 1px 8px;
+  padding: 1px var(--sp-2);
   background: rgba(var(--brand-rgb), 0.1);
   color: var(--link);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: var(--fs-0);
   font-weight: 600;
   border: 0;
   cursor: pointer;
@@ -806,8 +876,8 @@ main.wide {
 .marks {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 9px;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
 }
 
 /* The mixture bar is the quietest thing on the row on purpose: 3px tall and
@@ -819,7 +889,7 @@ main.wide {
      footnote to the badges and becomes an underline for the whole result --
      or worse, a progress bar for something that is not loading. */
   max-width: 190px;
-  margin-top: 9px;
+  margin-top: var(--sp-2);
 }
 
 /* ---------------------------------------------------------------- cards */
@@ -828,7 +898,7 @@ main.wide {
   background: var(--card-bg);
   border: 1px solid var(--hairline);
   border-radius: var(--r-card);
-  padding: 1.15rem 1.25rem;
+  padding: var(--sp-5) var(--sp-5);
   box-shadow: var(--shadow-card);
 }
 
@@ -899,19 +969,18 @@ main.wide {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-top: 16px;
+  margin-top: var(--sp-4);
 }
 
 /* Tier 1: the default. Not a card. */
 .hit {
   position: relative;
   display: block;
-  padding: 0.72rem 1rem 0.78rem 2.6rem;
+  padding: var(--sp-3) var(--sp-4) var(--sp-3) var(--sp-7);
   border-radius: var(--r-card);
   border-bottom: 1px solid var(--hairline);
   color: inherit;
-  transition:
-    background 0.2s var(--ease),
+  transition: background 0.2s var(--ease),
     border-color 0.2s var(--ease);
 }
 
@@ -938,15 +1007,15 @@ main.wide {
    these at alpha 0.03 and the owner's verdict was that the page still looked
    blank, which it did. */
 .hit.lead {
-  margin-bottom: 8px;
-  padding: 1.15rem 1.25rem 1.1rem 3.9rem;
+  margin-bottom: var(--sp-2);
+  padding: var(--sp-5) var(--sp-5) var(--sp-4) var(--sp-7);
   border: 1.5px dashed var(--facet-content);
   border-radius: var(--r-sketch);
   background: var(--blue-wash);
 }
 
 .hit.lead:last-of-type {
-  margin-bottom: 14px;
+  margin-bottom: var(--sp-4);
 }
 
 .hit.lead.f-lex {
@@ -976,7 +1045,7 @@ main.wide {
   left: 1rem;
   top: 0.78rem;
   font-family: var(--font-mono);
-  font-size: 0.76rem;
+  font-size: var(--fs-1);
   font-weight: 600;
   color: var(--ink-faint);
 }
@@ -987,7 +1056,7 @@ main.wide {
 .hit.lead .bignum {
   left: 1.15rem;
   top: 0.85rem;
-  font-size: 1.9rem;
+  font-size: var(--fs-7);
   color: var(--facet-content-ink);
 }
 
@@ -1004,17 +1073,17 @@ main.wide {
 }
 
 .hit .title {
-  font-size: 0.95rem;
+  font-size: var(--fs-3);
   font-weight: 600;
   color: var(--ink);
-  line-height: 1.45;
+  line-height: var(--lh-snug);
   overflow-wrap: anywhere;
 }
 
 .hit.lead .title {
-  font-size: 1.08rem;
+  font-size: var(--fs-4);
   font-weight: 700;
-  line-height: 1.35;
+  line-height: var(--lh-snug);
 }
 
 .hit:hover .title {
@@ -1023,7 +1092,7 @@ main.wide {
 
 .hit .where {
   margin-top: 2px;
-  font-size: 0.76rem;
+  font-size: var(--fs-1);
   color: var(--ink-faint);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1042,8 +1111,8 @@ main.wide {
 }
 
 .hit .snippet {
-  margin-top: 7px;
-  font-size: 0.85rem;
+  margin-top: var(--sp-2);
+  font-size: var(--fs-2);
   color: var(--ink-light);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1062,18 +1131,18 @@ main.wide {
    than a footnote to it, so both get room. Below the fold they shrink back:
    twenty rows of emphasis is twenty rows of none. */
 .hit.lead .marks {
-  margin-top: 12px;
+  margin-top: var(--sp-3);
 }
 
 .hit.lead .fbadge {
-  padding: 3px 13px;
-  font-size: 0.82rem;
+  padding: 3px var(--sp-3);
+  font-size: var(--fs-2);
 }
 
 .hit.lead > .fbar {
   height: 6px;
   max-width: 260px;
-  margin-top: 12px;
+  margin-top: var(--sp-3);
 }
 
 /* The matched terms inside a snippet. The palette's highlighter wash, so the
@@ -1091,8 +1160,8 @@ main.wide {
    hue is peach -- outside the four facet colours, because claiming one would
    claim the row was retrieved by that path. */
 .hit.near {
-  margin-bottom: 8px;
-  padding: 0.95rem 1.15rem 0.95rem;
+  margin-bottom: var(--sp-2);
+  padding: var(--sp-4) var(--sp-5) var(--sp-4);
   border: 1.5px dashed var(--facet-edge);
   border-radius: var(--r-sketch);
   background: var(--peach-soft);
@@ -1114,19 +1183,19 @@ main.wide {
 .group-head {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  margin: 28px 0 0;
+  gap: var(--sp-3);
+  margin: var(--sp-6) 0 0;
 }
 
 .more-wrap {
   display: flex;
   justify-content: center;
-  margin-top: 18px;
+  margin-top: var(--sp-5);
 }
 
 .status {
-  margin-top: 12px;
-  font-size: 0.78rem;
+  margin-top: var(--sp-3);
+  font-size: var(--fs-1);
   color: var(--ink-faint);
   min-height: 1.2em;
 }
@@ -1143,10 +1212,10 @@ main.wide {
    what makes a screen read as having a top rather than starting mid-list. */
 .page-title {
   font-family: var(--font-display);
-  font-size: 1.55rem;
+  font-size: var(--fs-7);
   font-weight: 800;
-  line-height: 1.22;
-  letter-spacing: -0.02em;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-display);
 }
 
 /* Spoken, not drawn. `display: none` would take it out of the accessibility
@@ -1165,9 +1234,9 @@ main.wide {
 }
 
 .lede {
-  margin-top: 6px;
+  margin-top: var(--sp-2);
   max-width: 62ch;
-  font-size: 0.86rem;
+  font-size: var(--fs-2);
   color: var(--ink-light);
 }
 
@@ -1175,8 +1244,8 @@ main.wide {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  margin-top: 14px;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
 }
 
 /* Not a fifth retrieval mode. The modes are a choice between equals, so they
@@ -1185,7 +1254,7 @@ main.wide {
    part of the group. */
 #opts-toggle {
   margin-left: auto;
-  padding: 6px 2px;
+  padding: var(--sp-2) 2px;
   border-color: transparent;
   background: none;
   color: var(--ink-light);
@@ -1214,13 +1283,13 @@ main.wide {
 }
 
 .note {
-  margin-top: 8px;
+  margin-top: var(--sp-2);
   max-width: 68ch;
 }
 
 .opts {
-  margin-top: 12px;
-  padding: 14px 16px;
+  margin-top: var(--sp-3);
+  padding: var(--sp-4) var(--sp-4);
   border: 1px solid var(--hairline);
   border-radius: var(--r-card);
   background: var(--card-bg);
@@ -1233,8 +1302,8 @@ main.wide {
 .opt {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-size: 0.82rem;
+  gap: var(--sp-3);
+  font-size: var(--fs-2);
   color: var(--ink-light);
 }
 
@@ -1242,24 +1311,24 @@ main.wide {
    their own caption so they are not misread as more values of the number
    input above them. */
 .opt-group {
-  margin-top: 14px;
-  padding-top: 12px;
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-3);
   border-top: 1px solid var(--hairline);
 }
 
 .opt-label {
   display: block;
-  margin-bottom: 8px;
-  font-size: 0.72rem;
+  margin-bottom: var(--sp-2);
+  font-size: var(--fs-0);
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: var(--ls-caps-wide);
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
 .field.num {
   width: 84px;
-  padding: 7px 10px;
+  padding: var(--sp-2) var(--sp-3);
   text-align: right;
 }
 
@@ -1267,12 +1336,12 @@ main.wide {
 .rows {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 14px;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
 }
 
 .rows.tight {
-  gap: 6px;
+  gap: var(--sp-2);
 }
 
 /* Rows that carry their own separator do not also need a gutter between them. */
@@ -1285,8 +1354,8 @@ main.wide {
 .line {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  padding: 9px 0;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
   border-top: 1px solid var(--hairline);
 }
 
@@ -1300,7 +1369,7 @@ main.wide {
 }
 
 .line .t {
-  font-size: 0.86rem;
+  font-size: var(--fs-2);
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1308,7 +1377,7 @@ main.wide {
 }
 
 .line .w {
-  font-size: 0.74rem;
+  font-size: var(--fs-1);
   color: var(--ink-faint);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1336,8 +1405,8 @@ main.wide {
 .sittings {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 14px;
-  margin-top: 16px;
+  gap: var(--sp-4);
+  margin-top: var(--sp-4);
 }
 
 .sitting {
@@ -1345,7 +1414,7 @@ main.wide {
   border: 1.6px dashed var(--facet-content);
   border-radius: var(--r-sketch);
   background: var(--blue-wash);
-  padding: 1rem 1.1rem 1.05rem 5rem;
+  padding: var(--sp-4) var(--sp-4) var(--sp-4) var(--sp-8);
 }
 
 .sitting .count {
@@ -1364,13 +1433,13 @@ main.wide {
 
 .sitting .bignum {
   display: block;
-  font-size: 1.85rem;
+  font-size: var(--fs-7);
   color: var(--facet-content-ink);
 }
 
 .sitting .caps {
   margin-top: 3px;
-  font-size: 0.62rem;
+  font-size: var(--fs-0);
 }
 
 .sitting .w {
@@ -1421,20 +1490,20 @@ main.wide {
 
 .panel {
   border-radius: var(--r-card);
-  padding: clamp(18px, 2.4vw, 26px);
+  padding: var(--sp-5);
   background: var(--info-soft);
   border: 1px solid var(--brand-border);
-  margin-top: 16px;
+  margin-top: var(--sp-4);
 }
 
 .panel h2 {
-  font-size: 1.05rem;
+  font-size: var(--fs-4);
   color: var(--ink);
 }
 
 .panel p {
-  margin-top: 8px;
-  font-size: 0.88rem;
+  margin-top: var(--sp-2);
+  font-size: var(--fs-2);
   color: var(--ink-light);
 }
 
@@ -1453,12 +1522,12 @@ main.wide {
 .panel.bad.degraded .degraded-head {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--sp-2);
 }
 
 .panel.bad.degraded .degraded-head .glyph {
   color: var(--danger-strong);
-  font-size: 1.05rem;
+  font-size: var(--fs-4);
   line-height: 1;
 }
 
@@ -1485,22 +1554,22 @@ main.wide {
    terminal: the app scene forbids dark panels in functional areas, and a
    black slab inside a yellow notice is exactly the thing it forbids. */
 .panel .cmd {
-  margin: 14px 0 0;
-  padding: 12px 15px;
+  margin: var(--sp-4) 0 0;
+  padding: var(--sp-3) var(--sp-4);
   border: 1px solid var(--border);
   border-radius: var(--r-chip);
   background: var(--card-bg);
   color: var(--ink);
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: var(--fs-1);
   overflow-x: auto;
 }
 
 .pair {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
 }
 
 .pair .field {
@@ -1600,8 +1669,8 @@ main.wide {
 .fbadge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 2px 11px;
+  gap: var(--sp-1);
+  padding: 2px var(--sp-3);
   border-radius: var(--r-pill);
   background: var(--facet-content-soft);
   color: var(--facet-content-ink);
@@ -1609,9 +1678,9 @@ main.wide {
      badges answer "why is this here"; the pills beside them are metadata. One
      size for both flattened that into six equal tags of undifferentiated
      small text, which is how a reader learns to skip all of them. */
-  font-size: 0.78rem;
+  font-size: var(--fs-1);
   font-weight: 600;
-  line-height: 1.7;
+  line-height: var(--lh-snug);
   white-space: nowrap;
 }
 
@@ -1644,7 +1713,7 @@ main.wide {
 
 .tint {
   border-radius: var(--r-tint);
-  padding: 1.35rem 1.25rem;
+  padding: var(--sp-5) var(--sp-5);
   background: linear-gradient(145deg, var(--tint-content), rgba(var(--brand-rgb), 0.02));
   border: 1px solid rgba(var(--brand-rgb), 0.14);
 }
@@ -1684,12 +1753,12 @@ main.wide {
    on the design system's banned list and this is where it would happen. */
 .tint > h2,
 .tint > h3 {
-  font-size: 0.95rem;
+  font-size: var(--fs-3);
   font-weight: 700;
 }
 
 .tint > .caps + * {
-  margin-top: 10px;
+  margin-top: var(--sp-3);
 }
 
 /*
@@ -1739,11 +1808,11 @@ main.wide {
   border: 1.6px dashed var(--facet-content);
   border-radius: var(--r-sketch);
   background: var(--blue-wash);
-  padding: 1.35rem 1.35rem 1.4rem;
+  padding: var(--sp-5) var(--sp-5) var(--sp-5);
 }
 
 .sketch > * + * {
-  margin-top: 10px;
+  margin-top: var(--sp-3);
 }
 
 .sketch.lex {
@@ -1774,9 +1843,12 @@ main.wide {
   /* Several call sites hang it on an `<i>`, which is the right element for a
      mark that carries no words. Italic display numerals are not. */
   font-style: normal;
-  font-size: 2.4rem;
-  line-height: 0.9;
-  letter-spacing: -0.03em;
+  font-size: var(--fs-7);
+  /* A single-line box centring its own glyph, which is the one case the
+     leading scale exempts. It was 0.9 -- a sub-1 line box clips the descender
+     off a Han numeral, and there is nothing below the digits to reclaim. */
+  line-height: 1;
+  letter-spacing: var(--ls-display);
   color: var(--facet-content-ink);
   font-variant-numeric: tabular-nums;
 }
@@ -1817,8 +1889,8 @@ main.wide {
 
 .steps {
   display: grid;
-  gap: 20px;
-  margin-top: 22px;
+  gap: var(--sp-5);
+  margin-top: var(--sp-5);
 }
 
 /* Numeral and words on one line, inside the frame the numeral belongs to. It
@@ -1828,7 +1900,7 @@ main.wide {
 .step-head {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
+  gap: var(--sp-4);
 }
 
 .step-head > .bignum {
@@ -1838,14 +1910,14 @@ main.wide {
 }
 
 .step-text > h2 {
-  font-size: 1.05rem;
+  font-size: var(--fs-4);
 }
 
 .step-text > p {
-  margin-top: 6px;
+  margin-top: var(--sp-2);
   max-width: 60ch;
   color: var(--ink-light);
-  font-size: 0.86rem;
+  font-size: var(--fs-2);
 }
 
 /* A finished step goes green and goes solid.
@@ -1868,7 +1940,7 @@ main.wide {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: var(--sp-3);
 }
 
 .note.ok {
@@ -1880,7 +1952,7 @@ main.wide {
 }
 
 .setup-done .row {
-  margin-top: 12px;
+  margin-top: var(--sp-3);
 }
 
 /* --- the settings forms -------------------------------------------------- */
@@ -1888,22 +1960,22 @@ main.wide {
 .grid2 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(252px, 1fr));
-  gap: 16px 20px;
-  margin-top: 14px;
+  gap: var(--sp-4) var(--sp-5);
+  margin-top: var(--sp-4);
 }
 
 .grid2 + .row {
-  margin-top: 16px;
+  margin-top: var(--sp-4);
 }
 
 .fld {
   display: grid;
-  gap: 6px;
+  gap: var(--sp-2);
   align-content: start;
 }
 
 .fld > label {
-  font-size: 0.8rem;
+  font-size: var(--fs-2);
   font-weight: 600;
   color: var(--ink-light);
 }
@@ -1922,13 +1994,13 @@ main.wide {
 }
 
 .fld > .hint {
-  font-size: 0.76rem;
-  line-height: 1.55;
+  font-size: var(--fs-1);
+  line-height: var(--lh-body);
   color: var(--ink-light);
 }
 
 .fld > .hint .pill {
-  margin-left: 4px;
+  margin-left: var(--sp-1);
   vertical-align: baseline;
 }
 
@@ -1940,14 +2012,14 @@ main.wide {
 .stages {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
-  gap: 6px;
-  margin-top: 16px;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
 }
 
 .stage {
   display: grid;
   gap: 2px;
-  padding: 9px 8px;
+  padding: var(--sp-2) var(--sp-2);
   border-radius: 10px;
   background: rgba(var(--ink-rgb), 0.05);
   text-align: center;
@@ -1958,7 +2030,7 @@ main.wide {
    the number does the ordering and the name says which one it is. `--ink-faint`
    on a filled tile is 4.20:1, which is why this is a step up from it. */
 .stage .bignum {
-  font-size: 1.05rem;
+  font-size: var(--fs-4);
   line-height: 1;
   color: var(--ink-light);
 }
@@ -1972,12 +2044,12 @@ main.wide {
 }
 
 .stage .nm {
-  font-size: 0.72rem;
+  font-size: var(--fs-0);
   color: var(--ink-light);
 }
 
 .stage .vl {
-  font-size: 0.85rem;
+  font-size: var(--fs-2);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   min-height: 1.2em;
@@ -2004,29 +2076,29 @@ main.wide {
 }
 
 .log {
-  margin-top: 12px;
+  margin-top: var(--sp-3);
   max-height: 172px;
   overflow: auto;
-  padding: 12px 14px;
+  padding: var(--sp-3) var(--sp-4);
   border-radius: 12px;
   background: var(--cream-dark);
   border: 1px solid var(--hairline);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
-  line-height: 1.6;
+  font-size: var(--fs-1);
+  line-height: var(--lh-code);
   color: var(--ink-light);
   white-space: pre-wrap;
   word-break: break-word;
 }
 
 .card.where > h2 {
-  font-size: 1.05rem;
+  font-size: var(--fs-4);
 }
 
 .card.where > p {
-  margin-top: 6px;
+  margin-top: var(--sp-2);
   max-width: 62ch;
-  font-size: 0.86rem;
+  font-size: var(--fs-2);
   color: var(--ink-light);
 }
 
@@ -2044,21 +2116,30 @@ main.wide {
    stops a block being sawn in half at the column boundary. */
 .cols2 {
   display: grid;
-  gap: 22px;
+  gap: var(--sp-5);
   align-content: start;
+  /* The pack is a section-level break like any other, and without this it had
+     none: the full-width facet legend above it ended at exactly the pixel the
+     first heading inside it began.  `.block` carries its own top margin, so
+     the pack has to zero that and own the rhythm itself, or the two stack. */
+  margin-top: var(--sp-6);
+}
+
+.cols2 > .block {
+  margin-top: 0;
 }
 
 @media (min-width: 900px) {
   .cols2 {
     display: block;
     columns: 2;
-    column-gap: 26px;
+    column-gap: var(--sp-5);
   }
 
   .cols2 > .block {
     -webkit-column-break-inside: avoid;
     break-inside: avoid;
-    margin: 0 0 22px;
+    margin: 0 0 var(--sp-5);
   }
 }
 
@@ -2067,7 +2148,7 @@ main.wide {
    each leaves a stripe of empty cream down the right of the card. */
 .facetgrid {
   display: grid;
-  gap: 14px 26px;
+  gap: var(--sp-4) var(--sp-5);
 }
 
 @media (min-width: 760px) {
@@ -2079,7 +2160,7 @@ main.wide {
 .facetgrid > .fitem {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: var(--sp-3);
 }
 
 .facetgrid > .fitem > .fbadge {
@@ -2089,8 +2170,8 @@ main.wide {
 .facetgrid > .fitem > p {
   margin: 0;
   color: var(--ink-light);
-  font-size: 0.86rem;
-  line-height: 1.6;
+  font-size: var(--fs-2);
+  line-height: var(--lh-body);
 }
 
 /* ---------------------------------------------------------- dashboards */
@@ -2101,13 +2182,13 @@ main.wide {
 .numbers {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
-  margin-top: 18px;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
 }
 
 /* A KPI row and the table under it are two blocks, not one stack of frames. */
 .numbers + .card {
-  margin-top: 12px;
+  margin-top: var(--sp-3);
 }
 
 /*
@@ -2125,7 +2206,7 @@ main.wide {
   border: 1.6px dashed var(--facet-content);
   border-radius: var(--r-sketch);
   background: var(--blue-wash);
-  padding: 1.1rem 1.2rem;
+  padding: var(--sp-4) var(--sp-5);
 }
 
 .num.gold {
@@ -2145,10 +2226,10 @@ main.wide {
 
 .num b {
   display: block;
-  font-size: clamp(1.7rem, 4vw, 2.4rem);
+  font-size: var(--fs-7);
   font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-display);
   color: var(--link);
 }
 
@@ -2169,30 +2250,36 @@ main.wide {
    one, for the same reason and by the same rule as `.tint .caps`. */
 .num span {
   display: block;
-  margin-top: 5px;
-  font-size: 0.78rem;
+  margin-top: var(--sp-1);
+  font-size: var(--fs-1);
   color: var(--ink-light);
 }
 
 .block {
-  margin-top: 30px;
+  margin-top: var(--sp-6);
 }
 
 .block > h2 {
-  font-size: 1.15rem;
+  font-size: var(--fs-4);
 }
 
+/* Both margins matter and the pair of them is the point.  With 8px above and
+   nothing below, the ink measured 13.8px from the heading and 3.4px from the
+   card -- so the standfirst read as a caption on the card rather than as the
+   second line of the heading it was written for.  Half the air above and a
+   whole step below puts the bigger gap where the structural break is. */
 .block > .lede {
-  margin-top: 6px;
-  font-size: 0.85rem;
+  margin-top: var(--sp-1);
+  margin-bottom: var(--sp-3);
+  font-size: var(--fs-2);
   color: var(--ink-light);
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
-  margin-top: 14px;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
 }
 
 /* auto-fill reserves the empty tracks, which is right for a census that grows
@@ -2204,18 +2291,18 @@ main.wide {
 
 /* Labelled progress row: label, thin track, right-aligned percent. */
 .bars {
-  margin-top: 14px;
+  margin-top: var(--sp-4);
   display: flex;
   flex-direction: column;
-  gap: 13px;
+  gap: var(--sp-3);
 }
 
 .bar-row {
   display: grid;
   grid-template-columns: minmax(120px, 1fr) 2.2fr auto;
   align-items: center;
-  gap: 12px;
-  font-size: 0.82rem;
+  gap: var(--sp-3);
+  font-size: var(--fs-2);
 }
 
 .bar-row .lab {
@@ -2224,7 +2311,7 @@ main.wide {
 
 .bar-row .val {
   color: var(--ink-faint);
-  font-size: 0.78rem;
+  font-size: var(--fs-1);
   text-align: right;
 }
 
@@ -2256,7 +2343,7 @@ main.wide {
   overflow: hidden;
   background: rgba(var(--ink-rgb), 0.07);
   box-shadow: inset 0 0 0 1px var(--hairline);
-  margin-top: 14px;
+  margin-top: var(--sp-4);
 }
 
 .stack > i {
@@ -2282,23 +2369,23 @@ main.wide {
 .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
 }
 
 /* Definition rows inside a card: hairline separated, label left, value right. */
 .facts {
-  margin-top: 10px;
+  margin-top: var(--sp-3);
 }
 
 .facts > div {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 14px;
-  padding: 7px 0;
+  gap: var(--sp-4);
+  padding: var(--sp-2) 0;
   border-top: 1px solid var(--hairline);
-  font-size: 0.82rem;
+  font-size: var(--fs-2);
 }
 
 .facts > div:first-child {
@@ -2378,16 +2465,16 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
  * how the reference site draws an ordered list of statements.
  */
 .claims {
-  margin-top: 14px;
+  margin-top: var(--sp-4);
   border: 1.6px dashed var(--facet-content);
   border-radius: var(--r-sketch);
   background: var(--blue-wash);
-  padding: 0.2rem 1.35rem 1.15rem;
+  padding: var(--sp-1) var(--sp-5) var(--sp-5);
 }
 
 .claim {
   position: relative;
-  padding: 1rem 0 0.95rem 3.1rem;
+  padding: var(--sp-4) 0 var(--sp-4) var(--sp-7);
   border-top: 1px solid var(--hairline);
 }
 
@@ -2403,13 +2490,13 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
   position: absolute;
   left: 0;
   top: 0.92rem;
-  font-size: 1.5rem;
+  font-size: var(--fs-6);
   color: var(--facet-content-ink);
 }
 
 .claim p {
-  font-size: 0.92rem;
-  line-height: 1.85;
+  font-size: var(--fs-3);
+  line-height: var(--lh-body);
   color: var(--ink);
 }
 
@@ -2417,8 +2504,8 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  margin-top: 10px;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
 }
 
 .claim .cites .dim {
@@ -2428,7 +2515,7 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
 /* Which model wrote the text above. It closes the view, so it needs air under
    the last source rather than sitting on its baseline. */
 .dim.mono {
-  margin-top: 18px;
+  margin-top: var(--sp-5);
 }
 
 /* A source is a row, not a card. Eight of them stacked as white slabs was the
@@ -2437,7 +2524,7 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
 .src {
   position: relative;
   scroll-margin-top: calc(var(--head-h) + 70px);
-  padding: 0.82rem 1rem 0.85rem;
+  padding: var(--sp-3) var(--sp-4) var(--sp-3);
   border-radius: var(--r-card);
   border-bottom: 1px solid var(--hairline);
 }
@@ -2471,7 +2558,7 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
   background: var(--brand-surface);
   color: var(--on-brand);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: var(--fs-0);
   font-weight: 700;
 }
 
@@ -2492,7 +2579,7 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 6vh 16px;
+  padding: 6vh var(--sp-4);
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
@@ -2510,13 +2597,13 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
   overflow-y: auto;
   border-radius: var(--r-modal);
   background: var(--cream);
-  padding: clamp(24px, 3vw, 40px);
+  padding: clamp(var(--sp-5), 3vw, var(--sp-7));
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
 }
 
 .sheet h2 {
-  font-size: 1.15rem;
-  padding-right: 44px;
+  font-size: var(--fs-4);
+  padding-right: var(--sp-7);
 }
 
 .shut {
@@ -2529,7 +2616,7 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
   border-radius: 50%;
   background: var(--card-bg);
   color: var(--ink-light);
-  font-size: 1.1rem;
+  font-size: var(--fs-4);
   line-height: 1;
   cursor: pointer;
 }
@@ -2542,19 +2629,19 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
 /* Underline tabs: the secondary switch the app scene prescribes. */
 .utabs {
   display: flex;
-  gap: 4px;
-  margin-top: 18px;
+  gap: var(--sp-1);
+  margin-top: var(--sp-5);
   border-bottom: 1px solid var(--hairline);
 }
 
 .utab {
-  padding: 8px 14px;
+  padding: var(--sp-2) var(--sp-4);
   border: 0;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   background: none;
   color: var(--ink-faint);
-  font-size: 0.84rem;
+  font-size: var(--fs-2);
   cursor: pointer;
 }
 
@@ -2574,7 +2661,7 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
 }
 
 .upanel {
-  padding-top: 16px;
+  padding-top: var(--sp-4);
 }
 
 .upanel[hidden] {
@@ -2582,8 +2669,8 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
 }
 
 .prose {
-  font-size: 0.88rem;
-  line-height: 1.85;
+  font-size: var(--fs-2);
+  line-height: var(--lh-body);
   color: var(--ink-light);
 }
 
@@ -2592,18 +2679,18 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
   display: inline-block;
   max-width: 100%;
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: var(--fs-1);
   color: var(--link);
   overflow-wrap: anywhere;
 }
 
 /* One labelled group of pills: topics, entities, remembered queries. */
 .tagset {
-  margin-top: 18px;
+  margin-top: var(--sp-5);
 }
 
 .tagset > h3 {
-  margin-bottom: 8px;
+  margin-bottom: var(--sp-2);
 }
 
 .tagset .marks {
@@ -2611,18 +2698,18 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
 }
 
 .points {
-  margin-top: 12px;
+  margin-top: var(--sp-3);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--sp-2);
 }
 
 .points li {
   position: relative;
-  padding-left: 18px;
-  font-size: 0.85rem;
+  padding-left: var(--sp-5);
+  font-size: var(--fs-2);
   color: var(--ink-light);
-  line-height: 1.7;
+  line-height: var(--lh-snug);
 }
 
 .points li::before {
@@ -2641,8 +2728,8 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
 .skel {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 16px;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
 }
 
 .skel > div {
@@ -2676,19 +2763,19 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
      81px tall with every label wrapped onto three lines. Five equal columns
      fit five views at any phone width, on one line, with nothing hidden. */
   .tabs {
-    padding: 8px 10px;
+    padding: var(--sp-2) var(--sp-3);
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 6px;
+    gap: var(--sp-2);
     overflow: visible;
   }
 
   .tab {
     justify-content: center;
     min-width: 0;
-    gap: 5px;
-    padding: 8px 5px;
-    font-size: 0.78rem;
+    gap: var(--sp-1);
+    padding: var(--sp-2) var(--sp-1);
+    font-size: var(--fs-1);
     white-space: nowrap;
   }
 
@@ -2699,8 +2786,8 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
 
   .tab .n {
     flex: none;
-    padding: 1px 5px;
-    font-size: 0.66rem;
+    padding: 1px var(--sp-1);
+    font-size: var(--fs-0);
   }
 
   .bar-row {
@@ -2728,13 +2815,13 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
    a nicety, and the same number is on the page it leads to. */
 @media (max-width: 480px) {
   .tabs {
-    padding: 8px 8px;
-    gap: 4px;
+    padding: var(--sp-2) var(--sp-2);
+    gap: var(--sp-1);
   }
 
   .tab {
-    padding: 8px 3px;
-    font-size: 0.74rem;
+    padding: var(--sp-2) 3px;
+    font-size: var(--fs-1);
   }
 
   .tab .n {
@@ -2769,6 +2856,14 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
  * palette A's three hues and move only the surfaces and the ink, plus the
  * three text roles that would otherwise fall under 4.5:1 on a dark card.
  *
+ * The paper is a four-rung ladder -- page, well, card, preview -- on the same
+ * warm axis as the landing page's night. It used to be a cool three-rung one
+ * whose top two rungs were six percent apart, so a card was told apart from
+ * the well behind it by its border and nothing else, and the whole interface
+ * read as one flat sheet of near-black. Raising it meant raising the ink with
+ * it: every hue below is read on a wash over the card, so paper and ink move
+ * together or neither moves. That is the whole reason the hues changed.
+ *
  * Only the tokens below may appear in this block; `tests/test_web.py` fails
  * the build if a fourth colour or a new token name shows up here, because the
  * moment this grows past surfaces it stops being a theme and becomes a second
@@ -2779,23 +2874,23 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
  * maths as the design system's own `scripts/validate-palettes.mjs`.
  */
 html[data-theme="dark"] {
-  --cream: #14161c;
-  --cream-dark: #1b1e26;
-  --card-bg: #1c1f28;
-  --preview-bg: #23252c;
-  --ink: #e9eaee;
-  --ink-light: #b9bcc6;
-  --ink-faint: #979ba6;
-  --ink-rgb: 233, 234, 238;
-  --border: rgba(233, 234, 238, 0.16);
-  --hairline: rgba(233, 234, 238, 0.1);
-  --border-strong: rgba(233, 234, 238, 0.26);
+  --cream: #1c1b18;
+  --cream-dark: #2a2820;
+  --card-bg: #34322a;
+  --preview-bg: #3e3c34;
+  --ink: #eceae2;
+  --ink-light: #c2bfb4;
+  --ink-faint: #aaa79d;
+  --ink-rgb: 236, 234, 226;
+  --border: rgba(236, 234, 226, 0.16);
+  --hairline: rgba(236, 234, 226, 0.1);
+  --border-strong: rgba(236, 234, 226, 0.26);
   --brand-text: #7db4ee;
   --brand-border: rgba(125, 180, 238, 0.45);
-  --pop-text: #f2879a;
+  --pop-text: #f5a1b0;
   --warning: #e8c65a;
-  --success: #6cc394;
-  --danger-strong: #f2879a;
+  --success: #8cd0ac;
+  --danger-strong: #f5a1b0;
   --highlight-soft: rgba(244, 215, 88, 0.16);
   --success-soft: rgba(108, 195, 148, 0.16);
   --warning-soft: rgba(232, 198, 90, 0.16);
@@ -2806,25 +2901,25 @@ html[data-theme="dark"] {
   --mark-band: rgba(244, 215, 88, 0.26);
   --tint-lex: rgba(244, 215, 88, 0.09);
   /* Night steps for the extended palette. The hues are lightened until they
-     clear 4.5:1 on the night surfaces and on their own night wash (measured
-     4.61, 4.64, 4.64, 4.63); the washes are the daylight hue at .16 over the
-     card, which is the grammar the tokens above already use. `-ink` and the
-     display hue converge here: on a near-black panel the lightened step is
-     both readable as text and visible as a border, so a second value would
-     be a distinction with no rendering behind it. */
+     clear 4.5:1 on the night surfaces and on their own night wash (worst
+     measured 4.69, against a 4.5 floor); the washes are the daylight hue at
+     .16 over the card, which is the grammar the tokens above already use.
+     `-ink` and the display hue converge here: on a dark panel the lightened
+     step is both readable as text and visible as a border, so a second value
+     would be a distinction with no rendering behind it. */
   --blue-wash: rgba(125, 180, 238, 0.14);
   --yellow-soft: rgba(244, 215, 88, 0.14);
   --rose-soft: rgba(242, 135, 154, 0.14);
-  --mint: #58a976;
-  --mint-ink: #58a976;
+  --mint: #7dbc94;
+  --mint-ink: #7dbc94;
   --mint-soft: rgba(79, 154, 107, 0.16);
-  --lilac: #a58bc6;
-  --lilac-ink: #a58bc6;
+  --lilac: #b9a5d3;
+  --lilac-ink: #b9a5d3;
   --lilac-soft: rgba(139, 105, 182, 0.16);
-  --aqua: #47a6a4;
-  --aqua-ink: #47a6a4;
+  --aqua: #6fbab8;
+  --aqua-ink: #6fbab8;
   --aqua-soft: rgba(62, 146, 144, 0.16);
-  --peach: #cf885b;
-  --peach-ink: #cf885b;
+  --peach: #daa27f;
+  --peach-ink: #daa27f;
   --peach-soft: rgba(201, 120, 69, 0.16);
 }
