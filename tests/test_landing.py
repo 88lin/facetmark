@@ -535,6 +535,36 @@ class TestTheSpacingGrid:
         ]
         assert len(uses) > 120, f"only {len(uses)} spacing declarations read the grid"
 
+    #: Properties an inline style may not name a raw length for. `max-width`,
+    #: `justify-content` and the bar widths are layout, not rhythm, so they are
+    #: not in here.
+    RHYTHM = ("margin", "padding", "gap", "row-gap", "column-gap")
+
+    @pytest.mark.parametrize("code", ["en", "zh"])
+    @pytest.mark.parametrize("page", ("index",) + DOC_PAGES)
+    def test_the_markup_does_not_hand_tune_a_gap_the_grid_owns(self, code, page):
+        """The one place the stylesheet's ladder cannot reach.
+
+        The assertion above reads the stylesheet, so five `style="margin-top:
+        18px"` in the renderer sat off-grid through the whole redesign and no
+        test was even looking at them. An inline gap is allowed -- it is often
+        the honest place for a one-off -- but it takes its value off the same
+        eight steps as everything else.
+        """
+        name = f"{page}{'.zh' if code == 'zh' else ''}.html"
+        html = (LANDING / name).read_text(encoding="utf-8")
+        offenders = []
+        for style in re.findall(r'style="([^"]*)"', html):
+            for decl in style.split(";"):
+                prop, _, value = decl.partition(":")
+                prop = prop.strip()
+                if not any(prop == x or prop.startswith(x + "-") for x in self.RHYTHM):
+                    continue
+                for raw in re.findall(r"-?[\d.]+px", value):
+                    if abs(float(raw[:-2])) > self.HAIRLINE:
+                        offenders.append(f"{prop}: {value.strip()}")
+        assert not offenders, f"{name} hand-tunes: " + "; ".join(sorted(set(offenders)))
+
 
 # ---------------------------------------------------------------------------
 # surfaces

@@ -116,7 +116,7 @@ def r_block(b: tuple) -> str:
         # back and caps the width at the reading column.
         dark = (b[4], b[5]) if len(b) > 4 else None
         return (
-            '<div style="max-width:var(--readw);margin:22px 0">'
+            '<div style="max-width:var(--readw);margin:var(--sp-5) 0">'
             + _shot((b[1], b[2], b[3]), dark)
             + "</div>"
         )
@@ -691,7 +691,7 @@ def page_index(t: dict) -> str:
     o.append("</div>")
     o.append(diagram_stack(t["code"]))
     o.append("</div>")
-    o.append('<div class="grid g3 reveal" style="margin-top:18px">')
+    o.append('<div class="grid g3 reveal" style="margin-top:var(--sp-5)">')
     for title, body in i["pipe_after"]:
         o.append(f'<article class="card"><h3>{esc(title)}</h3><p>{body}</p></article>')
     o.append("</div></div></section>")
@@ -704,7 +704,7 @@ def page_index(t: dict) -> str:
     o.append(f'<p class="seclabel">{esc(i["app_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["app_h2"]}</h2>')
     o.append(f'<p class="lede read reveal">{i["app_lede"]}</p>')
-    o.append('<div class="reveal" style="margin-bottom:22px">')
+    o.append('<div class="reveal" style="margin-bottom:var(--sp-5)">')
     o.append(_shot(i["app_shot"], i["app_shot_dark"]))
     o.append("</div>")
     o.append('<div class="grid g3 reveal">')
@@ -713,7 +713,7 @@ def page_index(t: dict) -> str:
     o.append("</div>")
     suffix = ".zh.html" if t["code"] == "zh" else ".html"
     o.append(
-        f'<p class="reveal" style="margin-top:22px">'
+        f'<p class="reveal" style="margin-top:var(--sp-5)">'
         f'<a class="btn primary" href="quickstart{suffix}">{esc(i["app_cta"])}</a></p>'
     )
     o.append("</div></section>")
@@ -756,7 +756,7 @@ def page_index(t: dict) -> str:
     o.append(f'<p class="seclabel">{esc(i["meas_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["meas_h2"]}</h2>')
     o.append(f'<p class="lede read reveal">{i["meas_lede"]}</p>')
-    o.append('<div class="grid g3 reveal" style="margin-bottom:26px">')
+    o.append('<div class="grid g3 reveal" style="margin-bottom:var(--sp-5)">')
     for v, k, cls in i["meas_stats"]:
         o.append(
             f'<div class="stat">'

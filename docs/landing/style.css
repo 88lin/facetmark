@@ -434,6 +434,11 @@ hr { border: 0; border-top: 1px solid var(--border); margin: var(--sp-7) 0; }
 .read { max-width: var(--readw); }
 .muted { color: var(--ink-light); }
 .tiny { font-size: var(--fs-2); color: var(--ink-light); }
+/* A note that explains the block above it is a caption, not the next
+   paragraph. The reset zeroes every paragraph's top margin, which left
+   these three pixels under a card grid -- the half-leading, nothing
+   else -- so they read as the grid's own last line. */
+p.tiny { margin-top: var(--sp-3); }
 .center { text-align: center; }
 .nowrap { white-space: nowrap; }
 
