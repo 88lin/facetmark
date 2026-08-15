@@ -138,13 +138,29 @@
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* The one colour name this file introduces, and it is an alias rather than
-     a value. The palette's `--brand-text` is tuned for white; on `--cream-dark`
-     it measures 4.43:1 and on a 10% brand tint 3.94:1, both under AA. The
-     palette already ships a darker brand step, so link-coloured text points at
-     that instead and clears 4.5:1 on every surface the page actually paints.
-     The dark block re-points it, because down there the deep step is the
-     unreadable one. */
+     a value. Under palette A this was a rescue: that palette's `--brand-text`
+     measured 4.43:1 on `--cream-dark` and 3.94:1 on a 10% brand tint, both
+     under AA, so link-coloured text had to point at the deeper brand step.
+     Palette I needs no rescue -- its brand step measures 5.52:1 on the same
+     surface -- and the alias stays for the two reasons that outlived the
+     rescue: the deeper step gives a link more weight than the wash it sits
+     on, and the dark block needs one name to re-point, because down there the
+     deep step is the unreadable one.
+
+     Two of the palette's shared semantic colours are also re-pointed here.
+     The vendored success green and warning olive sit in the two families this
+     project may not paint, and `palettes.css` is pinned byte-for-byte, so the
+     override lives in this file instead. Success borrows the trigram lane's
+     indigo: link health only ever renders in the system view and facet colour
+     only in result rows and the legend, so the two never share a screen.
+     Warning takes the deep plum step, one stop below the graph-expansion
+     display hue, and the lexical lane borrows it in turn because gold has no
+     readable version of itself. Neither status is signalled by colour alone --
+     every one of them carries a label, and most carry an icon too. */
   --link: var(--brand-deep);
+  --success: var(--indigo-ink);
+  --success-soft: var(--indigo-soft);
+  --warning: var(--plum-ink);
 
   /*
    * The four recall paths, given one colour each.
@@ -160,112 +176,130 @@
    *   `-*`      the display hue. Dots, bars, borders. Never text.
    *   `-*-ink`  the text-safe step, which is one or two stops deeper. Every
    *             one of these clears 4.5:1 on all three page surfaces in both
-   *             themes; the display hues do not, and yellow never could.
+   *             themes; the display hues do not, and gold never could.
    *   `-*-soft` the wash used behind a badge, and now behind a lead row.
    *
-   * Two of these moved in the rebuild, and both moves were forced by the same
-   * thing: with only three hues in palette A, two of the four facets had to
-   * share a colour, and the sharing was on the one screen the four-way recall
-   * is supposed to be visible on.
+   * lex_tri had no colour of its own before the rebuild. It rode gold behind
+   * lex_seg, so a hit found by trigrams and a hit found by segmented words
+   * drew the same badge. It now takes indigo. intent was red, which is also
+   * `cold`, also `danger`, also every failed probe on the system page, and a
+   * result row can carry an intent badge and a cold chip at the same time in
+   * the same red. It now takes orchid, and red goes back to meaning only
+   * "something is wrong".
    *
-   *   lex_tri had no colour of its own. It rode gold behind lex_seg, so a hit
-   *   found by trigrams and a hit found by segmented words drew the same
-   *   badge. It now takes aqua from the extended palette.
+   * Two things here are not symmetrical, and both are forced.
    *
-   *   intent was red. Red is also `cold`, also `danger`, also every failed
-   *   probe on the system page, and a result row can carry an intent badge
-   *   and a cold chip at the same time in the same red. It now takes lilac,
-   *   and red goes back to meaning only "something is wrong".
+   *   Gold has no readable version of itself. Every deep step of that hue
+   *   lands in the brown family this project may not paint, so the lexical
+   *   lane borrows `--warning`, which is the deep step the gold washes
+   *   already sit beside everywhere else on the page.
    *
-   * Context keeps `--success`, which the health dashboard also uses for "this
-   * link still resolves". The two never share a screen -- facet colour appears
-   * in result rows and the legend, link health only in the system view.
+   *   Graph expansion gets no ink of its own. It is not a facet -- those rows
+   *   were not ranked, they were walked to -- so it takes a display hue from
+   *   outside the four and sets its label in the muted page ink. A fifth
+   *   voice would imply a fifth path. It measures 7.81:1 in daylight and
+   *   6.41:1 at night on its own wash.
+   *
+   * Content and context point at `--brand-text` and `--pop-text` rather than
+   * `--brand` and `--pop`, because those two aliases are the ones the dark
+   * block re-points. A dashed frame in the daylight brand hue measures 2.6:1
+   * on the night page and effectively disappears.
+   *
+   * The six washes are 6.38 dE00 apart at their closest in daylight and 7.31
+   * at night, measured pairwise on every page surface. The set they replaced
+   * managed 2.72.
    */
   --facet-lex: var(--highlight);
   --facet-lex-ink: var(--warning);
   --facet-lex-soft: var(--highlight-soft);
-  --facet-content: var(--brand);
+  --facet-content: var(--brand-text);
   --facet-content-ink: var(--link);
-  --facet-content-soft: var(--info-soft);
-  --facet-tri: var(--aqua);
-  --facet-tri-ink: var(--aqua-ink);
-  --facet-tri-soft: var(--aqua-soft);
-  --facet-intent: var(--lilac);
-  --facet-intent-ink: var(--lilac-ink);
-  --facet-intent-soft: var(--lilac-soft);
-  --facet-context: var(--success);
-  --facet-context-ink: var(--success);
-  --facet-context-soft: var(--success-soft);
-  /* Graph expansion is not a facet -- those rows were not ranked, they were
-     walked to -- so it gets a hue outside the four rather than a fifth facet
-     colour that would imply it was. */
-  --facet-edge: var(--peach);
-  --facet-edge-ink: var(--peach-ink);
-  --facet-edge-soft: var(--peach-soft);
+  --facet-content-soft: var(--iris-soft);
+  --facet-tri: var(--indigo);
+  --facet-tri-ink: var(--indigo-ink);
+  --facet-tri-soft: var(--indigo-soft);
+  --facet-intent: var(--orchid);
+  --facet-intent-ink: var(--orchid-ink);
+  --facet-intent-soft: var(--orchid-soft);
+  --facet-context: var(--pop-text);
+  --facet-context-ink: var(--pop-deep);
+  --facet-context-soft: var(--rose-soft);
+  --facet-edge: var(--plum);
+  --facet-edge-ink: var(--ink-light);
+  --facet-edge-soft: var(--plum-soft);
 
-  /* The highlighter band. Full-strength yellow under near-black ink reads at
-     11:1; under the dark theme's near-white ink it would read at 1.6:1, so the
-     dark block drops it to a wash rather than repainting the ink. */
+  /* The highlighter band. Full-strength gold under near-black ink reads at
+     11.96:1; under the dark theme's near-white ink the same band would read at
+     1.01:1, so the dark block drops it to a wash rather than repainting the
+     ink. */
   --mark-band: var(--highlight);
 
   /*
    * The wash under each tinted base card, as a token rather than a literal,
    * so that the contrast sweep resolves the right one per theme and so that
-   * yellow can be re-pointed for night without a second copy of the rule.
+   * the gold wash can be re-pointed for night without a second copy of the
+   * rule.
    *
-   * Yellow is the reason this is a token at all. Every other hue laid over a
-   * near-black page stays recognisably itself; yellow turns khaki, and at the
+   * Gold is the reason this is a token at all. Every other hue laid over a
+   * near-black page stays recognisably itself; gold turns khaki, and at the
    * design system's daylight strength of .15 the night card reads as olive
    * rather than as the lexical facet. The dark block takes it to .09, which
-   * is the point where it is still yellow and no longer mud.
+   * is the point where it is still gold and no longer mud.
    *
-   * Context has no wash of its own because the palette ships no
-   * `--success-rgb`; it borrows the ready-made soft step and stays flat.
+   * Intent and context carry no alpha of their own. The palette ships no
+   * `-rgb` channel for the hues behind them, so both point at the flat lane
+   * wash, which is already tuned against the same floors.
    */
   --tint-content: rgba(var(--brand-rgb), 0.08);
   --tint-lex: rgba(var(--highlight-rgb), 0.15);
-  --tint-intent: var(--lilac-soft);
-  --tint-context: var(--success-soft);
+  --tint-intent: var(--orchid-soft);
+  --tint-context: var(--rose-soft);
   --tint-plain: var(--cream-dark);
 
-  /* extended palette -- sourced from repair.88lin.eu.org
+  /* extended palette -- three hues the vendored file does not name here
    *
-   * Palette A ships three hues. The owner's own derived site runs nine, and
-   * the extra six are the reason a screen of twenty results there does not
-   * read as twenty identical cards. These are copied from that site's `:root`
-   * rather than invented, so the two surfaces agree on what "mint" is.
+   * Palette I ships three: the wisteria brand, the gold accent and the rose
+   * pop. A result row can show six recall paths at once, so three is three
+   * short of a legend that can be read without labels. Indigo, orchid and
+   * plum close the gap, and each one is lifted from another of the ten
+   * palettes the vendored file already carries -- indigo from B, orchid from
+   * G, plum from C -- rather than mixed by hand, so a future palette swap has
+   * somewhere to land.
    *
    * They cannot live in `palettes.css`: that file is vendored verbatim and
    * pinned byte-for-byte against the site's copy by `tests/test_landing.py`.
-   * So they live here, between these two markers, and
+   * So they live in `:root`, between these two markers, and
    * `test_the_stylesheet_names_no_colour_the_palette_did_not` permits literal
    * hexes only inside the fence and only for the names it lists.
    *
-   * The reference site sets no text in mint, lilac, aqua or peach, so it
-   * publishes no `-ink` step for them. facetmark does -- a tinted card puts a
-   * coloured label on a coloured wash -- so each `-ink` here was derived by
-   * walking lightness down until the hue cleared 4.5:1 on every surface it
-   * can reach, with headroom. One value is shipped per hue rather than one
-   * per file: the landing site runs a darker band colour and needs the deeper
-   * step, so that step is used here too and this file simply gains margin.
-   * Measured worst cases here: mint 5.21, lilac 5.06, aqua 5.20, peach 5.20.
-   * The display hues never carry text.
+   * Three of the washes belong to hues the palette does name, and are here
+   * anyway because the palette's own soft steps are the wrong instrument.
+   * `--pop-soft` sits 1.90 dE00 from `--danger-soft`, which would put the
+   * context lane and the failure state in the same pink on the same row --
+   * the exact collision the intent lane was moved off red to avoid.
+   * `--info-soft`, the palette's own ten-percent brand tint, resolves to a
+   * near-neutral lavender that sits 1.73 dE00 from the graph-expansion wash --
+   * close enough that a callout and a walked-to row would be the same colour
+   * with different borders. `--iris-soft` is the separated version, and the two
+   * surfaces that used the tint now paint it, so nothing reads the tint at all.
+   *
+   * The `-ink` steps were walked down until each cleared 4.5:1 on every
+   * surface and every wash it can reach. The washes were walked up until each
+   * cleared that floor for both the body ink and the muted ink while staying
+   * at least 3.30 dE00 from the other five lanes and from the danger and
+   * warning washes. The display hues never carry text.
    */
-  --blue-wash: #dfecfb;
-  --yellow-soft: #fff3cd;
-  --rose-soft: #fff0f2;
-  --mint: #4f9a6b;
-  --mint-ink: #3b724f;
-  --mint-soft: #edf8f1;
-  --lilac: #8b69b6;
-  --lilac-ink: #7b54ac;
-  --lilac-soft: #f5f0fb;
-  --aqua: #3e9290;
-  --aqua-ink: #307170;
-  --aqua-soft: #ecf8f7;
-  --peach: #c97845;
-  --peach-ink: #98562d;
-  --peach-soft: #fff3ea;
+  --indigo: #33548a;
+  --indigo-ink: #233c68;
+  --indigo-soft: #dfecfb;
+  --iris-soft: #eee6fa;
+  --orchid: #8a2f84;
+  --orchid-ink: #662061;
+  --orchid-soft: #ffdbfd;
+  --plum: #7a3560;
+  --plum-ink: #5b2349;
+  --plum-soft: #f7f2f5;
+  --rose-soft: #fee1ed;
   /* end extended palette */
 }
 
@@ -526,8 +560,9 @@ button {
 }
 
 /* The count on the selected tab darkens rather than lightens. A white veil
-   over the brand blue lifts it toward the white numeral and lands at 3.2:1;
-   the palette's deep step goes the other way and reads at 6.7:1. */
+   over the brand step lifts the pill toward the white numeral it carries and
+   lands at 3.37:1; the palette's deep step goes the other way and reads at
+   9.69:1. */
 .tab[aria-current="page"] .n {
   background: var(--brand-deep);
   color: var(--on-brand);
@@ -740,9 +775,13 @@ main.wide {
   cursor: pointer;
 }
 
+/* The hover and the keyboard selection are the same wash on purpose: a
+   dropdown that highlights two rows at once has told the reader nothing. It is
+   the brand lane wash rather than the palette's own ten-percent brand tint,
+   which sits too close to the graph-expansion wash to be used as a surface. */
 .sugg li > button:hover,
 .sugg li > button[aria-selected="true"] {
-  background: var(--info-soft);
+  background: var(--iris-soft);
 }
 
 .sugg .t {
@@ -819,7 +858,7 @@ main.wide {
   white-space: nowrap;
 }
 
-/* Vector facets read blue, lexical facets read gold: the split is the one
+/* Vector facets read wisteria, lexical facets read gold: the split is the one
    distinction in the result row a reader actually has to learn. */
 .pill.vec {
   background: rgba(var(--brand-rgb), 0.1);
@@ -908,30 +947,30 @@ main.wide {
  * The system page was five white cards in a column -- the server table, the
  * fetch queue, the link report, the health bar, the graveyard. Five facts of
  * five different kinds, drawn as one repeated object. Here the hue is not
- * decoration: gold is work still owed, green is a health reading, peach is
- * the dead-link layer, and blue is the default the rest of the page uses for
+ * decoration: gold is work still owed, rose is a health reading, plum is the
+ * dead-link layer, and wisteria is the default the rest of the page uses for
  * "this is what the server currently is".
  */
 .card.hue {
   border: 1.6px dashed var(--facet-content);
   border-radius: var(--r-sketch);
-  background: var(--blue-wash);
+  background: var(--iris-soft);
   box-shadow: none;
 }
 
 .card.hue.lex {
   border-color: var(--facet-lex-ink);
-  background: var(--yellow-soft);
+  background: var(--highlight-soft);
 }
 
 .card.hue.ctx {
-  border-color: var(--mint);
-  background: var(--mint-soft);
+  border-color: var(--pop-text);
+  background: var(--rose-soft);
 }
 
 .card.hue.edge {
   border-color: var(--facet-edge);
-  background: var(--peach-soft);
+  background: var(--plum-soft);
 }
 
 /* The faintest ink does not survive a wash -- the same rule `.tint` states at
@@ -958,7 +997,7 @@ main.wide {
  * dashed frame in the same hue, with the rank as an oversized numeral. Rank
  * four and down are Tier 1: a light row, a hairline, colour only in the
  * badges. Graph-expansion rows are neither -- they were walked to rather than
- * ranked -- so they take peach, which no facet uses.
+ * ranked -- so they take plum, which no facet claims.
  *
  * A screen of results now shows several colours at once, because the hue is
  * carrying which of the four paths fired, and different queries fire
@@ -1011,7 +1050,7 @@ main.wide {
   padding: var(--sp-5) var(--sp-5) var(--sp-4) var(--sp-7);
   border: 1.5px dashed var(--facet-content);
   border-radius: var(--r-sketch);
-  background: var(--blue-wash);
+  background: var(--iris-soft);
 }
 
 .hit.lead:last-of-type {
@@ -1020,17 +1059,17 @@ main.wide {
 
 .hit.lead.f-lex {
   border-color: var(--facet-lex-ink);
-  background: var(--yellow-soft);
+  background: var(--highlight-soft);
 }
 
 .hit.lead.f-tri {
   border-color: var(--facet-tri);
-  background: var(--aqua-soft);
+  background: var(--indigo-soft);
 }
 
 .hit.lead.f-intent {
   border-color: var(--facet-intent);
-  background: var(--lilac-soft);
+  background: var(--orchid-soft);
 }
 
 /* Hover on a tinted row cannot be "add a tint". It lifts instead, which is
@@ -1051,8 +1090,8 @@ main.wide {
 }
 
 /* The lead numeral is component 8 at row scale -- same `.bignum` the setup
-   steps and the stage bar use -- and it takes the row's hue, because a blue
-   numeral in an aqua frame reads as two unrelated marks. */
+   steps and the stage bar use -- and it takes the row's hue, because a wisteria
+   numeral in an indigo frame reads as two unrelated marks. */
 .hit.lead .bignum {
   left: 1.15rem;
   top: 0.85rem;
@@ -1099,12 +1138,11 @@ main.wide {
   white-space: nowrap;
 }
 
-/* `--ink-faint` clears AA on the three page surfaces and on nothing else.
-   Measured on the five washes these rows paint it lands at 4.17 (blue) and
-   4.46 (lilac) in daylight and 4.18 (yellow) at night, so a tinted row
-   re-points it one step up, exactly as `.tint` already does. Same reason,
-   same fix, and the sweep grades this rule against the wash rather than
-   against the page. */
+/* `--ink-faint` clears AA on the three page surfaces and barely anywhere
+   else. Measured on the six washes these rows paint it bottoms out at 4.44 on
+   intent in daylight and at 3.89 on content at night, so a tinted row re-points
+   it one step up, exactly as `.tint` already does. Same reason, same fix, and
+   the sweep grades this rule against the wash rather than against the page. */
 .hit.lead .where,
 .hit.near .where {
   color: var(--ink-light);
@@ -1157,14 +1195,14 @@ main.wide {
 
 /* Graph expansion. These rows were walked to rather than ranked, so they
    carry no rank number, the gutter that number sits in is closed up, and the
-   hue is peach -- outside the four facet colours, because claiming one would
+   hue is plum -- outside the four facet colours, because claiming one would
    claim the row was retrieved by that path. */
 .hit.near {
   margin-bottom: var(--sp-2);
   padding: var(--sp-4) var(--sp-5) var(--sp-4);
   border: 1.5px dashed var(--facet-edge);
   border-radius: var(--r-sketch);
-  background: var(--peach-soft);
+  background: var(--plum-soft);
 }
 
 /* The detail button sits over the row, so it needs its own stacking context. */
@@ -1413,7 +1451,7 @@ main.wide {
   position: relative;
   border: 1.6px dashed var(--facet-content);
   border-radius: var(--r-sketch);
-  background: var(--blue-wash);
+  background: var(--iris-soft);
   padding: var(--sp-4) var(--sp-4) var(--sp-4) var(--sp-8);
 }
 
@@ -1448,7 +1486,7 @@ main.wide {
 
 .sitting.f-lex {
   border-color: var(--facet-lex-ink);
-  background: var(--yellow-soft);
+  background: var(--highlight-soft);
 }
 
 .sitting.f-lex .bignum {
@@ -1457,7 +1495,7 @@ main.wide {
 
 .sitting.f-edge {
   border-color: var(--facet-edge);
-  background: var(--peach-soft);
+  background: var(--plum-soft);
 }
 
 .sitting.f-edge .bignum {
@@ -1466,7 +1504,7 @@ main.wide {
 
 .sitting.f-intent {
   border-color: var(--facet-intent);
-  background: var(--lilac-soft);
+  background: var(--orchid-soft);
 }
 
 .sitting.f-intent .bignum {
@@ -1475,7 +1513,7 @@ main.wide {
 
 .sitting.f-tri {
   border-color: var(--facet-tri);
-  background: var(--aqua-soft);
+  background: var(--indigo-soft);
 }
 
 .sitting.f-tri .bignum {
@@ -1488,10 +1526,14 @@ main.wide {
 
 /* ------------------------------------------------------------- callouts */
 
+/* A callout, washed in the brand lane rather than in the palette's own
+   ten-percent brand tint: that tint lands 1.73 dE00 from `.panel.edge` below,
+   so the two variants of this one component would have differed by their
+   border and nothing else. */
 .panel {
   border-radius: var(--r-card);
   padding: var(--sp-5);
-  background: var(--info-soft);
+  background: var(--iris-soft);
   border: 1px solid var(--brand-border);
   margin-top: var(--sp-4);
 }
@@ -1543,16 +1585,16 @@ main.wide {
 /* What the retrieval could not cover. It is a note about the edges of the
    answer, not a warning about the server, and stacking it under the gold
    "no model configured" notice in the same gold made the page read as one
-   long caution. Peach is the hue this stylesheet already gives the link
+   long caution. Plum is the hue this stylesheet already gives the link
    layer -- the parts reached by walking rather than by ranking. */
 .panel.edge {
-  background: var(--peach-soft);
+  background: var(--plum-soft);
   border-color: var(--facet-edge);
 }
 
 /* A command to copy, inset into the panel that asked for it. Light, not a
    terminal: the app scene forbids dark panels in functional areas, and a
-   black slab inside a yellow notice is exactly the thing it forbids. */
+   black slab inside a gold notice is exactly the thing it forbids. */
 .panel .cmd {
   margin: var(--sp-4) 0 0;
   padding: var(--sp-3) var(--sp-4);
@@ -1611,8 +1653,15 @@ main.wide {
   background: var(--facet-content);
 }
 
+/* The gold dot is the one that cannot be seen. Every other display hue clears
+   4.7:1 against the page; gold measures 1.19:1, so an 8px disc of it on cream is
+   a gap in the legend. It gets a hairline in the lane's ink step, which reads at
+   10.38:1 on the page and 8.73:1 against the fill it outlines. The ring costs
+   nothing at night: down there the ink step *is* gold, so it collapses into the
+   fill exactly where the fill already measures 8.47:1 on a card. */
 .fdot.lex {
   background: var(--facet-lex);
+  box-shadow: inset 0 0 0 1px var(--facet-lex-ink);
 }
 
 .fdot.tri {
@@ -1723,22 +1772,21 @@ main.wide {
   border-color: rgba(var(--highlight-rgb), 0.4);
 }
 
-/* Flat, where the two above are gradients, for the same reason `.tint.context`
-   is: lilac arrives from the extended palette as a hex with no `--*-rgb`
-   channel behind it, so there is no way to write a second, weaker stop of it
-   without inventing a colour. A wash that fades to nothing is not the same
-   shape as a wash that fades to a thinner version of itself, so it does not
-   pretend to be one. */
+/* Flat, where the two above are gradients: orchid arrives from the extended
+   palette as a tuned hex with no `--*-rgb` channel behind it, so there is no
+   way to write a second, weaker stop of it without inventing a colour. A wash
+   that fades to nothing is not the same shape as a wash that fades to a thinner
+   version of itself, so it does not pretend to be one. */
 .tint.intent {
   background: var(--tint-intent);
   border-color: var(--facet-intent);
 }
 
-/* Green is the one facet with no `--*-rgb` channel upstream, so its tint is
-   the palette's ready-made soft step and stays flat. Matching the other three
-   would mean inventing a colour, which the brand rules forbid -- and it also
-   means the wash cannot double as the border, because a soft step against
-   itself is no edge at all. The neutral hairline does that job instead. */
+/* Same as intent above -- a tuned hex with no channel to thin it through -- so
+   this one is flat too. Matching the two gradients would mean inventing a
+   colour, which the brand rules forbid, and it also means the wash cannot
+   double as the border, because a soft step against itself is no edge at all.
+   The neutral hairline does that job instead. */
 .tint.context {
   background: var(--tint-context);
   border-color: var(--border);
@@ -1764,13 +1812,14 @@ main.wide {
 /*
  * The faintest ink does not survive a tint, and this is the rule that says so.
  *
- * `--ink-faint` clears AA on the bare page by 0.37 -- 4.87:1 against a 4.5
- * floor -- and every tint here costs more than that, landing the four
- * variants between 4.06:1 and 4.42:1. Nothing would have caught it: the
- * contrast sweep grades the rule that *sets* a colour, and `.caps` and `.dim`
- * set theirs at the top level, where they pass. Inheriting into a tinted
- * panel is invisible to it. So the tint re-points both classes to the next
- * ink up, which has 8.46:1 to spend and stays over 7:1 on the strongest wash.
+ * `--ink-faint` clears AA on the bare page by 0.87 -- 5.37:1 against a 4.5
+ * floor -- and a tint spends most of that back, landing the five variants
+ * between 4.44:1 and 5.15:1: intent is under the floor and context is 0.05
+ * over it. Nothing would have caught it: the contrast sweep grades the rule
+ * that *sets* a colour, and `.caps` and `.dim` set theirs at the top level,
+ * where they pass. Inheriting into a tinted panel is invisible to it. So the
+ * tint re-points both classes to the next ink up, which has 8.58:1 to spend
+ * and stays over 7:1 on the strongest wash.
  * `tests/test_web.py::TestTheTint` measures all of this rather than trusting
  * the arithmetic in this comment.
  */
@@ -1797,17 +1846,18 @@ main.wide {
  * they were right. Two things changed. The frame carries the whole hue, and
  * there is now a wash under it, so the frame has something to be the edge of.
  *
- * Full strength is also the only option for two of the three. Lilac and the
- * gold ink step arrive from the extended palette as plain hexes with no
- * `--*-rgb` channel behind them, and the stylesheet is forbidden from writing
- * a literal `rgba()`, so `rgba(lilac, .4)` cannot be expressed at all. Rather
- * than have one frame at 40% and two at 100%, all three are at 100%.
+ * Full strength is also the only option for two of the three. The orchid
+ * display hue and the deep plum the lexical lane borrows arrive from the
+ * extended palette as plain hexes with no `--*-rgb` channel behind them, and
+ * the stylesheet is forbidden from writing a literal `rgba()`, so
+ * `rgba(orchid, .4)` cannot be expressed at all. Rather than have one frame at
+ * 40% and two at 100%, all three are at 100%.
  */
 .sketch {
   position: relative;
   border: 1.6px dashed var(--facet-content);
   border-radius: var(--r-sketch);
-  background: var(--blue-wash);
+  background: var(--iris-soft);
   padding: var(--sp-5) var(--sp-5) var(--sp-5);
 }
 
@@ -1817,12 +1867,12 @@ main.wide {
 
 .sketch.lex {
   border-color: var(--facet-lex-ink);
-  background: var(--yellow-soft);
+  background: var(--highlight-soft);
 }
 
 .sketch.intent {
   border-color: var(--facet-intent);
-  background: var(--lilac-soft);
+  background: var(--orchid-soft);
 }
 
 /*
@@ -1834,7 +1884,7 @@ main.wide {
  * allowlist that grows every time someone wants a big number. One entry, three
  * call sites, and the sizes are set by the context rather than by new classes.
  *
- * Inside a coloured frame it takes the frame's colour: a blue numeral in a
+ * Inside a coloured frame it takes the frame's colour: a wisteria numeral in a
  * gold frame reads as two unrelated marks rather than as one card.
  */
 .bignum {
@@ -1862,7 +1912,7 @@ main.wide {
 }
 
 .sketch.done .bignum {
-  color: var(--facet-context-ink);
+  color: var(--success);
 }
 
 /* --- highlighter --------------------------------------------------------- */
@@ -1920,19 +1970,25 @@ main.wide {
   font-size: var(--fs-2);
 }
 
-/* A finished step goes green and goes solid.
+/* A finished step goes indigo and goes solid.
  *
  * The earlier version dimmed the frame to a sixth of its ink and kept the hue,
  * so a page with two steps done showed one coloured frame and two ghosts --
  * which reads as "two of these are broken". Dimming is also unavailable now:
- * two of the three hues have no alpha channel to dim through. Green with a
- * closed border and a tick is the state, said three ways, and it converges the
- * page as the reader works down it instead of emptying it out. */
+ * two of the three hues have no alpha channel to dim through. So done borrows
+ * the success colour rather than a lane hue -- border, wash and numeral are one
+ * colour said three times, at 9.14:1 in daylight and 5.72:1 at night -- and it
+ * converges the page as the reader works down it instead of emptying it out.
+ *
+ * It used to take the context lane's hue, back when success and that lane were
+ * the same green. They are not any more: success is the deep indigo and context
+ * is the rose, so keeping the old pairing would have put a pink border round a
+ * blue wash. */
 .sketch.done,
 .sketch.lex.done,
 .sketch.intent.done {
   border-style: solid;
-  border-color: var(--facet-context);
+  border-color: var(--success);
   background: var(--success-soft);
 }
 
@@ -2028,7 +2084,7 @@ main.wide {
 /* The ordinal. Seven stage names in two languages are not orderable at a
    glance -- "embed_content" and "embed_intents" are the same word twice -- so
    the number does the ordering and the name says which one it is. `--ink-faint`
-   on a filled tile is 4.20:1, which is why this is a step up from it. */
+   on a filled tile falls to 3.87:1, which is why this is a step up from it. */
 .stage .bignum {
   font-size: var(--fs-4);
   line-height: 1;
@@ -2036,7 +2092,7 @@ main.wide {
 }
 
 .stage.done .bignum {
-  color: var(--facet-context-ink);
+  color: var(--success);
 }
 
 .stage.now .bignum {
@@ -2067,7 +2123,7 @@ main.wide {
 }
 
 /* Planned, then never reached, because the run stopped. Hollow rather than
-   dimmed: `--ink-faint` on a filled tile lands at 4.20:1, and a stage the
+   dimmed: `--ink-faint` on a filled tile lands at 3.87:1, and a stage the
    reader may need to go and run themselves is not the place to spend the
    contrast budget. */
 .stage.skipped {
@@ -2198,25 +2254,27 @@ main.wide {
  * which is the uniform card grid the design system puts first on its taboo
  * list -- and the four numbers are four different kinds of fact, so drawing
  * them identically was also wrong on the merits. Each now has a wash and a
- * dashed frame: neutral for the raw library size, blue for what is indexable,
- * gold for what has been enriched, peach for sittings, which is the same peach
- * the graph-expansion rows use because both are the link layer.
+ * dashed frame: neutral for the raw library size, wisteria for what is
+ * indexable, gold for what has been enriched, plum for sittings, which is the
+ * same plum the graph-expansion rows use because both are the link layer --
+ * and, like those rows, its numeral is set in the muted ink rather than in a
+ * fifth voice.
  */
 .num {
   border: 1.6px dashed var(--facet-content);
   border-radius: var(--r-sketch);
-  background: var(--blue-wash);
+  background: var(--iris-soft);
   padding: var(--sp-4) var(--sp-5);
 }
 
 .num.gold {
   border-color: var(--facet-lex-ink);
-  background: var(--yellow-soft);
+  background: var(--highlight-soft);
 }
 
 .num.edge {
   border-color: var(--facet-edge);
-  background: var(--peach-soft);
+  background: var(--plum-soft);
 }
 
 .num.ink {
@@ -2238,7 +2296,7 @@ main.wide {
 }
 
 .num.edge b {
-  color: var(--peach-ink);
+  color: var(--facet-edge-ink);
 }
 
 .num.ink b {
@@ -2246,8 +2304,8 @@ main.wide {
 }
 
 /* On a white card `--ink-faint` cleared AA with room to spare. On these washes
-   it lands at 4.17 (blue) and 4.18 (gold at night), so the caption steps up
-   one, for the same reason and by the same rule as `.tint .caps`. */
+   it sinks under the floor, so the caption steps up one, for the same reason
+   and by the same rule as `.tint .caps`. */
 .num span {
   display: block;
   margin-top: var(--sp-1);
@@ -2350,8 +2408,15 @@ main.wide {
   height: 100%;
 }
 
+/* The display hue, not `--success`. Every other segment here paints a display
+   colour -- gold, danger red, muted ink -- because a 12px bar is read by its
+   fill, not by its text. `--success` now points at the indigo *ink* step,
+   which is derived to carry text on a cream page: at 0.046 luminance it lands
+   below the daylight floor `test_no_dark_panel_in_a_functional_area` sets, and
+   a near-navy segment beside a gold one reads as a hole in the bar rather than
+   as the healthy share of the library. */
 .stack > i.ok {
-  background: var(--success);
+  background: var(--indigo);
 }
 
 .stack > i.warn {
@@ -2422,36 +2487,22 @@ main.wide {
 }
 
 /* The same wash problem as `.tint`, one level further in. A fact list inside
-   a hued card sits on `--blue-wash`, and three of its inks do not survive the
-   move off paper: the faint ink for the term measures 4.17, the gold verdict
-   4.23, the green verdict 4.40 -- all three under AA, all three by a margin
-   small enough that they read as "slightly washed out" rather than as a
-   failure. The term takes the second ink; the two verdicts take the extended
-   palette's inks for the same two meanings, which were walked down to clear
-   4.5:1 on exactly these washes (measured 4.73 each) and keep the semantics:
-   green stays a health reading, burnt orange stays a caution. */
+   a hued card sits on a lane wash, and the faint ink for the term does not
+   survive the move off paper. It takes the second ink instead, which clears
+   the floor on all six of them. */
 .card.hue .facts dt,
 .card.hue .facts .zero dd {
   color: var(--ink-light);
 }
 
-/* The two verdicts are the one place in this file where the theme has to be
-   named in a selector. There is no single token that clears 4.5:1 on this
-   wash in both themes: daylight needs the extended palette's walked-down inks
-   (4.73 each, against 4.23 and 4.40 for the palette's own gold and green),
-   and at night those same inks are the lightened night steps, which were
-   tuned against the 0.16-alpha soft washes and land at 4.38 and 4.39 on this
-   0.14-alpha one -- while the palette's own night gold and green clear 7.56
-   and 5.90 there. So each theme keeps the pair that measures better on it.
-   `tests/test_web.py::TestTheContrast` now measures a theme-scoped rule only
-   in the theme that can switch it on. */
-html:not([data-theme="dark"]) .card.hue .facts dd.t-warn {
-  color: var(--peach-ink);
-}
-
-html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
-  color: var(--mint-ink);
-}
+/* The two verdicts used to be the one place in this file where the theme had
+   to be named in a selector: under palette A no single token cleared 4.5:1 on
+   this wash in both themes, so each theme kept the pair that measured better
+   on it. The rebuild removed the reason. Warning and success now point at the
+   deep plum and the deep indigo, and both clear the floor on every wash a hue
+   card can paint in either theme -- worst measured 9.66 and 8.97 in daylight,
+   6.60 and 5.09 at night -- so the rules above cover it and there is no
+   longer a rule only one theme can switch on. */
 
 /* --------------------------------------------------------------- claims */
 
@@ -2461,14 +2512,14 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
  * A synthesis of eight claims used to render as eight identical white cards
  * with identical shadows -- the uniform card grid the design system bans, and
  * a poor reading of the content besides: the claims are one answer, not eight
- * objects. They are now a numbered run inside a single blue frame, which is
- * how the reference site draws an ordered list of statements.
+ * objects. They are now a numbered run inside a single wisteria frame, which
+ * is how the reference site draws an ordered list of statements.
  */
 .claims {
   margin-top: var(--sp-4);
   border: 1.6px dashed var(--facet-content);
   border-radius: var(--r-sketch);
-  background: var(--blue-wash);
+  background: var(--iris-soft);
   padding: var(--sp-1) var(--sp-5) var(--sp-5);
 }
 
@@ -2566,7 +2617,7 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
    has no border to swap any more, and the gold wash is the same one the page
    uses everywhere else to mean "this is the thing you asked for". */
 .src.lit {
-  background: var(--yellow-soft);
+  background: var(--highlight-soft);
   box-shadow: 0 0 0 1.5px var(--facet-lex-ink);
 }
 
@@ -2853,73 +2904,77 @@ html:not([data-theme="dark"]) .card.hue .facts dd.t-ok {
  * facetmark's own extension. `palettes.css` defines light palettes only, and
  * `references/scene-app.md` bans decorative dark panels inside functional
  * areas -- which is a different rule from "no night theme". These values keep
- * palette A's three hues and move only the surfaces and the ink, plus the
- * three text roles that would otherwise fall under 4.5:1 on a dark card.
+ * the palette's own hues and move only the surfaces and the ink, plus the
+ * text roles that would otherwise fall under 4.5:1 on a dark card.
  *
- * The paper is a four-rung ladder -- page, well, card, preview -- on the same
- * warm axis as the landing page's night. It used to be a cool three-rung one
- * whose top two rungs were six percent apart, so a card was told apart from
- * the well behind it by its border and nothing else, and the whole interface
- * read as one flat sheet of near-black. Raising it meant raising the ink with
+ * The paper is a four-rung ladder -- page, well, card, preview -- on the
+ * wisteria axis, the same one the landing page's night runs on. It used to be
+ * a warm near-black whose rungs sat under ten percent saturation, which is
+ * the sooty look the owner ruled out, and whose top two rungs were six
+ * percent apart, so a card was told apart from the well behind it by its
+ * border and nothing else. Every rung is now at least 1.18 times the
+ * luminance of the one below. Raising the paper meant raising the ink with
  * it: every hue below is read on a wash over the card, so paper and ink move
- * together or neither moves. That is the whole reason the hues changed.
+ * together or neither moves.
+ *
+ * The palette's own deepest step is not the page. It measures 0.0095
+ * relative luminance, under the floor the landing page's night ladder is held
+ * to, so the page starts one rung above it and that step stays where it
+ * belongs, on the one signed-off dark panel.
  *
  * Only the tokens below may appear in this block; `tests/test_web.py` fails
- * the build if a fourth colour or a new token name shows up here, because the
- * moment this grows past surfaces it stops being a theme and becomes a second
- * palette that nobody upstream is maintaining.
+ * the build if a new token name shows up here, because the moment this grows
+ * past surfaces it stops being a theme and becomes a second palette that
+ * nobody upstream is maintaining.
  *
  * Contrast on every pairing this page actually renders is asserted in
  * `tests/test_web.py::TestTheContrast`, using the same WCAG relative-luminance
  * maths as the design system's own `scripts/validate-palettes.mjs`.
  */
 html[data-theme="dark"] {
-  --cream: #1c1b18;
-  --cream-dark: #2a2820;
-  --card-bg: #34322a;
-  --preview-bg: #3e3c34;
-  --ink: #eceae2;
-  --ink-light: #c2bfb4;
-  --ink-faint: #aaa79d;
-  --ink-rgb: 236, 234, 226;
-  --border: rgba(236, 234, 226, 0.16);
-  --hairline: rgba(236, 234, 226, 0.1);
-  --border-strong: rgba(236, 234, 226, 0.26);
-  --brand-text: #7db4ee;
-  --brand-border: rgba(125, 180, 238, 0.45);
-  --pop-text: #f5a1b0;
-  --warning: #e8c65a;
-  --success: #8cd0ac;
-  --danger-strong: #f5a1b0;
-  --highlight-soft: rgba(244, 215, 88, 0.16);
-  --success-soft: rgba(108, 195, 148, 0.16);
-  --warning-soft: rgba(232, 198, 90, 0.16);
-  --danger-soft: rgba(242, 135, 154, 0.16);
-  --info-soft: rgba(125, 180, 238, 0.12);
-  --focus-ring: #7db4ee;
+  --cream: #241f2e;
+  --cream-dark: #312c3c;
+  --card-bg: #3d3747;
+  --preview-bg: #484252;
+  --ink: #dfdbe3;
+  --ink-light: #cbc5d2;
+  --ink-faint: #afa9b6;
+  --ink-rgb: 223, 219, 227;
+  --border: rgba(223, 219, 227, 0.16);
+  --hairline: rgba(223, 219, 227, 0.1);
+  --border-strong: rgba(223, 219, 227, 0.26);
+  --brand-text: #c9bdd9;
+  --brand-border: rgba(201, 189, 217, 0.45);
+  --pop-text: #e3b6c9;
+  --pop-deep: #d6bac4;
+  --warning: #f6dc8e;
+  --success: #bdc4d2;
+  --danger-strong: #e7b9c1;
+  --highlight-soft: rgba(246, 220, 142, 0.09);
+  --success-soft: rgba(51, 84, 138, 0.34);
+  --warning-soft: rgba(246, 220, 142, 0.16);
+  --danger-soft: rgba(232, 74, 95, 0.16);
+  --focus-ring: #c9bdd9;
   --link: var(--brand-text);
-  --mark-band: rgba(244, 215, 88, 0.26);
-  --tint-lex: rgba(244, 215, 88, 0.09);
+  --mark-band: rgba(246, 220, 142, 0.16);
+  --tint-lex: rgba(246, 220, 142, 0.09);
+  --tint-content: rgba(var(--brand-rgb), 0.2);
   /* Night steps for the extended palette. The hues are lightened until they
-     clear 4.5:1 on the night surfaces and on their own night wash (worst
-     measured 4.69, against a 4.5 floor); the washes are the daylight hue at
-     .16 over the card, which is the grammar the tokens above already use.
-     `-ink` and the display hue converge here: on a dark panel the lightened
-     step is both readable as text and visible as a border, so a second value
-     would be a distinction with no rendering behind it. */
-  --blue-wash: rgba(125, 180, 238, 0.14);
-  --yellow-soft: rgba(244, 215, 88, 0.14);
-  --rose-soft: rgba(242, 135, 154, 0.14);
-  --mint: #7dbc94;
-  --mint-ink: #7dbc94;
-  --mint-soft: rgba(79, 154, 107, 0.16);
-  --lilac: #b9a5d3;
-  --lilac-ink: #b9a5d3;
-  --lilac-soft: rgba(139, 105, 182, 0.16);
-  --aqua: #6fbab8;
-  --aqua-ink: #6fbab8;
-  --aqua-soft: rgba(62, 146, 144, 0.16);
-  --peach: #daa27f;
-  --peach-ink: #daa27f;
-  --peach-soft: rgba(201, 120, 69, 0.16);
+     clear 4.5:1 on the night surfaces and on their own night wash; the washes
+     are the daylight hue at an alpha tuned per lane, because a single alpha
+     put two of them 2.7 dE00 apart. `-ink` and the display hue converge here:
+     on a dark panel the lightened step is both readable as text and visible
+     as a border, so a second value would be a distinction with no rendering
+     behind it. */
+  --indigo: #bac5d7;
+  --indigo-ink: #bdc4d2;
+  --indigo-soft: rgba(51, 84, 138, 0.34);
+  --iris-soft: rgba(var(--brand-rgb), 0.42);
+  --orchid: #d7b8d5;
+  --orchid-ink: #d1bcd0;
+  --orchid-soft: rgba(138, 47, 132, 0.5);
+  --plum: #d4becc;
+  --plum-ink: #cebdc8;
+  --plum-soft: rgba(122, 53, 96, 0.22);
+  --rose-soft: rgba(181, 64, 112, 0.36);
 }

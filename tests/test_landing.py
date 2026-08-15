@@ -245,7 +245,7 @@ class TestThePaletteWiring:
     @pytest.mark.parametrize("name", PAGES)
     def test_the_page_pins_the_palette_whose_contrast_was_checked(self, name):
         html = (LANDING / name).read_text(encoding="utf-8")
-        assert re.search(r"<html[^>]*data-palette=\"A\"", html), f"{name}: no palette pinned"
+        assert re.search(r"<html[^>]*data-palette=\"I\"", html), f"{name}: no palette pinned"
 
     @pytest.mark.parametrize("name", PAGES)
     def test_the_palette_is_linked_before_the_stylesheet_that_consumes_it(self, name):
@@ -586,24 +586,25 @@ class TestTheSurfaces:
     """
 
     #: The scopes that re-point surface tokens, and whether the page inside
-    #: each one is light or dark. `.band.invert` flips a section of a light
-    #: page to dark and the dark theme flips it back, which is why they are
-    #: listed rather than derived from the theme attribute alone.
+    #: each one is light or dark. There were four: `.band.invert` flipped a
+    #: section of a light page to dark and the dark theme flipped it back. That
+    #: component is gone -- the owner ruled out dark slabs in daylight, and the
+    #: alternating band it was used for now paints `--cream-deep` -- so two
+    #: scopes are all a page can be in.
     SCOPES = (
         (r":root", "light"),
         (r':root\[data-theme="dark"\]', "dark"),
-        (r"\.band\.invert", "dark"),
-        (r':root\[data-theme="dark"\] \.band\.invert', "light"),
     )
 
     #: Tokens that end up behind something. Ink tokens are excluded on
-    #: purpose: `--ink` is #17160f and is *supposed* to be that dark.
+    #: purpose: `--ink` is #241e2e and is *supposed* to be that dark.
     SURFACES = (
-        "--cream", "--cream-dark", "--surface-2", "--card-bg",
-        "--win-bar", "--win-body", "--blue-wash", "--info-soft",
+        "--cream", "--cream-dark", "--cream-deep", "--surface-2", "--card-bg",
+        "--win-bar", "--win-body", "--info-soft",
         "--warning-soft", "--success-soft", "--danger-soft",
-        "--highlight-soft", "--yellow-soft", "--rose-soft", "--mint-soft",
-        "--lilac-soft", "--aqua-soft", "--peach-soft",
+        "--highlight-soft",
+        "--indigo-soft", "--indigo-ink-soft", "--iris-soft",
+        "--orchid-soft", "--plum-soft", "--rose-soft",
     )
 
     #: A light page's surfaces have to stay light. 0.05 is an order of
@@ -614,8 +615,9 @@ class TestTheSurfaces:
     #: And a dark page still has to be a page, not an unlit screen. The night
     #: mode shipped `--cream: #131310`, luminance 0.0064; at that level the
     #: four elevation steps above it cannot be told apart, which is why the
-    #: owner's "黑不溜秋" complaint covered dark mode too. Today's #1c1b18 is
-    #: 0.0110.
+    #: owner's "黑不溜秋" complaint covered dark mode too. Today's #241f2e is
+    #: 0.0155 -- the violet night page, one step lighter again than the neutral
+    #: #1c1b18 it replaced.
     MIDNIGHT_FLOOR = 0.0095
 
     #: The one panel allowed to be darker than its page, and the only place
@@ -626,9 +628,8 @@ class TestTheSurfaces:
 
     def _scope_tokens(self, css: str) -> dict[str, dict[str, str]]:
         base: dict[str, str] = {}
-        for block in (r':root,\s*\n\[data-palette="A"\]',
-                      r':root,\s*\n\[data-palette\]',
-                      r':root:not\(\[data-palette\]\),\s*\n\[data-palette="A"\]'):
+        for block in (r'\[data-palette="I"\]',
+                      r':root,\s*\n\[data-palette\]'):
             base.update(declarations((LANDING / "palettes.css").read_text(), block))
         light = {**base, **declarations(css, r":root")}
         out = {}
@@ -681,13 +682,12 @@ class TestTheSurfaces:
         allows exactly one selector to go dark.
         """
         css = _stylesheet()
-        # Two scopes render dark, and each is graded against its own page:
-        # the night theme, and the inverted band that darkens one section of
-        # a daylight page. The band is *lighter* than the night page, so it
-        # needs its own floor rather than the theme's.
+        # One scope renders dark now, and it is graded against its own page.
+        # There used to be a second -- the inverted band, which darkened one
+        # section of a daylight page and needed its own floor because it was
+        # *lighter* than the night page. That component is gone.
         floors = {}
-        for pattern, marker in ((r':root\[data-theme="dark"\]', ':root[data-theme="dark"]'),
-                                (r"\.band\.invert", ".band.invert")):
+        for pattern, marker in ((r':root\[data-theme="dark"\]', ':root[data-theme="dark"]'),):
             block = declarations(css, pattern)
             floors[marker] = luminance(Palette(block).rgb(block["--cream"]))
 
@@ -695,14 +695,8 @@ class TestTheSurfaces:
         for selector, body in rules(css):
             if selector == self.NAMED_PANEL:
                 continue
-            # `[data-theme="dark"] .band.invert` is a dark theme turned back
-            # to daylight, so the theme marker alone is not enough: the last
-            # scope named on the selector wins, same as the cascade.
             dark = [m for m in floors if m in selector]
-            inverted = selector.count(".band.invert") and ':root[data-theme="dark"]' in selector
-            floor = self.DAYLIGHT_FLOOR if (inverted or not dark) else min(
-                floors[m] for m in dark
-            )
+            floor = self.DAYLIGHT_FLOOR if not dark else min(floors[m] for m in dark)
             for name, value in re.findall(r"([a-z-][\w-]*)\s*:\s*([^;{}]+)", body):
                 paints = name in ("background", "background-color") or any(
                     name == t for t in self.SURFACES
@@ -762,28 +756,35 @@ class TestTheLandingContrast:
     underneath it.
     """
 
-    #: The four token tables a page can actually be in. Written out rather
-    #: than derived: `[data-theme="dark"] .band.invert` is a dark page turned
-    #: back to daylight, which no rule about the theme attribute predicts.
+    #: The token tables a page can actually be in. There were four, because
+    #: `[data-theme="dark"] .band.invert` was a dark page turned back to
+    #: daylight and no rule about the theme attribute predicts that. The
+    #: inverted band is gone, so two is the whole space -- but the docstring
+    #: above stays, because the two bugs it records are the reason this sweep
+    #: grades the token table rather than the rules.
     SCOPES = {
         "day": (r":root",),
         "night": (r":root", r':root\[data-theme="dark"\]'),
-        "day, inverted band": (r":root", r"\.band\.invert"),
-        "night, inverted band": (r":root", r':root\[data-theme="dark"\]',
-                                 r"\.band\.invert",
-                                 r':root\[data-theme="dark"\] \.band\.invert'),
     }
 
     #: Anything a card, callout, badge, table row or code panel is painted
     #: with. Several are `rgba()` at night, so each is composited over its
     #: own scope's page colour before being measured.
     SURFACES = (
-        "--cream", "--cream-dark", "--surface-2", "--card-bg",
-        "--blue-wash", "--yellow-soft", "--rose-soft", "--mint-soft",
-        "--lilac-soft", "--aqua-soft", "--peach-soft", "--info-soft",
+        "--cream", "--cream-dark", "--cream-deep", "--surface-2", "--card-bg",
+        "--indigo-soft", "--indigo-ink-soft", "--iris-soft",
+        "--orchid-soft", "--plum-soft", "--rose-soft", "--info-soft",
         "--success-soft", "--warning-soft", "--danger-soft",
-        "--win-bar", "--win-body",
+        "--highlight-soft", "--win-bar", "--win-body",
     )
+
+    #: The paper a wash itself can be painted onto: the five-step ladder plus
+    #: the code panel. A wash never lands on another wash, so sweeping a tint
+    #: across the whole of `SURFACES` above would grade pairings that cannot
+    #: happen; sweeping it across only the page could not see the four that
+    #: were happening.
+    PAPER = ("--cream", "--cream-dark", "--cream-deep", "--surface-2",
+             "--card-bg", "--win-bar", "--win-body")
 
     #: The two inks prose inherits. A heading and a paragraph inside a tinted
     #: card declare no colour, so these are what actually lands on the wash.
@@ -799,9 +800,8 @@ class TestTheLandingContrast:
 
     def _table(self, blocks: tuple[str, ...]) -> Palette:
         tokens: dict[str, str] = {}
-        for block in (r':root,\s*\n\[data-palette="A"\]',
-                      r':root,\s*\n\[data-palette\]',
-                      r':root:not\(\[data-palette\]\),\s*\n\[data-palette="A"\]'):
+        for block in (r'\[data-palette="I"\]',
+                      r':root,\s*\n\[data-palette\]'):
             tokens.update(declarations((LANDING / "palettes.css").read_text(), block))
         css = _stylesheet()
         for block in blocks:
@@ -858,24 +858,34 @@ class TestTheLandingContrast:
         they are written next to each other. The night theme shipped without a
         `--warning-soft` step for exactly that reason -- success and danger got
         one, warning was missed, and every warning callout stayed a daylight
-        yellow panel under near-white text."""
+        yellow panel under near-white text.
+
+        The tint is swept over every surface, not just the page. Composited
+        over the page only, this test passed while four components were failing
+        in the browser: a badge sits in a card, not on the page, and a
+        translucent wash over the lightest surface comes out lighter than the
+        one that was measured. The warn badge was 5.88 on the page and 3.21 in
+        a card, and only the second number is the one a reader gets.
+        """
         palette = self._table(self.SCOPES[scope])
-        page = palette.rgb("var(--cream)")
         pairs = (
             ("--success", "--success-soft"),
             ("--warning", "--warning-soft"),
             ("--danger-strong", "--danger-soft"),
             ("--accent-ink", "--info-soft"),
-            ("--accent-ink", "--blue-wash"),
-            ("--mint-ink", "--mint-soft"),
-            ("--lilac-ink", "--lilac-soft"),
-            ("--aqua-ink", "--aqua-soft"),
-            ("--peach-ink", "--peach-soft"),
+            ("--indigo-ink", "--indigo-soft"),
+            ("--indigo-ink", "--indigo-ink-soft"),
+            ("--iris-ink", "--iris-soft"),
+            ("--orchid-ink", "--orchid-soft"),
+            ("--plum-ink", "--plum-soft"),
+            ("--rose-ink", "--rose-soft"),
         )
         failures = []
-        for ink, tint in pairs:
-            behind = palette.rgb(f"var({tint})", page)
-            got = ratio(palette.rgb(f"var({ink})", behind), behind)
-            if got < 4.5:
-                failures.append(f"{ink} on {tint} is {got:.2f}:1")
+        for surface in self.PAPER:
+            page = palette.rgb(f"var({surface})")
+            for ink, tint in pairs:
+                behind = palette.rgb(f"var({tint})", page)
+                got = ratio(palette.rgb(f"var({ink})", behind), behind)
+                if got < 4.5:
+                    failures.append(f"{ink} on {tint} over {surface} is {got:.2f}:1")
         assert not failures, f"{scope}: " + "; ".join(failures)

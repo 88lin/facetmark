@@ -35,12 +35,12 @@ export const FACET_ORDER = ["content", "intent", "lex_seg", "lex_tri"];
  * by trigram overlap and a page found by segmented-word overlap drew the
  * identical gold badge and the contribution bar drew them as one band. On the
  * one screen whose job is to show that four different paths found four
- * different things, two of the four were invisible. `lex_tri` now takes aqua.
+ * different things, two of the four were invisible. `lex_tri` now takes indigo.
  *
  * `intent` used to return "intent", which was red. Red is also `cold`, also
  * `danger`, also every failed probe on the system page, and a single result
  * row can carry an intent badge and a cold chip at once in the same red. The
- * class name stayed; the colour behind it is now lilac, and red went back to
+ * class name stayed; the colour behind it is now orchid, and red went back to
  * meaning only that something is wrong.
  */
 export const FACET_TONE = {

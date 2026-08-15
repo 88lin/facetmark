@@ -51,13 +51,13 @@ from tests.palette import (
 
 REPO = Path(__file__).resolve().parents[1]
 
-#: The palette file cascades three times for palette A: the colourway itself,
-#: the semantic aliases every colourway shares, then the AA corrections that
-#: only A carries. Resolving a token means replaying all three in order.
+#: The palette file cascades twice for palette I: the colourway itself, then
+#: the semantic aliases every colourway shares. Resolving a token means
+#: replaying both in order. (Palette A also carried a third block of AA
+#: corrections; I ships display colours that already clear AA, so it has none.)
 PALETTE_BLOCKS = (
-    r':root,\s*\n\[data-palette="A"\]',
+    r'\[data-palette="I"\]',
     r':root,\s*\n\[data-palette\]',
-    r':root:not\(\[data-palette\]\),\s*\n\[data-palette="A"\]',
 )
 DARK = r'html\[data-theme="dark"\]'
 # The two selector prefixes that pin a rule to one theme. `:not(...)` rather
@@ -637,7 +637,7 @@ class TestTheBrand:
 
     def test_the_page_pins_the_palette_whose_contrast_was_checked(self):
         html = INDEX_HTML.read_text(encoding="utf-8")
-        assert re.search(r"<html[^>]*data-palette=\"A\"", html), "no palette pinned on <html>"
+        assert re.search(r"<html[^>]*data-palette=\"I\"", html), "no palette pinned on <html>"
 
     def test_the_palette_is_linked_before_the_stylesheet_that_consumes_it(self):
         """`app.css` reads tokens the palette declares. Load it first and the
@@ -648,29 +648,27 @@ class TestTheBrand:
         assert sheets.index("/app/static/palettes.css") < sheets.index("/app/static/app.css")
 
     #: The only literal colours allowed above the dark block, and the only
-    #: place they may appear: inside the fence in `:root`. Every one is
-    #: copied from `:root` on repair.88lin.eu.org, the project owner's own
-    #: derived site, except the four `-ink` steps, which that site does not
-    #: publish because it sets no text in those hues. Those were derived by
-    #: walking lightness down until each cleared 4.5:1 on every surface it can
-    #: reach; `TestTheContrast` re-measures them on every run, so a wrong
-    #: value here fails there rather than shipping.
+    #: place they may appear: inside the fence in `:root`. The three display
+    #: hues are lifted from other colourways the vendored file already carries
+    #: -- indigo from B, orchid from G, plum from C -- rather than mixed by
+    #: hand. The `-ink` steps and the washes are derived: lightness walked
+    #: until each ink cleared 4.5:1 on every surface and wash it can reach and
+    #: each wash cleared that floor for both the body and the muted ink, while
+    #: staying at least 3.30 dE00 from the other lanes. `TestTheContrast` and
+    #: `TestTheTint` re-measure them on every run, so a wrong value here fails
+    #: there rather than shipping.
     EXTENDED = {
-        "--blue-wash": "#dfecfb",
-        "--yellow-soft": "#fff3cd",
-        "--rose-soft": "#fff0f2",
-        "--mint": "#4f9a6b",
-        "--mint-ink": "#3b724f",
-        "--mint-soft": "#edf8f1",
-        "--lilac": "#8b69b6",
-        "--lilac-ink": "#7b54ac",
-        "--lilac-soft": "#f5f0fb",
-        "--aqua": "#3e9290",
-        "--aqua-ink": "#307170",
-        "--aqua-soft": "#ecf8f7",
-        "--peach": "#c97845",
-        "--peach-ink": "#98562d",
-        "--peach-soft": "#fff3ea",
+        "--indigo": "#33548a",
+        "--indigo-ink": "#233c68",
+        "--indigo-soft": "#dfecfb",
+        "--iris-soft": "#eee6fa",
+        "--orchid": "#8a2f84",
+        "--orchid-ink": "#662061",
+        "--orchid-soft": "#ffdbfd",
+        "--plum": "#7a3560",
+        "--plum-ink": "#5b2349",
+        "--plum-soft": "#f7f2f5",
+        "--rose-soft": "#fee1ed",
     }
 
     FENCE = re.compile(
@@ -757,7 +755,7 @@ class TestTheBrand:
                 f"{token} has no night step: the extended palette is tuned for a cream page "
                 "and renders at daylight strength on a near-black one"
             )
-        assert len(night) == 41, f"the dark block is now {len(night)} tokens; review each addition"
+        assert len(night) == 38, f"the dark block is now {len(night)} tokens; review each addition"
 
     @staticmethod
     def _split() -> tuple[str, str]:
@@ -1225,15 +1223,39 @@ class TestTheContrast:
                 got = ratio(pal.rgb("var(--ink-faint)"), behind)
                 assert got >= 4.5, f"{theme} --ink-faint on {surface} is {got:.2f}:1"
 
-    def test_the_link_colour_is_the_reason_the_deep_brand_step_exists(self):
-        """`--brand-text` is the palette's AA correction for white. The page
-        also paints text on `--cream-dark`, where it drops to 4.43:1, so
-        `--link` points one step deeper. If someone collapses the alias back
-        this fails before the sweep does, with the reason attached."""
-        pal = _resolved("light")
-        cream = pal.rgb("var(--cream-dark)")
-        assert ratio(pal.rgb("var(--brand-text)"), cream) < 4.5, "the palette moved; drop --link"
-        assert ratio(pal.rgb("var(--link)"), cream) >= 4.5
+    def test_the_link_colour_is_the_seam_between_the_two_themes(self):
+        """Palette A shipped `--brand-text` as an AA correction for white, and
+        it still dropped to 4.43:1 on `--cream-dark`, so `--link` had to point
+        one step deeper and this test asserted exactly that.
+
+        Palette I needs no correction. `--brand-text` clears the floor on every
+        surface the page paints -- 6.06:1 on `--cream`, 5.52:1 on
+        `--cream-dark`, 6.16:1 on `--card-bg`, 4.95:1 on the weakest wash and
+        4.64:1 under the highlighter band -- so the old premise is simply not
+        true any more, and a test whose premise is false is worse than no test.
+
+        What `--link` is still for is the seam. In daylight it is a real step
+        deeper than brand text, which is what keeps a link in running prose
+        separable from the brand-coloured labels around it. At night the
+        lightened brand step is already the lightest readable violet on a
+        near-black panel and a *deeper* one would read worse, so the two
+        collapse onto one value. Delete either half of that and this fails with
+        the reason attached rather than leaving the sweep to notice.
+        """
+        day, night = _resolved("light"), _resolved("dark")
+        deep = ratio(day.rgb("var(--link)"), day.rgb("var(--cream)"))
+        flat = ratio(day.rgb("var(--brand-text)"), day.rgb("var(--cream)"))
+        assert deep > flat, (
+            f"daylight --link ({deep:.2f}:1) is no deeper than --brand-text "
+            f"({flat:.2f}:1); the token buys nothing"
+        )
+        assert night.rgb("var(--link)") == night.rgb("var(--brand-text)"), (
+            "the night --link must collapse onto the lightened brand step"
+        )
+        for theme, pal in (("light", day), ("dark", night)):
+            for surface in TestTheContrast.SURFACES:
+                got = ratio(pal.rgb("var(--link)"), pal.rgb(f"var({surface})"))
+                assert got >= 4.5, f"{theme} --link on {surface} is {got:.2f}:1"
 
 
 class TestTheTint:
@@ -1271,38 +1293,38 @@ class TestTheTint:
         ".tint.intent": "var(--tint-intent)",
         ".tint.context": "var(--tint-context)",
         ".tint.plain": "var(--tint-plain)",
-        # The result list. Hue by the path that found the row; peach for the
+        # The result list. Hue by the path that found the row; plum for the
         # rows that were walked to rather than ranked.
-        ".hit.lead": "var(--blue-wash)",
-        ".hit.lead.f-lex": "var(--yellow-soft)",
-        ".hit.lead.f-tri": "var(--aqua-soft)",
-        ".hit.lead.f-intent": "var(--lilac-soft)",
-        ".hit.near": "var(--peach-soft)",
+        ".hit.lead": "var(--iris-soft)",
+        ".hit.lead.f-lex": "var(--highlight-soft)",
+        ".hit.lead.f-tri": "var(--indigo-soft)",
+        ".hit.lead.f-intent": "var(--orchid-soft)",
+        ".hit.near": "var(--plum-soft)",
         # The three first-run frames.
-        ".sketch": "var(--blue-wash)",
-        ".sketch.lex": "var(--yellow-soft)",
-        ".sketch.intent": "var(--lilac-soft)",
+        ".sketch": "var(--iris-soft)",
+        ".sketch.lex": "var(--highlight-soft)",
+        ".sketch.intent": "var(--orchid-soft)",
         # The dashboard KPI row.
-        ".num": "var(--blue-wash)",
-        ".num.gold": "var(--yellow-soft)",
-        ".num.edge": "var(--peach-soft)",
+        ".num": "var(--iris-soft)",
+        ".num.gold": "var(--highlight-soft)",
+        ".num.edge": "var(--plum-soft)",
         ".num.ink": "var(--cream-dark)",
         # Synthesis: the claim list is one frame, and a source jumped to from
         # a citation is lit rather than bordered.
-        ".claims": "var(--blue-wash)",
-        ".src.lit": "var(--yellow-soft)",
+        ".claims": "var(--iris-soft)",
+        ".src.lit": "var(--highlight-soft)",
         # Sittings, component 34. The hue rotates and means nothing; it is
         # measured here anyway, because a reader still has to read off it.
-        ".sitting": "var(--blue-wash)",
-        ".sitting.f-lex": "var(--yellow-soft)",
-        ".sitting.f-edge": "var(--peach-soft)",
-        ".sitting.f-intent": "var(--lilac-soft)",
-        ".sitting.f-tri": "var(--aqua-soft)",
+        ".sitting": "var(--iris-soft)",
+        ".sitting.f-lex": "var(--highlight-soft)",
+        ".sitting.f-edge": "var(--plum-soft)",
+        ".sitting.f-intent": "var(--orchid-soft)",
+        ".sitting.f-tri": "var(--indigo-soft)",
         # The system page, where the hue does mean something.
-        ".card.hue": "var(--blue-wash)",
-        ".card.hue.lex": "var(--yellow-soft)",
-        ".card.hue.ctx": "var(--mint-soft)",
-        ".card.hue.edge": "var(--peach-soft)",
+        ".card.hue": "var(--iris-soft)",
+        ".card.hue.lex": "var(--highlight-soft)",
+        ".card.hue.ctx": "var(--rose-soft)",
+        ".card.hue.edge": "var(--plum-soft)",
     }
 
     #: The inks that can land on a tint by inheritance. `--ink-faint` is

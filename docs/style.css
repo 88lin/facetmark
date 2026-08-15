@@ -3,50 +3,87 @@
 
 :root {
   color-scheme: light;
-  --cream: #faf9f3;
-  /* paper-2 carries the band alternation. Anything lighter than this reads as
-     "no alternation at all": #f2efe6 measured 1.09:1 against paper, which is
-     below the 1.15:1 floor a sighted reader can actually see. */
-  --cream-dark: #ece8da;
-  /* Deliberately NOT palette A's `--cream-dark` (#faf6eb). That value is a
-     card wash sitting on white; here the token has to alternate whole page
-     bands against paper, and #faf6eb on #faf9f3 measures 1.02:1 -- a band
-     nobody can see is not a band. The chromatic tokens above are palette A
-     exactly; this one pair is the site's own, for that reason. */
-  --card-bg: #ffffff;
-  --surface-2: #f7f5ee;
-  --ink: #17160f;
-  --ink-light: #55534a;
-  /* ink-3 is for hairlines, arrowheads and bar fills only. Small text uses
-     ink-2: ink-3 measures 3.09:1 on paper-2, which fails WCAG AA. */
-  --ink-faint: #86837a;
-  --border: #ddd9cc;
-  --hairline: #e7e2d4;
-  --brand: #2b7fd8;
-  --brand-deep: #1e5ba8;
-  /* the brand blue measures 4.00:1 on paper, so it fills shapes and sets
-     borders but never sets small text. accent-ink does that.
+  /* ---- paper ----------------------------------------------------------
+     What used to be here was seven overrides that re-pointed the palette's
+     paper, ink and rules onto a warm axis: `--cream: #faf9f3`, `--ink:
+     #17160f` (hue 52), `--border: #ddd9cc` (hue 46) and four more. Nothing
+     in `palettes.css` asked for that -- the palette's own ink is a violet
+     near-black -- and the result was a documentation site that read as
+     coffee. Six of the seven are gone; the page now takes `--cream`,
+     `--card-bg`, `--ink`, `--ink-light` and `--ink-faint` from the palette
+     letter, so changing that letter changes the paper too.
 
-     The whole blue ink ramp moved one step darker in this pass. #2674c5
-     cleared 4.5:1 on plain paper and nowhere else: 3.90 on the alt band's
-     cream -- which is half the pages -- and 4.00 to 4.41 on all nine tinted
-     card washes. That is 45 links across seven pages failing AA by a hair,
-     which is exactly the kind of failure nobody notices and everybody has to
-     squint through. Measured worst case is now 5.49 for the link and 7.82
-     for its hover, over every surface a link can land on. */
-  --accent-ink: #1e5ba8;
-  --accent-ink-2: #17457e;
+     The five below stay site-owned, because the site needs surfaces the
+     palette does not carry: two page bands, an inset well, and two weights of
+     rule. Each is a fixed fraction of the palette's own `--brand-deep` mixed
+     into the palette's own `--cream`, so they follow the letter rather than
+     pinning a hue of their own. Measured against paper: hairline 1.12, well
+     1.09, band 1.16, feature band 1.63, border 1.33, border-strong 1.51. */
+  --hairline: #f1edee;                  /* --brand-deep  7% on paper */
+  --surface-2: #f4f0f0;                 /* --brand-deep  5.5%        */
+  /* The band is the one value with a hard floor under it. It alternates whole
+     page sections against paper, and anything lighter than 1.15:1 is a band
+     nobody can see: the palette's own `--cream-dark` (#f4f0ea) measures 1.098
+     here, and the previous warm value measured 1.163. This is 1.162 -- the
+     same step, without the coffee. Of every candidate that lands inside the
+     window, this is the only one whose blue channel sits above its green, so
+     it is the only one with no warm cast at all. The window is narrow at both
+     ends: below 1.15 the band disappears, and above 1.193 `--ink-faint` drops
+     under 3:1 on it. */
+  --cream-dark: #eee9eb;                /* --brand-deep  9%          */
+  /* The third paper step, and the one that replaces a black slab. It carries
+     the two feature sections -- the pipeline drawing and the closing call to
+     action -- which used to invert the whole palette inside their own subtree
+     and paint daylight hue 52 at 12% lightness. Its fraction is not a round
+     number because it is the only window there is: it has to clear 1.15
+     against the alternating band as well as against paper (measured 1.41 and
+     1.63), keep `--ink-faint` over the 3.0 non-text floor (3.29), and stay
+     DeltaE 3.0 clear of all six card washes, which sit on it (nearest is iris
+     at 3.5). From 18% to 23% the washes collide with it; above 32% the third
+     ink drops under its floor. */
+  --cream-deep: #cdc4d3;                /* --brand-deep 28%          */
+  --border: #e0dae1;                    /* --brand-deep 17%          */
+  --border-strong: #d4ccd8;             /* --brand-deep 24%          */
+  /* the display colours are the palette's, and they fill shapes and set
+     borders rather than small text -- `--brand` measures 4.28:1 on the
+     heaviest card wash, under the body-text bar. `--accent-ink` does text.
+
+     The link ramp is `--brand-deep` darkening to `--ink` on hover. That is
+     one hue family, two steps apart in lightness, and it clears AA on every
+     surface a link can land on: measured worst case 6.34 for the link and
+     10.56 for its hover, across paper, both bands, the well, the card and all
+     six card washes. The ramp it replaces was blue and needed a hand-picked
+     third step to survive the same sweep. */
+  --accent-ink: var(--brand-deep);
+  --accent-ink-2: var(--ink);
   /* the filled pill carries a 15px label, so it is held to the body-text bar:
-     accent itself is only 4.22:1 against white and cannot be the background */
-  --btn-bg: #2674c5;
-  --btn-bg-h: #1e5ba8;
-  --btn-fg: #ffffff;
-  --info-soft: #e9f1fb;
-  --warning: #8a6a00;
-  --success: #2e7955;
-  --success-soft: #e7f4ec;
-  --danger-strong: #bd3a1a;
-  --danger-soft: #fbeae5;
+     white on `--brand` measures 6.26:1, on `--brand-deep` 9.69:1 */
+  --btn-bg: var(--brand);
+  --btn-bg-h: var(--brand-deep);
+  --btn-fg: var(--on-brand);
+  --info-soft: #f1f3f7;                 /* --indigo 7% on white */
+  /* ---- state ----------------------------------------------------------
+     The palette's shared block carries `--success: #2e7955` (hue 151) and
+     `--warning: #8a6a00` (hue 46) regardless of letter -- a forest green and
+     an olive brown, both of which this site is not allowed to use. They are
+     re-pointed here, and neither replacement is the hue a reader would guess
+     from the word:
+
+       success  hue 218, the deep indigo
+       warning  hue 319, the deep mulberry
+
+     Which is fine, because none of the three states is signalled by colour
+     alone anywhere on this site -- every one of them carries a word, and the
+     badges and callouts carry a glyph as well. Colour is the third cue, not
+     the first. What the swap buys is that all three stay legible: measured
+     worst case 7.16, 7.71 and 4.24 over every surface they can land on.
+
+     `--danger` and `--danger-strong` come from the shared block untouched;
+     the old site value for the strong one was #bd3a1a, which is hue 15 -- the
+     rust end of the family this pass removed. */
+  --success: #233c68;
+  --success-soft: #f1f3f7;
+  --warning: #5b2349;
   /* ---- window chrome -------------------------------------------------
      What used to live here was `--code-bg: #17160f` and four friends: a
      hand-rolled near-black (luminance 0.0079) that every code block on the
@@ -56,16 +93,22 @@
      It is replaced by one component, `.win`, in two skins:
        .win.lite  functional -- a command you are meant to read and copy
        .win.dark  showcase   -- the demo on the home page, and only there
-     The dark skin is palette A's own `--dark-panel`, not an invented black.
+     The dark skin is the palette's own `--dark-panel`, not an invented black.
      `brand-dna.md:167` allows a dark panel on a full HTML page and names
      that token for it; `:144` bans pure black outright, which the old value
-     was within a rounding error of. */
-  --win-bar: #ece8da;
-  --win-body: #f7f5ee;
-  --win-line: #ddd9cc;
-  --win-dim: #55534a;
-  --shadow-1: 0 1px 2px rgba(23, 22, 15, 0.05), 0 2px 8px rgba(23, 22, 15, 0.04);
-  --shadow-2: 0 2px 4px rgba(23, 22, 15, 0.06), 0 12px 28px rgba(23, 22, 15, 0.08);
+     was within a rounding error of.
+
+     The lite skin got a firmer shell in this pass as a side effect of the
+     recolour: its title bar and body used to be the band and the well, which
+     are 1.06:1 apart -- a bar you cannot see is not a bar. Bar is now the
+     border weight and body is the well, measuring 1.22:1, and the frame line
+     is the strong rule. */
+  --win-bar: #e0dae1;
+  --win-body: #f4f0f0;
+  --win-line: #d4ccd8;
+  --win-dim: var(--ink-light);
+  --shadow-1: 0 1px 2px rgba(36, 30, 46, 0.05), 0 2px 8px rgba(36, 30, 46, 0.04);
+  --shadow-2: 0 2px 4px rgba(36, 30, 46, 0.06), 0 12px 28px rgba(36, 30, 46, 0.08);
   --radius: 12px;
   --radius-sm: 8px;
   --maxw: 1120px;
@@ -147,221 +190,186 @@
   --sp-7: 48px;
   --sp-8: 72px;
 
-  /* extended palette -- sourced from repair.88lin.eu.org
-     The same block the app carries, so the two surfaces agree on what "mint"
-     is. Palette A ships three hues; the derived site runs nine, and the extra
-     six are what let a page of section cards rotate hue instead of repeating
-     one. `palettes.css` cannot hold them -- it is pinned byte-for-byte
-     against the app's copy -- so they live in both `:root`s instead.
-     Each `-ink` clears 4.5:1 on this file's surfaces, which are darker than
-     the app's: measured worst cases 4.62, 4.62, 4.60, 4.62. */
-  --blue-wash: #dfecfb;
-  --yellow-soft: #fff3cd;
-  --rose-soft: #fff0f2;
-  --mint: #4f9a6b;
-  --mint-ink: #3b724f;
-  --mint-soft: #edf8f1;
-  --lilac: #8b69b6;
-  --lilac-ink: #7b54ac;
-  --lilac-soft: #f5f0fb;
-  --aqua: #3e9290;
-  --aqua-ink: #307170;
-  --aqua-soft: #ecf8f7;
-  --peach: #c97845;
-  --peach-ink: #98562d;
-  --peach-soft: #fff3ea;
+  /* extended palette -- every value verbatim from one of the ten palettes in
+     `palettes.css`, which cannot hold them itself: it is pinned byte-for-byte
+     against the app's copy, so the extra hues live in both `:root`s instead.
+
+     What this replaces ran nine hues and three of them are now out of bounds:
+     `--mint: #4f9a6b` (hue 143), `--aqua: #3e9290` (hue 179) and `--peach:
+     #c97845` (hue 26) -- a forest green, a teal and a rust. Removing them
+     left the blue-violet-rose sector to carry every meaning on the page, and
+     that sector cannot hold nine hues apart: the pink-through-purple run in
+     the owner's own palettes is 9 to 12 degrees between neighbours. So this
+     is five families at 18 degrees or more, and the sixth lane borrows a
+     second density of the first rather than a tenth hue nobody could name.
+
+     Three roles per family, and the roles are not interchangeable:
+       --x        display -- fills a shape, draws a border, never sets text
+       --x-ink    the text-safe step of the same hue
+       --x-soft   the wash, a fixed fraction of the display colour on white
+
+     The washes are not a ramp. They were solved together so that no two land
+     within DeltaE 4.8 of each other, and none lands within 3.0 of paper, the
+     card, the band, the well or the preview surface -- because six of them
+     sit side by side in a result list, where a tint that could be any of two
+     things is worse than no tint. Their densities come out uneven for that
+     reason (6% to 29%), and evening them up costs real separation: the tidy
+     ladder 8/12/16/20/24/28% only reaches DeltaE 3.9.
+
+     Every `-ink` clears 4.5:1 on all six washes as well as on this file's
+     surfaces: measured worst cases 7.48, 6.50, 7.06, 7.71 and 5.23. */
+  --indigo: #33548a;
+  --indigo-ink: #233c68;
+  --indigo-soft: #e2e6eb;               /* --indigo     13% on white */
+  /* the second density of the indigo family. The lexical lane has two modes --
+     segmented and trigram -- and they are one recall path, so they share a hue
+     and separate on weight instead of pretending to be unrelated colours. */
+  --indigo-ink-soft: #ced6e3;           /* --indigo-ink 24%          */
+  --iris: #71519b;
+  --iris-ink: #523776;
+  --iris-soft: #d9d0e4;                 /* --iris       27%          */
+  --orchid: #8a2f84;
+  --orchid-ink: #662061;
+  --orchid-soft: #f2e8f1;               /* --orchid     11%          */
+  --plum: #7a3560;
+  --plum-ink: #5b2349;
+  --plum-soft: #e0d1da;                 /* --plum       23%          */
+  --rose: #b54070;
+  --rose-ink: #873352;
+  --rose-soft: #eac8d6;                 /* --rose       29%          */
   /* end extended palette */
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  /* Night used to open on #131310 -- relative luminance 0.0064, which is
-     black with a rumour of brown in it, and the three surfaces above it were
-     within 0.02 of each other and of the page. Nothing had a visible edge.
-     These five are a real stack: page < band < card < raised, each step
-     separated enough to be seen (measured 1.19 / 1.16 / 1.19 against its
-     neighbour, over the 1.15 floor this file already uses for day bands). */
-  --cream: #1c1b18;
-  --cream-dark: #2a2820;
-  /* --surface-2 is the inset well and sits BELOW the card, not above it.
-     Raising all four in a straight ladder pushed the topmost surface light
-     enough that --ink-faint had to converge on --ink-light to stay legible,
-     which throws away the third ink. A well is recessed; the stack reads
-     page < band < well < card and every neighbour is a visible step apart. */
-  --surface-2: #34322a;
-  --card-bg: #3e3c34;
-  --ink: #eceae2;
-  --ink-light: #c2bfb4;
-  --ink-faint: #aaa79d;
-  --border: #4a4740;
-  --hairline: #3a382f;
-  /* palette A's highlight wash is a daylight yellow; at night the nav pill
-     hover fill has to be a tint of the same hue, not a lamp */
-  --highlight-soft: #3a3116;
-  --brand: #7db4ee;
-  --brand-deep: #a5cbf3;
-  --accent-ink: #7db4ee;
-  --accent-ink-2: #a5cbf3;
-  --btn-bg: #7db4ee;
-  --btn-bg-h: #a5cbf3;
-  --btn-fg: #131310;
-  --info-soft: #12283c;
-  --warning: #e8c65a;
-  /* success and danger had night steps; warning did not, so every .callout.warn
-     kept a daylight yellow panel and put near-white text on it. */
-  --warning-soft: #2e2313;
-  --success: #6cc394;
-  --success-soft: #1e2614;
-  --danger-strong: #f2879a;
-  --danger-soft: #2e1711;
-  /* in dark mode the code panel has to sit ABOVE the page, not below it.
-     #0d0d0b was darker than the page and read as a hole. */
-  --win-bar: #34322a;
-  --win-body: #2a2820;
-  --win-line: #4a4740;
-  --win-dim: #c2bfb4;
-  --shadow-1: 0 1px 2px rgba(23, 22, 15, 0.4);
-  --shadow-2: 0 2px 4px rgba(23, 22, 15, 0.4), 0 14px 32px rgba(23, 22, 15, 0.45);
-  /* Night steps for the extended palette. Lightened until each clears 4.5:1
-     on the night surfaces and on its own night wash: measured 4.82, 4.86,
-     4.82, 4.78. On a near-black panel the lightened step is both readable as
-     text and visible as a border, so hue and ink converge. */
-  --blue-wash: rgba(125, 180, 238, 0.14);
-  --yellow-soft: rgba(232, 198, 90, 0.14);
-  --rose-soft: rgba(242, 135, 154, 0.14);
-  --mint: #58a976;
-  --mint-ink: #58a976;
-  --mint-soft: rgba(79, 154, 107, 0.16);
-  --lilac: #a58bc6;
-  --lilac-ink: #a58bc6;
-  --lilac-soft: rgba(139, 105, 182, 0.16);
-  --aqua: #47a6a4;
-  --aqua-ink: #47a6a4;
-  --aqua-soft: rgba(62, 146, 144, 0.16);
-  --peach: #cf885b;
-  --peach-ink: #cf885b;
-  --peach-soft: rgba(201, 120, 69, 0.16);
+  /* ---- the night ladder ----------------------------------------------
+     What this replaces was four warm near-blacks at 8 to 16 percent
+     saturation on hue 40 to 60 -- the unlit, slightly muddy screen the owner
+     objected to. It was mine, not the palette's.
+
+     The stack is now one hue: the palette's own `--dark-panel` (hue 259,
+     saturation 27) lightened towards the palette's own `--on-dark-dim` in
+     four equal steps of 1.186. Both ends are measured rather than chosen.
+     The bottom is set by the floor `TestTheSurfaces` puts under a night page
+     (luminance 0.0095; this page is 0.0155, 1.64 times it). The top is set by
+     the second ink: `--ink-light` has to clear 4.5:1 on the lightest surface
+     in the stack, which caps the card at luminance 0.0794 and nothing above.
+
+     Five surfaces, not four, because the feature band needs its own step. As
+     in daylight the well is recessed, so the stack reads
+     page < band < feature < well < card. */
+  --cream: #241f2e;                     /* page,         luminance 0.0155 */
+  --cream-dark: #312c3c;                /* band,         0.0278           */
+  --cream-deep: #3d3747;                /* feature band, 0.0418           */
+  --surface-2: #484252;                 /* well,         0.0588           */
+  --card-bg: #534d5d;                   /* card,         0.0794           */
+  /* Three inks, and the first is deliberately not the palette's `--on-dark`.
+     Pure white on this page measures 16.0:1 and haloes; this is the palette's
+     dim white pushed 62% of the way to white, worst case 5.94 on the lightest
+     surface above. The second ink is the palette's dim white unchanged (worst
+     4.81) and the third is a step below it (worst 3.55, over the 3.0 floor the
+     hairline ink is held to). The three sit 1.23 and 1.36 apart, so they read
+     as three inks rather than as one ink and two accidents. */
+  --ink: #dfdbe3;
+  --ink-light: var(--on-dark-dim);
+  --ink-faint: #afa9b6;
+  --border: #575260;
+  --hairline: #3e3948;
+  /* The night brand is not the day brand dimmed: the palette's `--brand`
+     measures 2.82:1 on this page and cannot carry a link. Each of these is the
+     same hue lightened until it clears 4.5:1 on all five surfaces above. The
+     filled pill inverts -- light violet fill, page-coloured label, 8.97:1. */
+  --brand: #c9bdd9;
+  --brand-deep: #c8bfd3;
+  --accent-ink: #c9bdd9;
+  --accent-ink-2: #c8bfd3;
+  --btn-bg: #c9bdd9;
+  --btn-bg-h: #c8bfd3;
+  --btn-fg: #241f2e;
+  /* the three states, lightened the same way. Day or night, none of them is
+     signalled by colour alone -- each carries a word, and the badges and
+     callouts carry a glyph too. */
+  --success: #bdc4d2;
+  --warning: #cebdc8;
+  --danger-strong: #e7b9c1;
+  /* The state panels, and the reason none of them is an alpha. An alpha was
+     the first answer -- one value that "sits on whichever of the five surfaces
+     it lands on" -- and it does sit on each of them differently, which is the
+     defect. Every night ink clears 4.5:1 on the bare card by between 0.01 and
+     0.18, so a wash that lightens the card at all takes its own label under
+     the line: the warn badge measured 3.21 there, the fail badge 4.28, the
+     info badge 4.46, a default chip 3.36. Badges do not live on the page, they
+     live in cards and tables, so each of these is now the flat colour its
+     alpha already made over the page -- same appearance where it was solved,
+     no longer a function of what is behind it. Warning does not freeze: gold
+     over a violet page is hue 0 at 7% saturation, a warm grey that reads as
+     taupe, and taupe is in the family this palette exists to avoid. It is
+     re-solved as mulberry, the same hue its daylight ink already uses. */
+  --info-soft: #2a3555;
+  --success-soft: #2a3555;
+  --warning-soft: #46213f;
+  --highlight-soft: #352849;
+  --danger-soft: #432636;
+  /* the code panel has to sit ABOVE the night page, not below it: bar on the
+     well, body on the band, 1.40 apart, ink 9.88 on the body */
+  --win-bar: #484252;
+  --win-body: #312c3c;
+  --win-line: #575260;
+  --win-dim: var(--on-dark-dim);
+  --shadow-1: 0 1px 2px rgba(18, 14, 24, 0.4);
+  --shadow-2: 0 2px 4px rgba(18, 14, 24, 0.4), 0 14px 32px rgba(18, 14, 24, 0.45);
+  /* Night steps for the extended palette: each hue lightened until it clears
+     4.5:1 on all five night surfaces and on its own night wash (measured 5.79,
+     8.15, 6.22, 6.36, 8.17, 6.38). On a dark panel a lightened step is both
+     readable as text and visible as a border, so hue and ink converge. */
+  --indigo: #bac5d7;
+  --indigo-ink: #bdc4d2;
+  --iris: #c9bdd9;
+  --iris-ink: #c8bfd3;
+  --orchid: #d7b8d5;
+  --orchid-ink: #d1bcd0;
+  --plum: #d4becc;
+  --plum-ink: #cebdc8;
+  --rose: #e3b6c9;
+  --rose-ink: #d6bac4;
+  /* The six lane washes, flat for the same reason the five above are: a chip
+     is a pill inside a card, so a wash that has to be composited is a wash
+     whose contrast nobody can predict from the stylesheet. Run all six at a
+     uniform 16% over this page and they come out within DeltaE 0.4 to 1.3 of
+     each other -- six lanes rendered as one colour, in a result list whose
+     entire job is telling them apart -- so each still carries its own density,
+     baked in here rather than resolved at paint time. Five are the colour their
+     alpha already made over the page. The sixth is not: the default chip
+     tinted from the lightened night step, and frozen it landed DeltaE 1.66 from
+     the feature band, which is a chip you cannot see on the one section that
+     uses it most. It is re-solved from the daylight indigo instead. Held for
+     every one: its own ink over 5.0 on it, body prose over 5.7, DeltaE 3.0 or
+     more from all five surfaces (worst 4.82) and from every other wash (worst
+     3.20, the two deliberately-indigo ones), and no member of a ruled-out
+     family. Closest pair among the six is now DeltaE 7.31. */
+  --indigo-soft: #2d3e63;
+  --indigo-ink-soft: #242942;
+  --iris-soft: #44345c;
+  --orchid-soft: #572759;
+  --plum-soft: #372439;
+  --rose-soft: #582b46;
 }
 
-/* A band that inverts the palette inside its own subtree. Two of these break
-   the ten-identical-screens rhythm without adding a second colour system: every
-   component below already reads its colours from these tokens, including the
-   SVG pipeline diagram. Under the dark theme it inverts the other way, so the
-   band is always the one that differs from its neighbours. */
-.band.invert {
-  --cream: #211f18;
-  --cream-dark: #29271e;
-  --card-bg: #2c2a21;
-  --surface-2: #35332a;
-  --ink: #f4f2ea;
-  --ink-light: #c2bfb3;
-  --ink-faint: #9d9a8f;
-  --border: #454338;
-  --hairline: #38362d;
-  --brand: #6cb6ff;
-  --brand-deep: #9fd0ff;
-  --accent-ink: #6cb6ff;
-  --accent-ink-2: #9fd0ff;
-  --info-soft: #17293a;
-  --shadow-1: 0 1px 2px rgba(23, 22, 15, 0.35);
-  --shadow-2: 0 2px 4px rgba(23, 22, 15, 0.35), 0 14px 32px rgba(23, 22, 15, 0.4);
-  /* The band inverts the ink but used to leave the nine tinted card washes at
-     their daylight values, so the three cards under the pipeline diagram were
-     cream text on a pale blue, a pale gold and a pale mint: measured 1.07,
-     1.01 and 1.03 to one. Invisible, on the busiest page on the site, in the
-     default theme. Inverting the palette means inverting the washes too. */
-  --blue-wash: rgba(125, 180, 238, 0.14);
-  --yellow-soft: rgba(232, 198, 90, 0.14);
-  --rose-soft: rgba(242, 135, 154, 0.14);
-  --mint: #58a976;
-  --mint-ink: #58a976;
-  --mint-soft: rgba(79, 154, 107, 0.16);
-  --lilac: #a58bc6;
-  --lilac-ink: #a58bc6;
-  --lilac-soft: rgba(139, 105, 182, 0.16);
-  --aqua: #47a6a4;
-  --aqua-ink: #47a6a4;
-  --aqua-soft: rgba(62, 146, 144, 0.16);
-  --peach: #cf885b;
-  --peach-ink: #cf885b;
-  --peach-soft: rgba(201, 120, 69, 0.16);
-  --warning: #e8c65a;
-  --warning-soft: #2e2313;
-  --success: #6cc394;
-  --success-soft: #1e2614;
-  --danger-strong: #f2879a;
-  /* One notch lighter than the night palette's own #2e1711, because this
-     band's page is #211f18 rather than #1c1b18: reused unchanged, the danger
-     tint came out darker than the surface it sits on and a `.callout.bad`
-     read as a hole punched in the band instead of a card laid on it. */
-  --danger-soft: #371c16;
-  /* Same omission as the washes, one component over: a `.win lite` code panel
-     dropped into this band kept the daylight shell (#ece8da bar, #f7f5ee body)
-     and inherited the band's cream ink, which measures 1.09 and 1.03 to one.
-     Nothing puts a panel here today; the tokens are re-pointed anyway, because
-     "no section currently uses it" is not a property the stylesheet enforces.
-     The mapping is the night theme's: bar on the well, body on the band. */
-  --win-bar: #35332a;
-  --win-body: #29271e;
-  --win-line: #454338;
-  --win-dim: #c2bfb3;
-  background: var(--cream);
-  color: var(--ink);
-}
-:root[data-theme="dark"] .band.invert {
-  --cream: #f7f5ee;
-  --cream-dark: #efece2;
-  --card-bg: #ffffff;
-  --surface-2: #f4f2e9;
-  --ink: #17160f;
-  --ink-light: #55534a;
-  --ink-faint: #86837a;
-  --border: #ddd9cc;
-  --hairline: #e7e2d4;
-  --brand: #0279ee;
-  --brand-deep: #0163c4;
-  --accent-ink: #0163c4;
-  --accent-ink-2: #014e9c;
-  --info-soft: #e7f1fd;
-  --shadow-1: 0 1px 2px rgba(23, 22, 15, 0.05), 0 2px 8px rgba(23, 22, 15, 0.04);
-  --shadow-2: 0 2px 4px rgba(23, 22, 15, 0.06), 0 12px 28px rgba(23, 22, 15, 0.08);
-  /* and the mirror of the same problem: at night this band is the light one,
-     so the washes have to come back to daylight or the cards lose their hue */
-  --blue-wash: #dfecfb;
-  --yellow-soft: #fff3cd;
-  --rose-soft: #fff0f2;
-  --mint: #4f9a6b;
-  --mint-ink: #3b724f;
-  --mint-soft: #edf8f1;
-  --lilac: #8b69b6;
-  --lilac-ink: #7b54ac;
-  --lilac-soft: #f5f0fb;
-  --aqua: #3e9290;
-  --aqua-ink: #307170;
-  --aqua-soft: #ecf8f7;
-  --peach: #c97845;
-  --peach-ink: #98562d;
-  --peach-soft: #fff3ea;
-  --warning: #8a6a00;
-  --warning-soft: #fff4c2;
-  --success: #2e7955;
-  --success-soft: #e7f4ec;
-  --danger-strong: #bd3a1a;
-  --danger-soft: #fbeae5;
-  /* and the window shell with them: left at the night values this band would
-     put #17160f ink on a #2a2820 panel, 1.23 to one */
-  --win-bar: #ece8da;
-  --win-body: #f7f5ee;
-  --win-line: #ddd9cc;
-  --win-dim: #55534a;
-}
-/* one pill rule that works in both inversions: the button takes the ink colour
-   of the band it sits in, so it is always maximum contrast against it */
-.band.invert .btn.primary {
-  background: var(--ink); border-color: var(--ink); color: var(--cream);
-}
-.band.invert .btn.primary:hover {
-  background: var(--accent-ink-2); border-color: var(--accent-ink-2); color: var(--cream);
+/* The band that breaks the rhythm, and the one the owner pointed at. Ten
+   sections of the same paper colour need something that is not paper in the
+   middle of them; what used to do it here was a subtree that inverted the
+   whole palette -- thirty-one tokens re-pointed onto a near-black, in
+   daylight, with the pipeline drawing inside it. Two of those on a
+   documentation site is not a rhythm, it is a light switch.
+
+   It is replaced by the third step of the same paper ladder the rest of the
+   sheet is built from, so there is nothing to invert and nothing to keep in
+   sync: every component below reads the same tokens here as it does anywhere
+   else. Measured on it: 1.63 against paper, 1.41 against the alternating band
+   it has to differ from, 1.66 under a plain card, ink 8.10 / 5.32 / 3.29, and
+   the nearest of the six card washes is DeltaE 3.5 away. */
+.band.feature {
+  background: var(--cream-deep);
 }
 
 * { box-sizing: border-box; }
@@ -444,8 +452,9 @@ p.tiny { margin-top: var(--sp-3); }
 
 /* ---------- header ---------- */
 
-/* the first thing a keyboard user meets, so it takes the highest contrast
-   pair we have rather than white on the brand blue (4.22:1 light, 2.50:1 dark) */
+/* the first thing a keyboard user meets, so it takes the highest contrast pair
+   we have -- 15.63:1 by day and 11.74:1 at night -- rather than the brand
+   tablet's own pair, which is 6.26:1 and 8.98:1 */
 .skip {
   position: absolute; left: -9999px; top: 0; z-index: 90;
   background: var(--ink); color: var(--cream); padding: var(--sp-2) var(--sp-4);
@@ -463,7 +472,7 @@ p.tiny { margin-top: var(--sp-3); }
    The design system's own nav demo (component 9) is a rounded rectangle with
    underlined links, but the brief here overrides it: "why isn't the nav a
    pill". So the shell is a pill and every link inside it is a pill too. The
-   yellow that component 9 puts under the current page as a 2px rule is not
+   gold that component 9 puts under the current page as a 2px rule is not
    discarded -- it becomes the hover fill, so the signature colour survives
    the shape change and the current page can take the solid brand tablet. */
 header.site {
@@ -491,7 +500,7 @@ header.site {
   border-radius: 999px;
   /* Literal rgba rather than color-mix: the design system bans color-mix,
      and a sticky bar is the one place a fallback-to-nothing is fatal. */
-  background: rgba(250, 249, 243, 0.82);
+  background: rgba(253, 251, 247, 0.82);
   -webkit-backdrop-filter: saturate(1.5) blur(14px);
   backdrop-filter: saturate(1.5) blur(14px);
   border: 1px solid var(--hairline);
@@ -499,7 +508,7 @@ header.site {
 }
 /* the literal above is the day paper. Without this line the night page kept a
    cream header, and the logo -- which is var(--ink) -- went white on cream. */
-:root[data-theme="dark"] .site-inner { background: rgba(28, 27, 24, 0.82); }
+:root[data-theme="dark"] .site-inner { background: rgba(36, 31, 46, 0.82); }
 .logo {
   display: inline-flex; align-items: center; gap: var(--sp-2);
   font-weight: 700; font-size: var(--fs-4); color: var(--ink); text-decoration: none;
@@ -509,7 +518,7 @@ header.site {
   width: 20px; height: 20px; border-radius: 5px; flex: none;
   background:
     linear-gradient(135deg, var(--brand) 0 50%, transparent 50% 100%),
-    linear-gradient(135deg, var(--warning) 0 100%);
+    linear-gradient(135deg, var(--rose) 0 100%);
 }
 nav.top { margin-left: auto; display: flex; align-items: center; gap: 2px; }
 nav.top a {
@@ -569,8 +578,9 @@ nav.top a.on:hover { color: var(--btn-fg); background: var(--btn-bg-h); }
   font-style: normal; color: var(--accent-ink);
   /* a soft highlighter wash behind the keyword, from the design system */
   background: linear-gradient(transparent 62%, rgba(var(--highlight-rgb), 0.4) 62%);
-  /* at 0.4 on a charcoal page the wash goes olive and swallows the word it is
-     meant to lift, so night takes a third of the alpha */
+  /* at 0.4 over the night page the wash composites to hue 38 at 18% -- a brown,
+     which is the one family this site may not paint -- and it swallows the word
+     it is meant to lift, so night takes a third of the alpha */
   padding: 0 0.06em; border-radius: 2px;
   /* Chinese breaks between any two characters, so the marked phrase was being
      split mid-word and the wash was cut with it. The phrase is short in both
@@ -582,8 +592,9 @@ nav.top a.on:hover { color: var(--btn-fg); background: var(--btn-bg-h); }
 }
 .lede { font-size: var(--fs-5); color: var(--ink-light); margin-bottom: 1.4em; }
 .lede strong { color: var(--ink); }
-/* the reference site's hero sub-heading: brand blue at 800 with a dashed rule
-   under it, so the one sentence that says what this is does not read as body */
+/* the reference site's hero sub-heading: the brand hue at 800 with a dashed
+   rule under it, so the one sentence that says what this is does not read as
+   body */
 .hero .lede strong {
   color: var(--accent-ink); font-weight: 800;
   text-decoration: underline dashed rgba(var(--brand-rgb), 0.45);
@@ -612,8 +623,8 @@ nav.top a.on:hover { color: var(--btn-fg); background: var(--btn-bg-h); }
 .chip:nth-child(4), .chip:nth-child(5) { grid-column: span 3; }
 .chip {
   display: block; padding: var(--sp-2) var(--sp-3) var(--sp-3);
-  border: 1.6px dashed var(--brand); border-radius: var(--radius);
-  background: var(--blue-wash); color: var(--ink-light);
+  border: 1.6px dashed var(--indigo); border-radius: var(--radius);
+  background: var(--indigo-soft); color: var(--ink-light);
   font-size: var(--fs-1); font-weight: 700; letter-spacing: var(--ls-caps); text-transform: uppercase;
 }
 .chip b {
@@ -621,10 +632,10 @@ nav.top a.on:hover { color: var(--btn-fg); background: var(--btn-bg-h); }
   font-family: var(--display); font-size: var(--fs-5); font-weight: 800;
   letter-spacing: var(--ls-display); font-variant-numeric: tabular-nums;
 }
-.chip:nth-child(2) { border-color: var(--warning); background: var(--yellow-soft); }
-.chip:nth-child(3) { border-color: var(--mint); background: var(--mint-soft); }
-.chip:nth-child(4) { border-color: var(--lilac); background: var(--lilac-soft); }
-.chip:nth-child(5) { border-color: var(--peach); background: var(--peach-soft); }
+.chip:nth-child(2) { border-color: var(--orchid); background: var(--orchid-soft); }
+.chip:nth-child(3) { border-color: var(--rose); background: var(--rose-soft); }
+.chip:nth-child(4) { border-color: var(--plum); background: var(--plum-soft); }
+.chip:nth-child(5) { border-color: var(--iris); background: var(--iris-soft); }
 
 /* ---------- terminal ---------- */
 
@@ -646,16 +657,17 @@ nav.top a.on:hover { color: var(--btn-fg); background: var(--btn-bg-h); }
   line-height: var(--lh-code);
 }
 .term-body { padding: var(--sp-4); }
-.term .pr { color: var(--mint); }
+.term .pr { color: var(--iris); }
 .term .q { color: var(--highlight); font-weight: 700; }
 .term .dim { color: var(--on-dark-dim); }
 .term .hit { display: flex; gap: var(--sp-2); padding: 1px 0; }
 .term .hit .n { color: var(--on-dark-dim); width: 1.2em; flex: none; text-align: right; }
 .term .hit .t { flex: 1; min-width: 0; }
 /* the one line the whole demo is about, so it takes the accent the rest of
-   the page uses for a hit -- the brand blue is 2.5:1 on this panel and the
-   lifted night step is the only one that clears AA here */
-.term .hit.tgt .t { color: #9fd0ff; font-weight: 700; }
+   the page uses for a hit. The daylight rose is 3.31:1 on this panel and the
+   daylight brand 2.82:1 -- neither can carry text here, so the panel lifts the
+   two hues it needs to their night steps below and this reads 9.92:1. */
+.term .hit.tgt .t { color: var(--rose); font-weight: 700; }
 .term .hit .sc { color: var(--on-dark-dim); flex: none; }
 .term .caret {
   display: inline-block; width: 7px; height: 1.05em; margin-left: 1px;
@@ -687,7 +699,7 @@ section.band.alt { background: var(--cream-dark); border-top: 1px solid var(--ha
   content: ""; display: block; width: 32px; height: 2px; border-radius: 2px;
   margin: var(--sp-2) 0 0; background: var(--brand);
 }
-/* the two inverted bands and the closing call to action centre their header */
+/* the two feature bands and the closing call to action centre their header */
 .wrap.hcenter > .seclabel, .wrap.hcenter > h2, .wrap.hcenter > .lede { text-align: center; }
 .wrap.hcenter > .seclabel::after { margin-left: auto; margin-right: auto; }
 .wrap.hcenter > .lede { margin-left: auto; margin-right: auto; }
@@ -741,7 +753,7 @@ section.band.alt { background: var(--cream-dark); border-top: 1px solid var(--ha
    system names outright as the thing not to ship, and this site had ten of
    them. The cards keep their copy and their order; what changes is that each
    one arrives in its own hue behind a hand-drawn frame, so a reader can point
-   at "the mint one" instead of "the third one". Six hues, dealt by position. */
+   at "the rose one" instead of "the third one". Six hues, dealt by position. */
 /* column + `margin-top:auto` on the footer stat: the three cards hold copy of
    different lengths, and the numerals used to land at three different heights */
 .grid > .card {
@@ -749,13 +761,15 @@ section.band.alt { background: var(--cream-dark); border-top: 1px solid var(--ha
   display: flex; flex-direction: column;
 }
 .grid > .card > .stat { margin-top: auto; }
-.grid > .card:nth-child(6n + 1) { background: var(--blue-wash); border-color: var(--brand); }
-.grid > .card:nth-child(6n + 2) { background: var(--yellow-soft); border-color: var(--warning); }
-.grid > .card:nth-child(6n + 3) { background: var(--mint-soft); border-color: var(--mint); }
-.grid > .card:nth-child(6n + 4) { background: var(--lilac-soft); border-color: var(--lilac); }
-.grid > .card:nth-child(6n + 5) { background: var(--aqua-soft); border-color: var(--aqua); }
-.grid > .card:nth-child(6n + 6) { background: var(--peach-soft); border-color: var(--peach); }
-/* a disabled card keeps its grey: the hue would read as a state it is not in */
+/* dealt so that no two neighbours in a three-column grid share a family:
+   the two densities of indigo land diagonally opposite, never side by side */
+.grid > .card:nth-child(6n + 1) { background: var(--indigo-soft); border-color: var(--indigo); }
+.grid > .card:nth-child(6n + 2) { background: var(--orchid-soft); border-color: var(--orchid); }
+.grid > .card:nth-child(6n + 3) { background: var(--rose-soft); border-color: var(--rose); }
+.grid > .card:nth-child(6n + 4) { background: var(--plum-soft); border-color: var(--plum); }
+.grid > .card:nth-child(6n + 5) { background: var(--indigo-ink-soft); border-color: var(--indigo-ink); }
+.grid > .card:nth-child(6n + 6) { background: var(--iris-soft); border-color: var(--iris); }
+/* a disabled card keeps the well: the hue would read as a state it is not in */
 .grid > .card.off { background: var(--surface-2); border-color: var(--border); }
 /* the faintest ink does not clear 4.5:1 on a wash -- measured 4.17 at worst */
 .grid > .card .tiny, .grid > .card .muted { color: var(--ink-light); }
@@ -786,8 +800,8 @@ section.band.alt { background: var(--cream-dark); border-top: 1px solid var(--ha
   background:
     linear-gradient(to right, var(--card-bg) 40%, transparent) left / 26px 100% no-repeat local,
     linear-gradient(to left, var(--card-bg) 40%, transparent) right / 26px 100% no-repeat local,
-    radial-gradient(farthest-side at 0 50%, rgba(23, 22, 15, 0.13), transparent) left / 11px 100% no-repeat scroll,
-    radial-gradient(farthest-side at 100% 50%, rgba(23, 22, 15, 0.13), transparent) right / 11px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 0 50%, rgba(36, 30, 46, 0.13), transparent) left / 11px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(36, 30, 46, 0.13), transparent) right / 11px 100% no-repeat scroll,
     var(--card-bg);
 }
 .tw::-webkit-scrollbar, .diagram .dscroll::-webkit-scrollbar { height: 7px; }
@@ -820,10 +834,10 @@ kbd {
 
 /* One window, two skins.  The chrome is the design system's "code panel /
    macOS window": rounded shell, a title bar with three lights and the file
-   name centred in it, body below.  The lights are the palette's own red,
-   yellow and green rather than Apple's #ff5f56 / #ffbd2e / #27c93f, so the
-   figure still belongs to this page's colour scheme while reading instantly
-   as a window.
+   name centred in it, body below.  The lights are the palette's own rose, iris
+   and indigo rather than Apple's #ff5f56 / #ffbd2e / #27c93f, so the figure
+   still belongs to this page's colour scheme while reading instantly as a
+   window.
 
    .lite  is the functional skin and the default for documentation. A command
           you are meant to read and copy does not belong on a dark slab.
@@ -842,9 +856,14 @@ kbd {
   background: var(--win-bar); border-bottom: 1px solid var(--win-line);
 }
 .win-bar i { width: 11px; height: 11px; border-radius: 50%; flex: none; }
-.win-bar i:nth-child(1) { background: var(--pop); }
-.win-bar i:nth-child(2) { background: var(--highlight); }
-.win-bar i:nth-child(3) { background: var(--mint); }
+/* Three 11px dots, held to 3:1 against the bar they sit on because that is
+   the bar for a non-text graphic. The middle one used to be the palette's gold
+   and on the recoloured daylight bar it measured 1.02:1 -- present in the
+   markup, invisible on the page. These three measure 3.89 / 4.56 / 5.51 there,
+   5.40 or better on the night bar, and 7.67 or better on the dark panel. */
+.win-bar i:nth-child(1) { background: var(--rose); }
+.win-bar i:nth-child(2) { background: var(--iris); }
+.win-bar i:nth-child(3) { background: var(--indigo); }
 /* the name is centred by taking the free space, which also pushes the copy
    button to the right edge without a second `margin-left: auto` */
 .win-name {
@@ -876,13 +895,26 @@ kbd {
   font-family: var(--mono); font-size: inherit; white-space: pre;
 }
 .win .c { color: var(--ink-light); }
+/* The one dark surface left on the daylight site, and the only one the tests
+   exempt from the surface floor. Its body is the palette's own `--dark-panel`
+   rather than an invented black -- the shell above it is that value lightened
+   1.29 for the title bar and 1.88 for the frame line, the same step the
+   reference component this figure is modelled on uses.
+
+   It also lifts the three hues it needs to their night steps, because a panel
+   this dark is a night surface wherever it appears: the daylight rose measures
+   3.31:1 on it and the daylight brand 2.82:1, and the dots and the prompt both
+   have to clear their bars. */
 .win.dark {
-  --win-bar: #1f2331;
-  --win-body: #151821;
-  --win-line: #2b3040;
+  --win-bar: #302b3b;
+  --win-body: var(--dark-panel);
+  --win-line: #494453;
   --win-dim: var(--on-dark-dim);
   --ink: var(--on-dark);
   --ink-light: var(--on-dark-dim);
+  --rose: #e3b6c9;
+  --iris: #c9bdd9;
+  --indigo: #bac5d7;
   color: var(--on-dark);
 }
 :root[data-theme="dark"] .win.dark { box-shadow: var(--shadow-1); }
@@ -987,8 +1019,12 @@ kbd {
 .badge.pass { background: var(--success-soft); color: var(--success); }
 .badge.fail { background: var(--danger-soft); color: var(--danger-strong); }
 .badge.info { background: var(--info-soft); color: var(--accent-ink); }
-.badge.warn { background: #fff2dd; color: #9a5b00; }
-:root[data-theme="dark"] .badge.warn { background: #2e2313; color: var(--warning); }
+/* this used to carry the only two hand-mixed colours left in the badges --
+   a hue 38 cream and a hue 36 brown text on it -- with a separate night rule
+   underneath to undo them. Both are the state tokens now, which are already
+   night-aware, so the second rule is gone: measured 10.65:1 by day and 5.88:1
+   at night. */
+.badge.warn { background: var(--warning-soft); color: var(--warning); }
 
 /* A whole dashed frame, not a bar down the left edge. The design system's
    taboo list names the `border-left` quote rule specifically, and the site
@@ -1206,12 +1242,16 @@ footer.site { padding: var(--sp-6) 0 var(--sp-7); background: var(--cream-dark);
   text-transform: uppercase;
 }
 
-.sketch.lex { border-color: var(--highlight); }
-.sketch.lex > .label { color: var(--warning); }
-.sketch.intent { border-color: var(--pop); }
-.sketch.intent > .label { color: var(--danger-strong); }
-.sketch.context { border-color: var(--success); }
-.sketch.context > .label { color: var(--success); }
+/* one lane, one family: the frame takes the display step and the label takes
+   the text-safe step of the same hue. The lexical frame used to be the gold,
+   which is 1.31:1 on paper -- a frame nobody could see round a card that was
+   supposed to be identifiable by it. */
+.sketch.lex { border-color: var(--indigo); }
+.sketch.lex > .label { color: var(--indigo-ink); }
+.sketch.intent { border-color: var(--plum); }
+.sketch.intent > .label { color: var(--plum-ink); }
+.sketch.context { border-color: var(--rose); }
+.sketch.context > .label { color: var(--rose-ink); }
 
 .sketch > :first-child + * { margin-top: 0; }
 .sketch > :last-child { margin-bottom: 0; }
@@ -1221,31 +1261,29 @@ footer.site { padding: var(--sp-6) 0 var(--sp-7); background: var(--cream-dark);
 .band.alt .sketch > .label,
 .alt .sketch > .label { background: var(--cream-dark); }
 
+/* Four tinted cards in the prose, one per lane. What this replaces was
+   twelve hand-mixed rgba literals -- two blues, a gold, a red and a forest
+   green, each written twice as a 145-degree gradient and then written a third
+   time in a night override underneath. The gradients were invisible at 3%
+   alpha and the night overrides existed only because the literals could not
+   follow the theme. These are the solved lane washes instead: separated from
+   each other and from every surface they can sit on, in both themes, without a
+   single override. */
 .tintcard {
   margin: var(--sp-6) 0;
   padding: var(--sp-5);
-  /* The border is the hue's second chance. Blue at 0.10 alpha over cream is
-     very nearly cream; measured beside a gold sibling it read as the one
-     white card in a coloured set. The hairline is what makes it a member. */
-  border: 1px solid rgba(43, 127, 216, 0.28);
+  /* the border is the hue's second chance: at wash density alone a card in the
+     middle of prose reads as the one white card in a coloured set */
+  border: 1px solid var(--iris);
   border-radius: 20px;
-  background: linear-gradient(145deg, rgba(43, 127, 216, 0.1), rgba(43, 127, 216, 0.03));
+  background: var(--iris-soft);
 }
 
-.tintcard.lex {
-  border-color: rgba(202, 170, 20, 0.42);
-  background: linear-gradient(145deg, rgba(244, 215, 88, 0.22), rgba(244, 215, 88, 0.05));
-}
+.tintcard.lex { border-color: var(--indigo); background: var(--indigo-soft); }
 
-.tintcard.intent {
-  border-color: rgba(232, 74, 95, 0.3);
-  background: linear-gradient(145deg, rgba(232, 74, 95, 0.1), rgba(232, 74, 95, 0.03));
-}
+.tintcard.intent { border-color: var(--plum); background: var(--plum-soft); }
 
-.tintcard.context {
-  border-color: rgba(46, 121, 85, 0.3);
-  background: var(--success-soft);
-}
+.tintcard.context { border-color: var(--rose); background: var(--rose-soft); }
 
 .tintcard > .t {
   margin-bottom: var(--sp-2);
@@ -1260,26 +1298,14 @@ footer.site { padding: var(--sp-6) 0 var(--sp-7); background: var(--cream-dark);
   margin-right: var(--sp-2);
   border-radius: 50%;
   vertical-align: 1px;
-  background: var(--brand);
+  background: var(--iris);
 }
 
-.tintcard.lex > .t::before { background: var(--highlight); }
-.tintcard.intent > .t::before { background: var(--pop); }
-.tintcard.context > .t::before { background: var(--success); }
+.tintcard.lex > .t::before { background: var(--indigo); }
+.tintcard.intent > .t::before { background: var(--plum); }
+.tintcard.context > .t::before { background: var(--rose); }
 
 .tintcard > :last-child { margin-bottom: 0; }
-
-:root[data-theme="dark"] .tintcard {
-  background: linear-gradient(145deg, rgba(125, 180, 238, 0.1), rgba(125, 180, 238, 0.03));
-}
-
-:root[data-theme="dark"] .tintcard.lex {
-  background: linear-gradient(145deg, rgba(232, 198, 90, 0.09), rgba(232, 198, 90, 0.02));
-}
-
-:root[data-theme="dark"] .tintcard.intent {
-  background: linear-gradient(145deg, rgba(242, 135, 154, 0.09), rgba(242, 135, 154, 0.02));
-}
 
 /* Three-up grid of small tinted cards, for the "four facets" and "which
    provider" rows that are four short things rather than one long one. */

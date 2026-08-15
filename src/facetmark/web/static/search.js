@@ -266,7 +266,7 @@ function hitCard(h, rank, neighbour) {
   // Three tiers, because a ranked list drawn as twenty identical cards is a
   // list that says the twentieth result is the same kind of object as the
   // first. Tier 0 is the top few, in the hue of the path that found them;
-  // Tier 1 is a light row; neighbours are neither, and say so in peach.
+  // Tier 1 is a light row; neighbours are neither, and say so in plum.
   const lead = !neighbour && rank <= LEADS;
   const tone = lead ? FACET_TONE[dominant(h)] : "";
   const a = el("a", neighbour ? "hit near" : lead ? `hit lead${tone ? ` f-${tone}` : ""}` : "hit");

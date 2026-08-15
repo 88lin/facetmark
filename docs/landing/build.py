@@ -121,7 +121,7 @@ def r_block(b: tuple) -> str:
             + "</div>"
         )
     if kind == "dashed":
-        # A hand-drawn frame. `tone` is "" for brand blue, or lex / intent /
+        # A hand-drawn frame. `tone` is "" for the brand hue, or lex / intent /
         # context. The label is the frame's name and is never decoration: it
         # is what a reader who cannot see the hue reads instead of it.
         cls = f"sketch {b[1]}".strip()
@@ -515,7 +515,7 @@ def shell(t: dict, page: str, body: str) -> str:
     esc_desc = html.escape(desc, quote=True)
     return (
         "<!doctype html>\n"
-        f'<html lang="{t["html_lang"]}" data-palette="A">\n<head>\n'
+        f'<html lang="{t["html_lang"]}" data-palette="I">\n<head>\n'
         '<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f"<title>{esc(title)}</title>\n"
@@ -547,7 +547,7 @@ def shell(t: dict, page: str, body: str) -> str:
         # that was that the icon had not been changed, so it is now the file
         # itself with only the title and aria-label renamed.
         '<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">\n'
-        '<link rel="mask-icon" href="assets/favicon.svg" color="#2b7fd8">\n'
+        '<link rel="mask-icon" href="assets/favicon.svg" color="#71519b">\n'
         # No font request. The stacks in style.css are system faces, which is
         # what the reference site ships and what keeps the page correct with
         # no network. See `TestTheFontPolicy` in tests/test_web.py.
@@ -679,10 +679,11 @@ def page_index(t: dict) -> str:
     o.append("</div></section>")
 
     # ---- pipeline ---------------------------------------------------------
-    # one of two inverted bands. Ten sections of the same paper colour and the
+    # one of two feature bands. Ten sections of the same paper colour and the
     # same left-aligned header shape is what made the page read as one flat
-    # sheet; this is the mid-page breath.
-    o.append('<section class="band invert" id="pipeline"><div class="wrap hcenter">')
+    # sheet; this is the mid-page breath. It used to invert the palette here;
+    # it is now the third step of the same paper ladder.
+    o.append('<section class="band feature" id="pipeline"><div class="wrap hcenter">')
     o.append(f'<p class="seclabel">{esc(i["pipe_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["pipe_h2"]}</h2>')
     o.append(f'<p class="lede read reveal">{i["pipe_lede"]}</p>')
@@ -823,7 +824,7 @@ def page_index(t: dict) -> str:
     o.append("</ul></div></section>")
 
     # ---- end --------------------------------------------------------------
-    o.append('<section class="band invert"><div class="wrap center hcenter">')
+    o.append('<section class="band feature"><div class="wrap center hcenter">')
     o.append(f'<h2 class="reveal">{i["end_h2"]}</h2>')
     o.append(f'<p class="lede reveal" style="max-width:640px">{i["end_p"]}</p>')
     o.append('<div class="cta reveal" style="justify-content:center">')

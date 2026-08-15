@@ -248,10 +248,11 @@ EN = {
         "pipe_label": "The pipeline",
         "pipe_h2": "From a query to a ranked list",
         "pipe_lede": (
-            "Blue is what runs in the shipped default profile. Grey is built, "
-            "tested and switched off. Every indexing stage is idempotent and "
-            "fingerprinted, so <code>facetmark index</code> re-runs only the "
-            "work whose input changed."
+            "The coloured stages are what runs in the shipped default "
+            "profile. The grey ones are built, tested and switched off. Every "
+            "indexing stage is idempotent and fingerprinted, so "
+            "<code>facetmark index</code> re-runs only the work whose input "
+            "changed."
         ),
         "pipe_scroll": "Scroll the diagram sideways \u2192",
         "pipe_after": [
@@ -2775,10 +2776,10 @@ EN["webui"] = {
                     "p",
                     "Under the badges is a short bar in the same colours. That "
                     "is the mixture: how much each path put into this one "
-                    "fused score. Two gold-heavy rows and a blue-heavy one "
-                    "means the first two matched your spelling and the third "
-                    "matched your meaning \u2014 which is usually the moment "
-                    "you learn something about your own query.",
+                    "fused score. Two gold-heavy rows and a violet-heavy "
+                    "one means the first two matched your spelling and the "
+                    "third matched your meaning \u2014 which is usually the "
+                    "moment you learn something about your own query.",
                 ),
                 (
                     "ul",

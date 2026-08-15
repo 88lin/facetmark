@@ -2,9 +2,9 @@
   <title>facetmark</title>
   <!-- 风险分层标尺的抽象：递增的动作影响，最后一级是红线。
        纯几何、不依赖字体，16px 下仍可辨认。 -->
-  <rect width="64" height="64" rx="14" fill="#fefcf6"/>
-  <rect x="11" y="15" width="6" height="34" rx="3" fill="#F4D758"/>
-  <rect x="23" y="15" width="16" height="9" rx="4.5" fill="#2B7FD8"/>
-  <rect x="23" y="27.5" width="24" height="9" rx="4.5" fill="#1E5BA8"/>
-  <rect x="23" y="40" width="30" height="9" rx="4.5" fill="#E84A5F"/>
+  <rect width="64" height="64" rx="14" fill="#FDFBF7"/>
+  <rect x="11" y="15" width="6" height="34" rx="3" fill="#F6DC8E"/>
+  <rect x="23" y="15" width="16" height="9" rx="4.5" fill="#71519B"/>
+  <rect x="23" y="27.5" width="24" height="9" rx="4.5" fill="#523776"/>
+  <rect x="23" y="40" width="30" height="9" rx="4.5" fill="#B54070"/>
 </svg>

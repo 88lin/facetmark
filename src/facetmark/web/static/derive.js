@@ -99,7 +99,7 @@ export function healthBands(health) {
 /**
  * The fetch queue as one bar, in drawing order.
  *
- * `done` is the only state that is finished, so it is the only green segment;
+ * `done` is the only state that is finished, so it is the only indigo segment;
  * `leased` is in flight (warn), `pending` is waiting its turn (mute) and
  * `failed` is the one that needs a reader (bad). The denominator is every item
  * the queue holds, so the bar answers "how drained is the queue" rather than

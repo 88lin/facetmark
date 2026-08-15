@@ -31,8 +31,9 @@ export function clear(node) {
  *
  * The dot carries the colour and the word carries the meaning, which is the
  * whole accessibility argument for this shape. `--facet-lex` is gold; gold on
- * cream is 1.4:1, so the hue can be a dot or a background wash but never the
- * letters. `tone` is "" for content, or lex / intent / context.
+ * cream is 1.3:1, so the hue can be a dot or a background wash but never the
+ * letters -- and as a dot it needs the outline the stylesheet gives it. `tone`
+ * is "" for content, or lex / tri / intent / context / edge.
  */
 export function fbadge(tone, text, title) {
   const n = el("span", tone ? `fbadge ${tone}` : "fbadge");
