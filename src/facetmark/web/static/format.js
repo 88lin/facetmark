@@ -147,3 +147,19 @@ export function interpolate(template, vars) {
     Object.hasOwn(vars ?? {}, k) ? String(vars[k]) : m,
   );
 }
+
+/**
+ * One text box back into the list it stands for.
+ *
+ * The settings page shows `privacy_excluded_domains` as `a.example, b.example`
+ * because a tag editor for two domains is not worth the code. The field on the
+ * server is a tuple, so the box has to be split before it is sent -- the mirror
+ * of `split_list` in `config.py`, which is what makes a hand-edited config file
+ * and a hand-typed box behave the same.
+ *
+ * Commas or whitespace, since a domain contains neither; blanks and repeats
+ * dropped, since `a.example,,a.example` is a typo either way.
+ */
+export function splitList(text) {
+  return [...new Set(String(text ?? "").replace(/,/g, " ").split(/\s+/).filter(Boolean))];
+}

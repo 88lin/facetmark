@@ -65,20 +65,32 @@ class ImportStats:
         }
 
 
-def read_text(path: str | Path) -> str:
-    """Read a bookmark file, tolerating BOMs and mislabelled encodings.
+#: Tried in order. Windows exports are frequently UTF-8 with BOM; some tools
+#: emit GBK. ``cp1252`` is last because it decodes nearly any byte string, so
+#: putting it earlier would hide a real GB18030 file behind mojibake.
+ENCODINGS = ("utf-8-sig", "utf-8", "gb18030", "cp1252")
 
-    Windows exports are frequently UTF-8 with BOM; some tools emit GBK. Guessing
-    wrong here turns every CJK title into mojibake, which then poisons both the
-    lexical index and the LLM prompt, so the fallback chain is explicit.
+
+def decode_bookmark_bytes(raw: bytes) -> str:
+    """Decode an export, tolerating BOMs and mislabelled encodings.
+
+    Takes bytes rather than a path because the web upload has no path -- it
+    holds the request body -- and both callers need the same ladder. Guessing
+    wrong turns every CJK title into mojibake, which then poisons the lexical
+    index, the summary and the LLM prompt alike; and because the parser only
+    needs URLs and titles to *look* parseable, a wrong guess is silent.
     """
-    raw = Path(path).read_bytes()
-    for enc in ("utf-8-sig", "utf-8", "gb18030", "cp1252"):
+    for enc in ENCODINGS:
         try:
             return raw.decode(enc)
         except UnicodeDecodeError:
             continue
     return raw.decode("utf-8", errors="replace")
+
+
+def read_text(path: str | Path) -> str:
+    """Read a bookmark file, tolerating BOMs and mislabelled encodings."""
+    return decode_bookmark_bytes(Path(path).read_bytes())
 
 
 def detect_and_parse(content: str) -> ImportResult:

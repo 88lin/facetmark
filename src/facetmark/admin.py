@@ -24,19 +24,21 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import os
 import time
 import uuid
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, get_origin
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from . import service
-from .config import Settings, get_settings
+from .config import Settings, get_settings, split_list
 from .configfile import config_path, read_config, update_config
 from .db import open_db
+from .importers import decode_bookmark_bytes
 from .providers import get_provider
 
 #: Stage names emitted by :func:`service.index_all`, in the order it runs them.
@@ -73,6 +75,14 @@ WRITABLE = (
     "fetch_concurrency",
     "enrich_concurrency",
     "privacy_excluded_domains",
+)
+
+#: Writable fields that hold a sequence. Read off the model rather than typed
+#: out, because a hand-written list is exactly what goes stale when the next
+#: tuple-valued setting is added -- and the failure mode is a 400 the UI cannot
+#: explain, or a string assigned to a tuple field.
+TUPLE_FIELDS = frozenset(
+    name for name in WRITABLE if get_origin(Settings.model_fields[name].annotation) is tuple
 )
 
 #: Changing these mid-flight would leave the running process disagreeing with
@@ -288,19 +298,36 @@ def mask(value: str) -> str:
     return value if len(value) <= 8 else f"{value[:3]}...{value[-4:]}"
 
 
+def env_locked() -> frozenset[str]:
+    """Writable fields the environment has already decided.
+
+    An exported variable outranks the file (see
+    :meth:`Settings.settings_customise_sources`), so a write to one of these
+    persists a value the next boot ignores. The UI renders them read-only, but
+    the UI is not the only caller of a localhost HTTP API, so the rule lives
+    here and both the view and the write path read it.
+    """
+    return frozenset(k for k in WRITABLE if os.environ.get(f"FACETMARK_{k.upper()}") is not None)
+
+
 def settings_view(settings: Settings) -> dict:
     """Every writable setting, its value, and where the value came from.
 
     ``source`` is the field people actually need. Editing a box and seeing the
     value not change is baffling until you learn that an exported environment
     variable outranks the file, so the UI is told which keys it cannot win.
-    """
-    import os
 
+    ``path`` is resolved from the environment, not from ``settings.data_dir``,
+    and that is deliberate: :class:`~facetmark.config.ConfigFileSource` reads
+    the same environment-resolved path, so this is the file the next boot will
+    actually read. Pointing it at ``settings.data_dir`` would look tidier under
+    ``serve --db /elsewhere/x.db`` and would write settings nothing ever reads.
+    """
+    locked = env_locked()
     file_keys = set(read_config())
     rows = []
     for name in WRITABLE:
-        env = os.environ.get(f"FACETMARK_{name.upper()}") is not None
+        env = name in locked
         source = "env" if env else ("file" if name in file_keys else "default")
         value = getattr(settings, name)
         if isinstance(value, tuple):
@@ -402,12 +429,11 @@ def register(app: FastAPI, auth: list) -> None:
             raise HTTPException(400, "empty body")
         if len(raw) > MAX_UPLOAD_BYTES:
             raise HTTPException(413, f"file larger than {MAX_UPLOAD_BYTES // (1024 * 1024)} MB")
-        try:
-            content = raw.decode("utf-8")
-        except UnicodeDecodeError:
-            # Old Windows exports are frequently cp1252 or GBK. Latin-1 never
-            # raises, and the parser only needs the URLs and titles intact.
-            content = raw.decode("utf-8", errors="replace")
+        # The same ladder `facetmark import <file>` uses. Decoding the upload
+        # as UTF-8 with `errors="replace"` instead returns 200 and stores
+        # `Caf\ufffd` -- an import that reports success and has already damaged
+        # the title it indexed, summarised and embedded.
+        content = decode_bookmark_bytes(raw)
         state = _state(request)
         async with state.lock:
             stats = service.import_content(state.conn, content, settings=state.settings)
@@ -449,10 +475,26 @@ def register(app: FastAPI, auth: list) -> None:
         unknown = sorted(set(body.values) - set(WRITABLE))
         if unknown:
             raise HTTPException(400, f"not writable from the UI: {', '.join(unknown)}")
+        # 409 rather than 400: the request is well-formed and the field is
+        # writable in general, but this process was started with the variable
+        # exported. Accepting it would wipe the live value while the view still
+        # -- correctly -- reports the source as `env`.
+        locked = sorted(set(body.values) & env_locked())
+        if locked:
+            raise HTTPException(
+                409, f"set by the environment, unset the variable to edit here: {', '.join(locked)}"
+            )
         changes = dict(body.values)
         # An empty string for the key means "clear it", not "set it to empty".
         if changes.get("api_key") == "":
             changes["api_key"] = None
+        # One text box holds a list, so a string arrives. Normalise before
+        # validating *and* before writing: TOML should hold an array, and a
+        # string assigned to a tuple field makes `host_excluded` iterate
+        # characters.
+        for key in TUPLE_FIELDS & set(changes):
+            if changes[key] is not None:
+                changes[key] = list(split_list(changes[key]))
         # Validate before persisting, so a typo is a 400 and not a service that
         # refuses to start on its next boot.
         try:
@@ -469,6 +511,11 @@ def register(app: FastAPI, auth: list) -> None:
             value = changes[key]
             if value is None:
                 value = Settings.model_fields[key].get_default(call_default_factory=True)
+            elif key in TUPLE_FIELDS:
+                # The file wants an array; the field is declared as a tuple, and
+                # assignment here does not run validation. Without this the live
+                # object holds a `list` where every reader expects a tuple.
+                value = tuple(value)
             with contextlib.suppress(Exception):
                 setattr(state.settings, key, value)
         state._provider = None

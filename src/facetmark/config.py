@@ -38,6 +38,23 @@ def default_data_dir(*, os_name: str | None = None) -> Path:
     return Path.home() / ".local" / "share" / "facetmark"
 
 
+def split_list(value: object) -> object:
+    """Coerce ``"a.example, b.example"`` into ``("a.example", "b.example")``.
+
+    One definition, shared by the field validator below and by the admin API,
+    because the two disagreeing is how a text box ends up assigning a ``str``
+    to a ``tuple`` field -- at which point ``host_excluded`` iterates
+    *characters* and the privacy list silently matches the wrong hosts.
+
+    Commas or whitespace, since a domain contains neither, and duplicates are
+    dropped in first-seen order: the same domain twice is a typo, not an
+    instruction.
+    """
+    if not isinstance(value, str):
+        return value
+    return tuple(dict.fromkeys(value.replace(",", " ").split()))
+
+
 class ConfigFileSource(PydanticBaseSettingsSource):
     """``<data_dir>/config.toml`` as the lowest-priority settings source.
 
@@ -282,6 +299,19 @@ class Settings(BaseSettings):
     #: Domains (suffix match) excluded from enrichment, embedding and every
     #: third-party probe. They degrade to title+lexical indexing only.
     privacy_excluded_domains: tuple[str, ...] = ()
+
+    @field_validator("privacy_excluded_domains", mode="before")
+    @classmethod
+    def _domain_list(cls, v: object) -> object:
+        """A comma-separated string is a shape callers actually send.
+
+        The settings page renders this field as one text box, and
+        ``chat_model_fallbacks`` next door has been comma-separated since it
+        was added, so a string is what arrives. Refusing it made the only
+        list-valued setting in the UI impossible to save, and ``Input should
+        be a valid tuple`` is not a message anyone can act on.
+        """
+        return split_list(v)
 
     # ---------- service ----------
     host: str = "127.0.0.1"

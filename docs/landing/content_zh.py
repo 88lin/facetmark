@@ -127,7 +127,7 @@ ZH["index"] = {
     ],
     "chips": [
         ("Python", "3.10+"),
-        ("\u6d4b\u8bd5", "1,188"),
+        ("\u6d4b\u8bd5", "1,500"),
         ("\u8bb8\u53ef\u8bc1", "MIT"),
         ("\u5b58\u50a8", "1 \u4e2a SQLite \u6587\u4ef6"),
         ("\u4e0a\u4f20", "\u65e0"),
@@ -969,7 +969,7 @@ ZH["guide"] = {
                  "cd facetmark\n"
                  "python -m venv .venv && . .venv/bin/activate\n"
                  'pip install -e ".[dev]"\n\n'
-                 "pytest -q                 # 1,188 \u4e2a\u6d4b\u8bd5\n"
+                 "pytest -q                 # 1,500 \u4e2a\u6d4b\u8bd5\n"
                  "ruff check src tests scripts"),
                 ("callout", "warn", "\u4e0d\u8981\u683c\u5f0f\u5316\u4ee3\u7801\u5e93",
                  "<p>\u5b83\u662f\u624b\u5199\u6392\u7248\u7684\u3002CI \u8dd1\u7684\u662f "
