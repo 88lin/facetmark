@@ -479,8 +479,7 @@ button {
   width: 22px;
   height: 22px;
   border-radius: 7px;
-  background: var(--brand);
-  box-shadow: inset -7px -7px 0 0 var(--highlight);
+  flex: none;
 }
 
 .tools {
