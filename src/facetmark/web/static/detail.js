@@ -73,7 +73,18 @@ function drawAbout() {
   panel.replaceChildren();
   if (!rec) return;
 
-  if (rec.summary) panel.appendChild(el("p", "prose", rec.summary));
+  if (rec.summary) {
+    panel.appendChild(el("p", "prose", rec.summary));
+    // A summary written from the title alone is an inference about the page,
+    // not a report from it -- the page was never fetched -- and the badge is
+    // the reason the `basis` column exists. Karakeep-imported summaries carry
+    // their own basis and stay unbadged here.
+    if (rec.indexed?.summary_basis === "title") {
+      const b = pill("warn", t("detail.basis.title"));
+      b.title = t("detail.basis.title.why");
+      panel.appendChild(b);
+    }
+  }
 
   if (rec.key_points?.length) {
     const list = el("ul", "points");

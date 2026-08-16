@@ -125,6 +125,7 @@ SELECT b.id, b.url, b.title, b.folder, b.folder_depth, b.domain, b.host,
        b.date_added, b.date_modified, b.source, b.indexable, b.privacy_skipped,
        b.import_artifact, b.open_count, b.last_opened_at,
        e.summary, e.topics, e.entities, e.key_points, e.utility, e.content_type,
+       e.basis AS enrich_basis,
        e.model AS enrich_model,
        c.char_count, c.lang, c.extractor, c.fetch_channel, c.http_status,
        c.fetched_at, c.final_url, c.error AS fetch_error,
@@ -195,6 +196,10 @@ def bookmark_record(
             "fetched_at": row["fetched_at"],
             "error": row["fetch_error"] or "",
             "enriched_by": row["enrich_model"] or "",
+            # What the summary was written from: 'body', 'title' (inferred --
+            # the page itself was never fetched), 'karakeep' (bridge metadata).
+            # '' when there is no summary to attribute.
+            "summary_basis": row["enrich_basis"] or "",
         },
         "privacy_skipped": bool(row["privacy_skipped"]),
         "health": state.as_dict(),
@@ -387,10 +392,13 @@ class Synthesis:
 def _source_block(sources: list[dict]) -> str:
     parts = []
     for s in sources:
+        note = ""
+        if s.get("basis") == "title":
+            note = "\n    note: this excerpt was inferred from the page's title; the page itself was never fetched"
         parts.append(
             f"[{s['n']}] {s['title']}\n"
             f"    url: {s['url']}\n"
-            f"    excerpt: {s['excerpt']}"
+            f"    excerpt: {s['excerpt']}{note}"
         )
     return "\n".join(parts)
 
@@ -427,12 +435,32 @@ async def synthesize(
             "title": hit.title, "excerpt": excerpt or _clip(hit.snippet, SNIPPET_CHARS),
             "health": (rec or {}).get("health", {}).get("status", "unknown"),
             "badge": (rec or {}).get("badge", ""),
+            # 'title' means the excerpt is a model's inference from the page's
+            # title, not text read off the page -- a weaker basis the reader
+            # and the synthesising model are both entitled to know about.
+            "basis": (rec or {}).get("indexed", {}).get("summary_basis", ""),
         })
 
     gaps = _deterministic_gaps(resp, sources)
     if not sources:
         return Synthesis(query=query, gaps=gaps or ["nothing in the library matched"],
                          model="none")
+
+    # Nothing to quote means nothing to synthesise from. Calling the model
+    # anyway burns a paid request for a reply that is predetermined -- the
+    # prompt's own rule makes it decline -- and the failure used to surface as
+    # the most confusing shape this endpoint can return: sources, an empty
+    # claims list, and a gap blaming the model for "no usable claims" when the
+    # model never had a claim to make. This happens exactly on the pages a
+    # fresh install searches first: imported but not yet indexed, so title and
+    # URL are all that exists of them.
+    if not any(s["excerpt"] for s in sources):
+        return Synthesis(
+            query=query, claims=[], sources=sources,
+            gaps=[*gaps, "none of the sources have any indexed text; "
+                 "run `facetmark index` so there is something to quote"],
+            model="none",
+        )
 
     prov = provider or get_provider(st)
     user = f"Question: {query}\n\nExcerpts:\n{_source_block(sources)}"
@@ -501,6 +529,12 @@ def _deterministic_gaps(resp: SearchResponse, sources: list[dict]) -> list[str]:
     thin = [s["n"] for s in sources if len(s["excerpt"]) < 40]
     if thin:
         gaps.append(f"{len(thin)} source(s) have little or no indexed text")
+    inferred = [s["n"] for s in sources if s.get("basis") == "title"]
+    if inferred:
+        gaps.append(
+            f"{len(inferred)} source(s) are summarised from their titles only; "
+            "those pages were never fetched"
+        )
     return gaps
 
 

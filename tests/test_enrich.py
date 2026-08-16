@@ -691,6 +691,25 @@ class TestEnrichPipeline:
         assert (await enrich_all(conn, provider=prov, settings=mock_settings)).enriched == 0
         assert prov.usage.calls == 0
 
+    async def test_the_basis_column_says_which_kind_of_summary_each_row_is(
+        self, loaded, mock_settings
+    ):
+        """A title-only summary is an inference about the page, not a report
+        from it, and the database has to be able to tell the two apart.
+
+        `loaded` mixes both kinds on purpose: PAGES covers the first few
+        bookmarks with bodies and the rest stay title-only.
+        """
+        await enrich_all(loaded, settings=mock_settings)
+        got = {
+            (r["basis"], r["has_body"])
+            for r in loaded.execute(
+                "SELECT e.basis AS basis, c.body_hash IS NOT NULL AS has_body "
+                "FROM enrichment e LEFT JOIN content c ON c.bookmark_id = e.bookmark_id"
+            )
+        }
+        assert got == {("body", 1), ("title", 0)}
+
     async def test_enrichment_text_reaches_both_lexical_indexes(self, loaded, mock_settings):
         await enrich_all(loaded, settings=mock_settings)
         row = loaded.execute("SELECT bookmark_id, summary FROM enrichment "

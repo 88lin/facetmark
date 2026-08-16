@@ -86,7 +86,12 @@ CREATE TABLE IF NOT EXISTS content (
 );
 
 -- LLM output. One row per bookmark, regenerated only when source_hash drifts
--- from content.body_hash.
+-- from content.body_hash. `basis` says what the summary was written from --
+-- 'body' (the page's extracted text), 'title' (never fetched; inferred from
+-- title+url), 'karakeep' (bridge metadata, never a model call) -- because a
+-- title-based summary is a guess about the page rather than a report from it,
+-- and every surface that shows one is allowed to say so. Last, like every
+-- column a migration adds, so a fresh file and a migrated one match.
 CREATE TABLE IF NOT EXISTS enrichment (
     bookmark_id  INTEGER PRIMARY KEY REFERENCES bookmark(id) ON DELETE CASCADE,
     summary      TEXT,
@@ -97,7 +102,8 @@ CREATE TABLE IF NOT EXISTS enrichment (
     content_type TEXT,
     source_hash  TEXT,
     model        TEXT,
-    created_at   INTEGER
+    created_at   INTEGER,
+    basis        TEXT NOT NULL DEFAULT 'body'
 );
 
 -- Facet 2: hypothetical queries generated from the page (doc2query), then

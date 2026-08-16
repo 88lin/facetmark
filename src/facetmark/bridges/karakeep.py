@@ -253,11 +253,11 @@ def _upsert_one(
     if not kept_enrichment and (doc.summary or doc.tags):
         conn.execute(
             "INSERT INTO enrichment(bookmark_id, summary, key_points, entities, topics,"
-            " utility, content_type, source_hash, model, created_at)"
-            " VALUES(?,?,'[]','[]',?,'', '', 'karakeep', 'karakeep', ?)"
+            " utility, content_type, basis, source_hash, model, created_at)"
+            " VALUES(?,?,'[]','[]',?,'', '', 'karakeep', 'karakeep', 'karakeep', ?)"
             " ON CONFLICT(bookmark_id) DO UPDATE SET summary=excluded.summary,"
             " topics=excluded.topics, source_hash='karakeep', model='karakeep',"
-            " created_at=excluded.created_at",
+            " basis='karakeep', created_at=excluded.created_at",
             (bid, doc.summary, jdump(doc.tags), now()),
         )
         existing = None
