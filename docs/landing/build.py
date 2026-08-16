@@ -567,7 +567,7 @@ def shell(t: dict, page: str, body: str) -> str:
         '<div class="progress" aria-hidden="true"></div>\n'
         '<header class="site"><div class="site-inner">'
         f'<a class="logo" href="index{".zh" if z else ""}.html">'
-        '<span class="mark" aria-hidden="true"></span>'
+        '<img class="mark" src="assets/favicon.svg" alt="" width="20" height="20">'
         '<span class="word">facetmark</span></a>'
         f"{nav_html(t, page)}</div></header>\n"
         f"{body}\n"
