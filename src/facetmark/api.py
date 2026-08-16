@@ -32,10 +32,11 @@ from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import __version__, service
+from . import __version__, admin, service
 from . import health as healthmod
 from .bridges import karakeep as kkbridge
 from .config import Settings, get_settings
@@ -43,13 +44,24 @@ from .db import open_db
 from .fetch import store as fetchstore
 from .providers import get_provider
 from .search.pipeline import ALL_CONFIGS, default_config
+from .web import INDEX_HTML, STATIC_DIR
 
 #: Chrome extension pages and service workers send this scheme.
 _EXT_ORIGIN_PREFIXES = ("chrome-extension://", "moz-extension://", "safari-web-extension://")
 
 PUBLIC_PATHS = frozenset({
     "/", "/health", "/docs", "/docs/oauth2-redirect", "/openapi.json", "/redoc",
+    # The web UI. `/app` is a static document and `/app/boot` hands the page
+    # its token, gated on loopback rather than on the token it does not have
+    # yet. See `_pairing_gate`.
+    "/app", "/app/boot",
 })
+
+#: Host header values that mean "this browser is talking to its own machine".
+_LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
+
+#: Peer addresses that mean the same thing at the TCP layer.
+_LOOPBACK_PEERS = frozenset({"127.0.0.1", "::1"})
 
 
 # ---------------------------------------------------------------------------
@@ -71,6 +83,8 @@ class AppState:
         self.settings.ensure_dirs()
         self.conn: sqlite3.Connection = open_db(self.settings.db_path, same_thread=False)
         self.lock = asyncio.Lock()
+        #: At most one index run, on its own connection. See `facetmark.admin`.
+        self.jobs = admin.JobRunner()
         self.token = service.pairing_token(self.settings)
         self.started_at = int(time.time())
         self._provider = None
@@ -100,6 +114,41 @@ def require_token(request: Request) -> None:
         supplied = request.headers.get("x-facetmark-token", "").strip()
     if supplied != state.token:
         raise HTTPException(status_code=401, detail="bad or missing pairing token")
+
+
+def _pairing_gate(request: Request) -> str:
+    """``""`` when this caller may be handed the pairing token, else a reason.
+
+    Two conditions, and the second one is the interesting one.
+
+    The TCP peer must be loopback. That is necessary and nowhere near
+    sufficient: under DNS rebinding the peer *is* loopback, because the request
+    comes from the victim's own browser. An attacker publishes
+    ``evil.example`` with a short TTL, gets the user to load a page, re-answers
+    the next lookup with ``127.0.0.1``, and now their JavaScript is issuing
+    same-origin requests to this server from a real local socket.
+
+    What the attacker cannot forge is the ``Host`` header: the browser sends
+    the name the user's page was loaded from, so a rebound request arrives
+    carrying ``evil.example``. Requiring that header to be a loopback literal
+    is therefore the check that actually holds, and refusing to hand out the
+    token leaves the attacker facing the same 401 as any other unauthenticated
+    caller.
+
+    Deliberately scoped to ``/app/boot`` rather than applied globally. Every
+    other route already requires the token, so a global ``Host`` allowlist
+    would buy no security while breaking anyone who binds a LAN address on
+    purpose -- which the CLI already warns about and permits.
+    """
+    peer = (request.client.host if request.client else "") or ""
+    if peer not in _LOOPBACK_PEERS:
+        return "peer_not_loopback"
+    # `url.hostname` is the Host header with the port stripped and IPv6
+    # brackets removed, falling back to the ASGI `server` tuple when the header
+    # is absent -- so a missing Host fails closed rather than open.
+    if (request.url.hostname or "").lower() not in _LOOPBACK_HOSTS:
+        return "host_not_loopback"
+    return ""
 
 
 # ---------------------------------------------------------------------------
@@ -245,6 +294,51 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
     @app.get("/stats", dependencies=auth)
     async def stats(state: AppState = Depends(get_state)) -> dict:
         return service.library_stats(state.conn)
+
+    # ---------------- write routes for the web UI ----------------
+    # Import, index and settings. Token-gated like everything else, plus a hard
+    # loopback check and an off switch. See `facetmark.admin`.
+    admin.register(app, auth)
+
+    # ---------------- web UI ----------------
+    # Three unauthenticated routes. Two serve bytes off disk; the third is the
+    # only place in the service that will ever disclose the pairing token.
+
+    @app.get("/app", include_in_schema=False)
+    async def web_app() -> FileResponse:
+        """The UI shell, served verbatim.
+
+        Nothing is substituted into this document. Templating the token in
+        would mean escaping a secret into an HTML context correctly forever --
+        one ``</script>`` in the wrong place and the page is an injection
+        primitive. Fetching it from ``/app/boot`` instead keeps the secret in a
+        JSON body, where the escaping rules are the parser's problem, and it
+        keeps this file cacheable.
+        """
+        if not INDEX_HTML.is_file():  # pragma: no cover - a broken install
+            raise HTTPException(503, "web assets missing from this installation")
+        return FileResponse(INDEX_HTML, media_type="text/html; charset=utf-8")
+
+    @app.get("/app/boot", include_in_schema=False)
+    async def web_boot(request: Request, state: AppState = Depends(get_state)) -> JSONResponse:
+        """Hand a same-machine browser its pairing token, or explain why not."""
+        reason = _pairing_gate(request)
+        body = {
+            "version": __version__,
+            "paired": not reason,
+            "token": "" if reason else state.token,
+            "reason": reason,
+        }
+        # Caches and history restores are not places for a bearer token.
+        return JSONResponse(body, headers={"Cache-Control": "no-store"})
+
+    # `check_dir=False`: a broken install should 404 one asset, not refuse to
+    # start the service the extension depends on.
+    app.mount(
+        "/app/static",
+        StaticFiles(directory=STATIC_DIR, check_dir=False),
+        name="facetmark-web",
+    )
 
     # ---------------- search ----------------
 
@@ -493,6 +587,9 @@ def serve(settings: Settings | None = None, **kw: Any) -> None:  # pragma: no co
     st.ensure_dirs()
     token = service.pairing_token(st)
     print(f"facetmark {__version__}  http://{st.host}:{st.port}")
+    # The line a first-time user needs. Everything else in this banner is for
+    # somebody wiring up the extension, which is not where anyone starts.
+    print(f"open the search page:     http://{st.host}:{st.port}/app")
     print(f"pairing token written to: {st.token_path}")
     print(f"token: {token}")
     uvicorn.run(create_app(st), host=st.host, port=st.port, log_level=kw.get("log_level", "info"))

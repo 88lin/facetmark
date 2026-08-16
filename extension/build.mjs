@@ -26,6 +26,14 @@ for (const f of ["popup.html", "popup.css", "options.html"]) {
   await cp(`src/${f}`, `${outdir}/${f}`);
 }
 
+// The palette is not this package's. `palettes.css` is the vendored design
+// system file that the served page and the documentation site both link, and
+// `popup.css` now maps its tokens instead of hardcoding a second set of
+// colours that drifted from them. It is copied at build time rather than kept
+// as a third copy in the tree: `cp` throws if the source moves, which is the
+// failure we want, whereas a stale duplicate is silent.
+await cp("../src/facetmark/web/static/palettes.css", `${outdir}/palettes.css`);
+
 // The manifest is stamped rather than copied. It used to carry its own
 // `version`, which sat at 1.0.0 while package.json climbed to 1.4.0 -- an
 // extension that reported a release nobody had cut. package.json is the one

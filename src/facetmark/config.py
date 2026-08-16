@@ -15,7 +15,9 @@ import os
 from pathlib import Path
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
+
+from .configfile import config_path, read_config
 
 
 def default_data_dir(*, os_name: str | None = None) -> Path:
@@ -36,6 +38,36 @@ def default_data_dir(*, os_name: str | None = None) -> Path:
     return Path.home() / ".local" / "share" / "facetmark"
 
 
+class ConfigFileSource(PydanticBaseSettingsSource):
+    """``<data_dir>/config.toml`` as the lowest-priority settings source.
+
+    Registered last on purpose. See :mod:`facetmark.configfile` for why a file
+    that loses every tie is the only version of this feature that is safe to
+    add to an install base that has been exporting environment variables for a
+    year.
+    """
+
+    def __init__(self, settings_cls: type[BaseSettings]) -> None:
+        super().__init__(settings_cls)
+        self._data: dict[str, object] | None = None
+
+    @property
+    def data(self) -> dict[str, object]:
+        if self._data is None:
+            try:
+                self._data = read_config()
+            except Exception as exc:  # noqa: BLE001 - re-raised with the path
+                raise ValueError(f"cannot read {config_path()}: {exc}") from exc
+        return self._data
+
+    def get_field_value(self, field: object, field_name: str) -> tuple[object, str, bool]:
+        return self.data.get(field_name), field_name, False
+
+    def __call__(self) -> dict[str, object]:
+        known = self.settings_cls.model_fields
+        return {k: v for k, v in self.data.items() if k in known}
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="FACETMARK_",
@@ -43,6 +75,24 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        """Priority, highest first. The config file is deliberately last."""
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            file_secret_settings,
+            ConfigFileSource(settings_cls),
+        )
 
     # ---------- storage ----------
     data_dir: Path = Field(default_factory=default_data_dir)
@@ -236,6 +286,15 @@ class Settings(BaseSettings):
     # ---------- service ----------
     host: str = "127.0.0.1"
     port: int = 8787
+
+    admin_api: bool = True
+    """Whether ``/admin/*`` -- import, index and settings -- is mounted.
+
+    On by default because it is the entire first-run experience for anyone who
+    is not going to use a terminal, and it is already gated twice: the pairing
+    token, and a hard loopback check on the TCP peer that no configuration can
+    lift. Turn it off on a shared or LAN-bound host where the token file is
+    readable by someone you would not hand the API key to."""
 
     @field_validator("data_dir", mode="before")
     @classmethod

@@ -1,36 +1,80 @@
 /* Facetmark extension design system.
-   One stylesheet feeds both the popup and the options page. The palette is
-   the project's own (paper / ink / accent), the type scale is deliberately
-   small -- a search box, not a dashboard. Dark mode follows the browser. */
+   One stylesheet feeds both the popup and the options page. The colours are
+   not this file's own any more: `palettes.css` is linked first and this sheet
+   maps its semantic tokens onto the handful of roles a 420px panel needs, so
+   the extension, the served page and the site all move together when the
+   palette moves. The type scale is deliberately small -- a search box, not a
+   dashboard. Dark mode follows the browser.
+
+   The overrides below depend on load order: palettes.css, then this file.
+   Both HTML entry points link them in that order. */
 
 :root {
-  --paper: #faf9f3;
-  --surface: #ffffff;
-  --ink: #1a1a17;
-  --muted: #6b6b63;
-  --line: #ece9e2;
-  --accent: #0279ee;
-  --accent-soft: rgba(2, 121, 238, 0.09);
-  --warn: #ff9400;
-  --ok: #75a025;
+  /* Surfaces. The panel sits on the page colour and everything you can type
+     in or click sits one step up, exactly as on /app. */
+  --paper: var(--cream);
+  --surface: var(--card-bg);
+
+  /* Text comes straight from the palette: --ink for prose, --ink-light for a
+     row that is a neighbour rather than an answer. Only the faintest step
+     needs a local name, because this file calls it --muted throughout. */
+  --muted: var(--ink-faint);
+
+  /* Two edges. --line separates (rules, scrollbar); --line-strong draws the
+     boundary of something interactive, where a 1.24:1 hairline was too faint
+     to say "this is a field". 1.40:1 against the fill it encloses. */
+  --line: var(--border);
+  --line-strong: var(--border-strong);
+
+  /* One accent, in the four jobs it does. --accent fills and borders,
+     --accent-ink is the same hue at a weight text can be read at (9.53:1 on
+     --surface, where --accent alone is 6.16:1), --accent-line rings a pill so
+     it survives being drawn on its own wash, --accent-soft is that wash. */
+  --accent: var(--brand);
+  --accent-ink: var(--brand-deep);
+  --accent-line: rgba(var(--brand-rgb), 0.35);
+  --accent-soft: var(--info-soft);
+  --on-accent: var(--on-brand);
+
+  /* Two steps the vendored palette does carry but not in a family this
+     project ships: its --success is a green and its --warning an olive. These
+     are the same two values `app.css` names, so "connected" and "cold" read
+     the same in the panel as on the page. */
+  --ok: #233c68;
+  --warn-ink: #5b2349;
+  --warn-soft: var(--highlight-soft);
+
   --radius: 10px;
   --radius-sm: 7px;
-  --shadow: 0 1px 2px rgba(26, 26, 23, 0.05);
+  --shadow: 0 1px 2px rgba(var(--ink-rgb), 0.05);
   --font: "Liberation Sans", Arimo, system-ui, -apple-system, "Segoe UI",
     "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
+/* Night moves the palette steps underneath the map above, rather than the map
+   itself: --paper, --muted, --accent-soft and the rest follow on their own.
+   The ladder is the one `app.css` already ships, so a dark panel and a dark
+   page are the same dark. --brand-deep moves too because the vendored
+   :focus-visible ring is built from it, and at #523776 on this paper it was
+   1.76:1 -- a focus ring you could not see. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #1c1c1a;
-    --surface: #262624;
-    --ink: #ece9e2;
-    --muted: #b0b0a6;
-    --line: #3a3a36;
-    --accent: #6cb4ff;
-    --accent-soft: rgba(108, 180, 255, 0.16);
-    --warn: #ffb04d;
-    --ok: #9cc254;
+    --cream: #241f2e;
+    --card-bg: #3d3747;
+    --ink: #dfdbe3;
+    --ink-light: #cbc5d2;
+    --ink-faint: #afa9b6;
+    --ink-rgb: 223, 219, 227;
+    --border: rgba(223, 219, 227, 0.16);
+    --border-strong: rgba(223, 219, 227, 0.26);
+    --brand: #c9bdd9;
+    --brand-deep: #c9bdd9;
+    --on-brand: #241f2e;
+    --info-soft: rgba(var(--brand-rgb), 0.42);
+    --highlight-soft: rgba(246, 220, 142, 0.16);
+    --accent-line: rgba(201, 189, 217, 0.45);
+    --ok: #bdc4d2;
+    --warn-ink: #f6dc8e;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 }
@@ -60,7 +104,7 @@ header { display: flex; gap: 8px; }
   flex: 1;
   min-width: 0;
   padding: 9px 12px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--ink);
@@ -69,15 +113,17 @@ header { display: flex; gap: 8px; }
   transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 #q::placeholder { color: var(--muted); }
+/* Focus doubles the edge with an inset ring instead of a thicker border, so
+   the field does not move, and the accent reads 6.16:1 against the fill. */
 #q:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-soft);
 }
 
 button {
   padding: 9px 12px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--ink);
@@ -87,16 +133,16 @@ button {
   box-shadow: var(--shadow);
   transition: border-color 120ms ease, background 120ms ease, transform 60ms ease;
 }
-button:hover { border-color: var(--accent); color: var(--accent); }
+button:hover { border-color: var(--accent); color: var(--accent-ink); }
 button:active { transform: translateY(1px); }
 button:disabled { opacity: 0.55; cursor: default; transform: none; }
 
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
-button.primary:hover { filter: brightness(1.08); color: #fff; }
+button.primary:hover { filter: brightness(1.08); color: var(--on-accent); }
 
 /* ---- status line ---- */
 
@@ -133,7 +179,7 @@ ul#results {
   flex-direction: column;
   gap: 2px;
   scrollbar-width: thin;
-  scrollbar-color: var(--line) transparent;
+  scrollbar-color: var(--line-strong) transparent;
 }
 
 .hit {
@@ -145,12 +191,16 @@ ul#results {
   border: 1px solid transparent;
   transition: background 100ms ease, border-color 100ms ease;
 }
+/* The hovered row takes the accent wash rather than the card colour: on this
+   paper --surface is 1.02:1 away from the page, which is not a state change
+   anyone can see. The wash is 1.15:1 and it carries a ring. Keyboard focus
+   gets the same wash plus the palette's outline, pulled inside the row's own
+   border so a scrolling list never clips it. */
 .hit:hover, .hit:focus-visible {
-  background: var(--surface);
-  border-color: var(--line);
-  box-shadow: var(--shadow);
-  outline: none;
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
 }
+.hit:focus-visible { outline-offset: -1px; }
 
 .title {
   font-weight: 600;
@@ -178,24 +228,30 @@ ul#results {
   overflow: hidden;
 }
 
-/* Why-is-this-here chips: the facet that retrieved the row, in words. */
+/* Why-is-this-here chips: the facet that retrieved the row, in words. The
+   ring is what keeps the pill a pill on a hovered row, where its wash and the
+   row's wash are the same colour. */
 .chip {
   display: inline-block;
   padding: 1px 6px;
   border-radius: 999px;
   background: var(--accent-soft);
-  color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+  color: var(--accent-ink);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.01em;
 }
 
+/* "cold" -- the page is saved but its body has not been fetched yet. A caveat
+   on a row, not an alarm, so it reads as the gold wash the page uses for the
+   same thing. It used to be white on solid orange: 2.21:1. */
 .badge {
   display: inline-block;
   padding: 1px 6px;
   border-radius: 999px;
-  background: var(--warn);
-  color: #fff;
+  background: var(--warn-soft);
+  color: var(--warn-ink);
   font-size: 10px;
   font-weight: 600;
 }
@@ -212,8 +268,10 @@ ul#results {
   border-top: 1px solid var(--line);
   margin-top: 6px;
 }
-.hit.neighbour .title { font-weight: 500; }
-.hit.neighbour { opacity: 0.8; }
+/* A neighbour is quieter by title weight and by ink step. It used to be
+   quieter by `opacity: 0.8`, which also faded the meta line to 3.54:1 --
+   under AA -- because opacity fades a subtree, not a colour. */
+.hit.neighbour .title { font-weight: 500; color: var(--ink-light); }
 
 /* "load more". A row in the list rather than a control above it, because the
    thing it continues is the list, and it has to stay reachable by scrolling
@@ -246,6 +304,9 @@ ul#results {
 
 /* ---- footer ---- */
 
+/* Two colours rather than one colour at 72% opacity: the old rule faded the
+   settings link to 4.37:1, and `footer a { opacity: 1 }` could not undo it --
+   a parent's opacity composites the whole subtree. */
 footer {
   display: flex;
   justify-content: space-between;
@@ -253,13 +314,11 @@ footer {
   gap: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--line);
-  color: var(--ink);
-  opacity: 0.72;
+  color: var(--muted);
   font-size: 11px;
 }
-footer a { opacity: 1; }
 footer a {
-  color: var(--accent);
+  color: var(--accent-ink);
   text-decoration: none;
   font-weight: 600;
 }
@@ -277,7 +336,7 @@ body.options {
 .options .hint { color: var(--muted); font-size: 12px; margin: 0 0 8px; }
 .options code {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-ink);
   padding: 1px 5px;
   border-radius: 5px;
   font-size: 11px;
@@ -286,7 +345,7 @@ body.options {
 .options input[type="text"] {
   width: 100%;
   padding: 9px 12px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--ink);
@@ -297,7 +356,7 @@ body.options {
 .options input[type="text"]:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-soft);
 }
 .options .row {
   display: flex;
@@ -313,11 +372,14 @@ body.options {
   padding: 10px 12px;
   border-radius: var(--radius-sm);
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   font-size: 12px;
   min-height: 20px;
 }
 .options #state:empty { display: none; }
+/* Connected reads indigo, a failure reads plum: 10.77:1 and 11.60:1 on the
+   field colour, where the green and the orange they replace were 3.08:1 and
+   2.21:1. */
 .options #state.ok { border-color: var(--ok); color: var(--ok); }
-.options #state.bad { border-color: var(--warn); color: var(--warn); }
+.options #state.bad { border-color: var(--warn-ink); color: var(--warn-ink); }
 .options .actions { display: flex; gap: 8px; }

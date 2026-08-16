@@ -1,0 +1,2980 @@
+/*
+ * The facetmark page.
+ *
+ * Every colour on this page comes from `palettes.css`, which is vendored
+ * verbatim from the project owner's design system and is not edited here. This
+ * file only arranges those tokens. The one exception is the dark block at the
+ * bottom: the design system defines light palettes only, so facetmark derives
+ * its own night surfaces there, and `tests/test_web.py` holds that block to an
+ * allowlist so it cannot quietly grow into a second palette.
+ *
+ * The scene was `references/scene-app.md` -- function first, restrained
+ * visuals, headings capped at 1.2rem. Read literally, that produced a search
+ * screen of twenty near-identical white cards, which is the first entry on
+ * the design system's own taboo list, and a setup wizard whose tinted frames
+ * were pushed down to alpha 0.03 and read as blank. The project owner looked
+ * at it and rejected it.
+ *
+ * So the scene is now the one the owner's own derived site ships:
+ * repair.88lin.eu.org. Its density is the target, not a ceiling to approach
+ * cautiously. `scene-app.md` still governs one thing -- data must render
+ * immediately, so no scroll reveal in the app -- and is overridden on visual
+ * intensity. `tests/test_web.py` records both halves of that decision.
+ *
+ * Colour still has to earn its place, but it earns it by carrying rank and
+ * facet rather than by being withheld. The page runs three tiers, chosen by
+ * how often a surface is read:
+ *
+ *   Tier 0  the top-ranked results, the dashboard tiles, the setup steps.
+ *           Tinted base card (`.tint`, design system component 10D) plus a
+ *           hand-drawn dashed frame (`.sketch`, component 10C) in the hue the
+ *           row's dominant facet already uses.
+ *   Tier 1  the rest of the result list and the status tables. Light rows,
+ *           hairline separators, colour only in the badges -- so that the
+ *           tier above it reads as ranked rather than as decorated.
+ *   Tier 2  empty states, error states, explainers. Full hand-drawn treatment
+ *           and the highlighter.
+ *
+ * Fonts are the system stack and nothing else. The earlier version vendored
+ * two decorative Latin faces, Caveat and Fraunces, 94 KB of woff2 that a
+ * Chinese reader downloads to render glyphs the faces do not contain. The
+ * stacks below are copied verbatim from the same derived site the scene comes
+ * from -- `-apple-system` first, then `PingFang SC` before any Windows face,
+ * so Han renders in the family the owner actually specified. Nothing is
+ * downloaded: no `@font-face`, no CDN, correct offline, correct on first
+ * paint. `TestTheFontPolicy` in `tests/test_web.py` holds that line.
+ */
+
+/* ------------------------------------------------------------------ base */
+
+:root {
+  /* Verbatim from the derived site's `--f-sans` / `--f-display` / `--f-mono`.
+     Do not reorder: `PingFang SC` sits ahead of `Microsoft YaHei` on purpose,
+     and the Windows UI face is absent from the text stack on purpose. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",
+    "Hiragino Sans GB", "Noto Sans SC", sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+
+  /* Radii. The design system's app scene uses 12px cards, 16px modals and
+     8px inputs; `--r-pill` is the shape the whole interface is named after.
+     The two decorative radii belong to the components that introduce them:
+     20px for the tinted base card, 16px for the hand-drawn frame. */
+  --r-card: 12px;
+  --r-modal: 16px;
+  --r-input: 10px;
+  --r-chip: 8px;
+  --r-pill: 999px;
+  --r-tint: 20px;
+  --r-sketch: 16px;
+
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.04);
+  --shadow-lift: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-pop: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+  /* ---- type scale ----------------------------------------------------
+     The same nine rungs `docs/landing/style.css` runs, value for value, and
+     `test_the_two_surfaces_agree_on_the_scale` pins them equal so they cannot
+     drift apart the way they already did once.
+
+     What this replaces here: 30 distinct absolute sizes, including the run
+     0.72 / 0.74 / 0.75 / 0.76 / 0.78 / 0.80 / 0.82 / 0.84 / 0.85 / 0.86rem.
+     Those neighbours are a fifth of a pixel apart. Nobody sees a fifth of a
+     pixel; what a reader sees is that nothing lines up.
+
+     The app uses rungs 0 to 7. Rung 8 is a landing headline and would put a
+     52px numeral in a dashboard tile, so `scene-app.md`'s display ceiling
+     keeps it out -- and rung 5 is over the 1.2rem body cap, which is why a
+     section heading here lands on rung 4 and earns its rank from weight. */
+  --fs-0: 0.6875rem;                    /* 11px  in-diagram labels only     */
+  --fs-1: 0.75rem;                      /* 12px  eyebrow, badge, caption    */
+  --fs-2: 0.8125rem;                    /* 13px  meta, terminal, code       */
+  --fs-3: 0.9375rem;                    /* 15px  body, field, secondary     */
+  --fs-4: 1.0625rem;                    /* 17px  heading, logo, lead title  */
+  --fs-5: 1.25rem;                      /* 20px  display only               */
+  --fs-6: 1.5rem;                       /* 24px  display only               */
+  --fs-7: clamp(1.5rem, 3.4vw, 2rem);   /* 24-32px  page title, big numeral */
+  --fs-8: clamp(2rem, 5.2vw, 3.25rem);  /* 32-52px  landing only            */
+
+  /* ---- leading -------------------------------------------------------
+     Five values, down from ten. `line-height: 1` is not a sixth: it is what
+     a single-line box -- a 32px numeral, a round close button -- needs to
+     centre its own text, and the test exempts it by name. */
+  --lh-tight: 1.15;                     /* display numerals, page title     */
+  --lh-snug: 1.4;                       /* headings, titles, chips          */
+  --lh-body: 1.65;                      /* Latin prose                      */
+  --lh-cjk: 1.85;                       /* Han prose -- see the :lang rule  */
+  --lh-code: 1.7;                       /* the log pane                     */
+
+  /* ---- tracking ------------------------------------------------------
+     Four values, down from four ad-hoc ones that happened to be different.
+     The negative step is Latin-only; Han has no sidebearing to take it out
+     of, so the :lang rule below zeroes it. */
+  --ls-display: -0.022em;
+  --ls-none: 0;
+  --ls-caps: 0.08em;
+  --ls-caps-wide: 0.14em;
+
+  /* ---- spacing -------------------------------------------------------
+     A 4px grid, eight steps, replacing 54 distinct literals. The browser
+     measured this page's section gaps at 30 / 22 / 18 / 16 / 14 / 12 / 10 /
+     9 / 8 / 6px before this; two panels 22px and 24px apart do not read as
+     slightly different, they read as broken. 1-3px survive as literals
+     because a hairline and a one-pixel optical nudge are not rhythm. */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 72px;
+
+  --head-h: 56px;
+  --w-read: 900px;
+  --w-wide: 1200px;
+
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* The one colour name this file introduces, and it is an alias rather than
+     a value. Under palette A this was a rescue: that palette's `--brand-text`
+     measured 4.43:1 on `--cream-dark` and 3.94:1 on a 10% brand tint, both
+     under AA, so link-coloured text had to point at the deeper brand step.
+     Palette I needs no rescue -- its brand step measures 5.52:1 on the same
+     surface -- and the alias stays for the two reasons that outlived the
+     rescue: the deeper step gives a link more weight than the wash it sits
+     on, and the dark block needs one name to re-point, because down there the
+     deep step is the unreadable one.
+
+     Two of the palette's shared semantic colours are also re-pointed here.
+     The vendored success green and warning olive sit in the two families this
+     project may not paint, and `palettes.css` is pinned byte-for-byte, so the
+     override lives in this file instead. Success borrows the trigram lane's
+     indigo: link health only ever renders in the system view and facet colour
+     only in result rows and the legend, so the two never share a screen.
+     Warning takes the deep plum step, one stop below the graph-expansion
+     display hue, and the lexical lane borrows it in turn because gold has no
+     readable version of itself. Neither status is signalled by colour alone --
+     every one of them carries a label, and most carry an icon too. */
+  --link: var(--brand-deep);
+  --success: var(--indigo-ink);
+  --success-soft: var(--indigo-soft);
+  --warning: var(--plum-ink);
+
+  /*
+   * The four recall paths, given one colour each.
+   *
+   * This is the only colour decision on the page that is about meaning rather
+   * than hierarchy, and it is the argument the product is named after: a hit
+   * arrives through the words on the page, through what the page is about,
+   * through why it was saved, or through what it was saved next to. Before
+   * this, every facet badge was some shade of blue and the reader had to read
+   * the label to learn which path fired. Now the label is a confirmation.
+   *
+   * Three roles per facet, because one colour cannot do three jobs:
+   *   `-*`      the display hue. Dots, bars, borders. Never text.
+   *   `-*-ink`  the text-safe step, which is one or two stops deeper. Every
+   *             one of these clears 4.5:1 on all three page surfaces in both
+   *             themes; the display hues do not, and gold never could.
+   *   `-*-soft` the wash used behind a badge, and now behind a lead row.
+   *
+   * lex_tri had no colour of its own before the rebuild. It rode gold behind
+   * lex_seg, so a hit found by trigrams and a hit found by segmented words
+   * drew the same badge. It now takes indigo. intent was red, which is also
+   * `cold`, also `danger`, also every failed probe on the system page, and a
+   * result row can carry an intent badge and a cold chip at the same time in
+   * the same red. It now takes orchid, and red goes back to meaning only
+   * "something is wrong".
+   *
+   * Two things here are not symmetrical, and both are forced.
+   *
+   *   Gold has no readable version of itself. Every deep step of that hue
+   *   lands in the brown family this project may not paint, so the lexical
+   *   lane borrows `--warning`, which is the deep step the gold washes
+   *   already sit beside everywhere else on the page.
+   *
+   *   Graph expansion gets no ink of its own. It is not a facet -- those rows
+   *   were not ranked, they were walked to -- so it takes a display hue from
+   *   outside the four and sets its label in the muted page ink. A fifth
+   *   voice would imply a fifth path. It measures 7.81:1 in daylight and
+   *   6.41:1 at night on its own wash.
+   *
+   * Content and context point at `--brand-text` and `--pop-text` rather than
+   * `--brand` and `--pop`, because those two aliases are the ones the dark
+   * block re-points. A dashed frame in the daylight brand hue measures 2.6:1
+   * on the night page and effectively disappears.
+   *
+   * The six washes are 6.38 dE00 apart at their closest in daylight and 7.31
+   * at night, measured pairwise on every page surface. The set they replaced
+   * managed 2.72.
+   */
+  --facet-lex: var(--highlight);
+  --facet-lex-ink: var(--warning);
+  --facet-lex-soft: var(--highlight-soft);
+  --facet-content: var(--brand-text);
+  --facet-content-ink: var(--link);
+  --facet-content-soft: var(--iris-soft);
+  --facet-tri: var(--indigo);
+  --facet-tri-ink: var(--indigo-ink);
+  --facet-tri-soft: var(--indigo-soft);
+  --facet-intent: var(--orchid);
+  --facet-intent-ink: var(--orchid-ink);
+  --facet-intent-soft: var(--orchid-soft);
+  --facet-context: var(--pop-text);
+  --facet-context-ink: var(--pop-deep);
+  --facet-context-soft: var(--rose-soft);
+  --facet-edge: var(--plum);
+  --facet-edge-ink: var(--ink-light);
+  --facet-edge-soft: var(--plum-soft);
+
+  /* The highlighter band. Full-strength gold under near-black ink reads at
+     11.96:1; under the dark theme's near-white ink the same band would read at
+     1.01:1, so the dark block drops it to a wash rather than repainting the
+     ink. */
+  --mark-band: var(--highlight);
+
+  /*
+   * The wash under each tinted base card, as a token rather than a literal,
+   * so that the contrast sweep resolves the right one per theme and so that
+   * the gold wash can be re-pointed for night without a second copy of the
+   * rule.
+   *
+   * Gold is the reason this is a token at all. Every other hue laid over a
+   * near-black page stays recognisably itself; gold turns khaki, and at the
+   * design system's daylight strength of .15 the night card reads as olive
+   * rather than as the lexical facet. The dark block takes it to .09, which
+   * is the point where it is still gold and no longer mud.
+   *
+   * Intent and context carry no alpha of their own. The palette ships no
+   * `-rgb` channel for the hues behind them, so both point at the flat lane
+   * wash, which is already tuned against the same floors.
+   */
+  --tint-content: rgba(var(--brand-rgb), 0.08);
+  --tint-lex: rgba(var(--highlight-rgb), 0.15);
+  --tint-intent: var(--orchid-soft);
+  --tint-context: var(--rose-soft);
+  --tint-plain: var(--cream-dark);
+
+  /* extended palette -- three hues the vendored file does not name here
+   *
+   * Palette I ships three: the wisteria brand, the gold accent and the rose
+   * pop. A result row can show six recall paths at once, so three is three
+   * short of a legend that can be read without labels. Indigo, orchid and
+   * plum close the gap, and each one is lifted from another of the ten
+   * palettes the vendored file already carries -- indigo from B, orchid from
+   * G, plum from C -- rather than mixed by hand, so a future palette swap has
+   * somewhere to land.
+   *
+   * They cannot live in `palettes.css`: that file is vendored verbatim and
+   * pinned byte-for-byte against the site's copy by `tests/test_landing.py`.
+   * So they live in `:root`, between these two markers, and
+   * `test_the_stylesheet_names_no_colour_the_palette_did_not` permits literal
+   * hexes only inside the fence and only for the names it lists.
+   *
+   * Three of the washes belong to hues the palette does name, and are here
+   * anyway because the palette's own soft steps are the wrong instrument.
+   * `--pop-soft` sits 1.90 dE00 from `--danger-soft`, which would put the
+   * context lane and the failure state in the same pink on the same row --
+   * the exact collision the intent lane was moved off red to avoid.
+   * `--info-soft`, the palette's own ten-percent brand tint, resolves to a
+   * near-neutral lavender that sits 1.73 dE00 from the graph-expansion wash --
+   * close enough that a callout and a walked-to row would be the same colour
+   * with different borders. `--iris-soft` is the separated version, and the two
+   * surfaces that used the tint now paint it, so nothing reads the tint at all.
+   *
+   * The `-ink` steps were walked down until each cleared 4.5:1 on every
+   * surface and every wash it can reach. The washes were walked up until each
+   * cleared that floor for both the body ink and the muted ink while staying
+   * at least 3.30 dE00 from the other five lanes and from the danger and
+   * warning washes. The display hues never carry text.
+   */
+  --indigo: #33548a;
+  --indigo-ink: #233c68;
+  --indigo-soft: #dfecfb;
+  --iris-soft: #eee6fa;
+  --orchid: #8a2f84;
+  --orchid-ink: #662061;
+  --orchid-soft: #ffdbfd;
+  --plum: #7a3560;
+  --plum-ink: #5b2349;
+  --plum-soft: #f7f2f5;
+  --rose-soft: #fee1ed;
+  /* end extended palette */
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--fs-3);
+  line-height: var(--lh-body);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The Chinese interface is not the English one in another font. Han glyphs
+   are full-width and square, so the leading that reads as generous in Latin
+   reads as packed, and the negative tracking that tightens a Latin heading
+   has no sidebearing to take it out of and simply collides the characters.
+   Both are switched off on the root, keyed on the `lang` attribute `app.js`
+   already writes when the language pill is used -- the landing stylesheet
+   carries the same pair, and until now this file carried neither, so the
+   Chinese app was the English app with Chinese words in it. */
+:root:lang(zh) body { line-height: var(--lh-cjk); }
+/* `:is()` takes the specificity of its heaviest argument, so this lands at
+   (0,3,1) and beats the (0,1,1) the tracked rules carry without repeating
+   their selectors. Numerals keep their tracking: -0.022em on digits is a
+   fit, not a collision, and a Chinese dashboard still wants its columns to
+   line up. */
+:root:lang(zh) :is(h1, h2, h3, .page-title, .logo, .caps, .opt-label) {
+  letter-spacing: var(--ls-none);
+}
+:root:lang(zh) :is(h1, h2, h3, .page-title) { line-height: var(--lh-snug); }
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 700;
+  line-height: var(--lh-snug);
+}
+
+p {
+  margin: 0;
+}
+
+ol,
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+dl,
+dd,
+dt {
+  margin: 0;
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-1);
+}
+
+/* Small all-caps label with the letter-spacing the design system asks for. */
+.caps {
+  font-size: var(--fs-0);
+  font-weight: 600;
+  letter-spacing: var(--ls-caps-wide);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.dim {
+  color: var(--ink-faint);
+  font-size: var(--fs-2);
+}
+
+.skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 60;
+  padding: var(--sp-3) var(--sp-5);
+  border-radius: var(--r-pill);
+  background: var(--brand-surface);
+  color: var(--on-brand);
+}
+
+.skip:focus {
+  left: 12px;
+  top: 12px;
+}
+
+/* --------------------------------------------------------------- chrome */
+
+/* The three-colour rule made literal: brand 60%, highlight 30%, pop 10%. */
+.brandbar {
+  height: 3px;
+  flex: none;
+  background: linear-gradient(
+    90deg,
+    var(--brand) 0 60%,
+    var(--highlight) 60% 90%,
+    var(--pop) 90% 100%
+  );
+}
+
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  flex: none;
+  background: var(--cream);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.top-in {
+  height: var(--head-h);
+  max-width: var(--w-wide);
+  margin: 0 auto;
+  padding: 0 clamp(var(--sp-4), 3vw, var(--sp-6));
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--fs-4);
+  font-weight: 800;
+  letter-spacing: var(--ls-display);
+}
+
+.logo:hover {
+  text-decoration: none;
+}
+
+.logo .glyph {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: var(--brand);
+  box-shadow: inset -7px -7px 0 0 var(--highlight);
+}
+
+.tools {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* Round icon button, and its wider sibling for the language pill. */
+.ctl {
+  height: 34px;
+  min-width: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--card-bg);
+  color: var(--ink-light);
+  font-size: var(--fs-2);
+  cursor: pointer;
+  transition: border-color 0.2s var(--ease),
+    color 0.2s var(--ease);
+}
+
+.ctl.wide {
+  padding: 0 var(--sp-3);
+}
+
+.ctl:hover {
+  border-color: var(--brand-border);
+  color: var(--link);
+}
+
+/* The pill tab row. Primary navigation, so pills; secondary switching inside a
+   panel uses the underline tabs further down. */
+.tabs {
+  max-width: var(--w-wide);
+  margin: 0 auto;
+  padding: var(--sp-3) clamp(var(--sp-4), 3vw, var(--sp-6));
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--card-bg);
+  color: var(--ink-light);
+  font-size: var(--fs-2);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s var(--ease),
+    color 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+
+.tab:hover {
+  border-color: var(--brand-border);
+  color: var(--link);
+}
+
+.tab[aria-current="page"] {
+  background: var(--brand-surface);
+  border-color: var(--brand-surface);
+  color: var(--on-brand);
+  font-weight: 600;
+}
+
+.tab .n {
+  font-size: var(--fs-0);
+  font-weight: 600;
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-pill);
+  background: rgba(var(--ink-rgb), 0.07);
+  color: var(--ink-light);
+}
+
+/* The count on the selected tab darkens rather than lightens. A white veil
+   over the brand step lifts the pill toward the white numeral it carries and
+   lands at 3.37:1; the palette's deep step goes the other way and reads at
+   9.69:1. */
+.tab[aria-current="page"] .n {
+  background: var(--brand-deep);
+  color: var(--on-brand);
+}
+
+main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--w-read);
+  margin: 0 auto;
+  padding: clamp(var(--sp-5), 3vw, var(--sp-6)) clamp(var(--sp-4), 3vw, var(--sp-6)) var(--sp-8);
+}
+
+main.wide {
+  max-width: var(--w-wide);
+}
+
+.bottom {
+  flex: none;
+  border-top: 1px solid var(--hairline);
+  padding: var(--sp-5) clamp(var(--sp-4), 3vw, var(--sp-6));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-2) var(--sp-5);
+  font-size: var(--fs-1);
+  color: var(--ink-faint);
+}
+
+.bottom a {
+  color: var(--ink-faint);
+}
+
+.bottom a:hover {
+  color: var(--link);
+}
+
+/* ------------------------------------------------------------- controls */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-5);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--card-bg);
+  color: var(--ink);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s var(--ease),
+    box-shadow 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--brand-border);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card);
+}
+
+.btn.primary {
+  background: var(--brand-surface);
+  border-color: var(--brand-surface);
+  color: var(--on-brand);
+}
+
+.btn.primary:hover:not(:disabled) {
+  box-shadow: 0 8px 24px rgba(var(--brand-rgb), 0.28);
+}
+
+.btn.danger {
+  background: var(--card-bg);
+  border-color: var(--danger-soft);
+  color: var(--danger-strong);
+}
+
+.btn.small {
+  padding: var(--sp-1) var(--sp-3);
+  font-size: var(--fs-1);
+  font-weight: 500;
+}
+
+/* Component 18 at the size the design system specifies. Reserved for the one
+   action on a page a reader passes through once, where the button is the
+   point of the page rather than one control among six. */
+.btn.big {
+  padding: var(--sp-4) var(--sp-6);
+  font-size: var(--fs-3);
+}
+
+.btn.round {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn:focus-visible,
+.tab:focus-visible,
+.ctl:focus-visible,
+.pill.act:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.field {
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-input);
+  background: var(--card-bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--fs-3);
+}
+
+.field:focus {
+  outline: none;
+  border-color: var(--brand-border);
+  box-shadow: 0 0 0 3px rgba(var(--brand-rgb), 0.1);
+}
+
+/* The one input the whole page is built around. */
+.ask {
+  position: relative;
+}
+
+.ask .field {
+  height: 50px;
+  padding: 0 var(--sp-8) 0 var(--sp-7);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-3);
+}
+
+.ask .field::placeholder {
+  color: var(--ink-faint);
+}
+
+.ask .lens,
+.ask .hint {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+
+.ask .lens {
+  left: 17px;
+  font-size: var(--fs-3);
+}
+
+.ask .hint {
+  right: 16px;
+  padding: 2px var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--cream-dark);
+  font-family: var(--font-mono);
+  font-size: var(--fs-0);
+}
+
+.ask .go {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  bottom: 6px;
+}
+
+.ask.with-go .field {
+  padding-right: calc(var(--sp-8) + var(--sp-6));
+}
+
+.ask.with-go .hint {
+  display: none;
+}
+
+/* Suggestions drop out of the query box. */
+.sugg {
+  position: absolute;
+  z-index: 25;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  padding: var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  background: var(--card-bg);
+  box-shadow: var(--shadow-pop);
+}
+
+.sugg li > button {
+  display: block;
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  border: 0;
+  border-radius: var(--r-chip);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* The hover and the keyboard selection are the same wash on purpose: a
+   dropdown that highlights two rows at once has told the reader nothing. It is
+   the brand lane wash rather than the palette's own ten-percent brand tint,
+   which sits too close to the graph-expansion wash to be used as a surface. */
+.sugg li > button:hover,
+.sugg li > button[aria-selected="true"] {
+  background: var(--iris-soft);
+}
+
+.sugg .t {
+  font-size: var(--fs-2);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sugg .w {
+  font-size: var(--fs-1);
+  color: var(--ink-faint);
+}
+
+.sugg-foot {
+  padding: var(--sp-2) var(--sp-3) 2px;
+  font-size: var(--fs-0);
+  color: var(--ink-faint);
+  border-top: 1px solid var(--hairline);
+  margin-top: var(--sp-1);
+}
+
+/* Filter pills: the retrieval-rung row, the edge-kind row, the session sizes. */
+.pillbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.pill.act {
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--card-bg);
+  color: var(--ink-light);
+  font-size: var(--fs-1);
+  cursor: pointer;
+  transition: background 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+
+.pill.act:hover {
+  border-color: var(--brand-border);
+}
+
+.pill.act[aria-pressed="true"] {
+  background: var(--brand-surface);
+  border-color: var(--brand-surface);
+  color: var(--on-brand);
+  font-weight: 600;
+}
+
+.pill.act .n {
+  margin-left: var(--sp-2);
+  opacity: 0.7;
+}
+
+/* ---------------------------------------------------------------- pills */
+
+/* Read-only tags. `.act` above is the clickable variant. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 2px var(--sp-3);
+  border-radius: var(--r-pill);
+  background: rgba(var(--ink-rgb), 0.06);
+  color: var(--ink-light);
+  font-size: var(--fs-0);
+  font-weight: 500;
+  line-height: var(--lh-snug);
+  white-space: nowrap;
+}
+
+/* Vector facets read wisteria, lexical facets read gold: the split is the one
+   distinction in the result row a reader actually has to learn. */
+.pill.vec {
+  background: rgba(var(--brand-rgb), 0.1);
+  color: var(--link);
+}
+
+.pill.lex {
+  background: var(--highlight-soft);
+  color: var(--warning);
+}
+
+.pill.edge {
+  background: var(--card-bg);
+  border: 1px solid var(--brand-border);
+  color: var(--link);
+}
+
+.pill.ok {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.pill.warn {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.pill.bad {
+  background: var(--danger-soft);
+  color: var(--danger-strong);
+}
+
+.pill.mute {
+  background: var(--cream-dark);
+  color: var(--ink-faint);
+}
+
+.pill.cite {
+  padding: 1px var(--sp-2);
+  background: rgba(var(--brand-rgb), 0.1);
+  color: var(--link);
+  font-family: var(--font-mono);
+  font-size: var(--fs-0);
+  font-weight: 600;
+  border: 0;
+  cursor: pointer;
+}
+
+.pill.cite:hover {
+  background: var(--brand-surface);
+  color: var(--on-brand);
+}
+
+.marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+/* The mixture bar is the quietest thing on the row on purpose: 3px tall and
+   only as wide as the text column, so it reads as a footnote to the badges
+   above it rather than as a progress bar for something. */
+.hit > .fbar {
+  height: 3px;
+  /* Short on purpose. Run it the width of the card and it stops being a
+     footnote to the badges and becomes an underline for the whole result --
+     or worse, a progress bar for something that is not loading. */
+  max-width: 190px;
+  margin-top: var(--sp-2);
+}
+
+/* ---------------------------------------------------------------- cards */
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  padding: var(--sp-5) var(--sp-5);
+  box-shadow: var(--shadow-card);
+}
+
+/*
+ * A card dealt a hue: component 10C over 10D, same box.
+ *
+ * The system page was five white cards in a column -- the server table, the
+ * fetch queue, the link report, the health bar, the graveyard. Five facts of
+ * five different kinds, drawn as one repeated object. Here the hue is not
+ * decoration: gold is work still owed, rose is a health reading, plum is the
+ * dead-link layer, and wisteria is the default the rest of the page uses for
+ * "this is what the server currently is".
+ */
+.card.hue {
+  border: 1.6px dashed var(--facet-content);
+  border-radius: var(--r-sketch);
+  background: var(--iris-soft);
+  box-shadow: none;
+}
+
+.card.hue.lex {
+  border-color: var(--facet-lex-ink);
+  background: var(--highlight-soft);
+}
+
+.card.hue.ctx {
+  border-color: var(--pop-text);
+  background: var(--rose-soft);
+}
+
+.card.hue.edge {
+  border-color: var(--facet-edge);
+  background: var(--plum-soft);
+}
+
+/* The faintest ink does not survive a wash -- the same rule `.tint` states at
+   length further down, applied to the surfaces this rebuild added. */
+.card.hue .dim,
+.card.hue .caps,
+.claims .dim,
+.sitting .dim,
+.sitting .caps {
+  color: var(--ink-light);
+}
+
+/*
+ * The result list, in two tiers.
+ *
+ * The previous version gave all twenty rows the same white card, the same
+ * hairline and the same shadow. That is the first entry on the design
+ * system's taboo list -- a uniform card grid -- and on a ranked list it is
+ * also a lie: it says the twentieth result is the same kind of object as the
+ * first. The project owner looked at that screen and rejected it.
+ *
+ * So rank is drawn, not just numbered. The top three are Tier 0: a tinted
+ * base card in the hue of the path that found them, inside a hand-drawn
+ * dashed frame in the same hue, with the rank as an oversized numeral. Rank
+ * four and down are Tier 1: a light row, a hairline, colour only in the
+ * badges. Graph-expansion rows are neither -- they were walked to rather than
+ * ranked -- so they take plum, which no facet claims.
+ *
+ * A screen of results now shows several colours at once, because the hue is
+ * carrying which of the four paths fired, and different queries fire
+ * different paths. That is the product's whole argument, drawn.
+ */
+
+.hits {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: var(--sp-4);
+}
+
+/* Tier 1: the default. Not a card. */
+.hit {
+  position: relative;
+  display: block;
+  padding: var(--sp-3) var(--sp-4) var(--sp-3) var(--sp-7);
+  border-radius: var(--r-card);
+  border-bottom: 1px solid var(--hairline);
+  color: inherit;
+  transition: background 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+
+.hit:hover {
+  text-decoration: none;
+}
+
+/* Tier 1 hover is a wash. The tinted tiers already have one, so theirs lifts
+   instead -- written as an exclusion rather than left to source order,
+   because a specificity tie settled by line number is a trap for whoever
+   edits this next. */
+.hit:not(.lead):not(.near):hover {
+  background: var(--cream-dark);
+}
+
+.hit:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+/* Tier 0: the top three. Component 10D over component 10C -- a visible wash
+   with a dashed frame drawn on it, both in the row's own hue. The frame is
+   the full display hue rather than a fraction of it: the last attempt drew
+   these at alpha 0.03 and the owner's verdict was that the page still looked
+   blank, which it did. */
+.hit.lead {
+  margin-bottom: var(--sp-2);
+  padding: var(--sp-5) var(--sp-5) var(--sp-4) var(--sp-7);
+  border: 1.5px dashed var(--facet-content);
+  border-radius: var(--r-sketch);
+  background: var(--iris-soft);
+}
+
+.hit.lead:last-of-type {
+  margin-bottom: var(--sp-4);
+}
+
+.hit.lead.f-lex {
+  border-color: var(--facet-lex-ink);
+  background: var(--highlight-soft);
+}
+
+.hit.lead.f-tri {
+  border-color: var(--facet-tri);
+  background: var(--indigo-soft);
+}
+
+.hit.lead.f-intent {
+  border-color: var(--facet-intent);
+  background: var(--orchid-soft);
+}
+
+/* Hover on a tinted row cannot be "add a tint". It lifts instead, which is
+   the one affordance the flat rows do not use. */
+.hit.lead:hover,
+.hit.near:hover {
+  box-shadow: var(--shadow-lift);
+}
+
+.hit .rank {
+  position: absolute;
+  left: 1rem;
+  top: 0.78rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-1);
+  font-weight: 600;
+  color: var(--ink-faint);
+}
+
+/* The lead numeral is component 8 at row scale -- same `.bignum` the setup
+   steps and the stage bar use -- and it takes the row's hue, because a wisteria
+   numeral in an indigo frame reads as two unrelated marks. */
+.hit.lead .bignum {
+  left: 1.15rem;
+  top: 0.85rem;
+  font-size: var(--fs-7);
+  color: var(--facet-content-ink);
+}
+
+.hit.lead.f-lex .bignum {
+  color: var(--facet-lex-ink);
+}
+
+.hit.lead.f-tri .bignum {
+  color: var(--facet-tri-ink);
+}
+
+.hit.lead.f-intent .bignum {
+  color: var(--facet-intent-ink);
+}
+
+.hit .title {
+  font-size: var(--fs-3);
+  font-weight: 600;
+  color: var(--ink);
+  line-height: var(--lh-snug);
+  overflow-wrap: anywhere;
+}
+
+.hit.lead .title {
+  font-size: var(--fs-4);
+  font-weight: 700;
+  line-height: var(--lh-snug);
+}
+
+.hit:hover .title {
+  color: var(--link);
+}
+
+.hit .where {
+  margin-top: 2px;
+  font-size: var(--fs-1);
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* `--ink-faint` clears AA on the three page surfaces and barely anywhere
+   else. Measured on the six washes these rows paint it bottoms out at 4.44 on
+   intent in daylight and at 3.89 on content at night, so a tinted row re-points
+   it one step up, exactly as `.tint` already does. Same reason, same fix, and
+   the sweep grades this rule against the wash rather than against the page. */
+.hit.lead .where,
+.hit.near .where {
+  color: var(--ink-light);
+}
+
+.hit .snippet {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-2);
+  color: var(--ink-light);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.hit.lead .snippet {
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+/* On a lead row the badges and the mixture bar are the row's argument rather
+   than a footnote to it, so both get room. Below the fold they shrink back:
+   twenty rows of emphasis is twenty rows of none. */
+.hit.lead .marks {
+  margin-top: var(--sp-3);
+}
+
+.hit.lead .fbadge {
+  padding: 3px var(--sp-3);
+  font-size: var(--fs-2);
+}
+
+.hit.lead > .fbar {
+  height: 6px;
+  max-width: 260px;
+  margin-top: var(--sp-3);
+}
+
+/* The matched terms inside a snippet. The palette's highlighter wash, so the
+   mark reads as a marker pen rather than as a link or a selection. */
+.snippet mark {
+  background: var(--highlight-soft);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+  box-shadow: inset 0 -0.5em 0 var(--highlight-soft);
+}
+
+/* Graph expansion. These rows were walked to rather than ranked, so they
+   carry no rank number, the gutter that number sits in is closed up, and the
+   hue is plum -- outside the four facet colours, because claiming one would
+   claim the row was retrieved by that path. */
+.hit.near {
+  margin-bottom: var(--sp-2);
+  padding: var(--sp-4) var(--sp-5) var(--sp-4);
+  border: 1.5px dashed var(--facet-edge);
+  border-radius: var(--r-sketch);
+  background: var(--plum-soft);
+}
+
+/* The detail button sits over the row, so it needs its own stacking context. */
+.row-wrap {
+  position: relative;
+}
+
+.row-wrap .peek {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 2;
+  background: var(--card-bg);
+}
+
+.group-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  margin: var(--sp-6) 0 0;
+}
+
+.more-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--sp-5);
+}
+
+.status {
+  margin-top: var(--sp-3);
+  font-size: var(--fs-1);
+  color: var(--ink-faint);
+  min-height: 1.2em;
+}
+
+/* --------------------------------------------------------- view scaffold */
+
+.view-panel[hidden] {
+  display: none;
+}
+
+/* The page title is one of the five selectors allowed past the 1.2rem body
+   ceiling (see `test_no_heading_is_larger_than_the_scene_allows`). At 800 it
+   is the same weight the reference site gives its section heads, which is
+   what makes a screen read as having a top rather than starting mid-list. */
+.page-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-7);
+  font-weight: 800;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-display);
+}
+
+/* Spoken, not drawn. `display: none` would take it out of the accessibility
+   tree along with the layout, which defeats the purpose; the 1px clipped box
+   is the recipe that leaves it in. Used once, by the search view's h1. */
+.vh {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.lede {
+  margin-top: var(--sp-2);
+  max-width: 62ch;
+  font-size: var(--fs-2);
+  color: var(--ink-light);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+
+/* Not a fifth retrieval mode. The modes are a choice between equals, so they
+   are pills of the same weight; this one opens a drawer, so it drops the pill
+   entirely and sits at the far end of the row where it cannot be misread as
+   part of the group. */
+#opts-toggle {
+  margin-left: auto;
+  padding: var(--sp-2) 2px;
+  border-color: transparent;
+  background: none;
+  color: var(--ink-light);
+  font-weight: 500;
+}
+
+#opts-toggle::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.2s var(--ease);
+}
+
+#opts-toggle[aria-expanded="true"]::after {
+  transform: translateY(1px) rotate(225deg);
+}
+
+#opts-toggle:hover:not(:disabled) {
+  border-color: transparent;
+  transform: none;
+  box-shadow: none;
+  color: var(--ink);
+}
+
+.note {
+  margin-top: var(--sp-2);
+  max-width: 68ch;
+}
+
+.opts {
+  margin-top: var(--sp-3);
+  padding: var(--sp-4) var(--sp-4);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  background: var(--card-bg);
+}
+
+.opts[hidden] {
+  display: none;
+}
+
+.opt {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-size: var(--fs-2);
+  color: var(--ink-light);
+}
+
+/* A labelled group inside the options drawer: the advanced rungs sit under
+   their own caption so they are not misread as more values of the number
+   input above them. */
+.opt-group {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--hairline);
+}
+
+.opt-label {
+  display: block;
+  margin-bottom: var(--sp-2);
+  font-size: var(--fs-0);
+  font-weight: 600;
+  letter-spacing: var(--ls-caps-wide);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.field.num {
+  width: 84px;
+  padding: var(--sp-2) var(--sp-3);
+  text-align: right;
+}
+
+/* A vertical stack of cards: sittings, sources, the graveyard. */
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+
+.rows.tight {
+  gap: var(--sp-2);
+}
+
+/* Rows that carry their own separator do not also need a gutter between them. */
+.rows.srcs {
+  gap: 2px;
+}
+
+/* One line of a list that is not a search result: a sitting member, a dead
+   link. Lighter than `.hit` because these are already inside a card. */
+.line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.line:first-child {
+  border-top: 0;
+}
+
+.line .grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.line .t {
+  font-size: var(--fs-2);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line .w {
+  font-size: var(--fs-1);
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------- sittings */
+
+/*
+ * Component 34, the numbered card grid.
+ *
+ * Ten sittings used to be ten full-width white cards, each about 130px tall
+ * around 40px of text, stacked. That is two faults at once: the uniform card
+ * grid the design system bans, and a column of mostly empty boxes. A sitting
+ * is a short, countable thing, so it is drawn as one -- a compact frame with
+ * the page count set large in the corner, two to a row.
+ *
+ * The hue rotates by position and means nothing. Every other colour on this
+ * page names a retrieval path, so saying that out loud matters: there is no
+ * fact about a sitting that five colours could carry, and the alternative --
+ * one colour for all ten -- is the uniform grid again. Expanding a sitting
+ * keeps its hue and takes the full row, because the pages inside it are a
+ * list and a list does not want a 300px column.
+ */
+.sittings {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--sp-4);
+  margin-top: var(--sp-4);
+}
+
+.sitting {
+  position: relative;
+  border: 1.6px dashed var(--facet-content);
+  border-radius: var(--r-sketch);
+  background: var(--iris-soft);
+  padding: var(--sp-4) var(--sp-4) var(--sp-4) var(--sp-8);
+}
+
+.sitting .count {
+  position: absolute;
+  left: 0.9rem;
+  top: 0.95rem;
+  width: 3.5rem;
+  text-align: center;
+}
+
+.sitting > .line {
+  flex-wrap: wrap;
+  padding: 0;
+  border-top: 0;
+}
+
+.sitting .bignum {
+  display: block;
+  font-size: var(--fs-7);
+  color: var(--facet-content-ink);
+}
+
+.sitting .caps {
+  margin-top: 3px;
+  font-size: var(--fs-0);
+}
+
+.sitting .w {
+  color: var(--ink-light);
+}
+
+.sitting.f-lex {
+  border-color: var(--facet-lex-ink);
+  background: var(--highlight-soft);
+}
+
+.sitting.f-lex .bignum {
+  color: var(--facet-lex-ink);
+}
+
+.sitting.f-edge {
+  border-color: var(--facet-edge);
+  background: var(--plum-soft);
+}
+
+.sitting.f-edge .bignum {
+  color: var(--facet-edge-ink);
+}
+
+.sitting.f-intent {
+  border-color: var(--facet-intent);
+  background: var(--orchid-soft);
+}
+
+.sitting.f-intent .bignum {
+  color: var(--facet-intent-ink);
+}
+
+.sitting.f-tri {
+  border-color: var(--facet-tri);
+  background: var(--indigo-soft);
+}
+
+.sitting.f-tri .bignum {
+  color: var(--facet-tri-ink);
+}
+
+.sitting.open {
+  grid-column: 1 / -1;
+}
+
+/* ------------------------------------------------------------- callouts */
+
+/* A callout, washed in the brand lane rather than in the palette's own
+   ten-percent brand tint: that tint lands 1.73 dE00 from `.panel.edge` below,
+   so the two variants of this one component would have differed by their
+   border and nothing else. */
+.panel {
+  border-radius: var(--r-card);
+  padding: var(--sp-5);
+  background: var(--iris-soft);
+  border: 1px solid var(--brand-border);
+  margin-top: var(--sp-4);
+}
+
+.panel h2 {
+  font-size: var(--fs-4);
+  color: var(--ink);
+}
+
+.panel p {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-2);
+  color: var(--ink-light);
+}
+
+.panel.bad {
+  background: var(--danger-soft);
+  border-color: var(--danger-soft);
+}
+
+/* A degraded synthesis is not a generic failure notice: it is the one panel
+   whose whole job is to stop a reader trusting the text below it, so it gets
+   the strong border and a leading glyph that a plain `.panel.bad` does not. */
+.panel.bad.degraded {
+  border: 1.5px solid var(--danger-strong);
+}
+
+.panel.bad.degraded .degraded-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.panel.bad.degraded .degraded-head .glyph {
+  color: var(--danger-strong);
+  font-size: var(--fs-4);
+  line-height: 1;
+}
+
+.panel.bad.degraded .degraded-head h2 {
+  color: var(--danger-strong);
+}
+
+.panel.warn {
+  background: var(--warning-soft);
+  border-color: var(--warning-soft);
+}
+
+/* What the retrieval could not cover. It is a note about the edges of the
+   answer, not a warning about the server, and stacking it under the gold
+   "no model configured" notice in the same gold made the page read as one
+   long caution. Plum is the hue this stylesheet already gives the link
+   layer -- the parts reached by walking rather than by ranking. */
+.panel.edge {
+  background: var(--plum-soft);
+  border-color: var(--facet-edge);
+}
+
+/* A command to copy, inset into the panel that asked for it. Light, not a
+   terminal: the app scene forbids dark panels in functional areas, and a
+   black slab inside a gold notice is exactly the thing it forbids. */
+.panel .cmd {
+  margin: var(--sp-4) 0 0;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-chip);
+  background: var(--card-bg);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--fs-1);
+  overflow-x: auto;
+}
+
+.pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+}
+
+.pair .field {
+  flex: 1 1 220px;
+  width: auto;
+}
+
+/* ------------------------------------------------------------ decoration */
+
+/*
+ * Tier 1 and Tier 2 of the scheme described at the top of this file, plus the
+ * facet colour primitives that Tier 0 is allowed to use.
+ *
+ * The two card components are lifted from the design system unchanged (10D
+ * tinted base card, 10C hand-drawn frame).
+ *
+ * The tints are gradients, and a gradient used to be invisible to the
+ * contrast sweep -- `tests/palette.py` only recognised a value that *starts*
+ * with a colour. The first attempt at a fix declared a flat `background-color`
+ * under each gradient for the auditor to read, which was wrong twice over:
+ * `background-color` and `background-image` composite, so every tint rendered
+ * at roughly twice its declared strength, and the auditor was grading the
+ * single layer rather than the pair. The auditor now reads gradient stops
+ * directly, so these rules can say exactly what the design system says. Note
+ * the ordering contract that makes that safe: the strongest stop comes first.
+ */
+
+/* --- facet identity ------------------------------------------------------ */
+
+/* The dot is the smallest carrier of facet colour and the most repeated one:
+   it rides in front of a badge, a legend row, or a bar label. It is never the
+   only signal -- every dot sits next to the facet's name -- because colour
+   alone would fail 1.4.1 and would also fail anyone reading a screenshot. */
+.fdot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--facet-content);
+}
+
+/* The gold dot is the one that cannot be seen. Every other display hue clears
+   4.7:1 against the page; gold measures 1.19:1, so an 8px disc of it on cream is
+   a gap in the legend. It gets a hairline in the lane's ink step, which reads at
+   10.38:1 on the page and 8.73:1 against the fill it outlines. The ring costs
+   nothing at night: down there the ink step *is* gold, so it collapses into the
+   fill exactly where the fill already measures 8.47:1 on a card. */
+.fdot.lex {
+  background: var(--facet-lex);
+  box-shadow: inset 0 0 0 1px var(--facet-lex-ink);
+}
+
+.fdot.tri {
+  background: var(--facet-tri);
+}
+
+.fdot.intent {
+  background: var(--facet-intent);
+}
+
+.fdot.context {
+  background: var(--facet-context);
+}
+
+.fdot.edge {
+  background: var(--facet-edge);
+}
+
+/* The contribution bar: how much each path put into one hit's fused score.
+   Widths are set inline by the renderer, so this only owns the shape. */
+.fbar {
+  display: flex;
+  overflow: hidden;
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: rgba(var(--ink-rgb), 0.07);
+}
+
+.fbar > span {
+  display: block;
+  height: 100%;
+  background: var(--facet-content);
+  transition: width 0.3s var(--ease);
+}
+
+.fbar > span.lex {
+  background: var(--facet-lex);
+}
+
+.fbar > span.tri {
+  background: var(--facet-tri);
+}
+
+.fbar > span.intent {
+  background: var(--facet-intent);
+}
+
+.fbar > span.context {
+  background: var(--facet-context);
+}
+
+/* A badge that names the path a hit arrived through. The text is the ink
+   step, never the display hue: `--facet-lex` on cream is 1.4:1. */
+.fbadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 2px var(--sp-3);
+  border-radius: var(--r-pill);
+  background: var(--facet-content-soft);
+  color: var(--facet-content-ink);
+  /* A step above `.pill`, and the only chip on a result row that is. The
+     badges answer "why is this here"; the pills beside them are metadata. One
+     size for both flattened that into six equal tags of undifferentiated
+     small text, which is how a reader learns to skip all of them. */
+  font-size: var(--fs-1);
+  font-weight: 600;
+  line-height: var(--lh-snug);
+  white-space: nowrap;
+}
+
+.fbadge.lex {
+  background: var(--facet-lex-soft);
+  color: var(--facet-lex-ink);
+}
+
+.fbadge.tri {
+  background: var(--facet-tri-soft);
+  color: var(--facet-tri-ink);
+}
+
+.fbadge.intent {
+  background: var(--facet-intent-soft);
+  color: var(--facet-intent-ink);
+}
+
+.fbadge.context {
+  background: var(--facet-context-soft);
+  color: var(--facet-context-ink);
+}
+
+.fbadge.edge {
+  background: var(--facet-edge-soft);
+  color: var(--facet-edge-ink);
+}
+
+/* --- tier 1: the tinted base card --------------------------------------- */
+
+.tint {
+  border-radius: var(--r-tint);
+  padding: var(--sp-5) var(--sp-5);
+  background: linear-gradient(145deg, var(--tint-content), rgba(var(--brand-rgb), 0.02));
+  border: 1px solid rgba(var(--brand-rgb), 0.14);
+}
+
+.tint.lex {
+  background: linear-gradient(145deg, var(--tint-lex), rgba(var(--highlight-rgb), 0.03));
+  border-color: rgba(var(--highlight-rgb), 0.4);
+}
+
+/* Flat, where the two above are gradients: orchid arrives from the extended
+   palette as a tuned hex with no `--*-rgb` channel behind it, so there is no
+   way to write a second, weaker stop of it without inventing a colour. A wash
+   that fades to nothing is not the same shape as a wash that fades to a thinner
+   version of itself, so it does not pretend to be one. */
+.tint.intent {
+  background: var(--tint-intent);
+  border-color: var(--facet-intent);
+}
+
+/* Same as intent above -- a tuned hex with no channel to thin it through -- so
+   this one is flat too. Matching the two gradients would mean inventing a
+   colour, which the brand rules forbid, and it also means the wash cannot
+   double as the border, because a soft step against itself is no edge at all.
+   The neutral hairline does that job instead. */
+.tint.context {
+  background: var(--tint-context);
+  border-color: var(--border);
+}
+
+.tint.plain {
+  background: var(--tint-plain);
+  border-color: var(--hairline);
+}
+
+/* A tint is a frame, not a card, so it never nests one. `cards-in-cards` is
+   on the design system's banned list and this is where it would happen. */
+.tint > h2,
+.tint > h3 {
+  font-size: var(--fs-3);
+  font-weight: 700;
+}
+
+.tint > .caps + * {
+  margin-top: var(--sp-3);
+}
+
+/*
+ * The faintest ink does not survive a tint, and this is the rule that says so.
+ *
+ * `--ink-faint` clears AA on the bare page by 0.87 -- 5.37:1 against a 4.5
+ * floor -- and a tint spends most of that back, landing the five variants
+ * between 4.44:1 and 5.15:1: intent is under the floor and context is 0.05
+ * over it. Nothing would have caught it: the contrast sweep grades the rule
+ * that *sets* a colour, and `.caps` and `.dim` set theirs at the top level,
+ * where they pass. Inheriting into a tinted panel is invisible to it. So the
+ * tint re-points both classes to the next ink up, which has 8.58:1 to spend
+ * and stays over 7:1 on the strongest wash.
+ * `tests/test_web.py::TestTheTint` measures all of this rather than trusting
+ * the arithmetic in this comment.
+ */
+.tint .caps,
+.tint .dim {
+  color: var(--ink-light);
+}
+
+/* --- tier 2: the hand-drawn frame --------------------------------------- */
+
+/*
+ * Component 10C. Only used where a reader is reading rather than working:
+ * first run, empty state, error state, the two explainers. The corner label
+ * paints `--cream` because these frames sit on the page background; drop one
+ * onto a card and the label will show the wrong notch.
+ */
+/*
+ * The frame is drawn at the full display hue, not at a fraction of it.
+ *
+ * The previous version wrote these at `rgba(hue, .03)` over no background at
+ * all, on the theory that an operating surface should whisper. On a cream
+ * page that is a white rectangle with a slightly warm edge: the project owner
+ * looked at the shipped screenshot and said the frames were not there, and
+ * they were right. Two things changed. The frame carries the whole hue, and
+ * there is now a wash under it, so the frame has something to be the edge of.
+ *
+ * Full strength is also the only option for two of the three. The orchid
+ * display hue and the deep plum the lexical lane borrows arrive from the
+ * extended palette as plain hexes with no `--*-rgb` channel behind them, and
+ * the stylesheet is forbidden from writing a literal `rgba()`, so
+ * `rgba(orchid, .4)` cannot be expressed at all. Rather than have one frame at
+ * 40% and two at 100%, all three are at 100%.
+ */
+.sketch {
+  position: relative;
+  border: 1.6px dashed var(--facet-content);
+  border-radius: var(--r-sketch);
+  background: var(--iris-soft);
+  padding: var(--sp-5) var(--sp-5) var(--sp-5);
+}
+
+.sketch > * + * {
+  margin-top: var(--sp-3);
+}
+
+.sketch.lex {
+  border-color: var(--facet-lex-ink);
+  background: var(--highlight-soft);
+}
+
+.sketch.intent {
+  border-color: var(--facet-intent);
+  background: var(--orchid-soft);
+}
+
+/*
+ * Component 8, the oversized decorative numeral. One class, three places: the
+ * setup step, the rank on a lead result row, and the ordinal in the stage bar.
+ *
+ * It is a single class on purpose. The scene's 1.2rem body cap is enforced by
+ * an allowlist of selectors, and an allowlist with one entry per numeral is an
+ * allowlist that grows every time someone wants a big number. One entry, three
+ * call sites, and the sizes are set by the context rather than by new classes.
+ *
+ * Inside a coloured frame it takes the frame's colour: a wisteria numeral in a
+ * gold frame reads as two unrelated marks rather than as one card.
+ */
+.bignum {
+  font-family: var(--font-display);
+  font-weight: 800;
+  /* Several call sites hang it on an `<i>`, which is the right element for a
+     mark that carries no words. Italic display numerals are not. */
+  font-style: normal;
+  font-size: var(--fs-7);
+  /* A single-line box centring its own glyph, which is the one case the
+     leading scale exempts. It was 0.9 -- a sub-1 line box clips the descender
+     off a Han numeral, and there is nothing below the digits to reclaim. */
+  line-height: 1;
+  letter-spacing: var(--ls-display);
+  color: var(--facet-content-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.sketch.lex .bignum {
+  color: var(--facet-lex-ink);
+}
+
+.sketch.intent .bignum {
+  color: var(--facet-intent-ink);
+}
+
+.sketch.done .bignum {
+  color: var(--success);
+}
+
+/* --- highlighter --------------------------------------------------------- */
+
+/* Component 1E-C. A wash under the baseline, not a filled block: the whole
+   point is that the text still sits on the page colour. */
+.mark {
+  padding: 0 2px;
+  background-image: linear-gradient(transparent 58%, var(--mark-band) 58%);
+}
+
+/* --------------------------------------------------- setup and settings */
+
+/*
+ * The two views that are not tabs.
+ *
+ * Setup is the one screen in this app drawn at Tier 2. `scene-app.md` bans
+ * decoration from the operating surfaces and it is right to -- but this page
+ * is read once, slowly, by someone who does not yet know what the program is,
+ * and three framed panels in three colours say "three steps" before a word of
+ * it is read. Settings is Tier 1: coloured base cards holding restrained
+ * Tier 0 controls, because it is a form and a form is an operating surface.
+ */
+
+.steps {
+  display: grid;
+  gap: var(--sp-5);
+  margin-top: var(--sp-5);
+}
+
+/* Numeral and words on one line, inside the frame the numeral belongs to. It
+   used to be absolutely positioned in the frame's top-left notch, outside the
+   border, where an oversized glyph reads as a character that fell off the card
+   above rather than as this card's number. */
+.step-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
+}
+
+.step-head > .bignum {
+  flex: none;
+  width: 2.1rem;
+  text-align: center;
+}
+
+.step-text > h2 {
+  font-size: var(--fs-4);
+}
+
+.step-text > p {
+  margin-top: var(--sp-2);
+  max-width: 60ch;
+  color: var(--ink-light);
+  font-size: var(--fs-2);
+}
+
+/* A finished step goes indigo and goes solid.
+ *
+ * The earlier version dimmed the frame to a sixth of its ink and kept the hue,
+ * so a page with two steps done showed one coloured frame and two ghosts --
+ * which reads as "two of these are broken". Dimming is also unavailable now:
+ * two of the three hues have no alpha channel to dim through. So done borrows
+ * the success colour rather than a lane hue -- border, wash and numeral are one
+ * colour said three times, at 9.14:1 in daylight and 5.72:1 at night -- and it
+ * converges the page as the reader works down it instead of emptying it out.
+ *
+ * It used to take the context lane's hue, back when success and that lane were
+ * the same green. They are not any more: success is the deep indigo and context
+ * is the rose, so keeping the old pairing would have put a pink border round a
+ * blue wash. */
+.sketch.done,
+.sketch.lex.done,
+.sketch.intent.done {
+  border-style: solid;
+  border-color: var(--success);
+  background: var(--success-soft);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.note.ok {
+  color: var(--success);
+}
+
+.note.bad {
+  color: var(--danger-strong);
+}
+
+.setup-done .row {
+  margin-top: var(--sp-3);
+}
+
+/* --- the settings forms -------------------------------------------------- */
+
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(252px, 1fr));
+  gap: var(--sp-4) var(--sp-5);
+  margin-top: var(--sp-4);
+}
+
+.grid2 + .row {
+  margin-top: var(--sp-4);
+}
+
+.fld {
+  display: grid;
+  gap: var(--sp-2);
+  align-content: start;
+}
+
+.fld > label {
+  font-size: var(--fs-2);
+  font-weight: 600;
+  color: var(--ink-light);
+}
+
+.fld > .field {
+  width: 100%;
+}
+
+/* Read-only because an environment variable already won. Styled as inert
+   rather than merely unfocusable, so the reason is visible before the click
+   that does nothing. */
+.fld > .field[readonly] {
+  background: var(--cream-dark);
+  color: var(--ink-light);
+  cursor: not-allowed;
+}
+
+.fld > .hint {
+  font-size: var(--fs-1);
+  line-height: var(--lh-body);
+  color: var(--ink-light);
+}
+
+.fld > .hint .pill {
+  margin-left: var(--sp-1);
+  vertical-align: baseline;
+}
+
+/* --- the seven stages ---------------------------------------------------- */
+
+/* auto-fit rather than seven fixed columns: seven boxes at reading width are
+   already narrow, and at phone width they have to wrap or the labels break
+   one character per line. */
+.stages {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+}
+
+.stage {
+  display: grid;
+  gap: 2px;
+  padding: var(--sp-2) var(--sp-2);
+  border-radius: 10px;
+  background: rgba(var(--ink-rgb), 0.05);
+  text-align: center;
+}
+
+/* The ordinal. Seven stage names in two languages are not orderable at a
+   glance -- "embed_content" and "embed_intents" are the same word twice -- so
+   the number does the ordering and the name says which one it is. `--ink-faint`
+   on a filled tile falls to 3.87:1, which is why this is a step up from it. */
+.stage .bignum {
+  font-size: var(--fs-4);
+  line-height: 1;
+  color: var(--ink-light);
+}
+
+.stage.done .bignum {
+  color: var(--success);
+}
+
+.stage.now .bignum {
+  color: var(--facet-lex-ink);
+}
+
+.stage .nm {
+  font-size: var(--fs-0);
+  color: var(--ink-light);
+}
+
+.stage .vl {
+  font-size: var(--fs-2);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-height: 1.2em;
+}
+
+.stage.done {
+  background: var(--success-soft);
+}
+
+/* The running stage is marked by a ring, not by an animation. A spinner on a
+   stage that can legitimately take twenty minutes is a lie about liveness. */
+.stage.now {
+  background: var(--warning-soft);
+  box-shadow: inset 0 0 0 1.5px rgba(var(--highlight-rgb), 0.85);
+}
+
+/* Planned, then never reached, because the run stopped. Hollow rather than
+   dimmed: `--ink-faint` on a filled tile lands at 3.87:1, and a stage the
+   reader may need to go and run themselves is not the place to spend the
+   contrast budget. */
+.stage.skipped {
+  background: none;
+  border: 1px dashed var(--border);
+}
+
+.log {
+  margin-top: var(--sp-3);
+  max-height: 172px;
+  overflow: auto;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: 12px;
+  background: var(--cream-dark);
+  border: 1px solid var(--hairline);
+  font-family: var(--font-mono);
+  font-size: var(--fs-1);
+  line-height: var(--lh-code);
+  color: var(--ink-light);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.card.where > h2 {
+  font-size: var(--fs-4);
+}
+
+.card.where > p {
+  margin-top: var(--sp-2);
+  max-width: 62ch;
+  font-size: var(--fs-2);
+  color: var(--ink-light);
+}
+
+/* ------------------------------------------------- dashboard composition */
+
+/* One tall column of same-sized white cards is the failure mode of every
+   stats page. Two columns at desk width halves the scroll and lets the eye
+   compare the coverage block against the health block without travelling. */
+/* Multi-column rather than the two-track grid this was. A grid row is as tall
+   as its tallest cell, so a short block next to a tall one leaves a hole the
+   height of the difference -- and this page pairs link health, which is four
+   lines, with the graph block, which is nine. The shipped screenshot had a
+   stripe of empty cream down the right half of the page under a lonely
+   library card. Multicol packs by content height instead, and `break-inside`
+   stops a block being sawn in half at the column boundary. */
+.cols2 {
+  display: grid;
+  gap: var(--sp-5);
+  align-content: start;
+  /* The pack is a section-level break like any other, and without this it had
+     none: the full-width facet legend above it ended at exactly the pixel the
+     first heading inside it began.  `.block` carries its own top margin, so
+     the pack has to zero that and own the rhythm itself, or the two stack. */
+  margin-top: var(--sp-6);
+}
+
+.cols2 > .block {
+  margin-top: 0;
+}
+
+@media (min-width: 900px) {
+  .cols2 {
+    display: block;
+    columns: 2;
+    column-gap: var(--sp-5);
+  }
+
+  .cols2 > .block {
+    -webkit-column-break-inside: avoid;
+    break-inside: avoid;
+    margin: 0 0 var(--sp-5);
+  }
+}
+
+/* The legend: four rows, dot and name on the left, the sentence beside it.
+   Two-up on a wide screen because four full-width rows of one short sentence
+   each leaves a stripe of empty cream down the right of the card. */
+.facetgrid {
+  display: grid;
+  gap: var(--sp-4) var(--sp-5);
+}
+
+@media (min-width: 760px) {
+  .facetgrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.facetgrid > .fitem {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+}
+
+.facetgrid > .fitem > .fbadge {
+  flex: none;
+}
+
+.facetgrid > .fitem > p {
+  margin: 0;
+  color: var(--ink-light);
+  font-size: var(--fs-2);
+  line-height: var(--lh-body);
+}
+
+/* ---------------------------------------------------------- dashboards */
+
+/* auto-fill, not auto-fit: a page with two numbers on it should show two
+   normal cards and some quiet space, not two cards stretched to half the
+   window each. */
+.numbers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+}
+
+/* A KPI row and the table under it are two blocks, not one stack of frames. */
+.numbers + .card {
+  margin-top: var(--sp-3);
+}
+
+/*
+ * The KPI row: component 10C over 10D, a different hue per number.
+ *
+ * These were four white cards with a hairline and a shadow, side by side,
+ * which is the uniform card grid the design system puts first on its taboo
+ * list -- and the four numbers are four different kinds of fact, so drawing
+ * them identically was also wrong on the merits. Each now has a wash and a
+ * dashed frame: neutral for the raw library size, wisteria for what is
+ * indexable, gold for what has been enriched, plum for sittings, which is the
+ * same plum the graph-expansion rows use because both are the link layer --
+ * and, like those rows, its numeral is set in the muted ink rather than in a
+ * fifth voice.
+ */
+.num {
+  border: 1.6px dashed var(--facet-content);
+  border-radius: var(--r-sketch);
+  background: var(--iris-soft);
+  padding: var(--sp-4) var(--sp-5);
+}
+
+.num.gold {
+  border-color: var(--facet-lex-ink);
+  background: var(--highlight-soft);
+}
+
+.num.edge {
+  border-color: var(--facet-edge);
+  background: var(--plum-soft);
+}
+
+.num.ink {
+  border-color: var(--border);
+  background: var(--cream-dark);
+}
+
+.num b {
+  display: block;
+  font-size: var(--fs-7);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-display);
+  color: var(--link);
+}
+
+.num.gold b {
+  color: var(--warning);
+}
+
+.num.edge b {
+  color: var(--facet-edge-ink);
+}
+
+.num.ink b {
+  color: var(--ink);
+}
+
+/* On a white card `--ink-faint` cleared AA with room to spare. On these washes
+   it sinks under the floor, so the caption steps up one, for the same reason
+   and by the same rule as `.tint .caps`. */
+.num span {
+  display: block;
+  margin-top: var(--sp-1);
+  font-size: var(--fs-1);
+  color: var(--ink-light);
+}
+
+.block {
+  margin-top: var(--sp-6);
+}
+
+.block > h2 {
+  font-size: var(--fs-4);
+}
+
+/* Both margins matter and the pair of them is the point.  With 8px above and
+   nothing below, the ink measured 13.8px from the heading and 3.4px from the
+   card -- so the standfirst read as a caption on the card rather than as the
+   second line of the heading it was written for.  Half the air above and a
+   whole step below puts the bigger gap where the structural break is. */
+.block > .lede {
+  margin-top: var(--sp-1);
+  margin-bottom: var(--sp-3);
+  font-size: var(--fs-2);
+  color: var(--ink-light);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+
+/* auto-fill reserves the empty tracks, which is right for a census that grows
+   and wrong for a block that is always exactly two cards: the pair ends up
+   huddled against the left edge of a four-column grid. */
+.grid.duo {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+/* Labelled progress row: label, thin track, right-aligned percent. */
+.bars {
+  margin-top: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 2.2fr auto;
+  align-items: center;
+  gap: var(--sp-3);
+  font-size: var(--fs-2);
+}
+
+.bar-row .lab {
+  color: var(--ink-light);
+}
+
+.bar-row .val {
+  color: var(--ink-faint);
+  font-size: var(--fs-1);
+  text-align: right;
+}
+
+.track {
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: rgba(var(--ink-rgb), 0.07);
+  overflow: hidden;
+}
+
+.track > i {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: var(--brand);
+}
+
+.track > i.gold {
+  background: var(--highlight);
+}
+
+/* One bar, many verdicts. */
+/* The inset hairline matters when one band holds everything: a full-width
+   grey bar with no edge reads as an empty track that is still loading. */
+.stack {
+  display: flex;
+  height: 12px;
+  border-radius: var(--r-pill);
+  overflow: hidden;
+  background: rgba(var(--ink-rgb), 0.07);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  margin-top: var(--sp-4);
+}
+
+.stack > i {
+  height: 100%;
+}
+
+/* The display hue, not `--success`. Every other segment here paints a display
+   colour -- gold, danger red, muted ink -- because a 12px bar is read by its
+   fill, not by its text. `--success` now points at the indigo *ink* step,
+   which is derived to carry text on a cream page: at 0.046 luminance it lands
+   below the daylight floor `test_no_dark_panel_in_a_functional_area` sets, and
+   a near-navy segment beside a gold one reads as a hole in the bar rather than
+   as the healthy share of the library. */
+.stack > i.ok {
+  background: var(--indigo);
+}
+
+.stack > i.warn {
+  background: var(--highlight);
+}
+
+.stack > i.bad {
+  background: var(--danger);
+}
+
+.stack > i.mute {
+  background: rgba(var(--ink-rgb), 0.22);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+/* Definition rows inside a card: hairline separated, label left, value right. */
+.facts {
+  margin-top: var(--sp-3);
+}
+
+.facts > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: var(--sp-2) 0;
+  border-top: 1px solid var(--hairline);
+  font-size: var(--fs-2);
+}
+
+.facts > div:first-child {
+  border-top: 0;
+}
+
+.facts dt {
+  color: var(--ink-faint);
+}
+
+.facts dd {
+  color: var(--ink);
+  font-weight: 500;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.facts .zero dd {
+  color: var(--ink-faint);
+  font-weight: 400;
+}
+
+/* A fact can carry a verdict: a fetch error, a stale vector count. */
+.facts dd.t-bad {
+  color: var(--danger-strong);
+}
+
+.facts dd.t-warn {
+  color: var(--warning);
+}
+
+.facts dd.t-ok {
+  color: var(--success);
+}
+
+/* The same wash problem as `.tint`, one level further in. A fact list inside
+   a hued card sits on a lane wash, and the faint ink for the term does not
+   survive the move off paper. It takes the second ink instead, which clears
+   the floor on all six of them. */
+.card.hue .facts dt,
+.card.hue .facts .zero dd {
+  color: var(--ink-light);
+}
+
+/* The two verdicts used to be the one place in this file where the theme had
+   to be named in a selector: under palette A no single token cleared 4.5:1 on
+   this wash in both themes, so each theme kept the pair that measured better
+   on it. The rebuild removed the reason. Warning and success now point at the
+   deep plum and the deep indigo, and both clear the floor on every wash a hue
+   card can paint in either theme -- worst measured 9.66 and 8.97 in daylight,
+   6.60 and 5.09 at night -- so the rules above cover it and there is no
+   longer a rule only one theme can switch on. */
+
+/* --------------------------------------------------------------- claims */
+
+/*
+ * One framed list, not one card per sentence.
+ *
+ * A synthesis of eight claims used to render as eight identical white cards
+ * with identical shadows -- the uniform card grid the design system bans, and
+ * a poor reading of the content besides: the claims are one answer, not eight
+ * objects. They are now a numbered run inside a single wisteria frame, which
+ * is how the reference site draws an ordered list of statements.
+ */
+.claims {
+  margin-top: var(--sp-4);
+  border: 1.6px dashed var(--facet-content);
+  border-radius: var(--r-sketch);
+  background: var(--iris-soft);
+  padding: var(--sp-1) var(--sp-5) var(--sp-5);
+}
+
+.claim {
+  position: relative;
+  padding: var(--sp-4) 0 var(--sp-4) var(--sp-7);
+  border-top: 1px solid var(--hairline);
+}
+
+.claim:first-child {
+  border-top: 0;
+}
+
+/* Component 8: the ordinal is decoration, drawn once and large, so the eye can
+   count without reading. The circled number it replaced looked like `.src .no`
+   -- which is an identity, not a position -- and the two were told apart only
+   by size. */
+.claim .bignum {
+  position: absolute;
+  left: 0;
+  top: 0.92rem;
+  font-size: var(--fs-6);
+  color: var(--facet-content-ink);
+}
+
+.claim p {
+  font-size: var(--fs-3);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+
+.claim .cites {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+.claim .cites .dim {
+  margin-left: auto;
+}
+
+/* Which model wrote the text above. It closes the view, so it needs air under
+   the last source rather than sitting on its baseline. */
+.dim.mono {
+  margin-top: var(--sp-5);
+}
+
+/* A source is a row, not a card. Eight of them stacked as white slabs was the
+   same uniform grid the result list was rejected for, and a cited page is a
+   lighter object than a claim: it is where the sentence above came from. */
+.src {
+  position: relative;
+  scroll-margin-top: calc(var(--head-h) + 70px);
+  padding: var(--sp-3) var(--sp-4) var(--sp-3);
+  border-radius: var(--r-card);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.src:hover {
+  background: var(--cream-dark);
+}
+
+/* The list already ends; a rule under the last row draws a floor that is not
+   there, and the "generated by" line then sits on it. */
+.src:last-child {
+  border-bottom: 0;
+}
+
+.src .w,
+.src .prose {
+  color: var(--ink-light);
+}
+
+/* The number a claim cites. A circle, matching the chip in `.claim .cites`,
+   because both name the same source -- the claim's own ordinal is a display
+   numeral and deliberately a different object. */
+.src .no {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-surface);
+  color: var(--on-brand);
+  font-family: var(--font-mono);
+  font-size: var(--fs-0);
+  font-weight: 700;
+}
+
+/* Jumped to from a citation. A ring rather than a border swap, because the row
+   has no border to swap any more, and the gold wash is the same one the page
+   uses everywhere else to mean "this is the thing you asked for". */
+.src.lit {
+  background: var(--highlight-soft);
+  box-shadow: 0 0 0 1.5px var(--facet-lex-ink);
+}
+
+/* ---------------------------------------------------------------- modal */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 6vh var(--sp-4);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.overlay[hidden] {
+  display: none;
+}
+
+.sheet {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  max-height: 80vh;
+  overflow-y: auto;
+  border-radius: var(--r-modal);
+  background: var(--cream);
+  padding: clamp(var(--sp-5), 3vw, var(--sp-7));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
+}
+
+.sheet h2 {
+  font-size: var(--fs-4);
+  padding-right: var(--sp-7);
+}
+
+.shut {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--card-bg);
+  color: var(--ink-light);
+  font-size: var(--fs-4);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.shut:hover {
+  border-color: var(--brand-border);
+  color: var(--link);
+}
+
+/* Underline tabs: the secondary switch the app scene prescribes. */
+.utabs {
+  display: flex;
+  gap: var(--sp-1);
+  margin-top: var(--sp-5);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.utab {
+  padding: var(--sp-2) var(--sp-4);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  color: var(--ink-faint);
+  font-size: var(--fs-2);
+  cursor: pointer;
+}
+
+.utab:hover {
+  color: var(--ink-light);
+}
+
+.utab[aria-selected="true"] {
+  border-bottom-color: var(--brand);
+  color: var(--link);
+  font-weight: 600;
+}
+
+.utab:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.upanel {
+  padding-top: var(--sp-4);
+}
+
+.upanel[hidden] {
+  display: none;
+}
+
+.prose {
+  font-size: var(--fs-2);
+  line-height: var(--lh-body);
+  color: var(--ink-light);
+}
+
+/* A URL rendered as a URL: mono, wraps anywhere, never widens the dialog. */
+.surl {
+  display: inline-block;
+  max-width: 100%;
+  font-family: var(--font-mono);
+  font-size: var(--fs-1);
+  color: var(--link);
+  overflow-wrap: anywhere;
+}
+
+/* One labelled group of pills: topics, entities, remembered queries. */
+.tagset {
+  margin-top: var(--sp-5);
+}
+
+.tagset > h3 {
+  margin-bottom: var(--sp-2);
+}
+
+.tagset .marks {
+  margin-top: 0;
+}
+
+.points {
+  margin-top: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.points li {
+  position: relative;
+  padding-left: var(--sp-5);
+  font-size: var(--fs-2);
+  color: var(--ink-light);
+  line-height: var(--lh-snug);
+}
+
+.points li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+
+/* ------------------------------------------------------------ skeletons */
+
+.skel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+
+.skel > div {
+  height: 84px;
+  border-radius: var(--r-card);
+  background: linear-gradient(
+    90deg,
+    var(--cream-dark) 0%,
+    var(--card-bg) 40%,
+    var(--cream-dark) 80%
+  );
+  background-size: 300% 100%;
+  animation: sweep 1.3s linear infinite;
+}
+
+@keyframes sweep {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -40% 0;
+  }
+}
+
+/* --------------------------------------------------------- responsive */
+
+@media (max-width: 720px) {
+  /* A scrolling row was the old answer and it was the wrong one: the scrollbar
+     is hidden, so on a 390px phone the fifth tab simply sat off the right edge
+     with nothing to say so, and in Chinese the row instead squeezed itself to
+     81px tall with every label wrapped onto three lines. Five equal columns
+     fit five views at any phone width, on one line, with nothing hidden. */
+  .tabs {
+    padding: var(--sp-2) var(--sp-3);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--sp-2);
+    overflow: visible;
+  }
+
+  .tab {
+    justify-content: center;
+    min-width: 0;
+    gap: var(--sp-1);
+    padding: var(--sp-2) var(--sp-1);
+    font-size: var(--fs-1);
+    white-space: nowrap;
+  }
+
+  .tab > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tab .n {
+    flex: none;
+    padding: 1px var(--sp-1);
+    font-size: var(--fs-0);
+  }
+
+  .bar-row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .bar-row .track {
+    grid-column: 1 / -1;
+  }
+
+  .overlay {
+    padding: 0;
+  }
+
+  .sheet {
+    max-width: none;
+    max-height: 100vh;
+    min-height: 100vh;
+    border-radius: 0;
+  }
+}
+
+/* Below this the five columns are ~64px each and the count badge is what
+   pushes a label into an ellipsis. The label is the navigation; the badge is
+   a nicety, and the same number is on the page it leads to. */
+@media (max-width: 480px) {
+  .tabs {
+    padding: var(--sp-2) var(--sp-2);
+    gap: var(--sp-1);
+  }
+
+  .tab {
+    padding: var(--sp-2) 3px;
+    font-size: var(--fs-1);
+  }
+
+  .tab .n {
+    display: none;
+  }
+}
+
+/* A keyboard shortcut is not advice a touch device can act on. */
+@media (hover: none), (max-width: 560px) {
+  .ask .hint {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skel > div {
+    animation: none;
+  }
+
+  .btn:hover:not(:disabled),
+  .hit:hover {
+    transform: none;
+  }
+}
+
+/* ----------------------------------------------------------------- dark */
+
+/*
+ * facetmark's own extension. `palettes.css` defines light palettes only, and
+ * `references/scene-app.md` bans decorative dark panels inside functional
+ * areas -- which is a different rule from "no night theme". These values keep
+ * the palette's own hues and move only the surfaces and the ink, plus the
+ * text roles that would otherwise fall under 4.5:1 on a dark card.
+ *
+ * The paper is a four-rung ladder -- page, well, card, preview -- on the
+ * wisteria axis, the same one the landing page's night runs on. It used to be
+ * a warm near-black whose rungs sat under ten percent saturation, which is
+ * the sooty look the owner ruled out, and whose top two rungs were six
+ * percent apart, so a card was told apart from the well behind it by its
+ * border and nothing else. Every rung is now at least 1.18 times the
+ * luminance of the one below. Raising the paper meant raising the ink with
+ * it: every hue below is read on a wash over the card, so paper and ink move
+ * together or neither moves.
+ *
+ * The palette's own deepest step is not the page. It measures 0.0095
+ * relative luminance, under the floor the landing page's night ladder is held
+ * to, so the page starts one rung above it and that step stays where it
+ * belongs, on the one signed-off dark panel.
+ *
+ * Only the tokens below may appear in this block; `tests/test_web.py` fails
+ * the build if a new token name shows up here, because the moment this grows
+ * past surfaces it stops being a theme and becomes a second palette that
+ * nobody upstream is maintaining.
+ *
+ * Contrast on every pairing this page actually renders is asserted in
+ * `tests/test_web.py::TestTheContrast`, using the same WCAG relative-luminance
+ * maths as the design system's own `scripts/validate-palettes.mjs`.
+ */
+html[data-theme="dark"] {
+  --cream: #241f2e;
+  --cream-dark: #312c3c;
+  --card-bg: #3d3747;
+  --preview-bg: #484252;
+  --ink: #dfdbe3;
+  --ink-light: #cbc5d2;
+  --ink-faint: #afa9b6;
+  --ink-rgb: 223, 219, 227;
+  --border: rgba(223, 219, 227, 0.16);
+  --hairline: rgba(223, 219, 227, 0.1);
+  --border-strong: rgba(223, 219, 227, 0.26);
+  --brand-text: #c9bdd9;
+  --brand-border: rgba(201, 189, 217, 0.45);
+  --pop-text: #e3b6c9;
+  --pop-deep: #d6bac4;
+  --warning: #f6dc8e;
+  --success: #bdc4d2;
+  --danger-strong: #e7b9c1;
+  --highlight-soft: rgba(246, 220, 142, 0.09);
+  --success-soft: rgba(51, 84, 138, 0.34);
+  --warning-soft: rgba(246, 220, 142, 0.16);
+  --danger-soft: rgba(232, 74, 95, 0.16);
+  --focus-ring: #c9bdd9;
+  --link: var(--brand-text);
+  --mark-band: rgba(246, 220, 142, 0.16);
+  --tint-lex: rgba(246, 220, 142, 0.09);
+  --tint-content: rgba(var(--brand-rgb), 0.2);
+  /* Night steps for the extended palette. The hues are lightened until they
+     clear 4.5:1 on the night surfaces and on their own night wash; the washes
+     are the daylight hue at an alpha tuned per lane, because a single alpha
+     put two of them 2.7 dE00 apart. `-ink` and the display hue converge here:
+     on a dark panel the lightened step is both readable as text and visible
+     as a border, so a second value would be a distinction with no rendering
+     behind it. */
+  --indigo: #bac5d7;
+  --indigo-ink: #bdc4d2;
+  --indigo-soft: rgba(51, 84, 138, 0.34);
+  --iris-soft: rgba(var(--brand-rgb), 0.42);
+  --orchid: #d7b8d5;
+  --orchid-ink: #d1bcd0;
+  --orchid-soft: rgba(138, 47, 132, 0.5);
+  --plum: #d4becc;
+  --plum-ink: #cebdc8;
+  --plum-soft: rgba(122, 53, 96, 0.22);
+  --rose-soft: rgba(181, 64, 112, 0.36);
+}

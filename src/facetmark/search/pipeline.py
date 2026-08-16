@@ -545,6 +545,12 @@ class SearchHit:
             "bookmark_id": self.bookmark_id, "url": self.url, "title": self.title,
             "score": round(self.score, 6), "base_score": round(self.base_score, 6),
             "facets": self.facets, "ranks": self.ranks,
+            # Already computed by `rrf()`; sending it is what lets a reader see
+            # *how much* each path put into a row rather than only that it
+            # voted. Reconstructing it in the browser would mean shipping `k`
+            # and the per-config facet weights as well, and then keeping two
+            # copies of the formula honest.
+            "contributions": {f: round(v, 6) for f, v in self.contributions.items()},
             "context_boost": round(self.context_boost, 4),
             "context_reasons": self.context_reasons, "cold": self.cold,
             "folder": self.folder, "domain": self.domain, "date_added": self.date_added,
