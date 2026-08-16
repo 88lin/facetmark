@@ -234,6 +234,15 @@
      ink. */
   --mark-band: var(--highlight);
 
+  /* The band a text selection paints. Deliberately the brand hue rather than
+     the highlighter: selection and the query-term mark can overlap -- a reader
+     selects inside a snippet to copy it -- and two golds in one box read as
+     one gold. At .28 over the cream the body ink still measures 10.4:1; the
+     dark block re-points the token at .45, where the night ink measures 7.9:1.
+     The token exists for the same reason `--mark-band` does: one name, two
+     strengths, and the contrast sweep has one thing to resolve per theme. */
+  --select-band: rgba(var(--brand-rgb), 0.28);
+
   /*
    * The wash under each tinted base card, as a token rather than a literal,
    * so that the contrast sweep resolves the right one per theme and so that
@@ -311,6 +320,13 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Syncs the UA-painted widgets with the theme toggle. `color-scheme` on the
+     document is what the browser consults for the search field's ×, the
+     scrollbars and every default form control; the meta tag alone answers
+     `prefers-color-scheme`, so without this pair a reader who forces light
+     while the OS is dark gets a page painted light and widgets painted dark.
+     The landing stylesheet has carried the same pair since its rebuild. */
+  color-scheme: light;
 }
 
 body {
@@ -324,6 +340,14 @@ body {
   font-size: var(--fs-3);
   line-height: var(--lh-body);
   font-variant-numeric: tabular-nums;
+}
+
+/* Selection is the one surface left to the browser's default blue, which on
+   this palette reads as a colour from a different product. The token is
+   theme-aware; the text colour is left to inherit so the measured ratios in
+   the token's comment stay the whole story. */
+::selection {
+  background: var(--select-band);
 }
 
 /* The Chinese interface is not the English one in another font. Han glyphs
@@ -2932,6 +2956,7 @@ main.wide {
  * maths as the design system's own `scripts/validate-palettes.mjs`.
  */
 html[data-theme="dark"] {
+  color-scheme: dark;
   --cream: #241f2e;
   --cream-dark: #312c3c;
   --card-bg: #3d3747;
@@ -2957,6 +2982,7 @@ html[data-theme="dark"] {
   --focus-ring: #c9bdd9;
   --link: var(--brand-text);
   --mark-band: rgba(246, 220, 142, 0.16);
+  --select-band: rgba(var(--brand-rgb), 0.45);
   --tint-lex: rgba(246, 220, 142, 0.09);
   --tint-content: rgba(var(--brand-rgb), 0.2);
   /* Night steps for the extended palette. The hues are lightened until they
