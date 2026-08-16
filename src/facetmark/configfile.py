@@ -31,6 +31,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from dotenv import dotenv_values
+
 if sys.version_info >= (3, 11):  # pragma: no cover - one branch per interpreter
     import tomllib
 else:  # pragma: no cover - exercised on 3.10 in CI
@@ -64,9 +66,46 @@ def config_path(data_dir: Path | None = None) -> Path:
     if data_dir is None:
         from .config import default_data_dir
 
-        env = os.environ.get("FACETMARK_DATA_DIR")
-        data_dir = Path(os.path.expandvars(env)).expanduser() if env else default_data_dir()
+        env = external_setting_value("data_dir")
+        data_dir = (
+            Path(os.path.expandvars(env)).expanduser()
+            if env is not None
+            else default_data_dir()
+        )
     return Path(data_dir) / CONFIG_NAME
+
+
+def external_settings() -> dict[str, str]:
+    """Return process and dotenv settings, with process values winning.
+
+    Pydantic Settings treats environment names case-insensitively by default.
+    Keep this resolver independent from :class:`Settings`: it is used to find
+    the TOML file before that model can be constructed, so reading TOML here
+    would make ``data_dir`` choose the location of its own source.
+    """
+    dotenv = {
+        key.lower(): value
+        for key, value in dotenv_values(".env", encoding="utf-8").items()
+        if key and value is not None
+    }
+    process = {
+        key.lower(): value
+        for key, value in os.environ.items()
+        if key.lower().startswith("facetmark_")
+    }
+    dotenv.update(process)
+    return dotenv
+
+
+def external_setting_value(name: str) -> str | None:
+    """Return an externally supplied ``Settings`` field, if present."""
+    return external_settings().get(f"facetmark_{name.lower()}")
+
+
+def external_setting_keys(names: Mapping[str, Any] | set[str] | tuple[str, ...]) -> frozenset[str]:
+    """Return field names supplied by process environment or dotenv."""
+    values = external_settings()
+    return frozenset(name for name in names if f"facetmark_{name.lower()}" in values)
 
 
 def read_config(path: Path | None = None) -> dict[str, Any]:

@@ -9,6 +9,7 @@ import pytest
 from facetmark.config import Settings
 from facetmark.importers import (
     chrome_json,
+    decode_bookmark_bytes,
     detect_and_parse,
     import_bookmarks,
     netscape_html,
@@ -276,6 +277,42 @@ class TestReadText:
         p = tmp_path / "bad.html"
         p.write_bytes(b"\xff\xfe\x00\x01<DT><A HREF=\"https://e.com\">x</A>")
         assert isinstance(read_text(p), str)
+
+    def test_the_ladder_is_shared_with_callers_that_have_no_file(self):
+        """``read_text`` is this function plus a ``read_bytes``.
+
+        The web upload holds a request body rather than a path, and when it had
+        its own decode -- UTF-8 with ``errors="replace"`` -- it stored
+        ``Caf\ufffd`` and reported success. One ladder, two entry points.
+        """
+        assert decode_bookmark_bytes("Caf\xe9 notes".encode("cp1252")) == "Caf\xe9 notes"
+        assert decode_bookmark_bytes("\u4e2d\u6587\u6807\u9898".encode("gb18030")) == "\u4e2d\u6587\u6807\u9898"
+        assert decode_bookmark_bytes("Caf\xe9 \u4e2d\u6587".encode("utf-8")) == "Caf\xe9 \u4e2d\u6587"
+        assert decode_bookmark_bytes(b"\xef\xbb\xbfCaf\xc3\xa9") == "Caf\xe9"
+        assert isinstance(decode_bookmark_bytes(b"\x81\x8d\x8f\x90\x9d"), str)
+
+    def test_declared_windows_charset_beats_ambiguous_gb18030(self):
+        raw = (
+            b'<META HTTP-EQUIV="Content-Type" '
+            b'CONTENT="text/html; charset=windows-1252">'
+            b'<DT><A HREF="https://e.com/x" ADD_DATE="1690000000">'
+            b'Sqlite intern\xe4ls</A>'
+        )
+        assert "Sqlite intern\u00e4ls" in decode_bookmark_bytes(raw)
+
+    def test_compact_declared_charset_is_supported(self):
+        raw = (
+            b'<meta charset="windows-1252">'
+            b'<DT><A HREF="https://e.com/x" ADD_DATE="1690000000">'
+            b'Caf\xe9 notes</A>'
+        )
+        assert "Caf\u00e9 notes" in decode_bookmark_bytes(raw)
+
+    def test_read_text_delegates_rather_than_repeating_the_ladder(self, tmp_path):
+        p = tmp_path / "b.html"
+        raw = "Caf\xe9 notes".encode("cp1252")
+        p.write_bytes(raw)
+        assert read_text(p) == decode_bookmark_bytes(raw)
 
 
 class TestFolderPathsMeasuredOnRealData:

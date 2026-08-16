@@ -16,7 +16,37 @@ import {
   pct,
   uptimeParts,
   interpolate,
+  splitList,
 } from "../../src/facetmark/web/static/format.js";
+
+describe("splitList", () => {
+  // The mirror of `split_list` in config.py. The settings page shows
+  // `privacy_excluded_domains` as one comma-separated box; sending the box
+  // instead of the list is what made saving a privacy exclusion return 400.
+  test("commas, with or without spaces", () => {
+    assert.deepEqual(splitList("private.example, mail.example"), [
+      "private.example",
+      "mail.example",
+    ]);
+    assert.deepEqual(splitList("a.example,b.example"), ["a.example", "b.example"]);
+  });
+
+  test("whitespace counts as a separator, since a domain contains none", () => {
+    assert.deepEqual(splitList("a.example b.example"), ["a.example", "b.example"]);
+  });
+
+  test("blanks and repeats are typos, not instructions", () => {
+    assert.deepEqual(splitList("  a.example ,, b.example ,"), ["a.example", "b.example"]);
+    assert.deepEqual(splitList("dup.example, dup.example"), ["dup.example"]);
+  });
+
+  test("an empty box is an empty list, not a list with one empty string", () => {
+    assert.deepEqual(splitList(""), []);
+    assert.deepEqual(splitList("   "), []);
+    assert.deepEqual(splitList(null), []);
+    assert.deepEqual(splitList(undefined), []);
+  });
+});
 
 describe("FACET_KEYS", () => {
   test("names the four facets the pipeline can attribute a hit to", () => {

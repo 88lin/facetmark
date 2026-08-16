@@ -134,10 +134,17 @@ jobs:
           static = pathlib.Path("src/facetmark/web/static")
           # rglob, not iterdir: `static/fonts/` is a directory, and asking a
           # zip for a directory name asks for something that is not in it.
+          # A dirty working tree is not a packaging bug: `__pycache__`, a
+          # `.DS_Store` or an editor backup are not assets, and demanding them
+          # inside the wheel makes a local run of this check fail for a reason
+          # that has nothing to do with the wheel.
           want = ["facetmark/web/index.html"] + [
               f"facetmark/web/{p.relative_to(static.parent).as_posix()}"
               for p in sorted(static.rglob("*"))
               if p.is_file()
+              and "__pycache__" not in p.parts
+              and not p.name.startswith(".")
+              and p.suffix not in {".pyc", ".pyo", ".bak", ".orig", ".rej", ".swp"}
           ]
           missing = [w for w in want if w not in names]
           if missing:
