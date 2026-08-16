@@ -746,12 +746,8 @@ class TestTheBrand:
             "--mark-band must be re-pointed for dark: full-strength yellow under "
             "near-white ink is 1.6:1, and the highlighter is a wash, not a block"
         )
-        assert "--select-band" in night, (
-            "--select-band must be re-pointed for dark: the daylight .28 wash over "
-            "a near-black page leaves a selection the night ink cannot be read on"
-        )
         assert "--tint-lex" in night, (
-            "--tint-lex must be re-pointed for dark: daylight-strength yellow over "
+            "--tint-lex must be re pointed for dark: daylight-strength yellow over "
             "a near-black panel reads olive, not as a tint of the page"
         )
         for token in self.EXTENDED:
@@ -759,7 +755,7 @@ class TestTheBrand:
                 f"{token} has no night step: the extended palette is tuned for a cream page "
                 "and renders at daylight strength on a near-black one"
             )
-        assert len(night) == 39, f"the dark block is now {len(night)} tokens; review each addition"
+        assert len(night) == 38, f"the dark block is now {len(night)} tokens; review each addition"
 
     @staticmethod
     def _split() -> tuple[str, str]:

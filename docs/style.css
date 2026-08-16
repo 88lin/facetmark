@@ -238,12 +238,6 @@
   --rose-ink: #873352;
   --rose-soft: #eac8d6;                 /* --rose       29%          */
   /* end extended palette */
-
-  /* The band a text selection paints, brand hue rather than the browser
-     default blue. .28 over the palette's cream keeps the body ink at 10.4:1;
-     the dark block below re-points it to .45, where the night ink reads
-     7.9:1. The app stylesheet carries the same token at the same strengths. */
-  --select-band: rgba(var(--brand-rgb), 0.28);
 }
 
 :root[data-theme="dark"] {
@@ -359,7 +353,6 @@
   --orchid-soft: #572759;
   --plum-soft: #372439;
   --rose-soft: #582b46;
-  --select-band: rgba(var(--brand-rgb), 0.45);
 }
 
 /* The band that breaks the rhythm, and the one the owner pointed at. Ten
@@ -391,13 +384,6 @@ body {
   font-size: var(--fs-4);
   line-height: var(--lh-body);
   -webkit-font-smoothing: antialiased;
-}
-
-/* Selection in the palette's own hue; the app stylesheet does the same. Text
-   colour is inherited, so the ratios recorded at the token hold everywhere
-   the rule can reach. */
-::selection {
-  background: var(--select-band);
 }
 
 /* The Chinese pages are not the English pages in another font. Han glyphs are
