@@ -146,12 +146,41 @@ def _v4_intent_scored_marker(conn: sqlite3.Connection) -> None:
     )
 
 
+def _v5_enrichment_basis(conn: sqlite3.Connection) -> None:
+    """Record what each summary was written from: the page, or just its title.
+
+    A bookmark whose body was never fetched is still enriched -- from title,
+    URL and folder alone -- and that summary is an inference about the page
+    rather than a report from it. Until now the two kinds were
+    indistinguishable in the database, so every surface that shows a summary
+    presented a guess with the same authority as an extraction. The smoke test
+    on a real 100-bookmark library found 36 such rows and no way to tell the
+    reader.
+
+    Existing rows are backfilled from evidence that is already exact: the
+    title-only fingerprint is the ``t:``-prefixed hash
+    (:func:`facetmark.enrich.pipeline.title_only_hash`), so a row whose
+    ``source_hash`` starts with ``t:`` was written without a body. The bridge
+    keeps its reserved ``'karakeep'`` hash, which backfills to ``body`` here
+    and is corrected to its own value the next time the bridge syncs; the
+    distinction it marks is "not a model call", which nothing downstream
+    currently branches on.
+    """
+    if "basis" not in _columns(conn, "enrichment"):
+        conn.execute(
+            "ALTER TABLE enrichment ADD COLUMN basis TEXT NOT NULL DEFAULT 'body'"
+        )
+    conn.execute("UPDATE enrichment SET basis='title' WHERE source_hash LIKE 't:%'")
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(2, "browser queue remembers when a retry is allowed", _v2_browser_queue_backoff),
     Migration(3, "content vectors remember what they were built from",
               _v3_content_vector_provenance),
     Migration(4, "intent candidates remember whether they have been probed",
               _v4_intent_scored_marker),
+    Migration(5, "summaries remember whether they were written from the page "
+                 "or only from its title", _v5_enrichment_basis),
 )
 
 #: What this build writes into a new database. Derived from the migration list

@@ -468,7 +468,13 @@ export async function run(q, { force = false } = {}) {
     // untranslated -- inventing a translation for a model's output would be
     // asserting something about it that nobody checked.
     const labels = full.understanding?.labels?.join(" + ");
-    note(cursor, full.took_ms, labels || t("results.ranked"));
+    // `degraded_from` is set when the ranking mode asked for could not run --
+    // this library has no vector store -- and word search stood in. Saying so
+    // in the status line is the difference between "fewer results than I
+    // expected" and "the index is not built yet".
+    let tail = labels || t("results.ranked");
+    if (full.degraded_from) tail = `${tail} · ${t("results.degraded")}`;
+    note(cursor, full.took_ms, tail);
     if (!rows.length && !neighbours.length) {
       await ensureStats(api);
       if (mine === generation) emptyPanel(true);

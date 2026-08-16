@@ -5,7 +5,7 @@
 [![CI](https://github.com/88lin/facetmark/actions/workflows/ci.yml/badge.svg)](https://github.com/88lin/facetmark/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1188-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-1524-brightgreen)](tests/)
 [![Code of Conduct](https://img.shields.io/badge/code%20of%20conduct-contributor%20covenant-blueviolet)](CODE_OF_CONDUCT.md)
 
 [English](README.md) · [简体中文](README.zh-CN.md)
@@ -131,7 +131,7 @@ git clone https://github.com/88lin/facetmark
 cd facetmark
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
-pytest -q               # 1188 条测试，约 37 秒
+pytest -q               # 1524 条测试，约 41 秒
 ruff check src tests scripts
 ```
 
@@ -595,7 +595,7 @@ extension/                浏览器扩展（打开次数遥测）
 eval/                     查询集与评测框架
 scripts/                  实验驱动与探针
 docs/                     一个实验一份文档，协议在前
-tests/                    1188 条测试
+tests/                    1524 条测试
 ```
 
 ## 参与贡献

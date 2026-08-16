@@ -516,9 +516,6 @@ header.site {
 }
 .logo .mark {
   width: 20px; height: 20px; border-radius: 5px; flex: none;
-  background:
-    linear-gradient(135deg, var(--brand) 0 50%, transparent 50% 100%),
-    linear-gradient(135deg, var(--rose) 0 100%);
 }
 nav.top { margin-left: auto; display: flex; align-items: center; gap: 2px; }
 nav.top a {

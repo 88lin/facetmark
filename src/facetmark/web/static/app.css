@@ -311,6 +311,13 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Syncs the UA-painted widgets with the theme toggle. `color-scheme` on the
+     document is what the browser consults for the search field's ×, the
+     scrollbars and every default form control; the meta tag alone answers
+     `prefers-color-scheme`, so without this pair a reader who forces light
+     while the OS is dark gets a page painted light and widgets painted dark.
+     The landing stylesheet has carried the same pair since its rebuild. */
+  color-scheme: light;
 }
 
 body {
@@ -472,8 +479,7 @@ button {
   width: 22px;
   height: 22px;
   border-radius: 7px;
-  background: var(--brand);
-  box-shadow: inset -7px -7px 0 0 var(--highlight);
+  flex: none;
 }
 
 .tools {
@@ -2932,6 +2938,7 @@ main.wide {
  * maths as the design system's own `scripts/validate-palettes.mjs`.
  */
 html[data-theme="dark"] {
+  color-scheme: dark;
   --cream: #241f2e;
   --cream-dark: #312c3c;
   --card-bg: #3d3747;

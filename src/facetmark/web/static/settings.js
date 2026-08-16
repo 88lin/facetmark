@@ -19,6 +19,7 @@
 
 import { api, ApiError } from "./api.js";
 import { $, btn, card, el, pill } from "./dom.js";
+import { splitList } from "./format.js";
 import { failPanel } from "./panels.js";
 import * as setup from "./setup.js";
 import { S, t } from "./state.js";
@@ -124,7 +125,11 @@ function field(key) {
     if (!r || r.locked) return undefined;
     const v = input.value.trim();
     if (r.secret) return v === "" ? undefined : v;
-    return v === initial ? undefined : v;
+    if (v === initial) return undefined;
+    // A list field is rendered as one comma-separated box, so send the list
+    // rather than the box: the field is a tuple on the server, and sending the
+    // string is what made saving a privacy exclusion return 400.
+    return Array.isArray(r.value) ? splitList(v) : v;
   };
   wrap.probe = () => input.value.trim();
   return wrap;

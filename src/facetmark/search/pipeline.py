@@ -60,6 +60,67 @@ VECTOR_FACETS = frozenset({"content", "intent"})
 LEXICAL_FACETS = frozenset({"lex_seg", "lex_tri"})
 ALL_FACETS = VECTOR_FACETS | LEXICAL_FACETS
 
+def vector_facets_present(conn: sqlite3.Connection) -> frozenset[str]:
+    """Which vector facets this library can actually run right now.
+
+    A facet counts as present only when its table exists *and* holds at least
+    one row: an empty ``vec_content`` ranks nothing, however honourable the
+    intent behind it. ``default_config`` cannot make this call -- it sees the
+    settings and the provider, not the database -- and the settings are exactly
+    what a chat-only deployment lies about. A key that answers
+    ``/chat/completions`` and 404s on ``/embeddings`` has ``api_key`` set, so
+    the gate's answer is ``FULL``, and ``FULL`` over an empty vector store
+    returns an empty page for every query. That is not a degraded answer, it
+    is no answer, and the library usually holds pages the lexical index can
+    find. Whether it can is decided here, per query, from the database.
+    """
+    out: set[str] = set()
+    for table, facet in (("vec_content", "content"), ("vec_intent", "intent")):
+        exists = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)
+        ).fetchone()
+        if exists is None:
+            continue
+        if conn.execute(f"SELECT 1 FROM {table} LIMIT 1").fetchone():
+            out.add(facet)
+    return frozenset(out)
+
+
+def degrade_for_vector_store(
+    conn: sqlite3.Connection, config: Config
+) -> tuple[Config, str]:
+    """Swap in lexical facets when the config's vector facets cannot run.
+
+    Only the total-loss case is repaired: a config that keeps at least one
+    runnable facet runs as named, and the empty facet is visible in
+    ``facet_sizes`` as the honest report of a facet with no candidates. What is
+    not honest is a config left with *zero* runnable facets -- the shipped
+    ``full`` profile over a library with no vectors -- because that answers
+    every question with an empty page while the words the reader typed are
+    sitting in the lexical index.
+
+    The lexical facets inherit the config's other flags (context, graph,
+    decay, rerank) unchanged. Nothing about the *ranking* of those facets is
+    being claimed here: this is the same pre-gate behaviour ``FUSED`` ships
+    for the mock provider, deployed as a runtime fallback rather than a
+    default, and the response says it happened via ``degraded_from``.
+    """
+    missing = config.facets & VECTOR_FACETS - vector_facets_present(conn)
+    if not missing or (config.facets - missing):
+        return config, ""
+    return (
+        Config(
+            name=f"{config.name}/lex",
+            facets=LEXICAL_FACETS,
+            context=config.context,
+            graph=config.graph,
+            rerank=config.rerank,
+            decay=config.decay,
+        ),
+        config.name,
+    )
+
+
 #: Candidate depth assumed when sizing the CombMAX coefficient for ``C_max``.
 #: Mirrors :attr:`Settings.candidates_per_facet`, which is a runtime setting and
 #: therefore not importable as a constant here; the two are checked against each
@@ -605,6 +666,11 @@ class SearchResponse:
     #: out. Distinguishing these is the whole reason both fields exist: a short
     #: page at the ceiling is not the end of the results.
     depth_capped: bool = False
+    #: Set when the config that actually ran is not the one that was asked
+    #: for: it named vector facets the library cannot run (no vector store),
+    #: so the lexical facets stood in. Holds the *requested* config's name --
+    #: ``config`` above holds the name of what ran. Empty when nothing moved.
+    degraded_from: str = ""
 
     def as_dict(self) -> dict:
         return {
@@ -613,6 +679,7 @@ class SearchResponse:
             "expanded": [h.as_dict() for h in self.expanded],
             "understanding": self.understanding.as_dict() if self.understanding else None,
             "config": self.config,
+            "degraded_from": self.degraded_from,
             "facet_sizes": self.facet_sizes,
             "facet_confidence": self.facet_confidence,
             "context": self.context,
@@ -747,6 +814,7 @@ async def search(
     prov = provider or get_provider(s)
     if config is None:
         config = default_config(s, prov)
+    config, degraded_from = degrade_for_vector_store(conn, config)
     timings: dict[str, float] = {}
     t_start = time.perf_counter()
 
@@ -962,5 +1030,5 @@ async def search(
         context=ctx.as_dict() if ctx else None, rescued=rescued,
         reranker=rr_name, took_ms=timings,
         limit=page.limit, offset=page.offset, depth=page.depth, total=len(fused),
-        has_more=has_more, depth_capped=capped,
+        has_more=has_more, depth_capped=capped, degraded_from=degraded_from,
     )

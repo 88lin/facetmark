@@ -189,6 +189,14 @@ function sourceCard(s) {
     // Chinese page; the status maps onto a key we already have in both.
     marks.appendChild(pill(HEALTH_TONE[s.health] ?? "mute", t(`health.${s.health}`)));
   }
+  // The excerpt above may be a guess: a page that was never fetched is
+  // summarised from its title alone, and a claim resting on it is weaker
+  // than its citation count says.
+  if (s.basis === "title") {
+    const inferred = pill("warn", t("ask.basis.title"));
+    inferred.title = t("ask.basis.title.why");
+    marks.appendChild(inferred);
+  }
   const peek = btn("\u22ef", "round peek", () => S.open(s.bookmark_id));
   peek.setAttribute("aria-label", t("detail.open"));
   peek.title = t("detail.open");

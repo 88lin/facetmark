@@ -16,10 +16,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from facetmark import service
-from facetmark.admin import INDEX_STAGES, WRITABLE, mask
+from facetmark.admin import INDEX_STAGES, TUPLE_FIELDS, WRITABLE, mask, settings_view
 from facetmark.api import create_app
 from facetmark.config import Settings
-from facetmark.configfile import read_config
+from facetmark.configfile import config_path, read_config
 
 NETSCAPE = """<!DOCTYPE NETSCAPE-Bookmark-file-1>
 <DL><p>
@@ -177,12 +177,51 @@ class TestImport:
         r = client.post("/admin/import", content=b"x" * 64, headers=auth)
         assert r.status_code == 413
 
-    def test_a_legacy_encoding_does_not_crash_the_import(self, client, auth):
-        """Old Windows exports are cp1252 or GBK; the URLs still have to land."""
-        raw = NETSCAPE.replace("Sqlite internals", "Sqlite intern\xe4ls").encode("cp1252")
+    def test_a_legacy_encoding_keeps_its_title(self, client, auth):
+        """The upload path decodes like the file path, or it damages titles.
+
+        "Does not crash" was the whole of this assertion once, and it passed
+        while the endpoint stored ``Caf\ufffd``: the body was decoded as UTF-8
+        with ``errors="replace"``, so a cp1252 or GBK export imported with a
+        200 and a broken title -- which then went into the lexical index, the
+        summary and the embedding.
+        """
+        for enc, was, title, url in (
+            ("cp1252", "Vector search notes", "Caf\xe9 notes", "https://a.example/one"),
+            ("gb18030", "Sqlite internals", "\u4e2d\u6587\u6807\u9898", "https://b.example/two"),
+        ):
+            body = NETSCAPE.replace(was, title).encode(enc)
+            r = client.post("/admin/import", content=body, headers=auth)
+            assert r.status_code == 200
+            titles = [
+                t for (t,) in client.app.state.fm.conn.execute(
+                    "select title from bookmark where url = ?", (url,)
+                )
+            ]
+            assert titles == [title], f"{enc} title did not survive the upload"
+
+    def test_declared_charset_is_honored_by_http_upload(self, client, auth):
+        body = (
+            b'<!DOCTYPE NETSCAPE-Bookmark-file-1>\n'
+            b'<META HTTP-EQUIV="Content-Type" '
+            b'CONTENT="text/html; charset=windows-1252">\n'
+            b'<DL><p><DT><A HREF="https://declared.example/x" '
+            b'ADD_DATE="1700000000">Sqlite intern\xe4ls</A></DL><p>'
+        )
+        r = client.post("/admin/import", content=body, headers=auth)
+        assert r.status_code == 200
+        title = client.app.state.fm.conn.execute(
+            "select title from bookmark where url=?", ("https://declared.example/x",)
+        ).fetchone()[0]
+        assert title == "Sqlite intern\u00e4ls"
+
+    def test_an_ambiguous_legacy_byte_pair_still_imports(self, client, auth):
+        """``\\xe4l`` is valid GB18030 and cp1252, so the ladder keeps GB18030 first."""
+        raw = NETSCAPE.replace("Sqlite internals", "Sqlite intern\\xe4ls").encode("cp1252")
         r = client.post("/admin/import", content=raw, headers=auth)
         assert r.status_code == 200
         assert r.json()["inserted"] == 2
+
 
 
 # ---------------------------------------------------------------------------
@@ -334,10 +373,128 @@ class TestSettings:
         client.put("/admin/settings", json={"values": {"chat_model": "live-now"}}, headers=auth)
         assert client.app.state.fm.settings.chat_model == "live-now"
 
+    @pytest.mark.parametrize("key", ["fetch_concurrency", "enrich_concurrency", "request_timeout"])
+    def test_numeric_settings_are_typed_and_positive_live(self, client, auth, key):
+        sent = "2" if key != "request_timeout" else "2.5"
+        r = client.put("/admin/settings", json={"values": {key: sent}}, headers=auth)
+        assert r.status_code == 200, r.text
+        value = getattr(client.app.state.fm.settings, key)
+        assert isinstance(value, (int, float))
+        assert value == (2 if key != "request_timeout" else 2.5)
+
+    @pytest.mark.parametrize("key", ["fetch_concurrency", "enrich_concurrency", "request_timeout"])
+    def test_non_positive_numeric_settings_are_rejected(self, client, auth, key):
+        r = client.put("/admin/settings", json={"values": {key: 0}}, headers=auth)
+        assert r.status_code == 400
+
+    @pytest.mark.parametrize("value", [42, True, {"a.example": True}, ["ok.example", 2]])
+    def test_malformed_domain_values_are_400(self, client, auth, value):
+        r = client.put(
+            "/admin/settings",
+            json={"values": {"privacy_excluded_domains": value}},
+            headers=auth,
+        )
+        assert r.status_code == 400, r.text
+
     def test_an_empty_api_key_clears_rather_than_pins_it(self, client, auth):
         client.put("/admin/settings", json={"values": {"api_key": "sk-one"}}, headers=auth)
         client.put("/admin/settings", json={"values": {"api_key": ""}}, headers=auth)
         assert "api_key" not in read_config()
+
+    @pytest.mark.parametrize(
+        "sent,want",
+        [
+            ("private.example, mail.example", ["private.example", "mail.example"]),
+            ("  a.example ,, b.example ,", ["a.example", "b.example"]),
+            ("dup.example, dup.example", ["dup.example"]),
+            ("one.example two.example", ["one.example", "two.example"]),
+            (["x.example", "y.example"], ["x.example", "y.example"]),
+            ("", []),
+        ],
+    )
+    def test_a_list_setting_can_be_written_from_one_text_box(self, client, auth, sent, want):
+        """The settings page renders this field as a single comma-separated box.
+
+        It used to send that box as a string, and the string hit a
+        ``tuple[str, ...]`` field: every attempt to save a privacy exclusion
+        returned ``400 Input should be a valid tuple``, which is both the only
+        list-valued setting the UI offers and a message nobody can act on.
+        """
+        r = client.put(
+            "/admin/settings",
+            json={"values": {"privacy_excluded_domains": sent}},
+            headers=auth,
+        )
+        assert r.status_code == 200, r.text
+        row = next(x for x in r.json()["settings"] if x["key"] == "privacy_excluded_domains")
+        assert row["value"] == want
+        assert list(read_config().get("privacy_excluded_domains", [])) == want
+        live = client.app.state.fm.settings.privacy_excluded_domains
+        # A tuple, not the list that was written to TOML: `host_excluded` takes
+        # a sequence, so a stray `str` here would iterate characters and match
+        # hosts by their last letter.
+        assert isinstance(live, tuple)
+        assert list(live) == want
+
+    def test_the_list_fields_are_read_off_the_model(self):
+        """So that the next tuple-valued setting does not have to be remembered."""
+        assert set(TUPLE_FIELDS) == {"privacy_excluded_domains"}
+
+    def test_an_env_locked_field_is_refused_rather_than_half_applied(
+        self, client, auth, monkeypatch
+    ):
+        """The read-only box in the UI is not the gate; this is.
+
+        A localhost HTTP API has callers other than its own page. Writing a
+        field the environment owns used to return 200, drop the key from the
+        config file, and overwrite the live value -- while the same response
+        still reported ``source: env``, because that part was right.
+        """
+        monkeypatch.setenv("FACETMARK_BASE_URL", "https://from-env.example/v1")
+        live = client.app.state.fm.settings
+        live.base_url = "https://from-env.example/v1"
+        r = client.put(
+            "/admin/settings",
+            json={"values": {"base_url": "https://typed-in-the-box.example/v1"}},
+            headers=auth,
+        )
+        assert r.status_code == 409
+        assert "base_url" in r.json()["detail"]
+        assert live.base_url == "https://from-env.example/v1"
+        assert "base_url" not in read_config()
+
+    def test_a_dotenv_field_is_locked_and_reported_as_env(self, client, auth, monkeypatch, tmp_path):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / ".env").write_text(
+            "FACETMARK_BASE_URL=https://dotenv.example/v1\n", encoding="utf-8"
+        )
+        live = client.app.state.fm.settings
+        live.base_url = "https://dotenv.example/v1"
+        row = next(x for x in settings_view(live)["settings"] if x["key"] == "base_url")
+        assert row["source"] == "env"
+        assert row["locked"] is True
+        r = client.put(
+            "/admin/settings",
+            json={"values": {"base_url": "https://typed-in-the-box.example/v1"}},
+            headers=auth,
+        )
+        assert r.status_code == 409
+        assert live.base_url == "https://dotenv.example/v1"
+
+    def test_an_env_locked_key_cannot_be_cleared_by_an_empty_string(
+        self, client, auth, monkeypatch
+    ):
+        """``api_key: \"\"`` means \"clear it\", which is still a write."""
+        monkeypatch.setenv("FACETMARK_API_KEY", "sk-from-env-do-not-touch")
+        live = client.app.state.fm.settings
+        live.api_key = "sk-from-env-do-not-touch"
+        r = client.put("/admin/settings", json={"values": {"api_key": ""}}, headers=auth)
+        assert r.status_code == 409
+        assert live.api_key == "sk-from-env-do-not-touch"
+        row = next(x for x in settings_view(live)["settings"] if x["key"] == "api_key")
+        assert row["locked"] is True
+        assert row["source"] == "env"
+        assert row["value"] == mask("sk-from-env-do-not-touch")
 
     def test_a_non_writable_key_is_refused_by_name(self, client, auth):
         r = client.put("/admin/settings", json={"values": {"rrf_k": 5}}, headers=auth)
@@ -361,6 +518,60 @@ class TestSettings:
         client.put("/admin/settings", json={"values": {"embed_backend": "telepathy"}},
                    headers=auth)
         assert client.app.state.fm.settings.embed_backend == before
+
+
+class TestTheConfigFilePath:
+    """Which ``config.toml`` the settings page is looking at.
+
+    Worth its own class because the obvious reading of ``serve --db`` is wrong
+    in a way that is expensive: the page reports a path outside the data
+    directory it was started with, which looks like a bug and is the only
+    correct answer.
+    """
+
+    @pytest.fixture()
+    def two_dirs(self, tmp_path, monkeypatch):
+        """The per-OS default directory, and the one ``--db`` would select."""
+        default, instance = tmp_path / "default", tmp_path / "instance"
+        default.mkdir()
+        instance.mkdir()
+        monkeypatch.delenv("FACETMARK_DATA_DIR", raising=False)
+        monkeypatch.setattr("facetmark.config.default_data_dir", lambda **kw: default)
+        return default, instance
+
+    def test_the_page_names_the_file_the_next_boot_will_read(self, two_dirs):
+        """Not ``settings.data_dir``, on purpose.
+
+        ``facetmark serve --db /elsewhere/x.db`` moves the database and leaves
+        the config file where it was, because :class:`ConfigFileSource` resolves
+        its own path from the environment -- a file cannot choose its own
+        location without the resolution becoming circular. So the loader reads
+        the default directory, and the settings page has to name the same file
+        it does. Reporting ``/elsewhere/config.toml`` would look tidier and
+        would write settings that nothing ever reads.
+        """
+        default, instance = two_dirs
+        (default / "config.toml").write_text('chat_model = "from-default-dir"\n', encoding="utf-8")
+        (instance / "config.toml").write_text('chat_model = "from-instance-dir"\n', encoding="utf-8")
+        st = Settings(data_dir=instance, use_mock_provider=True)
+        assert st.data_dir == instance
+        assert st.chat_model == "from-default-dir"
+        assert settings_view(st)["path"] == str(config_path())
+        assert settings_view(st)["path"] == str(default / "config.toml")
+
+    def test_a_write_goes_to_that_same_file(self, two_dirs):
+        default, instance = two_dirs
+        st = Settings(data_dir=instance, use_mock_provider=True)
+        with TestClient(create_app(st), client=("127.0.0.1", 40404)) as c:
+            headers = {"Authorization": f"Bearer {c.app.state.fm.token}"}
+            r = c.put("/admin/settings", json={"values": {"chat_model": "written"}},
+                      headers=headers)
+            assert r.status_code == 200
+            assert r.json()["path"] == str(default / "config.toml")
+        assert (default / "config.toml").exists()
+        assert not (instance / "config.toml").exists()
+        # And the value comes back on the next boot of the same instance.
+        assert Settings(data_dir=instance, use_mock_provider=True).chat_model == "written"
 
 
 class TestConnectionProbe:
