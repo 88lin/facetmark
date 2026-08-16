@@ -138,7 +138,12 @@ class TestSearchRoutes:
         seed(client, "https://a.example/3", "rrf fusion", body="reciprocal rank fusion " * 20)
         r = client.post("/search", json={"q": "fusion", "limit": 5, "config": "A"},
                         headers=auth)
-        assert r.status_code == 200 and r.json()["config"] == "A"
+        # The test library has no vectors, so the all-vector rung "A" cannot
+        # run as named: the response says what stood in (`config`) and what
+        # was asked for (`degraded_from`) rather than echoing the request.
+        assert r.status_code == 200
+        assert r.json()["config"] == "A/lex"
+        assert r.json()["degraded_from"] == "A"
         assert client.post("/search", json={"q": "x", "config": "nope"},
                            headers=auth).status_code == 400
 

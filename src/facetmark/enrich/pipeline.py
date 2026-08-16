@@ -128,17 +128,20 @@ def store_enrichment(
     conn.execute(
         """
         INSERT INTO enrichment(bookmark_id, summary, key_points, entities, topics,
-                               utility, content_type, source_hash, model, created_at)
-        VALUES(?,?,?,?,?,?,?,?,?,?)
+                               utility, content_type, basis, source_hash, model,
+                               created_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?)
         ON CONFLICT(bookmark_id) DO UPDATE SET
             summary=excluded.summary, key_points=excluded.key_points,
             entities=excluded.entities, topics=excluded.topics,
             utility=excluded.utility, content_type=excluded.content_type,
-            source_hash=excluded.source_hash, model=excluded.model,
-            created_at=excluded.created_at
+            basis=excluded.basis, source_hash=excluded.source_hash,
+            model=excluded.model, created_at=excluded.created_at
         """,
         (target.bookmark_id, enr.summary, jdump(enr.key_points), jdump(enr.entities),
-         jdump(enr.topics), enr.utility, enr.content_type, target.source_hash, model, now()),
+         jdump(enr.topics), enr.utility, enr.content_type,
+         "title" if not target.body else "body",
+         target.source_hash, model, now()),
     )
     # Candidate queries are regenerated wholesale; keeping stale ones around
     # would leave orphaned vectors pointing at text that no longer exists.

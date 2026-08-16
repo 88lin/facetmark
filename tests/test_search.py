@@ -14,8 +14,8 @@ import time
 import pytest
 
 from facetmark.config import Settings
+from facetmark.db import ensure_vec_tables, open_db, upsert_content_vector
 from facetmark.db import now as db_now
-from facetmark.db import open_db
 from facetmark.edges import build_edges
 from facetmark.enrich import embed_content, enrich_all, filter_intents
 from facetmark.enrich.vectors import embed_intents
@@ -44,7 +44,12 @@ from facetmark.search import (
     window_filter,
 )
 from facetmark.search.context import MAX_BOOST, percentile
-from facetmark.search.pipeline import DEFAULT_FACET_WEIGHTS, SNIPPET_CHARS
+from facetmark.search.pipeline import (
+    DEFAULT_FACET_WEIGHTS,
+    LEXICAL_FACETS,
+    SNIPPET_CHARS,
+    degrade_for_vector_store,
+)
 from facetmark.search.rerank import RerankDoc, get_reranker, reorder
 from facetmark.search.understand import clear_cache
 from facetmark.text import sync_fts
@@ -1842,3 +1847,60 @@ class TestWhatAPageCosts:
             assert cold == set()                # one scan over 1200 ids
         finally:
             conn.close()
+
+
+# ===========================================================================
+# running without a vector store
+# ===========================================================================
+
+
+class TestRunningWithoutAVectorStore:
+    """What a chat-only deployment sees: a key that answers chat, an embedding
+    endpoint that 404s, and therefore a library where no vector table ever got
+    built -- while ``api_key`` is set, so ``default_config`` answers FULL.
+
+    Before the degradation these tests pin, FULL over that library answered
+    every query with an empty page, even when the words the reader typed were
+    sitting in the lexical index the whole time. That is not a degraded
+    answer; it is no answer.
+    """
+
+    async def test_full_over_an_empty_vector_store_degrades_to_lexical(
+        self, paging_db, tmp_path
+    ):
+        st = Settings(
+            data_dir=tmp_path, api_key="sk-chat-only",
+            base_url="http://chat.example/v1", health_enable_external=False,
+        )
+        resp = await search(paging_db, "vector database", limit=5, settings=st)
+        assert resp.degraded_from == "full"
+        assert resp.config == "full/lex"
+        assert resp.hits, "the words were in the lexical index all along"
+        assert set(resp.facet_sizes) <= {"lex_seg", "lex_tri"}
+
+    async def test_an_explicit_all_vector_config_degrades_the_same_way(
+        self, paging_db, tmp_path
+    ):
+        """A caller who asks for ``A`` by name gets the same honesty."""
+        st = Settings(data_dir=tmp_path, health_enable_external=False)
+        resp = await search(paging_db, "vector database", limit=5,
+                            config=CONFIGS["A"], settings=st)
+        assert resp.degraded_from == "A"
+        assert resp.hits
+
+    def test_a_config_that_keeps_a_runnable_facet_runs_as_named(self, paging_db):
+        cfg = Config("half", frozenset({"content", "lex_seg"}))
+        assert degrade_for_vector_store(paging_db, cfg) == (cfg, "")
+
+    def test_the_degraded_config_inherits_the_flags_it_can_still_honour(self, paging_db):
+        cfg = Config("A", frozenset({"content"}), graph=True, decay=True)
+        new, was = degrade_for_vector_store(paging_db, cfg)
+        assert was == "A"
+        assert new.facets == LEXICAL_FACETS
+        assert (new.graph, new.decay, new.rerank) == (True, True, False)
+
+    def test_a_library_with_vectors_is_not_downgraded(self, paging_db):
+        ensure_vec_tables(paging_db, 4, "mock-embed")
+        upsert_content_vector(paging_db, 1, [1.0, 0.0, 0.0, 0.0])
+        cfg = Config("A", frozenset({"content"}))
+        assert degrade_for_vector_store(paging_db, cfg) == (cfg, "")

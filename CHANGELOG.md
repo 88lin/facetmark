@@ -4,6 +4,45 @@
 
 ## [Unreleased]
 
+### 修复（chat-only 冒烟测试带出来的三个）
+
+- **没有向量库时，搜索对所有查询返回空页。** `default_config` 只看设置和 provider，
+  看不到数据库：设了 `api_key` 就回答 `full`——一个只有内容向量的配置。可是一个
+  「key 能聊天、`/embeddings` 404」的端点（就是这次冒烟测试用的那个）永远建不出
+  向量表，`full` 在这样的库上每个查询都是 0 命中，而读者敲的字其实一直躺在词法
+  索引里。现在 `search()` 在解析完配置后按库降级：配置的面全部是跑不起来的向量面
+  时，换成词法两面（`context`/`graph`/`decay`/`rerank` 旗标原样继承），响应新增
+  `degraded_from` 记下被换掉的名字（`config` 字段如实报告实际跑的 `full/lex`）。
+  部分损失（配置还剩至少一个能跑的面）不换，`facet_sizes` 里的 0 就是诚实的报告。
+- **`synthesize` 出现过「5 条来源、空答案」。** 触发链：词法命中落在导入了但还没
+  索引的页上，5 条来源的 excerpt 全空；提示词的规则让模型只能拒答；`_extractive`
+  兜底同样拿不出东西——最终 `claims=[]` 加一条甩锅给模型的 gap（"model returned
+  no usable claims"）。现在 excerpt 全空时根本不调模型（这次调用注定失败还花钱），
+  返回明确的 gap："none of the sources have any indexed text; run `facetmark
+  index` so there is something to quote"。
+- **纯标题摘要没有任何降级标注。** 正文没抓到的页照样 enrich——从标题+网址推断。
+  36/100 条这样的摘要和真实摘要无法区分，读的人和模型都无从知道前者是猜的。
+  `enrichment` 新增 `basis` 列（`body` / `title` / `karakeep`，v5 迁移按 `t:`
+  前缀指纹回填），写入方（enrich 管线、karakeep 桥）各自落值；`bookmark_record`
+  以 `indexed.summary_basis` 暴露；`/synthesize` 的来源带上 `basis`、提示词里给
+  推断摘要加注、gap 里报纯标题来源数；详情弹窗和问答屏各加一枚「摘要由标题推断」
+  徽章（中英文案均已加）。
+
+### 顺带
+
+- **应用样式表的 `color-scheme` 与手动主题同步**（`light`/`dark` 成对）。此前只有
+  `<meta name="color-scheme">`，它回答的是 `prefers-color-scheme`：系统在深色而
+  读者手动切到浅色时，页面涂成浅色、搜索框的 ×、滚动条等 UA 部件仍按深色渲染。
+  官网样式表从重建起就带着这一对，应用侧漏了。
+- 搜索页状态行在降级发生时追加「仅词检索（还没有向量）」，区分「结果比预期少」
+  和「索引还没建好」。
+- README 两语的测试徽章与正文数字 1514 → 1524。
+
+### 不涉及
+
+检索质量。降级换上的词法面就是 mock provider 下出厂的 `fused` 面集，没有新的
+权重、没有动任何默认配置；`extension/` 一行没碰。
+
 **README 里那行 `web/  `facetmark serve` 提供的单页界面` 一直是假的。** 这个目录不存在，
 `facetmark serve` 起来之后没有任何页面可以打开：扩展要先 `npm run build` 再手动加载，
 `docs/landing/` 只能读不能用，`/docs` 是 Swagger。对一个不写代码的人来说，这个项目装完

@@ -212,6 +212,7 @@ def _write_v1(path) -> None:
     c.execute("DROP TABLE IF EXISTS vec_content_meta")
     c.execute("DROP INDEX IF EXISTS ix_intent_unscored")   # indexed columns cannot be dropped
     c.execute("ALTER TABLE intent_query DROP COLUMN scored_at")
+    c.execute("ALTER TABLE enrichment DROP COLUMN basis")
     _add_bookmarks(c, 3)
     c.execute(
         "INSERT INTO fetch_queue(bookmark_id, reason, state, attempts, queued_at)"
@@ -224,6 +225,16 @@ def _write_v1(path) -> None:
         [(1, "kept, so certainly probed", 1, 2),
          (1, "rejected, but it recorded a rank", 0, 7),
          (2, "no rank, no flag, no evidence", 0, None)],
+    )
+    # The three cases v5 has to tell apart: a summary written from a fetched
+    # body (hash is the body hash), one written from the title alone (the
+    # t:-prefixed fingerprint), and one the karakeep bridge claimed.
+    c.executemany(
+        "INSERT INTO enrichment(bookmark_id, summary, source_hash, model, created_at)"
+        " VALUES(?,?,?,?,400)",
+        [(1, "written from the body", "body-hash-1", "old",),
+         (2, "inferred from the title", "t:abc123", "old"),
+         (3, "imported by the bridge", "karakeep", "karakeep")],
     )
     set_meta(c, "schema_version", "1")
     c.close()
@@ -300,6 +311,18 @@ class TestMigrations:
         assert got["kept, so certainly probed"] == 500
         assert got["rejected, but it recorded a rank"] == 500
         assert got["no rank, no flag, no evidence"] is None
+        c.close()
+
+    def test_v5_backfills_the_summary_basis_from_the_fingerprint(self, tmp_path):
+        """The t: prefix is the only honest record of a title-only enrichment."""
+        p = tmp_path / "old.db"
+        _write_v1(p)
+        c = open_db(p)
+        got = {
+            r["bookmark_id"]: r["basis"]
+            for r in c.execute("SELECT bookmark_id, basis FROM enrichment")
+        }
+        assert got == {1: "body", 2: "title", 3: "body"}
         c.close()
 
     def test_a_migrated_database_is_shaped_like_a_fresh_one(self, tmp_path):

@@ -292,6 +292,47 @@ class TestSynthesis:
         assert prov.seen == []
         assert out.gaps
 
+    async def test_sources_with_nothing_to_quote_never_call_the_model(self, conn, st):
+        """The shape a chat-only smoke test actually saw: sources, no answer.
+
+        A lexical hit on an imported-but-unindexed page carries a title and
+        nothing else. The prompt's own rule makes the model decline, so the
+        call is predetermined to fail -- and its failure used to surface as
+        "model returned no usable claims", blaming a model that never had a
+        claim to make for a library that had nothing to quote.
+        """
+        put(conn, "https://y.example/7", "unindexed page")   # no body, no summary
+        prov = _ShapedProvider(
+            st, {"claims": [{"text": "cannot happen", "sources": [1]}]}
+        )
+        out = await service.synthesize(conn, "unindexed", provider=prov, settings=st)
+        assert prov.seen == []
+        assert out.claims == []
+        assert out.model == "none"
+        assert any("no indexed text" in g for g in out.gaps)
+
+    async def test_a_title_only_summary_is_labelled_in_sources_and_prompts(self, conn, st):
+        """The basis column follows the excerpt everywhere it is used."""
+        bid = put(conn, "https://y.example/8", "inferred page",
+                  summary="an inferred summary")
+        conn.execute(
+            "UPDATE enrichment SET basis='title', source_hash='t:1' WHERE bookmark_id=?",
+            (bid,),
+        )
+        conn.commit()
+        prov = _ShapedProvider(st, {"claims": [{"text": "c", "sources": [1]}]})
+        out = await service.synthesize(conn, "inferred", provider=prov, settings=st)
+        assert out.sources[0]["basis"] == "title"
+        assert "inferred from the page's title" in prov.seen[0]
+        assert any("titles only" in g for g in out.gaps)
+
+    async def test_a_body_summary_carries_the_body_basis(self, conn, st):
+        put(conn, "https://y.example/9", "real page", summary="read off the page")
+        prov = _ShapedProvider(st, {"claims": [{"text": "c", "sources": [1]}]})
+        out = await service.synthesize(conn, "real", provider=prov, settings=st)
+        assert out.sources[0]["basis"] == "body"
+        assert "inferred from the page's title" not in prov.seen[0]
+
     async def test_a_dead_source_is_flagged_as_a_gap(self, conn, st):
         bid = put(conn, "https://y.example/6", "dead page", summary="still indexed")
         now = int(time.time())

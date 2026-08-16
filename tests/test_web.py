@@ -747,7 +747,7 @@ class TestTheBrand:
             "near-white ink is 1.6:1, and the highlighter is a wash, not a block"
         )
         assert "--tint-lex" in night, (
-            "--tint-lex must be re-pointed for dark: daylight-strength yellow over "
+            "--tint-lex must be re pointed for dark: daylight-strength yellow over "
             "a near-black panel reads olive, not as a tint of the page"
         )
         for token in self.EXTENDED:

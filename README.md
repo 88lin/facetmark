@@ -5,7 +5,7 @@
 [![CI](https://github.com/88lin/facetmark/actions/workflows/ci.yml/badge.svg)](https://github.com/88lin/facetmark/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1514-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-1524-brightgreen)](tests/)
 [![Code of Conduct](https://img.shields.io/badge/code%20of%20conduct-contributor%20covenant-blueviolet)](CODE_OF_CONDUCT.md)
 
 [English](README.md) · [简体中文](README.zh-CN.md)
@@ -136,7 +136,7 @@ git clone https://github.com/88lin/facetmark
 cd facetmark
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
-pytest -q               # 1514 tests, ~50 s
+pytest -q               # 1524 tests, ~41 s
 ruff check src tests scripts
 ```
 
@@ -643,7 +643,7 @@ extension/                browser extension (open-count telemetry)
 eval/                     query sets and evaluation harness
 scripts/                  experiment drivers and probes
 docs/                     one file per experiment, protocol first
-tests/                    1514 tests
+tests/                    1524 tests
 ```
 
 ## Contributing
