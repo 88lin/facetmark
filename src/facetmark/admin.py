@@ -24,19 +24,18 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import os
 import time
 import uuid
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, get_origin
+from typing import Any, get_args, get_origin
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from . import service
-from .config import Settings, get_settings, split_list
-from .configfile import config_path, read_config, update_config
+from .config import Settings, split_list
+from .configfile import config_path, external_setting_keys, read_config, update_config
 from .db import open_db
 from .importers import decode_bookmark_bytes
 from .providers import get_provider
@@ -82,7 +81,12 @@ WRITABLE = (
 #: tuple-valued setting is added -- and the failure mode is a 400 the UI cannot
 #: explain, or a string assigned to a tuple field.
 TUPLE_FIELDS = frozenset(
-    name for name in WRITABLE if get_origin(Settings.model_fields[name].annotation) is tuple
+    name
+    for name in WRITABLE
+    if (
+        get_origin(Settings.model_fields[name].annotation) is tuple
+        or any(get_origin(arg) is tuple for arg in get_args(Settings.model_fields[name].annotation))
+    )
 )
 
 #: Changing these mid-flight would leave the running process disagreeing with
@@ -307,7 +311,7 @@ def env_locked() -> frozenset[str]:
     the UI is not the only caller of a localhost HTTP API, so the rule lives
     here and both the view and the write path read it.
     """
-    return frozenset(k for k in WRITABLE if os.environ.get(f"FACETMARK_{k.upper()}") is not None)
+    return external_setting_keys(WRITABLE)
 
 
 def settings_view(settings: Settings) -> dict:
@@ -485,39 +489,51 @@ def register(app: FastAPI, auth: list) -> None:
                 409, f"set by the environment, unset the variable to edit here: {', '.join(locked)}"
             )
         changes = dict(body.values)
-        # An empty string for the key means "clear it", not "set it to empty".
-        if changes.get("api_key") == "":
-            changes["api_key"] = None
-        # One text box holds a list, so a string arrives. Normalise before
-        # validating *and* before writing: TOML should hold an array, and a
-        # string assigned to a tuple field makes `host_excluded` iterate
-        # characters.
-        for key in TUPLE_FIELDS & set(changes):
-            if changes[key] is not None:
-                changes[key] = list(split_list(changes[key]))
-        # Validate before persisting, so a typo is a 400 and not a service that
-        # refuses to start on its next boot.
         try:
-            merged = {**{k: getattr(get_settings(), k) for k in WRITABLE},
-                      **{k: v for k, v in changes.items() if v is not None}}
-            Settings(**merged)
+            # An empty string for the key means "clear it", not "set it to empty".
+            if changes.get("api_key") == "":
+                changes["api_key"] = None
+            # One text box holds a list, so a string arrives. Normalize before
+            # validating and writing, and reject every other shape explicitly.
+            for key in TUPLE_FIELDS & set(changes):
+                value = changes[key]
+                if value is None:
+                    continue
+                if isinstance(value, str):
+                    changes[key] = list(split_list(value))
+                elif isinstance(value, (list, tuple)) and all(
+                    isinstance(item, str) for item in value
+                ):
+                    parts: list[str] = []
+                    for item in value:
+                        parts.extend(split_list(item))
+                    changes[key] = list(dict.fromkeys(parts))
+                else:
+                    raise ValueError(f"{key} must be a string or a list of strings")
+
+            state = _state(request)
+            current = {k: getattr(state.settings, k) for k in WRITABLE}
+            effective = dict(changes)
+            for key, value in changes.items():
+                if value is None:
+                    effective[key] = Settings.model_fields[key].get_default(
+                        call_default_factory=True
+                    )
+            validated = Settings(**{**current, **effective})
         except Exception as exc:  # noqa: BLE001
             raise HTTPException(400, f"invalid settings: {exc}"[:400]) from None
-        update_config(changes)
-        state = _state(request)
+
+        # Persist and apply the validated representation, not raw JSON strings.
+        persisted = {
+            key: None if value is None else getattr(validated, key)
+            for key, value in changes.items()
+        }
+        update_config(persisted)
         # Refresh the live objects so anything that can take effect now, does.
         applied = [k for k in changes if k not in NEEDS_RESTART]
         for key in applied:
-            value = changes[key]
-            if value is None:
-                value = Settings.model_fields[key].get_default(call_default_factory=True)
-            elif key in TUPLE_FIELDS:
-                # The file wants an array; the field is declared as a tuple, and
-                # assignment here does not run validation. Without this the live
-                # object holds a `list` where every reader expects a tuple.
-                value = tuple(value)
             with contextlib.suppress(Exception):
-                setattr(state.settings, key, value)
+                setattr(state.settings, key, getattr(validated, key))
         state._provider = None
         return {
             **settings_view(state.settings),

@@ -200,21 +200,28 @@ class TestImport:
             ]
             assert titles == [title], f"{enc} title did not survive the upload"
 
-    def test_an_ambiguous_legacy_byte_pair_still_imports(self, client, auth):
-        """``\\xe4l`` is a legal GB18030 pair *and* a legal cp1252 one.
+    def test_declared_charset_is_honored_by_http_upload(self, client, auth):
+        body = (
+            b'<!DOCTYPE NETSCAPE-Bookmark-file-1>\n'
+            b'<META HTTP-EQUIV="Content-Type" '
+            b'CONTENT="text/html; charset=windows-1252">\n'
+            b'<DL><p><DT><A HREF="https://declared.example/x" '
+            b'ADD_DATE="1700000000">Sqlite intern\xe4ls</A></DL><p>'
+        )
+        r = client.post("/admin/import", content=body, headers=auth)
+        assert r.status_code == 200
+        title = client.app.state.fm.conn.execute(
+            "select title from bookmark where url=?", ("https://declared.example/x",)
+        ).fetchone()[0]
+        assert title == "Sqlite intern\u00e4ls"
 
-        ``intern\\xe4ls`` decodes to a CJK character under GB18030 and to
-        ``internäls`` under cp1252, and nothing in the bytes says which was
-        meant. The ladder prefers GB18030 because reordering it to rescue this
-        case would turn every real Chinese export into mojibake -- a much
-        larger population than accented Latin next to an ASCII letter. So the
-        URL is asserted and the title is not: this is a known ambiguity, not a
-        regression to fix by swapping two entries.
-        """
-        raw = NETSCAPE.replace("Sqlite internals", "Sqlite intern\xe4ls").encode("cp1252")
+    def test_an_ambiguous_legacy_byte_pair_still_imports(self, client, auth):
+        """``\\xe4l`` is valid GB18030 and cp1252, so the ladder keeps GB18030 first."""
+        raw = NETSCAPE.replace("Sqlite internals", "Sqlite intern\\xe4ls").encode("cp1252")
         r = client.post("/admin/import", content=raw, headers=auth)
         assert r.status_code == 200
         assert r.json()["inserted"] == 2
+
 
 
 # ---------------------------------------------------------------------------
@@ -366,6 +373,29 @@ class TestSettings:
         client.put("/admin/settings", json={"values": {"chat_model": "live-now"}}, headers=auth)
         assert client.app.state.fm.settings.chat_model == "live-now"
 
+    @pytest.mark.parametrize("key", ["fetch_concurrency", "enrich_concurrency", "request_timeout"])
+    def test_numeric_settings_are_typed_and_positive_live(self, client, auth, key):
+        sent = "2" if key != "request_timeout" else "2.5"
+        r = client.put("/admin/settings", json={"values": {key: sent}}, headers=auth)
+        assert r.status_code == 200, r.text
+        value = getattr(client.app.state.fm.settings, key)
+        assert isinstance(value, (int, float))
+        assert value == (2 if key != "request_timeout" else 2.5)
+
+    @pytest.mark.parametrize("key", ["fetch_concurrency", "enrich_concurrency", "request_timeout"])
+    def test_non_positive_numeric_settings_are_rejected(self, client, auth, key):
+        r = client.put("/admin/settings", json={"values": {key: 0}}, headers=auth)
+        assert r.status_code == 400
+
+    @pytest.mark.parametrize("value", [42, True, {"a.example": True}, ["ok.example", 2]])
+    def test_malformed_domain_values_are_400(self, client, auth, value):
+        r = client.put(
+            "/admin/settings",
+            json={"values": {"privacy_excluded_domains": value}},
+            headers=auth,
+        )
+        assert r.status_code == 400, r.text
+
     def test_an_empty_api_key_clears_rather_than_pins_it(self, client, auth):
         client.put("/admin/settings", json={"values": {"api_key": "sk-one"}}, headers=auth)
         client.put("/admin/settings", json={"values": {"api_key": ""}}, headers=auth)
@@ -433,10 +463,28 @@ class TestSettings:
         assert live.base_url == "https://from-env.example/v1"
         assert "base_url" not in read_config()
 
+    def test_a_dotenv_field_is_locked_and_reported_as_env(self, client, auth, monkeypatch, tmp_path):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / ".env").write_text(
+            "FACETMARK_BASE_URL=https://dotenv.example/v1\n", encoding="utf-8"
+        )
+        live = client.app.state.fm.settings
+        live.base_url = "https://dotenv.example/v1"
+        row = next(x for x in settings_view(live)["settings"] if x["key"] == "base_url")
+        assert row["source"] == "env"
+        assert row["locked"] is True
+        r = client.put(
+            "/admin/settings",
+            json={"values": {"base_url": "https://typed-in-the-box.example/v1"}},
+            headers=auth,
+        )
+        assert r.status_code == 409
+        assert live.base_url == "https://dotenv.example/v1"
+
     def test_an_env_locked_key_cannot_be_cleared_by_an_empty_string(
         self, client, auth, monkeypatch
     ):
-        """``api_key: ""`` means "clear it", which is still a write."""
+        """``api_key: \"\"`` means \"clear it\", which is still a write."""
         monkeypatch.setenv("FACETMARK_API_KEY", "sk-from-env-do-not-touch")
         live = client.app.state.fm.settings
         live.api_key = "sk-from-env-do-not-touch"

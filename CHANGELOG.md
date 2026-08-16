@@ -109,7 +109,7 @@
   **`offset` 仍然是映射之后的切片，没有下推到流水线**：`karakeep_doc` 里 `karakeep_id`
   是主键而 `bookmark_id` 没有唯一约束（一本书签可以挂多个 karakeep id），库里也可以有
   karakeep 从没推过的书签，所以下推的 offset 会落在别的地方。
-- 测试 1188 → 1500（Python），扩展 16 → 28。
+- 测试 1188 → 1514（Python），扩展 16 → 28。
 
 ### 安全
 

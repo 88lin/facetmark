@@ -291,6 +291,23 @@ class TestReadText:
         assert decode_bookmark_bytes(b"\xef\xbb\xbfCaf\xc3\xa9") == "Caf\xe9"
         assert isinstance(decode_bookmark_bytes(b"\x81\x8d\x8f\x90\x9d"), str)
 
+    def test_declared_windows_charset_beats_ambiguous_gb18030(self):
+        raw = (
+            b'<META HTTP-EQUIV="Content-Type" '
+            b'CONTENT="text/html; charset=windows-1252">'
+            b'<DT><A HREF="https://e.com/x" ADD_DATE="1690000000">'
+            b'Sqlite intern\xe4ls</A>'
+        )
+        assert "Sqlite intern\u00e4ls" in decode_bookmark_bytes(raw)
+
+    def test_compact_declared_charset_is_supported(self):
+        raw = (
+            b'<meta charset="windows-1252">'
+            b'<DT><A HREF="https://e.com/x" ADD_DATE="1690000000">'
+            b'Caf\xe9 notes</A>'
+        )
+        assert "Caf\u00e9 notes" in decode_bookmark_bytes(raw)
+
     def test_read_text_delegates_rather_than_repeating_the_ladder(self, tmp_path):
         p = tmp_path / "b.html"
         raw = "Caf\xe9 notes".encode("cp1252")

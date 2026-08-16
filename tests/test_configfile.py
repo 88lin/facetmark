@@ -162,6 +162,34 @@ def test_dotenv_beats_the_file(data_dir, monkeypatch, tmp_path):
     assert Settings().chat_model == "from-dotenv"
 
 
+def test_dotenv_data_dir_selects_the_same_config_file(tmp_path, monkeypatch):
+    target = tmp_path / "configured"
+    target.mkdir()
+    (tmp_path / ".env").write_text(
+        f"FACETMARK_DATA_DIR={target}\n", encoding="utf-8"
+    )
+    (target / "config.toml").write_text('chat_model = "from-configured-dir"\n', encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("FACETMARK_DATA_DIR", raising=False)
+    settings = Settings()
+    assert settings.data_dir == target
+    assert config_path() == target / "config.toml"
+    assert settings.chat_model == "from-configured-dir"
+
+
+def test_process_data_dir_beats_dotenv_data_dir(tmp_path, monkeypatch):
+    dotenv_dir = tmp_path / "dotenv"
+    process_dir = tmp_path / "process"
+    dotenv_dir.mkdir()
+    process_dir.mkdir()
+    (tmp_path / ".env").write_text(
+        f"FACETMARK_DATA_DIR={dotenv_dir}\n", encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("FACETMARK_DATA_DIR", str(process_dir))
+    assert config_path() == process_dir / "config.toml"
+
+
 def test_init_argument_beats_the_file(data_dir):
     write_config({"chat_model": "from-file"})
     assert Settings(chat_model="from-init").chat_model == "from-init"

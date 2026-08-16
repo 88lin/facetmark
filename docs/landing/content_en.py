@@ -125,7 +125,7 @@ EN = {
         ],
         "chips": [
             ("Python", "3.10+"),
-            ("Tests", "1,500"),
+            ("Tests", "1,514"),
             ("Licence", "MIT"),
             ("Storage", "1 SQLite file"),
             ("Upload", "none"),
@@ -971,7 +971,7 @@ EN["guide"] = {
                  "cd facetmark\n"
                  "python -m venv .venv && . .venv/bin/activate\n"
                  'pip install -e ".[dev]"\n\n'
-                 "pytest -q                 # 1,500 tests\n"
+                 "pytest -q                 # 1,514 tests\n"
                  "ruff check src tests scripts"),
                 ("callout", "warn", "Do not reformat the codebase",
                  "<p>It is hand-formatted. <code>ruff check</code> is part of "

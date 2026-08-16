@@ -596,15 +596,14 @@ def config_show_cmd(json_out: bool = typer.Option(False, "--json")) -> None:
     always a variable exported in one shell and not another, and the only way
     to see that is to print the winner alongside its origin.
     """
-    import os
-
-    from .configfile import config_path, read_config
+    from .configfile import config_path, external_setting_keys, read_config
 
     file_keys = set(read_config())
     st = get_settings()
+    external = external_setting_keys(Settings.model_fields)
     rows = []
     for name in sorted(Settings.model_fields):
-        if os.environ.get(f"FACETMARK_{name.upper()}") is not None:
+        if name in external:
             source = "env"
         elif name in file_keys:
             source = "file"

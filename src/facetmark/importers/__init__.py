@@ -9,6 +9,8 @@ bookmark store and will be re-imported often.
 
 from __future__ import annotations
 
+import codecs
+import re
 import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -25,6 +27,7 @@ __all__ = [
     "ImportStats",
     "RawBookmark",
     "chrome_json",
+    "decode_bookmark_bytes",
     "detect_and_parse",
     "import_bookmarks",
     "netscape_html",
@@ -69,23 +72,44 @@ class ImportStats:
 #: emit GBK. ``cp1252`` is last because it decodes nearly any byte string, so
 #: putting it earlier would hide a real GB18030 file behind mojibake.
 ENCODINGS = ("utf-8-sig", "utf-8", "gb18030", "cp1252")
+_CHARSET = re.compile(
+    rb"charset\s*=\s*(?:[\"']\s*([^\"'\s;>]+)|([^\s\"'>;]+))",
+    re.IGNORECASE,
+)
+
+
+def _declared_encoding(raw: bytes) -> str | None:
+    """Read a charset declaration from the ASCII-compatible HTML prefix."""
+    match = _CHARSET.search(raw[:8192])
+    if not match:
+        return None
+    label = next((part for part in match.groups() if part), b"").decode(
+        "ascii", errors="ignore"
+    )
+    try:
+        encoding = codecs.lookup(label).name
+    except LookupError:
+        return None
+    # Browsers interpret an HTML ISO-8859-1 declaration as Windows-1252.
+    return "cp1252" if encoding == "iso8859-1" else encoding
 
 
 def decode_bookmark_bytes(raw: bytes) -> str:
-    """Decode an export, tolerating BOMs and mislabelled encodings.
+    """Decode an export, honoring a declared charset before heuristic fallback.
 
-    Takes bytes rather than a path because the web upload has no path -- it
-    holds the request body -- and both callers need the same ladder. Guessing
-    wrong turns every CJK title into mojibake, which then poisons the lexical
-    index, the summary and the LLM prompt alike; and because the parser only
-    needs URLs and titles to *look* parseable, a wrong guess is silent.
+    A UTF-8 BOM is strongest. Otherwise a valid HTML declaration is tried before
+    the existing ladder; unknown declarations are ignored. The declaration is
+    read from raw bytes because decoding first is exactly what loses legacy text.
     """
-    for enc in ENCODINGS:
+    declared = None if raw.startswith(b"\xef\xbb\xbf") else _declared_encoding(raw)
+    encodings = tuple(dict.fromkeys(([declared] if declared else []) + list(ENCODINGS)))
+    for enc in encodings:
         try:
             return raw.decode(enc)
         except UnicodeDecodeError:
             continue
     return raw.decode("utf-8", errors="replace")
+
 
 
 def read_text(path: str | Path) -> str:

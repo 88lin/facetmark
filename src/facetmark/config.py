@@ -11,6 +11,8 @@ provider-specific branching anywhere in the codebase.
 
 from __future__ import annotations
 
+import contextlib
+import json
 import os
 from pathlib import Path
 
@@ -166,7 +168,7 @@ class Settings(BaseSettings):
     ``enrich.vectors.content_text`` produces; queries are far shorter and are
     unaffected either way. Raising it costs CPU quadratically for no gain here."""
 
-    request_timeout: float = 60.0
+    request_timeout: float = Field(default=60.0, gt=0)
     max_retries: int = 3
 
     #: When true, all model calls are served by the deterministic offline mock.
@@ -174,7 +176,7 @@ class Settings(BaseSettings):
     use_mock_provider: bool = False
 
     # ---------- fetching ----------
-    fetch_concurrency: int = 30
+    fetch_concurrency: int = Field(default=30, ge=1)
     fetch_per_host_concurrency: int = 2
     fetch_per_host_min_interval: float = 0.5
     fetch_timeout: float = 15.0
@@ -203,7 +205,7 @@ class Settings(BaseSettings):
     #: bursts, while a self-hosted llama.cpp with continuous batching gets
     #: *faster* per token as the batch grows. 4 is a safe hosted default;
     #: a local server with N parallel slots wants N.
-    enrich_concurrency: int = 4
+    enrich_concurrency: int = Field(default=4, ge=1)
     intent_generate_n: int = 8
     intent_keep_n: int = 4
     """How many self-consistent intent queries to keep. Report's ablation should
@@ -298,20 +300,23 @@ class Settings(BaseSettings):
     # ---------- privacy ----------
     #: Domains (suffix match) excluded from enrichment, embedding and every
     #: third-party probe. They degrade to title+lexical indexing only.
-    privacy_excluded_domains: tuple[str, ...] = ()
+    privacy_excluded_domains: tuple[str, ...] | str = ()
 
     @field_validator("privacy_excluded_domains", mode="before")
     @classmethod
     def _domain_list(cls, v: object) -> object:
         """A comma-separated string is a shape callers actually send.
 
-        The settings page renders this field as one text box, and
-        ``chat_model_fallbacks`` next door has been comma-separated since it
-        was added, so a string is what arrives. Refusing it made the only
-        list-valued setting in the UI impossible to save, and ``Input should
-        be a valid tuple`` is not a message anyone can act on.
+        Environment sources may JSON-decode tuple fields before this validator;
+        the union annotation lets invalid JSON fall through to the custom
+        comma-separated form, while JSON arrays remain accepted for direct
+        Settings construction and TOML data.
         """
+        if isinstance(v, str) and v.lstrip().startswith("["):
+            with contextlib.suppress(json.JSONDecodeError):
+                v = json.loads(v)
         return split_list(v)
+
 
     # ---------- service ----------
     host: str = "127.0.0.1"
