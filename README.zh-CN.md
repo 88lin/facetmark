@@ -61,25 +61,35 @@ Postgres 索引类型的东西」——你也大概记得是什么时候。你�
 
 ## ⚙️ 它是怎么工作的
 
-```
-浏览器导出 (HTML) ──┐
-karakeep 推送 (HTTP)─┼──▶  bookmark ──▶ fetch ──▶ content
-手工导入          ──┘                    │           │
-                                        │           ▼
-                                        │       enrich （摘要、主题、
-                                        │           │   实体、要点）
-                                        │           ▼
-                                        │       embed_content ──▶ vec_content
-                                        │           │
-                                        │           ▼
-                                        │       intents ──▶ 过滤 ──▶ vec_intent
-                                        │           │
-                                        ▼           ▼
-                                    sessions ──▶ edges  （会话 / 语义 /
-                                                          同域 / 取代）
+```mermaid
+flowchart TB
+    subgraph Index["📥 索引流水线"]
+        direction TB
+        A1["浏览器导出<br/>HTML"] --> B["bookmark"]
+        A2["karakeep 推送<br/>HTTP"] --> B
+        A3["手工导入"] --> B
+        B --> C["fetch → content"]
+        C --> D["enrich<br/>摘要 · 主题 · 实体 · 要点"]
+        D --> E["embed → vec_content"]
+        D --> F["intents → 过滤 → vec_intent"]
+        B --> G["sessions → edges<br/>会话 · 语义 · 同域 · 取代"]
+    end
 
-查询 ──▶ understand ──▶ [lex_tri, lex_seg, content, intent] ──▶ RRF ──▶ 上下文
-     ──▶ 衰减 ──▶ 重排 ──▶ hits  ＋ 一跳图扩展（**单独一组**）
+    subgraph Query["🔍 查询流水线"]
+        direction LR
+        Q1["query"] --> Q2["understand"]
+        Q2 --> Q3["lex_tri · lex_seg · content · intent"]
+        Q3 --> Q4["RRF 融合"]
+        Q4 --> Q5["context → decay → rerank"]
+        Q5 --> Q6["hits + 图扩展"]
+    end
+
+    classDef input fill:#fef3c7,stroke:#f59e0b,color:#78350f
+    classDef core fill:#eef2ff,stroke:#6366f1,color:#312e81
+    classDef query fill:#ecfeff,stroke:#0891b2,color:#164e63
+    class A1,A2,A3 input
+    class B,C,D,E,F,G core
+    class Q1,Q2,Q3,Q4,Q5,Q6 query
 ```
 
 > [!NOTE]
@@ -112,11 +122,13 @@ facetmark serve                                 # 然后打开 http://127.0.0.1:
 
 </details>
 
+### 🎮 不配 key、也没有书签库，先看效果
+
+```bash
+facetmark demo
+```
+
 > [!TIP]
-> **不配 key、也没有书签库，先看效果：**
-> ```bash
-> facetmark demo
-> ```
 > 用一个确定性的 mock provider 造一个小库，索引，跑几条查询。**不联网、不要 key、不花钱**
 > ——这是最快看清输出长什么样、顺便验证安装是否正常的办法。
 

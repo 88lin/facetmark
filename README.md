@@ -63,26 +63,35 @@ Measured](#-what-is-actually-measured) section is the honest list.
 
 ## ⚙️ How It Works
 
-```
-browser export (HTML)  ──┐
-karakeep push (HTTP)   ──┼──▶  bookmark  ──▶  fetch  ──▶  content
-manual import          ──┘                     │            │
-                                               │            ▼
-                                               │        enrich  (summary, topics,
-                                               │            │    entities, key points)
-                                               │            ▼
-                                               │        embed_content  ──▶  vec_content
-                                               │            │
-                                               │            ▼
-                                               │        intents ──▶ filter ──▶  vec_intent
-                                               │            │
-                                               ▼            ▼
-                                          sessions  ──▶  edges     (session / semantic /
-                                                                     same_domain /
-                                                                     supersession)
+```mermaid
+flowchart TB
+    subgraph Index["📥 Indexing Pipeline"]
+        direction TB
+        A1["Browser export<br/>(HTML)"] --> B["bookmark"]
+        A2["karakeep push<br/>(HTTP)"] --> B
+        A3["Manual import"] --> B
+        B --> C["fetch → content"]
+        C --> D["enrich<br/>summary · topics · entities · key points"]
+        D --> E["embed → vec_content"]
+        D --> F["intents → filter → vec_intent"]
+        B --> G["sessions → edges<br/>session · semantic · same_domain · supersession"]
+    end
 
-query ──▶ understand ──▶ [lex_tri, lex_seg, content, intent] ──▶ RRF ──▶ context
-      ──▶ decay ──▶ rerank ──▶ hits  +  one-hop graph expansion (separate group)
+    subgraph Query["🔍 Query Pipeline"]
+        direction LR
+        Q1["query"] --> Q2["understand"]
+        Q2 --> Q3["lex_tri · lex_seg · content · intent"]
+        Q3 --> Q4["RRF fusion"]
+        Q4 --> Q5["context → decay → rerank"]
+        Q5 --> Q6["hits + graph expansion"]
+    end
+
+    classDef input fill:#fef3c7,stroke:#f59e0b,color:#78350f
+    classDef core fill:#eef2ff,stroke:#6366f1,color:#312e81
+    classDef query fill:#ecfeff,stroke:#0891b2,color:#164e63
+    class A1,A2,A3 input
+    class B,C,D,E,F,G core
+    class Q1,Q2,Q3,Q4,Q5,Q6 query
 ```
 
 > [!NOTE]
@@ -116,11 +125,13 @@ facetmark serve                                 # then open http://127.0.0.1:878
 
 </details>
 
+### 🎮 No API key? No library? Try the demo
+
+```bash
+facetmark demo
+```
+
 > [!TIP]
-> **No API key? No library? Try the demo:**
-> ```bash
-> facetmark demo
-> ```
 > Builds a small synthetic library with a deterministic mock provider, indexes it, and runs
 > a handful of queries. **No network, no key, no cost** — the fastest way to see the shape
 > of the output and verify your install works.
