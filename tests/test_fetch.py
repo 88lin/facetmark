@@ -450,13 +450,15 @@ class TestPoliteness:
         # original reservation. Assert the contract that actually matters: the
         # i-th request does not start before i intervals have passed. The loose
         # per-gap floor stays, to catch a limiter that has stopped spacing at
-        # all rather than one that merely jittered.
+        # all rather than one that merely jittered. The floor is 0.01, not
+        # 0.02, because Windows' default timer resolution is ~15 ms and a real
+        # 0.05 s gap can measure as 0.015 s there.
         assert len(stamps) == 4, stamps
         elapsed = [t - stamps[0] for t in stamps]
         for i, t in enumerate(elapsed):
             assert t >= i * 0.05 - 0.02, (i, elapsed)
         gaps = [b - a for a, b in zip(stamps, stamps[1:], strict=False)]
-        assert all(g >= 0.02 for g in gaps), gaps
+        assert all(g >= 0.01 for g in gaps), gaps
 
     @respx.mock
     async def test_never_more_than_the_allowed_requests_in_flight_per_host(self):
