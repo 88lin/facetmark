@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-08-19
+
 ### 修复（chat-only 冒烟测试带出来的三个）
 
 - **没有向量库时，搜索对所有查询返回空页。** `default_config` 只看设置和 provider，
