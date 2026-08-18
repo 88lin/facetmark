@@ -1,8 +1,4 @@
 <p align="center">
-  <a href="README.md">English</a> · <b>简体中文</b>
-</p>
-
-<p align="center">
   <img src="docs/facetmark-cover-zh-CN.svg" width="100%" alt="facetmark — 本地优先的书签检索工具">
 </p>
 
@@ -15,6 +11,7 @@
 </p>
 
 <p align="center">
+  <a href="README.md">English</a> · <b>简体中文</b> ·
   <a href="#-快速开始"><b>🚀 快速开始</b></a> ·
   <a href="#-安装"><b>📦 安装</b></a> ·
   <a href="#-配置"><b>🔧 配置</b></a> ·

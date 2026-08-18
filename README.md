@@ -1,8 +1,4 @@
 <p align="center">
-  <b>English</b> · <a href="README.zh-CN.md">简体中文</a>
-</p>
-
-<p align="center">
   <img src="docs/facetmark-cover.svg" width="100%" alt="facetmark — local-first bookmark retrieval">
 </p>
 
@@ -15,6 +11,7 @@
 </p>
 
 <p align="center">
+  <b>English</b> · <a href="README.zh-CN.md">简体中文</a> ·
   <a href="#-quickstart"><b>🚀 Quickstart</b></a> ·
   <a href="#-installation"><b>📦 Install</b></a> ·
   <a href="#-configuration"><b>🔧 Config</b></a> ·
