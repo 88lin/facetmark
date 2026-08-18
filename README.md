@@ -843,6 +843,15 @@ MIT. See [LICENSE](LICENSE).
 
 ---
 
+## ⭐ Star History
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/88lin/facetmark/star-history/assets/my-star-history/star-history-dark.svg">
+  <img alt="Star History" src="https://raw.githubusercontent.com/88lin/facetmark/star-history/assets/my-star-history/star-history-light.svg">
+</picture>
+
+---
+
 <div align="center">
 
 **If this project helps you, please give it a ⭐ Star!**
