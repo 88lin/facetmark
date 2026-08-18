@@ -1,0 +1,226 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">facetmark：从模糊记忆找回书签的本地优先检索工具</title>
+  <desc id="desc">动态封面演示输入模糊线索、以语义、原词与保存上下文检索本地书签库，再找回具体页面的过程。</desc>
+  <style>
+    .sans { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+    .mono { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; }
+    .dash { stroke-dasharray: 4 15; animation: dash 6.8s linear infinite; }
+    .pulse { transform-box: fill-box; transform-origin: center; animation: pulse 2.3s ease-in-out infinite; }
+    .pulse2 { animation-delay: .65s; }
+    .pulse3 { animation-delay: 1.3s; }
+    .cursor { animation: cursor 1s steps(1) infinite; }
+    .query { animation: query 7.2s ease-in-out infinite; }
+    .result-main { transform-box: fill-box; transform-origin: center; animation: result-main 7.2s ease-in-out infinite; }
+    .result-rest { transform-box: fill-box; transform-origin: center; animation: result-rest 7.2s ease-in-out infinite; }
+    .chip-a { animation: chip 7.2s ease-in-out infinite; }
+    .chip-b { animation: chip 7.2s ease-in-out 0.28s infinite; }
+    .chip-c { animation: chip 7.2s ease-in-out 0.56s infinite; }
+    .drawer { transform-box: fill-box; transform-origin: center; animation: drawer 7.2s ease-in-out infinite; }
+    .bar-1 { animation: bar 7.2s ease-in-out infinite; transform-origin: left; }
+    .bar-2 { animation: bar 7.2s ease-in-out .18s infinite; transform-origin: left; }
+    .bar-3 { animation: bar 7.2s ease-in-out .36s infinite; transform-origin: left; }
+    .scan { animation: scan 7.2s ease-in-out infinite; }
+    @keyframes dash { to { stroke-dashoffset: -380; } }
+    @keyframes pulse { 0%,100% { opacity:.24; transform:scale(.76); } 48% { opacity:1; transform:scale(1); } }
+    @keyframes cursor { 0%,46% { opacity:1; } 47%,100% { opacity:0; } }
+    @keyframes query { 0%,9% { opacity:0; transform:translateX(-28px); } 18%,84% { opacity:1; transform:translateX(0); } 100% { opacity:0; transform:translateX(0); } }
+    @keyframes result-main { 0%,24% { opacity:0; transform:translateY(26px); } 35%,84% { opacity:1; transform:translateY(0); } 100% { opacity:0; transform:translateY(0); } }
+    @keyframes result-rest { 0%,32% { opacity:0; transform:translateY(20px); } 43%,84% { opacity:1; transform:translateY(0); } 100% { opacity:0; transform:translateY(0); } }
+    @keyframes chip { 0%,41% { opacity:0; transform:translateY(6px); } 49%,84% { opacity:1; transform:translateY(0); } 100% { opacity:0; transform:translateY(0); } }
+    @keyframes drawer { 0%,50% { opacity:0; transform:translateX(24px); } 59%,84% { opacity:1; transform:translateX(0); } 100% { opacity:0; transform:translateX(0); } }
+    @keyframes bar { 0%,42% { transform:scaleX(0); opacity:0; } 52%,84% { transform:scaleX(1); opacity:1; } 100% { transform:scaleX(0); opacity:0; } }
+    @keyframes scan { 0%,32% { opacity:0; transform:translateY(0); } 40%,76% { opacity:.55; transform:translateY(220px); } 84%,100% { opacity:0; transform:translateY(250px); } }
+    @media (prefers-reduced-motion: reduce) {
+      .dash,.pulse,.pulse2,.pulse3,.cursor,.query,.result-main,.result-rest,.chip-a,.chip-b,.chip-c,.drawer,.bar-1,.bar-2,.bar-3,.scan { animation:none; opacity:1; transform:none; }
+    }
+  </style>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0C1530"/>
+      <stop offset="0.56" stop-color="#121E42"/>
+      <stop offset="1" stop-color="#24113A"/>
+    </linearGradient>
+    <linearGradient id="sweep" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7B63B7" stop-opacity="0"/>
+      <stop offset="0.44" stop-color="#8A71C5" stop-opacity=".92"/>
+      <stop offset="1" stop-color="#EF9B79" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="violetHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#8C71CA" stop-opacity=".32"/>
+      <stop offset="0.42" stop-color="#6A54A8" stop-opacity=".13"/>
+      <stop offset="1" stop-color="#182852" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="roseHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#DF8B84" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#24113A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="frame" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#EAE8F0"/>
+    </linearGradient>
+    <linearGradient id="query-bg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#F7F3FE"/>
+      <stop offset="1" stop-color="#FFF9ED"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="24" stdDeviation="22" flood-color="#030714" flood-opacity=".38"/>
+    </filter>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="9"/>
+    </filter>
+    <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse">
+      <path d="M36 0H0V36" fill="none" stroke="#A9BADE" stroke-width="1" opacity=".13"/>
+    </pattern>
+    <clipPath id="screenClip"><rect x="783" y="154" width="710" height="578" rx="26"/></clipPath>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <ellipse cx="1290" cy="310" rx="430" ry="360" fill="url(#violetHalo)"/>
+  <ellipse cx="1550" cy="720" rx="370" ry="280" fill="url(#roseHalo)"/>
+  <rect width="1600" height="900" fill="url(#grid)" opacity=".58"/>
+  <path d="M0 790C360 674 568 851 818 742C1105 617 1266 704 1600 535V900H0Z" fill="#0A1127" opacity=".72"/>
+  <path d="M0 788C360 672 568 849 818 740C1105 615 1266 702 1600 533" fill="none" stroke="#445784" stroke-width="2" opacity=".55"/>
+  <path d="M0 788C360 672 568 849 818 740C1105 615 1266 702 1600 533" fill="none" stroke="#DA8B7A" stroke-width="2" class="dash" opacity=".9"/>
+
+  <g class="sans">
+    <g transform="translate(86 62)">
+      <rect width="54" height="54" rx="15" fill="#EFD671"/>
+      <rect x="14" y="11" width="27" height="8" rx="4" fill="#15234B"/>
+      <rect x="14" y="23" width="34" height="8" rx="4" fill="#7859B5"/>
+      <rect x="14" y="35" width="24" height="8" rx="4" fill="#C75F88"/>
+    </g>
+    <text x="158" y="101" class="mono" font-size="42" font-weight="800" letter-spacing="-1" fill="#FFFFFF">facetmark</text>
+    <text x="159" y="130" font-size="16" font-weight="800" letter-spacing="2" fill="#BDAEE1">本地优先 · 书签检索</text>
+
+    <g transform="translate(88 214)">
+      <text x="0" y="0" font-size="72" font-weight="850" letter-spacing="-2.5" fill="#FFFFFF">记得内容，</text>
+      <text x="0" y="82" font-size="72" font-weight="850" letter-spacing="-2.5" fill="#FFFFFF">想不起标题？</text>
+      <text x="0" y="164" font-size="72" font-weight="850" letter-spacing="-2.5" fill="#FFFFFF">照样找回来。</text>
+      <rect x="2" y="198" width="218" height="8" rx="4" fill="#EFD671"/>
+      <text x="0" y="258" font-size="25" font-weight="750" fill="#EFD671">用记忆搜索，不只匹配标题。</text>
+      <text x="0" y="296" font-size="19" fill="#C6D0E4">语义、原词与保存上下文，会在你的本地</text>
+      <text x="0" y="325" font-size="19" fill="#C6D0E4">SQLite 书签库里共同参与检索。</text>
+    </g>
+
+    <g transform="translate(88 610)">
+      <text x="0" y="0" class="mono" font-size="15" font-weight="800" letter-spacing="2" fill="#9FB2D0">一次找回的过程</text>
+      <path d="M22 44H630" stroke="#52668F" stroke-width="3"/>
+      <path d="M22 44H630" stroke="#8C70C5" stroke-width="3" class="dash"/>
+      <g transform="translate(0)">
+        <circle cx="22" cy="44" r="11" fill="#9D82D1"/>
+        <circle cx="22" cy="44" r="24" fill="#9D82D1" opacity=".28" class="pulse"/>
+        <text x="0" y="88" class="mono" font-size="14" fill="#9FB2D0">01</text>
+        <text x="0" y="115" font-size="21" font-weight="800" fill="#FFFFFF">想起线索</text>
+        <text x="0" y="143" font-size="16" fill="#B6C2D8">“去年的 Kafka 故障文章”</text>
+      </g>
+      <g transform="translate(205)">
+        <circle cx="22" cy="44" r="11" fill="#EFD671"/>
+        <circle cx="22" cy="44" r="24" fill="#EFD671" opacity=".24" class="pulse pulse2"/>
+        <text x="0" y="88" class="mono" font-size="14" fill="#9FB2D0">02</text>
+        <text x="0" y="115" font-size="21" font-weight="800" fill="#FFFFFF">多路检索</text>
+        <text x="0" y="143" font-size="16" fill="#B6C2D8">语义 · 原词 · 上下文</text>
+      </g>
+      <g transform="translate(455)">
+        <circle cx="22" cy="44" r="11" fill="#EA9178"/>
+        <circle cx="22" cy="44" r="24" fill="#EA9178" opacity=".24" class="pulse pulse3"/>
+        <text x="0" y="88" class="mono" font-size="14" fill="#9FB2D0">03</text>
+        <text x="0" y="115" font-size="21" font-weight="800" fill="#FFFFFF">重新找到</text>
+        <text x="0" y="143" font-size="16" fill="#B6C2D8">那篇你本来想留下的页面</text>
+      </g>
+    </g>
+    <text x="88" y="851" class="mono" font-size="15" letter-spacing="2" fill="#9FB2D0">SQLITE · 命令行 · WEB UI · 浏览器扩展 · MCP</text>
+    <text x="88" y="878" font-size="16" fill="#B9C5DB">你的书签库只属于你。无论在哪里工作，都能检索。</text>
+  </g>
+
+  <g class="sans" filter="url(#shadow)">
+    <rect x="742" y="104" width="792" height="676" rx="34" fill="url(#frame)" stroke="#C6B4E7" stroke-width="2"/>
+    <rect x="742" y="104" width="792" height="58" rx="34" fill="#EDEAF5"/>
+    <rect x="742" y="133" width="792" height="29" fill="#EDEAF5"/>
+    <circle cx="780" cy="133" r="7" fill="#ED9076"/>
+    <circle cx="804" cy="133" r="7" fill="#EFD671"/>
+    <circle cx="828" cy="133" r="7" fill="#8E78C4"/>
+    <text x="862" y="139" class="mono" font-size="15" font-weight="800" fill="#4A4760">facetmark / 本地检索</text>
+    <rect x="1373" y="118" width="120" height="29" rx="14.5" fill="#E5F5EF" stroke="#A9D8C7"/>
+    <circle cx="1392" cy="132.5" r="4.5" fill="#35A783" class="pulse"/>
+    <text x="1404" y="137" class="mono" font-size="11" font-weight="850" fill="#236D5A">正在匹配</text>
+    <g clip-path="url(#screenClip)">
+      <rect x="783" y="154" width="710" height="578" rx="26" fill="#FCFBFE"/>
+      <rect x="783" y="154" width="710" height="58" fill="#FFFFFF"/>
+      <text x="822" y="190" font-size="17" font-weight="800" fill="#29243D">搜索</text>
+      <text x="892" y="190" font-size="17" fill="#777188">提问</text>
+      <text x="942" y="190" font-size="17" fill="#777188">书签库</text>
+      <text x="1023" y="190" font-size="14" font-weight="800" fill="#6F6980">1,701</text>
+      <text x="1105" y="190" font-size="17" fill="#777188">保存会话</text>
+      <text x="1215" y="190" font-size="14" font-weight="800" fill="#6F6980">322</text>
+      <rect x="806" y="232" width="432" height="62" rx="31" fill="url(#query-bg)" stroke="#8166B8" stroke-width="2"/>
+      <circle cx="836" cy="263" r="9" fill="none" stroke="#655A79" stroke-width="2"/>
+      <path d="M843 270l7 7" stroke="#655A79" stroke-width="2" stroke-linecap="round"/>
+      <g class="query">
+        <text x="866" y="269" font-size="16" font-weight="650" fill="#242038">那篇去年保存的 Kafka 故障文章</text>
+        <rect x="1191" y="249" width="2" height="25" rx="1" fill="#7C63B5" class="cursor"/>
+      </g>
+      <rect x="1260" y="232" width="208" height="62" rx="18" fill="#18264C"/>
+      <circle cx="1291" cy="263" r="7" fill="#65D2BE" class="pulse"/>
+      <text x="1310" y="259" class="mono" font-size="13" font-weight="800" fill="#C8F4EA">本地书签库</text>
+      <text x="1310" y="278" font-size="12" fill="#B7C5DF">SQLite · 无需账号</text>
+
+      <text x="808" y="324" class="mono" font-size="13" letter-spacing="1.5" fill="#7B748A">检索结果 / 1–20，共 1,701 条</text>
+      <g class="result-main">
+        <rect x="806" y="344" width="432" height="190" rx="20" fill="#FFF1CD" stroke="#B78D57" stroke-width="1.5" stroke-dasharray="3 7"/>
+        <text x="831" y="384" class="mono" font-size="27" font-weight="900" fill="#5C346B">01</text>
+        <text x="882" y="382" font-size="23" font-weight="850" fill="#211C31">为什么消费者组会卡住</text>
+        <text x="882" y="407" class="mono" font-size="12" fill="#716372">kafka.apache.org / consumer-groups / diagnostics</text>
+        <text x="831" y="444" font-size="14" fill="#524A58">分区拥有者变化后，问题模式就开始出现；</text>
+        <text x="831" y="465" font-size="14" fill="#524A58">保存上下文让那次故障的线索再次成立。</text>
+        <g class="chip-a">
+          <rect x="831" y="486" width="98" height="25" rx="12.5" fill="#E6DDF8"/>
+          <circle cx="847" cy="499" r="4" fill="#765AB0"/>
+          <text x="858" y="504" font-size="12" font-weight="800" fill="#4F3C7F">语义相关</text>
+        </g>
+        <g class="chip-b">
+          <rect x="939" y="486" width="108" height="25" rx="12.5" fill="#F9E9B6"/>
+          <circle cx="955" cy="499" r="4" fill="#B98517"/>
+          <text x="966" y="504" font-size="12" font-weight="800" fill="#76590B">原词命中</text>
+        </g>
+        <g class="chip-c">
+          <rect x="1057" y="486" width="114" height="25" rx="12.5" fill="#DCEBFA"/>
+          <circle cx="1073" cy="499" r="4" fill="#356C9B"/>
+          <text x="1084" y="504" font-size="12" font-weight="800" fill="#285274">同期保存</text>
+        </g>
+        <rect x="831" y="520" width="92" height="5" rx="2.5" fill="#765AB0" class="bar-1"/>
+        <rect x="928" y="520" width="72" height="5" rx="2.5" fill="#C4901F" class="bar-2"/>
+        <rect x="1005" y="520" width="104" height="5" rx="2.5" fill="#3574A3" class="bar-3"/>
+      </g>
+      <g class="result-rest" opacity=".9">
+        <rect x="806" y="550" width="432" height="69" rx="16" fill="#EEE8F9" stroke="#A084C1" stroke-width="1.2" stroke-dasharray="3 7"/>
+        <text x="830" y="581" class="mono" font-size="19" font-weight="900" fill="#5B4675">02</text>
+        <rect x="870" y="568" width="190" height="10" rx="5" fill="#BBB0CC"/>
+        <rect x="870" y="589" width="278" height="8" rx="4" fill="#D4CDE1"/>
+        <rect x="806" y="633" width="432" height="69" rx="16" fill="#F8EFD8" stroke="#C6A567" stroke-width="1.2" stroke-dasharray="3 7"/>
+        <text x="830" y="664" class="mono" font-size="19" font-weight="900" fill="#71513E">03</text>
+        <rect x="870" y="651" width="172" height="10" rx="5" fill="#C8BFA8"/>
+        <rect x="870" y="672" width="250" height="8" rx="4" fill="#DED5C2"/>
+      </g>
+
+      <g class="drawer">
+        <rect x="1258" y="314" width="210" height="388" rx="18" fill="#FFFFFF" stroke="#DED8E8" stroke-width="1.5"/>
+        <text x="1281" y="348" font-size="17" font-weight="850" fill="#29243D">在书签库中找到</text>
+        <path d="M1281 372h164" stroke="#E4DFEA"/>
+        <text x="1281" y="403" class="mono" font-size="12" font-weight="800" letter-spacing="1" fill="#796F8D">保存时间</text>
+        <text x="1281" y="430" font-size="14" font-weight="700" fill="#423B51">去年冬天 · 故障笔记</text>
+        <text x="1281" y="468" class="mono" font-size="12" font-weight="800" letter-spacing="1" fill="#796F8D">来源</text>
+        <text x="1281" y="495" font-size="14" font-weight="700" fill="#423B51">Kafka 官方文档</text>
+        <text x="1281" y="533" class="mono" font-size="12" font-weight="800" letter-spacing="1" fill="#796F8D">归属</text>
+        <rect x="1281" y="552" width="170" height="28" rx="14" fill="#E3F4EE"/>
+        <circle cx="1298" cy="566" r="5" fill="#2D9F7F" class="pulse"/>
+        <text x="1310" y="571" font-size="13" font-weight="850" fill="#236D5A">本地 SQLite 书签库</text>
+        <path d="M1281 607h164" stroke="#E4DFEA"/>
+        <text x="1281" y="638" font-size="13" fill="#716A7D">查看页面、正文与</text>
+        <text x="1281" y="659" font-size="13" fill="#716A7D">它为什么命中。</text>
+      </g>
+      <rect x="786" y="214" width="704" height="3" fill="url(#sweep)" opacity=".65" class="scan"/>
+      <path d="M1460 694h15v-15" fill="none" stroke="#B3A7C7" stroke-width="2" opacity=".7"/>
+      <path d="M806 694h-15v-15" fill="none" stroke="#B3A7C7" stroke-width="2" opacity=".7"/>
+    </g>
+  </g>
+</svg>
