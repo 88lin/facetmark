@@ -59,23 +59,39 @@ Postgres 索引类型的东西」——你也大概记得是什么时候。你�
 ## ⚙️ 它是怎么工作的
 
 ```mermaid
-flowchart TB
-    A["🌐 浏览器导出 · karakeep 推送 · 手工导入"]
-    A --> B["📚 bookmark → fetch → content"]
-    B --> C["🧠 enrich<br/>摘要 · 主题 · 实体 · 要点"]
-    C --> D["🔢 embed → vec_content"]
-    C --> E["💡 intents → vec_intent"]
-    B --> F["📊 sessions → edges"]
-    D --> G["🔍 query → understand"]
-    E --> G
-    F --> G
-    G --> H["lex_tri · lex_seg · content · intent → RRF"]
-    H --> I["⚡ context → decay → rerank → hits + 图扩展"]
+flowchart LR
+    A1["🌐 浏览器导出"] --> B["📚 bookmark"]
+    A2["🔗 karakeep 推送"] --> B
+    A3["✏️ 手工导入"] --> B
+    B --> C["📄 fetch → content"]
+    C --> D["🧠 enrich<br/>摘要 · 主题<br/>实体 · 要点"]
+    D --> E["🔢 embed → vec_content"]
+    D --> F["💡 intents → vec_intent"]
+    B --> G["📊 sessions → edges"]
+    E --> H["🔍 query → understand"]
+    F --> H
+    G --> H
+    H --> I1["lex_tri"]
+    H --> I2["lex_seg"]
+    H --> I3["content"]
+    H --> I4["intent"]
+    I1 --> J["RRF 融合"]
+    I2 --> J
+    I3 --> J
+    I4 --> J
+    J --> K["context → decay"]
+    K --> L["rerank"]
+    L --> M["✅ hits"]
+    L --> N["📈 图扩展"]
 
-    classDef index fill:#e3f2fd,stroke:#90caf9,color:#1565c0
-    classDef query fill:#e8f5e9,stroke:#a5d6a7,color:#2e7d32
-    class A,B,C,D,E,F index
-    class G,H,I query
+    classDef input fill:#fef3c7,stroke:#f59e0b,color:#92400e
+    classDef index fill:#eef2ff,stroke:#6366f1,color:#312e81
+    classDef query fill:#ecfeff,stroke:#0891b2,color:#164e63
+    classDef output fill:#f0fdf4,stroke:#16a34a,color:#14532d
+    class A1,A2,A3 input
+    class B,C,D,E,F,G index
+    class H,I1,I2,I3,I4,J,K,L query
+    class M,N output
 ```
 
 > [!NOTE]
