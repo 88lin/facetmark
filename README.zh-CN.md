@@ -60,33 +60,22 @@ Postgres 索引类型的东西」——你也大概记得是什么时候。你�
 
 ```mermaid
 flowchart TB
-    subgraph Index["📥 索引流水线"]
-        direction TB
-        A1["浏览器导出<br/>HTML"] --> B["bookmark"]
-        A2["karakeep 推送<br/>HTTP"] --> B
-        A3["手工导入"] --> B
-        B --> C["fetch → content"]
-        C --> D["enrich<br/>摘要 · 主题 · 实体 · 要点"]
-        D --> E["embed → vec_content"]
-        D --> F["intents → 过滤 → vec_intent"]
-        B --> G["sessions → edges<br/>会话 · 语义 · 同域 · 取代"]
-    end
+    A["🌐 浏览器导出 · karakeep 推送 · 手工导入"]
+    A --> B["📚 bookmark → fetch → content"]
+    B --> C["🧠 enrich<br/>摘要 · 主题 · 实体 · 要点"]
+    C --> D["🔢 embed → vec_content"]
+    C --> E["💡 intents → vec_intent"]
+    B --> F["📊 sessions → edges"]
+    D --> G["🔍 query → understand"]
+    E --> G
+    F --> G
+    G --> H["lex_tri · lex_seg · content · intent → RRF"]
+    H --> I["⚡ context → decay → rerank → hits + 图扩展"]
 
-    subgraph Query["🔍 查询流水线"]
-        direction LR
-        Q1["query"] --> Q2["understand"]
-        Q2 --> Q3["lex_tri · lex_seg · content · intent"]
-        Q3 --> Q4["RRF 融合"]
-        Q4 --> Q5["context → decay → rerank"]
-        Q5 --> Q6["hits + 图扩展"]
-    end
-
-    classDef input fill:#fef3c7,stroke:#f59e0b,color:#78350f
-    classDef core fill:#eef2ff,stroke:#6366f1,color:#312e81
-    classDef query fill:#ecfeff,stroke:#0891b2,color:#164e63
-    class A1,A2,A3 input
-    class B,C,D,E,F,G core
-    class Q1,Q2,Q3,Q4,Q5,Q6 query
+    classDef index fill:#e3f2fd,stroke:#90caf9,color:#1565c0
+    classDef query fill:#e8f5e9,stroke:#a5d6a7,color:#2e7d32
+    class A,B,C,D,E,F index
+    class G,H,I query
 ```
 
 > [!NOTE]

@@ -62,33 +62,22 @@ Measured](#-what-is-actually-measured) section is the honest list.
 
 ```mermaid
 flowchart TB
-    subgraph Index["📥 Indexing Pipeline"]
-        direction TB
-        A1["Browser export<br/>(HTML)"] --> B["bookmark"]
-        A2["karakeep push<br/>(HTTP)"] --> B
-        A3["Manual import"] --> B
-        B --> C["fetch → content"]
-        C --> D["enrich<br/>summary · topics · entities · key points"]
-        D --> E["embed → vec_content"]
-        D --> F["intents → filter → vec_intent"]
-        B --> G["sessions → edges<br/>session · semantic · same_domain · supersession"]
-    end
+    A["🌐 Browser export · karakeep push · Manual import"]
+    A --> B["📚 bookmark → fetch → content"]
+    B --> C["🧠 enrich<br/>summary · topics · entities · key points"]
+    C --> D["🔢 embed → vec_content"]
+    C --> E["💡 intents → vec_intent"]
+    B --> F["📊 sessions → edges"]
+    D --> G["🔍 query → understand"]
+    E --> G
+    F --> G
+    G --> H["lex_tri · lex_seg · content · intent → RRF"]
+    H --> I["⚡ context → decay → rerank → hits + graph expansion"]
 
-    subgraph Query["🔍 Query Pipeline"]
-        direction LR
-        Q1["query"] --> Q2["understand"]
-        Q2 --> Q3["lex_tri · lex_seg · content · intent"]
-        Q3 --> Q4["RRF fusion"]
-        Q4 --> Q5["context → decay → rerank"]
-        Q5 --> Q6["hits + graph expansion"]
-    end
-
-    classDef input fill:#fef3c7,stroke:#f59e0b,color:#78350f
-    classDef core fill:#eef2ff,stroke:#6366f1,color:#312e81
-    classDef query fill:#ecfeff,stroke:#0891b2,color:#164e63
-    class A1,A2,A3 input
-    class B,C,D,E,F,G core
-    class Q1,Q2,Q3,Q4,Q5,Q6 query
+    classDef index fill:#e3f2fd,stroke:#90caf9,color:#1565c0
+    classDef query fill:#e8f5e9,stroke:#a5d6a7,color:#2e7d32
+    class A,B,C,D,E,F index
+    class G,H,I query
 ```
 
 > [!NOTE]
