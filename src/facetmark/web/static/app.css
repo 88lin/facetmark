@@ -69,9 +69,9 @@
   --r-tint: 20px;
   --r-sketch: 16px;
 
-  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.04);
-  --shadow-lift: 0 8px 24px rgba(0, 0, 0, 0.08);
-  --shadow-pop: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lift: 0 8px 28px rgba(0, 0, 0, 0.1);
+  --shadow-pop: 0 6px 24px rgba(0, 0, 0, 0.1);
 
   /* ---- type scale ----------------------------------------------------
      The same nine rungs `docs/landing/style.css` runs, value for value, and
@@ -158,8 +158,8 @@
      readable version of itself. Neither status is signalled by colour alone --
      every one of them carries a label, and most carry an icon too. */
   --link: var(--brand-deep);
-  --success: var(--indigo-ink);
-  --success-soft: var(--indigo-soft);
+  --success: #2a7d6a;
+  --success-soft: #e8f4f0;
   --warning: var(--plum-ink);
 
   /*
@@ -289,17 +289,17 @@
    * at least 3.30 dE00 from the other five lanes and from the danger and
    * warning washes. The display hues never carry text.
    */
-  --indigo: #33548a;
-  --indigo-ink: #233c68;
-  --indigo-soft: #dfecfb;
-  --iris-soft: #eee6fa;
-  --orchid: #8a2f84;
-  --orchid-ink: #662061;
-  --orchid-soft: #ffdbfd;
-  --plum: #7a3560;
-  --plum-ink: #5b2349;
-  --plum-soft: #f7f2f5;
-  --rose-soft: #fee1ed;
+  --indigo: #5a7ab8;
+  --indigo-ink: #3a5a98;
+  --indigo-soft: #e8eef8;
+  --iris-soft: #f5e8f5;
+  --orchid: #c75b7a;
+  --orchid-ink: #a04568;
+  --orchid-soft: #fce8ee;
+  --plum: #a06880;
+  --plum-ink: #7a4860;
+  --plum-soft: #f0e0e8;
+  --rose-soft: #fde8f0;
   /* end extended palette */
 }
 
@@ -2939,49 +2939,88 @@ main.wide {
  */
 html[data-theme="dark"] {
   color-scheme: dark;
-  --cream: #241f2e;
-  --cream-dark: #312c3c;
-  --card-bg: #3d3747;
-  --preview-bg: #484252;
-  --ink: #dfdbe3;
-  --ink-light: #cbc5d2;
-  --ink-faint: #afa9b6;
-  --ink-rgb: 223, 219, 227;
-  --border: rgba(223, 219, 227, 0.16);
-  --hairline: rgba(223, 219, 227, 0.1);
-  --border-strong: rgba(223, 219, 227, 0.26);
-  --brand-text: #c9bdd9;
-  --brand-border: rgba(201, 189, 217, 0.45);
-  --pop-text: #e3b6c9;
-  --pop-deep: #d6bac4;
-  --warning: #f6dc8e;
-  --success: #bdc4d2;
-  --danger-strong: #e7b9c1;
-  --highlight-soft: rgba(246, 220, 142, 0.09);
-  --success-soft: rgba(51, 84, 138, 0.34);
-  --warning-soft: rgba(246, 220, 142, 0.16);
-  --danger-soft: rgba(232, 74, 95, 0.16);
-  --focus-ring: #c9bdd9;
+  --cream: #1a0e1e;
+  --cream-dark: #241830;
+  --card-bg: #2e2040;
+  --preview-bg: #382a48;
+  --ink: #f0e8f5;
+  --ink-light: #c8b8d4;
+  --ink-faint: #9888a8;
+  --ink-rgb: 240, 232, 245;
+  --border: rgba(214, 152, 212, 0.12);
+  --hairline: rgba(240, 232, 245, 0.07);
+  --border-strong: rgba(214, 152, 212, 0.22);
+  --brand-text: #d698d4;
+  --brand-border: rgba(214, 152, 212, 0.4);
+  --pop-text: #e88888;
+  --pop-deep: #d87878;
+  --warning: #f0d878;
+  --success: #88c8a0;
+  --danger-strong: #ec9098;
+  --highlight-soft: rgba(247, 222, 164, 0.12);
+  --success-soft: rgba(136, 200, 160, 0.12);
+  --warning-soft: rgba(240, 216, 120, 0.14);
+  --danger-soft: rgba(236, 144, 152, 0.14);
+  --focus-ring: #d698d4;
   --link: var(--brand-text);
-  --mark-band: rgba(246, 220, 142, 0.16);
-  --tint-lex: rgba(246, 220, 142, 0.09);
-  --tint-content: rgba(var(--brand-rgb), 0.2);
-  /* Night steps for the extended palette. The hues are lightened until they
-     clear 4.5:1 on the night surfaces and on their own night wash; the washes
-     are the daylight hue at an alpha tuned per lane, because a single alpha
-     put two of them 2.7 dE00 apart. `-ink` and the display hue converge here:
-     on a dark panel the lightened step is both readable as text and visible
-     as a border, so a second value would be a distinction with no rendering
-     behind it. */
-  --indigo: #bac5d7;
-  --indigo-ink: #bdc4d2;
-  --indigo-soft: rgba(51, 84, 138, 0.34);
-  --iris-soft: rgba(var(--brand-rgb), 0.42);
-  --orchid: #d7b8d5;
-  --orchid-ink: #d1bcd0;
-  --orchid-soft: rgba(138, 47, 132, 0.5);
-  --plum: #d4becc;
-  --plum-ink: #cebdc8;
-  --plum-soft: rgba(122, 53, 96, 0.22);
-  --rose-soft: rgba(181, 64, 112, 0.36);
+  --mark-band: rgba(247, 222, 164, 0.2);
+  --tint-lex: rgba(247, 222, 164, 0.1);
+  --tint-content: rgba(214, 152, 212, 0.1);
+  --indigo: #98b0d8;
+  --indigo-ink: #a0b8e0;
+  --indigo-soft: rgba(90, 122, 184, 0.28);
+  --iris-soft: rgba(214, 152, 212, 0.12);
+  --orchid: #e898b8;
+  --orchid-ink: #e8a0c0;
+  --orchid-soft: rgba(199, 91, 122, 0.3);
+  --plum: #d8a0b8;
+  --plum-ink: #d8a8c0;
+  --plum-soft: rgba(160, 104, 128, 0.22);
+  --rose-soft: rgba(199, 91, 122, 0.22);
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.25);
+  --shadow-lift: 0 8px 28px rgba(0, 0, 0, 0.35);
+  --shadow-pop: 0 6px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Dark mode selection: orchid wash — dreamy and visible. */
+html[data-theme="dark"] ::selection {
+  background: rgba(214, 152, 212, 0.25);
+  color: #f8f0f8;
+}
+
+/* Dark mode mark/highlighter: cream gold wash on matched terms. */
+html[data-theme="dark"] .snippet mark {
+  background: rgba(247, 222, 164, 0.18);
+  color: #f8f0e0;
+  box-shadow: inset 0 -0.5em 0 rgba(247, 222, 164, 0.12);
+}
+
+/* Dark mode selected states: light orchid tablet with dark text. */
+html[data-theme="dark"] .tab[aria-current="page"] {
+  background: #d698d4;
+  border-color: #d698d4;
+  color: #1a0e1e;
+}
+html[data-theme="dark"] .tab[aria-current="page"] .n {
+  background: rgba(26, 14, 30, 0.18);
+  color: #1a0e1e;
+}
+html[data-theme="dark"] .pill.act[aria-pressed="true"] {
+  background: #d698d4;
+  border-color: #d698d4;
+  color: #1a0e1e;
+}
+html[data-theme="dark"] .btn.primary {
+  background: #d698d4;
+  border-color: #d698d4;
+  color: #1a0e1e;
+}
+html[data-theme="dark"] .btn.primary:hover:not(:disabled) {
+  box-shadow: 0 8px 24px rgba(214, 152, 212, 0.3);
+}
+
+/* Dark mode suggestion dropdown. */
+html[data-theme="dark"] .sugg li > button:hover,
+html[data-theme="dark"] .sugg li > button[aria-selected="true"] {
+  background: rgba(214, 152, 212, 0.15);
 }

@@ -19,31 +19,12 @@
      into the palette's own `--cream`, so they follow the letter rather than
      pinning a hue of their own. Measured against paper: hairline 1.12, well
      1.09, band 1.16, feature band 1.63, border 1.33, border-strong 1.51. */
-  --hairline: #f1edee;                  /* --brand-deep  7% on paper */
-  --surface-2: #f4f0f0;                 /* --brand-deep  5.5%        */
-  /* The band is the one value with a hard floor under it. It alternates whole
-     page sections against paper, and anything lighter than 1.15:1 is a band
-     nobody can see: the palette's own `--cream-dark` (#f4f0ea) measures 1.098
-     here, and the previous warm value measured 1.163. This is 1.162 -- the
-     same step, without the coffee. Of every candidate that lands inside the
-     window, this is the only one whose blue channel sits above its green, so
-     it is the only one with no warm cast at all. The window is narrow at both
-     ends: below 1.15 the band disappears, and above 1.193 `--ink-faint` drops
-     under 3:1 on it. */
-  --cream-dark: #eee9eb;                /* --brand-deep  9%          */
-  /* The third paper step, and the one that replaces a black slab. It carries
-     the two feature sections -- the pipeline drawing and the closing call to
-     action -- which used to invert the whole palette inside their own subtree
-     and paint daylight hue 52 at 12% lightness. Its fraction is not a round
-     number because it is the only window there is: it has to clear 1.15
-     against the alternating band as well as against paper (measured 1.41 and
-     1.63), keep `--ink-faint` over the 3.0 non-text floor (3.29), and stay
-     DeltaE 3.0 clear of all six card washes, which sit on it (nearest is iris
-     at 3.5). From 18% to 23% the washes collide with it; above 32% the third
-     ink drops under its floor. */
-  --cream-deep: #cdc4d3;                /* --brand-deep 28%          */
-  --border: #e0dae1;                    /* --brand-deep 17%          */
-  --border-strong: #d4ccd8;             /* --brand-deep 24%          */
+  --hairline: #f3edf3;                  /* orchid-tinted hairline        */
+  --surface-2: #f5edf4;                 /* orchid-tinted well            */
+  --cream-dark: #f0e8f0;                /* orchid-tinted band            */
+  --cream-deep: #dcc4d8;                /* orchid feature band           */
+  --border: #e0d4e0;                    /* orchid-tinted border          */
+  --border-strong: #d0bcd4;             /* orchid-tinted strong border   */
   /* the display colours are the palette's, and they fill shapes and set
      borders rather than small text -- `--brand` measures 4.28:1 on the
      heaviest card wash, under the body-text bar. `--accent-ink` does text.
@@ -61,7 +42,7 @@
   --btn-bg: var(--brand);
   --btn-bg-h: var(--brand-deep);
   --btn-fg: var(--on-brand);
-  --info-soft: #f1f3f7;                 /* --indigo 7% on white */
+  --info-soft: #f3e8f4;                 /* teal-tinted info wash */
   /* ---- state ----------------------------------------------------------
      The palette's shared block carries `--success: #2e7955` (hue 151) and
      `--warning: #8a6a00` (hue 46) regardless of letter -- a forest green and
@@ -81,9 +62,9 @@
      `--danger` and `--danger-strong` come from the shared block untouched;
      the old site value for the strong one was #bd3a1a, which is hue 15 -- the
      rust end of the family this pass removed. */
-  --success: #233c68;
-  --success-soft: #f1f3f7;
-  --warning: #5b2349;
+  --success: #6a9a7a;
+  --success-soft: #e8f0e8;
+  --warning: #7a4860;
   /* ---- window chrome -------------------------------------------------
      What used to live here was `--code-bg: #17160f` and four friends: a
      hand-rolled near-black (luminance 0.0079) that every code block on the
@@ -107,8 +88,8 @@
   --win-body: #f4f0f0;
   --win-line: #d4ccd8;
   --win-dim: var(--ink-light);
-  --shadow-1: 0 1px 2px rgba(36, 30, 46, 0.05), 0 2px 8px rgba(36, 30, 46, 0.04);
-  --shadow-2: 0 2px 4px rgba(36, 30, 46, 0.06), 0 12px 28px rgba(36, 30, 46, 0.08);
+  --shadow-1: 0 1px 3px rgba(36, 30, 46, 0.07), 0 2px 10px rgba(36, 30, 46, 0.05);
+  --shadow-2: 0 2px 6px rgba(36, 30, 46, 0.08), 0 14px 32px rgba(36, 30, 46, 0.1);
   --radius: 12px;
   --radius-sm: 8px;
   --maxw: 1120px;
@@ -218,141 +199,81 @@
 
      Every `-ink` clears 4.5:1 on all six washes as well as on this file's
      surfaces: measured worst cases 7.48, 6.50, 7.06, 7.71 and 5.23. */
-  --indigo: #33548a;
-  --indigo-ink: #233c68;
-  --indigo-soft: #e2e6eb;               /* --indigo     13% on white */
-  /* the second density of the indigo family. The lexical lane has two modes --
-     segmented and trigram -- and they are one recall path, so they share a hue
-     and separate on weight instead of pretending to be unrelated colours. */
-  --indigo-ink-soft: #ced6e3;           /* --indigo-ink 24%          */
-  --iris: #71519b;
-  --iris-ink: #523776;
-  --iris-soft: #d9d0e4;                 /* --iris       27%          */
-  --orchid: #8a2f84;
-  --orchid-ink: #662061;
-  --orchid-soft: #f2e8f1;               /* --orchid     11%          */
-  --plum: #7a3560;
-  --plum-ink: #5b2349;
-  --plum-soft: #e0d1da;                 /* --plum       23%          */
-  --rose: #b54070;
-  --rose-ink: #873352;
-  --rose-soft: #eac8d6;                 /* --rose       29%          */
+  --indigo: #3a6b9c;
+  --indigo-ink: #2a5278;
+  --indigo-soft: #e2edf6;               /* --indigo     light blue wash */
+  --indigo-ink-soft: #d0e0ee;           /* --indigo-ink deeper wash    */
+  --iris: #15697c;
+  --iris-ink: #0c4552;
+  --iris-soft: #ddeef2;                 /* --iris       pale teal       */
+  --orchid: #8b4a8c;
+  --orchid-ink: #6b386c;
+  --orchid-soft: #f2e6f2;               /* --orchid     pale purple     */
+  --plum: #7d5e3a;
+  --plum-ink: #5d4628;
+  --plum-soft: #f0e8d8;                 /* --plum       pale brown      */
+  --rose: #b24935;
+  --rose-ink: #843426;
+  --rose-soft: #f4ddd5;                 /* --rose       pale terracotta */
   /* end extended palette */
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  /* ---- the night ladder ----------------------------------------------
-     What this replaces was four warm near-blacks at 8 to 16 percent
-     saturation on hue 40 to 60 -- the unlit, slightly muddy screen the owner
-     objected to. It was mine, not the palette's.
+  --cream: #1a0e1e;
+  --cream-dark: #241830;
+  --cream-deep: #2e2040;
+  --surface-2: #382a48;
+  --card-bg: #3a2c50;
+  --ink: #f0e8f5;
+  --ink-light: #c8b8d4;
+  --ink-faint: #9888a8;
+  --border: #3a2c50;
+  --hairline: #2e2040;
+  --brand: #d698d4;
+  --brand-deep: #c888c8;
+  --accent-ink: #d698d4;
+  --accent-ink-2: #c888c8;
+  --btn-bg: #d698d4;
+  --btn-bg-h: #c888c8;
+  --btn-fg: #1a0e1e;
+  --success: #88c8a0;
+  --warning: #e8c8a0;
+  --danger-strong: #ec9098;
+  --info-soft: #2a1840;
+  --success-soft: #2a1840;
+  --warning-soft: #3a2818;
+  --highlight-soft: #2a2040;
+  --danger-soft: #3a1828;
+  --win-bar: #382a48;
+  --win-body: #241830;
+  --win-line: #3a2c50;
+  --win-dim: #c8b8d4;
+  --shadow-1: 0 1px 3px rgba(10, 6, 14, 0.4);
+  --shadow-2: 0 2px 6px rgba(10, 6, 14, 0.4), 0 16px 36px rgba(10, 6, 14, 0.5);
+  --indigo: #98b0d8;
+  --indigo-ink: #a0b8e0;
+  --iris: #d698d4;
+  --iris-ink: #c888c8;
+  --orchid: #e898b8;
+  --orchid-ink: #e8a0c0;
+  --plum: #d8a0b8;
+  --plum-ink: #d8a8c0;
+  --rose: #e88888;
+  --rose-ink: #d87878;
+  --indigo-soft: #1a2848;
+  --indigo-ink-soft: #162240;
+  --iris-soft: #2a1840;
+  --orchid-soft: #3a1830;
+  --plum-soft: #2a1828;
+  --rose-soft: #3a1818;
+}
 
-     The stack is now one hue: the palette's own `--dark-panel` (hue 259,
-     saturation 27) lightened towards the palette's own `--on-dark-dim` in
-     four equal steps of 1.186. Both ends are measured rather than chosen.
-     The bottom is set by the floor `TestTheSurfaces` puts under a night page
-     (luminance 0.0095; this page is 0.0155, 1.64 times it). The top is set by
-     the second ink: `--ink-light` has to clear 4.5:1 on the lightest surface
-     in the stack, which caps the card at luminance 0.0794 and nothing above.
-
-     Five surfaces, not four, because the feature band needs its own step. As
-     in daylight the well is recessed, so the stack reads
-     page < band < feature < well < card. */
-  --cream: #241f2e;                     /* page,         luminance 0.0155 */
-  --cream-dark: #312c3c;                /* band,         0.0278           */
-  --cream-deep: #3d3747;                /* feature band, 0.0418           */
-  --surface-2: #484252;                 /* well,         0.0588           */
-  --card-bg: #534d5d;                   /* card,         0.0794           */
-  /* Three inks, and the first is deliberately not the palette's `--on-dark`.
-     Pure white on this page measures 16.0:1 and haloes; this is the palette's
-     dim white pushed 62% of the way to white, worst case 5.94 on the lightest
-     surface above. The second ink is the palette's dim white unchanged (worst
-     4.81) and the third is a step below it (worst 3.55, over the 3.0 floor the
-     hairline ink is held to). The three sit 1.23 and 1.36 apart, so they read
-     as three inks rather than as one ink and two accidents. */
-  --ink: #dfdbe3;
-  --ink-light: var(--on-dark-dim);
-  --ink-faint: #afa9b6;
-  --border: #575260;
-  --hairline: #3e3948;
-  /* The night brand is not the day brand dimmed: the palette's `--brand`
-     measures 2.82:1 on this page and cannot carry a link. Each of these is the
-     same hue lightened until it clears 4.5:1 on all five surfaces above. The
-     filled pill inverts -- light violet fill, page-coloured label, 8.97:1. */
-  --brand: #c9bdd9;
-  --brand-deep: #c8bfd3;
-  --accent-ink: #c9bdd9;
-  --accent-ink-2: #c8bfd3;
-  --btn-bg: #c9bdd9;
-  --btn-bg-h: #c8bfd3;
-  --btn-fg: #241f2e;
-  /* the three states, lightened the same way. Day or night, none of them is
-     signalled by colour alone -- each carries a word, and the badges and
-     callouts carry a glyph too. */
-  --success: #bdc4d2;
-  --warning: #cebdc8;
-  --danger-strong: #e7b9c1;
-  /* The state panels, and the reason none of them is an alpha. An alpha was
-     the first answer -- one value that "sits on whichever of the five surfaces
-     it lands on" -- and it does sit on each of them differently, which is the
-     defect. Every night ink clears 4.5:1 on the bare card by between 0.01 and
-     0.18, so a wash that lightens the card at all takes its own label under
-     the line: the warn badge measured 3.21 there, the fail badge 4.28, the
-     info badge 4.46, a default chip 3.36. Badges do not live on the page, they
-     live in cards and tables, so each of these is now the flat colour its
-     alpha already made over the page -- same appearance where it was solved,
-     no longer a function of what is behind it. Warning does not freeze: gold
-     over a violet page is hue 0 at 7% saturation, a warm grey that reads as
-     taupe, and taupe is in the family this palette exists to avoid. It is
-     re-solved as mulberry, the same hue its daylight ink already uses. */
-  --info-soft: #2a3555;
-  --success-soft: #2a3555;
-  --warning-soft: #46213f;
-  --highlight-soft: #352849;
-  --danger-soft: #432636;
-  /* the code panel has to sit ABOVE the night page, not below it: bar on the
-     well, body on the band, 1.40 apart, ink 9.88 on the body */
-  --win-bar: #484252;
-  --win-body: #312c3c;
-  --win-line: #575260;
-  --win-dim: var(--on-dark-dim);
-  --shadow-1: 0 1px 2px rgba(18, 14, 24, 0.4);
-  --shadow-2: 0 2px 4px rgba(18, 14, 24, 0.4), 0 14px 32px rgba(18, 14, 24, 0.45);
-  /* Night steps for the extended palette: each hue lightened until it clears
-     4.5:1 on all five night surfaces and on its own night wash (measured 5.79,
-     8.15, 6.22, 6.36, 8.17, 6.38). On a dark panel a lightened step is both
-     readable as text and visible as a border, so hue and ink converge. */
-  --indigo: #bac5d7;
-  --indigo-ink: #bdc4d2;
-  --iris: #c9bdd9;
-  --iris-ink: #c8bfd3;
-  --orchid: #d7b8d5;
-  --orchid-ink: #d1bcd0;
-  --plum: #d4becc;
-  --plum-ink: #cebdc8;
-  --rose: #e3b6c9;
-  --rose-ink: #d6bac4;
-  /* The six lane washes, flat for the same reason the five above are: a chip
-     is a pill inside a card, so a wash that has to be composited is a wash
-     whose contrast nobody can predict from the stylesheet. Run all six at a
-     uniform 16% over this page and they come out within DeltaE 0.4 to 1.3 of
-     each other -- six lanes rendered as one colour, in a result list whose
-     entire job is telling them apart -- so each still carries its own density,
-     baked in here rather than resolved at paint time. Five are the colour their
-     alpha already made over the page. The sixth is not: the default chip
-     tinted from the lightened night step, and frozen it landed DeltaE 1.66 from
-     the feature band, which is a chip you cannot see on the one section that
-     uses it most. It is re-solved from the daylight indigo instead. Held for
-     every one: its own ink over 5.0 on it, body prose over 5.7, DeltaE 3.0 or
-     more from all five surfaces (worst 4.82) and from every other wash (worst
-     3.20, the two deliberately-indigo ones), and no member of a ruled-out
-     family. Closest pair among the six is now DeltaE 7.31. */
-  --indigo-soft: #2d3e63;
-  --indigo-ink-soft: #242942;
-  --iris-soft: #44345c;
-  --orchid-soft: #572759;
-  --plum-soft: #372439;
-  --rose-soft: #582b46;
+/* Dark mode selection highlight: the daylight gold-on-ink selection is
+   invisible at night. Use a saturated violet wash with white text. */
+:root[data-theme="dark"] ::selection {
+  background: rgba(214, 152, 212, 0.25);
+  color: #f8f0f8;
 }
 
 /* The band that breaks the rhythm, and the one the owner pointed at. Ten
@@ -500,7 +421,7 @@ header.site {
   border-radius: 999px;
   /* Literal rgba rather than color-mix: the design system bans color-mix,
      and a sticky bar is the one place a fallback-to-nothing is fatal. */
-  background: rgba(253, 251, 247, 0.82);
+  background: rgba(253, 251, 249, 0.82);
   -webkit-backdrop-filter: saturate(1.5) blur(14px);
   backdrop-filter: saturate(1.5) blur(14px);
   border: 1px solid var(--hairline);
@@ -508,7 +429,7 @@ header.site {
 }
 /* the literal above is the day paper. Without this line the night page kept a
    cream header, and the logo -- which is var(--ink) -- went white on cream. */
-:root[data-theme="dark"] .site-inner { background: rgba(36, 31, 46, 0.82); }
+:root[data-theme="dark"] .site-inner { background: rgba(26, 14, 30, 0.82); }
 .logo {
   display: inline-flex; align-items: center; gap: var(--sp-2);
   font-weight: 700; font-size: var(--fs-4); color: var(--ink); text-decoration: none;
@@ -585,7 +506,7 @@ nav.top a.on:hover { color: var(--btn-fg); background: var(--btn-bg-h); }
   white-space: nowrap;
 }
 :root[data-theme="dark"] .hero h1 em {
-  background: linear-gradient(transparent 62%, rgba(var(--highlight-rgb), 0.16) 62%);
+  background: linear-gradient(transparent 62%, rgba(214, 152, 212, 0.22) 62%);
 }
 .lede { font-size: var(--fs-5); color: var(--ink-light); margin-bottom: 1.4em; }
 .lede strong { color: var(--ink); }
@@ -903,15 +824,15 @@ kbd {
    3.31:1 on it and the daylight brand 2.82:1, and the dots and the prompt both
    have to clear their bars. */
 .win.dark {
-  --win-bar: #302b3b;
+  --win-bar: #2a1838;
   --win-body: var(--dark-panel);
-  --win-line: #494453;
+  --win-line: #3a2848;
   --win-dim: var(--on-dark-dim);
   --ink: var(--on-dark);
   --ink-light: var(--on-dark-dim);
-  --rose: #e3b6c9;
-  --iris: #c9bdd9;
-  --indigo: #bac5d7;
+  --rose: #e88888;
+  --iris: #d698d4;
+  --indigo: #98b0d8;
   color: var(--on-dark);
 }
 :root[data-theme="dark"] .win.dark { box-shadow: var(--shadow-1); }
