@@ -637,7 +637,7 @@ class TestTheBrand:
 
     def test_the_page_pins_the_palette_whose_contrast_was_checked(self):
         html = INDEX_HTML.read_text(encoding="utf-8")
-        assert re.search(r"<html[^>]*data-palette=\"I\"", html), "no palette pinned on <html>"
+        assert re.search(r"<html[^>]*data-palette=\"G\"", html), "no palette pinned on <html>"
 
     def test_the_palette_is_linked_before_the_stylesheet_that_consumes_it(self):
         """`app.css` reads tokens the palette declares. Load it first and the
