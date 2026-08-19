@@ -51,12 +51,12 @@ from tests.palette import (
 
 REPO = Path(__file__).resolve().parents[1]
 
-#: The palette file cascades twice for palette I: the colourway itself, then
+#: The palette file cascades twice for palette G: the colourway itself, then
 #: the semantic aliases every colourway shares. Resolving a token means
 #: replaying both in order. (Palette A also carried a third block of AA
-#: corrections; I ships display colours that already clear AA, so it has none.)
+#: corrections; G ships display colours that already clear AA, so it has none.)
 PALETTE_BLOCKS = (
-    r'\[data-palette="I"\]',
+    r'\[data-palette="G"\]',
     r':root,\s*\n\[data-palette\]',
 )
 DARK = r'html\[data-theme="dark"\]'
@@ -1228,7 +1228,7 @@ class TestTheContrast:
         it still dropped to 4.43:1 on `--cream-dark`, so `--link` had to point
         one step deeper and this test asserted exactly that.
 
-        Palette I needs no correction. `--brand-text` clears the floor on every
+        Palette G needs no correction. `--brand-text` clears the floor on every
         surface the page paints -- 6.06:1 on `--cream`, 5.52:1 on
         `--cream-dark`, 6.16:1 on `--card-bg`, 4.95:1 on the weakest wash and
         4.64:1 under the highlighter band -- so the old premise is simply not

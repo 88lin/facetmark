@@ -141,7 +141,7 @@
      a value. Under palette A this was a rescue: that palette's `--brand-text`
      measured 4.43:1 on `--cream-dark` and 3.94:1 on a 10% brand tint, both
      under AA, so link-coloured text had to point at the deeper brand step.
-     Palette I needs no rescue -- its brand step measures 5.52:1 on the same
+     Palette G needs no rescue -- its brand step measures 5.52:1 on the same
      surface -- and the alias stays for the two reasons that outlived the
      rescue: the deeper step gives a link more weight than the wash it sits
      on, and the dark block needs one name to re-point, because down there the
@@ -159,7 +159,7 @@
      every one of them carries a label, and most carry an icon too. */
   --link: var(--brand-deep);
   --success: #2a7d6a;
-  --success-soft: #e8f4f0;
+  --success-soft: #eef6f2;
   --warning: var(--plum-ink);
 
   /*
@@ -258,10 +258,10 @@
 
   /* extended palette -- three hues the vendored file does not name here
    *
-   * Palette I ships three: the wisteria brand, the gold accent and the rose
-   * pop. A result row can show six recall paths at once, so three is three
-   * short of a legend that can be read without labels. Indigo, orchid and
-   * plum close the gap, and each one is lifted from another of the ten
+   * Palette G ships three: the orchid brand, the cream-gold accent and the
+   * vermilion pop. A result row can show six recall paths at once, so three is
+   * three short of a legend that can be read without labels. Indigo, orchid
+   * and plum close the gap, and each one is lifted from another of the ten
    * palettes the vendored file already carries -- indigo from B, orchid from
    * G, plum from C -- rather than mixed by hand, so a future palette swap has
    * somewhere to land.
@@ -2967,16 +2967,16 @@ html[data-theme="dark"] {
   --tint-lex: rgba(247, 222, 164, 0.1);
   --tint-content: rgba(214, 152, 212, 0.1);
   --indigo: #98b0d8;
-  --indigo-ink: #a0b8e0;
+  --indigo-ink: #b0c8e8;
   --indigo-soft: rgba(90, 122, 184, 0.28);
   --iris-soft: rgba(214, 152, 212, 0.12);
   --orchid: #e898b8;
-  --orchid-ink: #e8a0c0;
+  --orchid-ink: #f0a8c8;
   --orchid-soft: rgba(199, 91, 122, 0.3);
   --plum: #d8a0b8;
-  --plum-ink: #d8a8c0;
+  --plum-ink: #e0b0c8;
   --plum-soft: rgba(160, 104, 128, 0.22);
-  --rose-soft: rgba(199, 91, 122, 0.22);
+  --rose-soft: rgba(191, 68, 54, 0.18);
   --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.25);
   --shadow-lift: 0 8px 28px rgba(0, 0, 0, 0.35);
   --shadow-pop: 0 6px 24px rgba(0, 0, 0, 0.3);

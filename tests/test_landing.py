@@ -628,7 +628,7 @@ class TestTheSurfaces:
 
     def _scope_tokens(self, css: str) -> dict[str, dict[str, str]]:
         base: dict[str, str] = {}
-        for block in (r'\[data-palette="I"\]',
+        for block in (r'\[data-palette="G"\]',
                       r':root,\s*\n\[data-palette\]'):
             base.update(declarations((LANDING / "palettes.css").read_text(), block))
         light = {**base, **declarations(css, r":root")}
@@ -800,7 +800,7 @@ class TestTheLandingContrast:
 
     def _table(self, blocks: tuple[str, ...]) -> Palette:
         tokens: dict[str, str] = {}
-        for block in (r'\[data-palette="I"\]',
+        for block in (r'\[data-palette="G"\]',
                       r':root,\s*\n\[data-palette\]'):
             tokens.update(declarations((LANDING / "palettes.css").read_text(), block))
         css = _stylesheet()

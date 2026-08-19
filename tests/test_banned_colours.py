@@ -163,11 +163,11 @@ def bases(value: str, pal: Palette | None = None, seen: frozenset[str] = frozens
 # the surfaces
 # ---------------------------------------------------------------------------
 
-#: Palette I -- Wisteria -- cascades twice: the colourway, then the semantic
+#: Palette G -- Orchid -- cascades twice: the colourway, then the semantic
 #: aliases every colourway shares. Palette A also carried a third block of AA
-#: corrections; I ships display colours that already clear AA and has none.
+#: corrections; G ships display colours that already clear AA and has none.
 PALETTE_BLOCKS = (
-    r'\[data-palette="I"\]',
+    r'\[data-palette="G"\]',
     r':root,\s*\n\[data-palette\]',
 )
 
