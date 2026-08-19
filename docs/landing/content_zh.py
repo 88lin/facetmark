@@ -123,7 +123,6 @@ ZH["index"] = {
     "cta": [
         ("\u770b\u4f7f\u7528\u6307\u5357", "guide.zh.html", True),
         ("\u770b\u5b9e\u6d4b\u8bb0\u5f55", "measured.zh.html", False),
-        ("GitHub", REPO, False),
     ],
     "chips": [
         ("Python", "3.10+"),

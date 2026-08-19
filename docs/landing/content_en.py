@@ -121,7 +121,6 @@ EN = {
         "cta": [
             ("Read the guide", "guide.html", True),
             ("See what was measured", "measured.html", False),
-            ("GitHub", REPO, False),
         ],
         "chips": [
             ("Python", "3.10+"),

@@ -539,6 +539,7 @@ nav.top a.on:hover { color: var(--btn-fg); background: var(--btn-bg-h); }
 }
 .chip { grid-column: span 2; }
 .chip:nth-child(4), .chip:nth-child(5) { grid-column: span 3; }
+.chip[hidden] { display: none; }
 .chip {
   display: block; padding: var(--sp-2) var(--sp-3) var(--sp-3);
   border: 1.6px dashed var(--indigo); border-radius: var(--radius);
