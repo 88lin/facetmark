@@ -479,7 +479,7 @@
       .then(function (r) { return r.json(); })
       .then(function (d) {
         var n = d.stargazers_count;
-        if (typeof n === "number") {
+        if (typeof n === "number" && n >= 100) {
           document.getElementById("star-count").textContent = n.toLocaleString("en-US");
           chip.removeAttribute("hidden");
         }
