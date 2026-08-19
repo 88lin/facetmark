@@ -470,6 +470,23 @@
     });
   }
 
+  /* ---------- stars ----------------------------------------------------- */
+
+  function initStars() {
+    var chip = document.getElementById("stars-chip");
+    if (!chip) return;
+    fetch("https://api.github.com/repos/88lin/facetmark")
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var n = d.stargazers_count;
+        if (typeof n === "number") {
+          document.getElementById("star-count").textContent = n.toLocaleString("en-US");
+          chip.removeAttribute("hidden");
+        }
+      })
+      .catch(function () {});
+  }
+
   /* ---------- go --------------------------------------------------------- */
 
   function boot() {
@@ -480,6 +497,7 @@
     initCopy();
     initToc();
     initTerm();
+    initStars();
   }
 
   if (document.readyState === "loading")

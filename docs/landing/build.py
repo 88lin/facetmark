@@ -631,6 +631,7 @@ def page_index(t: dict) -> str:
     o.append('</div><div class="chips">')
     for k, v in i["chips"]:
         o.append(f'<span class="chip">{esc(k)} <b>{esc(v)}</b></span>')
+    o.append('<span class="chip" id="stars-chip" hidden>\u2605 <b id="star-count"></b></span>')
     o.append("</div></div><div>")
     o.append(
         '<div class="win dark term"><div class="win-bar">'
@@ -667,8 +668,20 @@ def page_index(t: dict) -> str:
     o.append(f'<p class="tiny reveal">{i["prob_note"]}</p>')
     o.append("</div></section>")
 
+    # ---- quick start ------------------------------------------------------
+    o.append('<section class="band" id="start"><div class="wrap">')
+    o.append(f'<p class="seclabel">{esc(i["qs_label"])}</p>')
+    o.append(f'<h2 class="reveal">{i["qs_h2"]}</h2>')
+    o.append(f'<p class="lede read reveal">{i["qs_lede"]}</p>')
+    o.append('<div class="grid g2 reveal"><div>')
+    o.append(r_cb("shell", i["qs_code"]))
+    o.append(f'<div class="callout"><p>{i["qs_offline"]}</p></div>')
+    o.append("</div><div>")
+    o.append('<ol class="steps">' + "".join(f"<li>{s}</li>" for s in i["qs_steps"]) + "</ol>")
+    o.append("</div></div></div></section>")
+
     # ---- the four facets --------------------------------------------------
-    o.append('<section class="band" id="facets"><div class="wrap">')
+    o.append('<section class="band alt" id="facets"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["fac_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["fac_h2"]}</h2>')
     o.append(f'<p class="lede read reveal">{i["fac_lede"]}</p>')
@@ -701,7 +714,7 @@ def page_index(t: dict) -> str:
     # Placed before the extension band because this is the surface a reader can
     # use without installing anything else, and the bands after it flip their
     # `alt` tint to keep the page alternating.
-    o.append('<section class="band alt" id="app"><div class="wrap">')
+    o.append('<section class="band" id="app"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["app_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["app_h2"]}</h2>')
     o.append(f'<p class="lede read reveal">{i["app_lede"]}</p>')
@@ -720,7 +733,7 @@ def page_index(t: dict) -> str:
     o.append("</div></section>")
 
     # ---- screenshots ------------------------------------------------------
-    o.append('<section class="band" id="extension"><div class="wrap">')
+    o.append('<section class="band alt" id="extension"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["shot_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["shot_h2"]}</h2>')
     o.append(f'<p class="lede read reveal">{i["shot_lede"]}</p>')
@@ -753,7 +766,7 @@ def page_index(t: dict) -> str:
     o.append("</div></section>")
 
     # ---- measured ---------------------------------------------------------
-    o.append('<section class="band alt" id="measured"><div class="wrap">')
+    o.append('<section class="band" id="measured"><div class="wrap">')
     o.append(f'<p class="seclabel">{esc(i["meas_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["meas_h2"]}</h2>')
     o.append(f'<p class="lede read reveal">{i["meas_lede"]}</p>')
@@ -779,18 +792,6 @@ def page_index(t: dict) -> str:
     o.append(i["meas_body"])
     suffix = ".zh.html" if t["code"] == "zh" else ".html"
     o.append(f'<p><a class="btn" href="measured{suffix}">{esc(i["meas_cta"])}</a></p>')
-    o.append("</div></div></div></section>")
-
-    # ---- quick start ------------------------------------------------------
-    o.append('<section class="band" id="start"><div class="wrap">')
-    o.append(f'<p class="seclabel">{esc(i["qs_label"])}</p>')
-    o.append(f'<h2 class="reveal">{i["qs_h2"]}</h2>')
-    o.append(f'<p class="lede read reveal">{i["qs_lede"]}</p>')
-    o.append('<div class="grid g2 reveal"><div>')
-    o.append(r_cb("shell", i["qs_code"]))
-    o.append(f'<div class="callout"><p>{i["qs_offline"]}</p></div>')
-    o.append("</div><div>")
-    o.append('<ol class="steps">' + "".join(f"<li>{s}</li>" for s in i["qs_steps"]) + "</ol>")
     o.append("</div></div></div></section>")
 
     # ---- interfaces -------------------------------------------------------
