@@ -158,8 +158,8 @@
      readable version of itself. Neither status is signalled by colour alone --
      every one of them carries a label, and most carry an icon too. */
   --link: var(--brand-deep);
-  --success: #7a4d9a;
-  --success-soft: #f1e8f4;
+  --success: var(--orchid-ink);
+  --success-soft: var(--orchid-soft);
   --warning: var(--plum-ink);
 
   /*
@@ -570,7 +570,7 @@ button {
    lands at 3.37:1; the palette's deep step goes the other way and reads at
    9.69:1. */
 .tab[aria-current="page"] .n {
-  background: var(--brand-deep);
+  background: var(--brand);
   color: var(--on-brand);
 }
 
@@ -2940,12 +2940,12 @@ main.wide {
 html[data-theme="dark"] {
   color-scheme: dark;
   --cream: #1a0e1e;
-  --cream-dark: #241830;
-  --card-bg: #2e2040;
-  --preview-bg: #382a48;
+  --cream-dark: #2a1838;
+  --card-bg: #342248;
+  --preview-bg: #3e2c52;
   --ink: #f0e8f5;
   --ink-light: #c8b8d4;
-  --ink-faint: #9888a8;
+  --ink-faint: #988ca8;
   --ink-rgb: 240, 232, 245;
   --border: rgba(214, 152, 212, 0.12);
   --hairline: rgba(240, 232, 245, 0.07);

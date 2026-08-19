@@ -658,17 +658,17 @@ class TestTheBrand:
     #: `TestTheTint` re-measure them on every run, so a wrong value here fails
     #: there rather than shipping.
     EXTENDED = {
-        "--indigo": "#33548a",
-        "--indigo-ink": "#233c68",
-        "--indigo-soft": "#dfecfb",
-        "--iris-soft": "#eee6fa",
-        "--orchid": "#8a2f84",
-        "--orchid-ink": "#662061",
-        "--orchid-soft": "#ffdbfd",
-        "--plum": "#7a3560",
-        "--plum-ink": "#5b2349",
-        "--plum-soft": "#f7f2f5",
-        "--rose-soft": "#fee1ed",
+        "--indigo": "#5a7ab8",
+        "--indigo-ink": "#3a5a98",
+        "--indigo-soft": "#e8eef8",
+        "--iris-soft": "#f5e8f5",
+        "--orchid": "#c75b7a",
+        "--orchid-ink": "#a04568",
+        "--orchid-soft": "#fce8ee",
+        "--plum": "#a06880",
+        "--plum-ink": "#7a4860",
+        "--plum-soft": "#f0e0e8",
+        "--rose-soft": "#fde8f0",
     }
 
     FENCE = re.compile(
@@ -755,7 +755,7 @@ class TestTheBrand:
                 f"{token} has no night step: the extended palette is tuned for a cream page "
                 "and renders at daylight strength on a near-black one"
             )
-        assert len(night) == 38, f"the dark block is now {len(night)} tokens; review each addition"
+        assert len(night) == 42, f"the dark block is now {len(night)} tokens; review each addition"
 
     @staticmethod
     def _split() -> tuple[str, str]:
