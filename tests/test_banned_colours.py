@@ -184,21 +184,19 @@ SHEETS = {
                             r"@media \(prefers-color-scheme: dark\)\s*\{\s*:root", 30),
 }
 
-#: Generated markup, both the source pages and the published copies, plus the
-#: app shell. Stage 6 lesson 6: a test that reads a stylesheet cannot see an
-#: inline `style` attribute.
+#: Generated markup, the source pages plus the app shell. Stage 6 lesson 6: a
+#: test that reads a stylesheet cannot see an inline `style` attribute.
 def _markup() -> list[Path]:
     return (
         sorted(LANDING.glob("*.html"))
-        + sorted((REPO / "docs").glob("*.html"))
         + [REPO / "src" / "facetmark" / "web" / "index.html"]
     )
 
 
-#: All three copies. They are pinned byte-identical elsewhere; scanning each is
-#: cheap and means a hand-edited copy cannot hide behind that pin.
+#: The landing copy and the app shell copy. They are pinned byte-identical
+#: elsewhere; scanning each is cheap and means a hand-edited copy cannot hide
+#: behind that pin.
 FAVICONS = (
-    REPO / "docs" / "assets" / "favicon.svg",
     LANDING / "assets" / "favicon.svg",
     STATIC / "favicon.svg",
 )
