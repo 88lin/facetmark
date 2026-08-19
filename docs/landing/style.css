@@ -436,7 +436,7 @@ header.site {
   letter-spacing: var(--ls-display);
 }
 .logo .mark {
-  width: 20px; height: 20px; border-radius: 5px; flex: none;
+  width: 20px; height: 20px; border-radius: 8px; flex: none;
 }
 nav.top { margin-left: auto; display: flex; align-items: center; gap: 2px; }
 nav.top a {
@@ -499,7 +499,7 @@ nav.top a.on:hover { color: var(--btn-fg); background: var(--btn-bg-h); }
   /* at 0.4 over the night page the wash composites to hue 38 at 18% -- a brown,
      which is the one family this site may not paint -- and it swallows the word
      it is meant to lift, so night takes a third of the alpha */
-  padding: 0 0.06em; border-radius: 2px;
+  padding: 0 0.06em; border-radius: 4px;
   /* Chinese breaks between any two characters, so the marked phrase was being
      split mid-word and the wash was cut with it. The phrase is short in both
      languages; keep it whole. */
@@ -726,25 +726,25 @@ section.band.alt { background: var(--cream-dark); border-top: 1px solid var(--ha
 .tw::-webkit-scrollbar-thumb, .diagram .dscroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 .tw::-webkit-scrollbar-track, .diagram .dscroll::-webkit-scrollbar-track { background: transparent; }
 table { border-collapse: collapse; width: 100%; font-size: var(--fs-3); }
-th, td { text-align: left; padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--hairline); vertical-align: top; }
-th { background: var(--surface-2); font-size: var(--fs-1); text-transform: uppercase; letter-spacing: var(--ls-caps); color: var(--ink-light); font-weight: 700; white-space: nowrap; }
+th, td { text-align: left; padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--hairline); vertical-align: middle; }
+th { text-align: center; background: var(--surface-2); font-size: var(--fs-1); text-transform: uppercase; letter-spacing: var(--ls-caps); color: var(--ink-light); font-weight: 700; white-space: nowrap; }
 tbody tr:last-child td { border-bottom: 0; }
 tbody tr:hover td { background: var(--surface-2); }
 td code, th code { white-space: nowrap; }
-td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 tr.win td { background: var(--info-soft); }
 tr.win:hover td { background: var(--info-soft); }
 
 code {
   font-family: var(--mono); font-size: 0.88em;
   background: var(--surface-2); border: 1px solid var(--hairline);
-  padding: 1px var(--sp-1); border-radius: 5px;
+  padding: 1px var(--sp-1); border-radius: 7px;
   /* long paths in prose must be allowed to break, or they widen the page */
   overflow-wrap: anywhere;
 }
 kbd {
   font-family: var(--mono); font-size: 0.82em; padding: 2px var(--sp-1);
-  border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px;
+  border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 8px;
   background: var(--card-bg);
 }
 
@@ -857,7 +857,7 @@ kbd {
    boundary they read as a five-step sequence, which is the wrong architecture:
    they are wrapped in a labelled bracket and laid out two-up wherever there is
    room for two. */
-.dpar { position: relative; margin: 0; padding: var(--sp-2) 0 var(--sp-2) var(--sp-3); border-left: 2px solid var(--brand); border-radius: 3px 0 0 3px; }
+.dpar { position: relative; margin: 0; padding: var(--sp-2) 0 var(--sp-2) var(--sp-3); border-left: 2px solid var(--brand); border-radius: 6px 0 0 6px; }
 .dpar::before, .dpar::after {
   content: ""; position: absolute; left: -2px; width: 11px; height: 2px; background: var(--brand);
 }
@@ -916,7 +916,7 @@ kbd {
 .bar-row { display: grid; grid-template-columns: minmax(150px, 210px) 1fr 58px; gap: var(--sp-3); align-items: center; font-size: var(--fs-3); }
 .bar-row .lb { color: var(--ink-light); }
 .bar-row .lb b { color: var(--ink); }
-.bar-track { height: 20px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--hairline); overflow: hidden; }
+.bar-track { height: 20px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--hairline); overflow: hidden; }
 .bar-fill { height: 100%; width: 0; background: var(--ink-faint); transition: width 1.05s cubic-bezier(0.22, 1, 0.36, 1); }
 .bars.go .bar-fill { width: var(--w); }
 .bar-fill.win { background: var(--brand); }
@@ -1020,8 +1020,8 @@ kbd {
   border-left: 2px solid var(--hairline); position: relative; border-radius: 0 6px 6px 0;
 }
 .toc a::before {
-  content: counter(t, decimal-leading-zero); position: absolute; left: 9px; width: 20px;
-  text-align: right; color: var(--ink-light); font-variant-numeric: tabular-nums; font-size: 0.85em;
+  content: counter(t, decimal-leading-zero); position: absolute; left: 8px; top: 50%; width: 22px;
+  transform: translateY(-50%); text-align: right; color: var(--ink-light); font-variant-numeric: tabular-nums;
 }
 .toc a:hover { color: var(--ink); background: var(--surface-2); }
 .toc a.on { color: var(--accent-ink); border-left-color: var(--brand); background: var(--info-soft); font-weight: 600; }

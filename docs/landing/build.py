@@ -460,14 +460,14 @@ def nav_html(t: dict, page: str) -> str:
         if small:
             cls.append("hide-sm")
         c = f' class="{" ".join(cls)}"' if cls else ""
-        rel = ' rel="noopener"' if href.startswith("http") else ""
+        rel = ' target="_blank" rel="noopener"' if href.startswith("http") else ""
         out.append(f'<a href="{href}"{c}{rel}>{esc(t["nav"][key])}</a>')
     out.append(
         f'<a class="ctl" data-lang-switch href="#" title="{esc(t["other_title"])}" '
         f'hreflang="{t["other_code"]}">{esc(t["other_label"])}</a>'
     )
     out.append(
-        f'<a class="ctl gh" href="{REPO}" rel="noopener" '
+        f'<a class="ctl gh" href="{REPO}" target="_blank" rel="noopener" '
         f'title="{esc(t["nav"]["gh"])}" aria-label="{esc(t["nav"]["gh"])}">{GH_MARK}</a>'
     )
     aria = "\u5207\u6362\u6df1\u8272\u6a21\u5f0f" if z else "Toggle dark mode"
@@ -484,7 +484,7 @@ def foot_html(t: dict) -> str:
     for heading, links in t["foot"]["cols"]:
         out.append(f"<div><h3>{esc(heading)}</h3><ul>")
         for label, href in links:
-            rel = ' rel="noopener"' if href.startswith("http") else ""
+            rel = ' target="_blank" rel="noopener"' if href.startswith("http") else ""
             out.append(f'<li><a href="{href}"{rel}>{esc(label)}</a></li>')
         out.append("</ul></div>")
     out.append('</div><div class="foot-bar">')
@@ -624,7 +624,7 @@ def page_index(t: dict) -> str:
     o.append(f'<p class="lede">{i["lede"]}</p>')
     o.append('<div class="cta">')
     for label, href, primary in i["cta"]:
-        rel = ' rel="noopener"' if href.startswith("http") else ""
+        rel = ' target="_blank" rel="noopener"' if href.startswith("http") else ""
         o.append(
             f'<a class="btn{" primary" if primary else ""}" href="{href}"{rel}>{esc(label)}</a>'
         )
@@ -799,9 +799,10 @@ def page_index(t: dict) -> str:
     o.append(f'<h2 class="reveal">{i["if_h2"]}</h2>')
     o.append('<div class="grid g6 reveal">')
     for _slug, title, body, href, cta in i["if_cards"]:
+        rel = ' target="_blank" rel="noopener"' if href.startswith("http") else ""
         o.append(
             f'<article class="card"><h3>{esc(title)}</h3><p>{body}</p>'
-            f'<p><a href="{href}">{esc(cta)} \u2192</a></p></article>'
+            f'<p><a href="{href}"{rel}>{esc(cta)} \u2192</a></p></article>'
         )
     o.append("</div></div></section>")
 
@@ -829,7 +830,7 @@ def page_index(t: dict) -> str:
     o.append(f'<p class="lede reveal" style="max-width:640px">{i["end_p"]}</p>')
     o.append('<div class="cta reveal" style="justify-content:center">')
     for label, href, primary in i["end_cta"]:
-        rel = ' rel="noopener"' if href.startswith("http") else ""
+        rel = ' target="_blank" rel="noopener"' if href.startswith("http") else ""
         o.append(
             f'<a class="btn{" primary" if primary else ""}" href="{href}"{rel}>{esc(label)}</a>'
         )
