@@ -245,7 +245,7 @@ class TestThePaletteWiring:
     @pytest.mark.parametrize("name", PAGES)
     def test_the_page_pins_the_palette_whose_contrast_was_checked(self, name):
         html = (LANDING / name).read_text(encoding="utf-8")
-        assert re.search(r"<html[^>]*data-palette=\"I\"", html), f"{name}: no palette pinned"
+        assert re.search(r"<html[^>]*data-palette=\"G\"", html), f"{name}: no palette pinned"
 
     @pytest.mark.parametrize("name", PAGES)
     def test_the_palette_is_linked_before_the_stylesheet_that_consumes_it(self, name):

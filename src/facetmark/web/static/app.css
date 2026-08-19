@@ -158,8 +158,8 @@
      readable version of itself. Neither status is signalled by colour alone --
      every one of them carries a label, and most carry an icon too. */
   --link: var(--brand-deep);
-  --success: #2a7d6a;
-  --success-soft: #eef6f2;
+  --success: #7a4d9a;
+  --success-soft: #f1e8f4;
   --warning: var(--plum-ink);
 
   /*
@@ -2955,10 +2955,10 @@ html[data-theme="dark"] {
   --pop-text: #e88888;
   --pop-deep: #d87878;
   --warning: #f0d878;
-  --success: #88c8a0;
+  --success: #c8a8e0;
   --danger-strong: #ec9098;
   --highlight-soft: rgba(247, 222, 164, 0.12);
-  --success-soft: rgba(136, 200, 160, 0.12);
+  --success-soft: rgba(200, 168, 224, 0.12);
   --warning-soft: rgba(240, 216, 120, 0.14);
   --danger-soft: rgba(236, 144, 152, 0.14);
   --focus-ring: #d698d4;

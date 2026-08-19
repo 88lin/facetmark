@@ -62,8 +62,8 @@
      `--danger` and `--danger-strong` come from the shared block untouched;
      the old site value for the strong one was #bd3a1a, which is hue 15 -- the
      rust end of the family this pass removed. */
-  --success: #2d7a5a;
-  --success-soft: #eaf4ee;
+  --success: #7a4d9a;
+  --success-soft: #f1e8f4;
   --warning: #7a4860;
   /* ---- window chrome -------------------------------------------------
      What used to live here was `--code-bg: #17160f` and four friends: a
@@ -203,15 +203,15 @@
   --indigo-ink: #2a5278;
   --indigo-soft: #e2edf6;               /* --indigo     light blue wash */
   --indigo-ink-soft: #d0e0ee;           /* --indigo-ink deeper wash    */
-  --iris: #15697c;
-  --iris-ink: #0c4552;
-  --iris-soft: #ddeef2;                 /* --iris       pale teal       */
+  --iris: #7b5bb6;
+  --iris-ink: #5b3b86;
+  --iris-soft: #ece4f2;                 /* --iris       pale violet     */
   --orchid: #8b4a8c;
   --orchid-ink: #6b386c;
   --orchid-soft: #f2e6f2;               /* --orchid     pale purple     */
-  --plum: #7d5e3a;
-  --plum-ink: #5d4628;
-  --plum-soft: #f0e8d8;                 /* --plum       pale brown      */
+  --plum: #9a4570;
+  --plum-ink: #7a2d55;
+  --plum-soft: #f4e4ec;                 /* --plum       pale mulberry   */
   --rose: #b24935;
   --rose-ink: #843426;
   --rose-soft: #f4ddd5;                 /* --rose       pale terracotta */
@@ -220,7 +220,7 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --cream: #1a0e1e;
+  --cream: #221428;
   --cream-dark: #241830;
   --cream-deep: #2e2040;
   --surface-2: #382a48;
@@ -237,12 +237,12 @@
   --btn-bg: #d698d4;
   --btn-bg-h: #c888c8;
   --btn-fg: #1a0e1e;
-  --success: #88c8a0;
+  --success: #c8a8e0;
   --warning: #e8c8a0;
   --danger-strong: #ec9098;
   --info-soft: #2a1840;
   --success-soft: #2a1840;
-  --warning-soft: #3a2818;
+  --warning-soft: #3a1838;
   --highlight-soft: #2a2040;
   --danger-soft: #3a1828;
   --win-bar: #382a48;
