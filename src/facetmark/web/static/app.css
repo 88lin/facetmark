@@ -2954,6 +2954,7 @@ html[data-theme="dark"] {
   --brand-border: rgba(214, 152, 212, 0.4);
   --pop-text: #e88888;
   --pop-deep: #d87878;
+  --facet-context-ink: var(--pop-text);
   --warning: #f0d878;
   --success: #c8a8e0;
   --danger-strong: #ec9098;
@@ -3002,7 +3003,7 @@ html[data-theme="dark"] .tab[aria-current="page"] {
   color: #1a0e1e;
 }
 html[data-theme="dark"] .tab[aria-current="page"] .n {
-  background: rgba(26, 14, 30, 0.18);
+  background: #b47fb3;
   color: #1a0e1e;
 }
 html[data-theme="dark"] .pill.act[aria-pressed="true"] {
