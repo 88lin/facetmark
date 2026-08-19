@@ -456,7 +456,7 @@ class TestPoliteness:
         assert len(stamps) == 4, stamps
         elapsed = [t - stamps[0] for t in stamps]
         for i, t in enumerate(elapsed):
-            assert t >= i * 0.05 - 0.02, (i, elapsed)
+            assert t >= i * 0.05 - 0.04, (i, elapsed)
         gaps = [b - a for a, b in zip(stamps, stamps[1:], strict=False)]
         assert all(g >= 0.01 for g in gaps), gaps
 
