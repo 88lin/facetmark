@@ -51,12 +51,12 @@ from tests.palette import (
 
 REPO = Path(__file__).resolve().parents[1]
 
-#: The palette file cascades twice for palette I: the colourway itself, then
+#: The palette file cascades twice for palette G: the colourway itself, then
 #: the semantic aliases every colourway shares. Resolving a token means
 #: replaying both in order. (Palette A also carried a third block of AA
-#: corrections; I ships display colours that already clear AA, so it has none.)
+#: corrections; G ships display colours that already clear AA, so it has none.)
 PALETTE_BLOCKS = (
-    r'\[data-palette="I"\]',
+    r'\[data-palette="G"\]',
     r':root,\s*\n\[data-palette\]',
 )
 DARK = r'html\[data-theme="dark"\]'
@@ -637,7 +637,7 @@ class TestTheBrand:
 
     def test_the_page_pins_the_palette_whose_contrast_was_checked(self):
         html = INDEX_HTML.read_text(encoding="utf-8")
-        assert re.search(r"<html[^>]*data-palette=\"I\"", html), "no palette pinned on <html>"
+        assert re.search(r"<html[^>]*data-palette=\"G\"", html), "no palette pinned on <html>"
 
     def test_the_palette_is_linked_before_the_stylesheet_that_consumes_it(self):
         """`app.css` reads tokens the palette declares. Load it first and the
@@ -658,17 +658,17 @@ class TestTheBrand:
     #: `TestTheTint` re-measure them on every run, so a wrong value here fails
     #: there rather than shipping.
     EXTENDED = {
-        "--indigo": "#33548a",
-        "--indigo-ink": "#233c68",
-        "--indigo-soft": "#dfecfb",
-        "--iris-soft": "#eee6fa",
-        "--orchid": "#8a2f84",
-        "--orchid-ink": "#662061",
-        "--orchid-soft": "#ffdbfd",
-        "--plum": "#7a3560",
-        "--plum-ink": "#5b2349",
-        "--plum-soft": "#f7f2f5",
-        "--rose-soft": "#fee1ed",
+        "--indigo": "#5a7ab8",
+        "--indigo-ink": "#3a5a98",
+        "--indigo-soft": "#e8eef8",
+        "--iris-soft": "#f5e8f5",
+        "--orchid": "#c75b7a",
+        "--orchid-ink": "#a04568",
+        "--orchid-soft": "#fce8ee",
+        "--plum": "#a06880",
+        "--plum-ink": "#7a4860",
+        "--plum-soft": "#f0e0e8",
+        "--rose-soft": "#fde8f0",
     }
 
     FENCE = re.compile(
@@ -755,7 +755,7 @@ class TestTheBrand:
                 f"{token} has no night step: the extended palette is tuned for a cream page "
                 "and renders at daylight strength on a near-black one"
             )
-        assert len(night) == 38, f"the dark block is now {len(night)} tokens; review each addition"
+        assert len(night) == 42, f"the dark block is now {len(night)} tokens; review each addition"
 
     @staticmethod
     def _split() -> tuple[str, str]:
@@ -1228,7 +1228,7 @@ class TestTheContrast:
         it still dropped to 4.43:1 on `--cream-dark`, so `--link` had to point
         one step deeper and this test asserted exactly that.
 
-        Palette I needs no correction. `--brand-text` clears the floor on every
+        Palette G needs no correction. `--brand-text` clears the floor on every
         surface the page paints -- 6.06:1 on `--cream`, 5.52:1 on
         `--cream-dark`, 6.16:1 on `--card-bg`, 4.95:1 on the weakest wash and
         4.64:1 under the highlighter band -- so the old premise is simply not

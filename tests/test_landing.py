@@ -245,7 +245,7 @@ class TestThePaletteWiring:
     @pytest.mark.parametrize("name", PAGES)
     def test_the_page_pins_the_palette_whose_contrast_was_checked(self, name):
         html = (LANDING / name).read_text(encoding="utf-8")
-        assert re.search(r"<html[^>]*data-palette=\"I\"", html), f"{name}: no palette pinned"
+        assert re.search(r"<html[^>]*data-palette=\"G\"", html), f"{name}: no palette pinned"
 
     @pytest.mark.parametrize("name", PAGES)
     def test_the_palette_is_linked_before_the_stylesheet_that_consumes_it(self, name):
@@ -628,7 +628,7 @@ class TestTheSurfaces:
 
     def _scope_tokens(self, css: str) -> dict[str, dict[str, str]]:
         base: dict[str, str] = {}
-        for block in (r'\[data-palette="I"\]',
+        for block in (r'\[data-palette="G"\]',
                       r':root,\s*\n\[data-palette\]'):
             base.update(declarations((LANDING / "palettes.css").read_text(), block))
         light = {**base, **declarations(css, r":root")}
@@ -800,7 +800,7 @@ class TestTheLandingContrast:
 
     def _table(self, blocks: tuple[str, ...]) -> Palette:
         tokens: dict[str, str] = {}
-        for block in (r'\[data-palette="I"\]',
+        for block in (r'\[data-palette="G"\]',
                       r':root,\s*\n\[data-palette\]'):
             tokens.update(declarations((LANDING / "palettes.css").read_text(), block))
         css = _stylesheet()

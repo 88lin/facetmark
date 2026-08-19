@@ -515,7 +515,7 @@ def shell(t: dict, page: str, body: str) -> str:
     esc_desc = html.escape(desc, quote=True)
     return (
         "<!doctype html>\n"
-        f'<html lang="{t["html_lang"]}" data-palette="I">\n<head>\n'
+        f'<html lang="{t["html_lang"]}" data-palette="G">\n<head>\n'
         '<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f"<title>{esc(title)}</title>\n"
