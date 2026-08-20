@@ -289,16 +289,16 @@
    * at least 3.30 dE00 from the other five lanes and from the danger and
    * warning washes. The display hues never carry text.
    */
-  --indigo: #5a7ab8;
-  --indigo-ink: #3a5a98;
-  --indigo-soft: #e8eef8;
-  --iris-soft: #f5e8f5;
+  --indigo: #7c5cb8;
+  --indigo-ink: #4a3a8a;
+  --indigo-soft: #ebe2f6;
+  --iris-soft: #f3e6fa;
   --orchid: #c75b7a;
   --orchid-ink: #a04568;
   --orchid-soft: #fce8ee;
-  --plum: #a06880;
-  --plum-ink: #7a4860;
-  --plum-soft: #f0e0e8;
+  --plum: #9c4a8c;
+  --plum-ink: #6e2e60;
+  --plum-soft: #f5e2ef;
   --rose-soft: #fde8f0;
   /* end extended palette */
 }
@@ -3029,16 +3029,16 @@ html[data-theme="dark"] {
   --mark-band: rgba(247, 222, 164, 0.2);
   --tint-lex: rgba(247, 222, 164, 0.1);
   --tint-content: rgba(214, 152, 212, 0.1);
-  --indigo: #98b0d8;
-  --indigo-ink: #b0c8e8;
-  --indigo-soft: rgba(90, 122, 184, 0.28);
-  --iris-soft: rgba(214, 152, 212, 0.12);
+  --indigo: #b09cd8;
+  --indigo-ink: #c8b8e8;
+  --indigo-soft: rgba(124, 92, 184, 0.3);
+  --iris-soft: rgba(124, 92, 184, 0.14);
   --orchid: #e898b8;
   --orchid-ink: #f0a8c8;
   --orchid-soft: rgba(199, 91, 122, 0.3);
-  --plum: #d8a0b8;
-  --plum-ink: #e0b0c8;
-  --plum-soft: rgba(160, 104, 128, 0.22);
+  --plum: #d098c0;
+  --plum-ink: #e0b0d0;
+  --plum-soft: rgba(156, 74, 140, 0.22);
   --rose-soft: rgba(191, 68, 54, 0.18);
   --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.25);
   --shadow-lift: 0 8px 28px rgba(0, 0, 0, 0.35);
