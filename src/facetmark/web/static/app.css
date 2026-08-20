@@ -903,8 +903,8 @@ main.wide {
 }
 
 .pill.mute {
-  background: var(--cream-dark);
-  color: var(--ink-faint);
+  background: var(--facet-content-soft);
+  color: var(--facet-content-ink);
 }
 
 .pill.cite {
