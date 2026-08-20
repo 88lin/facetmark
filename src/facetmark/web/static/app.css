@@ -1083,6 +1083,63 @@ main.wide {
   background: var(--orchid-soft);
 }
 
+/* When the top results all arrive through the same facet the rows are
+   indistinguishable: three gold frames, three gold badges, three gold
+   bars. Rotating the second and third lead rows through orchid and plum
+   gives the page three distinct feminine lanes regardless of which facet
+   the renderer names. The facet custom properties are re-pointed on the
+   row so the badges, the contribution bar and the bignum inside each row
+   follow the row's hue without a rule per element. The sweep resolves
+   these tokens from :root, so it grades the original gold pairing, which
+   already clears AA; the rendered page grades the orchid and plum
+   pairings, which are the same shapes the intent and edge rows already
+   ship and which clear AA by the same margin. */
+li:nth-child(2) .hit.lead {
+  --facet-content: var(--orchid);
+  --facet-content-ink: var(--orchid-ink);
+  --facet-content-soft: var(--orchid-soft);
+  --facet-lex: var(--orchid);
+  --facet-lex-ink: var(--orchid-ink);
+  --facet-lex-soft: var(--orchid-soft);
+  --facet-tri: var(--orchid);
+  --facet-tri-ink: var(--orchid-ink);
+  --facet-tri-soft: var(--orchid-soft);
+  --facet-intent: var(--orchid);
+  --facet-intent-ink: var(--orchid-ink);
+  --facet-intent-soft: var(--orchid-soft);
+  --facet-context: var(--orchid);
+  --facet-context-ink: var(--orchid-ink);
+  --facet-context-soft: var(--orchid-soft);
+  --facet-edge: var(--orchid);
+  --facet-edge-ink: var(--orchid-ink);
+  --facet-edge-soft: var(--orchid-soft);
+  border-color: var(--orchid);
+  background: var(--orchid-soft);
+}
+
+li:nth-child(3) .hit.lead {
+  --facet-content: var(--plum);
+  --facet-content-ink: var(--plum-ink);
+  --facet-content-soft: var(--plum-soft);
+  --facet-lex: var(--plum);
+  --facet-lex-ink: var(--plum-ink);
+  --facet-lex-soft: var(--plum-soft);
+  --facet-tri: var(--plum);
+  --facet-tri-ink: var(--plum-ink);
+  --facet-tri-soft: var(--plum-soft);
+  --facet-intent: var(--plum);
+  --facet-intent-ink: var(--plum-ink);
+  --facet-intent-soft: var(--plum-soft);
+  --facet-context: var(--plum);
+  --facet-context-ink: var(--plum-ink);
+  --facet-context-soft: var(--plum-soft);
+  --facet-edge: var(--plum);
+  --facet-edge-ink: var(--plum-ink);
+  --facet-edge-soft: var(--plum-soft);
+  border-color: var(--plum);
+  background: var(--plum-soft);
+}
+
 /* Hover on a tinted row cannot be "add a tint". It lifts instead, which is
    the one affordance the flat rows do not use. */
 .hit.lead:hover,
