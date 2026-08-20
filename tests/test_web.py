@@ -658,16 +658,16 @@ class TestTheBrand:
     #: `TestTheTint` re-measure them on every run, so a wrong value here fails
     #: there rather than shipping.
     EXTENDED = {
-        "--indigo": "#5a7ab8",
-        "--indigo-ink": "#3a5a98",
-        "--indigo-soft": "#e8eef8",
-        "--iris-soft": "#f5e8f5",
+        "--indigo": "#7c5cb8",
+        "--indigo-ink": "#4a3a8a",
+        "--indigo-soft": "#ebe2f6",
+        "--iris-soft": "#f3e6fa",
         "--orchid": "#c75b7a",
         "--orchid-ink": "#a04568",
         "--orchid-soft": "#fce8ee",
-        "--plum": "#a06880",
-        "--plum-ink": "#7a4860",
-        "--plum-soft": "#f0e0e8",
+        "--plum": "#9c4a8c",
+        "--plum-ink": "#6e2e60",
+        "--plum-soft": "#f5e2ef",
         "--rose-soft": "#fde8f0",
     }
 
