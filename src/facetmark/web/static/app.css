@@ -288,7 +288,18 @@
    * cleared that floor for both the body ink and the muted ink while staying
    * at least 3.30 dE00 from the other five lanes and from the danger and
    * warning washes. The display hues never carry text.
-   */\g<1>--indigo: #7c5cb8;\g<1>--indigo-ink: #4a3a8a;\g<1>--indigo-soft: #ebe2f6;\g<1>--iris-soft: #f3e6fa;\g<1>--orchid: #d63384;\g<1>--orchid-ink: #9c1e5f;\g<1>--orchid-soft: #fce4ec;\g<1>--plum: #9c4a8c;\g<1>--plum-ink: #6e2e60;\g<1>--plum-soft: #f5e2ef;\g<1>--rose-soft: #fde0ea;
+   */
+  --indigo: #7c5cb8;
+  --indigo-ink: #4a3a8a;
+  --indigo-soft: #ebe2f6;
+  --iris-soft: #f3e6fa;
+  --orchid: #d63384;
+  --orchid-ink: #9c1e5f;
+  --orchid-soft: #fce4ec;
+  --plum: #9c4a8c;
+  --plum-ink: #6e2e60;
+  --plum-soft: #f5e2ef;
+  --rose-soft: #fde0ea;
   /* end extended palette */
 }
 
@@ -2960,7 +2971,18 @@ html[data-theme="dark"] {
   --link: var(--brand-text);
   --mark-band: rgba(247, 222, 164, 0.2);
   --tint-lex: rgba(247, 222, 164, 0.1);
-  --tint-content: rgba(214, 152, 212, 0.1);\g<1>--indigo: #b09cd8;\g<1>--indigo-ink: #c8b8e8;\g<1>--indigo-soft: rgba(124, 92, 184, 0.3);\g<1>--iris-soft: rgba(124, 92, 184, 0.14);\g<1>--orchid: #e878a8;\g<1>--orchid-ink: #f098c0;\g<1>--orchid-soft: rgba(214, 51, 132, 0.3);\g<1>--plum: #d098c0;\g<1>--plum-ink: #e0b0d0;\g<1>--plum-soft: rgba(156, 74, 140, 0.22);\g<1>--rose-soft: rgba(214, 51, 132, 0.18);
+  --tint-content: rgba(214, 152, 212, 0.1);
+  --indigo: #b09cd8;
+  --indigo-ink: #c8b8e8;
+  --indigo-soft: rgba(124, 92, 184, 0.3);
+  --iris-soft: rgba(124, 92, 184, 0.14);
+  --orchid: #e878a8;
+  --orchid-ink: #f098c0;
+  --orchid-soft: rgba(214, 51, 132, 0.3);
+  --plum: #d098c0;
+  --plum-ink: #e0b0d0;
+  --plum-soft: rgba(156, 74, 140, 0.22);
+  --rose-soft: rgba(214, 51, 132, 0.18);
   --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.25);
   --shadow-lift: 0 8px 28px rgba(0, 0, 0, 0.35);
   --shadow-pop: 0 6px 24px rgba(0, 0, 0, 0.3);
