@@ -632,6 +632,11 @@ main.wide {
   box-shadow: var(--shadow-card);
 }
 
+/* press holds the lift at zero so the pill reads "pressed", not "stuck up" */
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
 .btn.primary {
   background: var(--brand-surface);
   border-color: var(--brand-surface);

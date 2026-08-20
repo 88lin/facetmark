@@ -12,6 +12,7 @@ import {
   saveSettings,
   summarizeQueue,
 } from "./api.ts";
+import { applyI18n, initLangToggle, t } from "./i18n.ts";
 
 const $ = <T extends HTMLElement>(s: string) => document.querySelector(s) as T;
 
@@ -34,8 +35,8 @@ async function refresh(note = ""): Promise<void> {
   try {
     const h = await api.health();
     const q = summarizeQueue(await api.queueStats());
-    const queue = describeQueue(q) || "queue empty";
-    state.textContent = [note, `connected · ${h.bookmarks} bookmarks`, queue]
+    const queue = describeQueue(q) || t("opt.queueEmpty");
+    state.textContent = [note, t("opt.connected", h.bookmarks), queue]
       .filter(Boolean)
       .join(" · ");
     state.className = "ok";
@@ -61,23 +62,25 @@ $("#drain").addEventListener("click", async () => {
   // already fetched, everything in backoff. Say which one it was; `refresh`
   // then prints the queue breakdown underneath.
   if (!channelB.checked) {
-    state.textContent = "channel B is off - nothing will be fetched";
+    state.textContent = t("opt.channelOff");
     return;
   }
   if (paused.checked) {
-    state.textContent = "paused - unpause to let the browser fetch";
+    state.textContent = t("opt.pausedMsg");
     return;
   }
-  state.textContent = "fetching queued pages...";
+  state.textContent = t("opt.fetching");
   const res = await chrome.runtime.sendMessage({ type: "drain" });
   if (!res?.ok) {
-    state.textContent = String(res?.error ?? "the service worker did not answer");
+    state.textContent = String(res?.error ?? t("opt.swNoAnswer"));
     state.className = "bad";
     return;
   }
   await refresh(
-    res.processed ? `fetched ${res.processed} page(s)` : "nothing was ready to fetch",
+    res.processed ? t("opt.fetched", res.processed) : t("opt.nothingReady"),
   );
 });
 
+applyI18n();
+initLangToggle();
 void refresh();

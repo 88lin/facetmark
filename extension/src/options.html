@@ -8,26 +8,37 @@
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body class="options">
-    <h2>Facetmark</h2>
-    <p class="hint">
-      Start the server with <code>facetmark serve</code>. It prints a pairing token on
-      first run; paste it below. Nothing leaves your machine except the model calls you
-      configure on the server side.
-    </p>
+    <header class="opt-head">
+      <img class="opt-mark" src="icons/favicon.svg" alt="" width="28" height="28" />
+      <div class="opt-head-text">
+        <h2>Facetmark</h2>
+        <p class="hint" data-i18n="opt.hint">
+          Start the server with <code>facetmark serve</code>. It prints a pairing token on
+          first run; paste it below. Nothing leaves your machine except the model calls you
+          configure on the server side.
+        </p>
+      </div>
+      <button class="lang-toggle" type="button" data-lang-toggle title="中文 / English">中文</button>
+    </header>
 
-    <label for="endpoint">Server</label>
-    <input id="endpoint" type="text" placeholder="http://127.0.0.1:8787" />
+    <section class="opt-card">
+      <h3 class="opt-title" data-i18n="opt.connection">Connection</h3>
+      <label for="endpoint" data-i18n="opt.server">Server</label>
+      <input id="endpoint" type="text" placeholder="http://127.0.0.1:8787" />
+      <label for="token" data-i18n="opt.token">Pairing token</label>
+      <input id="token" type="text" data-i18n-attr="placeholder:opt.tokenPh" placeholder="paste the token printed by facetmark serve" />
+    </section>
 
-    <label for="token">Pairing token</label>
-    <input id="token" type="text" placeholder="paste the token printed by facetmark serve" />
-
-    <label class="row"><input id="channelB" type="checkbox" /> Let Facetmark read pages the server cannot fetch</label>
-    <label class="row"><input id="paused" type="checkbox" /> Pause background fetching</label>
+    <section class="opt-card">
+      <h3 class="opt-title" data-i18n="opt.options">Options</h3>
+      <label class="row"><input id="channelB" type="checkbox" /> <span data-i18n="opt.channelB">Let Facetmark read pages the server cannot fetch</span></label>
+      <label class="row"><input id="paused" type="checkbox" /> <span data-i18n="opt.paused">Pause background fetching</span></label>
+    </section>
 
     <div id="state" role="status" aria-live="polite"></div>
     <div class="actions">
-      <button id="save" type="button" class="primary">save</button>
-      <button id="drain" type="button">fetch queued pages now</button>
+      <button id="save" type="button" class="primary" data-i18n="opt.save">save</button>
+      <button id="drain" type="button" data-i18n="opt.drain">fetch queued pages now</button>
     </div>
 
     <script type="module" src="options.js"></script>
