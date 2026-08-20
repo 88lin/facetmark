@@ -383,3 +383,77 @@ body.options {
 .options #state.ok { border-color: var(--ok); color: var(--ok); }
 .options #state.bad { border-color: var(--warn-ink); color: var(--warn-ink); }
 .options .actions { display: flex; gap: 8px; }
+
+/* Grouped cards: the four fields are two different kinds of question -- where
+   the server is, and what the extension is allowed to do -- so they sit in two
+   labelled cards rather than one undifferentiated column. The card is the
+   surface the inputs already sit on, pulled into a frame with a hairline and
+   the same shadow a field carries, so the grouping reads as structure without
+   inventing a new material. */
+.options .opt-head {
+  display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px;
+}
+.options .opt-mark {
+  width: 28px; height: 28px; border-radius: 8px; flex: none; margin-top: -1px;
+  background: var(--accent-soft); padding: 3px; box-sizing: content-box;
+}
+.options .opt-head-text { flex: 1; min-width: 0; }
+.options .opt-head-text h2 { margin: 0 0 4px; }
+.options .opt-head-text .hint { margin: 0; }
+.options .opt-card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px;
+  box-shadow: var(--shadow);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.options .opt-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: 0 2px 6px rgba(var(--ink-rgb), 0.07);
+}
+/* a small tracked-caps label rather than a third heading weight: the card
+   already has the h2 above the page, and a 15px section title inside would
+   compete with the field labels below it */
+.options .opt-title {
+  margin: 0 0 10px; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+}
+.options .opt-card label { margin-top: 12px; }
+.options .opt-card .opt-title + label { margin-top: 0; }
+.options .opt-card .row { margin-top: 10px; }
+.options .opt-card .opt-title + .row { margin-top: 0; }
+/* the actions sit below the cards; give the primary save a touch more weight
+   so the affordance reads through the panel at a glance */
+.options .actions { margin-top: 4px; }
+.options .actions .primary { flex: 1; }
+
+/* ---- language toggle ---- */
+
+/* A small pill, not a full button: it sits in the footer beside the settings
+   link and in the options header beside the title, and the 9px padding a
+   button carries would dwarf both. The pill borrows the accent wash so it
+   reads as an affordance without competing with the primary action. */
+.lang-toggle {
+  padding: 3px 10px;
+  border: 1px solid var(--accent-line);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 11px;
+  font-weight: 600;
+  box-shadow: none;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.lang-toggle:hover {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+.lang-toggle:active { transform: translateY(1px); }
+
+/* In the options header the toggle aligns with the title row. */
+.options .opt-head .lang-toggle {
+  margin-top: 2px;
+  flex: none;
+}
+/* In the popup footer the toggle sits between the queue line and the settings
+   link, so it should not stretch. */
+footer .lang-toggle { flex: none; }

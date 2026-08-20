@@ -524,8 +524,12 @@ nav.top a.on:hover { color: var(--btn-fg); background: var(--btn-bg-h); }
   padding: var(--sp-3) var(--sp-4); border-radius: 999px; font-weight: 600; font-size: var(--fs-3);
   text-decoration: none; border: 1px solid var(--border); color: var(--ink);
   background: var(--card-bg); box-shadow: var(--shadow-1);
+  /* the hover lifts the pill 1px; without a transition the lift snaps, and an
+     active state that holds the lift reads as "stuck" rather than "pressed" */
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease, transform 120ms ease;
 }
 .btn:hover { border-color: var(--ink-faint); color: var(--ink); transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
 .btn.primary { background: var(--btn-bg); border-color: var(--btn-bg); color: var(--btn-fg); }
 .btn.primary:hover { background: var(--btn-bg-h); border-color: var(--btn-bg-h); color: var(--btn-fg); }
 /* Five facts about the project, as component 10C/10D: a dashed frame on a
@@ -840,20 +844,27 @@ kbd {
 
 /* ---------- diagram ---------- */
 
-.diagram { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-4); box-shadow: var(--shadow-1); }
+.diagram { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-5) var(--sp-4) var(--sp-4); box-shadow: var(--shadow-1); position: relative; }
+/* a yellow accent bar above the diagram, the same gesture as the col-line on
+   the workflow columns: a 3px slash of --highlight that says "this is a
+   process" without adding a heading weight the section already has */
+.diagram::before {
+  content: ""; position: absolute; top: 0; left: var(--sp-4);
+  width: 40px; height: 3px; background: var(--highlight); border-radius: 0 0 2px 2px;
+}
 .diagram .dscroll { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
 .diagram svg { width: 100%; min-width: 860px; height: auto; display: block; }
 /* narrow-screen rewrite of the same pipeline: same nodes, stacked */
 .dstack { display: none; }
 .dstack .dn {
-  border: 1.5px solid var(--border); background: var(--surface-2);
+  border: 1.5px solid var(--border); background: var(--card-bg);
   border-radius: 9px; padding: var(--sp-2) var(--sp-3); text-align: center;
 }
 .dstack .dn b { display: block; font-size: var(--fs-3); color: var(--ink); }
 .dstack .dn i { display: block; font-style: normal; font-size: var(--fs-2); color: var(--ink-light); margin-top: 1px; }
 .dstack .dn s { display: block; text-decoration: none; font-style: italic; font-size: var(--fs-1); color: var(--ink-light); margin-top: 1px; }
 .dstack .dn.on { background: var(--info-soft); border-color: var(--brand); }
-.dstack .dn.key { background: var(--card-bg); border-color: var(--ink-faint); }
+.dstack .dn.key { background: var(--highlight-soft); border-color: var(--highlight); }
 /* the four facets fan out in parallel. Stacked in one column with no group
    boundary they read as a five-step sequence, which is the wrong architecture:
    they are wrapped in a labelled bracket and laid out two-up wherever there is
@@ -900,14 +911,21 @@ kbd {
   .diagram { padding: var(--sp-4) var(--sp-3); }
 }
 .diagram svg text { font-family: var(--sans); fill: var(--ink); }
-.d-box { fill: var(--surface-2); stroke: var(--border); }
+/* the off boxes read as white cards with a hairline edge; the on box carries
+   the brand wash and a brand edge; the key boxes (query, hits) carry the
+   highlight wash so the endpoints of the pipeline read as the same gesture
+   as the yellow bar above the diagram */
+.d-box { fill: var(--card-bg); stroke: var(--border); }
 .d-box-on { fill: var(--info-soft); stroke: var(--brand); }
-.d-box-key { fill: var(--card-bg); stroke: var(--ink-faint); }
-.d-arrow { stroke: var(--ink-faint); fill: none; }
+.d-box-key { fill: var(--highlight-soft); stroke: var(--highlight); }
+.d-arrow { stroke: var(--ink-faint); fill: none; stroke-dasharray: 5 3; }
 .d-arrow-on { stroke: var(--brand); fill: none; }
-.d-t { font-size: var(--fs-2); font-weight: 700; }
+/* titles in brand-deep so the node reads as a label, not as prose; the key
+   nodes get ink so the yellow wash does not fight a blue title */
+.d-t { font-size: var(--fs-2); font-weight: 700; fill: var(--brand-deep); }
+.d-box-key + text.d-t, text.d-t:first-of-type { fill: var(--ink); }
 .d-s { font-size: var(--fs-0); fill: var(--ink-light); }
-.d-s-off { font-size: var(--fs-0); fill: var(--ink-light); font-style: italic; }
+.d-s-off { font-size: var(--fs-0); fill: var(--ink-faint); font-style: italic; }
 .d-head { fill: var(--ink-faint); }
 .d-head-on { fill: var(--brand); }
 

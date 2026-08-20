@@ -9,14 +9,15 @@
   </head>
   <body>
     <header>
-      <input id="q" type="search" placeholder="what were you looking for?" autocomplete="off" />
-      <button id="save" type="button" class="primary">save this page</button>
+      <input id="q" type="search" data-i18n-attr="placeholder:pop.placeholder" placeholder="what were you looking for?" autocomplete="off" />
+      <button id="save" type="button" class="primary" data-i18n="pop.save">save this page</button>
     </header>
     <div id="status" role="status" aria-live="polite"></div>
     <ul id="results"></ul>
     <footer>
       <span id="queue"></span>
-      <a href="options.html" target="_blank">settings</a>
+      <button class="lang-toggle" type="button" data-lang-toggle title="中文 / English">中文</button>
+      <a href="options.html" target="_blank" data-i18n="pop.settings">settings</a>
     </footer>
     <script type="module" src="popup.js"></script>
   </body>
