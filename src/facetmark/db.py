@@ -62,7 +62,18 @@ CREATE TABLE IF NOT EXISTS bookmark (
     open_count      INTEGER NOT NULL DEFAULT 0,
     last_opened_at  INTEGER,
     created_at      INTEGER NOT NULL,
-    updated_at      INTEGER NOT NULL
+    updated_at      INTEGER NOT NULL,
+    -- User-assigned tags as a JSON array of strings ("[\"work\", \"rust\"]").
+    -- Parsed from Netscape TAGS / pinboard exports since the first importer
+    -- and then dropped on the floor at staging; this column is where they
+    -- land now. Last position on purpose: ALTER TABLE ADD COLUMN appends to
+    -- the end, so a migrated database and a fresh one agree on column order
+    -- (test_db._shape compares them positionally). A JSON column rather
+    -- than a join table: the tag vocabulary of a personal library is small,
+    -- the table is never queried backwards ("which bookmarks have tag X"
+    -- goes through the query language's tag: filter, which walks
+    -- json_each), and one fewer join keeps the hot read path simple.
+    tags            TEXT    NOT NULL DEFAULT '[]'
 );
 CREATE INDEX IF NOT EXISTS ix_bookmark_added  ON bookmark(date_added);
 CREATE INDEX IF NOT EXISTS ix_bookmark_domain ON bookmark(domain);

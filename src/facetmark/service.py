@@ -26,6 +26,7 @@ import re
 import secrets
 import sqlite3
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -123,7 +124,7 @@ def _clip(text: str | None, n: int) -> str:
 _BOOKMARK_SQL = """
 SELECT b.id, b.url, b.title, b.folder, b.folder_depth, b.domain, b.host,
        b.date_added, b.date_modified, b.source, b.indexable, b.privacy_skipped,
-       b.import_artifact, b.open_count, b.last_opened_at,
+       b.import_artifact, b.open_count, b.last_opened_at, b.tags,
        e.summary, e.topics, e.entities, e.key_points, e.utility, e.content_type,
        e.basis AS enrich_basis,
        e.model AS enrich_model,
@@ -179,6 +180,7 @@ def bookmark_record(
         "date_added": row["date_added"],
         "open_count": row["open_count"],
         "last_opened_at": row["last_opened_at"],
+        "tags": _jlist(row["tags"]),
         "summary": _clip(row["summary"], SUMMARY_CHARS),
         "topics": _jlist(row["topics"]),
         "entities": _jlist(row["entities"]),
@@ -543,12 +545,50 @@ def _deterministic_gaps(resp: SearchResponse, sources: list[dict]) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
+def sync_fts_tag_refresh(conn: sqlite3.Connection, bookmark_id: int) -> None:
+    """Rewrite one bookmark's FTS rows from stored state, after a tags-only edit.
+
+    Tags live in ``bookmark.tags`` but are also indexed as free text in the
+    ``extra`` column (same weight as topics and entities), so a tag edit is an
+    index edit. Rebuilding from the stored body/enrichment rather than from
+    nothing keeps the rest of the lexical row exactly as the last pipeline
+    stage wrote it.
+    """
+    from .db import jload
+
+    b = conn.execute(
+        "SELECT title, tags FROM bookmark WHERE id=?", (bookmark_id,)
+    ).fetchone()
+    if b is None:
+        return
+    body_row = conn.execute(
+        "SELECT body_text, body_seg FROM content WHERE bookmark_id=?", (bookmark_id,)
+    ).fetchone()
+    enr = conn.execute(
+        "SELECT summary, topics, entities, key_points FROM enrichment WHERE bookmark_id=?",
+        (bookmark_id,),
+    ).fetchone()
+    sync_fts(
+        conn,
+        bookmark_id,
+        title=b["title"] or "",
+        body=(body_row["body_text"] if body_row else "") or "",
+        body_seg=(body_row["body_seg"] if body_row else None),
+        summary=(enr["summary"] if enr else "") or "",
+        topics=jload(enr["topics"]) if enr else [],
+        entities=jload(enr["entities"]) if enr else [],
+        key_points=jload(enr["key_points"]) if enr else [],
+        tags=jload(b["tags"], []),
+    )
+
+
 def save_bookmark(
     conn: sqlite3.Connection,
     url: str,
     *,
     title: str = "",
     folder: str = "",
+    tags: Sequence[str] = (),
     date_added: int | None = None,
     settings: Settings | None = None,
 ) -> dict:
@@ -557,11 +597,31 @@ def save_bookmark(
     This writes to facetmark's index only. The browser's own bookmark store is
     never touched -- that is a deliberate boundary, not an omission: a tool that
     rewrites your bookmarks is a tool you cannot safely uninstall.
+
+    ``tags`` are stored verbatim (deduplicated, order kept) and indexed as
+    both free text (so a tag word is searchable like any other) and the exact
+    ``tag:`` filter vocabulary. Saving an existing URL unions the tags rather
+    than replacing them, matching the importer's merge semantics.
     """
     st = settings or get_settings()
     nu = normalize_url(url)
     row = conn.execute("SELECT id FROM bookmark WHERE url_hash = ?", (nu.hash,)).fetchone()
     if row is not None:
+        clean = [t for t in dict.fromkeys(tags) if t]
+        if clean:
+            from .db import jload
+
+            existing_tags = jload(
+                conn.execute("SELECT tags FROM bookmark WHERE id=?", (row["id"],)).fetchone()["tags"],
+                [],
+            )
+            union = list(dict.fromkeys([*existing_tags, *clean]))
+            conn.execute(
+                "UPDATE bookmark SET tags=?, updated_at=? WHERE id=?",
+                (json.dumps(union, ensure_ascii=False), int(time.time()), row["id"]),
+            )
+            sync_fts_tag_refresh(conn, row["id"])
+            conn.commit()
         rec = bookmark_record(conn, row["id"], settings=st)
         assert rec is not None
         rec["created"] = False
@@ -571,21 +631,26 @@ def save_bookmark(
     domain = registrable_domain(host)
     privacy = 1 if host_excluded(host, st.privacy_excluded_domains) else 0
     ts = int(time.time())
+    clean_tags = [t for t in dict.fromkeys(tags) if t]
     # folder_depth counts real nesting, and a folder created through the API is
     # a single level. It is emphatically not folder.count("/"): folder names
     # legitimately contain slashes, which is why the display path is never split.
     cur = conn.execute(
         "INSERT INTO bookmark(url, url_norm, url_hash, title, folder, folder_depth, "
-        "  host, domain, date_added, source, indexable, privacy_skipped, "
+        "  host, domain, date_added, source, indexable, privacy_skipped, tags, "
         "  created_at, updated_at) "
-        "VALUES(?,?,?,?,?,?,?,?,?,'api',?,?,?,?)",
+        "VALUES(?,?,?,?,?,?,?,?,?,'api',?,?,?,?,?)",
         (nu.original, nu.normalized, nu.hash, title, folder,
          1 if folder else 0, host, domain,
          date_added if date_added is not None else ts,
-         1 if nu.indexable else 0, privacy, ts, ts),
+         1 if nu.indexable else 0, privacy,
+         json.dumps(clean_tags, ensure_ascii=False), ts, ts),
     )
     bid = int(cur.lastrowid)
-    sync_fts(conn, bid, title=title, body="", summary="", topics=([folder] if folder else ()))
+    sync_fts(
+        conn, bid, title=title, body="", summary="",
+        topics=([folder] if folder else ()), tags=clean_tags,
+    )
     conn.commit()
     rec = bookmark_record(conn, bid, settings=st)
     assert rec is not None
