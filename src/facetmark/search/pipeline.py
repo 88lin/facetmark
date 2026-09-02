@@ -34,6 +34,7 @@ from .context import ContextSignals, build_context, window_filter
 from .decay import cold_bookmark_ids, decay_hits
 from .graph import Expansion, expand
 from .lexical import lexical_lists, lexical_lists_scored
+from .querylang import apply_filters, parse_query, pool_from_filters, sort_pool
 from .rerank import RerankDoc, Reranker, get_reranker, reorder
 from .rrf import DEFAULT_K, Fused, guarantee_bonus, rrf
 from .understand import (
@@ -668,9 +669,16 @@ class SearchResponse:
     depth_capped: bool = False
     #: Set when the config that actually ran is not the one that was asked
     #: for: it named vector facets the library cannot run (no vector store),
-    #: so the lexical facets stood in. Holds the *requested* config's name --
+ #: so the lexical facets stood in. Holds the *requested* config's name --
     #: ``config`` above holds the name of what ran. Empty when nothing moved.
     degraded_from: str = ""
+    #: The query-language filters this query carried (``domain:``, ``added:``,
+    #: negations, ``sort:``), echoed so a caller can see what was applied.
+    #: ``None`` -- the default -- means the query had no syntax at all and the
+    #: ranking ran exactly as it did before the language existed.
+    filters: dict | None = None
+    #: The sort directive the query asked for, "" when it asked for none.
+    sort: str = ""
 
     def as_dict(self) -> dict:
         return {
@@ -692,6 +700,8 @@ class SearchResponse:
             "total": self.total,
             "has_more": self.has_more,
             "depth_capped": self.depth_capped,
+            "filters": self.filters,
+            "sort": self.sort,
         }
 
     @property
@@ -764,17 +774,42 @@ def quick_search(
     k: int = DEFAULT_K,
     settings: Settings | None = None,
 ) -> SearchResponse:
-    """Lexical-only first paint. Synchronous, no model call, no network."""
+    """Lexical-only first paint. Synchronous, no model call, no network.
+
+    Query-language filters are honoured here too, at no cost: the first paint
+    is where a reader pastes ``domain:github.com sort:date``, and answering it
+    with unfiltered results only to have the full pipeline correct them a
+    second later is a visible flash of the wrong answer.
+    """
     t0 = time.perf_counter()
     s = settings or get_settings()
+    parsed = parse_query(query)
     # 3x the window, as before: the two lexical lists overlap heavily -- that is
     # the point of running both -- so fusion dedupes a large fraction of what
     # they return, and asking for exactly the window size would hand back a
     # short page that looks like the end of the results.
     page = resolve_page(s, limit=limit, offset=offset, depth=depth, over_fetch=3)
     u = classify(query)
-    lists, truncated = trim_pool(page, lexical_lists(conn, query, limit=page.fetch))
-    fused = rrf(lists, k=k, weights=DEFAULT_FACET_WEIGHTS)
+
+    if parsed.text:
+        lists, truncated = trim_pool(page, lexical_lists(conn, parsed.text, limit=page.fetch))
+        fused = rrf(lists, k=k, weights=DEFAULT_FACET_WEIGHTS)
+    else:
+        # A pure filter query (``domain:github.com``, ``-python``) is a browse,
+        # and the filters *are* the retrieval. RRF over one list preserves the
+        # order the filters chose (date-descending by default).
+        ids = pool_from_filters(conn, parsed, limit=page.fetch)
+        lists = {"filter": ids}
+        fused = rrf(lists, k=k)
+        truncated = len(ids) >= page.fetch
+
+    if parsed.has_filters:
+        keep = set(apply_filters(conn, parsed, [f.doc_id for f in fused]))
+        fused = [f for f in fused if f.doc_id in keep]
+    if parsed.sort:
+        by_id = {f.doc_id: f for f in fused}
+        fused = [by_id[i] for i in sort_pool(conn, [f.doc_id for f in fused], parsed.sort)]
+
     window = fused[page.offset:page.stop]
     rows = hydrate(conn, [f.doc_id for f in window])
     hits = [_to_hit(rows[f.doc_id], f) for f in window if f.doc_id in rows]
@@ -785,6 +820,8 @@ def quick_search(
         took_ms={"total": (time.perf_counter() - t0) * 1000},
         limit=page.limit, offset=page.offset, depth=page.depth, total=len(fused),
         has_more=has_more, depth_capped=capped,
+        filters=parsed.echo() if parsed.has_syntax else None,
+        sort=parsed.sort,
     )
 
 
@@ -815,6 +852,14 @@ async def search(
     if config is None:
         config = default_config(s, prov)
     config, degraded_from = degrade_for_vector_store(conn, config)
+    # The query language splits "what to match" from "what to require": the
+    # facets see the free text (phrases intact for the lexical paths, syntax
+    # stripped for the embedding), and the filters cut the fused pool after
+    # ranking. A query with no syntax parses to itself and nothing below
+    # takes a different branch.
+    parsed = parse_query(query)
+    facet_query = parsed.text
+    embed_query = parsed.plain_text or parsed.text
     timings: dict[str, float] = {}
     t_start = time.perf_counter()
 
@@ -845,22 +890,39 @@ async def search(
     # because RRF is deliberately rank-only. The abstention path keeps them,
     # because deciding whether a facet has an opinion requires looking at the
     # shape of its score distribution -- see `facetmark.search.abstain`.
+    #
+    # A query whose filters left no free text never reaches the facets at
+    # all: the filters *are* the candidate list, and pretending otherwise
+    # would burn an embedding call to rank documents the user has already
+    # enumerated. That pool also skips the context multiplier, the decay
+    # layer and the reranker -- a browse is an explicit enumeration, and
+    # demoting "old, never opened" pages on a query that *asked* for old
+    # pages would be the filters and the metabolism layer contradicting each
+    # other with the metabolism layer winning.
     lists: dict[str, list[int]] = {}
     facet_confidence: dict[str, float] = {}
     truncated = False
-    if config.abstain_margin > 0.0:
+    # ``-python`` with no positive text is also a browse: the whole library
+    # minus one thing. ``has_filters`` covers negated terms as well as fields.
+    browse = not facet_query and parsed.has_filters
+    if browse:
+        t0 = time.perf_counter()
+        ids = pool_from_filters(conn, parsed, limit=page.fetch)
+        lists = {"filter": ids}
+        mark("filter", t0)
+    elif config.abstain_margin > 0.0:
         t0 = time.perf_counter()
         scored: dict[str, list[tuple[int, float]]] = {}
-        if config.facets & LEXICAL_FACETS:
-            for name, rows in lexical_lists_scored(conn, query, limit=per_facet).items():
+        if config.facets & LEXICAL_FACETS and facet_query:
+            for name, rows in lexical_lists_scored(conn, facet_query, limit=per_facet).items():
                 if name in config.facets:
                     scored[name] = rows
         mark("lexical", t0)
 
         t0 = time.perf_counter()
-        if config.facets & VECTOR_FACETS:
+        if config.facets & VECTOR_FACETS and embed_query:
             vrows, _vec = await vector_lists_scored(
-                conn, query, provider=prov, settings=s, limit=per_facet,
+                conn, embed_query, provider=prov, settings=s, limit=per_facet,
                 want_content="content" in config.facets,
                 want_intent="intent" in config.facets,
             )
@@ -877,16 +939,16 @@ async def search(
         mark("abstain", t0)
     else:
         t0 = time.perf_counter()
-        if config.facets & LEXICAL_FACETS:
-            for name, ids in lexical_lists(conn, query, limit=per_facet).items():
+        if config.facets & LEXICAL_FACETS and facet_query:
+            for name, ids in lexical_lists(conn, facet_query, limit=per_facet).items():
                 if name in config.facets:
                     lists[name] = ids
         mark("lexical", t0)
 
         t0 = time.perf_counter()
-        if config.facets & VECTOR_FACETS:
+        if config.facets & VECTOR_FACETS and embed_query:
             vlists, _vec = await vector_lists(
-                conn, query, provider=prov, settings=s, limit=per_facet,
+                conn, embed_query, provider=prov, settings=s, limit=per_facet,
                 want_content="content" in config.facets,
                 want_intent="intent" in config.facets,
             )
@@ -909,8 +971,19 @@ async def search(
         fused = rrf({"episodic_window": ids}, k=s.rrf_k)
         lists["episodic_window"] = ids
 
+    # --- 3b. the query language's filters cut the pool after ranking --------
+    #
+    # Post-fusion on purpose: a filter is a constraint on *which* documents may
+    # answer, not an opinion about their order, so it never touches a score.
+    # Cutting before fusion would also change the depth the facets fused at.
+    if fused and parsed.has_filters:
+        t0 = time.perf_counter()
+        keep = set(apply_filters(conn, parsed, [f.doc_id for f in fused], now=now_ts))
+        fused = [f for f in fused if f.doc_id in keep]
+        mark("filter", t0)
+
     ctx: ContextSignals | None = None
-    if fused and config.wants_context(understanding):
+    if fused and not browse and config.wants_context(understanding):
         t0 = time.perf_counter()
         # The 200-row cap keeps the context queries off the tail of the pool,
         # where a boost cannot change anything anyway. It has to cover the
@@ -931,9 +1004,12 @@ async def search(
         mark("context", t0)
 
     # --- 4. metabolism ----------------------------------------------------
+    # A browse has no ranking for metabolism to have an opinion about, and a
+    # cold demotion on a query that *asked* for old pages (``added:>1y``) is
+    # the two layers contradicting each other.
     rescued = False
     cold: set[int] = set()
-    if config.decay and fused:
+    if config.decay and fused and not browse:
         t0 = time.perf_counter()
         cold = cold_bookmark_ids(
             conn, age_days=s.decay_age_days,
@@ -944,6 +1020,21 @@ async def search(
         )
         rescued = outcome.rescued
         mark("decay", t0)
+
+    # --- 4b. the requested sort -------------------------------------------
+    #
+    # After every scoring stage and before the window, so a sorted page is a
+    # slice of the sorted pool -- exactly the guarantee paging needs. Sorting
+    # after the window would let page 2 disagree with page 1 about page 1.
+    # A reranker enabled on the same query still reorders the served head,
+    # which is the two directives arguing and the last one winning; every
+    # shipped config has rerank off, so this is documented rather than fixed.
+    if parsed.sort and fused:
+        t0 = time.perf_counter()
+        by_id = {f.doc_id: f for f in fused}
+        ordered = sort_pool(conn, [f.doc_id for f in fused], parsed.sort)
+        fused = [by_id[i] for i in ordered if i in by_id]
+        mark("sort", t0)
 
     window = fused[page.offset : page.stop]
     rows = hydrate(conn, [f.doc_id for f in window])
@@ -962,7 +1053,7 @@ async def search(
 
     # --- 5. rerank --------------------------------------------------------
     rr_name = ""
-    if config.rerank and hits:
+    if config.rerank and hits and not browse:
         t0 = time.perf_counter()
         rr = reranker or get_reranker(s, prov)
         rr_name = rr.name
@@ -976,7 +1067,7 @@ async def search(
         rr_depth = max(1, s.rerank_depth)
         head = hits[:rr_depth]
         docs = [RerankDoc(h.bookmark_id, h.title, h.snippet) for h in head]
-        scores = await rr.score(query, docs)
+        scores = await rr.score(facet_query or query, docs)
         if len(scores) == len(head):
             hits = reorder(hits, scores, depth=rr_depth)
         mark("rerank", t0)
@@ -1031,4 +1122,6 @@ async def search(
         reranker=rr_name, took_ms=timings,
         limit=page.limit, offset=page.offset, depth=page.depth, total=len(fused),
         has_more=has_more, depth_capped=capped, degraded_from=degraded_from,
+        filters=parsed.echo() if parsed.has_syntax else None,
+        sort=parsed.sort,
     )

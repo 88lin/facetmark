@@ -358,6 +358,130 @@ def suggest_from_context(
 
 
 # ---------------------------------------------------------------------------
+# query-syntax suggestions
+# ---------------------------------------------------------------------------
+
+#: What ``/suggest/query`` offers for a bare fragment: the fields, in the
+#: order a reader is most likely to want them, with the one-line use for each.
+#: Kept here rather than in the frontend so the CLI and the API docs can say
+#: the same thing the dropdown does.
+FIELD_HINTS: tuple[tuple[str, str], ...] = (
+    ("domain", "a site, e.g. domain:github.com (alias: site:)"),
+    ("added", "when it was saved, e.g. added:>7d or added:>=2026-04-01"),
+    ("title", "words in the title only"),
+    ("url", "part of the address, * wildcards allowed"),
+    ("text", "words in the page body only"),
+    ("folder", "the browser folder it was saved in"),
+    ("topic", "an enrichment topic, e.g. topic:postgres"),
+    ("lang", "the detected language, e.g. lang:zh"),
+    ("opened", "times opened, e.g. opened:10.."),
+    ("sort", "result order: date, domain, title, url"),
+)
+
+_SORT_HINTS: tuple[tuple[str, str], ...] = (
+    ("date", "newest first"),
+    ("-date", "oldest first"),
+    ("domain", "group by site"),
+    ("title", "alphabetical"),
+    ("url", "by address"),
+)
+
+_DATE_HINTS: tuple[str, ...] = (
+    "added:<7d", "added:>30d", "added:>=2026-01-01", "before:2026-01-01",
+)
+
+
+def suggest_query_syntax(
+    conn: sqlite3.Connection, text: str, *, limit: int = 8
+) -> dict:
+    """Complete the query language for the token under the cursor.
+
+    A fragment without ``:`` completes field names; ``domain:git`` completes
+    domains that exist in this library. Values are *library values* -- the
+    suggestion list is the discovery mechanism for what a reader actually
+    saved, which plain syntax documentation can never be.
+    """
+    tok = (text or "").strip()
+    neg = ""
+    if tok.startswith("-"):
+        neg, tok = "-", tok[1:]
+    field, _, value = tok.partition(":")
+
+    from .search.querylang import FIELDS
+
+    out: list[dict] = []
+    if not field:
+        for name, hint in FIELD_HINTS:
+            out.append({"kind": "field", "label": f"{name}:",
+                        "detail": hint, "insert": f"{neg}{name}:"})
+    elif field.lower() == "sort":
+        for name, hint in _SORT_HINTS:
+            if value and not name.startswith(value):
+                continue
+            out.append({"kind": "sort", "label": f"sort:{name}",
+                        "detail": hint, "insert": f"sort:{name}"})
+    elif field.lower() in FIELDS:
+        low = field.lower()
+        frag = value.strip().strip('"')
+        if low == "domain":
+            like = f"{frag.replace('%', '')}%"
+            rows = conn.execute(
+                "SELECT domain, COUNT(*) n FROM bookmark "
+                "WHERE domain LIKE ? AND domain <> '' GROUP BY domain "
+                "ORDER BY n DESC LIMIT ?",
+                (like, limit),
+            ).fetchall()
+            for r in rows:
+                out.append({"kind": "value", "label": r["domain"],
+                            "detail": f"{int(r['n'])} saved",
+                            "insert": f"{neg}{low}:{r['domain']}"})
+        elif low == "folder":
+            like = f"%{frag.replace('%', '')}%"
+            rows = conn.execute(
+                "SELECT folder, COUNT(*) n FROM bookmark "
+                "WHERE folder LIKE ? AND folder <> '' GROUP BY folder "
+                "ORDER BY n DESC LIMIT ?",
+                (like, limit),
+            ).fetchall()
+            for r in rows:
+                out.append({"kind": "value", "label": r["folder"],
+                            "detail": f"{int(r['n'])} saved",
+                            "insert": f"{neg}{low}:{r['folder']}"})
+        elif low == "lang":
+            rows = conn.execute(
+                "SELECT lang, COUNT(*) n FROM content WHERE lang IS NOT NULL "
+                "GROUP BY lang ORDER BY n DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+            for r in rows:
+                out.append({"kind": "value", "label": r["lang"],
+                            "detail": f"{int(r['n'])} pages",
+                            "insert": f"{neg}{low}:{r['lang']}"})
+        elif low == "topic":
+            like = f'%"{frag.replace("%", "").replace(chr(34), "")}"%'
+            seen: dict[str, int] = {}
+            for (raw,) in conn.execute(
+                "SELECT topics FROM enrichment WHERE topics LIKE ?", (like,)
+            ).fetchall():
+                for topic in _jlist(raw):
+                    if frag.lower() in str(topic).lower():
+                        seen[str(topic)] = seen.get(str(topic), 0) + 1
+            for topic, n in sorted(seen.items(), key=lambda kv: -kv[1])[:limit]:
+                out.append({"kind": "value", "label": topic,
+                            "detail": f"{n} pages", "insert": f"{neg}topic:{topic}"})
+        if low == "added" and not out:
+            for v in _DATE_HINTS:
+                out.append({"kind": "hint", "label": v, "detail": "", "insert": v})
+    if not out:
+        for name, hint in FIELD_HINTS:
+            if field and not name.startswith(field.lower()):
+                continue
+            out.append({"kind": "field", "label": f"{name}:",
+                        "detail": hint, "insert": f"{neg}{name}:"})
+    return {"token": text or "", "suggestions": out[:limit]}
+
+
+# ---------------------------------------------------------------------------
 # synthesis
 # ---------------------------------------------------------------------------
 
@@ -611,6 +735,72 @@ def record_open(conn: sqlite3.Connection, bookmark_id: int, *, query: str = "") 
 
 
 # ---------------------------------------------------------------------------
+# timeline
+# ---------------------------------------------------------------------------
+
+#: How many recent days get their own bucket before the months take over.
+#: hister uses the same seven; past a week, day-level granularity is noise on
+#: a bookmark library whose median save rate is a handful per day.
+TIMELINE_RECENT_DAYS = 7
+
+
+def timeline(
+    conn: sqlite3.Connection, *, now: int | None = None, months: int = 12
+) -> dict:
+    """Save-activity buckets: the last week by day, the past year by month.
+
+    Ported from hister's ``server/timeline`` (the web UI's history view) onto
+    facetmark's one table that matters here, ``bookmark.date_added``. UTC, like
+    every other timestamp this project stores -- a save happened at an instant,
+    and "which day it was" is a rendering choice the client can make.
+
+    The month list stops at ``months`` entries even when the library is older:
+    a timeline strip is for browsing, not for exhaustively enumerating a decade.
+    """
+    import datetime as _dt
+
+    ts = now if now is not None else int(time.time())
+    today = _dt.datetime.fromtimestamp(ts, tz=_dt.timezone.utc).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    day0 = int(today.timestamp())
+
+    rows = conn.execute(
+        "SELECT date_added FROM bookmark WHERE date_added IS NOT NULL AND date_added > 0"
+    ).fetchall()
+    stamps = [int(r["date_added"]) for r in rows]
+    if not stamps:
+        return {"days": [], "months": [], "older": 0, "oldest": None}
+
+    days: list[dict] = []
+    for back in range(TIMELINE_RECENT_DAYS):
+        lo = day0 - back * 86400
+        hi = lo + 86400
+        n = sum(1 for s in stamps if lo <= s < hi)
+        key = _dt.datetime.fromtimestamp(lo, tz=_dt.timezone.utc).strftime("%Y-%m-%d")
+        days.append({"key": f"day:{key}", "from": lo, "to": hi, "count": n})
+
+    older_than = day0 - (TIMELINE_RECENT_DAYS - 1) * 86400
+    older = sum(1 for s in stamps if s < older_than)
+    month_counts: dict[str, int] = {}
+    for s in stamps:
+        if s < older_than:
+            key = _dt.datetime.fromtimestamp(s, tz=_dt.timezone.utc).strftime("%Y-%m")
+            month_counts[key] = month_counts.get(key, 0) + 1
+    month_list = [
+        {"key": f"month:{k}", "count": v} for k, v in sorted(
+            month_counts.items(), key=lambda kv: kv[0], reverse=True
+        )[:months]
+    ]
+    return {
+        "days": days,
+        "months": month_list,
+        "older": older,
+        "oldest": min(stamps),
+    }
+
+
+# ---------------------------------------------------------------------------
 # stats
 # ---------------------------------------------------------------------------
 
@@ -791,5 +981,7 @@ __all__ = [
     "session_list",
     "session_record",
     "suggest_from_context",
+    "suggest_query_syntax",
     "synthesize",
+    "timeline",
 ]
