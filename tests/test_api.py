@@ -714,3 +714,43 @@ class TestKarakeepRoutes:
     def test_limit_above_the_ceiling_is_a_validation_error_not_a_huge_query(self, client, auth):
         r = client.post("/karakeep/search", json={"query": "x", "limit": 5000}, headers=auth)
         assert r.status_code == 422
+
+
+class TestQueryLanguageApi:
+    """The grammar rides on the same query string every client already sends."""
+
+    def test_field_filters_work_through_the_api(self, client, auth):
+        seed(client, "https://ql.example/rust", "rust page")
+        seed(client, "https://other.example/crafts", "crafts page")
+        r = client.post("/search", json={"q": "domain:ql.example", "limit": 10},
+                        headers=auth)
+        body = r.json()
+        assert [h["url"] for h in body["hits"]] == ["https://ql.example/rust"]
+
+    def test_the_response_echoes_what_the_grammar_applied(self, client, auth):
+        seed(client, "https://ql.example/e", "echo page")
+        r = client.post("/search", json={"q": "domain:ql.example", "limit": 10},
+                        headers=auth)
+        filters = r.json()["filters"]
+        assert filters and filters["field_filters"][0]["field"] == "domain"
+
+    def test_a_plain_query_has_no_filters_echo(self, client, auth):
+        seed(client, "https://ql.example/plain", "plain page")
+        r = client.post("/search", json={"q": "plain", "limit": 10}, headers=auth)
+        assert r.json()["filters"] is None
+
+    def test_saving_with_tags_round_trips(self, client, auth):
+        r = client.post(
+            "/bookmark",
+            json={"url": "https://ql.example/tagged", "title": "tagged", "tags": ["a", "b"]},
+            headers=auth,
+        )
+        assert r.json()["tags"] == ["a", "b"]
+        hits = client.post("/search", json={"q": "tag:a", "limit": 10},
+                           headers=auth).json()["hits"]
+        assert [h["title"] for h in hits] == ["tagged"]
+
+    def test_quick_search_supports_the_grammar_too(self, client, auth):
+        seed(client, "https://ql.example/quick", "quick page")
+        r = client.get("/quick", params={"q": "domain:ql.example"}, headers=auth)
+        assert [h["title"] for h in r.json()["hits"]] == ["quick page"]

@@ -304,6 +304,46 @@ experiments below. `facetmark eval --list-configs` prints them all.
 
 ---
 
+## 🧭 Query Syntax
+
+Every search surface — the web UI, the browser extension's popup, `facetmark search`, the
+HTTP API, MCP — accepts the same free-text queries as before, **plus a small filter
+grammar** (ported from [hister](https://github.com/asciimoo/hister)'s query builder):
+
+| Syntax | Meaning |
+|---|---|
+| `domain:github.com` (or `site:`) | the registrable domain, subdomains included |
+| `host:news.ycombinator.com` | full hostname, substring |
+| `url:releases` | substring of the raw URL |
+| `title:rust`, `folder:reading` | substring of the title / folder path |
+| `tag:work` | exact tag (from imports and the save API) |
+| `-term`, `-domain:pinterest.com` | exclude; also `-"a phrase"` |
+| `"exact phrase"` | words must be adjacent (CJK quotes “ ” 「 」 work too) |
+| `domain:(github.com\|gitlab.com)` | either value; `(a\|b)` works on free words too |
+| `after:30d`, `before:2024-06-01` | saved-at window; `30d`/`2w`/`3mo`/`1y` relative |
+| `added:2024` / `added:2024-06..2024-09` | a whole year / an explicit range |
+| `added:>2024-06-01`, `added:<90d` | comparisons |
+| `kuber*` | prefix match on the word index |
+| `sort:date`, `sort:-date`, `sort:title`, `sort:domain`, `sort:open_count` | ordering |
+
+Three rules the implementation is strict about:
+
+* **A colon is only a filter when the name is one.** `https://github.com/x` is not a stack
+  of filters — the URL arrives at the index as one word, exactly as before.
+* **A typo never loses words.** `after:nonsense`, `sort:garbage`, `priority:high` all fall
+  back to being searched as ordinary text. The worst case of a typo is yesterday's
+  behaviour.
+* **Filters outrank configuration.** The shipped `full` profile runs a single vector facet
+  (that is what the W1 ablation measured); but a query that *uses* filter/phrase/negation
+  syntax is stating an exact-string intent an embedding cannot honour, so the lexical facet
+  joins that query regardless of profile. Pure-filter queries (`tag:work`) are answered
+  from the bookmark table alone and cost no model call.
+
+The response echoes what applied as a `filters` object, so a client (or an agent) can see
+that `domain:github.com -pinterest` did what it looked like it did.
+
+---
+
 ## 📄 Paging
 
 Every search surface takes `limit`, `offset` and `depth`, and every search response reports

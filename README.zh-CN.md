@@ -298,6 +298,44 @@ export FACETMARK_LOCAL_EMBED_MAX_SEQ=1024
 
 ---
 
+## 🧭 查询语法
+
+每个检索入口 —— 网页 UI、浏览器扩展弹窗、`facetmark search`、HTTP API、MCP —— 都照旧
+接受自由文本查询，**另外加了一小套过滤语法**（移植自
+[hister](https://github.com/asciimoo/hister) 的查询构建器）：
+
+| 语法 | 含义 |
+|---|---|
+| `domain:github.com`（或 `site:`） | 注册域名，含子域名 |
+| `host:news.ycombinator.com` | 完整主机名，子串匹配 |
+| `url:releases` | 原始 URL 的子串 |
+| `title:rust`、`folder:reading` | 标题 / 文件夹路径的子串 |
+| `tag:work` | 精确匹配标签（来自导入与保存 API） |
+| `-term`、`-domain:pinterest.com` | 排除；`-"某个短语"` 也可以 |
+| `"精确短语"` | 词必须相邻（中文引号 “ ” 「 」 同样有效） |
+| `domain:(github.com\|gitlab.com)` | 多值任一；自由词也可 `(a\|b)` |
+| `after:30d`、`before:2024-06-01` | 保存时间窗；`30d`/`2w`/`3mo`/`1y` 相对单位 |
+| `added:2024` / `added:2024-06..2024-09` | 一整年 / 显式区间 |
+| `added:>2024-06-01`、`added:<90d` | 比较式 |
+| `kuber*` | 词索引上的前缀匹配 |
+| `sort:date`、`sort:-date`、`sort:title`、`sort:domain`、`sort:open_count` | 排序 |
+
+实现上对三条规则很严格：
+
+* **冒号只有跟在已知字段名后面才是过滤器。** `https://github.com/x` 不会被拆成一堆
+  过滤器 —— URL 像以前一样作为一个完整的词进入索引。
+* **打错字不会丢词。** `after:nonsense`、`sort:garbage`、`priority:high` 都会原样当作
+  普通文本去检索。打错字的最坏结果就是昨天的行为。
+* **过滤器优先于档位配置。** 出厂的 `full` 档只跑一个向量面（这是 W1 消融测出来的）；
+  但使用了过滤 / 短语 / 排除语法的查询，表达的是嵌入模型无法满足的精确字符串意图，
+  所以无论什么档位，词法面都会为这类查询加入。纯过滤查询（`tag:work`）直接由 bookmark
+  表回答，不花任何模型调用。
+
+响应会把实际生效的语法回显成 `filters` 对象，客户端（或 agent）能看到
+`domain:github.com -pinterest` 确实按字面意思执行了。
+
+---
+
 ## 📄 分页
 
 每个检索接口都收 `limit`、`offset`、`depth`，每个检索响应都会报告它实际给出的那个窗口：

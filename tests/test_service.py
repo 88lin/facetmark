@@ -534,3 +534,35 @@ class TestIndexingTwiceIsNotPayingTwice:
         assert prov.chats == 4
         assert rep.steps["embed_content"]["embedded"] == 4
         assert rep.steps["filter_intents"]["already_scored"] == 0
+
+    def test_tags_are_saved_and_returned(self, conn, st):
+        """Tags ride on the record the same way folder does: write, read, echo."""
+        rec = service.save_bookmark(conn, "https://w.example/tags", title="tagged",
+                                    tags=["work", "rust"], settings=st)
+        assert rec["tags"] == ["work", "rust"]
+
+    def test_saving_the_same_url_unions_tags(self, conn, st):
+        """A second save is an edit: it adds tags, it does not replace them."""
+        service.save_bookmark(conn, "https://w.example/union", tags=["a"], settings=st)
+        rec = service.save_bookmark(conn, "https://w.example/union", tags=["b", "a"],
+                                    settings=st)
+        assert rec["tags"] == ["a", "b"]
+
+    def test_saved_tags_are_searchable_as_free_text(self, conn, st):
+        """A tag word is a word: the lexical index must see it immediately."""
+        service.save_bookmark(conn, "https://w.example/fts", title="untitled page",
+                              tags=["zephyr"], settings=st)
+        hits = service.quick_search(conn, "zephyr").hits
+        assert [h.title for h in hits] == ["untitled page"]
+
+    def test_saved_tags_answer_the_tag_filter(self, conn, st):
+        service.save_bookmark(conn, "https://w.example/filter", title="p",
+                              tags=["work"], settings=st)
+        hits = service.quick_search(conn, "tag:work").hits
+        assert [h.title for h in hits] == ["p"]
+
+    def test_bookmark_record_carries_tags(self, conn, st):
+        """bookmark_record is what /bookmark/{id} and MCP get_bookmark return."""
+        rec = service.save_bookmark(conn, "https://w.example/rec", tags=["x"], settings=st)
+        got = service.bookmark_record(conn, rec["bookmark_id"], settings=st)
+        assert got is not None and got["tags"] == ["x"]

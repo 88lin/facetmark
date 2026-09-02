@@ -213,6 +213,7 @@ def _write_v1(path) -> None:
     c.execute("DROP INDEX IF EXISTS ix_intent_unscored")   # indexed columns cannot be dropped
     c.execute("ALTER TABLE intent_query DROP COLUMN scored_at")
     c.execute("ALTER TABLE enrichment DROP COLUMN basis")
+    c.execute("ALTER TABLE bookmark DROP COLUMN tags")
     _add_bookmarks(c, 3)
     c.execute(
         "INSERT INTO fetch_queue(bookmark_id, reason, state, attempts, queued_at)"
@@ -434,3 +435,30 @@ class TestMigrateCommand:
             m.version for m in MIGRATIONS if m.version > 1
         ]
         assert payload["backup"] is None
+
+
+class TestV6Tags:
+    """v6 gives bookmarks a tags column; the importer fills it, migration just
+    makes the column exist so the INSERT does not explode on an old file."""
+
+    def test_v6_adds_the_column_to_an_old_database(self, tmp_path):
+        p = tmp_path / "old.db"
+        _write_v1(p)
+        c = open_db(p)
+        cols = {r[1] for r in c.execute("PRAGMA table_info(bookmark)")}
+        assert "tags" in cols
+        # Born empty, and readable as JSON the moment a row exists.
+        val = c.execute("SELECT tags FROM bookmark WHERE id=1").fetchone()[0]
+        assert val == "[]"
+        c.close()
+
+    def test_the_migration_is_repairable_by_hand(self, tmp_path):
+        """A migration that checks before it acts can be re-run safely."""
+        p = tmp_path / "old.db"
+        _write_v1(p)
+        c = open_db(p)
+        c.close()
+        # Opening again finds the version already current; no error, no change.
+        c2 = open_db(p)
+        assert schema_status(c2).current
+        c2.close()

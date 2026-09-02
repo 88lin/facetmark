@@ -4,6 +4,57 @@
 
 ## [Unreleased]
 
+### 新增（查询语言，移植自 hister 的 querybuilder）
+
+- **查询语法：字段过滤、短语、排除、通配、日期窗、排序。** 此前 `_FTS_STRIP_RE`
+  把 `-`、`"`、`*`、`:` 全部当垃圾字符剥掉，自由词之间只做 OR——数据明明在库里
+  （`bookmark.domain`、`folder`、`date_added` 自 v1 就有）却没有入口去问。新模块
+  `search/querylang.py` 移植 hister 的三件套：手写 lexer（word / quoted /
+  alternation，带偏移）、声明式字段表（`FIELDS`，单一事实来源）、`ParsedQuery`
+  供所有消费方共享。支持 `domain:`/`site:`/`host:`/`url:`/`title:`/`folder:`/`tag:`
+  字段过滤（含 `-` 取反与 `(a|b)` 多值）、`"精确短语"`（中英文引号）、`-排除词`、
+  `前缀*`、`after:30d`/`before:2024-06-01`/`added:2024-06..2024-09`/`added:<90d`
+  日期窗、`sort:date`/`sort:-date`/`sort:title`/`sort:domain`/`sort:open_count` 排序
+  指令。两条铁律：冒号只有跟在已知字段名后才是过滤器（URL 原样存活）；解析失败
+  的 token 原样退回自由文本（打错字的最坏结果是昨天的行为）。纯过滤查询
+  （`tag:work`）直接由 bookmark 表回答，不碰 FTS 也不花模型调用。
+- **短语检索从死代码变成真的。** `understand.py` 声称引号短语「词法面原样使用」，
+  但 `u.phrases` 提取后从未被任何检索路径消费——文档与实现不符的半成品。现在
+  `build_fts_query` 接受 `phrases`/`negatives`/`prefixes`，短语变成 FTS5 短语子句
+  （seg 路径 jieba 分词后相邻、tri 路径即子串），`understanding.phrases` 与解析器的
+  短语合并去重后一并发进词法面。
+- **过滤器全管线一致。** 词法面把过滤谓词 SQL 下推（`JOIN bookmark` + `WHERE` 在
+  `LIMIT` 之前，被过滤掉的行不占排名坑，深名次的合格行顶上来）；向量面无法在
+  vec0 KNN 上加 WHERE，改为 3 倍 over-fetch 后与 `_allowed_ids` 求交（与 intent 面
+  既有 over-fetch 同一模式）；情景时间窗兜底同样受约束。W1 结论不被重新谈判：
+  `full` 仍只跑 content 面——除非查询本身用了过滤/短语/排除/前缀语法（这是嵌入
+  无法满足的精确字符串意图，词法面按 hister 过滤合取的同样条款加入）。
+- **`sort:` 指令覆盖相关性排序**（整个池排序而非窗口内排序，翻页顺序连续；
+  NULL 键恒排最后；文本键 casefold 比较），且与 rerank 互斥——让 reranker 悄悄
+  撤销用户刚指定的排序是错的。
+- **响应新增 `filters` 回显对象**：解析出的文本、短语、排除、字段过滤、日期窗、
+  排序。客户端与 agent 都能看见 `domain:github.com -pinterest` 确实按字面执行了。
+
+### 新增（tags 全链路，schema v6）
+
+- **书签终于保存导入器早已解析出的标签。** `RawBookmark.tags` 从 Netscape 的
+  `TAGS="a,b"` 解析出来后，在 staging 处被丢弃——用户自己的归档词汇表，唯一
+  无法由其他面重建的元数据，从未进过索引。v6 迁移给 `bookmark` 加 `tags` JSON
+  列（列尾，与 ALTER TABLE 语义一致）；导入按 `url_hash` 幂等合并时 tags 取并集
+  （重导入是编辑不是恢复）；保存 API（HTTP `/bookmark` 与 MCP `save_bookmark`）
+  接受 `tags` 参数，重复保存同样并集；`sync_fts` 把 tags 拼进 `extra`（与
+  topics/entities 同权重），自由文本可搜、`tag:` 精确过滤走 `json_each`；
+  `bookmark_record` 与 `SearchHit` 均回显 tags；网页结果卡渲染 `#tag` 徽章。
+
+### 改进
+
+- **服务端 snippet 按查询词定位。** 此前 snippet 是 summary 或 body 前 400 字符
+  的裸截断——命中的段落可能在截断之外，读者看到的解释与命中无关。现在按最长
+  查询词（含短语词）首次出现位置开窗（±~150 字符，诚实省略号），CLI、弹窗、
+  MCP、karakeep 桥等所有裸 snippet 消费方直接受益。
+- **MCP 工具描述写明查询语法**（hister 的做法：能力演进时描述同步），`save_bookmark`
+  增加 `tags` 参数。
+
 ## [2.0.0] - 2026-08-19
 
 ### 修复（chat-only 冒烟测试带出来的三个）
