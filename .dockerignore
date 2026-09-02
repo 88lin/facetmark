@@ -1,0 +1,25 @@
+# The build needs the package and its manifest, nothing else. Keeping the
+# context small keeps the image small and keeps test fixtures, eval corpora
+# and local databases out of a place `docker build` would happily snapshot.
+.git
+.github
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+tests
+eval
+scripts
+docs
+integrations
+extension
+agent-ctx
+*.db
+*.db-*
+*.sqlite
+*.log
+Dockerfile
+compose.yml
+.dockerignore

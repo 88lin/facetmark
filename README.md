@@ -26,7 +26,7 @@
   <br>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white&labelColor=2D5F8B" alt="Python"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-22C55E?style=for-the-badge&logo=opensourceinitiative&logoColor=white&labelColor=16A34A" alt="License"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/Tests-1524-06B6D4?style=for-the-badge&logoColor=white&labelColor=0891B2" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/Tests-1588-06B6D4?style=for-the-badge&logoColor=white&labelColor=0891B2" alt="Tests"></a>
 </p>
 
 > [!NOTE]
@@ -163,9 +163,20 @@ git clone https://github.com/88lin/facetmark
 cd facetmark
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
-pytest -q               # 1524 tests, ~41 s
+pytest -q               # 1588 tests, ~44 s
 ruff check src tests scripts
 ```
+
+**In Docker** (the deployment story is ported from hister's):
+
+```bash
+docker compose up -d        # builds the image, binds 127.0.0.1:8787 only
+```
+
+The container runs as a non-root user with one writable volume (`/data`, your
+SQLite file), a healthcheck on `/health`, and the host side of the port mapping
+pinned to loopback — publishing your reading-history index to the LAN is a
+one-line edit you make on purpose, never a default. See `compose.yml`.
 
 > [!NOTE]
 > Requires **Python 3.10+**. The only heavy optional dependency is
@@ -269,13 +280,15 @@ Settings panel edits the file; `facetmark config path` prints it.
 | `facetmark import-json FILE.json` | Import Firefox JSON or a generic list |
 | `facetmark index` | Run every stage, skipping what has not changed |
 | `facetmark fetch` / `enrich` / `embed` / `intents` / `sessions` / `edges` | Run one stage |
-| `facetmark search QUERY` | Search from the terminal |
+| `facetmark search QUERY` | Search from the terminal — query language accepted |
+| `facetmark crawl URL` | Walk a site into the library, politely |
 | `facetmark serve` | Web UI + REST API |
 | `facetmark health` | Re-check saved URLs, record `gone` / `drifted` verdicts |
 | `facetmark stats` | Row counts per table, coverage per stage |
 | `facetmark demo` | Synthetic library, mock provider, no network |
 | `facetmark selfcheck-embed` | Verify the embedding backend before indexing |
 | `facetmark eval` | Run a query set against one or more configurations |
+| `facetmark update` | Report whether a newer version is on PyPI |
 | `facetmark export` | Dump the library back out as JSON |
 
 > [!TIP]
@@ -301,6 +314,37 @@ They exist because **each one was a hypothesis that got measured**.
 Plus roughly twenty exploratory ablations (`A_ctx`, `A_gatedctx`, `C_notri`, `C_lowlex`,
 `C_abstain`, `C_max`, `D_gated`, `lex_only`, `seg_only`, `tri_only`, …) used by the
 experiments below. `facetmark eval --list-configs` prints them all.
+
+---
+
+## 🔤 The Query Language
+
+Every search surface — the web box, the CLI, the API, the MCP tools, the karakeep
+plugin — accepts field filters, negation, phrases, alternation, wildcards, date
+ranges and sort directives, **ported from
+[hister](https://github.com/asciimoo/hister)** (searx's author's private search
+engine). Full guide in [`docs/query-language.md`](docs/query-language.md):
+
+```bash
+facetmark search "postgres domain:github.com -title:tutorial"
+facetmark search "kafka added:<7d"                     # saved this week
+facetmark search 'title:encryption (signal|matrix)'     # title match, either site
+facetmark search "domain:github.com sort:date"          # a browse, newest first
+facetmark crawl https://docs.sqlite.org/ --max-pages 25 # then index
+```
+
+The compatibility rule is the point: **a query without syntax behaves exactly
+as it did before the language existed** — the parser only recognises a token as
+syntax when it could not be plain text (`note:` is not a field; a hyphen inside
+a word is not a negation). Filters cut the ranked pool after fusion and never
+move a surviving page's score, so nothing about the default ranking changed to
+make room for this.
+
+The web UI speaks the same language in three more places: the suggestion list
+completes field names *and the values that exist in your library*, the chips
+under the search box write `added:` tokens, and the Library view's activity
+timeline (`/timeline`) buckets your saves by day and month — every bucket is
+one search you could have typed.
 
 ---
 
