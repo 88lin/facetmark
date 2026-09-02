@@ -378,6 +378,12 @@ def search(
 
     if _emit(payload, json_out):
         return
+    if resp.filters:
+        # The language's own report of what it applied, so a mis-typed filter
+        # is visible in the one place the reader is looking.
+        console.print(f"[dim]filters[/dim] {json.dumps(resp.filters, ensure_ascii=False)}")
+        if resp.sort:
+            console.print(f"[dim]sort[/dim] {resp.sort}")
     u = resp.understanding
     if u is not None:
         console.print(f"[dim]labels[/dim] {','.join(u.labels)}  "
@@ -660,6 +666,101 @@ def mcp(
     from .mcp_server import main as _main
 
     _main(_settings(db, mock))
+
+
+@app.command()
+def crawl(
+    url: str = typer.Argument(..., help="Where to start. http(s) only."),
+    db: Path | None = typer.Option(None, "--db"),
+    max_pages: int = typer.Option(
+        25, "--max-pages",
+        help="Page budget. The crawl stops here even if the frontier is deeper."),
+    off_domain: bool = typer.Option(
+        False, "--off-domain",
+        help="Follow links to other sites. Off by default: a crawl that quietly "
+             "walked onto a second site is a crawl you did not ask for."),
+    json_out: bool = typer.Option(False, "--json"),
+) -> None:
+    """Crawl a site into the library, politely. Ported from hister's crawler.
+
+    robots.txt is honoured, every host is rate-limited and spaced, and each
+    page becomes an ordinary bookmark -- so the URL-level dedup, the health
+    checker and `facetmark index` all work on crawled pages exactly as on
+    imported ones. Enriching and embedding are left to `index`, which skips
+    what has not changed.
+    """
+    from .crawl import crawl_site
+
+    st = _settings(db)
+    conn = _open(st)
+    try:
+        def on_page(final_url: str, title: str, stored: bool) -> None:
+            if not json_out:
+                mark = "+" if stored else " "
+                console.print(f"  [dim]{mark}[/dim] {title or final_url}")
+
+        rep = asyncio.run(crawl_site(
+            conn, url, max_pages=max_pages, same_domain=not off_domain,
+            settings=st, on_page=on_page,
+        ))
+    finally:
+        conn.close()
+    if _emit(rep.as_dict(), json_out):
+        return
+    t = Table(title=f"crawl {url}", box=None, show_header=False)
+    for k in ("links_found", "pages_fetched", "inserted", "already_known",
+              "bodies_stored", "off_domain_skipped", "robots_denied", "errors"):
+        t.add_row(k, str(rep.as_dict()[k]))
+    console.print(t)
+    for note in rep.notes[:5]:
+        err.print(f"[yellow]note[/yellow] {note}")
+    if rep.inserted:
+        console.print("[dim]next:[/dim] facetmark index   "
+                      "[dim](fetch is already done; this enriches and embeds)[/dim]")
+
+
+@app.command()
+def update(
+    json_out: bool = typer.Option(False, "--json"),
+) -> None:
+    """Report whether a newer facetmark is published on PyPI.
+
+    Ported from hister's version-check philosophy with one deliberate
+    difference: there is no background check and no telemetry. The network is
+    touched only when you run this command, and the answer is a version pair
+    and an upgrade hint, not an action. `pip`/`pipx` own the upgrade itself --
+    a package manager that updates itself is a package manager you cannot pin.
+    """
+    import httpx
+
+    from . import __version__
+
+    payload: dict = {"installed": __version__, "latest": None, "up_to_date": None,
+                     "checked": False, "error": ""}
+    try:
+        r = httpx.get("https://pypi.org/pypi/facetmark/json", timeout=5.0,
+                      headers={"User-Agent": f"facetmark/{__version__} version-check"})
+        r.raise_for_status()
+        payload["latest"] = str(r.json()["info"]["version"])
+        payload["checked"] = True
+    except Exception as exc:  # noqa: BLE001 - the check is advisory, never fatal
+        payload["error"] = f"{type(exc).__name__}: {exc}"
+    if payload["checked"]:
+        payload["up_to_date"] = payload["installed"] == payload["latest"]
+
+    if _emit(payload, json_out):
+        return
+    if not payload["checked"]:
+        err.print(f"[yellow]could not reach PyPI[/yellow] {payload['error']}")
+        raise typer.Exit(1)
+    console.print(f"installed  {payload['installed']}")
+    console.print(f"latest     {payload['latest']}")
+    if payload["up_to_date"]:
+        console.print("[green]up to date[/green]")
+    else:
+        console.print("[yellow]a newer version is available[/yellow]")
+        console.print("upgrade:   pip install -U facetmark   "
+                      "[dim](or pipx upgrade facetmark)[/dim]")
 
 
 @app.command()
