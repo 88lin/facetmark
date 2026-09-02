@@ -852,6 +852,74 @@ main.wide {
   opacity: 0.7;
 }
 
+
+/* ------------------------------------------------------------- timeline */
+
+/* The time-chip row under the search box. It is a pillbar with one more job:
+   sitting between the query and the rungs without stealing their space, so it
+   collapses to nothing (hidden attr) until there is a library to filter. */
+.timebar {
+  margin-top: var(--sp-2);
+}
+
+/* The library view's save-activity strip. Seven day columns, one row of month
+   pills under them. Columns are buttons: the bar is a histogram you can click. */
+.tl-days {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-2);
+  min-height: 84px;
+  padding: var(--sp-2) 0 var(--sp-1);
+}
+
+.tl-day {
+  flex: 1 1 0;
+  height: 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--sp-1);
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.tl-day::before {
+  content: "";
+  width: 62%;
+  height: var(--h, 4%);
+  min-height: 3px;
+  border-radius: var(--r-pill) var(--r-pill) 0 0;
+  background: var(--brand-surface);
+  opacity: 0.85;
+  transition: height 0.2s var(--ease), opacity 0.2s var(--ease);
+}
+
+.tl-day:hover::before {
+  opacity: 1;
+}
+
+.tl-day .n {
+  font-size: var(--fs-1);
+  color: var(--ink-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-months {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.tl-old {
+  font-size: var(--fs-1);
+  color: var(--ink-light);
+}
+
 /* ---------------------------------------------------------------- pills */
 
 /* Read-only tags. `.act` above is the clickable variant. */

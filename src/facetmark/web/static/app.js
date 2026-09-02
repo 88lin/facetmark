@@ -221,6 +221,14 @@ async function boot() {
     sessions.focus(id);
     S.go("sessions");
   };
+  // The library view's timeline and domain pills land here: a jump that both
+  // switches views and fills the box, so what the reader clicked is spelled
+  // out in the query rather than hidden in view state.
+  S.search = (q) => {
+    search.preset(q);
+    S.go("search");
+    void search.run(q, { force: true });
+  };
   S.redraw = () => VIEWS[viewName()].mod.render();
 
   // Strings and pairing in parallel: neither needs the other and both are on

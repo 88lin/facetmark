@@ -24,6 +24,8 @@ export const S = {
   go: () => {},
   /** sitting(sessionId) -> opens the sittings view on one sitting */
   sitting: () => {},
+  /** search(q) -> jumps to the search view with a query typed in */
+  search: () => {},
   /** redraw() -> re-renders whatever view is on screen */
   redraw: () => {},
 };
