@@ -33,7 +33,8 @@ from . import abstain
 from .context import ContextSignals, build_context, window_filter
 from .decay import cold_bookmark_ids, decay_hits
 from .graph import Expansion, expand
-from .lexical import lexical_lists, lexical_lists_scored
+from .lexical import lexical_lists, lexical_lists_scored, sql_predicate
+from .querylang import ParsedQuery, parse_query
 from .rerank import RerankDoc, Reranker, get_reranker, reorder
 from .rrf import DEFAULT_K, Fused, guarantee_bonus, rrf
 from .understand import (
@@ -597,6 +598,9 @@ class SearchHit:
     utility: str = ""
     content_type: str = ""
     topics: list[str] = field(default_factory=list)
+    #: User-authored tags (imports, save API). Echoed so every client can
+    #: render the filing vocabulary the way it renders the folder.
+    tags: list[str] = field(default_factory=list)
     #: Only set on rows in the expansion group.
     via: int | None = None
     via_kind: str = ""
@@ -617,6 +621,7 @@ class SearchHit:
             "folder": self.folder, "domain": self.domain, "date_added": self.date_added,
             "snippet": self.snippet, "utility": self.utility,
             "content_type": self.content_type, "topics": self.topics,
+            "tags": self.tags,
         }
         if self.via is not None:
             d["via"] = self.via
@@ -671,6 +676,12 @@ class SearchResponse:
     #: so the lexical facets stood in. Holds the *requested* config's name --
     #: ``config`` above holds the name of what ran. Empty when nothing moved.
     degraded_from: str = ""
+    #: Echo of the query language that applied: parsed text, phrases,
+    #: negations, field filters, dates and sort. ``None`` when the query used
+    #: no syntax at all. A client that shows what a search actually did (and
+    #: an agent that mistyped a filter) both need this; re-deriving it client-
+    #: side would mean shipping the grammar to every client.
+    filters: dict | None = None
 
     def as_dict(self) -> dict:
         return {
@@ -692,6 +703,7 @@ class SearchResponse:
             "total": self.total,
             "has_more": self.has_more,
             "depth_capped": self.depth_capped,
+            "filters": self.filters,
         }
 
     @property
@@ -704,7 +716,7 @@ class SearchResponse:
 # ---------------------------------------------------------------------------
 
 _ROW_SQL = """
-SELECT b.id, b.url, b.title, b.folder, b.domain, b.date_added,
+SELECT b.id, b.url, b.title, b.folder, b.domain, b.date_added, b.tags,
        e.summary, e.utility, e.content_type, e.topics,
        substr(c.body_text, 1, 400) AS body_head
 FROM bookmark b
@@ -714,10 +726,48 @@ WHERE b.id IN ({marks})
 """
 
 
-def _snippet(summary: str | None, body_head: str | None) -> str:
+def _snippet(summary: str | None, body_head: str | None, terms: Sequence[str] = ()) -> str:
+    """One line of context, centred on the first query term it contains.
+
+    Before the query language existed the snippet was the first 300 characters
+    of whatever was longest, summary or body head. That is the right default
+    when there is nothing to aim at. When the caller knows the query terms,
+    though, a snippet that starts at the top of the page and stops before the
+    paragraph the user actually matched is a missed explanation: the term is in
+    the hit, and the snippet is where a reader looks to see *why* it is a hit.
+
+    So: find the first occurrence of the longest term (the longest match is the
+    most specific one, and the one worth showing), and window around it within
+    :data:`SNIPPET_CHARS`. Terms that appear nowhere leave the old behaviour
+    untouched. CJK needs no special case -- ``str.find`` is byte-position
+    agnostic and the terms arrive pre-segmented from the parser.
+    """
     text = (summary or "").strip() or (body_head or "").strip()
     text = " ".join(text.split())
+    if not text:
+        return ""
+    if terms:
+        low = text.lower()
+        for term in sorted({t for t in terms if t}, key=len, reverse=True):
+            pos = low.find(term.lower())
+            if pos >= 0:
+                return _window_around(text, pos, len(term))
     return text[:SNIPPET_CHARS]
+
+
+def _window_around(text: str, pos: int, hit_len: int) -> str:
+    """A ~SNIPPET_CHARS window centred on a hit, with honest ellipses."""
+    half_before = (SNIPPET_CHARS - hit_len) // 2
+    start = max(0, pos - half_before)
+    end = min(len(text), start + SNIPPET_CHARS)
+    # Re-widen the head if the tail clipped short (short text near the end).
+    start = max(0, end - SNIPPET_CHARS)
+    out = text[start:end]
+    if start > 0:
+        out = "\u2026" + out
+    if end < len(text):
+        out = out + "\u2026"
+    return out
 
 
 def hydrate(conn: sqlite3.Connection, ids: Sequence[int]) -> dict[int, dict]:
@@ -729,7 +779,7 @@ def hydrate(conn: sqlite3.Connection, ids: Sequence[int]) -> dict[int, dict]:
     return out
 
 
-def _to_hit(row: Mapping, fused: Fused | None = None) -> SearchHit:
+def _to_hit(row: Mapping, fused: Fused | None = None, terms: Sequence[str] = ()) -> SearchHit:
     return SearchHit(
         bookmark_id=int(row["id"]),
         url=str(row["url"]),
@@ -742,11 +792,123 @@ def _to_hit(row: Mapping, fused: Fused | None = None) -> SearchHit:
         folder=str(row["folder"] or ""),
         domain=str(row["domain"] or ""),
         date_added=int(row["date_added"]) if row["date_added"] else None,
-        snippet=_snippet(row["summary"], row["body_head"]),
+        snippet=_snippet(row["summary"], row["body_head"], terms),
         utility=str(row["utility"] or ""),
         content_type=str(row["content_type"] or ""),
         topics=jload(row["topics"], []),
+        tags=jload(row["tags"], []),
     )
+
+
+# ---------------------------------------------------------------------------
+# query-language helpers
+# ---------------------------------------------------------------------------
+
+#: sort key -> (column, natural direction). The natural reading of the bare
+#: key is the one a filing context implies: newest first for dates, most-open
+#: first for open counts, A-to-Z for text. The ``-`` prefix reverses it.
+_SORT_COLUMNS = {
+    "date": ("date_added", "desc"),
+    "title": ("title", "asc"),
+    "domain": ("domain", "asc"),
+    "open_count": ("open_count", "desc"),
+}
+
+
+def _apply_sort(
+    conn: sqlite3.Connection, fused: list[Fused], parsed: ParsedQuery
+) -> list[Fused]:
+    """Reorder the pool by the ``sort:`` directive, in place of relevance.
+
+    A user who typed ``sort:date`` is asking for a filing-cabinet walk, not a
+    relevance ranking, and honouring that means the whole pool -- not the
+    window -- is sorted, so page 2 continues page 1's order instead of holding
+    a second opinion. NULL keys sort last in either direction: an unknown date
+    is not the oldest date, and pretending otherwise would make ``sort:-date``
+    a NULL-parade. Text keys compare casefolded; SQLite would compare
+    byte-wise and file ``Zebra`` before ``apple``.
+    """
+    key = (parsed.sort or "").lstrip("-")
+    spec = _SORT_COLUMNS.get(key)
+    if spec is None or not fused:
+        return fused
+    column, natural = spec
+    reverse = parsed.sort.startswith("-")
+
+    ids = [f.doc_id for f in fused]
+    vals: dict[int, object] = {}
+    for batch in in_chunks(ids):
+        marks = ",".join("?" * len(batch))
+        for r in conn.execute(
+            f"SELECT id, {column} AS v FROM bookmark WHERE id IN ({marks})", batch
+        ):
+            vals[int(r["id"])] = r["v"]
+
+    import functools
+
+    def compare(a: Fused, b: Fused) -> int:
+        va, vb = vals.get(a.doc_id), vals.get(b.doc_id)
+        if va is None and vb is None:
+            return 0
+        if va is None:
+            return 1
+        if vb is None:
+            return -1
+        if isinstance(va, str):
+            va, vb = va.casefold(), str(vb).casefold()
+        if va == vb:
+            return 0
+        lt = va < vb
+        # "date" bare means newest first; flipping the comparison once here
+        # absorbs both the natural-direction table and the ``-`` reverse.
+        if (natural == "desc") != reverse:
+            lt = not lt
+        return -1 if lt else 1
+
+    return sorted(fused, key=functools.cmp_to_key(compare))
+
+
+def _snippet_terms(parsed: ParsedQuery, u: QueryUnderstanding | None) -> list[str]:
+    """Every word worth centreing a snippet on, longest first.
+
+    Merges the parser's free words and phrase words with any phrases the
+    understanding layer pulled out of CJK quotes -- the two extractions agree
+    on double-quoted input and the union is cheap.
+    """
+    terms = parsed.all_words()
+    if u is not None:
+        for p in u.phrases:
+            terms.extend(p.split())
+    return sorted({t for t in terms if t}, key=len, reverse=True)
+
+
+def _allowed_ids(
+    conn: sqlite3.Connection, parsed: ParsedQuery
+) -> set[int] | None:
+    """The bookmark ids a filtered query may return, or None if unfiltered.
+
+    The lexical facet pushes this into SQL before its LIMIT; the vector facets
+    cannot (a vec0 KNN has no WHERE), so they over-fetch and intersect against
+    this set instead. One predicate, two execution plans, one semantics.
+    """
+    if not parsed.has_filters:
+        return None
+    predicate = sql_predicate(parsed)
+    if predicate is None:
+        return None
+    where, params = predicate
+    return {
+        int(r[0])
+        for r in conn.execute(f"SELECT b.id FROM bookmark b WHERE {where}", params)
+    }
+
+
+def _filter_lists(
+    lists: Mapping[str, Sequence[int]], allowed: set[int] | None
+) -> dict[str, list[int]]:
+    if allowed is None:
+        return dict(lists)
+    return {k: [i for i in ids if i in allowed] for k, ids in lists.items()}
 
 
 # ---------------------------------------------------------------------------
@@ -763,8 +925,16 @@ def quick_search(
     depth: int | None = None,
     k: int = DEFAULT_K,
     settings: Settings | None = None,
+    now_ts: int | None = None,
 ) -> SearchResponse:
-    """Lexical-only first paint. Synchronous, no model call, no network."""
+    """Lexical-only first paint. Synchronous, no model call, no network.
+
+    The query language applies here first, because this is the path that is
+    "always right about exact strings": field filters run as SQL pushdown,
+    quoted phrases as FTS5 phrase clauses, and ``-term`` as a ``NOT`` clause.
+    A filter-only query (``tag:work``) is answered entirely from the bookmark
+    table and never needs the FTS index at all.
+    """
     t0 = time.perf_counter()
     s = settings or get_settings()
     # 3x the window, as before: the two lexical lists overlap heavily -- that is
@@ -772,12 +942,22 @@ def quick_search(
     # they return, and asking for exactly the window size would hand back a
     # short page that looks like the end of the results.
     page = resolve_page(s, limit=limit, offset=offset, depth=depth, over_fetch=3)
-    u = classify(query)
-    lists, truncated = trim_pool(page, lexical_lists(conn, query, limit=page.fetch))
+    parsed = parse_query(query, now_ts=now_ts)
+    u = classify(query, now_ts=now_ts)
+    lists, truncated = trim_pool(
+        page,
+        lexical_lists(
+            conn, query, limit=page.fetch, parsed=parsed, extra_phrases=u.phrases
+        ),
+    )
     fused = rrf(lists, k=k, weights=DEFAULT_FACET_WEIGHTS)
-    window = fused[page.offset:page.stop]
+    fused = _apply_sort(conn, fused, parsed)
+    terms = _snippet_terms(parsed, u)
+    window = fused[page.offset : page.stop]
     rows = hydrate(conn, [f.doc_id for f in window])
-    hits = [_to_hit(rows[f.doc_id], f) for f in window if f.doc_id in rows]
+    hits = [
+        _to_hit(rows[f.doc_id], f, terms) for f in window if f.doc_id in rows
+    ]
     has_more, capped = page_signals(page, len(fused), truncated=truncated)
     return SearchResponse(
         query=query, hits=hits, understanding=u, config="quick",
@@ -785,6 +965,7 @@ def quick_search(
         took_ms={"total": (time.perf_counter() - t0) * 1000},
         limit=page.limit, offset=page.offset, depth=page.depth, total=len(fused),
         has_more=has_more, depth_capped=capped,
+        filters=None if parsed.is_plain else parsed.as_echo(),
     )
 
 
@@ -840,6 +1021,36 @@ async def search(
     # off before anything is fused. See `Page.fetch`.
     per_facet = page.fetch
 
+    # --- 1.5 the query language ---------------------------------------------
+    #
+    # Everything below consults the parsed form instead of the raw string.
+    # Free text (filters, directives, quotes peeled off) is what the facets
+    # match on; the structural filters decide which ids any facet may return.
+    #
+    # Which facets run is a config decision that the query language can
+    # override in exactly one direction: the W1 ablation removed the lexical
+    # facets from FULL because *free-text* lexical votes outvote a confident
+    # vector match (A->B, -5.43pp), and that finding is not ours to relitigate
+    # per-query. But a query that uses filter/phrase/negation/prefix syntax is
+    # stating an exact-string intent the vector facets cannot honour -- an
+    # embedding has no notion of "not java", of "starts with kuber", or of a
+    # domain -- so the lexical facet runs for those queries regardless of
+    # config, on the same terms hister runs its filter conjunctions. This
+    # adds a facet only when the user asked for something only it can do.
+    parsed = parse_query(query, now_ts=now_ts)
+    embed_text = parsed.text or " ".join(parsed.phrases)
+    lexical_syntax = bool(
+        parsed.has_filters or parsed.phrases or parsed.negatives or parsed.prefixes
+    )
+    lexical_wanted = bool(config.facets & LEXICAL_FACETS) or lexical_syntax
+    # A query with nothing to embed (filter-only) must not pay for an
+    # embedding call, and an empty string would be a nonsense vector anyway.
+    want_vector = bool(config.facets & VECTOR_FACETS) and bool(embed_text.strip())
+    # vec0 KNN has no WHERE clause, so filtered vector facets over-fetch and
+    # intersect. 3x mirrors the intent facet's existing over-fetch.
+    vec_limit = per_facet * 3 if (parsed.has_filters and want_vector) else per_facet
+    allowed = _allowed_ids(conn, parsed)
+
     # --- 2. facets --------------------------------------------------------
     # Two paths. The default one takes ranked ids and throws the scores away,
     # because RRF is deliberately rank-only. The abstention path keeps them,
@@ -851,19 +1062,24 @@ async def search(
     if config.abstain_margin > 0.0:
         t0 = time.perf_counter()
         scored: dict[str, list[tuple[int, float]]] = {}
-        if config.facets & LEXICAL_FACETS:
-            for name, rows in lexical_lists_scored(conn, query, limit=per_facet).items():
-                if name in config.facets:
+        if lexical_wanted:
+            for name, rows in lexical_lists_scored(
+                conn, query, limit=per_facet, parsed=parsed,
+                extra_phrases=understanding.phrases,
+            ).items():
+                if name in config.facets or lexical_syntax:
                     scored[name] = rows
         mark("lexical", t0)
 
         t0 = time.perf_counter()
-        if config.facets & VECTOR_FACETS:
+        if want_vector:
             vrows, _vec = await vector_lists_scored(
-                conn, query, provider=prov, settings=s, limit=per_facet,
+                conn, embed_text, provider=prov, settings=s, limit=vec_limit,
                 want_content="content" in config.facets,
                 want_intent="intent" in config.facets,
             )
+            if allowed is not None:
+                vrows = {k: [(i, sc) for i, sc in v if i in allowed] for k, v in vrows.items()}
             scored.update(vrows)
         mark("vectors", t0)
 
@@ -877,20 +1093,23 @@ async def search(
         mark("abstain", t0)
     else:
         t0 = time.perf_counter()
-        if config.facets & LEXICAL_FACETS:
-            for name, ids in lexical_lists(conn, query, limit=per_facet).items():
-                if name in config.facets:
+        if lexical_wanted:
+            for name, ids in lexical_lists(
+                conn, query, limit=per_facet, parsed=parsed,
+                extra_phrases=understanding.phrases,
+            ).items():
+                if name in config.facets or lexical_syntax:
                     lists[name] = ids
         mark("lexical", t0)
 
         t0 = time.perf_counter()
-        if config.facets & VECTOR_FACETS:
+        if want_vector:
             vlists, _vec = await vector_lists(
-                conn, query, provider=prov, settings=s, limit=per_facet,
+                conn, embed_text, provider=prov, settings=s, limit=vec_limit,
                 want_content="content" in config.facets,
                 want_intent="intent" in config.facets,
             )
-            lists.update(vlists)
+            lists.update(_filter_lists(vlists, allowed))
         mark("vectors", t0)
 
         lists, truncated = trim_pool(page, lists)
@@ -904,6 +1123,10 @@ async def search(
     # match. The window *is* the query, so it becomes the candidate set.
     if not fused and understanding.time_window is not None:
         ids = window_filter(conn, understanding.time_window)[: per_facet]
+        if allowed is not None:
+            # An explicit filter constrains even the episodic fallback: the
+            # user's domain:/tag: clause is a promise about every result row.
+            ids = [i for i in ids if i in allowed]
         truncated = truncated or len(ids) > page.depth
         ids = ids[: page.depth]
         fused = rrf({"episodic_window": ids}, k=s.rrf_k)
@@ -945,6 +1168,18 @@ async def search(
         rescued = outcome.rescued
         mark("decay", t0)
 
+    # --- 4.5 explicit sort -------------------------------------------------
+    # The user's sort: directive is the one ordering opinion that outranks
+    # everything above: relevance, context, metabolism. It runs after them
+    # and replaces their order, because a filing-cabinet walk (sort:date) and
+    # a relevance ranking are different questions and the user just said
+    # which one they asked.
+    if parsed.sort:
+        t0 = time.perf_counter()
+        fused = _apply_sort(conn, fused, parsed)
+        mark("sort", t0)
+
+    terms = _snippet_terms(parsed, understanding)
     window = fused[page.offset : page.stop]
     rows = hydrate(conn, [f.doc_id for f in window])
     hits: list[SearchHit] = []
@@ -952,7 +1187,7 @@ async def search(
         row = rows.get(f.doc_id)
         if row is None:
             continue
-        hit = _to_hit(row, f)
+        hit = _to_hit(row, f, terms)
         hit.cold = f.doc_id in cold
         if ctx is not None:
             hit.context_boost = ctx.boost(f.doc_id)
@@ -962,7 +1197,10 @@ async def search(
 
     # --- 5. rerank --------------------------------------------------------
     rr_name = ""
-    if config.rerank and hits:
+    # A sort: directive and a reranker are two answers to the same question
+    # ("what order?") and running both would let the reranker quietly undo
+    # the ordering the user just asked for. The directive wins.
+    if config.rerank and hits and not parsed.sort:
         t0 = time.perf_counter()
         rr = reranker or get_reranker(s, prov)
         rr_name = rr.name
@@ -1031,4 +1269,5 @@ async def search(
         reranker=rr_name, took_ms=timings,
         limit=page.limit, offset=page.offset, depth=page.depth, total=len(fused),
         has_more=has_more, depth_capped=capped, degraded_from=degraded_from,
+        filters=None if parsed.is_plain else parsed.as_echo(),
     )
