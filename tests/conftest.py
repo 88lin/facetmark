@@ -10,18 +10,33 @@ from facetmark.db import open_db
 
 
 @pytest.fixture(autouse=True)
-def _no_ambient_config(monkeypatch):
+def _no_ambient_config(monkeypatch, tmp_path):
     """Run every test against a clean environment.
 
-    ``Settings`` reads ``FACETMARK_*`` from the process environment, so a
-    developer whose shell is configured to talk to a real endpoint -- or a
-    machine that is in the middle of indexing a real library -- gets different
-    test results from CI for reasons that have nothing to do with the code.
+    ``Settings`` reads ``FACETMARK_*`` from the process environment and
+    ``<data_dir>/config.toml`` from the filesystem, so a developer whose shell
+    is configured to talk to a real endpoint -- or a machine that is in the
+    middle of indexing a real library -- gets different test results from CI
+    for reasons that have nothing to do with the code.
     Strip the whole namespace before each test; anything a test needs, it
     passes explicitly.
+
+    The environment strip predates the config-file source and never covered it:
+    the file lives outside the ``FACETMARK_`` namespace, so a developer with
+    ``embed_backend = "local"`` in their own ``config.toml`` got a
+    ``SplitProvider`` out of fixtures that ask for the mock provider. The
+    source resolves its directory from the environment before ``Settings``
+    exists (see ``configfile.config_path``), so relocation -- not deletion --
+    is the only way to silence it: point the per-OS data directory at this
+    test's tmp area. Both variables because ``default_data_dir`` checks
+    ``XDG_DATA_HOME`` on POSIX and ``LOCALAPPDATA`` on Windows; per-test
+    ``tmp_path`` because tests that write a config file must not see each
+    other's either.
     """
     for key in [k for k in os.environ if k.startswith("FACETMARK_")]:
         monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg-data"))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "appdata"))
 
 # ---------------------------------------------------------------------------
 # Bookmark file fixtures.

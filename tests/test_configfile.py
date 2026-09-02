@@ -71,6 +71,28 @@ def test_a_data_dir_inside_the_file_does_not_move_the_file(data_dir, tmp_path):
     assert config_path() == data_dir / "config.toml"
 
 
+def test_the_suite_cannot_read_the_developer_s_own_config_file():
+    """The relocation in ``conftest._no_ambient_config`` is load-bearing.
+
+    The config-file source resolves its directory from the environment, and a
+    development machine's environment points at a real deployment. This suite
+    once failed 54 tests on the machine that wrote the code, because the
+    author's own ``config.toml`` carried ``embed_backend = "local"`` into
+    fixtures that ask for the mock provider. The relocation assert comes first
+    and the write second, so a suite without the relocation fails here rather
+    than editing the developer's real file on its way down.
+    """
+    with pytest.MonkeyPatch.context() as m:
+        # Strip both relocation variables so default_data_dir() lands on its
+        # final branch -- that is the location an unisolated process reads.
+        m.delenv("XDG_DATA_HOME", raising=False)
+        m.delenv("LOCALAPPDATA", raising=False)
+        unisolated = default_data_dir() / "config.toml"
+    assert config_path() != unisolated
+    write_config({"embed_backend": "local"}, config_path())
+    assert Settings().embed_backend == "local"
+
+
 # --------------------------------------------------------------------------
 # round trip
 # --------------------------------------------------------------------------
