@@ -84,6 +84,27 @@ class TestSchema:
                 " VALUES('x','x','h1',0,0)"
             )
 
+    def test_the_last_column_can_be_dropped(self, tmp_path):
+        """Where a comment about the *last* column goes is a correctness
+        constraint on SCHEMA_SQL, not a style choice.
+
+        ``DROP COLUMN`` works by re-parsing the stored ``CREATE TABLE`` text,
+        and a ``--`` block sitting between the previous column's comma and the
+        last column leaves a statement that ends inside a comment: sqlite
+        reports ``error in table bookmark after drop column: incomplete
+        input``. :func:`_write_v1` builds an old database by dropping what
+        later versions added, so the whole migration suite fails at once and
+        for a reason that points at sqlite rather than at the comment. This
+        test is the one that names the cause.
+        """
+        c = open_db(tmp_path / "drop.db")
+        try:
+            c.execute("ALTER TABLE bookmark DROP COLUMN tags")
+            cols = {r[1] for r in c.execute("PRAGMA table_info(bookmark)")}
+            assert "tags" not in cols
+        finally:
+            c.close()
+
 
 class TestMeta:
     def test_set_and_get(self, conn):
