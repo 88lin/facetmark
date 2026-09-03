@@ -1,581 +1,790 @@
-"""The query language: filters, phrases, negation and sort over free text.
+"""The query language: field filters, negation, phrases, alternation and sort.
 
-Facetmark's lexical facet used to receive the raw query string and strip every
-FTS5 metacharacter from it (see :data:`facetmark.text._FTS_STRIP_RE`), which
-meant the data to answer a filter was in the database -- ``bookmark.domain``,
-``bookmark.folder``, ``bookmark.date_added`` have existed since v1 -- and there
-was no way to ask for it. This module is the port of hister's query builder
-(``server/indexer/querybuilder``): a small hand-written lexer that recognises
-the handful of shapes users actually type, a declarative field table as the
-single source of truth for what exists, and a parsed representation every
-consumer (lexical SQL, vector post-filter, snippet highlighting, the response
-echo) can share.
+Ported from hister's query language (github.com/asciimoo/hister,
+``server/indexer/querybuilder``), adapted to facetmark's bookmark model and to
+a pipeline whose ranking is measured rather than tuned.
 
-The grammar, deliberately tiny:
+The design constraint that shaped this port: **a query without syntax must
+produce byte-identical behaviour to the pre-language pipeline.** The parser
+therefore only recognises a token as syntax when it could not be plain text --
+``field:`` is only a filter when ``field`` is one of the known names, so
+``note: something`` and ``https://example.com`` stay ordinary terms, and a
+hyphen inside a word is never a negation. Everything the language strips from
+the free text (filters, sort directives) is removed from the string the facets
+see; everything it leaves stays verbatim. The regression tests pin the
+no-syntax path against the old output.
 
-* free words, as before: ``async rust``
-* quoted phrases: ``"exact phrase"`` (also CJK quotes “ ” 「 」 『 』)
-* negation: ``-term``, ``-"phrase"``, ``-domain:github.com``
-* field filters: ``domain:github.com``, ``host:news.ycombinator.com``,
-  ``url:docs``, ``title:rust``, ``folder:reading``, ``tag:work``
-* field aliases: ``site:`` → ``domain:``
-* alternation: ``(a|b)`` and fielded ``domain:(github.com|gitlab.com)``
-* dates: ``before:2024-06-01``, ``after:30d``, ``added:2024``,
-  ``added:2024-06..2024-09``, comparisons ``added:>2024-01-01``, ``added:<90d``
-* prefix wildcard on free words: ``kuber*``
-* directive: ``sort:date``, ``sort:-date``, ``sort:title``, ``sort:domain``,
-  ``sort:open_count``
+Ranking discipline: the language is a *filter*, not a ranker. Filters cut the
+candidate pool after fusion and never move a surviving document's score, and
+``sort:`` re-orders the pool only when the query asks for it. That is what
+keeps this outside the "retrieval-quality change needs a protocol" rule in
+CONTRIBUTING.md: the default ranking of an unfiltered query is untouched, and
+a filtered query is a different question rather than a different answer.
 
-Two properties are load-bearing:
+Supported syntax (hister-compatible where the fields exist)::
 
-* **A plain query must be untouched.** ``async rust`` parses to itself with no
-  filters, and :func:`parse_query` reports that via ``is_plain`` so callers can
-  take their existing fast path bit-for-bit. Every existing test that does not
-  use the new syntax must keep passing unchanged.
-* **A colon is not a filter unless the name is one.** ``https://example.com/x``
-  contains two colons; ``https`` and ``example.com`` are not fields, so the URL
-  arrives at the lexical facet as one word, exactly as it does today. Only
-  names in :data:`FIELDS` (or an alias) split a token.
+    title:encryption                  field filter, substring match
+    domain:github.com  site:github.com   site: is an alias of domain:
+    url:*/docs/*                      * wildcards on url/title/domain/folder
+    text:"GDPR compliance"            body-text substring
+    folder:study topic:postgres       facetmark-specific fields
+    tag:work                          exact element of the user's own tags
+    lang:zh opened:10..               language filter, open-count range
+    added:>90d added:>=2026-04-01     relative age or absolute date
+    before:2026-05-01 after:2024-01-01   absolute-date aliases for added:
+    -facebook -domain:facebook.com    negation of a term or a field
+    -"social media"                   negated phrase
+    "privacy policy"                  exact phrase (lexical facet)
+    (security|privacy)                alternation, expands to OR terms
+    sort:date sort:-date sort:domain  ordering directive
+
+Relative durations compare against the *age* of the bookmark (``added:>90d``
+means saved more than 90 days ago), absolute dates compare against the
+timestamp itself -- both exactly as hister's query-language guide defines them.
 """
 
 from __future__ import annotations
 
-import calendar
 import re
+import sqlite3
 import time
 from dataclasses import dataclass, field
 
-__all__ = [
-    "FIELDS",
-    "FieldDef",
-    "FieldFilter",
-    "DateRange",
-    "ParsedQuery",
-    "SORT_KEYS",
-    "parse_query",
-    "QUERY_SYNTAX_HELP",
-]
+from ..db import in_chunks
+
+#: Canonical field names. ``site`` is an alias of ``domain``; ``before`` and
+#: ``after`` are absolute-date aliases of ``added``. A ``field:`` token whose
+#: name is not in this table is plain text -- that is the compatibility rule.
+FIELDS: dict[str, str] = {
+    "domain": "domain",
+    "site": "domain",
+    "url": "url",
+    "title": "title",
+    "text": "text",
+    "folder": "folder",
+    "tag": "tag",
+    "topic": "topic",
+    "lang": "lang",
+    "added": "added",
+    "saved": "added",
+    "before": "added",
+    "after": "added",
+    "opened": "opened",
+}
+
+#: Values ``sort:`` understands. ``date`` and ``added`` are the same key.
+SORTS: dict[str, str] = {
+    "relevance": "relevance",
+    "date": "date",
+    "added": "date",
+    "domain": "domain",
+    "title": "title",
+    "url": "url",
+}
+
+#: One relative unit in seconds. Weeks are 7 days; a year is 365 days, which
+#: is what "added:>1y" has to mean on a unix-seconds column that has no
+#: calendar. Ranges that need calendar arithmetic (months) are absolute dates.
+_DURATION_UNITS = {"s": 1, "m": 60, "h": 3600, "d": 86400, "w": 604800, "y": 31536000}
+
+_REL_RE = re.compile(r"^([<>]=?)(\d+(?:\.\d+)?)([smhdwy])$", re.IGNORECASE)
+_ABS_RE = re.compile(r"^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?$")
+_RANGE_RE = re.compile(r"^(\S+)\.\.(\S*)$")
+
+# A quoted phrase: from the opening quote to the next quote or end of string.
+_QUOTE_RE = re.compile(r'"([^"]*)"')
+
+_WILDCARD_RE = re.compile(r"[*]")
 
 
 # ---------------------------------------------------------------------------
-# the field table -- single source of truth (hister's searchschema, ported)
+# parse
 # ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True, slots=True)
-class FieldDef:
-    """One filterable field.
+class Term:
+    """One piece of free text the facets should match.
 
-    ``kind`` decides how a value is executed: ``sql`` fields become predicates
-    over ``bookmark`` (the column named here); ``date`` fields become
-    ``date_added`` range bounds; ``directive`` tokens are peeled off the query
-    entirely and never reach a facet.
+    ``raw`` keeps the quotes for the lexical path (FTS5 phrase); ``plain`` is
+    what the embedding path and the UI should see.
     """
 
-    name: str
-    kind: str  # "sql" | "date" | "directive"
-    column: str
-    aliases: tuple[str, ...] = ()
-    #: How a value matches. "exact_suffix" = domain equals v, or host ends with
-    # ".v" (site:github.com covers gist.github.com). "contains" = substring.
-    #: "tag" = exact element of the tags JSON array.
-    match: str = "contains"
-    description: str = ""
-
-
-FIELDS: dict[str, FieldDef] = {
-    "domain": FieldDef(
-        "domain", "sql", "domain", aliases=("site",), match="exact_suffix",
-        description="Registrable domain, e.g. domain:github.com (covers subdomains).",
-    ),
-    "host": FieldDef(
-        "host", "sql", "host", match="contains",
-        description="Full hostname, e.g. host:news.ycombinator.com.",
-    ),
-    "url": FieldDef(
-        "url", "sql", "url", match="contains",
-        description="Substring of the raw URL, e.g. url:releases.",
-    ),
-    "title": FieldDef(
-        "title", "sql", "title", match="contains",
-        description="Substring of the page title, e.g. title:rust.",
-    ),
-    "folder": FieldDef(
-        "folder", "sql", "folder", match="contains",
-        description="Substring of the folder path, e.g. folder:reading.",
-    ),
-    "tag": FieldDef(
-        "tag", "sql", "tags", match="tag",
-        description="Exact tag, e.g. tag:work. Tags come from imports and the save API.",
-    ),
-    "after": FieldDef("after", "date", "date_added", aliases=("since",),
-                      description="Saved at or after: after:2024-06-01 or after:7d."),
-    "before": FieldDef("before", "date", "date_added", aliases=("until",),
-                       description="Saved at or before: before:2024-06-01 or before:90d."),
-    "added": FieldDef("added", "date", "date_added", aliases=("on", "saved"),
-                      description="Saved within a period: added:2024, added:2024-06, "
-                                  "added:2024-06-01..2024-09-01, added:>2024-01-01."),
-    "sort": FieldDef("sort", "directive", "",
-                     description="Result order: sort:date, sort:-date, sort:title, "
-                                 "sort:domain, sort:open_count."),
-}
-
-#: Canonical name -> definition, plus every alias.
-_FIELD_LOOKUP: dict[str, FieldDef] = {}
-for _d in FIELDS.values():
-    _FIELD_LOOKUP[_d.name] = _d
-    for _a in _d.aliases:
-        _FIELD_LOOKUP[_a] = _d
-
-SORT_KEYS = frozenset({"date", "-date", "title", "-title", "domain", "-domain",
-                       "open_count", "-open_count"})
-
-_DAY = 86400
-_MONTH = 30 * _DAY
-_YEAR = 365 * _DAY
-
-#: ``30d`` / ``2w`` / ``3m`` / ``1y`` -- hister's relative units, minus the
-#: hour/minute forms that make no sense for a filing date. Long forms first:
-#: regex alternation is leftmost-first, and ``mo`` must not shadow ``month``.
-_RELATIVE = re.compile(
-    r"^(\d{1,4})\s*(days?|weeks?|w|months?|mo|years?|y|d|m)$", re.IGNORECASE
-)
-_RELATIVE_SECONDS = {
-    "day": _DAY, "days": _DAY, "d": _DAY,
-    "week": 7 * _DAY, "weeks": 7 * _DAY, "w": 7 * _DAY,
-    "month": _MONTH, "months": _MONTH, "mo": _MONTH, "m": _MONTH,
-    "year": _YEAR, "years": _YEAR, "y": _YEAR,
-}
-_ABSOLUTE = re.compile(r"^(\d{4})(?:[-/.](\d{1,2}))?(?:[-/.](\d{1,2}))?$")
-_RANGE = re.compile(r"^(\S+?)\.\.(\S+)$")
-_COMPARISON = re.compile(r"^([<>]=?)(.+)$")
-
-_MONTH_DAYS = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
-
-#: Opening and closing quote characters. Curly/CJK quotes arrive from phone
-#: keyboards; :mod:`facetmark.search.understand` already treats them as
-#: phrase markers, so the lexer has to agree with it.
-_OPEN_QUOTES = {'"', "\u201c", "\u300c", "\u300e"}
-_QUOTE_PAIRS = {"\u201c": "\u201d", "\u300c": "\u300d", "\u300e": "\u300f"}
-
-_FIELD_PREFIX_RE = re.compile(r"([A-Za-z_][A-Za-z0-9_]*):")
-
-
-# ---------------------------------------------------------------------------
-# date parsing
-# ---------------------------------------------------------------------------
-
-
-def _is_leap(year: int) -> bool:
-    return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
-
-
-def _days_in_month(year: int, month: int) -> int:
-    if month == 2 and _is_leap(year):
-        return 29
-    return _MONTH_DAYS[month - 1]
-
-
-def _to_unix(year: int, month: int, day: int, end_of_day: bool) -> int:
-    """UTC midnight of that date, plus 86399 when the day is the inclusive end."""
-    ts = calendar.timegm((year, month, day, 0, 0, 0))
-    return ts + 86399 if end_of_day else ts
-
-
-def _parse_absolute(value: str) -> tuple[int, int] | None:
-    """A date or date prefix, as an inclusive [start, end] window in unix seconds.
-
-    ``2024`` is the whole year, ``2024-06`` the whole month, ``2024-06-01`` the
-    whole day. The end bound is inclusive so ``before:2024-06-01`` still
-    matches a bookmark saved that day -- "before the 1st" in a filing context
-    means "not after the 1st", and a 23:59 save is the same day to a human.
-    """
-    m = _ABSOLUTE.match(value)
-    if not m:
-        return None
-    year = int(m.group(1))
-    month = int(m.group(2)) if m.group(2) else None
-    day = int(m.group(3)) if m.group(3) else None
-    if month is None:
-        return _to_unix(year, 1, 1, False), _to_unix(year, 12, 31, True)
-    if not 1 <= month <= 12:
-        return None
-    if day is None:
-        return _to_unix(year, month, 1, False), _to_unix(year, month, _days_in_month(year, month), True)
-    if not 1 <= day <= _days_in_month(year, month):
-        return None
-    return _to_unix(year, month, day, False), _to_unix(year, month, day, True)
-
-
-def _parse_relative(value: str, now_ts: int | None) -> tuple[int, int] | None:
-    """``30d`` as "the window ending now and starting 30 days ago".
-
-    Returned as [start, end] unix seconds. The end is ``now_ts``; the caller
-    supplies it so parsing stays pure and tests can pin it.
-    """
-    m = _RELATIVE.match(value)
-    if not m or now_ts is None:
-        return None
-    n = int(m.group(1))
-    unit = m.group(2).lower()
-    span = n * _RELATIVE_SECONDS[unit]
-    return now_ts - span, now_ts
-
-
-def _parse_date_value(value: str, now_ts: int | None) -> tuple[int, int] | None:
-    if (abs_value := _parse_absolute(value)) is not None:
-        return abs_value
-    return _parse_relative(value, now_ts)
-
-
-# ---------------------------------------------------------------------------
-# lexer
-# ---------------------------------------------------------------------------
-
-
-@dataclass(slots=True)
-class _Token:
-    kind: str  # "word" | "quoted" | "alternation"
-    text: str
+    raw: str
+    plain: str
     negated: bool = False
-    field: str | None = None  # canonical field name, when the prefix matched
-    start: int = 0
-    end: int = 0
-
-    def original(self) -> str:
-        """Rebuild the token as typed, for fall-back-to-text paths."""
-        prefix = ("-" if self.negated else "") + (f"{self.field}:" if self.field else "")
-        if self.kind == "quoted":
-            return f'{prefix}"{self.text}"'
-        return prefix + self.text
+    is_phrase: bool = False
 
 
-def _read_quoted(s: str, i: int) -> tuple[str, int, bool]:
-    """Read from an opening quote to its closing partner.
-
-    Returns (text, next_index, closed). An unterminated quote swallows the rest
-    of the string and is reported closed=False; the caller keeps it as a phrase
-    anyway, because half a remembered quote is still an exact-string intention.
-    """
-    quote = s[i]
-    closer = _QUOTE_PAIRS.get(quote, '"')
-    j = i + 1
-    out: list[str] = []
-    while j < len(s):
-        c = s[j]
-        if c == "\\" and j + 1 < len(s) and s[j + 1] in {closer, "\\"}:
-            out.append(s[j + 1])
-            j += 2
-            continue
-        if c == closer:
-            return "".join(out), j + 1, True
-        out.append(c)
-        j += 1
-    return "".join(out), j, False
-
-
-def _read_alternation(s: str, i: int) -> tuple[list[str], int, bool]:
-    """Read a ``(...|...)`` group at depth 0 of ``|``.
-
-    Nested groups are not supported as nested -- a paren inside a value stays
-    literal text. Returns (parts, next_index, closed).
-    """
-    depth = 0
-    j = i
-    while j < len(s):
-        c = s[j]
-        if c == "(":
-            depth += 1
-        elif c == ")":
-            depth -= 1
-            if depth == 0:
-                body = s[i + 1 : j]
-                parts = [p.strip() for p in body.split("|")]
-                return [p for p in parts if p], j + 1, True
-        j += 1
-    return [], len(s), False
-
-
-def _field_of(s: str, i: int) -> tuple[str | None, int]:
-    """If a known field name (or alias) ends with ``:`` at position i, consume it.
-
-    This is the URL guard: ``https:`` fails the lookup, so ``https://x`` stays
-    one word. Only the names in :data:`FIELDS` can split a token, and none of
-    them are URL schemes a user could have meant.
-    """
-    m = _FIELD_PREFIX_RE.match(s, i)
-    if not m:
-        return None, i
-    d = _FIELD_LOOKUP.get(m.group(1).lower())
-    if d is None:
-        return None, i
-    return d.name, m.end()
-
-
-def _tokenize(s: str) -> list[_Token]:
-    tokens: list[_Token] = []
-    i, n = 0, len(s)
-    while i < n:
-        if s[i].isspace():
-            i += 1
-            continue
-        start = i
-        negated = False
-        if s[i] == "-" and i + 1 < n and not s[i + 1].isspace():
-            negated = True
-            i += 1
-        canonical, after_field = _field_of(s, i)
-        i = after_field
-        if i < n and s[i] in _OPEN_QUOTES:
-            text, after, _closed = _read_quoted(s, i)
-            tokens.append(_Token("quoted", text, negated, canonical, start, after))
-            i = after
-            continue
-        if i < n and s[i] == "(":
-            parts, after, closed = _read_alternation(s, i)
-            if closed and parts:
-                tokens.append(_Token("alternation", "|".join(parts), negated, canonical, start, after))
-                i = after
-                continue
-            # An unclosed or empty group is not syntax. Fall through to the
-            # word reader, which treats "(" as an ordinary character.
-        j = i
-        while j < n and not s[j].isspace():
-            j += 1
-        tokens.append(_Token("word", s[i:j], negated, canonical, start, j))
-        i = j
-    return tokens
-
-
-# ---------------------------------------------------------------------------
-# the parsed representation
-# ---------------------------------------------------------------------------
-
-
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class FieldFilter:
-    """One ``field:value`` (or ``field:(a|b)``) constraint."""
-
-    field: str
-    values: list[str]
-    negated: bool = False
-
-    @property
-    def defn(self) -> FieldDef:
-        return FIELDS[self.field]
-
-
-@dataclass(slots=True)
-class DateRange:
-    """A ``date_added`` window. Both bounds are inclusive unix seconds."""
-
-    start: int | None
-    end: int | None
-
-    def merge(self, other: DateRange) -> DateRange:
-        """Intersect two ranges -- ``after:7d before:2024-06-01`` narrows both."""
-        starts = [x for x in (self.start, other.start) if x is not None]
-        ends = [x for x in (self.end, other.end) if x is not None]
-        return DateRange(max(starts) if starts else None, min(ends) if ends else None)
+    field: str          # canonical (site->domain, before/after->added)
+    value: str          # as typed; may carry * wildcards, | alternation, date ops
+    negate: bool
+    alias: str = ""     # the name the user actually typed, for the echo
 
 
 @dataclass(slots=True)
 class ParsedQuery:
-    original: str
-    #: Free text left after every directive, field filter and date was peeled
-    #: off. This is what the FTS match and the embedding see.
-    text: str = ""
-    #: Quoted phrases the user asked for verbatim.
-    phrases: list[str] = field(default_factory=list)
-    #: Free words the user asked to exclude.
-    negatives: list[str] = field(default_factory=list)
-    #: Free words with a trailing ``*`` (the star stripped, kept as intent).
-    prefixes: list[str] = field(default_factory=list)
-    field_filters: list[FieldFilter] = field(default_factory=list)
-    dates: DateRange | None = None
-    #: ``sort`` argument as typed, canonical (e.g. "date", "-date").
-    sort: str | None = None
-    #: True when nothing in the input used any syntax at all.
-    is_plain: bool = True
+    """A query split into ``what to match`` and ``what to require``."""
+
+    terms: list[Term] = field(default_factory=list)
+    filters: list[FieldFilter] = field(default_factory=list)
+    sort: str = ""
+    #: Filters whose value did not parse are kept here verbatim so they can be
+    #: reported back rather than silently swallowed.
+    ignored: list[str] = field(default_factory=list)
+
+    @property
+    def text(self) -> str:
+        """Free text for the lexical facet; phrases keep their quotes."""
+        return " ".join(t.raw for t in self.terms if not t.negated)
+
+    @property
+    def plain_text(self) -> str:
+        """Free text with the syntax stripped -- what an embedding should see."""
+        return " ".join(t.plain for t in self.terms if not t.negated)
 
     @property
     def has_filters(self) -> bool:
-        return bool(self.field_filters) or self.dates is not None
+        return bool(self.filters) or any(t.negated for t in self.terms)
 
-    def all_words(self) -> list[str]:
-        """Words for snippet targeting: free words plus the words of phrases."""
-        out: list[str] = []
-        for p in self.phrases:
-            out.extend(p.split())
-        out.extend(w for w in self.text.split() if w)
-        # longest first: a match on the longest term is the match worth showing
-        return sorted(dict.fromkeys(out), key=len, reverse=True)
+    @property
+    def has_syntax(self) -> bool:
+        return bool(self.filters) or bool(self.sort) or any(t.negated for t in self.terms)
 
-    def as_echo(self) -> dict:
-        """A compact echo for the response, so a client can show what applied."""
-        return {
-            "text": self.text,
-            "phrases": list(self.phrases),
-            "negatives": list(self.negatives),
-            "field_filters": [
-                {"field": f.field, "values": list(f.values), "negated": f.negated}
-                for f in self.field_filters
-            ],
-            "dates": None if self.dates is None else [self.dates.start, self.dates.end],
-            "sort": self.sort,
-        }
-
-
-QUERY_SYNTAX_HELP = (
-    'Filters: domain:github.com  host:news.ycombinator.com  url:releases  '
-    'title:rust  folder:reading  tag:work · exclude with - (e.g. -domain:pinterest.com) · '
-    'phrases: "exact words" · alternation: domain:(github.com|gitlab.com) · '
-    'dates: after:30d before:2024-06-01 added:2024 added:2024-06..2024-09 · '
-    'prefix: kuber* · order: sort:date / sort:-date / sort:title / sort:domain'
-)
-
-
-# ---------------------------------------------------------------------------
-# the parser
-# ---------------------------------------------------------------------------
-
-
-def _resolve_date(field: str, value: str, now_ts: int | None) -> DateRange | None:
-    """Turn a date-field value into a range, or None when it is not a date.
-
-    A non-date value falls back to free text; the caller rebuilds the token
-    verbatim so no words are ever lost.
-    """
-    comp = _COMPARISON.match(value)
-    if comp:
-        op, rest = comp.group(1), comp.group(2)
-        window = _parse_date_value(rest, now_ts)
-        if window is None:
-            return None
-        start, end = window
-        # The arrow points the way a filing date moves: ``added:>2024`` is
-        # "later than the end of 2024", ``added:<90d`` is "older than 90 days".
-        if op in (">", ">="):
-            return DateRange(end + 1 if op == ">" else end, None)
-        return DateRange(None, start - 1 if op == "<" else start)
-
-    if field == "before":
-        window = _parse_date_value(value, now_ts)
-        return None if window is None else DateRange(None, window[1])
-    if field == "after":
-        window = _parse_date_value(value, now_ts)
-        return None if window is None else DateRange(window[0], None)
-
-    rng = _RANGE.match(value)
-    if rng:
-        lo = _parse_date_value(rng.group(1), now_ts)
-        hi = _parse_date_value(rng.group(2), now_ts)
-        if lo is None or hi is None:
-            return None
-        return DateRange(lo[0], hi[1])
-    window = _parse_date_value(value, now_ts)
-    return None if window is None else DateRange(window[0], window[1])
-
-
-def parse_query(query: str, *, now_ts: int | None = None) -> ParsedQuery:
-    """Parse a user query into text + filters. Never raises, never loses words.
-
-    Anything that does not parse as grammar is preserved as free text: an
-    unknown ``field:value`` stays verbatim (the field name is not one of ours),
-    an invalid date stays verbatim, an unclosed paren stays verbatim. The
-    worst case of a typo is the behaviour the user already had.
-    """
-    if now_ts is None:
-        now_ts = int(time.time())
-
-    out = ParsedQuery(original=query, text="")
-    if not query or not query.strip():
+    def echo(self) -> dict:
+        """What the response should say about the parsed query."""
+        out: dict = {}
+        if self.filters:
+            out["fields"] = [
+                {"field": f.field, "value": f.value, "negate": f.negate} for f in self.filters
+            ]
+        if any(t.negated for t in self.terms):
+            out["exclude"] = [t.plain for t in self.terms if t.negated]
+        if self.sort:
+            out["sort"] = self.sort
+        if self.ignored:
+            out["ignored"] = self.ignored
         return out
 
-    tokens = _tokenize(query.strip())
-    text_parts: list[str] = []
-    plain = True
 
-    for t in tokens:
-        # --- directive -----------------------------------------------------
-        if t.field == "sort":
-            # An invalid sort key is not a filter either -- "sort:garbage" is
-            # ordinary text, exactly as hister treats unknown directives. The
-            # negated form never applies, so it falls through to text too.
-            value = (t.text.split("|")[0] if t.kind == "alternation" else t.text).strip().lower()
-            if not t.negated and value in SORT_KEYS:
-                out.sort = value
-                plain = False
-                continue
-            text_parts.append(t.original())
-            continue
+def _split_value(value: str) -> list[str]:
+    """Alternation parts: ``a|b`` -> ``["a", "b"]``; parens already stripped."""
+    parts = [p for p in (s.strip().strip('"') for s in value.split("|")) if p]
+    return parts or [value]
 
-        # --- date fields ---------------------------------------------------
-        if t.field in ("after", "before", "added"):
-            if t.negated:
-                # A negated date has no clean semantics ("not saved in June"?).
-                # Keep the token as text rather than guessing.
-                text_parts.append(t.original())
-                plain = False
-                continue
-            value = t.text.split("|")[0] if t.kind == "alternation" else t.text
-            rng = _resolve_date(t.field, value, now_ts)
-            if rng is not None:
-                out.dates = rng if out.dates is None else out.dates.merge(rng)
-                plain = False
-                continue
-            text_parts.append(t.original())
-            continue
 
-        # --- sql fields ------------------------------------------------------
-        if t.field is not None:
-            values = t.text.split("|") if t.kind == "alternation" else [t.text]
-            values = [v for v in values if v]
-            if values:
-                out.field_filters.append(FieldFilter(t.field, values, t.negated))
-                plain = False
-                continue
-            text_parts.append(t.original())
-            continue
+def parse_query(query: str, *, now: float | None = None) -> ParsedQuery:
+    """Split a raw query into terms, filters and a sort directive.
 
-        # --- free syntax -----------------------------------------------------
-        if t.kind == "quoted":
-            if t.negated:
-                out.negatives.append(t.text)
+    Tokenisation keeps quoted spans together, so ``"privacy policy"`` is one
+    token and ``domain:"example.com"`` is one filter. Recognition is
+    conservative: only known field names bind ``:``, and a leading ``-`` is a
+    negation only when something follows it.
+    """
+    q = (query or "").strip()
+    parsed = ParsedQuery()
+    if not q:
+        return parsed
+
+    now = time.time() if now is None else now
+
+    # Walk the string splitting on whitespace, but a quote opens a span that
+    # runs to the next quote (or end of input). Unclosed quotes are content,
+    # not an error: the user is still typing.
+    tokens: list[tuple[str, bool]] = []   # (token, was_quoted)
+    i = 0
+    while i < len(q):
+        while i < len(q) and q[i].isspace():
+            i += 1
+        if i >= len(q):
+            break
+        if q[i] == '"':
+            m = _QUOTE_RE.match(q, i)
+            if m and m.end() < len(q) and not q[m.end()].isspace() and q[i : m.end()].count('"') == 2:
+                # A quoted span glued to a following word ("foo"bar) is one
+                # token by hister's lexer too; keep them joined.
+                j = m.end()
+                while j < len(q) and not q[j].isspace():
+                    j += 1
+                tokens.append((q[i:j], True))
+                i = j
+            elif m:
+                tokens.append((m.group(0), True))
+                i = m.end()
             else:
-                out.phrases.append(t.text)
-            plain = False
-            continue
-        if t.kind == "alternation":
-            # Free-text alternation: the FTS builder ORs every word already, so
-            # emitting the words keeps lexical semantics; the vector facets see
-            # the words too. Negated alternation excludes each word.
-            for v in t.text.split("|"):
-                if v:
-                    if t.negated:
-                        out.negatives.append(v)
-                    else:
-                        text_parts.append(v)
-                    plain = False
+                # Unterminated quote: treat the rest as one quoted token.
+                tokens.append((q[i:], True))
+                i = len(q)
+        else:
+            # A word, with hister's rule that a quote *inside* a word keeps the
+            # word together: ``text:"GDPR compliance"`` is one token, because
+            # the quote opened a span that whitespace does not close.
+            j = i
+            inside = False
+            while j < len(q):
+                ch = q[j]
+                if ch == '"':
+                    inside = not inside
+                elif ch.isspace() and not inside:
+                    break
+                j += 1
+            tokens.append((q[i:j], False))
+            i = j
+
+    for raw, quoted in tokens:
+        negated = False
+        body = raw
+        if not quoted and body.startswith("-") and len(body) > 1:
+            negated = True
+            body = body[1:]
+        # A quoted token may itself start with a "-" glued inside the quotes.
+        if quoted and body.startswith('-') and len(body) > 2 and body.endswith('"'):
+            inner = body[1:-1]
+            if inner.startswith("-") and len(inner) > 1:
+                negated = True
+                inner = inner[1:]
+                body = f'"{inner}"'
+
+        if quoted:
+            inner = body[1:-1] if body.startswith('"') and body.endswith('"') else body
+            # `field:"value"` / `-field:"value"`: a filter with a quoted value.
+            fm = re.match(r"^([A-Za-z_]+):\"(.*)\"$", body) if ":" in body else None
+            if fm and fm.group(1).lower() in FIELDS:
+                parsed.filters.append(
+                    FieldFilter(FIELDS[fm.group(1).lower()], fm.group(2), negated,
+                                alias=fm.group(1).lower())
+                )
+                continue
+            # A filter with a quoted value and trailing text glued on is rare
+            # enough to fall through as a phrase.
+            if negated or inner:
+                parsed.terms.append(Term(raw=f'"{inner}"', plain=inner, negated=negated,
+                                         is_phrase=True))
             continue
 
-        word = t.text
-        if t.negated:
-            out.negatives.append(word)
-            plain = False
-            continue
-        if word.endswith("*") and len(word.rstrip("*")) >= 2:
-            out.prefixes.append(word.rstrip("*"))
-            text_parts.append(word.rstrip("*"))
-            plain = False
-            continue
-        text_parts.append(word)
+        # Unquoted token: field filter, sort directive, or free text.
+        if ":" in body:
+            name, _, value = body.partition(":")
+            low = name.lower()
+            # `-field:"value"` keeps its quotes through tokenisation; a
+            # value that is one quoted string is that string.
+            if value.startswith('"') and value.endswith('"') and len(value) >= 2:
+                value = value[1:-1]
+            if low == "sort" and value:
+                key = value.lower()
+                if key in SORTS:
+                    parsed.sort = SORTS[key]
+                    continue
+                if key.startswith("-") and key[1:] in SORTS:
+                    parsed.sort = "-" + SORTS[key[1:]]
+                    continue
+                # An unknown sort value is a mistake the caller should see, not
+                # a term to silently index.
+                parsed.ignored.append(body)
+                continue
+            if low in FIELDS and value:
+                # Strip one layer of parens from an alternation value.
+                v = value
+                if v.startswith("(") and v.endswith(")"):
+                    v = v[1:-1]
+                parsed.filters.append(FieldFilter(FIELDS[low], v, negated, alias=low))
+                continue
 
-    out.text = " ".join(text_parts)
-    # A plain query round-trips exactly: text is the whitespace-normalised
-    # original, which is what the FTS builder consumed before this module
-    # existed, and every caller can keep its existing fast path.
-    out.is_plain = plain and not out.phrases and not out.negatives and not out.prefixes
-    if out.is_plain:
-        out.text = " ".join(query.split())
+        # Alternation: ``(...|...)`` or a bare ``a|b`` is one term per part.
+        if body.startswith("(") and body.endswith(")"):
+            body = body[1:-1]
+        if "|" in body and not _WILDCARD_RE.search(body):
+            parts = _split_value(body)
+            if negated:
+                for p in parts:
+                    parsed.terms.append(Term(raw=p, plain=p, negated=True))
+            else:
+                # The lexical facet ORs terms anyway, so expanding alternation
+                # into separate terms is the same query with one code path.
+                for p in parts:
+                    parsed.terms.append(Term(raw=p, plain=p))
+            continue
+
+        if body:
+            # ``-"a phrase"`` arrives here (the '-' stopped the quoted path);
+            # recognise the phrase so negation matches it as one unit.
+            is_phrase = body.startswith('"') and body.endswith('"') and len(body) >= 2
+            plain = body[1:-1] if is_phrase else body
+            parsed.terms.append(Term(raw=body, plain=plain, negated=negated,
+                                     is_phrase=is_phrase))
+
+    # ``before:``/``after:`` are sugar: fold them into an op on ``added``.
+    folded: list[FieldFilter] = []
+    for f in parsed.filters:
+        if f.alias in ("before", "after") and not f.negate \
+                and not _REL_RE.match(f.value) and not f.value.startswith(("<", ">")):
+            op = "<" if f.alias == "before" else ">="
+            folded.append(FieldFilter("added", op + f.value, False, alias=f.alias))
+        else:
+            folded.append(f)
+    parsed.filters = folded
+    return parsed
+
+
+# ---------------------------------------------------------------------------
+# date values
+# ---------------------------------------------------------------------------
+
+
+def _abs_ts(y: int, m: int, d: int) -> int | None:
+    import calendar
+    import datetime as _dt
+
+    try:
+        return int(calendar.timegm(_dt.datetime(y, m, d, tzinfo=_dt.timezone.utc).timetuple()))
+    except ValueError:
+        return None
+
+
+def resolve_date_value(value: str, *, now: float) -> tuple[str, int] | None:
+    """An *operator* date value -> ``(comparison, unix_seconds)``.
+
+    Handles ``>90d``, ``<=2w``, ``>=2026-04-01``, ``<2026-05-01``. Relative
+    values compare against *age* (``>90d`` = saved more than 90 days ago),
+    absolute values against the timestamp; both are rewritten here onto a
+    single comparison against ``date_added`` so the caller never sees the
+    difference. Returns ``None`` for bare values and unparseable text.
+    """
+    v = value.strip()
+    if not v:
+        return None
+    op = ""
+    if v[:1] in "<>":
+        op, v = v[:1], v[1:]
+        if v[:1] == "=":
+            op, v = op + "=", v[1:]
+    if not op:
+        return None
+
+    m = _REL_RE.match(op + v)
+    if m:
+        # Relative: comparison is against age, so invert onto the timestamp.
+        n, unit = float(m.group(2)), m.group(3).lower()
+        ts = int(now - n * _DURATION_UNITS[unit])
+        invert = {">": "<", ">=": "<=", "<": ">", "<=": ">="}
+        return (invert[m.group(1)], ts)
+
+    am = _ABS_RE.match(v)
+    if am is None:
+        return None
+    y, mo, d = int(am.group(1)), int(am.group(2) or 1), int(am.group(3) or 1)
+    ts = _abs_ts(y, mo, d)
+    if ts is None:
+        return None
+    return (op, ts)
+
+
+def resolve_date_span(value: str) -> tuple[int, int] | None:
+    """A *bare* absolute value -> the ``(lo, hi)`` seconds it names.
+
+    ``2026-04-01`` is that day, ``2026-04`` that month, ``2026`` that year.
+    Returns ``None`` for anything else -- including bare relative durations,
+    which the grammar does not define and which degrade to ignored tokens
+    rather than being guessed at.
+    """
+    am = _ABS_RE.match(value.strip())
+    if am is None:
+        return None
+    y, mo, d = int(am.group(1)), int(am.group(2) or 1), int(am.group(3) or 1)
+    lo = _abs_ts(y, mo, d)
+    if lo is None:
+        return None
+    if am.group(3):
+        return (lo, _day_after(y, mo, d))
+    if am.group(2):
+        return (lo, _month_after(y, mo))
+    return (lo, _month_after(y, 12))
+
+
+def _day_after(y: int, m: int, d: int) -> int:
+    import datetime as _dt
+
+    return int((_dt.datetime(y, m, d, tzinfo=_dt.timezone.utc) + _dt.timedelta(days=1)).timestamp())
+
+
+def _month_after(y: int, m: int) -> int:
+    y2, m2 = (y + 1, 1) if m == 12 else (y, m + 1)
+    return _abs_ts(y2, m2, 1) or 0
+
+
+def _date_range(value: str, *, now: float) -> tuple[int, int] | None:
+    """``a..b`` -> ``(lo, hi)`` unix seconds, or None when unparseable.
+
+    Each side may be a bare absolute value (``2026-04-01``, ``2026-04``) or an
+    operator form (``>=2026-04-01``, ``<7d``); an empty right side means "no
+    upper bound".
+    """
+    m = _RANGE_RE.match(value)
+    if not m:
+        return None
+
+    def bound(side: str) -> int | None:
+        if not side:
+            return 2**62
+        span = resolve_date_span(side)
+        if span is not None:
+            return span[0]
+        op = resolve_date_value(side, now=now)
+        return op[1] if op else None
+
+    lo = bound(m.group(1))
+    hi = bound(m.group(2))
+    if lo is None:
+        return None
+    return (lo, hi if hi is not None else 2**62)
+
+
+# ---------------------------------------------------------------------------
+# SQL resolution
+# ---------------------------------------------------------------------------
+
+
+def _like(value: str, *, wrap: str) -> str:
+    """A field value into a LIKE pattern: ``*`` widens, ``%``/``_`` are literal."""
+    v = value.replace("\\", "\\\\").replace("%", r"\%").replace("_", r"\_")
+    v = v.replace("*", "%")
+    return wrap.format(v)
+
+
+def _value_sql(column: str, value: str, *, wrap: str = "%{}%") -> tuple[str, list[str]]:
+    """One equality/substring/wildcard predicate over a plain column.
+
+    A value carrying ``*`` is used exactly as written -- the asterisks are the
+    user's statement of where matching should happen (``domain:*.github.io``).
+    A value without them gets the caller's default wrapping: substring for
+    ``url``/``title``/``folder``/``text``, exact for ``domain``.
+    """
+    if _WILDCARD_RE.search(value):
+        return (f"{column} LIKE ? ESCAPE '\\'", [_like(value, wrap="{}")])
+    return (f"{column} LIKE ? ESCAPE '\\'", [_like(value, wrap=wrap)])
+
+
+def _values_sql(column: str, values: list[str], *, wrap: str = "%{}%") -> tuple[str, list[str]]:
+    """Alternation over one column: OR of per-value predicates."""
+    parts, params = [], []
+    for v in values:
+        p, q = _value_sql(column, v, wrap=wrap)
+        parts.append(p)
+        params.extend(q)
+    return (" OR ".join(parts) if parts else "1=1", params)
+
+
+def _field_sql(f: FieldFilter, *, now: float) -> tuple[str, list[str]] | None:
+    """One filter -> a predicate on ``bookmark.id``.
+
+    Returns ``None`` when the filter's value is not parseable (date grammar);
+    the caller degrades it to an ignored token. Negation is handled by the
+    caller, which needs set subtraction rather than SQL ``NOT`` -- ``NOT``
+    would also drop rows that are NULL, and a bookmark with no ``content``
+    row is normal.
+    """
+    if f.field == "domain":
+        return _values_sql("domain", _split_value(f.value), wrap="{}")
+    if f.field == "url":
+        return _values_sql("url", _split_value(f.value))
+    if f.field == "title":
+        return _values_sql("title", _split_value(f.value))
+    if f.field == "folder":
+        return _values_sql("folder", _split_value(f.value))
+    if f.field == "text":
+        parts, params = [], []
+        for v in _split_value(f.value):
+            # Through `_value_sql` rather than a hand-rolled pattern, so
+            # `text:` gets the same wildcard and escaping rules as the columns
+            # above -- which is what that helper's docstring already promises.
+            inner, ps = _value_sql("c.body_text", v)
+            parts.append(
+                "EXISTS (SELECT 1 FROM content c WHERE c.bookmark_id = b.id "
+                f"AND {inner})"
+            )
+            params.extend(ps)
+        return (" OR ".join(parts) if parts else "1=1", params)
+    if f.field == "tag":
+        # Exact element of the tags JSON array, not a substring: tags are a
+        # closed vocabulary the user typed themselves, so `tag:work` matching
+        # `workshop` would be a filter that quietly widens. One EXISTS covers
+        # the whole alternation -- `tag:(work|rust)` is one membership test.
+        vals = _split_value(f.value)
+        marks = ",".join("?" * len(vals))
+        return (
+            "EXISTS (SELECT 1 FROM json_each(b.tags) "
+            f"WHERE json_each.value IN ({marks}))",
+            vals,
+        )
+    if f.field == "topic":
+        parts, params = [], []
+        for v in _split_value(f.value):
+            parts.append(
+                "EXISTS (SELECT 1 FROM enrichment e WHERE e.bookmark_id = b.id "
+                "AND e.topics LIKE ? ESCAPE '\\')"
+            )
+            params.append('%"' + v.replace('"', "").replace("%", r"\%") + '"%')
+        return (" OR ".join(parts) if parts else "1=1", params)
+    if f.field == "lang":
+        parts, params = [], []
+        for v in _split_value(f.value):
+            parts.append(
+                "EXISTS (SELECT 1 FROM content c WHERE c.bookmark_id = b.id "
+                "AND lower(c.lang) = lower(?))"
+            )
+            params.append(v)
+        return (" OR ".join(parts) if parts else "1=1", params)
+    if f.field == "opened":
+        vals = _split_value(f.value)
+        preds: list[str] = []
+        params: list[str] = []
+        for v in vals:
+            rm = _RANGE_RE.match(v)
+            if rm:
+                lo, hi = rm.group(1), rm.group(2)
+                if lo:
+                    preds.append("b.open_count >= ?")
+                    params.append(lo)
+                if hi:
+                    preds.append("b.open_count <= ?")
+                    params.append(hi)
+            elif v.isdigit():
+                preds.append("b.open_count = ?")
+                params.append(v)
+            else:
+                return None
+        return (" AND ".join(preds) if preds else "1=1", params)
+    if f.field == "added":
+        # Range form first: ``added:2026-01-01..2026-03-31`` or ``..7d``.
+        rng = _date_range(f.value, now=now)
+        if rng is not None:
+            return ("b.date_added >= ? AND b.date_added < ?", [str(rng[0]), str(rng[1])])
+        span = resolve_date_span(f.value)
+        if span is not None:
+            return ("b.date_added >= ? AND b.date_added < ?", [str(span[0]), str(span[1])])
+        r = resolve_date_value(f.value, now=now)
+        if r is None:
+            # A bare relative value ("90d") is not a date filter at all; only
+            # forms with an operator or an absolute date are.
+            return None
+        op, ts = r
+        sql_op = {">": ">", ">=": ">=", "<": "<", "<=": "<="}[op]
+        return (f"b.date_added {sql_op} ?", [str(ts)])
+    return None
+
+
+def filter_sets(
+    conn: sqlite3.Connection, parsed: ParsedQuery, *, now: float | None = None
+) -> tuple[set[int] | None, set[int], list[str]]:
+    """Resolve the filters to ``(include, exclude, ignored)``.
+
+    ``include`` is ``None`` when no positive filter constrains the pool, so
+    "unconstrained" stays distinguishable from "matches nothing". Every set is
+    over bookmark ids. Filters that do not parse land in ``ignored`` verbatim.
+    """
+    now = time.time() if now is None else now
+    include: set[int] | None = None
+    exclude: set[int] = set()
+    ignored: list[str] = []
+
+    for f in parsed.filters:
+        sql = _field_sql(f, now=now)
+        if sql is None:
+            ignored.append(f"{f.alias or f.field}:{f.value}")
+            continue
+        where, params = sql
+        ids = {
+            int(r[0])
+            for r in conn.execute(
+                f"SELECT b.id FROM bookmark b WHERE {where}", params
+            ).fetchall()
+        }
+        if f.negate:
+            exclude |= ids
+        elif include is None:
+            include = ids
+        else:
+            include &= ids
+
+    # Negated free-text terms: excluded by lexical match, so `-facebook` on a
+    # library without any facebook bookmark costs nothing and excludes
+    # nothing. Phrases match as phrases.
+    for t in parsed.terms:
+        if not t.negated:
+            continue
+        exclude |= _lexical_match_ids(conn, t.plain, is_phrase=t.is_phrase)
+
+    return include, exclude, ignored
+
+
+def _lexical_match_ids(conn: sqlite3.Connection, text: str, *, is_phrase: bool) -> set[int]:
+    """Ids whose title/summary/body contain the term, for negation.
+
+    Deliberately the *word* index rather than the trigram one: a negation on
+    ``security`` should not exclude a page that merely contains ``insecurity``
+    -- exclusion is the operation where a false positive is the expensive
+    direction, so it uses the tighter matcher.
+    """
+    if not text:
+        return set()
+    from .lexical import lexical_lists  # local import: pipeline imports us too
+
+    out: set[int] = set()
+    if is_phrase:
+        phrase = " ".join(text.split())
+        try:
+            rows = conn.execute(
+                'SELECT rowid FROM fts_seg WHERE fts_seg MATCH ?',
+                (f'"{phrase.replace(chr(34), chr(34) * 2)}"',),
+            ).fetchall()
+            out = {int(r[0]) for r in rows}
+        except sqlite3.OperationalError:
+            out = set()
+        # A phrase in the title is worth excluding on even when the body index
+        # has never seen the page: titles are always indexed. Through `_like`
+        # because the SQL declares an ESCAPE: a `%` or `_` inside the phrase
+        # is a character the user typed, not a wildcard, and left raw it would
+        # make `-"100%"` exclude the whole library.
+        like = _like(phrase, wrap="%{}%")
+        out |= {
+            int(r[0]) for r in conn.execute(
+                "SELECT id FROM bookmark WHERE title LIKE ? ESCAPE '\\'", (like,)
+            ).fetchall()
+        }
+        return out
+    for ids in lexical_lists(conn, text, limit=1000).values():
+        out |= set(ids)
+    like = _like(text, wrap="%{}%")
+    out |= {
+        int(r[0]) for r in conn.execute(
+            "SELECT id FROM bookmark WHERE title LIKE ? ESCAPE '\\'", (like,)
+        ).fetchall()
+    }
     return out
+
+
+#: Columns the sort directives need, fetched once per pool and sorted in
+#: Python. SQL ``ORDER BY`` would be simpler were it not for ``in_chunks``:
+#: a pool larger than one ``IN (...)`` batch is ordered per batch, and the
+#: batches are in id order, which silently mis-orders anything past 900 rows.
+#: The pools here are bounded by ``max_candidate_depth`` (2000), so a Python
+#: sort over that many small tuples is both correct and cheap.
+_SORT_COLUMNS = "id, date_added, domain, title, url"
+
+#: Newest-first: the order a browse gets when the query names none. A named
+#: constant because :func:`pool_from_filters` needs a spec that cannot be
+#: ``None``, and ``sort:relevance`` is a legal directive that names no
+#: orderable column.
+_DATE_DESC = (lambda r: (r["date_added"] or 0, r["id"]), True)
+
+
+def _sort_spec(sort: str):
+    """``(key_fn, reverse)`` over rows from :func:`_row_map`, or ``None``.
+
+    ``None`` means "this directive is not an ordering over columns" -- either
+    an unknown value or ``relevance``, which is the fusion's own order and so
+    is a no-op for anything already ranked.
+
+    Reverse sorts keep the id tiebreak ascending by negating it inside the key
+    and letting ``reverse=True`` undo exactly that negation.
+    """
+    if sort == "date":
+        return _DATE_DESC
+    if sort == "-date":
+        return (lambda r: (r["date_added"] or 2**62, r["id"]), False)
+    if sort == "domain":
+        return (lambda r: ((r["domain"] or "").lower(), r["id"]), False)
+    if sort == "-domain":
+        return (lambda r: ((r["domain"] or "").lower(), -r["id"]), True)
+    if sort == "title":
+        return (lambda r: ((r["title"] or "").lower(), r["id"]), False)
+    if sort == "-title":
+        return (lambda r: ((r["title"] or "").lower(), -r["id"]), True)
+    if sort == "url":
+        return (lambda r: ((r["url"] or "").lower(), r["id"]), False)
+    if sort == "-url":
+        return (lambda r: ((r["url"] or "").lower(), -r["id"]), True)
+    return None
+
+
+def _row_map(conn: sqlite3.Connection, ids: list[int]) -> dict[int, dict]:
+    out: dict[int, dict] = {}
+    for batch in in_chunks(ids):
+        marks = ",".join("?" * len(batch))
+        for r in conn.execute(
+            f"SELECT {_SORT_COLUMNS} FROM bookmark WHERE id IN ({marks})", batch
+        ).fetchall():
+            out[int(r["id"])] = dict(r)
+    return out
+
+
+def pool_from_filters(
+    conn: sqlite3.Connection, parsed: ParsedQuery, *, limit: int, now: float | None = None
+) -> list[int]:
+    """The candidate pool for a query whose filters left no free text.
+
+    Ordered by the requested sort, or newest-first when unspecified: a pure
+    filter browses (``domain:github.com``), and a browse is a timeline, not a
+    relevance contest. ``sort:relevance`` names an order this path does not
+    have -- nothing was scored, because the filters *are* the retrieval -- so
+    it falls back to that same newest-first default.
+    """
+    now = time.time() if now is None else now
+    include, exclude, _ = filter_sets(conn, parsed, now=now)
+    if include is None:
+        include = {int(r[0]) for r in conn.execute("SELECT id FROM bookmark").fetchall()}
+    ids = sorted(include - exclude)
+    if not ids:
+        return []
+    key, rev = _sort_spec(parsed.sort) or _DATE_DESC
+    rows = _row_map(conn, ids)
+    ordered = sorted(ids, key=lambda i: key(rows[i]), reverse=rev)
+    return ordered[:limit]
+
+
+def sort_pool(
+    conn: sqlite3.Connection, doc_ids: list[int], sort: str
+) -> list[int]:
+    """Re-order a pool by a sort directive, id as the final tiebreak."""
+    if not sort or sort == "relevance" or not doc_ids:
+        return doc_ids
+    spec = _sort_spec(sort)
+    if spec is None:
+        return doc_ids
+    rows = _row_map(conn, doc_ids)
+    key, rev = spec
+    return sorted(doc_ids, key=lambda i: key(rows[i]), reverse=rev)
+
+
+def apply_filters(
+    conn: sqlite3.Connection,
+    parsed: ParsedQuery,
+    pool: list[int],
+    *,
+    now: float | None = None,
+) -> list[int]:
+    """Post-filter a fused pool by the query's filters, in pool order."""
+    if not parsed.has_filters:
+        return pool
+    include, exclude, _ = filter_sets(conn, parsed, now=now)
+    if include is None and not exclude:
+        return pool
+    return [i for i in pool if (include is None or i in include) and i not in exclude]
+
+
+__all__ = [
+    "FIELDS",
+    "SORTS",
+    "FieldFilter",
+    "ParsedQuery",
+    "Term",
+    "apply_filters",
+    "filter_sets",
+    "parse_query",
+    "pool_from_filters",
+    "resolve_date_span",
+    "resolve_date_value",
+    "sort_pool",
+]

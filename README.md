@@ -26,7 +26,7 @@
   <br>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white&labelColor=2D5F8B" alt="Python"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-22C55E?style=for-the-badge&logo=opensourceinitiative&logoColor=white&labelColor=16A34A" alt="License"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/Tests-1524-06B6D4?style=for-the-badge&logoColor=white&labelColor=0891B2" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/Tests-1588-06B6D4?style=for-the-badge&logoColor=white&labelColor=0891B2" alt="Tests"></a>
 </p>
 
 > [!NOTE]
@@ -163,9 +163,20 @@ git clone https://github.com/88lin/facetmark
 cd facetmark
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
-pytest -q               # 1524 tests, ~41 s
+pytest -q               # 1588 tests, ~44 s
 ruff check src tests scripts
 ```
+
+**In Docker** (the deployment story is ported from hister's):
+
+```bash
+docker compose up -d        # builds the image, binds 127.0.0.1:8787 only
+```
+
+The container runs as a non-root user with one writable volume (`/data`, your
+SQLite file), a healthcheck on `/health`, and the host side of the port mapping
+pinned to loopback — publishing your reading-history index to the LAN is a
+one-line edit you make on purpose, never a default. See `compose.yml`.
 
 > [!NOTE]
 > Requires **Python 3.10+**. The only heavy optional dependency is
@@ -269,13 +280,15 @@ Settings panel edits the file; `facetmark config path` prints it.
 | `facetmark import-json FILE.json` | Import Firefox JSON or a generic list |
 | `facetmark index` | Run every stage, skipping what has not changed |
 | `facetmark fetch` / `enrich` / `embed` / `intents` / `sessions` / `edges` | Run one stage |
-| `facetmark search QUERY` | Search from the terminal |
+| `facetmark search QUERY` | Search from the terminal — query language accepted |
+| `facetmark crawl URL` | Walk a site into the library, politely |
 | `facetmark serve` | Web UI + REST API |
 | `facetmark health` | Re-check saved URLs, record `gone` / `drifted` verdicts |
 | `facetmark stats` | Row counts per table, coverage per stage |
 | `facetmark demo` | Synthetic library, mock provider, no network |
 | `facetmark selfcheck-embed` | Verify the embedding backend before indexing |
 | `facetmark eval` | Run a query set against one or more configurations |
+| `facetmark update` | Report whether a newer version is on PyPI |
 | `facetmark export` | Dump the library back out as JSON |
 
 > [!TIP]
@@ -304,43 +317,40 @@ experiments below. `facetmark eval --list-configs` prints them all.
 
 ---
 
-## 🧭 Query Syntax
+## 🔤 The Query Language
 
-Every search surface — the web UI, the browser extension's popup, `facetmark search`, the
-HTTP API, MCP — accepts the same free-text queries as before, **plus a small filter
-grammar** (ported from [hister](https://github.com/asciimoo/hister)'s query builder):
+Every search surface — the web box, the CLI, the API, the MCP tools, the karakeep
+plugin — accepts field filters, negation, phrases, alternation, wildcards, date
+ranges and sort directives, **ported from
+[hister](https://github.com/asciimoo/hister)** (searx's author's private search
+engine). Full guide in [`docs/query-language.md`](docs/query-language.md):
 
-| Syntax | Meaning |
-|---|---|
-| `domain:github.com` (or `site:`) | the registrable domain, subdomains included |
-| `host:news.ycombinator.com` | full hostname, substring |
-| `url:releases` | substring of the raw URL |
-| `title:rust`, `folder:reading` | substring of the title / folder path |
-| `tag:work` | exact tag (from imports and the save API) |
-| `-term`, `-domain:pinterest.com` | exclude; also `-"a phrase"` |
-| `"exact phrase"` | words must be adjacent (CJK quotes “ ” 「 」 work too) |
-| `domain:(github.com\|gitlab.com)` | either value; `(a\|b)` works on free words too |
-| `after:30d`, `before:2024-06-01` | saved-at window; `30d`/`2w`/`3mo`/`1y` relative |
-| `added:2024` / `added:2024-06..2024-09` | a whole year / an explicit range |
-| `added:>2024-06-01`, `added:<90d` | comparisons |
-| `kuber*` | prefix match on the word index |
-| `sort:date`, `sort:-date`, `sort:title`, `sort:domain`, `sort:open_count` | ordering |
+```bash
+facetmark search "postgres domain:github.com -title:tutorial"
+facetmark search "kafka added:<7d"                     # saved this week
+facetmark search 'title:encryption (signal|matrix)'     # title match, either site
+facetmark search "tag:work domain:github.com sort:date" # a browse, newest first
+facetmark crawl https://docs.sqlite.org/ --max-pages 25 # then index
+```
 
-Three rules the implementation is strict about:
+The compatibility rule is the point: **a query without syntax behaves exactly
+as it did before the language existed** — the parser only recognises a token as
+syntax when it could not be plain text (`note:` is not a field; a hyphen inside
+a word is not a negation). Filters cut the ranked pool after fusion and never
+move a surviving page's score, so nothing about the default ranking changed to
+make room for this.
 
-* **A colon is only a filter when the name is one.** `https://github.com/x` is not a stack
-  of filters — the URL arrives at the index as one word, exactly as before.
-* **A typo never loses words.** `after:nonsense`, `sort:garbage`, `priority:high` all fall
-  back to being searched as ordinary text. The worst case of a typo is yesterday's
-  behaviour.
-* **Filters outrank configuration.** The shipped `full` profile runs a single vector facet
-  (that is what the W1 ablation measured); but a query that *uses* filter/phrase/negation
-  syntax is stating an exact-string intent an embedding cannot honour, so the lexical facet
-  joins that query regardless of profile. Pure-filter queries (`tag:work`) are answered
-  from the bookmark table alone and cost no model call.
+The web UI speaks the same language in three more places: the suggestion list
+completes field names *and the values that exist in your library*, the chips
+under the search box write `added:` tokens, and the Library view's activity
+timeline (`/timeline`) buckets your saves by day and month — every bucket is
+one search you could have typed.
 
-The response echoes what applied as a `filters` object, so a client (or an agent) can see
-that `domain:github.com -pinterest` did what it looked like it did.
+**Your own tags are part of it.** Netscape and pinboard exports have carried a
+`TAGS` attribute since the first importer, and it was parsed and then dropped at
+staging; it is now stored on the bookmark, returned with every hit, and queryable
+as `tag:work` — an exact match on one element, so `tag:work` never widens into
+`workshop`. `POST /save` and the MCP `save_bookmark` tool take `tags` too.
 
 ---
 

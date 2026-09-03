@@ -36,14 +36,6 @@ from .pipeline import (
     quick_search,
     search,
 )
-from .querylang import (
-    FIELDS,
-    QUERY_SYNTAX_HELP,
-    DateRange,
-    FieldFilter,
-    ParsedQuery,
-    parse_query,
-)
 from .rerank import LLMReranker, OverlapReranker, RerankDoc, Reranker, get_reranker
 from .rrf import DEFAULT_K, Fused, guarantee_bonus, rank_of, rrf
 from .understand import QueryUnderstanding, classify, classify_assisted
@@ -67,15 +59,10 @@ __all__ = [
     "FULL",
     "Config",
     "ContextSignals",
-    "DateRange",
     "Expansion",
-    "FIELDS",
-    "FieldFilter",
     "Fused",
     "LLMReranker",
     "OverlapReranker",
-    "ParsedQuery",
-    "QUERY_SYNTAX_HELP",
     "QueryUnderstanding",
     "RerankDoc",
     "Reranker",
@@ -101,7 +88,6 @@ __all__ = [
     "lexical_lists",
     "lexical_lists_scored",
     "lexical_search",
-    "parse_query",
     "quick_search",
     "rank_of",
     "related",

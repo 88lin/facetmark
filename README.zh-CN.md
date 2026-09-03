@@ -26,7 +26,7 @@
   <br>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white&labelColor=2D5F8B" alt="Python"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-22C55E?style=for-the-badge&logo=opensourceinitiative&logoColor=white&labelColor=16A34A" alt="License"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/Tests-1524-06B6D4?style=for-the-badge&logoColor=white&labelColor=0891B2" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/Tests-1588-06B6D4?style=for-the-badge&logoColor=white&labelColor=0891B2" alt="Tests"></a>
 </p>
 
 > [!NOTE]
@@ -159,9 +159,19 @@ git clone https://github.com/88lin/facetmark
 cd facetmark
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
-pytest -q               # 1524 条测试，约 41 秒
+pytest -q               # 1588 条测试，约 44 秒
 ruff check src tests scripts
 ```
+
+**用 Docker**（部署方式移植自 hister）：
+
+```bash
+docker compose up -d        # 构建镜像，只绑 127.0.0.1:8787
+```
+
+容器以非 root 用户运行，只有一个可写卷（`/data`，你的 SQLite 文件），带 `/health`
+健康检查，端口映射的宿主侧钉在回环地址——把你的阅读史索引发到局域网是你要故意
+改一行才能发生的事，不是默认。详见 `compose.yml`。
 
 > [!NOTE]
 > 需要 **Python 3.10+**。唯一一个重的可选依赖是 `sentence-transformers`，只有本地嵌入
@@ -263,17 +273,50 @@ export FACETMARK_LOCAL_EMBED_MAX_SEQ=1024
 | `facetmark import-json FILE.json` | 导入 Firefox JSON 或通用列表 |
 | `facetmark index` | 跑完整流水线，跳过没变的部分 |
 | `facetmark fetch` / `enrich` / `embed` / `intents` / `sessions` / `edges` | 单跑某一段 |
-| `facetmark search QUERY` | 命令行检索 |
+| `facetmark search QUERY` | 命令行检索（支持查询语言） |
+| `facetmark crawl URL` | 礼貌地爬一个站点入库 |
 | `facetmark serve` | Web 界面 + REST API |
 | `facetmark health` | 复检已存 URL，记录 `gone` / `drifted` 判定 |
 | `facetmark stats` | 各表行数、各阶段覆盖率 |
 | `facetmark demo` | 合成库 + mock provider，不联网 |
 | `facetmark selfcheck-embed` | 索引之前先验嵌入后端 |
 | `facetmark eval` | 拿一份查询集跑一个或多个档位 |
+| `facetmark update` | 查看 PyPI 上有没有新版本 |
 | `facetmark export` | 把库导回 JSON |
 
 > [!TIP]
 > 任何一段加 `--force` 都可以无视指纹重做。
+
+---
+
+## 🔤 查询语言
+
+所有检索入口——网页输入框、CLI、API、MCP 工具、karakeep 插件——都接受字段过滤、
+否定、短语、多选、通配符、日期范围和排序指令，**移植自
+[hister](https://github.com/asciimoo/hister)**（searx 作者的私有搜索引擎）。
+完整指南见 [`docs/query-language.md`](docs/query-language.md)：
+
+```bash
+facetmark search "postgres domain:github.com -title:tutorial"
+facetmark search "kafka added:<7d"                     # 这周存的
+facetmark search "title:加密 (signal|matrix)"           # 标题匹配，任一站点
+facetmark search "domain:github.com sort:date"          # 浏览式，最新在前
+facetmark crawl https://docs.sqlite.org/ --max-pages 25 # 然后跑 index
+```
+
+兼容规则是重点：**不带语法的查询和语言存在之前的行为完全一致**——解析器只把
+「不可能是纯文本」的 token 当语法（`note:` 不是字段；词内的连字符不是否定）。
+过滤器在融合之后裁切候选池，从不改动幸存页面的分数，默认排序没有为这个功能
+让过路。
+
+Web 界面在另外三处说同一门语言：联想列表会补全字段名**以及你库里真实存在的值**，
+搜索框下方的 chips 会写入 `added:` token，库视图的保存时间线（`/timeline`）把
+你的保存按天/月分桶——每个桶就是你本可以手敲的一次搜索。
+
+**你自己的标签也在这门语言里。** Netscape 与 pinboard 导出自第一版导入器起就带着
+`TAGS` 属性，一直被解析出来又在入库前丢掉；现在它存在 bookmark 上、随每条命中返回、
+并且可以用 `tag:work` 查询——精确匹配数组里的一个元素，所以 `tag:work` 不会悄悄扩成
+`workshop`。`POST /save` 和 MCP 的 `save_bookmark` 工具同样接受 `tags`。
 
 ---
 
@@ -295,44 +338,6 @@ export FACETMARK_LOCAL_EMBED_MAX_SEQ=1024
 另外还有约二十个探索档（`A_ctx`、`A_gatedctx`、`C_notri`、`C_lowlex`、`C_abstain`、
 `C_max`、`D_gated`、`lex_only`、`seg_only`、`tri_only` 等等）供下面这些实验使用。
 `facetmark eval --list-configs` 会全部列出来。
-
----
-
-## 🧭 查询语法
-
-每个检索入口 —— 网页 UI、浏览器扩展弹窗、`facetmark search`、HTTP API、MCP —— 都照旧
-接受自由文本查询，**另外加了一小套过滤语法**（移植自
-[hister](https://github.com/asciimoo/hister) 的查询构建器）：
-
-| 语法 | 含义 |
-|---|---|
-| `domain:github.com`（或 `site:`） | 注册域名，含子域名 |
-| `host:news.ycombinator.com` | 完整主机名，子串匹配 |
-| `url:releases` | 原始 URL 的子串 |
-| `title:rust`、`folder:reading` | 标题 / 文件夹路径的子串 |
-| `tag:work` | 精确匹配标签（来自导入与保存 API） |
-| `-term`、`-domain:pinterest.com` | 排除；`-"某个短语"` 也可以 |
-| `"精确短语"` | 词必须相邻（中文引号 “ ” 「 」 同样有效） |
-| `domain:(github.com\|gitlab.com)` | 多值任一；自由词也可 `(a\|b)` |
-| `after:30d`、`before:2024-06-01` | 保存时间窗；`30d`/`2w`/`3mo`/`1y` 相对单位 |
-| `added:2024` / `added:2024-06..2024-09` | 一整年 / 显式区间 |
-| `added:>2024-06-01`、`added:<90d` | 比较式 |
-| `kuber*` | 词索引上的前缀匹配 |
-| `sort:date`、`sort:-date`、`sort:title`、`sort:domain`、`sort:open_count` | 排序 |
-
-实现上对三条规则很严格：
-
-* **冒号只有跟在已知字段名后面才是过滤器。** `https://github.com/x` 不会被拆成一堆
-  过滤器 —— URL 像以前一样作为一个完整的词进入索引。
-* **打错字不会丢词。** `after:nonsense`、`sort:garbage`、`priority:high` 都会原样当作
-  普通文本去检索。打错字的最坏结果就是昨天的行为。
-* **过滤器优先于档位配置。** 出厂的 `full` 档只跑一个向量面（这是 W1 消融测出来的）；
-  但使用了过滤 / 短语 / 排除语法的查询，表达的是嵌入模型无法满足的精确字符串意图，
-  所以无论什么档位，词法面都会为这类查询加入。纯过滤查询（`tag:work`）直接由 bookmark
-  表回答，不花任何模型调用。
-
-响应会把实际生效的语法回显成 `filters` 对象，客户端（或 agent）能看到
-`domain:github.com -pinterest` 确实按字面意思执行了。
 
 ---
 

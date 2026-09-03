@@ -1,532 +1,433 @@
-"""The query language: parser, SQL predicates, and pipeline integration.
+"""The query language: parser, filter resolution, and end-to-end search.
 
-Facetmark's lexical facet used to strip every FTS5 metacharacter out of the
-query and OR whatever words survived. The grammar ported from hister's query
-builder (``server/indexer/querybuilder``) adds field filters, phrases,
-negation, prefixes, date windows and a sort directive, with two properties the
-tests below pin down:
+The parser tests pin the compatibility rule first -- a query without syntax
+parses to itself -- because the whole port lives or dies on that: every
+existing query set and eval corpus is plain text, and any behaviour change on
+it would be an unmeasured retrieval change wearing a feature's clothes.
 
-* **A plain query is untouched.** No syntax, no filters, the same text the old
-  code saw. This is what lets 1,500 pre-existing tests stay meaningful.
-* **A colon is only a filter when the name is one.** URLs survive verbatim;
-  ``after:nonsense`` survives verbatim; ``sort:garbage`` survives verbatim.
-  The worst case of a typo is yesterday's behaviour, never a lost word.
+The end-to-end tests then exercise one of each construct through both
+``quick_search`` and ``search``, on a small library built the way the eval
+corpus builds one (mock provider, real FTS indexes). Filters are asserted on
+*which ids came back*, never on scores: a filter is a constraint, and its
+tests should not inherit the fusion's ranking semantics.
 """
 
 from __future__ import annotations
 
-import sqlite3
-
 import pytest
 
-from facetmark.search.lexical import lexical_lists, sql_predicate
-from facetmark.search.pipeline import quick_search, search
+from facetmark.db import open_db
+from facetmark.search.pipeline import FULL, quick_search
 from facetmark.search.querylang import (
-    FIELDS,
-    SORT_KEYS,
-    DateRange,
+    apply_filters,
+    filter_sets,
     parse_query,
+    pool_from_filters,
+    resolve_date_span,
+    resolve_date_value,
+    sort_pool,
 )
-from facetmark.text import build_fts_query
 
-from .conftest import open_db
-
-NOW = 1_735_689_600  # 2025-01-01 00:00 UTC, pinned so date math is exact
+# A fixed "now" so date tests are deterministic. 2026-08-04T00:13:20Z.
+NOW = 1785792800.0
 
 
 # ---------------------------------------------------------------------------
-# the parser
+# parser
 # ---------------------------------------------------------------------------
 
 
-class TestPlainQueries:
-    def test_a_plain_query_round_trips_exactly(self):
-        """Everything downstream keys off is_plain; it must mean what it says."""
-        p = parse_query("async rust", now_ts=NOW)
-        assert p.is_plain
-        assert p.text == "async rust"
-        assert not p.has_filters
-        assert p.sort is None
+class TestParser:
+    def test_plain_text_parses_to_itself(self):
+        p = parse_query("那个讲 Postgres 索引类型的")
+        assert p.text == "那个讲 Postgres 索引类型的"
+        assert p.plain_text == p.text
+        assert not p.filters
+        assert not p.sort
+        assert not p.has_syntax
 
-    def test_a_url_is_not_a_stack_of_colons(self):
-        """https is not a field name. Two colons in a URL must not shred it."""
-        p = parse_query("https://github.com/88lin/facetmark docs", now_ts=NOW)
-        assert p.is_plain
-        assert p.text == "https://github.com/88lin/facetmark docs"
+    def test_a_colon_that_is_not_a_field_is_text(self):
+        p = parse_query("note: something https://example.com/x state-of-the-art")
+        assert p.text == "note: something https://example.com/x state-of-the-art"
+        assert not p.filters
 
-    def test_whitespace_is_normalised_but_words_are_kept(self):
-        p = parse_query("  rust   async  ", now_ts=NOW)
-        assert p.text == "rust async"
-
-    def test_an_empty_query_parses_to_an_empty_query(self):
-        p = parse_query("", now_ts=NOW)
-        assert p.is_plain
-        assert p.text == ""
-
-    def test_hyphenated_words_keep_their_hyphens(self):
-        """Only a leading hyphen negates; mid-word hyphens are identifiers."""
-        p = parse_query("sqlite-vec trigram", now_ts=NOW)
-        assert p.is_plain
-        assert p.text == "sqlite-vec trigram"
-        assert p.negatives == []
-
-    def test_cjk_free_text_is_untouched(self):
-        p = parse_query("机器学习 工具", now_ts=NOW)
-        assert p.is_plain
-        assert p.text == "机器学习 工具"
-
-
-class TestFieldFilters:
-    def test_a_known_field_becomes_a_filter(self):
-        p = parse_query("rust domain:github.com", now_ts=NOW)
-        assert p.text == "rust"
-        assert len(p.field_filters) == 1
-        f = p.field_filters[0]
-        assert f.field == "domain" and f.values == ["github.com"] and not f.negated
-        assert not p.is_plain
+    def test_filters_strip_out_of_the_free_text(self):
+        p = parse_query("postgres domain:github.com", now=NOW)
+        assert p.text == "postgres"
+        assert [(f.field, f.value) for f in p.filters] == [("domain", "github.com")]
 
     def test_site_is_an_alias_of_domain(self):
-        """Users type site: from muscle memory; it must mean the same thing."""
-        p = parse_query("site:github.com", now_ts=NOW)
-        assert p.field_filters[0].field == "domain"
+        p = parse_query("site:github.com", now=NOW)
+        assert p.filters[0].field == "domain"
 
-    def test_every_alias_resolves_to_a_canonical_field(self):
-        p = parse_query("until:2024-01 saved:2024", now_ts=NOW)
-        assert [f.field for f in p.field_filters] == []
-        assert p.dates is not None
+    def test_negation_of_term_and_field(self):
+        p = parse_query("privacy -facebook -domain:facebook.com", now=NOW)
+        assert p.text == "privacy"
+        neg_terms = [t.plain for t in p.terms if t.negated]
+        assert neg_terms == ["facebook"]
+        assert [(f.field, f.negate) for f in p.filters] == [("domain", True)]
 
-    def test_an_unknown_field_name_stays_verbatim(self):
-        p = parse_query("priority:high rust", now_ts=NOW)
-        assert p.is_plain
-        assert p.text == "priority:high rust"
+    def test_a_hyphen_inside_a_word_is_not_a_negation(self):
+        p = parse_query("state-of-the-art")
+        assert p.terms[0].plain == "state-of-the-art"
+        assert not p.terms[0].negated
 
-    def test_negated_field_filters(self):
-        p = parse_query("-domain:pinterest.com crafts", now_ts=NOW)
-        assert p.text == "crafts"
-        assert p.field_filters[0].negated
+    def test_phrases_survive_with_their_quotes(self):
+        p = parse_query('kafka "consumer group rebalancing"')
+        assert p.text == 'kafka "consumer group rebalancing"'
+        assert p.plain_text == "kafka consumer group rebalancing"
+        assert any(t.is_phrase for t in p.terms)
 
-    def test_alternation_in_a_field(self):
-        p = parse_query("domain:(github.com|gitlab.com) ci", now_ts=NOW)
-        assert p.text == "ci"
-        assert p.field_filters[0].values == ["github.com", "gitlab.com"]
+    def test_alternation_expands_to_terms(self):
+        p = parse_query("(security|privacy|encryption)")
+        assert sorted(t.plain for t in p.terms if not t.negated) == [
+            "encryption", "privacy", "security",
+        ]
 
-    def test_all_fields_have_definitions(self):
-        """The lookup table and FIELDS must agree -- aliases included."""
-        from facetmark.search.querylang import _FIELD_LOOKUP
+    def test_sort_directive(self):
+        p = parse_query("golang sort:-date")
+        assert p.text == "golang"
+        assert p.sort == "-date"
 
-        assert set(_FIELD_LOOKUP) >= set(FIELDS)
-        for d in FIELDS.values():
-            for alias in d.aliases:
-                assert _FIELD_LOOKUP[alias].name == d.name
+    def test_an_unknown_sort_value_is_reported_not_applied(self):
+        p = parse_query("kafka sort:weird")
+        assert p.sort == ""
+        assert p.ignored == ["sort:weird"]
+        assert p.text == "kafka"
 
-    def test_tag_filter(self):
-        p = parse_query("tag:work", now_ts=NOW)
-        assert p.text == ""
-        assert p.field_filters[0].field == "tag"
-
-
-class TestPhrasesAndNegatives:
-    def test_double_quoted_phrase(self):
-        p = parse_query('"machine learning" tutorial', now_ts=NOW)
-        assert p.phrases == ["machine learning"]
-        assert p.text == "tutorial"
-
-    def test_cjk_quotes_are_phrases_too(self):
-        """understand already treats 「」/“” as phrase markers; the lexer agrees."""
-        p = parse_query("\u201c\u673a\u5668\u5b66\u4e60\u201d \u5de5\u5177", now_ts=NOW)
-        assert p.phrases == ["机器学习"]
-        assert p.text == "工具"
+    def test_quoted_field_values(self):
+        p = parse_query('text:"GDPR compliance" domain:"example.com"', now=NOW)
+        assert [(f.field, f.value) for f in p.filters] == [
+            ("text", "GDPR compliance"), ("domain", "example.com"),
+        ]
+        assert not p.text
 
     def test_negated_phrase(self):
-        p = parse_query('-"machine learning" rust', now_ts=NOW)
-        assert p.negatives == ["machine learning"]
+        p = parse_query('privacy -"social media"')
+        assert p.text == "privacy"
+        neg = [t for t in p.terms if t.negated]
+        assert len(neg) == 1 and neg[0].is_phrase and neg[0].plain == "social media"
 
-    def test_negated_free_word(self):
-        p = parse_query("rust -java", now_ts=NOW)
-        assert p.text == "rust"
-        assert p.negatives == ["java"]
+    def test_field_alternation(self):
+        p = parse_query("domain:(github.com|gitlab.com) postgres", now=NOW)
+        assert p.filters[0].value == "github.com|gitlab.com"
+        assert p.text == "postgres"
 
-    def test_a_lone_hyphen_is_not_a_negation(self):
-        p = parse_query("- ", now_ts=NOW)
-        assert p.text == "-" or p.text == ""
-
-    def test_prefix_wildcard_keeps_the_word_as_text(self):
-        """The star is intent; the word itself still needs to be searched."""
-        p = parse_query("kuber*", now_ts=NOW)
-        assert p.prefixes == ["kuber"]
-        assert p.text == "kuber"
+    def test_before_after_fold_onto_added(self):
+        p = parse_query("before:2026-05-01 after:2024-01-01", now=NOW)
+        assert [f.field for f in p.filters] == ["added", "added"]
+        assert p.filters[0].value == "<2026-05-01"
+        assert p.filters[1].value == ">=2024-01-01"
 
 
-class TestDates:
-    def test_absolute_day(self):
-        p = parse_query("before:2024-06-01", now_ts=NOW)
-        assert p.dates is not None
-        assert p.dates.start is None
-        assert p.dates.end == 1_717_286_399  # 2024-06-01 23:59:59 UTC, inclusive
+class TestDateValues:
+    def test_relative_age_inverts_onto_the_timestamp(self):
+        # added:>90d = older than 90 days = date_added < now - 90d
+        op, ts = resolve_date_value(">90d", now=NOW)
+        assert op == "<"
+        assert ts == int(NOW - 90 * 86400)
 
-    def test_absolute_month_and_year(self):
-        p = parse_query("added:2024-06", now_ts=NOW)
-        assert p.dates == DateRange(1_717_200_000, 1_719_791_999)
-        p = parse_query("added:2024", now_ts=NOW)
-        assert p.dates == DateRange(1_704_067_200, 1_735_689_599)
+    def test_relative_younger_than(self):
+        op, ts = resolve_date_value("<7d", now=NOW)
+        assert op == ">"
+        assert ts == int(NOW - 7 * 86400)
 
-    def test_relative_window(self):
-        p = parse_query("after:30d", now_ts=NOW)
-        assert p.dates == DateRange(NOW - 30 * 86400, None)
+    def test_absolute_comparison_is_direct(self):
+        op, ts = resolve_date_value(">=2026-04-01", now=NOW)
+        assert op == ">="
+        assert ts == 1775001600  # 2026-04-01T00:00:00Z
 
-    def test_relative_long_units(self):
-        for text, span in (("2w", 14), ("3mo", 90), ("1y", 365)):
-            p = parse_query(f"after:{text}", now_ts=NOW)
-            assert p.dates.start == NOW - span * 86400, text
+    def test_bare_absolute_day_is_a_span(self):
+        assert resolve_date_span("2026-04-01") == (1775001600, 1775088000)
 
-    def test_two_bounds_intersect(self):
-        p = parse_query("after:2024-03-01 before:2024-06-01", now_ts=NOW)
-        assert p.dates == DateRange(1_709_251_200, 1_717_286_399)
+    def test_bare_month_and_year_are_spans(self):
+        lo, hi = resolve_date_span("2026-04")
+        assert lo == 1775001600 and hi == 1777593600
+        lo, hi = resolve_date_span("2026")
+        assert lo == 1767225600 and hi == 1798761600
 
-    def test_a_range_window(self):
-        p = parse_query("added:2024-06..2024-09", now_ts=NOW)
-        assert p.dates == DateRange(1_717_200_000, 1_727_740_799)
-
-    def test_comparisons(self):
-        p = parse_query("added:>2024-06-01", now_ts=NOW)
-        assert p.dates.start == 1_717_286_400
-        assert p.dates.end is None
-        p = parse_query("added:<90d", now_ts=NOW)
-        assert p.dates.start is None
-        assert p.dates.end == NOW - 90 * 86400 - 1
-
-    def test_a_non_date_value_stays_verbatim(self):
-        """after:nonsense must not silently vanish from the query."""
-        p = parse_query("after:nonsense rust", now_ts=NOW)
-        assert "after:nonsense" in p.text
-        assert p.dates is None
-
-    def test_an_invalid_month_is_not_a_date(self):
-        p = parse_query("added:2024-13", now_ts=NOW)
-        assert p.dates is None
-        assert "added:2024-13" in p.text
-
-    def test_a_negated_date_stays_verbatim(self):
-        """-after:... has no clean semantics, so it is text, not a guess."""
-        p = parse_query("-after:30d", now_ts=NOW)
-        assert "-after:30d" in p.text
-        assert p.dates is None
-
-
-class TestSortDirective:
-    def test_valid_sort_keys(self):
-        assert "date" in SORT_KEYS and "-date" in SORT_KEYS
-        p = parse_query("sort:date rust", now_ts=NOW)
-        assert p.sort == "date"
-        assert p.text == "rust"
-
-    def test_sort_alone_peels_off_cleanly(self):
-        p = parse_query("sort:date", now_ts=NOW)
-        assert p.sort == "date"
-        assert p.text == ""
-
-    def test_an_invalid_sort_key_is_text(self):
-        p = parse_query("sort:garbage date", now_ts=NOW)
-        assert p.sort is None
-        assert p.text == "sort:garbage date"
-
-    def test_a_negated_sort_is_not_a_directive(self):
-        p = parse_query("-sort:date", now_ts=NOW)
-        assert p.sort is None
-        assert "-sort:date" in p.text
-
-
-class TestRobustness:
-    def test_an_unterminated_quote_is_still_a_phrase(self):
-        p = parse_query('"machine learning', now_ts=NOW)
-        assert p.phrases == ["machine learning"]
-
-    def test_an_unterminated_group_falls_back_to_a_word(self):
-        p = parse_query("(docker|k8s", now_ts=NOW)
-        # Not alternation syntax; the text survives with the paren.
-        assert "docker" in p.text or "(docker|k8s" in p.text
-        assert p.field_filters == []
-
-    def test_all_words_survive_every_fallback(self):
-        """The contract: a typo never loses words the old query would have kept."""
-        for typo in ("after:", "domain:", '"', "-"):
-            p = parse_query(f"rust {typo}async", now_ts=NOW)
-            assert (
-                "async" in p.text
-                or "async" in p.negatives
-                or "async" in p.phrases
-                or any("async" in f.values for f in p.field_filters)
-            ), typo
-
-    def test_all_words_orders_longest_first_for_snippets(self):
-        p = parse_query("rust async runtime", now_ts=NOW)
-        assert p.all_words()[0] == "runtime"
-
-    def test_as_echo_round_trips_the_essentials(self):
-        p = parse_query("rust -java domain:github.com after:30d sort:date", now_ts=NOW)
-        echo = p.as_echo()
-        assert echo["text"] == "rust"
-        assert echo["negatives"] == ["java"]
-        assert echo["field_filters"][0]["field"] == "domain"
-        assert echo["sort"] == "date"
+    def test_a_bare_duration_is_not_a_date_filter(self):
+        assert resolve_date_value("90d", now=NOW) is None
+        assert resolve_date_span("90d") is None
 
 
 # ---------------------------------------------------------------------------
-# FTS expression building
+# a small library to resolve against
 # ---------------------------------------------------------------------------
 
 
-class TestFtsExpression:
-    def test_plain_query_unchanged(self):
-        assert build_fts_query("rust async", segmented=True) == '"rust" OR "async"'
-
-    def test_a_phrase_is_adjacent_tokens_not_a_bag(self):
-        out = build_fts_query("", segmented=True, phrases=["machine learning"])
-        assert '"machine" "learning"' in out
-
-    def test_cjk_phrase_segments_before_quoting(self):
-        out = build_fts_query("", segmented=True, phrases=["机器学习教程"])
-        assert out is not None
-        assert out.startswith('"机')
-
-    def test_negatives_become_a_not_clause(self):
-        out = build_fts_query("rust", segmented=True, negatives=["java"])
-        assert out == '("rust") NOT ("java")'
-
-    def test_a_prefix_is_a_fts5_prefix_query(self):
-        out = build_fts_query("", segmented=True, prefixes=["kuber"])
-        assert out == '"kuber"*'
-
-    def test_trigram_path_keeps_short_cjk_out(self):
-        """A 2-char CJK phrase cannot match trigrams; dropping it is correct."""
-        assert build_fts_query("", segmented=False, phrases=["工具"]) is None
-
-    def test_trigram_path_phrase_is_a_substring(self):
-        out = build_fts_query("", segmented=False, phrases=["机器学习"])
-        assert out == '"机器学习"'
-
-    def test_no_terms_still_returns_none(self):
-        assert build_fts_query("", segmented=True) is None
-
-
-# ---------------------------------------------------------------------------
-# SQL predicates + lexical integration
-# ---------------------------------------------------------------------------
-
-
-def _seed(conn: sqlite3.Connection) -> None:
-    from facetmark.text import sync_fts
-
+@pytest.fixture()
+def lib():
+    conn = open_db(":memory:")
     rows = [
-        # (id, url, host, domain, title, folder, tags, date_added)
-        (1, "https://github.com/a", "github.com", "github.com",
-         "Rust async guide", "dev", '["rust","systems"]', 1_600_000_000),
-        (2, "https://gist.github.com/b", "gist.github.com", "github.com",
-         "kubernetes tutorial", "dev", '["k8s","work"]', 1_610_000_000),
-        (3, "https://pinterest.com/c", "pinterest.com", "pinterest.com",
-         "craft ideas", "fun", "[]", 1_620_000_000),
-        (4, "https://news.ycombinator.com/d", "news.ycombinator.com",
-         "ycombinator.com", "machine learning thread", "dev", '["ml","reading"]',
-         1_630_000_000),
+        # id, url, title, folder, domain, date_added (days before NOW)
+        (1, "https://github.com/a/b", "Postgres index types", "study", "github.com", 10),
+        (2, "https://github.com/c/d", "CRDT practice notes", "study", "github.com", 400),
+        (3, "https://sqlite.org/docs/fts5", "SQLite FTS5 tokenizer", "study", "sqlite.org", 100),
+        (4, "https://facebook.com/post", "Facebook privacy scandal", "news", "facebook.com", 5),
+        (5, "https://example.com/kafka", "Kafka consumer rebalancing guide", "work", "example.com", 30),
     ]
-    for bid, url, host, domain, title, folder, tags, added in rows:
+    for i, url, title, folder, domain, days in rows:
         conn.execute(
-            "INSERT INTO bookmark(id, url, url_norm, url_hash, title, folder, host,"
-            " domain, date_added, tags, created_at, updated_at)"
-            " VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
-            (bid, url, url, f"h{bid}", title, folder, host, domain, added, tags, added, added),
+            "INSERT INTO bookmark(id, url, url_norm, url_hash, title, folder, folder_depth,"
+            " host, domain, date_added, source, indexable, created_at, updated_at)"
+            " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (i, url, url, f"h{i}", title, folder, 1, domain, domain,
+             int(NOW - days * 86400), "api", 1, int(NOW), int(NOW)),
         )
-        # A body long enough that a head-only snippet could not contain a
-        # term that only appears deeper in the text.
-        pad = "filler paragraph with unrelated words. " * 6
-        body = f"{pad} the actual matched sentence about {title.lower()} lives here. {pad}"
-        conn.execute(
-            "INSERT INTO content(bookmark_id, body_text, body_seg, char_count,"
-            " fetched_at) VALUES(?,?,?,?,?)",
-            (bid, body, body, len(body), added),
+        from facetmark.text import sync_fts
+        sync_fts(conn, i, title=title, body=f"{title} body text {title.lower()}",
+                 summary=f"summary of {title}")
+    conn.commit()
+    yield conn
+    conn.close()
+
+
+class TestFilterSets:
+    def test_domain_filter(self, lib):
+        parsed = parse_query("domain:github.com", now=NOW)
+        include, exclude, ignored = filter_sets(lib, parsed, now=NOW)
+        assert include == {1, 2}
+        assert not exclude and not ignored
+
+    def test_two_filters_intersect(self, lib):
+        parsed = parse_query("domain:github.com added:>90d", now=NOW)
+        include, _, _ = filter_sets(lib, parsed, now=NOW)
+        assert include == {2}   # 400 days old, from github.com
+
+    def test_negated_field_excludes(self, lib):
+        parsed = parse_query("-domain:facebook.com", now=NOW)
+        include, exclude, _ = filter_sets(lib, parsed, now=NOW)
+        assert include is None
+        assert exclude == {4}
+
+    def test_url_wildcards(self, lib):
+        parsed = parse_query("url:*/docs/*", now=NOW)
+        include, _, _ = filter_sets(lib, parsed, now=NOW)
+        assert include == {3}
+
+    def test_title_substring(self, lib):
+        parsed = parse_query("title:rebalancing", now=NOW)
+        include, _, _ = filter_sets(lib, parsed, now=NOW)
+        assert include == {5}
+
+    def test_text_filter_matches_the_stored_body(self, lib):
+        """``text:`` is a filter over ``content.body_text``, so it needs a real
+        content row -- the fixture's FTS rows are the ranker's index, not this.
+        """
+        lib.execute(
+            "INSERT INTO content(bookmark_id, body_text) VALUES"
+            " (3, 'the tokenizer chapter, plus a note on GDPR compliance')"
         )
-        sync_fts(conn, bid, title=title, body=body)
+        lib.commit()
+        parsed = parse_query('text:"GDPR compliance"', now=NOW)
+        include, _, ignored = filter_sets(lib, parsed, now=NOW)
+        assert include == {3}
+        assert not ignored
+
+    def test_tag_filter_is_membership_not_a_substring(self, lib):
+        """Tags are a closed vocabulary the user typed themselves, so the
+        filter is membership in the JSON array. A substring match would make
+        ``tag:work`` quietly answer for ``workshop`` -- a filter that widens.
+        """
+        lib.execute("""UPDATE bookmark SET tags = '["work","rust"]' WHERE id = 1""")
+        lib.execute("""UPDATE bookmark SET tags = '["workshop"]' WHERE id = 2""")
+        lib.commit()
+        parsed = parse_query("tag:work", now=NOW)
+        include, _, ignored = filter_sets(lib, parsed, now=NOW)
+        assert include == {1}
+        assert not ignored
+
+    def test_tag_alternation_is_one_membership_test(self, lib):
+        lib.execute("""UPDATE bookmark SET tags = '["work"]' WHERE id = 1""")
+        lib.execute("""UPDATE bookmark SET tags = '["rust"]' WHERE id = 3""")
+        lib.commit()
+        parsed = parse_query("tag:(work|rust)", now=NOW)
+        include, _, _ = filter_sets(lib, parsed, now=NOW)
+        assert include == {1, 3}
+
+    def test_opened_range(self, lib):
+        lib.execute("UPDATE bookmark SET open_count = 12 WHERE id = 2")
+        lib.commit()
+        parsed = parse_query("opened:10..", now=NOW)
+        include, _, _ = filter_sets(lib, parsed, now=NOW)
+        assert include == {2}
+
+    def test_unparseable_filter_is_reported(self, lib):
+        parsed = parse_query("added:90d", now=NOW)
+        include, _, ignored = filter_sets(lib, parsed, now=NOW)
+        assert include is None
+        assert ignored == ["added:90d"]
 
 
-class TestSqlPredicate:
-    def test_no_filters_gives_no_predicate(self):
-        assert sql_predicate(parse_query("rust", now_ts=NOW)) is None
+class TestPoolFromFilters:
+    def test_a_browse_is_date_descending_by_default(self, lib):
+        parsed = parse_query("domain:github.com", now=NOW)
+        assert pool_from_filters(lib, parsed, limit=10, now=NOW) == [1, 2]
 
-    def test_domain_predicate_is_parameterised(self):
-        pred = sql_predicate(parse_query("domain:github.com", now_ts=NOW))
-        assert pred is not None
-        where, params = pred
-        assert "b.domain = ?" in where
-        assert params == ["github.com", "github.com"]
+    def test_sort_directive_orders_the_browse(self, lib):
+        parsed = parse_query("sort:-date domain:github.com", now=NOW)
+        assert pool_from_filters(lib, parsed, limit=10, now=NOW) == [2, 1]
 
-    def test_like_metacharacters_are_escaped(self):
-        pred = sql_predicate(parse_query("url:100%", now_ts=NOW))
-        where, params = pred
-        assert "ESCAPE" in where
-        assert params == ["100\\%"]
+    def test_negated_text_term_browses_the_whole_library_minus_that(self, lib):
+        parsed = parse_query("-facebook", now=NOW)
+        ids = pool_from_filters(lib, parsed, limit=10, now=NOW)
+        assert 4 not in ids and set(ids) == {1, 2, 3, 5}
 
-    def test_dates_become_inclusive_bounds(self):
-        pred = sql_predicate(parse_query("after:2024 before:2024", now_ts=NOW))
-        where, params = pred
-        assert where == "b.date_added >= ? AND b.date_added <= ?"
+    def test_sort_relevance_on_a_browse_is_the_default_order(self, lib):
+        """A browse has nothing to rank -- the filters *are* the retrieval --
+        so the one sort that names the ranking degrades to the default
+        timeline. It is a legal directive, so it cannot be an error either.
+        """
+        parsed = parse_query("domain:github.com sort:relevance", now=NOW)
+        assert parsed.sort == "relevance"
+        assert pool_from_filters(lib, parsed, limit=10, now=NOW) == [1, 2]
+
+    def test_a_percent_in_a_negated_phrase_is_a_literal(self, lib):
+        """The title LIKE behind a negation declares an ESCAPE, so ``%`` is a
+        character the user typed, not a wildcard. Left unescaped this phrase
+        would span three words of id 5's title and exclude a page nobody
+        named -- the FTS side already refuses it, since a phrase has to be
+        adjacent.
+        """
+        parsed = parse_query('-"Kafka%guide"', now=NOW)
+        assert 5 in pool_from_filters(lib, parsed, limit=10, now=NOW)
 
 
-class TestLexicalIntegration:
-    @pytest.fixture()
-    def conn(self):
-        c = open_db(":memory:")
-        _seed(c)
-        yield c
-        c.close()
+class TestSortPool:
+    def test_relevance_is_a_no_op(self, lib):
+        assert sort_pool(lib, [4, 1, 3], "relevance") == [4, 1, 3]
 
-    def _ids(self, conn, query):
-        parsed = parse_query(query, now_ts=NOW)
-        return sorted(
-            {
-                i
-                for ids in lexical_lists(conn, query, limit=20, parsed=parsed).values()
-                for i in ids
-            }
-        )
+    def test_date_sort(self, lib):
+        assert sort_pool(lib, [1, 2, 3], "date") == [1, 3, 2]
 
-    def test_a_plain_query_hits_the_same_rows_as_before(self, conn):
-        assert self._ids(conn, "async") == [1]
+    def test_domain_sort(self, lib):
+        assert sort_pool(lib, [1, 3, 4], "domain") == [4, 1, 3]
 
-    def test_domain_filter_narrows_to_the_domain(self, conn):
-        assert self._ids(conn, "domain:github.com") == [1, 2]
 
-    def test_domain_covers_subdomains(self, conn):
-        assert self._ids(conn, "host:github.com") == [1, 2] or self._ids(
-            self.conn, "domain:github.com"
-        ) == [1, 2]
-
-    def test_negated_domain_excludes(self, conn):
-        assert self._ids(conn, "-domain:pinterest.com tutorial") == [2]
-
-    def test_tag_filter_is_exact(self, conn):
-        assert self._ids(conn, "tag:work") == [2]
-
-    def test_tag_filters_do_not_match_partial_words(self, conn):
-        assert self._ids(conn, "tag:rea") == []
-
-    def test_folder_filter(self, conn):
-        assert self._ids(conn, "folder:dev") == [1, 2, 4]
-
-    def test_title_filter(self, conn):
-        assert self._ids(conn, "title:kubernetes") == [2]
-
-    def test_date_window(self, conn):
-        assert self._ids(conn, "after:2021 before:2022") == [2, 3, 4]
-
-    def test_filter_and_text_combine(self, conn):
-        assert self._ids(conn, "machine domain:github.com") == []
-
-    def test_url_filter(self, conn):
-        assert self._ids(conn, "url:combinator") == [4]
-
-    def test_the_filter_only_query_needs_no_free_text(self, conn):
-        assert self._ids(conn, "domain:pinterest.com") == [3]
+class TestApplyFilters:
+    def test_filtering_keeps_pool_order(self, lib):
+        parsed = parse_query("domain:github.com", now=NOW)
+        assert apply_filters(lib, parsed, [3, 1, 2, 5], now=NOW) == [1, 2]
 
 
 # ---------------------------------------------------------------------------
-# pipeline integration
+# end to end
 # ---------------------------------------------------------------------------
 
 
-class TestQuickSearchIntegration:
-    @pytest.fixture()
-    def conn(self):
-        c = open_db(":memory:")
-        _seed(c)
-        yield c
-        c.close()
+class TestQuickSearch:
+    def test_plain_query_is_unchanged_by_the_language(self, lib):
+        r = quick_search(lib, "kafka rebalancing")
+        assert r.filters is None and r.sort == ""
+        assert [h.bookmark_id for h in r.hits] == [5]
 
-    def test_plain_quick_search_keeps_its_shape(self, conn):
-        r = quick_search(conn, "async", settings=None)
+    def test_a_tag_browse_returns_the_tags_it_filtered_on(self, lib):
+        """The hit carries the tags back: the filing vocabulary is the user's
+        own, so every client can render it the way it renders the folder.
+        """
+        lib.execute("""UPDATE bookmark SET tags = '["work"]' WHERE id = 5""")
+        lib.commit()
+        r = quick_search(lib, "tag:work")
+        assert [h.bookmark_id for h in r.hits] == [5]
+        assert [h.tags for h in r.hits] == [["work"]]
+
+    def test_domain_filter_on_first_paint(self, lib):
+        r = quick_search(lib, "domain:github.com")
+        assert {h.bookmark_id for h in r.hits} == {1, 2}
+        assert r.filters == {"fields": [{"field": "domain", "value": "github.com",
+                                         "negate": False}]}
+
+    def test_filter_plus_text(self, lib):
+        r = quick_search(lib, "postgres domain:github.com")
         assert [h.bookmark_id for h in r.hits] == [1]
-        assert r.filters is None
 
-    def test_filters_are_echoed_on_the_response(self, conn):
-        r = quick_search(conn, "rust tag:systems")
-        assert r.filters is not None
-        assert r.filters["field_filters"][0]["field"] == "tag"
-        assert [h.bookmark_id for h in r.hits] == [1]
+    def test_negation_on_first_paint(self, lib):
+        r = quick_search(lib, "privacy -facebook")
+        assert [h.bookmark_id for h in r.hits] == []
 
-    def test_filter_only_quick_search(self, conn):
-        r = quick_search(conn, "tag:reading")
-        assert [h.bookmark_id for h in r.hits] == [4]
+    def test_sort_date_desc(self, lib):
+        r = quick_search(lib, "domain:github.com sort:-date")
+        assert [h.bookmark_id for h in r.hits] == [2, 1]
+        assert r.sort == "-date"
 
-    def test_snippet_centres_on_the_query_term(self, conn):
-        """A hit deep in the body must show the paragraph that matched."""
-        r = quick_search(conn, "thread")
-        assert r.hits
-        snippet = r.hits[0].snippet
-        assert "thread" in snippet.lower()
-
-    def test_sort_date_orders_the_pool(self, conn):
-        r = quick_search(conn, "sort:date domain:github.com")
-        assert [h.bookmark_id for h in r.hits] == [2, 1]  # newest first
+    def test_sort_relevance_with_a_filter_still_answers(self, lib):
+        """First paint of ``domain:x sort:relevance``: a browse asked to rank
+        by a ranking that never ran. It reports the sort it was given and
+        falls back to the browse order.
+        """
+        r = quick_search(lib, "domain:github.com sort:relevance")
+        assert [h.bookmark_id for h in r.hits] == [1, 2]
+        assert r.sort == "relevance"
 
 
-class TestFullSearchIntegration:
+class TestFullSearch:
     @pytest.fixture()
     def settings(self, tmp_path):
         from facetmark.config import Settings
 
-        return Settings(data_dir=tmp_path, use_mock_provider=True, embed_dim=32,
-                        embed_model="mock-embed", chat_model="mock-chat")
-
-    @pytest.fixture()
-    def conn(self):
-        c = open_db(":memory:")
-        _seed(c)
-        yield c
-        c.close()
-
-    async def test_a_filtered_full_search_applies_the_filter_to_every_facet(
-        self, conn, settings
-    ):
-        from facetmark.providers import MockProvider
-        from facetmark.search.pipeline import FULL
-
-        r = await search(
-            conn, "domain:github.com", provider=MockProvider(), settings=settings,
-            config=FULL,
+        return Settings(
+            data_dir=tmp_path, use_mock_provider=True, embed_dim=64,
+            embed_model="mock-embed", chat_model="mock-chat",
+            health_enable_external=False,
         )
-        assert r.hits
-        assert all(h.domain == "github.com" for h in r.hits)
 
-    async def test_a_filter_only_full_search_skips_the_embedding_call(
-        self, conn, settings
-    ):
-        """Nothing to embed: no call, and the lexical facet answers alone."""
-        from facetmark.providers import MockProvider
-        from facetmark.search.pipeline import FULL
+    async def test_a_filtered_query_reports_what_applied(self, lib, settings):
+        import asyncio
 
-        r = await search(
-            conn, "tag:work", provider=MockProvider(), settings=settings, config=FULL,
+        from facetmark.search.pipeline import search
+
+        r = await asyncio.wait_for(
+            search(lib, "kafka domain:example.com", limit=5, settings=settings), 5
         )
-        assert [h.bookmark_id for h in r.hits] == [2]
+        assert set(r.ids) == {5}
+        assert r.filters["fields"][0]["field"] == "domain"
 
-    async def test_a_phrase_only_query_still_embeds_the_phrase(
-        self, conn, settings
-    ):
-        from facetmark.providers import MockProvider
-        from facetmark.search.pipeline import FULL
+    async def test_a_browse_makes_no_model_call(self, lib, settings):
+        """The filters are the retrieval; nothing should be embedded for them."""
+        import asyncio
 
-        r = await search(
-            conn, '"machine learning"', provider=MockProvider(), settings=settings,
-            config=FULL,
+        from facetmark.search.pipeline import search
+
+        r = await asyncio.wait_for(
+            search(lib, "domain:github.com", limit=5, settings=settings), 5
         )
-        assert r.hits  # semantic or lexical, the phrase is not lost
-        assert r.filters and r.filters["phrases"] == ["machine learning"]
+        assert set(r.ids) == {1, 2}
+        assert "filter" in r.facet_sizes
+        # A browse never touches the vector path -- mock provider would still
+        # have answered, but no call means no `vectors` timing entry either.
+        assert "vectors" not in r.took_ms
 
-    async def test_sort_directive_wins_over_relevance(self, conn, settings):
-        from facetmark.providers import MockProvider
-        from facetmark.search.pipeline import FULL
+    async def test_browse_skips_decay_on_old_bookmarks(self, lib, settings):
+        """`added:>90d` asks for old pages; the cold layer must not demote them."""
+        import asyncio
 
-        r = await search(
-            conn, "sort:-date domain:github.com", provider=MockProvider(),
-            settings=settings, config=FULL,
+        from facetmark.search.pipeline import search
+
+        cfg = FULL
+        r = await asyncio.wait_for(
+            search(lib, "added:>90d", limit=5, config=cfg, settings=settings), 5
         )
-        assert [h.bookmark_id for h in r.hits] == [1, 2]  # oldest first
+        assert set(r.ids) == {2, 3}
+        assert not any(h.cold for h in r.hits)
+
+    async def test_plain_full_search_is_unchanged(self, lib, settings):
+        import asyncio
+
+        from facetmark.search.pipeline import search
+
+        r = await asyncio.wait_for(
+            search(lib, "kafka rebalancing", limit=5, settings=settings), 5
+        )
+        assert r.filters is None
+        assert 5 in set(r.ids)
+
+    async def test_phrase_query_matches_the_phrase_only(self, lib, settings):
+        import asyncio
+
+        from facetmark.search.pipeline import search
+
+        r = await asyncio.wait_for(
+            search(lib, '"index types"', limit=5, settings=settings), 5
+        )
+        assert set(r.ids) == {1}

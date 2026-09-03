@@ -68,20 +68,41 @@ def segment_query(text: str) -> str:
     return _WS_RE.sub(" ", " ".join(jieba.cut(text))).strip()
 
 
-def build_fts_query(
-    query: str,
-    *,
-    segmented: bool,
-    phrases: Iterable[str] = (),
-    negatives: Iterable[str] = (),
-    prefixes: Iterable[str] = (),
-) -> str | None:
+def _raw_tokens(query: str) -> list[tuple[str, bool]]:
+    """Split into ``(token, is_phrase)`` keeping quoted spans whole.
+
+    A quoted span is one token even when it contains spaces, so the query
+    language's ``"privacy policy"`` reaches the FTS layer as one phrase rather
+    than two loose words. Unquoted text is split on whitespace as before;
+    quotes glued inside a word (``text:"two words"``, already stripped of its
+    field prefix by the caller) stay one token too.
+    """
+    out: list[tuple[str, bool]] = []
+    pos = 0
+    for m in _PHRASE_RE.finditer(query):
+        pre = query[pos : m.start()]
+        out.extend((t, False) for t in _WS_RE.split(pre) if t)
+        if m.group(1):
+            out.append((m.group(1), True))
+        pos = m.end()
+    if pos < len(query):
+        out.extend((t, False) for t in _WS_RE.split(query[pos:]) if t)
+    return out
+
+
+#: A quoted span: from one quote to the next, or the end of the string.
+_PHRASE_RE = re.compile(r'"([^"]*)"')
+
+
+def build_fts_query(query: str, *, segmented: bool) -> str | None:
     """Turn free-form user input into a safe FTS5 MATCH expression.
 
     Every term is double-quoted, so FTS5 operators typed by the user are treated
     as literal text rather than syntax. Terms are OR-ed: for bookmark retrieval,
     recall matters more than the precision of an implicit AND, and RRF fusion
-    downstream will sort out the ranking.
+    downstream will sort out the ranking. A *quoted phrase* -- the query
+    language's ``"exact words"`` -- is emitted as one FTS5 phrase, which is the
+    one place where the user has explicitly asked for AND-with-order.
 
     Returns ``None`` -- never ``""`` -- when nothing searchable survives, which
     is routine on the trigram path for short CJK queries. An empty string passed
@@ -94,149 +115,57 @@ def build_fts_query(
     was a guaranteed miss -- measured on the W1 query set, ``lex_tri`` returned
     nothing for 186 of 211 Chinese queries, i.e. the facet whose entire
     justification is the CJK blind spot was absent on 88% of CJK queries.
-
-    The three keyword-only arguments carry the query language (see
-    :mod:`facetmark.search.querylang`) into the MATCH expression, in the same
-    recall-first spirit:
-
-    * ``phrases`` become FTS5 phrase clauses -- adjacent tokens, not a bag. On
-      the trigram path a phrase is substring matching; on the segmented path
-      jieba splits it and the tokens must appear consecutively. Phrases are
-      OR-ed with the free terms: a document containing the exact phrase scores
-      higher in bm25 because it contains every term adjacent, which is the
-      ranking effect without inventing clause weights FTS5 does not have.
-    * ``negatives`` become a single ``NOT`` clause over the excluded terms:
-      ``(free terms) NOT ("n1" OR "n2")``. Excluding is the one intent where
-      recall-first is wrong by definition.
-    * ``prefixes`` become FTS5 prefix queries ``"term"*`` on the segmented
-      path. The trigram path leaves them as plain terms: trigram matching is
-      substring matching, so a prefix is already covered.
     """
-    phrases = list(phrases)
-    negatives = list(negatives)
-    prefixes = list(prefixes)
-
-    src = segment_query(query) if segmented else query
-    raw_terms = [t for t in _WS_RE.split(src.strip()) if t]
+    tokens = _raw_tokens((query or "").strip())
     terms: list[str] = []
-    for t in raw_terms:
-        # Syntax characters become spaces rather than vanishing. Deleting them
-        # turned "sqlite-vec" into "sqlitevec", a token that exists in no index:
-        # unicode61 stores it as "sqlite" + "vec", so the query matched nothing
-        # even though the page said the word. Hyphenated identifiers are the
-        # normal case in a developer's library, so this was a silent hole.
-        cleaned = _FTS_STRIP_RE.sub(" ", t).strip()
-        for piece in _WS_RE.split(cleaned):
-            if not piece:
-                continue
+    for tok, is_phrase in tokens:
+        if is_phrase:
+            inner = tok.replace('"', '""')
             if segmented:
-                candidates = [piece]
-            elif has_cjk(piece):
-                # Overlapping 3-grams, which is what a trigram index indexes.
-                # Latin pieces are left whole on purpose: quoting "compar"
-                # already matches "comparison" through the same tokenizer, and
-                # shredding words would only add noise.
-                candidates = [piece[i : i + 3] for i in range(len(piece) - 2)]
-            else:
-                candidates = [piece]
-            for cand in candidates:
-                if not segmented and len(cand) < 3:
-                    # trigram path: a sub-3-character term can never match, and
-                    # leaving it in would turn the whole OR expression into a
-                    # guaranteed miss for that clause.
-                    continue
-                quoted = f'"{cand}"'
-                if quoted not in terms:
-                    terms.append(quoted)
-
-    for phrase in phrases:
-        clause = _phrase_clause(phrase, segmented=segmented)
-        if clause and clause not in terms:
-            terms.append(clause)
-
-    for prefix in prefixes:
+                inner = segment(tok).replace('"', '""')
+            if not segmented and len(inner) < 3:
+                continue
+            quoted = f'"{inner}"'
+            if quoted not in terms:
+                terms.append(quoted)
+            continue
         if segmented:
-            clause = _prefix_clause(prefix)
+            src = segment_query(tok)
+            pieces = [t for t in _WS_RE.split(src) if t]
         else:
-            # Trigram terms are substring matches already; a prefix is the
-            # case where the substring happens to be at the front.
-            clause = f'"{prefix}"' if len(prefix) >= 3 else None
-        if clause and clause not in terms:
-            terms.append(clause)
-
+            pieces = [tok]
+        for piece in pieces:
+            # Syntax characters become spaces rather than vanishing. Deleting them
+            # turned "sqlite-vec" into "sqlitevec", a token that exists in no index:
+            # unicode61 stores it as "sqlite" + "vec", so the query matched nothing
+            # even though the page said the word. Hyphenated identifiers are the
+            # normal case in a developer's library, so this was a silent hole.
+            cleaned = _FTS_STRIP_RE.sub(" ", piece).strip()
+            for cand in _WS_RE.split(cleaned):
+                if not cand:
+                    continue
+                if not segmented and has_cjk(cand):
+                    # Overlapping 3-grams, which is what a trigram index indexes.
+                    # Latin pieces are left whole on purpose: quoting "compar"
+                    # already matches "comparison" through the same tokenizer, and
+                    # shredding words would only add noise.
+                    grams = [cand[i : i + 3] for i in range(len(cand) - 2)]
+                else:
+                    grams = [cand]
+                for g in grams:
+                    if not segmented and len(g) < 3:
+                        # trigram path: a sub-3-character term can never match, and
+                        # leaving it in would turn the whole OR expression into a
+                        # guaranteed miss for that clause.
+                        continue
+                    quoted = f'"{g}"'
+                    if quoted not in terms:
+                        terms.append(quoted)
     if not terms:
         return None
     if not segmented:
         terms = terms[:TRI_MAX_TERMS]
-
-    positive = " OR ".join(terms)
-    if negatives:
-        neg_terms = _negative_clauses(negatives, segmented=segmented)
-        if neg_terms:
-            return f"({positive}) NOT ({' OR '.join(neg_terms)})"
-    return positive
-
-
-def _phrase_clause(phrase: str, *, segmented: bool) -> str | None:
-    """One quoted phrase as an FTS5 phrase clause.
-
-    On the segmented path the phrase is jieba-split and the tokens re-joined
-    inside one pair of quotes, which is FTS5's "these tokens, adjacent" form.
-    On the trigram path the phrase goes in whole: the tokenizer cuts it to
-    trigrams on both sides, and adjacency of those trigrams is substring
-    matching. A phrase shorter than the path can index is dropped rather than
-    becoming a clause that can never match.
-    """
-    phrase = (phrase or "").strip()
-    if not phrase:
-        return None
-    if segmented:
-        seg = segment_query(phrase)
-        if not seg:
-            return None
-        # Re-quote each token: a phrase containing an operator-looking token
-        # must not get to be one. FTS5 accepts quoted tokens inside a phrase.
-        toks = [f'"{t}"' for t in _WS_RE.split(seg) if t]
-        return " ".join(toks) if toks else None
-    if has_cjk(phrase):
-        # trigram: needs >= 3 characters to have any trigram at all
-        return f'"{phrase}"' if len(phrase) >= 3 else None
-    return f'"{phrase}"' if len(phrase) >= 3 else None
-
-
-def _prefix_clause(term: str) -> str | None:
-    """``term*`` as an FTS5 prefix query, ``"term"*`` in the quoted form."""
-    term = (term or "").strip().rstrip("*")
-    if not term:
-        return None
-    return f'"{term}"*'
-
-
-def _negative_clauses(negatives: Iterable[str], *, segmented: bool) -> list[str]:
-    """Quoted clauses for the right side of ``NOT``.
-
-    Same per-path constraints as positive terms: a sub-3-character term on the
-    trigram path cannot match anything, so excluding it would be a no-op that
-    still costs the parser work -- it is skipped instead.
-    """
-    out: list[str] = []
-    for neg in negatives:
-        neg = (neg or "").strip()
-        if not neg:
-            continue
-        if segmented:
-            for t in _WS_RE.split(segment_query(neg)):
-                if t:
-                    out.append(f'"{t}"')
-        else:
-            if has_cjk(neg):
-                for i in range(len(neg) - 2):
-                    tri = neg[i : i + 3]
-                    if f'"{tri}"' not in out:
-                        out.append(f'"{tri}"')
-            elif len(neg) >= 3:
-                out.append(f'"{neg}"')
-    return out
+    return " OR ".join(terms)
 
 
 def truncate_head_tail(text: str, limit: int) -> str:
@@ -307,7 +236,7 @@ def sync_fts(
 
     Tags are folded into ``extra`` (same weight as topics/entities) so a tag
     word is retrievable as free text; the query language's ``tag:`` filter is
-    the exact-match view over the same vocabulary, straight off the JSON
+    the exact-match view over the same vocabulary, read straight off the JSON
     column instead.
     """
     extra = _extra_blob(topics, entities, key_points, tags)

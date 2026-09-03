@@ -732,7 +732,7 @@ class TestQueryLanguageApi:
         r = client.post("/search", json={"q": "domain:ql.example", "limit": 10},
                         headers=auth)
         filters = r.json()["filters"]
-        assert filters and filters["field_filters"][0]["field"] == "domain"
+        assert filters and filters["fields"][0]["field"] == "domain"
 
     def test_a_plain_query_has_no_filters_echo(self, client, auth):
         seed(client, "https://ql.example/plain", "plain page")

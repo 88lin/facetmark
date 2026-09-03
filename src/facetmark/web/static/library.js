@@ -16,7 +16,6 @@ import { $, barRow, block, card, el, facts, fbadge, numberCard, numbers, pill, s
 import { FACET_KEYS, FACET_ORDER, FACET_TONE, count, pct } from "./format.js";
 import { failPanel } from "./panels.js";
 import { S, t } from "./state.js";
-
 let ui = null;
 let generation = 0;
 
@@ -35,6 +34,54 @@ function factsFrom(map, prefix, extra = []) {
 }
 
 // -------------------------------------------------------------------- parts
+
+/**
+ * The save-activity timeline: the last week as columns, older months as pills.
+ *
+ * Ported from hister's history view, on the one column a bookmark library
+ * actually has: `date_added`. Every bucket is a button whose click runs a
+ * query-language search (`added:2026-08-03`, `added:2026-04`) -- the timeline
+ * is a browser over the same syntax the search box accepts, not a separate
+ * feature with its own hidden state.
+ */
+function timelineStrip(tl) {
+  const sec = block(t("tl.title"), t("tl.lede"));
+  const box = card();
+  const days = el("div", "tl-days");
+  days.setAttribute("role", "group");
+  days.setAttribute("aria-label", t("tl.days"));
+  const max = Math.max(1, ...tl.days.map((d) => d.count));
+  for (const d of tl.days) {
+    const day = d.key.slice(4); // `day:2026-08-03` -> `2026-08-03`
+    const col = el("button", "tl-day");
+    col.type = "button";
+    col.style.setProperty("--h", `${Math.round((d.count / max) * 100)}%`);
+    col.setAttribute("aria-label", `${day} \u00b7 ${count(d.count, S.lang)}`);
+    col.title = `${day} \u00b7 ${count(d.count, S.lang)}`;
+    col.appendChild(el("span", "n", d.count || ""));
+    col.addEventListener("click", () => S.search(`added:${day} sort:date`));
+    days.appendChild(col);
+  }
+  box.appendChild(days);
+
+  // Months are clickable: each one is one `added:` token, so the timeline
+  // and the search box are the same language.
+  const months = el("div", "tl-months");
+  for (const m of tl.months ?? []) {
+    const key = m.key.slice(6); // `month:2026-04` -> `2026-04`
+    const b = el("button", "pill act");
+    b.type = "button";
+    b.textContent = `${key} \u00b7 ${count(m.count, S.lang)}`;
+    b.addEventListener("click", () => S.search(`added:${key}`));
+    months.appendChild(b);
+  }
+  if (tl.older) {
+    months.appendChild(el("span", "tl-old", t("tl.older", { n: count(tl.older, S.lang) })));
+  }
+  box.appendChild(months);
+  sec.appendChild(box);
+  return sec;
+}
 
 function topNumbers(s) {
   return numbers([
@@ -246,12 +293,26 @@ export async function render() {
   }
   if (mine !== generation) return;
   S.stats = s;
+  // The timeline is a second document fetched in parallel; a failure or an
+  // empty library leaves the dashboard exactly as it was, minus one block.
+  let tl = null;
+  try {
+    tl = await api.timeline();
+  } catch {
+    tl = null;
+  }
+  if (mine !== generation) return;
   // Two columns from here down, so the page stops being one tall ribbon of
   // identical white cards. The KPI row and the legend stay full width because
   // both are read before anything else on the page.
   const cols = el("div", "cols2");
   cols.append(...coverage(s), health(s), graph(s), queue(s), cold(s), shape(s));
-  ui.stats.replaceChildren(topNumbers(s), facetLegend(), cols);
+  ui.stats.replaceChildren(
+    topNumbers(s),
+    facetLegend(),
+    ...(tl && s.bookmarks ? [timelineStrip(tl)] : []),
+    cols,
+  );
 }
 
 export function mount() {

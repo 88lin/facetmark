@@ -205,6 +205,19 @@
           ></ul>
         </form>
 
+        <!-- Time filters. hister's timeline chips, adapted: each chip writes an
+             `added:` token into the query box, so what the chips do is visible
+             in the one place the query is spelled out, and a chip is exactly
+             as composable as typing the filter by hand. -->
+        <div
+          class="pillbar timebar"
+          id="timebar"
+          role="group"
+          data-i18n-attr="aria-label:time.label"
+          aria-label="When it was saved"
+          hidden
+        ></div>
+
         <div class="controls">
           <div
             class="pillbar"

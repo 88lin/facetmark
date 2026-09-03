@@ -4,56 +4,110 @@
 
 ## [Unreleased]
 
-### 新增（查询语言，移植自 hister 的 querybuilder）
+### 移植（来自 hister）
 
-- **查询语法：字段过滤、短语、排除、通配、日期窗、排序。** 此前 `_FTS_STRIP_RE`
-  把 `-`、`"`、`*`、`:` 全部当垃圾字符剥掉，自由词之间只做 OR——数据明明在库里
-  （`bookmark.domain`、`folder`、`date_added` 自 v1 就有）却没有入口去问。新模块
-  `search/querylang.py` 移植 hister 的三件套：手写 lexer（word / quoted /
-  alternation，带偏移）、声明式字段表（`FIELDS`，单一事实来源）、`ParsedQuery`
-  供所有消费方共享。支持 `domain:`/`site:`/`host:`/`url:`/`title:`/`folder:`/`tag:`
-  字段过滤（含 `-` 取反与 `(a|b)` 多值）、`"精确短语"`（中英文引号）、`-排除词`、
-  `前缀*`、`after:30d`/`before:2024-06-01`/`added:2024-06..2024-09`/`added:<90d`
-  日期窗、`sort:date`/`sort:-date`/`sort:title`/`sort:domain`/`sort:open_count` 排序
-  指令。两条铁律：冒号只有跟在已知字段名后才是过滤器（URL 原样存活）；解析失败
-  的 token 原样退回自由文本（打错字的最坏结果是昨天的行为）。纯过滤查询
-  （`tag:work`）直接由 bookmark 表回答，不碰 FTS 也不花模型调用。
-- **短语检索从死代码变成真的。** `understand.py` 声称引号短语「词法面原样使用」，
-  但 `u.phrases` 提取后从未被任何检索路径消费——文档与实现不符的半成品。现在
-  `build_fts_query` 接受 `phrases`/`negatives`/`prefixes`，短语变成 FTS5 短语子句
-  （seg 路径 jieba 分词后相邻、tri 路径即子串），`understanding.phrases` 与解析器的
-  短语合并去重后一并发进词法面。
-- **过滤器全管线一致。** 词法面把过滤谓词 SQL 下推（`JOIN bookmark` + `WHERE` 在
-  `LIMIT` 之前，被过滤掉的行不占排名坑，深名次的合格行顶上来）；向量面无法在
-  vec0 KNN 上加 WHERE，改为 3 倍 over-fetch 后与 `_allowed_ids` 求交（与 intent 面
-  既有 over-fetch 同一模式）；情景时间窗兜底同样受约束。W1 结论不被重新谈判：
-  `full` 仍只跑 content 面——除非查询本身用了过滤/短语/排除/前缀语法（这是嵌入
-  无法满足的精确字符串意图，词法面按 hister 过滤合取的同样条款加入）。
-- **`sort:` 指令覆盖相关性排序**（整个池排序而非窗口内排序，翻页顺序连续；
-  NULL 键恒排最后；文本键 casefold 比较），且与 rerank 互斥——让 reranker 悄悄
-  撤销用户刚指定的排序是错的。
-- **响应新增 `filters` 回显对象**：解析出的文本、短语、排除、字段过滤、日期窗、
-  排序。客户端与 agent 都能看见 `domain:github.com -pinterest` 确实按字面执行了。
+对 [hister](https://github.com/asciimoo/hister)（searx 作者的私有搜索引擎）做了一次系统性的
+「取经」，把适配本项目定位的能力逐一移植。**移植的核心纪律：任何不带新语法的查询，
+行为与移植前逐字节一致**（`tests/test_querylang.py` 里用旧路径的输出钉死了这一点）；
+过滤器在融合之后裁切候选池、从不改动幸存页面的分数，因此这不属于
+CONTRIBUTING.md 定义的「检索质量变更」，无需预注册协议。
+
+- **查询语言**（hister 的旗舰能力，`server/indexer/querybuilder` 的移植）：所有检索
+  入口（网页框、CLI、`/search`、`/quick`、MCP 工具、karakeep 插件）现在接受
+  `domain:`/`site:`/`url:`/`title:`/`text:`/`folder:`/`topic:`/`lang:` 字段过滤（含
+  `*` 通配与 `(a|b)` 多选）、`-` 否定（词、短语、字段）、`"精确短语"`（FTS5 短语
+  语义）、`added:`/`before:`/`after:` 日期（相对 `>90d` 按年龄比较、绝对
+  `>=2026-04-01` 按时间戳、`2026-04` 整月、`a..b` 区间）、`opened:10..` 打开次数
+  范围、`sort:date|-date|domain|title|url` 排序。兼容规则：`X:` 只在 X 是已知字段名
+  时才是语法（`note:`、`https://…` 是普通文本）；词内连字符不是否定。响应新增
+  `filters`/`sort` 回显；无法解析的过滤值进 `filters.ignored` 而不是被静默丢弃。
+  纯过滤查询（如 `domain:github.com sort:date`）是「浏览」：过滤器即检索，不发
+  嵌入调用，跳过上下文乘子/衰减层/重排器（`added:>1y` 要的就是旧页，冷层不许跟
+  它对着干）。完整语法文档：`docs/query-language.md`。
+- **时间线**（hister `server/timeline` 的移植）：`/timeline` 把 `bookmark.date_added`
+  分桶——最近 7 天按天、更早按月（UTC，与库内所有时间戳一致）。库视图新增保存
+  节奏条（可点击的日柱状图 + 月份 pills），搜索框下新增时间 chips（Any/7d/30d/
+  1y/older）——**每个桶、每枚 chip 落到输入框里的都是一条你本可以手敲的查询语言**，
+  chips 与查询框互为镜像（输入框里的 `added:` token 会点亮对应 chip）。
+- **查询语法补全**（hister `query-suggestions` 的移植）：新端点 `/suggest/query`——
+  输 `dom` 补字段名，输 `domain:git` 补**这个库里真实存在**的域名（还有 folder/
+  lang/topic 值与 sort 值）。前端联想列表自动切换「文档联想/语法补全」两种模式，
+  语法补全替换光标所在 token 而不是整个查询。
+- **站点爬取**（hister `cmd/crawl` 的移植）：`facetmark crawl URL [--max-pages N]
+  [--off-domain]`。BFS 边界受页数预算约束（默认 25——「读我在看的那节文档」，不是
+  slurp），默认不跨域；礼貌机制全部复用 fetch 层现成的（robots.txt、每主机并发 +
+  间隔、真实 UA、字节上限）；链接抽取用 stdlib `html.parser`（零新依赖）；每页
+  经 `save_bookmark` 入库（URL 级去重对爬来的页同样生效），`source='crawl'` 记录
+  出处，正文立即落库，enrich/embed 留给 `facetmark index` 的指纹跳过逻辑。
+- **版本检查**：`facetmark update` 对照 PyPI 报告是否有新版本。与 hister 的差别是
+  刻意的：无后台检查、无遥测——只有你运行这个命令时才碰网络，答案是一对版本号
+  加一条升级提示，升级本身归 pip/pipx 管。
+- **Docker 部署**（hister 部署故事的移植）：`Dockerfile`（python:3.12-slim、非 root
+  用户、依赖层与源码层分离且依赖清单从 pyproject.toml 解析以防漂移、`/health`
+  健康检查用 urllib 不引 curl）+ `compose.yml`（`init`、`restart: unless-stopped`、
+  `read_only` + tmpfs、`cap_drop: ALL`、`no-new-privileges`、**宿主侧钉在
+  127.0.0.1**——容器内必须绑 0.0.0.0 才可达，而把阅读史索引发布到局域网永远需要
+  你故意改一行）+ `.dockerignore`。双语文档同步更新。
+
+### 明确不移植（及理由，详见 PR 说明）
+
+- 多用户/OAuth——与「单用户、本地优先」的产品定位冲突；
+- Postgres/pgvector 后端——SQLite 单文件是这个产品的承诺本身；
+- Svelte 重写前端——原生 JS 是记录在案的刻意选择；
+- TUI 客户端——CLI 已覆盖终端场景。
 
 ### 新增（tags 全链路，schema v6）
 
 - **书签终于保存导入器早已解析出的标签。** `RawBookmark.tags` 从 Netscape 的
   `TAGS="a,b"` 解析出来后，在 staging 处被丢弃——用户自己的归档词汇表，唯一
   无法由其他面重建的元数据，从未进过索引。v6 迁移给 `bookmark` 加 `tags` JSON
-  列（列尾，与 ALTER TABLE 语义一致）；导入按 `url_hash` 幂等合并时 tags 取并集
-  （重导入是编辑不是恢复）；保存 API（HTTP `/bookmark` 与 MCP `save_bookmark`）
-  接受 `tags` 参数，重复保存同样并集；`sync_fts` 把 tags 拼进 `extra`（与
-  topics/entities 同权重），自由文本可搜、`tag:` 精确过滤走 `json_each`；
+  列（列尾，与 ALTER TABLE ADD COLUMN 的追加语义一致，新库与迁移库列序一致）；
+  导入按 `url_hash` 幂等合并时 tags 取并集（重导入是编辑不是恢复）；保存 API
+  （HTTP `/save` 与 MCP `save_bookmark`）接受 `tags` 参数，重复保存同样并集；
+  `sync_fts` 把 tags 拼进 `extra`（与 topics/entities 同权重），因此自由文本可搜；
   `bookmark_record` 与 `SearchHit` 均回显 tags；网页结果卡渲染 `#tag` 徽章。
+- **`tag:` 精确过滤**接入上面那门查询语言：`json_each(b.tags)` 上的成员判定，
+  `tag:(work|rust)` 一次 EXISTS 覆盖整个多选。精确而非子串是刻意的——标签是用户
+  自己敲下的封闭词汇表，`tag:work` 顺带命中 `workshop` 属于悄悄放宽过滤器。
+  联想列表按库里真实存在的标签补全（`tag:` 也是唯一「敲过一次就记不清」的字段）。
 
 ### 改进
 
-- **服务端 snippet 按查询词定位。** 此前 snippet 是 summary 或 body 前 400 字符
-  的裸截断——命中的段落可能在截断之外，读者看到的解释与命中无关。现在按最长
-  查询词（含短语词）首次出现位置开窗（±~150 字符，诚实省略号），CLI、弹窗、
-  MCP、karakeep 桥等所有裸 snippet 消费方直接受益。
-- **MCP 工具描述写明查询语法**（hister 的做法：能力演进时描述同步），`save_bookmark`
-  增加 `tags` 参数。
+- **服务端 snippet 按查询词定位。** 此前 snippet 是 summary 或正文前 300 字符的
+  裸截断——命中的段落可能落在截断之外，读者看到的解释与命中无关。现在按最长
+  查询词（含短语拆出的词）首次出现的位置开窗（±~150 字符，诚实的省略号），
+  被排除的词不参与定位。CLI、弹窗、MCP、karakeep 桥等所有裸 snippet 消费方直接
+  受益。
+- **结果状态行回显实际生效的语法**：字段过滤、被排除的词、排序，以及被忽略的
+  token（`⚠` 标出）。忽略是必须让用户看见的那一半——服务端保留了查询并丢掉了那个
+  token，不说的话看起来就像过滤生效了。
+- **MCP 工具描述写明查询语法**（hister 的做法：能力演进时描述同步），
+  `save_bookmark` 增加 `tags` 参数。
+
+### 修复（测试套件会读到开发机自己的 config.toml）
+
+- **在一台真的用过 facetmark 的机器上，`pytest` 失败 54 条（34 failed + 20 error），
+  而同一份代码在 CI 上全绿。** 根因：`conftest._no_ambient_config` 只清理
+  `FACETMARK_*` 环境变量，它写于 config.toml 配置源诞生之前，没覆盖后者——而配置
+  文件不在 `FACETMARK_*` 命名空间里，位置由环境在 `Settings` 构造之前解析
+  （`configfile.config_path`），所以开发机自己那份带着 `embed_backend = "local"`
+  的 `config.toml` 直接漏进了索要 mock provider 的 fixture（`get_provider` 因此
+  返回 `SplitProvider` 而非 `MockProvider`，连带 enrich/eval/service/karakeep 契约
+  共 54 条）。CI 没有这个文件所以永远看不见这个 bug。
+  现在同一个 fixture 把 `XDG_DATA_HOME` 与 `LOCALAPPDATA`（`default_data_dir`
+  在两个平台上分别检查的两个变量）重定位到每个测试自己的 tmp 目录：重定位而非
+  删除，是因为该源的查找发生在 `Settings` 存在之前；逐测试隔离，是防止测试自己
+  写的配置文件互相看见。新增
+  `tests/test_configfile.py::test_the_suite_cannot_read_the_developer_s_own_config_file`
+  把这条约定钉住——重定位断言在写之前，没有重定位的套件在这里失败，而不是在失败
+  的路上改写开发者的真实配置文件。
+- **同一类问题的第三个源：当前目录下的 `.env`。** 读它的地方有两处
+  （`Settings.model_config` 的 `env_file=".env"` 与 `configfile.external_settings`
+  里的 `dotenv_values(".env")`），两处都是相对路径，所以这个源没法用环境变量重定位
+  ——改的是工作目录：同一个 fixture 现在把每个测试 chdir 到它自己的 tmp 目录。
+  已有的几条 dotenv 测试本来就各自 `monkeypatch.chdir(tmp_path)`，因此不受影响。
+  新增 `test_the_suite_cannot_read_a_dotenv_from_the_checkout`：先断言工作目录不是
+  checkout，再写一个 `.env` 证明这个源确实是活的。
 
 ## [2.0.0] - 2026-08-19
 
