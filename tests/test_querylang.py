@@ -455,6 +455,48 @@ class TestQuickSearch:
         assert r.sort == "relevance"
 
 
+class TestFilterPushdown:
+    """A filter has to reach retrieval, not just trim what retrieval returned.
+
+    `postgres domain:github.com` used to return nothing on a library where the
+    github page ranks below the candidate depth: the facets fetched their top
+    50 for "postgres" and the filter cut all 50. The predicate now goes into the
+    FTS query before its LIMIT, so ineligible rows never occupy a ranked slot.
+    """
+
+    @pytest.fixture()
+    def deep(self):
+        from facetmark.text import sync_fts
+
+        conn = open_db(":memory:")
+        for i in range(1, 121):
+            gh = i == 120
+            domain = "github.com" if gh else f"blog{i}.example"
+            url = f"https://{domain}/p{i}"
+            # The one eligible page is also the weakest match, so bm25 puts it last.
+            title = "postgres " * (1 if gh else 8) + f"page {i}"
+            conn.execute(
+                "INSERT INTO bookmark(id,url,url_norm,url_hash,title,host,domain,"
+                "date_added,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                (i, url, url, f"h{i}", title, domain, domain,
+                 int(NOW - i * 86400), int(NOW), int(NOW)),
+            )
+            sync_fts(conn, i, title=title, body="postgres " * (1 if gh else 20))
+        conn.commit()
+        yield conn
+        conn.close()
+
+    def test_a_filtered_hit_below_the_candidate_depth_is_still_found(self, deep):
+        r = quick_search(deep, "postgres domain:github.com")
+        assert [h.bookmark_id for h in r.hits] == [120]
+
+    def test_the_unfiltered_ranking_is_untouched(self, deep):
+        """The pushdown only applies when a positive filter names a set."""
+        r = quick_search(deep, "postgres")
+        assert [h.bookmark_id for h in r.hits][:3] == [1, 2, 3]
+        assert 120 not in [h.bookmark_id for h in r.hits]
+
+
 class TestFullSearch:
     @pytest.fixture()
     def settings(self, tmp_path):
