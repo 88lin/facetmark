@@ -204,6 +204,17 @@ class SuggestRequest(BaseModel):
     limit: int = Field(default=8, ge=1, le=50)
 
 
+class SuggestQueryRequest(BaseModel):
+    """The token being typed, not the whole query box.
+
+    The frontend keeps the surrounding words to itself and sends only the token
+    the cursor is in; the reply's ``insert`` replaces that token.
+    """
+
+    text: str = ""
+    limit: int = Field(default=8, ge=1, le=25)
+
+
 class SynthesizeRequest(BaseModel):
     q: str
     limit: int = Field(default=8, ge=1, le=20)
@@ -423,6 +434,33 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
         state: AppState = Depends(get_state),
     ) -> list[dict]:
         return service.session_list(state.conn, limit=limit, offset=offset, min_size=min_size)
+
+    @app.get("/timeline", dependencies=auth)
+    async def get_timeline(
+        months: int = Query(default=12, ge=1, le=60),
+        state: AppState = Depends(get_state),
+    ) -> dict:
+        """Save-activity buckets: the last week by day, older months by month.
+
+        Ported from hister's history timeline. Read-only, one scan of the
+        ``date_added`` column -- cheap enough that the UI can ask on every
+        visit to the library view.
+        """
+        return service.timeline(state.conn, months=months)
+
+    @app.post("/suggest/query", dependencies=auth)
+    async def suggest_query(
+        req: SuggestQueryRequest, state: AppState = Depends(get_state)
+    ) -> dict:
+        """Complete the query language: field names, values, sort directives.
+
+        Distinct from ``/suggest``, which completes *documents* from text the
+        reader is typing. This one completes *syntax*: ``dom`` offers
+        ``domain:``, ``domain:git`` offers the domains in this library that
+        start with ``git``. The values come from this database -- the point of
+        a value suggestion is that it is a value that exists here.
+        """
+        return service.suggest_query_syntax(state.conn, req.text, limit=req.limit)
 
     @app.get("/session/{session_id}", dependencies=auth)
     async def get_session(session_id: int, state: AppState = Depends(get_state)) -> dict:

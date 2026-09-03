@@ -86,6 +86,10 @@ export const api = {
       ...(expand === undefined ? {} : { expand }),
     }),
   suggest: (text, limit = 8) => post("/suggest", { text, limit }),
+  // The query-language completer: fields, values from this library, sorts.
+  suggestQuery: (text, limit = 8) => post("/suggest/query", { text, limit }),
+  // Save-activity buckets for the library view's timeline strip.
+  timeline: () => call("/timeline"),
   synthesize: (q, limit = 8) => post("/synthesize", { q, limit }),
   opened: (id, query) => post("/open", { bookmark_id: id, query }),
 

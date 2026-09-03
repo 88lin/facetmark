@@ -26,7 +26,7 @@
   <br>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white&labelColor=2D5F8B" alt="Python"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-22C55E?style=for-the-badge&logo=opensourceinitiative&logoColor=white&labelColor=16A34A" alt="License"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/Tests-1524-06B6D4?style=for-the-badge&logoColor=white&labelColor=0891B2" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/Tests-1588-06B6D4?style=for-the-badge&logoColor=white&labelColor=0891B2" alt="Tests"></a>
 </p>
 
 > [!NOTE]
@@ -159,9 +159,19 @@ git clone https://github.com/88lin/facetmark
 cd facetmark
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
-pytest -q               # 1524 条测试，约 41 秒
+pytest -q               # 1588 条测试，约 44 秒
 ruff check src tests scripts
 ```
+
+**用 Docker**（部署方式移植自 hister）：
+
+```bash
+docker compose up -d        # 构建镜像，只绑 127.0.0.1:8787
+```
+
+容器以非 root 用户运行，只有一个可写卷（`/data`，你的 SQLite 文件），带 `/health`
+健康检查，端口映射的宿主侧钉在回环地址——把你的阅读史索引发到局域网是你要故意
+改一行才能发生的事，不是默认。详见 `compose.yml`。
 
 > [!NOTE]
 > 需要 **Python 3.10+**。唯一一个重的可选依赖是 `sentence-transformers`，只有本地嵌入
@@ -263,17 +273,45 @@ export FACETMARK_LOCAL_EMBED_MAX_SEQ=1024
 | `facetmark import-json FILE.json` | 导入 Firefox JSON 或通用列表 |
 | `facetmark index` | 跑完整流水线，跳过没变的部分 |
 | `facetmark fetch` / `enrich` / `embed` / `intents` / `sessions` / `edges` | 单跑某一段 |
-| `facetmark search QUERY` | 命令行检索 |
+| `facetmark search QUERY` | 命令行检索（支持查询语言） |
+| `facetmark crawl URL` | 礼貌地爬一个站点入库 |
 | `facetmark serve` | Web 界面 + REST API |
 | `facetmark health` | 复检已存 URL，记录 `gone` / `drifted` 判定 |
 | `facetmark stats` | 各表行数、各阶段覆盖率 |
 | `facetmark demo` | 合成库 + mock provider，不联网 |
 | `facetmark selfcheck-embed` | 索引之前先验嵌入后端 |
 | `facetmark eval` | 拿一份查询集跑一个或多个档位 |
+| `facetmark update` | 查看 PyPI 上有没有新版本 |
 | `facetmark export` | 把库导回 JSON |
 
 > [!TIP]
 > 任何一段加 `--force` 都可以无视指纹重做。
+
+---
+
+## 🔤 查询语言
+
+所有检索入口——网页输入框、CLI、API、MCP 工具、karakeep 插件——都接受字段过滤、
+否定、短语、多选、通配符、日期范围和排序指令，**移植自
+[hister](https://github.com/asciimoo/hister)**（searx 作者的私有搜索引擎）。
+完整指南见 [`docs/query-language.md`](docs/query-language.md)：
+
+```bash
+facetmark search "postgres domain:github.com -title:tutorial"
+facetmark search "kafka added:<7d"                     # 这周存的
+facetmark search "title:加密 (signal|matrix)"           # 标题匹配，任一站点
+facetmark search "domain:github.com sort:date"          # 浏览式，最新在前
+facetmark crawl https://docs.sqlite.org/ --max-pages 25 # 然后跑 index
+```
+
+兼容规则是重点：**不带语法的查询和语言存在之前的行为完全一致**——解析器只把
+「不可能是纯文本」的 token 当语法（`note:` 不是字段；词内的连字符不是否定）。
+过滤器在融合之后裁切候选池，从不改动幸存页面的分数，默认排序没有为这个功能
+让过路。
+
+Web 界面在另外三处说同一门语言：联想列表会补全字段名**以及你库里真实存在的值**，
+搜索框下方的 chips 会写入 `added:` token，库视图的保存时间线（`/timeline`）把
+你的保存按天/月分桶——每个桶就是你本可以手敲的一次搜索。
 
 ---
 

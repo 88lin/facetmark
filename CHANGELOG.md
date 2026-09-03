@@ -4,6 +4,58 @@
 
 ## [Unreleased]
 
+### 移植（来自 hister）
+
+对 [hister](https://github.com/asciimoo/hister)（searx 作者的私有搜索引擎）做了一次系统性的
+「取经」，把适配本项目定位的能力逐一移植。**移植的核心纪律：任何不带新语法的查询，
+行为与移植前逐字节一致**（`tests/test_querylang.py` 里用旧路径的输出钉死了这一点）；
+过滤器在融合之后裁切候选池、从不改动幸存页面的分数，因此这不属于
+CONTRIBUTING.md 定义的「检索质量变更」，无需预注册协议。
+
+- **查询语言**（hister 的旗舰能力，`server/indexer/querybuilder` 的移植）：所有检索
+  入口（网页框、CLI、`/search`、`/quick`、MCP 工具、karakeep 插件）现在接受
+  `domain:`/`site:`/`url:`/`title:`/`text:`/`folder:`/`topic:`/`lang:` 字段过滤（含
+  `*` 通配与 `(a|b)` 多选）、`-` 否定（词、短语、字段）、`"精确短语"`（FTS5 短语
+  语义）、`added:`/`before:`/`after:` 日期（相对 `>90d` 按年龄比较、绝对
+  `>=2026-04-01` 按时间戳、`2026-04` 整月、`a..b` 区间）、`opened:10..` 打开次数
+  范围、`sort:date|-date|domain|title|url` 排序。兼容规则：`X:` 只在 X 是已知字段名
+  时才是语法（`note:`、`https://…` 是普通文本）；词内连字符不是否定。响应新增
+  `filters`/`sort` 回显；无法解析的过滤值进 `filters.ignored` 而不是被静默丢弃。
+  纯过滤查询（如 `domain:github.com sort:date`）是「浏览」：过滤器即检索，不发
+  嵌入调用，跳过上下文乘子/衰减层/重排器（`added:>1y` 要的就是旧页，冷层不许跟
+  它对着干）。完整语法文档：`docs/query-language.md`。
+- **时间线**（hister `server/timeline` 的移植）：`/timeline` 把 `bookmark.date_added`
+  分桶——最近 7 天按天、更早按月（UTC，与库内所有时间戳一致）。库视图新增保存
+  节奏条（可点击的日柱状图 + 月份 pills），搜索框下新增时间 chips（Any/7d/30d/
+  1y/older）——**每个桶、每枚 chip 落到输入框里的都是一条你本可以手敲的查询语言**，
+  chips 与查询框互为镜像（输入框里的 `added:` token 会点亮对应 chip）。
+- **查询语法补全**（hister `query-suggestions` 的移植）：新端点 `/suggest/query`——
+  输 `dom` 补字段名，输 `domain:git` 补**这个库里真实存在**的域名（还有 folder/
+  lang/topic 值与 sort 值）。前端联想列表自动切换「文档联想/语法补全」两种模式，
+  语法补全替换光标所在 token 而不是整个查询。
+- **站点爬取**（hister `cmd/crawl` 的移植）：`facetmark crawl URL [--max-pages N]
+  [--off-domain]`。BFS 边界受页数预算约束（默认 25——「读我在看的那节文档」，不是
+  slurp），默认不跨域；礼貌机制全部复用 fetch 层现成的（robots.txt、每主机并发 +
+  间隔、真实 UA、字节上限）；链接抽取用 stdlib `html.parser`（零新依赖）；每页
+  经 `save_bookmark` 入库（URL 级去重对爬来的页同样生效），`source='crawl'` 记录
+  出处，正文立即落库，enrich/embed 留给 `facetmark index` 的指纹跳过逻辑。
+- **版本检查**：`facetmark update` 对照 PyPI 报告是否有新版本。与 hister 的差别是
+  刻意的：无后台检查、无遥测——只有你运行这个命令时才碰网络，答案是一对版本号
+  加一条升级提示，升级本身归 pip/pipx 管。
+- **Docker 部署**（hister 部署故事的移植）：`Dockerfile`（python:3.12-slim、非 root
+  用户、依赖层与源码层分离且依赖清单从 pyproject.toml 解析以防漂移、`/health`
+  健康检查用 urllib 不引 curl）+ `compose.yml`（`init`、`restart: unless-stopped`、
+  `read_only` + tmpfs、`cap_drop: ALL`、`no-new-privileges`、**宿主侧钉在
+  127.0.0.1**——容器内必须绑 0.0.0.0 才可达，而把阅读史索引发布到局域网永远需要
+  你故意改一行）+ `.dockerignore`。双语文档同步更新。
+
+### 明确不移植（及理由，详见 PR 说明）
+
+- 多用户/OAuth——与「单用户、本地优先」的产品定位冲突；
+- Postgres/pgvector 后端——SQLite 单文件是这个产品的承诺本身；
+- Svelte 重写前端——原生 JS 是记录在案的刻意选择；
+- TUI 客户端——CLI 已覆盖终端场景。
+
 ### 修复（测试套件会读到开发机自己的 config.toml）
 
 - **在一台真的用过 facetmark 的机器上，`pytest` 失败 54 条（34 failed + 20 error），

@@ -351,7 +351,18 @@
     "unit.d": "d",
     "unit.h": "h",
     "unit.m": "m",
-    "unit.s": "s"
+    "unit.s": "s",
+    "sugg.syntax": "Query-language completions from this library's own values. Nothing is sent anywhere.",
+    "time.label": "When it was saved",
+    "time.all": "Any time",
+    "time.7d": "Last 7 days",
+    "time.30d": "Last 30 days",
+    "time.year": "Last year",
+    "time.old": "Older than a year",
+    "tl.title": "When you saved things",
+    "tl.lede": "The last week by day, older months by month. Each bucket is one search: click it and the query it runs is spelled out in the box.",
+    "tl.days": "Saves per day, most recent first",
+    "tl.older": "{n} older than the months shown"
   },
   "zh": {
     "ask.basis.title": "仅凭标题",
@@ -705,6 +716,17 @@
     "unit.d": "天",
     "unit.h": "小时",
     "unit.m": "分",
-    "unit.s": "秒"
+    "unit.s": "秒",
+    "sugg.syntax": "根据本机书签库里的真实值补全查询语法。不会发送到任何地方。",
+    "time.label": "按保存时间过滤",
+    "time.all": "不限时间",
+    "time.7d": "最近 7 天",
+    "time.30d": "最近 30 天",
+    "time.year": "最近一年",
+    "time.old": "一年以前",
+    "tl.title": "你的保存节奏",
+    "tl.lede": "最近一周按天、更早的按月。每个色块就是一次搜索：点一下，它执行的查询会写进输入框。",
+    "tl.days": "每天保存的数量，最近在前",
+    "tl.older": "还有 {n} 条早于上面列出的月份"
   }
 }

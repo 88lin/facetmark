@@ -24,6 +24,24 @@ const DEBOUNCE_MS = 160;
 const SUGGEST_MS = 200;
 const SUGGEST_MIN = 4;
 
+// The time chips, as `added:` values. Each chip is one query-language token,
+// so what the chip row does and what the reader can type by hand are the same
+// mechanism wearing two skins -- ported from hister's time-filter chips.
+const TIME_CHIPS = [
+  { id: "7d", key: "time.7d", token: "added:<7d" },
+  { id: "30d", key: "time.30d", token: "added:<30d" },
+  { id: "year", key: "time.year", token: "added:<365d" },
+  { id: "old", key: "time.old", token: "added:>365d" },
+];
+
+// The fields whose names the syntax-aware completer reacts to, so typing
+// `dom` or `site:` flips the suggestion list to syntax mode before the full
+// token exists. Kept in sync with `facetmark.search.querylang.FIELDS`.
+const FIELD_WORDS = [
+  "domain", "site", "url", "title", "text", "folder", "topic", "lang",
+  "added", "saved", "before", "after", "opened", "sort",
+];
+
 let ui = null;
 let rows = [];
 let neighbours = [];
@@ -34,6 +52,12 @@ let sugTimer;
 let sugGeneration = 0;
 let sugRows = [];
 let sugAt = -1;
+// The syntax-mode suggestion list, kept apart from the document list so the
+// two can coexist: a token like `domain:gi` produces syntax rows, the rest of
+// the box still produces document rows, and Enter on either does the right
+// thing because each row carries its own replacement rule.
+let sugMode = "docs";
+let sugToken = { start: 0, end: 0 };
 // Kept so a language switch can redraw the status line without re-querying.
 let lastTook = {};
 let lastTail = "";
@@ -91,19 +115,98 @@ function drawAdvanced() {
   }
 }
 
+// ----------------------------------------------------------------- time chips
+
+/** Which time chip is pressed, judged from the `added:` tokens in the box. */
+function activeChip(q) {
+  for (const c of TIME_CHIPS) {
+    if (q.includes(c.token)) return c.id;
+  }
+  return "";
+}
+
+/**
+ * Rewrite the `added:` tokens in the query to exactly this chip's one.
+ *
+ * Removing *all* of them, not just the active chip's, is what makes the chips
+ * behave as one radio group however the reader got the tokens in there -- by
+ * hand, by chip, or by a month pill on the library view.
+ */
+function withTimeToken(q, token) {
+  const kept = q
+    .split(/\s+/)
+    .filter((w) => w && !/^(-?)(added|saved|before|after):/i.test(w));
+  return token ? [...kept, token].join(" ") : kept.join(" ");
+}
+
+function drawTimebar() {
+  const bar = ui.timebar;
+  if (!bar) return;
+  bar.replaceChildren();
+  const active = activeChip(ui.q.value.trim());
+  bar.appendChild(
+    togglePill(t("time.all"), active === "", () => {
+      ui.q.value = withTimeToken(ui.q.value.trim(), "");
+      drawTimebar();
+      void run(ui.q.value.trim(), { force: true });
+    }),
+  );
+  for (const c of TIME_CHIPS) {
+    bar.appendChild(
+      togglePill(t(c.key), active === c.id, () => {
+        ui.q.value = withTimeToken(ui.q.value.trim(), c.token);
+        drawTimebar();
+        void run(ui.q.value.trim(), { force: true });
+      }),
+    );
+  }
+  // The row hides itself when there is nothing to filter yet: on an empty
+  // library it is four buttons that all answer "nothing".
+  bar.hidden = !(S.stats && S.stats.bookmarks);
+}
+
 // -------------------------------------------------------------- suggestions
 
 function closeSuggest() {
   sugRows = [];
   sugAt = -1;
+  sugMode = "docs";
   ui.sugg.replaceChildren();
   ui.sugg.hidden = true;
   ui.q.setAttribute("aria-expanded", "false");
 }
 
+/** The token the cursor is in, quotes included in their span. */
+function tokenAtCursor() {
+  const v = ui.q.value;
+  const end = ui.q.selectionStart ?? v.length;
+  let start = end;
+  while (start > 0 && !/\s/.test(v[start - 1]) && v[start - 1] !== '"') start -= 1;
+  let e = end;
+  while (e < v.length && !/\s/.test(v[e]) && v[e] !== '"') e += 1;
+  return { start, end: e, value: v.slice(start, e) };
+}
+
+/**
+ * Does this token belong to the query language rather than to a document?
+ *
+ * A token with a `:` whose prefix is a known field is a filter; a bare word
+ * that *prefixes* a field name is offered the fields, because that is the
+// moment the reader is deciding whether to filter. Everything inside quotes
+ * is document text, always -- the language never looks inside a phrase.
+ */
+function isSyntaxToken(value) {
+  const v = value.replace(/^-/, "");
+  if (!v || v.startsWith('"')) return false;
+  const name = v.split(":", 1)[0].toLowerCase();
+  if (v.includes(":")) return FIELD_WORDS.includes(name);
+  if (v.length < 2) return false;
+  return FIELD_WORDS.some((f) => f.startsWith(v.toLowerCase()));
+}
+
 function drawSuggest() {
   ui.sugg.replaceChildren();
-  sugRows.forEach((h, i) => {
+  sugRows.forEach((row, i) => {
     const li = el("li");
     li.setAttribute("role", "presentation");
     const b = el("button");
@@ -111,17 +214,38 @@ function drawSuggest() {
     b.id = `sug-${i}`;
     b.setAttribute("role", "option");
     b.setAttribute("aria-selected", i === sugAt ? "true" : "false");
-    b.appendChild(el("span", "t", h.title || shortUrl(h.url)));
-    b.appendChild(el("span", "w", [h.domain, h.folder].filter(Boolean).join(" \u00b7 ")));
-    b.addEventListener("click", () => {
-      ui.q.value = h.title || shortUrl(h.url);
-      closeSuggest();
-      void run(ui.q.value.trim(), { force: true });
-    });
+    if (sugMode === "syntax") {
+      // `row` is a suggestion object (label/detail/insert), not a hit; a
+      // distinct name keeps the hit-field contract test's static read of
+      // `h.*` honest about what the server's hits actually carry.
+      b.appendChild(el("span", "t", row.label));
+      if (row.detail) b.appendChild(el("span", "w", row.detail));
+      b.addEventListener("click", () => {
+        // Replace the token under the cursor, not the whole query: the rest of
+        // the box is work the reader does not want to lose.
+        const v = ui.q.value;
+        let insert = row.insert;
+        if (!/\s$/.test(v.slice(0, sugToken.start)) && sugToken.start > 0) insert = ` ${insert}`;
+        ui.q.value = v.slice(0, sugToken.start) + insert + " " + v.slice(sugToken.end).trimStart();
+        const at = sugToken.start + insert.length + 1;
+        ui.q.setSelectionRange(at, at);
+        closeSuggest();
+        drawTimebar();
+        void run(ui.q.value.trim(), { force: true });
+      });
+    } else {
+      b.appendChild(el("span", "t", row.title || shortUrl(row.url)));
+      b.appendChild(el("span", "w", [row.domain, row.folder].filter(Boolean).join(" \u00b7 ")));
+      b.addEventListener("click", () => {
+        ui.q.value = row.title || shortUrl(row.url);
+        closeSuggest();
+        void run(ui.q.value.trim(), { force: true });
+      });
+    }
     li.appendChild(b);
     ui.sugg.appendChild(li);
   });
-  const foot = el("li", "sugg-foot", t("sugg.foot"));
+  const foot = el("li", "sugg-foot", t(sugMode === "syntax" ? "sugg.syntax" : "sugg.foot"));
   foot.setAttribute("role", "presentation");
   ui.sugg.appendChild(foot);
   ui.sugg.hidden = false;
@@ -138,12 +262,31 @@ function moveSuggest(step) {
 }
 
 async function askSuggest(text) {
+  if (text.length < 2) return closeSuggest();
+  const tok = tokenAtCursor();
+  if (isSyntaxToken(tok.value)) {
+    const mine = ++sugGeneration;
+    try {
+      const r = await api.suggestQuery(tok.value, 8);
+      if (mine !== sugGeneration) return;
+      sugRows = r.suggestions ?? [];
+      sugMode = "syntax";
+      sugToken = { start: tok.start, end: tok.end };
+      sugAt = -1;
+      if (!sugRows.length) return closeSuggest();
+      drawSuggest();
+    } catch {
+      closeSuggest();
+    }
+    return;
+  }
   if (text.length < SUGGEST_MIN) return closeSuggest();
   const mine = ++sugGeneration;
   try {
     const r = await api.suggest(text, 6);
     if (mine !== sugGeneration) return;
     sugRows = r.hits ?? [];
+    sugMode = "docs";
     sugAt = -1;
     if (!sugRows.length) return closeSuggest();
     drawSuggest();
@@ -421,6 +564,7 @@ export async function run(q, { force = false } = {}) {
     ui.around.hidden = true;
     ui.status.textContent = "";
     await ensureStats(api);
+    drawTimebar();
     emptyPanel(false);
     return;
   }
@@ -535,6 +679,8 @@ async function loadMore(button) {
 export async function render() {
   drawRungs();
   if (!getToken()) return tokenPanel(false, ui.panel);
+  await ensureStats(api);
+  drawTimebar();
   if (cursor.query) {
     if (rows.length || neighbours.length) {
       renderResults();
@@ -543,13 +689,14 @@ export async function render() {
     }
     return run(cursor.query, { force: true });
   }
-  await ensureStats(api);
+  drawTimebar();
   emptyPanel(false);
 }
 
 export function preset(q) {
   ui.q.value = q;
   cursor = startCursor(q);
+  drawTimebar();
 }
 
 export function mount() {
@@ -557,6 +704,7 @@ export function mount() {
     form: $("#seek"),
     q: $("#q"),
     sugg: $("#sugg"),
+    timebar: $("#timebar"),
     rungs: $("#rungs"),
     rungNote: $("#rung-note"),
     optsToggle: $("#opts-toggle"),
@@ -578,6 +726,7 @@ export function mount() {
     clearTimeout(sugTimer);
     timer = setTimeout(() => void run(v), DEBOUNCE_MS);
     sugTimer = setTimeout(() => void askSuggest(v), SUGGEST_MS);
+    drawTimebar();
   });
 
   ui.form.addEventListener("submit", (e) => {

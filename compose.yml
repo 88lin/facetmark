@@ -1,0 +1,30 @@
+# Adapted from hister's compose.yml: a self-hosted personal search engine is
+# something you run on a box you own, restart on reboot, and never give more
+# privileges than it needs.
+#
+# The host side of the mapping is pinned to 127.0.0.1: the container must bind
+# 0.0.0.0 to be reachable at all, and the machine must NOT publish the index
+# of everything you read to the LAN by accident. Publishing it is a one-line
+# change to make on purpose.
+services:
+  facetmark:
+    build:
+      context: .
+    image: facetmark:local
+    container_name: facetmark
+    init: true
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    ports:
+      - '127.0.0.1:8787:8787'
+    volumes:
+      - facetmark_data:/data
+    tmpfs:
+      - /tmp:noexec,nosuid,size=64m
+
+volumes:
+  facetmark_data:

@@ -68,13 +68,41 @@ def segment_query(text: str) -> str:
     return _WS_RE.sub(" ", " ".join(jieba.cut(text))).strip()
 
 
+def _raw_tokens(query: str) -> list[tuple[str, bool]]:
+    """Split into ``(token, is_phrase)`` keeping quoted spans whole.
+
+    A quoted span is one token even when it contains spaces, so the query
+    language's ``"privacy policy"`` reaches the FTS layer as one phrase rather
+    than two loose words. Unquoted text is split on whitespace as before;
+    quotes glued inside a word (``text:"two words"``, already stripped of its
+    field prefix by the caller) stay one token too.
+    """
+    out: list[tuple[str, bool]] = []
+    pos = 0
+    for m in _PHRASE_RE.finditer(query):
+        pre = query[pos : m.start()]
+        out.extend((t, False) for t in _WS_RE.split(pre) if t)
+        if m.group(1):
+            out.append((m.group(1), True))
+        pos = m.end()
+    if pos < len(query):
+        out.extend((t, False) for t in _WS_RE.split(query[pos:]) if t)
+    return out
+
+
+#: A quoted span: from one quote to the next, or the end of the string.
+_PHRASE_RE = re.compile(r'"([^"]*)"')
+
+
 def build_fts_query(query: str, *, segmented: bool) -> str | None:
     """Turn free-form user input into a safe FTS5 MATCH expression.
 
     Every term is double-quoted, so FTS5 operators typed by the user are treated
     as literal text rather than syntax. Terms are OR-ed: for bookmark retrieval,
     recall matters more than the precision of an implicit AND, and RRF fusion
-    downstream will sort out the ranking.
+    downstream will sort out the ranking. A *quoted phrase* -- the query
+    language's ``"exact words"`` -- is emitted as one FTS5 phrase, which is the
+    one place where the user has explicitly asked for AND-with-order.
 
     Returns ``None`` -- never ``""`` -- when nothing searchable survives, which
     is routine on the trigram path for short CJK queries. An empty string passed
@@ -88,38 +116,51 @@ def build_fts_query(query: str, *, segmented: bool) -> str | None:
     nothing for 186 of 211 Chinese queries, i.e. the facet whose entire
     justification is the CJK blind spot was absent on 88% of CJK queries.
     """
-    src = segment_query(query) if segmented else query
-    raw_terms = [t for t in _WS_RE.split(src.strip()) if t]
+    tokens = _raw_tokens((query or "").strip())
     terms: list[str] = []
-    for t in raw_terms:
-        # Syntax characters become spaces rather than vanishing. Deleting them
-        # turned "sqlite-vec" into "sqlitevec", a token that exists in no index:
-        # unicode61 stores it as "sqlite" + "vec", so the query matched nothing
-        # even though the page said the word. Hyphenated identifiers are the
-        # normal case in a developer's library, so this was a silent hole.
-        cleaned = _FTS_STRIP_RE.sub(" ", t).strip()
-        for piece in _WS_RE.split(cleaned):
-            if not piece:
-                continue
+    for tok, is_phrase in tokens:
+        if is_phrase:
+            inner = tok.replace('"', '""')
             if segmented:
-                candidates = [piece]
-            elif has_cjk(piece):
-                # Overlapping 3-grams, which is what a trigram index indexes.
-                # Latin pieces are left whole on purpose: quoting "compar"
-                # already matches "comparison" through the same tokenizer, and
-                # shredding words would only add noise.
-                candidates = [piece[i : i + 3] for i in range(len(piece) - 2)]
-            else:
-                candidates = [piece]
-            for cand in candidates:
-                if not segmented and len(cand) < 3:
-                    # trigram path: a sub-3-character term can never match, and
-                    # leaving it in would turn the whole OR expression into a
-                    # guaranteed miss for that clause.
+                inner = segment(tok).replace('"', '""')
+            if not segmented and len(inner) < 3:
+                continue
+            quoted = f'"{inner}"'
+            if quoted not in terms:
+                terms.append(quoted)
+            continue
+        if segmented:
+            src = segment_query(tok)
+            pieces = [t for t in _WS_RE.split(src) if t]
+        else:
+            pieces = [tok]
+        for piece in pieces:
+            # Syntax characters become spaces rather than vanishing. Deleting them
+            # turned "sqlite-vec" into "sqlitevec", a token that exists in no index:
+            # unicode61 stores it as "sqlite" + "vec", so the query matched nothing
+            # even though the page said the word. Hyphenated identifiers are the
+            # normal case in a developer's library, so this was a silent hole.
+            cleaned = _FTS_STRIP_RE.sub(" ", piece).strip()
+            for cand in _WS_RE.split(cleaned):
+                if not cand:
                     continue
-                quoted = f'"{cand}"'
-                if quoted not in terms:
-                    terms.append(quoted)
+                if not segmented and has_cjk(cand):
+                    # Overlapping 3-grams, which is what a trigram index indexes.
+                    # Latin pieces are left whole on purpose: quoting "compar"
+                    # already matches "comparison" through the same tokenizer, and
+                    # shredding words would only add noise.
+                    grams = [cand[i : i + 3] for i in range(len(cand) - 2)]
+                else:
+                    grams = [cand]
+                for g in grams:
+                    if not segmented and len(g) < 3:
+                        # trigram path: a sub-3-character term can never match, and
+                        # leaving it in would turn the whole OR expression into a
+                        # guaranteed miss for that clause.
+                        continue
+                    quoted = f'"{g}"'
+                    if quoted not in terms:
+                        terms.append(quoted)
     if not terms:
         return None
     if not segmented:
