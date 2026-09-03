@@ -441,8 +441,11 @@ function hitCard(h, rank, neighbour) {
   if (h.cold) marks.appendChild(chip("warn", "mark.cold"));
   // Tags are the user's own filing vocabulary, verbatim -- shown untranslated
   // for the same reason the understanding labels are: a translation would
-  // assert something nobody checked about what the user meant.
-  for (const tag of h.tags ?? []) marks.appendChild(pill("mute", `#${tag}`));
+  // assert something nobody checked about what the user meant. Toneless on
+  // purpose: every tinted pill on this row is a claim the ranker makes, and
+  // `mute` is the content facet's hue. A tag is the reader's own word and
+  // borrowing a facet's colour for it would say the content facet found it.
+  for (const tag of h.tags ?? []) marks.appendChild(pill(null, `#${tag}`));
   if (h.content_type) marks.appendChild(pill("mute", h.content_type));
   const when = whenAdded(h.date_added, S.lang);
   if (when) marks.appendChild(pill("mute", when));

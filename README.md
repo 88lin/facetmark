@@ -109,7 +109,6 @@ flowchart LR
 ```bash
 pip install facetmark            # or: uv pip install facetmark
 
-facetmark init                                  # create the database
 facetmark import bookmarks.html                 # Chrome/Firefox/Edge/Safari export
 facetmark index                                 # fetch → enrich → embed → sessions → edges
 facetmark search "那个讲 Postgres 索引类型的"     # or use the web UI
@@ -141,7 +140,8 @@ facetmark demo
 ### Other entry points
 
 ```bash
-facetmark import-json bookmarks.json    # Firefox JSON backup, or any {url,title,...} list
+facetmark import                       # no path: finds your live Chromium profile
+facetmark import bookmarks.json        # Chrome's own JSON, detected by shape
 ```
 
 Or push from karakeep — see [🔗 Use It as karakeep's Search Engine](#-use-it-as-karakeeps-search-engine).
@@ -215,11 +215,11 @@ export FACETMARK_LOCAL_EMBED_PATH=/path/to/bge-m3     # or leave unset to downlo
 export FACETMARK_LOCAL_EMBED_MAX_SEQ=1024
 ```
 
-`facetmark selfcheck-embed` verifies the backend before you spend an hour indexing: it
-embeds a fixed 64-document probe set twice and reports self-cosine and best-mismatch cosine.
-On bge-m3 at 1024 tokens the measured minimum self-cosine is **0.999976** and all 64
-documents match themselves; at a 512-token budget the minimum drops to 0.9769, which is why
-1024 is the default and why the check exists.
+Embedding the same document twice has to land in the same place. Over a fixed
+64-document probe set, bge-m3 at 1024 tokens gives a minimum self-cosine of
+**0.999976** with all 64 documents matching themselves; at a 512-token budget the
+minimum falls to 0.9769, because truncation starts cutting different amounts off the
+same text. That is why 1024 is the default.
 
 > [!WARNING]
 > **Changing `FACETMARK_EMBED_DIM` invalidates every stored vector.** facetmark refuses to
@@ -275,24 +275,29 @@ Settings panel edits the file; `facetmark config path` prints it.
 
 | Command | What it does |
 |---|---|
-| `facetmark init` | Create the database |
-| `facetmark import FILE.html` | Import a browser bookmark export |
-| `facetmark import-json FILE.json` | Import Firefox JSON or a generic list |
-| `facetmark index` | Run every stage, skipping what has not changed |
-| `facetmark fetch` / `enrich` / `embed` / `intents` / `sessions` / `edges` | Run one stage |
+| `facetmark import [FILE]` | Import a bookmark export — Netscape HTML or Chrome JSON, detected by shape. With no path, finds the live Chromium profile. Never writes back |
+| `facetmark browsers` | List the live browser profiles that can be imported |
+| `facetmark index` | Fetch → enrich → embed → sessions → edges, skipping what has not changed |
+| `facetmark reindex` | Rebuild every derived artefact, keeping the bookmarks |
 | `facetmark search QUERY` | Search from the terminal — query language accepted |
+| `facetmark show ID` | Print one bookmark record as JSON |
+| `facetmark sessions` | List reconstructed saving episodes |
 | `facetmark crawl URL` | Walk a site into the library, politely |
 | `facetmark serve` | Web UI + REST API |
+| `facetmark mcp` | MCP server on stdio, for Claude Desktop and other clients |
+| `facetmark token` | Print the pairing token the extension needs |
 | `facetmark health` | Re-check saved URLs, record `gone` / `drifted` verdicts |
 | `facetmark stats` | Row counts per table, coverage per stage |
+| `facetmark config path` / `show` | Where `config.toml` lives; effective settings and their source |
+| `facetmark migrate` | Bring the schema up to what this build expects |
 | `facetmark demo` | Synthetic library, mock provider, no network |
-| `facetmark selfcheck-embed` | Verify the embedding backend before indexing |
 | `facetmark eval` | Run a query set against one or more configurations |
 | `facetmark update` | Report whether a newer version is on PyPI |
-| `facetmark export` | Dump the library back out as JSON |
+| `facetmark version` | Print the version |
 
 > [!TIP]
-> Add `--force` to any stage to ignore fingerprints and redo the work.
+> `index` and `reindex` take `--force` to ignore fingerprints and redo the work.
+> There is no database-creation step: any command that opens the library creates it.
 
 ---
 
@@ -695,8 +700,8 @@ One SQLite file. The tables you are likely to query directly:
 |---|---|
 | `Dimension mismatch: expected 1024, received 1536` | Stored vectors and `FACETMARK_EMBED_DIM` disagree. Restore the old dim, or re-embed with `--force`. |
 | `base_url` errors / 404 on every call | The URL must end in `/v1`. Gateways that present `https://host/` without it will 404 on `/chat/completions`. |
-| Enrichment silently does nothing | `enrich.targets()` skips a row when `source_hash` already equals the body hash. Use `facetmark enrich --force`. |
-| A page has a vector but bad results | That is the stale-text failure mode above. `facetmark embed --force` rebuilds from the current text. |
+| Enrichment silently does nothing | `enrich.targets()` skips a row when `source_hash` already equals the body hash. Use `facetmark index --force`. |
+| A page has a vector but bad results | That is the stale-text failure mode above. `facetmark index --force` rebuilds from the current text. |
 | `disk I/O error` opening the database | SQLite cannot run on some network or FUSE filesystems. Copy the file to local disk first. |
 | Fetching gets blocked | facetmark honours `robots.txt` and per-domain rate limits by design. Lower `FETCH_CONCURRENCY` or accept that some pages stay body-less; the pipeline falls back to a title-only fingerprint. |
 

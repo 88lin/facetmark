@@ -485,7 +485,8 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
     @app.post("/open", dependencies=auth)
     async def opened(req: OpenRequest, state: AppState = Depends(get_state)) -> dict:
         async with state.lock:
-            service.record_open(state.conn, req.bookmark_id, query=req.query)
+            if not service.record_open(state.conn, req.bookmark_id, query=req.query):
+                raise HTTPException(404, "no such bookmark")
         return {"ok": True}
 
     # ---------------- channel B ----------------

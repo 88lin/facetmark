@@ -525,7 +525,7 @@ ZH["index"] = {
         (
             "cli",
             "\u547d\u4ee4\u884c",
-            "18 \u6761\u547d\u4ee4\u3002<code>search</code> \u6709 "
+            "19 \u6761\u547d\u4ee4\u3002<code>search</code> \u6709 "
             "<code>--explain</code> \u53ef\u4ee5\u6253\u5370\u547d\u4e2d\u7684\u662f\u54ea"
             "\u4e2a\u9762\uff0c<code>--config</code> \u53ef\u4ee5\u6309\u540d\u5b57\u8dd1"
             "\u4efb\u4f55\u4e00\u4e2a\u6d88\u878d\u6863\u3002",
@@ -2180,6 +2180,8 @@ ZH["guide"] = {
                   ["<code>demo</code>",
                    "\u79bb\u7ebf\u9020\u4e00\u4e2a\u5408\u6210\u5e93\u5e76\u641c\u5b83"
                    "\u3002", "<code>--size</code>\u3001<code>--keep</code>"],
+                  ["<code>config path</code> / <code>config show</code>",
+                   "`config.toml` 在哪，以及生效的设置和每一项的来源。", ""],
                   ["<code>eval</code>",
                    "\u8dd1\u68c0\u7d22\u8bc4\u6d4b\uff0c\u53ef\u4ee5\u662f A\u2013E "
                    "\u6d88\u878d\u3002",

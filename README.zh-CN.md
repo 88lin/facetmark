@@ -106,7 +106,6 @@ flowchart LR
 ```bash
 pip install facetmark            # 或者：uv pip install facetmark
 
-facetmark init                                  # 建库
 facetmark import bookmarks.html                 # Chrome/Firefox/Edge/Safari 的导出文件
 facetmark index                                 # fetch → enrich → embed → sessions → edges
 facetmark search "那个讲 Postgres 索引类型的"     # 也可以直接用网页界面
@@ -137,7 +136,8 @@ facetmark demo
 ### 另外两条入口
 
 ```bash
-facetmark import-json bookmarks.json    # Firefox 的 JSON 备份，或任意 {url,title,...} 列表
+facetmark import                       # 不带路径：自动找活着的 Chromium 配置目录
+facetmark import bookmarks.json        # Chrome 自己的 JSON，按文件形状识别
 ```
 
 或者从 karakeep 推过来——见[🔗 拿它当 karakeep 的搜索引擎](#-拿它当-karakeep-的搜索引擎)。
@@ -209,10 +209,9 @@ export FACETMARK_LOCAL_EMBED_PATH=/path/to/bge-m3     # 不设就联网下载
 export FACETMARK_LOCAL_EMBED_MAX_SEQ=1024
 ```
 
-`facetmark selfcheck-embed` 在你花一小时索引之前先验一遍后端：拿一组固定的 64 篇探针
-各嵌两次，报告自余弦和最佳错配余弦。bge-m3 在 1024 token 下实测最小自余弦
-**0.999976**，64/64 全部自我匹配；把预算压到 512 token，最小自余弦掉到 0.9769——这就是
-默认值取 1024、以及为什么要有这条自检的原因。
+同一篇文档嵌两次必须落在同一个地方。拿一组固定的 64 篇探针实测：bge-m3 在 1024 token
+下最小自余弦 **0.999976**，64/64 全部自我匹配；把预算压到 512 token，最小自余弦掉到
+0.9769——因为截断会从同一段文本上切掉不一样的长度。这就是默认值取 1024 的原因。
 
 > [!WARNING]
 > **改 `FACETMARK_EMBED_DIM` 会让所有已存的向量作废。** facetmark 宁可拒绝混维也不肯
@@ -268,24 +267,29 @@ export FACETMARK_LOCAL_EMBED_MAX_SEQ=1024
 
 | 命令 | 做什么 |
 |---|---|
-| `facetmark init` | 建库 |
-| `facetmark import FILE.html` | 导入浏览器书签导出文件 |
-| `facetmark import-json FILE.json` | 导入 Firefox JSON 或通用列表 |
-| `facetmark index` | 跑完整流水线，跳过没变的部分 |
-| `facetmark fetch` / `enrich` / `embed` / `intents` / `sessions` / `edges` | 单跑某一段 |
+| `facetmark import [FILE]` | 导入书签导出文件——Netscape HTML 或 Chrome JSON，按文件形状自动识别。不带路径时自动找活着的 Chromium 配置目录。从不回写浏览器 |
+| `facetmark browsers` | 列出可导入的浏览器配置 |
+| `facetmark index` | fetch → enrich → embed → sessions → edges，跳过没变的部分 |
+| `facetmark reindex` | 保留书签本身，重建所有派生产物 |
 | `facetmark search QUERY` | 命令行检索（支持查询语言） |
+| `facetmark show ID` | 打印一条书签记录（JSON） |
+| `facetmark sessions` | 列出重建出来的保存时段 |
 | `facetmark crawl URL` | 礼貌地爬一个站点入库 |
 | `facetmark serve` | Web 界面 + REST API |
+| `facetmark mcp` | 在 stdio 上跑 MCP 服务器，给 Claude Desktop 等客户端用 |
+| `facetmark token` | 打印扩展需要的配对令牌 |
 | `facetmark health` | 复检已存 URL，记录 `gone` / `drifted` 判定 |
 | `facetmark stats` | 各表行数、各阶段覆盖率 |
+| `facetmark config path` / `show` | `config.toml` 在哪；生效的设置及其来源 |
+| `facetmark migrate` | 把数据库 schema 升到这个版本要求的样子 |
 | `facetmark demo` | 合成库 + mock provider，不联网 |
-| `facetmark selfcheck-embed` | 索引之前先验嵌入后端 |
 | `facetmark eval` | 拿一份查询集跑一个或多个档位 |
 | `facetmark update` | 查看 PyPI 上有没有新版本 |
-| `facetmark export` | 把库导回 JSON |
+| `facetmark version` | 打印版本号 |
 
 > [!TIP]
-> 任何一段加 `--force` 都可以无视指纹重做。
+> `index` 和 `reindex` 加 `--force` 可以无视指纹重做。
+> 没有单独的建库步骤：任何打开库的命令都会顺手把它建出来。
 
 ---
 
@@ -651,8 +655,8 @@ export FACETMARK_TOKEN=...
 |---|---|
 | `Dimension mismatch: expected 1024, received 1536` | 库里的向量和 `FACETMARK_EMBED_DIM` 对不上。要么把维度改回去，要么带 `--force` 重新嵌入。 |
 | `base_url` 报错 / 每个调用都 404 | 地址必须以 `/v1` 结尾。只给 `https://host/` 的网关会在 `/chat/completions` 上 404。 |
-| 富集悄无声息什么都没干 | `enrich.targets()` 在 `source_hash` 已经等于正文哈希时会跳过这一行。用 `facetmark enrich --force`。 |
-| 某一页有向量但结果很差 | 就是上面说的那种失效模式。`facetmark embed --force` 会按当前文本重建。 |
+| 富集悄无声息什么都没干 | `enrich.targets()` 在 `source_hash` 已经等于正文哈希时会跳过这一行。用 `facetmark index --force`。 |
+| 某一页有向量但结果很差 | 就是上面说的那种失效模式。`facetmark index --force` 会按当前文本重建。 |
 | 打开数据库报 `disk I/O error` | SQLite 在某些网络盘和 FUSE 文件系统上跑不了。先把文件拷到本地盘。 |
 | 抓取被挡 | facetmark 是**故意**遵守 `robots.txt` 和分域名限速的。调低 `FETCH_CONCURRENCY`，或者接受有些页面就是没有正文；流水线对没有正文的页面会回落到只用标题的指纹，不会卡住。 |
 
