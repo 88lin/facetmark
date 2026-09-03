@@ -32,11 +32,21 @@ def _no_ambient_config(monkeypatch, tmp_path):
     ``XDG_DATA_HOME`` on POSIX and ``LOCALAPPDATA`` on Windows; per-test
     ``tmp_path`` because tests that write a config file must not see each
     other's either.
+
+    ``.env`` is the third ambient source and the last one: it is read from the
+    *current directory*, by ``Settings.model_config`` and again by
+    ``configfile.external_settings``. A relative path cannot be relocated by
+    an environment variable, so the working directory moves instead. The tests
+    that exercise ``.env`` already chdir into their own ``tmp_path``, which is
+    what this now does for every test rather than only for those.
     """
     for key in [k for k in os.environ if k.startswith("FACETMARK_")]:
         monkeypatch.delenv(key, raising=False)
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg-data"))
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "appdata"))
+    cwd = tmp_path / "cwd"
+    cwd.mkdir(exist_ok=True)
+    monkeypatch.chdir(cwd)
 
 # ---------------------------------------------------------------------------
 # Bookmark file fixtures.

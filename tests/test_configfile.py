@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import stat
+from pathlib import Path
 
 import pytest
 
@@ -91,6 +92,24 @@ def test_the_suite_cannot_read_the_developer_s_own_config_file():
     assert config_path() != unisolated
     write_config({"embed_backend": "local"}, config_path())
     assert Settings().embed_backend == "local"
+
+
+def test_the_suite_cannot_read_a_dotenv_from_the_checkout():
+    """Same hazard, third source: ``.env`` in the current directory.
+
+    Two places read it -- ``Settings.model_config`` names ``env_file=".env"``
+    and ``configfile.external_settings`` calls ``dotenv_values(".env")`` --
+    and both paths are relative, so no environment variable can relocate this
+    one. The working directory moves instead, which is what the assert below
+    pins: a developer running the suite from a checkout with a ``.env`` in it
+    would otherwise configure all of it from that file. The write proves the
+    source is live and really would have been read.
+    """
+    assert Path.cwd() != Path(__file__).resolve().parent.parent
+    (Path.cwd() / ".env").write_text(
+        "FACETMARK_CHAT_MODEL=from-the-working-directory\n", encoding="utf-8"
+    )
+    assert Settings().chat_model == "from-the-working-directory"
 
 
 # --------------------------------------------------------------------------

@@ -21,6 +21,13 @@
   `tests/test_configfile.py::test_the_suite_cannot_read_the_developer_s_own_config_file`
   把这条约定钉住——重定位断言在写之前，没有重定位的套件在这里失败，而不是在失败
   的路上改写开发者的真实配置文件。
+- **同一类问题的第三个源：当前目录下的 `.env`。** 读它的地方有两处
+  （`Settings.model_config` 的 `env_file=".env"` 与 `configfile.external_settings`
+  里的 `dotenv_values(".env")`），两处都是相对路径，所以这个源没法用环境变量重定位
+  ——改的是工作目录：同一个 fixture 现在把每个测试 chdir 到它自己的 tmp 目录。
+  已有的几条 dotenv 测试本来就各自 `monkeypatch.chdir(tmp_path)`，因此不受影响。
+  新增 `test_the_suite_cannot_read_a_dotenv_from_the_checkout`：先断言工作目录不是
+  checkout，再写一个 `.env` 证明这个源确实是活的。
 
 ## [2.0.0] - 2026-08-19
 
