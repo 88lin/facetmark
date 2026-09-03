@@ -228,9 +228,24 @@ jobs:
         run: |
           test "$(docker exec fm id -u)" = "65532"
       - name: the compose file is valid and stays on loopback
+        # Asserted against the *resolved* config rather than the file, and in
+        # JSON rather than by grepping YAML: `docker compose config` normalises
+        # `127.0.0.1:8787:8787` into a long-form mapping, so the literal string
+        # is not in its output and a grep for it fails while the pin is intact.
         run: |
-          docker compose config >/tmp/compose.resolved
-          grep -q '127.0.0.1:8787' /tmp/compose.resolved
+          docker compose config --format json >/tmp/compose.json
+          python - <<'EOF'
+          import json
+          svc = json.load(open("/tmp/compose.json"))["services"]["facetmark"]
+          ports = svc["ports"]
+          assert len(ports) == 1, ports
+          p = ports[0]
+          assert p.get("host_ip") == "127.0.0.1", f"published beyond loopback: {p}"
+          assert str(p.get("published")) == "8787", p
+          assert svc.get("read_only") is True, "read_only was dropped"
+          assert svc.get("cap_drop") == ["ALL"], svc.get("cap_drop")
+          print("compose pins:", p, "read_only + cap_drop intact")
+          EOF
       - name: logs, on failure
         if: failure()
         run: docker logs fm || true
