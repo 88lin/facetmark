@@ -76,9 +76,32 @@ export interface Hit {
   domain: string;
   date_added: number | null;
   cold: boolean;
+  /** The user's own filing words. Verbatim, never translated. */
+  tags: string[];
   /** Expansion rows only: the bookmark id this one was reached from. */
   via?: number;
   via_kind?: string;
+}
+
+/**
+ * What the server parsed out of the query string, when it parsed anything.
+ *
+ * `null` on the response means the query carried no syntax at all, which is
+ * not the same as "no filters matched": it is the compatibility guarantee,
+ * that a plain query took the path it always took. Every key here is absent
+ * rather than empty when it has nothing to say, so `?? []` is the idiom.
+ */
+export interface QueryFilters {
+  fields?: { field: string; value: string; negate: boolean }[];
+  /** Free words the query excluded with a leading `-`. */
+  exclude?: string[];
+  sort?: string;
+  /**
+   * Tokens that looked like syntax and did not parse (`added:90d`). The server
+   * answered the rest of the query rather than failing, so this is the only
+   * signal a user gets that part of what they typed did not apply.
+   */
+  ignored?: string[];
 }
 
 export interface SearchResponse {
@@ -104,6 +127,10 @@ export interface SearchResponse {
   has_more: boolean;
   /** The pool was cut by the server's depth ceiling, not by the library ending. */
   depth_capped: boolean;
+  /** The query language the server read out of `query`, or `null` for none. */
+  filters: QueryFilters | null;
+  /** The sort directive that applied, `""` when the query asked for none. */
+  sort: string;
 }
 
 export const api = {
@@ -120,8 +147,8 @@ export const api = {
       method: "POST",
       body: JSON.stringify(depth ? { q, limit, offset, depth } : { q, limit, offset }),
     }),
-  save: (body: { url: string; title: string; folder?: string }) =>
-    request<{ bookmark_id: number; created?: boolean }>("/bookmark", {
+  save: (body: { url: string; title: string; folder?: string; tags?: string[] }) =>
+    request<{ bookmark_id: number; created?: boolean; tags?: string[] }>("/bookmark", {
       method: "POST",
       body: JSON.stringify(body),
     }),

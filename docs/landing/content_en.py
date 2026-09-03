@@ -124,7 +124,7 @@ EN = {
         ],
         "chips": [
             ("Python", "3.10+"),
-            ("Tests", "1,514"),
+            ("Tests", "1,619"),
             ("Licence", "MIT"),
             ("Storage", "1 SQLite file"),
             ("Upload", "none"),
@@ -304,6 +304,15 @@ EN = {
             "the same search page in dark mode",
         ),
         "app_points": [
+            (
+                "It speaks a filter language",
+                "<code>domain:github.com</code>, <code>tag:work</code>, "
+                "<code>added:&lt;7d</code>, <code>-pinterest</code>, "
+                "<code>sort:date</code> \u2014 in the same box, with "
+                "completion for the field names <em>and</em> the values that "
+                "exist in your library. A query that is only filters is a "
+                "browse: no model call at all.",
+            ),
             (
                 "It pairs itself",
                 "The token is fetched from a route that answers only when the "
@@ -500,7 +509,7 @@ EN = {
             (
                 "cli",
                 "Command line",
-                "Sixteen commands. <code>search</code> takes "
+                "Eighteen commands. <code>search</code> takes "
                 "<code>--explain</code> to print which facet matched, and "
                 "<code>--config</code> to run any ablation rung by name.",
                 "guide.html#commands",
@@ -510,7 +519,7 @@ EN = {
                 "http",
                 "HTTP API",
                 "<code>facetmark serve</code> binds 127.0.0.1:8787. "
-                "Twenty-seven routes. Four are open — the root, health, "
+                "Twenty-nine routes. Four are open \u2014 the root, health, "
                 "and the two the local page needs to load itself; everything "
                 "that touches the library requires a pairing token.",
                 "guide.html#serve",
@@ -970,7 +979,7 @@ EN["guide"] = {
                  "cd facetmark\n"
                  "python -m venv .venv && . .venv/bin/activate\n"
                  'pip install -e ".[dev]"\n\n'
-                 "pytest -q                 # 1,514 tests\n"
+                 "pytest -q                 # 1,619 tests\n"
                  "ruff check src tests scripts"),
                 ("callout", "warn", "Do not reformat the codebase",
                  "<p>It is hand-formatted. <code>ruff check</code> is part of "
@@ -1321,6 +1330,108 @@ EN["guide"] = {
                  "facetmark sessions -n 20     # recent saving episodes\n"
                  "facetmark show 412 --body    # one bookmark as JSON\n"
                  "facetmark stats              # index size and coverage"),
+            ],
+        ),
+        # -------------------------------------------------------------- query
+        (
+            "query",
+            "The query language",
+            [
+                ("p",
+                 "Every search surface takes the same grammar: the web box, "
+                 "<code>facetmark search</code>, <code>/search</code> and "
+                 "<code>/quick</code>, the MCP tools, the karakeep plugin. It "
+                 "is a <em>filter</em> language, not a second ranker \u2014 a "
+                 "filter decides which pages are eligible and never moves a "
+                 "surviving page's score. Full reference: "
+                 "<a href=\"https://github.com/88lin/facetmark/blob/main/docs/"
+                 "query-language.md\">docs/query-language.md</a>."),
+                ("cb", "shell",
+                 "facetmark search \"postgres domain:github.com -title:tutorial\"\n"
+                 "facetmark search \"kafka added:<7d\"          # saved this week\n"
+                 "facetmark search 'title:encryption (signal|matrix)'\n"
+                 "facetmark search \"tag:work sort:date\"       # a browse, newest first"),
+                ("table", ["Field", "Matches", "Example"], [
+                    ["<code>domain:</code> <span class=\"tiny\">alias "
+                     "<code>site:</code></span>", "the site, exact or wildcard",
+                     "<code>domain:github.com</code>"],
+                    ["<code>host:</code>", "the full hostname",
+                     "<code>host:news.ycombinator.com</code>"],
+                    ["<code>url:</code>", "part of the address",
+                     "<code>url:*/docs/*</code>"],
+                    ["<code>title:</code>", "words in the title only",
+                     "<code>title:encryption</code>"],
+                    ["<code>text:</code>", "words in the fetched page body",
+                     "<code>text:\"GDPR compliance\"</code>"],
+                    ["<code>folder:</code>", "the browser folder it came from",
+                     "<code>folder:study</code>"],
+                    ["<code>tag:</code>", "one of your own tags, exactly",
+                     "<code>tag:work</code>"],
+                    ["<code>topic:</code>", "a topic the enrichment wrote",
+                     "<code>topic:postgres</code>"],
+                    ["<code>lang:</code>", "the detected page language",
+                     "<code>lang:zh</code>"],
+                    ["<code>opened:</code>", "how many times you opened it",
+                     "<code>opened:10..</code>"],
+                ]),
+                ("h3", "Negation, phrases, alternation, wildcards"),
+                ("cb", "shell",
+                 "-facebook                    exclude a word\n"
+                 "-domain:pinterest.com        exclude a whole site\n"
+                 "\"consumer group rebalancing\"  an exact phrase\n"
+                 "(security|privacy)           either word\n"
+                 "domain:(github.com|gitlab.com)   either value\n"
+                 "domain:*.github.io           * is any run of characters"),
+                ("h3", "Dates"),
+                ("p",
+                 "A <em>duration</em> compares against the age of the "
+                 "bookmark, so <code>added:&gt;90d</code> means older than 90 "
+                 "days. An <em>absolute date</em> compares against the "
+                 "timestamp directly, so <code>added:&gt;=2026-04-01</code> "
+                 "means on or after that day. The two read in opposite "
+                 "directions because both readings are the obvious one for "
+                 "their own form."),
+                ("table", ["Written", "Means"], [
+                    ["<code>added:&lt;7d</code>", "saved in the last week"],
+                    ["<code>added:&gt;90d</code>", "older than 90 days"],
+                    ["<code>added:2026-04</code>", "saved that month"],
+                    ["<code>added:2026-04-01..2026-09-01</code>", "an explicit range"],
+                    ["<code>before:2026-05-01</code> <code>after:30d</code>",
+                     "aliases of <code>added:</code>; a duration on these two "
+                     "is an age, so <code>after:30d</code> is the last 30 days"],
+                ]),
+                ("h3", "Sorting, and what a browse is"),
+                ("p",
+                 "<code>sort:date</code> is newest first, <code>sort:-date</code> "
+                 "oldest first; <code>title</code>, <code>domain</code>, "
+                 "<code>url</code> and <code>opened</code> (most opened first) "
+                 "also work. A query with no free text \u2014 filters, a "
+                 "negation, or just <code>sort:date</code> \u2014 is a "
+                 "<strong>browse</strong>: the filters are the retrieval, so no "
+                 "embedding is requested, no model is called, and the ranking "
+                 "layers are skipped. It is the one search shape that costs "
+                 "nothing at all."),
+                ("callout", "info", "A query with no syntax is unchanged",
+                 "<p>The parser only reads a token as syntax when it could not "
+                 "be plain text. <code>note: something</code> is not a filter, "
+                 "because <code>note</code> is not a field. "
+                 "<code>state-of-the-art</code> is not three negations. "
+                 "<code>https://example.com/x</code> is one word. And a value "
+                 "that does not parse \u2014 <code>added:90d</code>, which is "
+                 "a duration with no comparison \u2014 comes back in the "
+                 "response's <code>filters.ignored</code> rather than being "
+                 "silently applied or silently dropped.</p>"),
+                ("h3", "Your own tags"),
+                ("p",
+                 "Netscape and pinboard exports carry a <code>TAGS</code> "
+                 "attribute, and it is kept: stored on the bookmark, returned "
+                 "with every hit, and queryable as <code>tag:work</code>. The "
+                 "match is on one whole element of the list, so "
+                 "<code>tag:work</code> never widens into <code>workshop</code>; "
+                 "use <code>tag:(work|rust)</code> for more than one. "
+                 "<code>POST /bookmark</code> and the MCP <code>save_bookmark</code> "
+                 "tool accept <code>tags</code> too, and re-importing a file "
+                 "unions the tags rather than replacing them."),
             ],
         ),
         # -------------------------------------------------------------- serve
@@ -2017,6 +2128,17 @@ EN["guide"] = {
                    "<code>--mock</code>"],
                   ["<code>mcp</code>", "Run the MCP server on stdio.",
                    "<code>--mock</code>"],
+                  ["<code>crawl URL</code>",
+                   "Walk a site into the library, politely. robots.txt is "
+                   "honoured, hosts on the privacy exclusion list are not "
+                   "contacted at all, and each page becomes an ordinary "
+                   "bookmark.",
+                   "<code>--max-pages</code>, <code>--off-domain</code>"],
+                  ["<code>update</code>",
+                   "Say whether a newer facetmark is on PyPI. It checks only "
+                   "when you run it \u2014 no background check, no telemetry "
+                   "\u2014 and never upgrades anything itself.",
+                   "<code>--json</code>"],
                   ["<code>demo</code>",
                    "Build a synthetic library offline and search it.",
                    "<code>--size</code>, <code>--keep</code>"],
@@ -2664,7 +2786,13 @@ EN["webui"] = {
                         [
                             "<b>Search</b>",
                             "The main event. Type, get ranked pages, see which "
-                            "of the four paths found each one.",
+                            "of the four paths found each one. The box also "
+                            "takes the filter grammar \u2014 "
+                            "<code>domain:</code>, <code>tag:</code>, "
+                            "<code>added:</code>, <code>-not-this</code>, "
+                            "<code>sort:</code> \u2014 and completes both the "
+                            "field names and the values your library "
+                            "actually has.",
                         ],
                         [
                             "<b>Ask</b>",
@@ -2677,7 +2805,11 @@ EN["webui"] = {
                             "<b>Library</b>",
                             "What the index actually contains: how many pages "
                             "have text, how many have vectors, which links are "
-                            "dead, what is queued, what has never been opened.",
+                            "dead, what is queued, what has never been opened. "
+                            "At the top, a timeline of when you saved things "
+                            "\u2014 every bar and every month is a button, and "
+                            "each one runs an <code>added:</code> search you "
+                            "could have typed yourself.",
                         ],
                         [
                             "<b>Sittings</b>",
@@ -2783,6 +2915,12 @@ EN["webui"] = {
                 (
                     "ul",
                     [
+                        "<b>#tags</b> \u2014 your own filing words, shown "
+                        "verbatim and never translated. They come from the "
+                        "<code>TAGS</code> attribute of a browser or pinboard "
+                        "export, or from whatever you passed to "
+                        "<code>/bookmark</code>, and each one is a "
+                        "<code>tag:</code> search away.",
                         "<b>never opened</b> \u2014 facetmark has never watched "
                         "you open this one. A browser export carries no usage "
                         "history at all, so on day one this is true of "

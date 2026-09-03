@@ -26,7 +26,7 @@
   <br>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white&labelColor=2D5F8B" alt="Python"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-22C55E?style=for-the-badge&logo=opensourceinitiative&logoColor=white&labelColor=16A34A" alt="License"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/Tests-1588-06B6D4?style=for-the-badge&logoColor=white&labelColor=0891B2" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/Tests-1619-06B6D4?style=for-the-badge&logoColor=white&labelColor=0891B2" alt="Tests"></a>
 </p>
 
 > [!NOTE]
@@ -159,7 +159,7 @@ git clone https://github.com/88lin/facetmark
 cd facetmark
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
-pytest -q               # 1588 条测试，约 44 秒
+pytest -q               # 1,619 条测试，约 50 秒
 ruff check src tests scripts
 ```
 
@@ -316,7 +316,7 @@ Web 界面在另外三处说同一门语言：联想列表会补全字段名**�
 **你自己的标签也在这门语言里。** Netscape 与 pinboard 导出自第一版导入器起就带着
 `TAGS` 属性，一直被解析出来又在入库前丢掉；现在它存在 bookmark 上、随每条命中返回、
 并且可以用 `tag:work` 查询——精确匹配数组里的一个元素，所以 `tag:work` 不会悄悄扩成
-`workshop`。`POST /save` 和 MCP 的 `save_bookmark` 工具同样接受 `tags`。
+`workshop`。`POST /bookmark` 和 MCP 的 `save_bookmark` 工具同样接受 `tags`。
 
 ---
 
@@ -739,6 +739,7 @@ facetmark/
 │       ├── providers.py                # 模型提供方 (OpenAI 兼容)
 │       ├── mcp_server.py               # MCP 服务端
 │       ├── migrations.py               # 数据库迁移
+│       ├── crawl.py                    # `facetmark crawl`：站点行走
 │       ├── admin.py                    # 管理命令
 │       ├── importers/                  # 浏览器书签解析
 │       │   ├── netscape_html.py        #   HTML 格式 (Chrome/Edge/Safari/Firefox)
@@ -759,6 +760,7 @@ facetmark/
 │       │   └── schema.py               #   富集结果 schema
 │       ├── search/                     # 检索
 │       │   ├── pipeline.py             #   检索流水线
+│       │   ├── querylang.py            #   查询语言：解析器与过滤器
 │       │   ├── lexical.py              #   词面 (FTS5 trigram + segment)
 │       │   ├── vectors.py              #   向量检索
 │       │   ├── rrf.py                  #   RRF 融合
@@ -787,11 +789,12 @@ facetmark/
 │       ├── search-facetmark/           #   插件源码
 │       ├── typecheck/                  #   上游接口类型检查
 │       └── contract/                   #   线格式契约测试
-├── extension/                          # 浏览器扩展 (打开次数遥测)
+├── extension/                          # 浏览器扩展 (检索、保存、抓取兜底)
 ├── eval/                               # 查询集与评测数据 (JSON/JSONL)
 ├── scripts/                            # 实验驱动与探针
 ├── docs/                               # 一个实验一份文档，协议在前
-├── tests/                              # 1524 条测试
+│   └── landing/                        #   项目站点，由 build.py 生成
+├── tests/                              # 1,619 条测试
 ├── pyproject.toml
 ├── LICENSE
 └── README.md

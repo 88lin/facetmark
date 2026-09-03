@@ -369,6 +369,7 @@ def suggest_from_context(
 #: the same thing the dropdown does.
 FIELD_HINTS: tuple[tuple[str, str], ...] = (
     ("domain", "a site, e.g. domain:github.com (alias: site:)"),
+    ("host", "the full hostname, e.g. host:news.ycombinator.com"),
     ("added", "when it was saved, e.g. added:>7d or added:>=2026-04-01"),
     ("title", "words in the title only"),
     ("url", "part of the address, * wildcards allowed"),
@@ -378,7 +379,7 @@ FIELD_HINTS: tuple[tuple[str, str], ...] = (
     ("topic", "an enrichment topic, e.g. topic:postgres"),
     ("lang", "the detected language, e.g. lang:zh"),
     ("opened", "times opened, e.g. opened:10.."),
-    ("sort", "result order: date, domain, title, url"),
+    ("sort", "result order: date, domain, title, url, opened"),
 )
 
 _SORT_HINTS: tuple[tuple[str, str], ...] = (
@@ -387,6 +388,7 @@ _SORT_HINTS: tuple[tuple[str, str], ...] = (
     ("domain", "group by site"),
     ("title", "alphabetical"),
     ("url", "by address"),
+    ("opened", "most opened first"),
 )
 
 _DATE_HINTS: tuple[str, ...] = (
@@ -425,8 +427,12 @@ def suggest_query_syntax(
                         "detail": hint, "insert": f"sort:{name}"})
     elif field.lower() in FIELDS:
         low = field.lower()
+        # Dispatch on the canonical field, insert the alias the user typed:
+        # `site:` is a documented alias of `domain:` and used to complete
+        # nothing at all, because the branches below compared the typed name.
+        canon = FIELDS[low]
         frag = value.strip().strip('"')
-        if low == "domain":
+        if canon == "domain":
             like = f"{frag.replace('%', '')}%"
             rows = conn.execute(
                 "SELECT domain, COUNT(*) n FROM bookmark "
@@ -438,7 +444,19 @@ def suggest_query_syntax(
                 out.append({"kind": "value", "label": r["domain"],
                             "detail": f"{int(r['n'])} saved",
                             "insert": f"{neg}{low}:{r['domain']}"})
-        elif low == "folder":
+        elif canon == "host":
+            like = f"%{frag.replace('%', '')}%"
+            rows = conn.execute(
+                "SELECT host, COUNT(*) n FROM bookmark "
+                "WHERE host LIKE ? AND host <> '' GROUP BY host "
+                "ORDER BY n DESC LIMIT ?",
+                (like, limit),
+            ).fetchall()
+            for r in rows:
+                out.append({"kind": "value", "label": r["host"],
+                            "detail": f"{int(r['n'])} saved",
+                            "insert": f"{neg}{low}:{r['host']}"})
+        elif canon == "folder":
             like = f"%{frag.replace('%', '')}%"
             rows = conn.execute(
                 "SELECT folder, COUNT(*) n FROM bookmark "
@@ -450,7 +468,7 @@ def suggest_query_syntax(
                 out.append({"kind": "value", "label": r["folder"],
                             "detail": f"{int(r['n'])} saved",
                             "insert": f"{neg}{low}:{r['folder']}"})
-        elif low == "tag":
+        elif canon == "tag":
             # The user's own vocabulary, so completion matters more here than
             # anywhere else: a tag that was typed once and misremembered is
             # invisible otherwise. Counted over json_each rather than the raw
@@ -465,7 +483,7 @@ def suggest_query_syntax(
                 out.append({"kind": "value", "label": r["tag"],
                             "detail": f"{int(r['n'])} saved",
                             "insert": f"{neg}{low}:{r['tag']}"})
-        elif low == "lang":
+        elif canon == "lang":
             rows = conn.execute(
                 "SELECT lang, COUNT(*) n FROM content WHERE lang IS NOT NULL "
                 "GROUP BY lang ORDER BY n DESC LIMIT ?",
@@ -475,7 +493,7 @@ def suggest_query_syntax(
                 out.append({"kind": "value", "label": r["lang"],
                             "detail": f"{int(r['n'])} pages",
                             "insert": f"{neg}{low}:{r['lang']}"})
-        elif low == "topic":
+        elif canon == "topic":
             like = f'%"{frag.replace("%", "").replace(chr(34), "")}"%'
             seen: dict[str, int] = {}
             for (raw,) in conn.execute(
@@ -487,7 +505,7 @@ def suggest_query_syntax(
             for topic, n in sorted(seen.items(), key=lambda kv: -kv[1])[:limit]:
                 out.append({"kind": "value", "label": topic,
                             "detail": f"{n} pages", "insert": f"{neg}topic:{topic}"})
-        if low == "added" and not out:
+        if canon == "added" and not out:
             for v in _DATE_HINTS:
                 out.append({"kind": "hint", "label": v, "detail": "", "insert": v})
     if not out:

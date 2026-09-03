@@ -54,11 +54,15 @@ Guidance:
 * Start with `search_bookmarks`. Vague, memory-shaped queries work: "that thing
   I saved while setting up Docker" is a supported query form, not a fallback.
 * Structured query syntax is supported in the same string: field filters
-  (`domain:github.com`, `host:`, `url:`, `title:`, `folder:`, `tag:`),
-  negation (`-term`, `-domain:pinterest.com`), quoted phrases (`"exact words"`),
-  alternation (`domain:(github.com|gitlab.com)`), date windows
-  (`after:30d`, `before:2024-06-01`, `added:2024`, `added:2024-06..2024-09`),
-  prefix (`kuber*`) and ordering (`sort:date`, `sort:-date`, `sort:title`).
+  (`domain:github.com`, `host:`, `url:`, `title:`, `text:`, `folder:`, `tag:`,
+  `topic:`, `lang:`, `opened:10..`), negation (`-term`,
+  `-domain:pinterest.com`), quoted phrases (`"exact words"`), alternation
+  (`domain:(github.com|gitlab.com)`), wildcards (`domain:*.github.io`), date
+  windows (`after:30d`, `before:2024-06-01`, `added:2024`,
+  `added:2024-06..2024-09`, `added:>90d`) and ordering (`sort:date`,
+  `sort:-date`, `sort:title`, `sort:domain`, `sort:opened`). A filter value
+  that does not parse comes back in the response's `filters.ignored` rather
+  than being applied or dropped silently.
 * `synthesize` answers a question over the library and cites bookmark numbers
   per claim. Prefer it over stitching search results together yourself.
 * `find_related` follows typed edges. `session` = saved in the same sitting,

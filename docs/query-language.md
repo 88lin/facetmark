@@ -19,6 +19,7 @@ rather than a ranker.
 | Field | Matches | Examples |
 |---|---|---|
 | `domain:` (alias `site:`) | the site, exact or wildcard | `domain:github.com`, `site:*.github.io` |
+| `host:` | the full hostname, substring | `host:news.ycombinator.com` |
 | `url:` | part of the address | `url:*/docs/*` |
 | `title:` | words in the title only | `title:encryption` |
 | `text:` | words in the page body only | `text:"GDPR compliance"` |
@@ -51,9 +52,17 @@ added:2026         that whole year
 added:2026-01-01..2026-03-31   a range
 before:2026-05-01  sugar for added:<2026-05-01
 after:2024-01-01   sugar for added:>=2024-01-01
+after:30d          sugar for added:<30d  (saved in the last 30 days)
+before:1y          sugar for added:>1y   (saved more than a year ago)
 ```
 
 Units: `s`, `m`, `h`, `d`, `w`, `y` (365 days — the column has no calendar).
+
+`before:`/`after:` read a bare duration as an age, which flips the comparison:
+"saved after 30 days ago" is the same set as "younger than 30 days". Write it
+either way. A bare duration on `added:` itself is *not* a filter — `added:30d`
+does not say which side of 30 days you want — and comes back in
+`filters.ignored`.
 
 ## Negation
 
@@ -80,14 +89,16 @@ domain:(github.com|gitlab.com)   alternation inside a field
 ```textplain
 kafka sort:date       newest first
 kafka sort:-date      oldest first
+sort:opened           most opened first (alias: sort:open_count)
 sort:domain           grouped by site (also: title, url, relevance)
 ```
 
-A query of only a sort directive plus filters (e.g. `domain:github.com
-sort:date`) is a **browse**: the filters are the retrieval, no model call is
-made, the ranking layers (context multiplier, decay, reranker) are skipped,
-and the order is the sort's. Paging through a browse works like any other
-query.
+A query with no free text is a **browse**: filters, a negation, or a sort on
+its own (`domain:github.com sort:date`, `-pinterest`, or just `sort:date`). The
+filters are the retrieval, no model call is made, the ranking layers (context
+multiplier, decay, reranker) are skipped, and the order is the sort's. Paging
+through a browse works like any other query. An empty query is not a browse:
+nothing typed is not a request for everything.
 
 `sort:relevance` names the ranking rather than a column, so it is a no-op on a
 ranked query and, on a browse, the same newest-first order an unsorted browse

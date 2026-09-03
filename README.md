@@ -26,7 +26,7 @@
   <br>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white&labelColor=2D5F8B" alt="Python"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-22C55E?style=for-the-badge&logo=opensourceinitiative&logoColor=white&labelColor=16A34A" alt="License"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/Tests-1588-06B6D4?style=for-the-badge&logoColor=white&labelColor=0891B2" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/Tests-1619-06B6D4?style=for-the-badge&logoColor=white&labelColor=0891B2" alt="Tests"></a>
 </p>
 
 > [!NOTE]
@@ -163,7 +163,7 @@ git clone https://github.com/88lin/facetmark
 cd facetmark
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
-pytest -q               # 1588 tests, ~44 s
+pytest -q               # 1,619 tests, ~50 s
 ruff check src tests scripts
 ```
 
@@ -350,7 +350,7 @@ one search you could have typed.
 `TAGS` attribute since the first importer, and it was parsed and then dropped at
 staging; it is now stored on the bookmark, returned with every hit, and queryable
 as `tag:work` — an exact match on one element, so `tag:work` never widens into
-`workshop`. `POST /save` and the MCP `save_bookmark` tool take `tags` too.
+`workshop`. `POST /bookmark` and the MCP `save_bookmark` tool take `tags` too.
 
 ---
 
@@ -773,72 +773,75 @@ says.
 facetmark/
 ├── src/
 │   └── facetmark/
-│       ├── cli.py                      # 命令行入口 (typer)
+│       ├── cli.py                      # command line entry point (typer)
 │       ├── api.py                      # FastAPI REST API
-│       ├── service.py                  # 业务逻辑层
-│       ├── config.py                   # 环境变量与配置
-│       ├── configfile.py               # config.toml 读写
-│       ├── db.py                       # SQLite 数据库层
-│       ├── text.py                     # 文本处理工具
-│       ├── normalize.py                # URL 归一化
-│       ├── sessions.py                 # 保存会话聚类
-│       ├── edges.py                    # 图边构建
-│       ├── providers.py                # 模型提供方 (OpenAI 兼容)
-│       ├── mcp_server.py               # MCP 服务端
-│       ├── migrations.py               # 数据库迁移
-│       ├── admin.py                    # 管理命令
-│       ├── importers/                  # 浏览器书签解析
-│       │   ├── netscape_html.py        #   HTML 格式 (Chrome/Edge/Safari/Firefox)
-│       │   ├── chrome_json.py          #   Chrome JSON
-│       │   ├── base.py                 #   公共基类
-│       │   ├── discovery.py            #   格式自动识别
-│       │   └── timestamps.py           #   时间戳解析
-│       ├── fetch/                      # 礼貌抓取
-│       │   ├── client.py               #   HTTP 客户端
-│       │   ├── robots.py               #   robots.txt 解析与缓存
-│       │   ├── extract.py              #   正文抽取 (trafilatura + readability)
-│       │   └── store.py                #   抓取结果落库
-│       ├── enrich/                     # 富集
-│       │   ├── pipeline.py             #   富集流水线
-│       │   ├── intent.py               #   意图生成与回捞过滤
-│       │   ├── vectors.py              #   嵌入文本构造
-│       │   ├── prompts.py              #   LLM prompt 模板
-│       │   └── schema.py               #   富集结果 schema
-│       ├── search/                     # 检索
-│       │   ├── pipeline.py             #   检索流水线
-│       │   ├── lexical.py              #   词面 (FTS5 trigram + segment)
-│       │   ├── vectors.py              #   向量检索
-│       │   ├── rrf.py                  #   RRF 融合
-│       │   ├── context.py              #   上下文乘子
-│       │   ├── graph.py                #   图扩展
-│       │   ├── decay.py                #   衰减层
-│       │   ├── rerank.py               #   LLM 重排
-│       │   ├── abstain.py              #   弃权
-│       │   └── understand.py           #   查询理解
-│       ├── health/                     # URL 健康检查
-│       │   ├── verdicts.py             #   判定逻辑
-│       │   ├── store.py                #   判定存储
-│       │   ├── external.py             #   远端检查
-│       │   ├── local.py                #   本地检查
-│       │   └── synth.py                #   合成探测
-│       ├── bridges/                    # karakeep 推拉桥接
+│       ├── service.py                  # service layer
+│       ├── config.py                   # settings and their four sources
+│       ├── configfile.py               # config.toml read/write
+│       ├── db.py                       # SQLite layer
+│       ├── text.py                     # segmentation and FTS sync
+│       ├── normalize.py                # URL normalisation
+│       ├── sessions.py                 # saving-session clustering
+│       ├── edges.py                    # link-graph edge building
+│       ├── providers.py                # model providers (OpenAI-compatible)
+│       ├── mcp_server.py               # MCP server
+│       ├── migrations.py               # database migrations
+│       ├── crawl.py                    # `facetmark crawl`: the site walker
+│       ├── admin.py                    # admin commands
+│       ├── importers/                  # browser bookmark parsing
+│       │   ├── netscape_html.py        #   HTML export (Chrome/Edge/Safari/Firefox)
+│       │   ├── chrome_json.py          #   Chrome JSON profile
+│       │   ├── base.py                 #   shared base
+│       │   ├── discovery.py            #   format detection
+│       │   └── timestamps.py           #   timestamp parsing
+│       ├── fetch/                      # polite fetching
+│       │   ├── client.py               #   HTTP client, robots and rate limits
+│       │   ├── robots.py               #   robots.txt parsing and cache
+│       │   ├── extract.py              #   body extraction (trafilatura + readability)
+│       │   └── store.py                #   fetched bodies into the database
+│       ├── enrich/                     # enrichment
+│       │   ├── pipeline.py             #   enrichment pipeline
+│       │   ├── intent.py               #   intent generation and recall filtering
+│       │   ├── vectors.py              #   embed-text construction
+│       │   ├── prompts.py              #   LLM prompt templates
+│       │   └── schema.py               #   enrichment result schema
+│       ├── search/                     # retrieval
+│       │   ├── pipeline.py             #   retrieval pipeline
+│       │   ├── querylang.py            #   the query language: parser and filters
+│       │   ├── lexical.py              #   lexical facets (FTS5 trigram + segment)
+│       │   ├── vectors.py              #   vector facets
+│       │   ├── rrf.py                  #   RRF fusion
+│       │   ├── context.py              #   context multiplier
+│       │   ├── graph.py                #   graph expansion
+│       │   ├── decay.py                #   the cold layer
+│       │   ├── rerank.py               #   LLM reranker
+│       │   ├── abstain.py              #   abstention
+│       │   └── understand.py           #   query understanding
+│       ├── health/                     # URL health checking
+│       │   ├── verdicts.py             #   verdict logic
+│       │   ├── store.py                #   verdict storage
+│       │   ├── external.py             #   remote checks
+│       │   ├── local.py                #   local checks
+│       │   └── synth.py                #   synthetic probes
+│       ├── bridges/                    # karakeep push/pull bridge
 │       │   └── karakeep.py
-│       ├── eval/                       # 评测框架
-│       │   ├── harness.py              #   评测驱动
-│       │   └── corpus.py               #   语料加载
-│       └── web/                        # 单页 Web UI
+│       ├── eval/                       # evaluation framework
+│       │   ├── harness.py              #   evaluation driver
+│       │   └── corpus.py               #   corpus loading
+│       └── web/                        # single-page web UI
 │           ├── index.html
-│           └── static/                 # 前端资源 (JS/CSS/SVG)
+│           └── static/                 # frontend assets (JS/CSS/SVG)
 ├── integrations/
-│   └── karakeep/                       # TypeScript 插件、上游类型钉、跨语言线格式契约
-│       ├── search-facetmark/           #   插件源码
-│       ├── typecheck/                  #   上游接口类型检查
-│       └── contract/                   #   线格式契约测试
-├── extension/                          # 浏览器扩展 (打开次数遥测)
-├── eval/                               # 查询集与评测数据 (JSON/JSONL)
-├── scripts/                            # 实验驱动与探针
-├── docs/                               # 一个实验一份文档，协议在前
-├── tests/                              # 1524 条测试
+│   └── karakeep/                       # TypeScript plugin, upstream type pins, wire contract
+│       ├── search-facetmark/           #   plugin source
+│       ├── typecheck/                  #   upstream interface typecheck
+│       └── contract/                   #   wire-format contract tests
+├── extension/                          # browser extension (search, save, fetch fallback)
+├── eval/                               # query sets and evaluation data (JSON/JSONL)
+├── scripts/                            # experiment drivers and probes
+├── docs/                               # one document per experiment, protocol first
+│   └── landing/                        #   the project site, built by build.py
+├── tests/                              # 1,619 tests
 ├── pyproject.toml
 ├── LICENSE
 └── README.md

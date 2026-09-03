@@ -28,6 +28,7 @@ function hit(i: number): Hit {
     domain: "e.test",
     date_added: 0,
     cold: false,
+    tags: [],
   };
 }
 
@@ -45,6 +46,8 @@ function response(over: Partial<SearchResponse> & { n?: number }): SearchRespons
     total: 0,
     has_more: false,
     depth_capped: false,
+    filters: null,
+    sort: "",
     ...rest,
   };
 }

@@ -15,6 +15,7 @@ import {
   describeQueue,
   type Hit,
   nextRequest,
+  type QueryFilters,
   startCursor,
   summarizeQueue,
 } from "./api.ts";
@@ -75,7 +76,10 @@ async function run(q: string): Promise<void> {
       // different ranking from the full pipeline -- different facets, its own
       // depth -- so paging from it would continue a list that is about to be
       // replaced.
-      render(`${quick.hits.length} · ${ms(quick.took_ms)} ms · ${t("pop.lexical")}`);
+      render(withFilters(
+        `${quick.hits.length} · ${ms(quick.took_ms)} ms · ${t("pop.lexical")}`,
+        quick.filters,
+      ));
     }
   } catch (e) {
     if (mine === generation) fail(e);
@@ -88,7 +92,10 @@ async function run(q: string): Promise<void> {
       neighbours = full.expanded ?? [];
       cursor = advance(cursor, full);
       const labels = full.understanding?.labels?.join(" + ") ?? "";
-      render(`${describePage(cursor)} · ${ms(full.took_ms)} ms · ${labels || t("pop.ranked")}`);
+      render(withFilters(
+        `${describePage(cursor)} · ${ms(full.took_ms)} ms · ${labels || t("pop.ranked")}`,
+        full.filters,
+      ));
     }
   } catch (e) {
     if (mine === generation) status.textContent = describe(e);
@@ -123,6 +130,32 @@ async function loadMore(button: HTMLButtonElement): Promise<void> {
 function ms(took: Record<string, number> | undefined): string {
   const total = took?.total ?? Object.values(took ?? {}).reduce((a, b) => a + b, 0);
   return String(Math.round(total));
+}
+
+/**
+ * The grammar the server read out of the box, as a compact line.
+ *
+ * The popup is 360px wide and has one status line, so this is terse on
+ * purpose. The part that is not optional is `ignored`: the server answers the
+ * rest of a query whose filter did not parse, and without this the user sees a
+ * result list that quietly ignored half of what they typed.
+ */
+function filterSummary(filters: QueryFilters | null | undefined): string {
+  if (!filters) return "";
+  const parts: string[] = [];
+  for (const f of filters.fields ?? []) {
+    parts.push(`${f.negate ? "-" : ""}${f.field}:${f.value}`);
+  }
+  for (const term of filters.exclude ?? []) parts.push(`-${term}`);
+  if (filters.sort) parts.push(`sort:${filters.sort}`);
+  for (const bad of filters.ignored ?? []) parts.push(`${t("pop.ignored")} ${bad}`);
+  return parts.join(" · ");
+}
+
+/** A note, plus the grammar echo when the query carried any. */
+function withFilters(note: string, filters: QueryFilters | null | undefined): string {
+  const applied = filterSummary(filters);
+  return applied ? `${note} · ${applied}` : note;
 }
 
 /** Why this row is on screen: the facets that retrieved it, in words. */
@@ -181,7 +214,15 @@ function moreRow(): HTMLLIElement {
 function row(h: Hit, neighbour = false): HTMLLIElement {
   const li = document.createElement("li");
   const a = document.createElement("a");
-  a.href = h.url;
+  // `href` only for a scheme a browser will navigate to. A bookmark can hold
+  // `javascript:` -- a bookmarklet is a bookmark -- and a middle-click or
+  // ctrl-click never reaches the handler below. This is an extension page, so
+  // that navigation would run in a privileged context; it never becomes an
+  // href unless it is http(s), and `chrome.tabs.create` refuses those schemes
+  // anyway, which is the second reason the row simply does not open.
+  const openable = /^https?:\/\//i.test(h.url);
+  if (openable) a.href = h.url;
+  else a.tabIndex = 0;
   a.dataset.id = String(h.bookmark_id);
   a.className = neighbour ? "hit neighbour" : "hit";
 
@@ -215,6 +256,16 @@ function row(h: Hit, neighbour = false): HTMLLIElement {
     badge.textContent = t("pop.cold");
     meta.appendChild(badge);
   }
+  // Tags are the user's own filing vocabulary, verbatim: shown untranslated
+  // for the same reason the facet chips are translated -- these are not our
+  // words, and rendering them as anything else would assert something nobody
+  // checked about what the user meant.
+  for (const tag of h.tags ?? []) {
+    const chip = document.createElement("span");
+    chip.className = "chip tag";
+    chip.textContent = `#${tag}`;
+    meta.appendChild(chip);
+  }
   if (h.snippet) {
     const sn = document.createElement("div");
     sn.className = "snippet";
@@ -224,6 +275,7 @@ function row(h: Hit, neighbour = false): HTMLLIElement {
 
   a.addEventListener("click", (e) => {
     e.preventDefault();
+    if (!openable) return;
     void api.opened(h.bookmark_id, lastQuery).catch(() => undefined);
     void chrome.tabs.create({ url: h.url });
     window.close();

@@ -118,6 +118,39 @@ class TestAddDocuments:
         assert row["folder"] == "database / postgres"
         assert row["folder_depth"] == 2
 
+    async def test_tags_are_also_stored_as_tags(self, bridged):
+        """The folder string is an approximation for the context feature; the
+        tags themselves are what `tag:postgres` has to find. They were only
+        ever the approximation, so a karakeep page was invisible to the one
+        filter that is about tags."""
+        from facetmark.db import jload
+        from facetmark.search.pipeline import quick_search
+
+        conn, _, st, _ = bridged
+        row = conn.execute(
+            "SELECT b.tags FROM karakeep_doc k JOIN bookmark b ON b.id = k.bookmark_id"
+            " WHERE k.karakeep_id = 'kk-1'"
+        ).fetchone()
+        assert jload(row["tags"], []) == ["database", "postgres"]
+        r = quick_search(conn, "tag:postgres", settings=st)
+        assert [h.tags for h in r.hits] == [["database", "postgres"]]
+
+    async def test_a_re_push_unions_tags_it_did_not_write(self, mock_settings):
+        """An adopted browser import keeps the tags the user gave it."""
+        from facetmark.db import jload
+
+        conn, bid = _library_with_a_real_enrichment()
+        conn.execute("UPDATE bookmark SET tags = ? WHERE id = ?", ('["mine"]', bid))
+        conn.commit()
+        await kk.add_documents(conn, [{
+            "id": "kk-e", "userId": "u1", "url": "https://example.com/e",
+            "title": "same page from karakeep", "tags": ["theirs"],
+            "createdAt": 1735689600,
+        }], provider=MockProvider(mock_settings), settings=mock_settings)
+        row = conn.execute("SELECT tags FROM bookmark WHERE id=?", (bid,)).fetchone()
+        assert jload(row["tags"], []) == ["mine", "theirs"]
+        conn.close()
+
     async def test_link_title_is_the_fallback_when_title_is_absent(self, bridged):
         conn, _, _, _ = bridged
         row = conn.execute(

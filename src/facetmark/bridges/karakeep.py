@@ -26,10 +26,14 @@ What the mapping does and does not preserve
   facetmark's ``content`` table, which is the single biggest thing this bridge
   buys: facetmark's own crawler is the slowest part of a first index, and
   karakeep has already paid that cost.
-* ``tags`` become the ``folder`` string, joined with ``" / "``. karakeep has no
-  folder tree, and tags are the closest thing to the co-filing signal that
-  facetmark's folder-peer context feature reads. It is a real approximation, not
-  an identity: a page with five tags looks like a deeply nested folder path.
+* ``tags`` are stored on the bookmark as themselves, so the query language's
+  ``tag:work`` finds a karakeep page the same way it finds an imported one, and
+  a re-push unions rather than replaces -- the row may be an adopted browser
+  import carrying the user's own tags. They *also* become the ``folder`` string,
+  joined with ``" / "``. karakeep has no folder tree, and tags are the closest
+  thing to the co-filing signal that facetmark's folder-peer context feature
+  reads. That one is a real approximation, not an identity: a page with five
+  tags looks like a deeply nested folder path.
 * ``summary`` and ``tags`` are written to ``enrichment`` so both the lexical
   index and the content vector see them -- but only on pages this bridge owns.
   A page that already carries an enrichment written by a real model keeps it,
@@ -206,11 +210,11 @@ def _upsert_one(
             cur = conn.execute(
                 "INSERT INTO bookmark(url, url_norm, url_hash, title, folder, folder_depth,"
                 " host, domain, date_added, source, indexable, privacy_skipped,"
-                " created_at, updated_at)"
-                " VALUES(?,?,?,?,?,?,?,?,?,'karakeep',?,0,?,?)",
+                " tags, created_at, updated_at)"
+                " VALUES(?,?,?,?,?,?,?,?,?,'karakeep',?,0,?,?,?)",
                 (nu.original, nu.normalized, nu.hash, doc.display_title, doc.folder,
                  len(doc.tags), nu.host, registrable_domain(nu.host), ts,
-                 1 if nu.indexable else 0, now(), now()),
+                 1 if nu.indexable else 0, jdump(doc.tags), now(), now()),
             )
             bid = int(cur.lastrowid)
             created = True
@@ -220,10 +224,22 @@ def _upsert_one(
         # created the row, and ``delete_documents`` refuses to remove anything
         # it did not create -- overwriting it here would quietly turn this
         # bridge into something that can delete a browser import.
+        #
+        # ``tags`` union rather than replace, for the same reason and the one
+        # the importer gives: this row may be an adopted browser import that
+        # already carried the user's own tags, and a bridge that cannot delete a
+        # bookmark should not be able to delete its filing either.
+        keep_tags = jload(
+            conn.execute("SELECT tags FROM bookmark WHERE id=?", (bid,)).fetchone()[0], []
+        )
+        for tag in doc.tags:
+            if tag not in keep_tags:
+                keep_tags.append(tag)
         conn.execute(
             "UPDATE bookmark SET title=?, folder=?, folder_depth=?, date_added=?,"
-            " updated_at=? WHERE id=?",
-            (doc.display_title, doc.folder, len(doc.tags), ts, now(), bid),
+            " tags=?, updated_at=? WHERE id=?",
+            (doc.display_title, doc.folder, len(doc.tags), ts,
+             jdump(keep_tags), now(), bid),
         )
 
     body = doc.body
@@ -271,6 +287,11 @@ def _upsert_one(
                  topics=jload(existing["topics"], []),
                  entities=jload(existing["entities"], []),
                  key_points=jload(existing["key_points"], []))
+        # Deliberately no `tags=`: this row's enrichment was written by a model
+        # and the lexical index mirrors it, so karakeep's words stay out (see
+        # the round-trip experiment). The tags are on the bookmark, which is
+        # what `tag:` reads -- the filter works, the free-text index is
+        # untouched.
     else:
         sync_fts(conn, bid, title=doc.display_title, body=body,
                  summary=doc.summary, topics=doc.tags,
