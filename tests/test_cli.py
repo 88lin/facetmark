@@ -233,3 +233,65 @@ def test_both_streams_are_covered(monkeypatch, stream_name):
     monkeypatch.setattr(sys, stream_name, _stream("cp1252"))
     _harden_stdio()
     assert getattr(sys, stream_name).encoding == "utf-8"
+
+
+class TestTheDocumentedCommands:
+    """Every `facetmark X` the README names is a command that exists.
+
+    Both READMEs advertised `init`, `import-json`, `fetch`, `enrich`, `embed`,
+    `intents`, `edges`, `selfcheck-embed` and `export`. None of them existed,
+    and `init` was the *first* line of the quickstart -- so the first thing a
+    new reader typed printed "No such command". Prose drifts; a table of
+    commands is a list of promises, and this is the test that keeps it one.
+    """
+
+    @staticmethod
+    def _real() -> set[str]:
+        from facetmark import cli
+
+        names: set[str] = set()
+        for c in cli.app.registered_commands:
+            names.add(c.name or (c.callback.__name__ if c.callback else ""))
+        # Sub-apps are commands too: `config path`, `config show`.
+        for g in cli.app.registered_groups:
+            if g.name:
+                names.add(g.name)
+        # Typer takes the function name when no explicit name is given, and
+        # `import`/`eval` are keywords, so those two carry a `_cmd` suffix.
+        return {n.replace("_cmd", "").replace("_", "-") for n in names if n}
+
+    @staticmethod
+    def _documented(path: Path) -> set[str]:
+        """Every ``facetmark X`` the file presents as a command to run.
+
+        Read from the two places that are promises rather than prose: a line
+        *inside a fenced block* that starts with the binary, and a
+        ```facetmark X``` span. ``cd facetmark`` is neither, and a
+        Chinese sentence that happens to open with the product name is not a
+        shell line.
+        """
+        import re
+
+        found: set[str] = set()
+        fenced = False
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.lstrip().startswith("```"):
+                fenced = not fenced
+                continue
+            bare = line.strip()
+            if fenced and bare.startswith("facetmark "):
+                word = bare.split()[1]
+                if re.fullmatch(r"[a-z][a-z0-9-]*", word):
+                    found.add(word)
+            for m in re.finditer(r"`facetmark ([a-z][a-z0-9-]*)", line):
+                found.add(m.group(1))
+        return found
+
+    @pytest.mark.parametrize("readme", ["README.md", "README.zh-CN.md"])
+    def test_the_readme_names_no_command_that_does_not_exist(self, readme):
+        root = Path(__file__).resolve().parents[1]
+        real = self._real()
+        claimed = self._documented(root / readme)
+        assert claimed, "parsed no commands out of the README -- the reader broke"
+        missing = sorted(c for c in claimed if c not in real)
+        assert not missing, f"{readme} documents commands that do not exist: {missing}"

@@ -509,7 +509,7 @@ EN = {
             (
                 "cli",
                 "Command line",
-                "Eighteen commands. <code>search</code> takes "
+                "Nineteen commands. <code>search</code> takes "
                 "<code>--explain</code> to print which facet matched, and "
                 "<code>--config</code> to run any ablation rung by name.",
                 "guide.html#commands",
@@ -2142,6 +2142,9 @@ EN["guide"] = {
                   ["<code>demo</code>",
                    "Build a synthetic library offline and search it.",
                    "<code>--size</code>, <code>--keep</code>"],
+                  ["<code>config path</code> / <code>config show</code>",
+                   "Where <code>config.toml</code> lives, and the effective "
+                   "settings with the source of each one.", ""],
                   ["<code>eval</code>",
                    "Run the retrieval evaluation, optionally as an A\u2013E "
                    "ablation.",

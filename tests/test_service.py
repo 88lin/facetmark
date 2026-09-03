@@ -403,6 +403,14 @@ class TestRecordOpen:
                             (bid,)).fetchall()
         assert sorted(r["query"] or "" for r in rows) == ["", "how to"]
 
+    def test_a_stale_id_is_reported_not_a_database_error(self, conn):
+        """A client can hold an id the library no longer has: the extension
+        paints a list, the row goes, the user clicks. The `interaction` insert
+        then trips a foreign key, which used to surface as a 500 with the SQL
+        string in the body."""
+        assert service.record_open(conn, 999999, query="gone") is False
+        assert conn.execute("SELECT COUNT(*) FROM interaction").fetchone()[0] == 0
+
 
 # ---------------------------------------------------------------------------
 # stats and orchestration

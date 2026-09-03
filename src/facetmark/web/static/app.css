@@ -684,6 +684,7 @@ main.wide {
 .btn:focus-visible,
 .tab:focus-visible,
 .ctl:focus-visible,
+.tl-day:focus-visible,
 .pill.act:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 3px;
@@ -870,6 +871,10 @@ main.wide {
   gap: var(--sp-2);
   min-height: 84px;
   padding: var(--sp-2) 0 var(--sp-1);
+  /* A rule for the bars to stand on. Without it seven columns of varying
+     height float, and the eye has to infer the baseline from the shortest
+     one -- which on a quiet week is a 3px stub. */
+  border-bottom: 1px solid var(--border);
 }
 
 .tl-day {
@@ -909,6 +914,18 @@ main.wide {
 
 .tl-day:disabled::before {
   opacity: 0.4;
+}
+
+/* Today: the one column whose position never moves, so it is where a reader
+   starts. Weight rather than hue -- a second colour in a seven-bar strip
+   would read as a category. */
+.tl-day.now::before {
+  opacity: 1;
+}
+
+.tl-day.now .n {
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .tl-day .n {
@@ -3041,6 +3058,17 @@ li:nth-child(3) .hit.lead {
   .btn:hover:not(:disabled),
   .hit:hover {
     transform: none;
+  }
+
+  /* Everything else that moves rather than merely recolours. A bar that grows,
+     a fill that slides and a caret that rotates are all motion, and the page's
+     promise is that asking for less of it gets you none -- not most. Colour
+     transitions stay: they are not movement, and losing them would make hover
+     and pressed states snap in a way that reads as a redraw. */
+  .tl-day::before,
+  .fbar > span,
+  #opts-toggle::after {
+    transition: none;
   }
 }
 

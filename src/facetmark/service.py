@@ -816,21 +816,30 @@ def save_bookmark(
     return rec
 
 
-def record_open(conn: sqlite3.Connection, bookmark_id: int, *, query: str = "") -> None:
+def record_open(conn: sqlite3.Connection, bookmark_id: int, *, query: str = "") -> bool:
     """Log that the user actually opened a result. Feeds nothing yet by design.
 
     The metabolism layer needs an honest usage signal, and the only honest
     signal is one collected before anyone decides how to score it.
+
+    Returns whether there was a bookmark to record against. A client can hold a
+    stale id -- the extension paints a list, the row is deleted, the user clicks
+    -- and the ``interaction`` insert then trips a foreign key. That is a
+    request about something that no longer exists, not a server fault, so the
+    caller is told rather than handed a 500 with a SQL string in it.
     """
-    conn.execute(
+    cur = conn.execute(
         "UPDATE bookmark SET open_count = open_count + 1, last_opened_at = ? WHERE id = ?",
         (int(time.time()), bookmark_id),
     )
+    if cur.rowcount == 0:
+        return False
     conn.execute(
         "INSERT INTO interaction(bookmark_id, kind, query, at) VALUES(?,?,?,?)",
         (bookmark_id, "open", query or None, int(time.time())),
     )
     conn.commit()
+    return True
 
 
 # ---------------------------------------------------------------------------

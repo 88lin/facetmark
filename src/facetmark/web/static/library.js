@@ -51,7 +51,10 @@ function timelineStrip(tl) {
   days.setAttribute("role", "group");
   days.setAttribute("aria-label", t("tl.days"));
   const max = Math.max(1, ...tl.days.map((d) => d.count));
-  for (const d of tl.days) {
+  // Oldest on the left. The endpoint answers newest-first, which is the right
+  // order for a list and the wrong one for an axis: a bar chart of time that
+  // runs right-to-left is read backwards by everyone who has seen another one.
+  for (const d of [...tl.days].reverse()) {
     const day = d.key.slice(4); // `day:2026-08-03` -> `2026-08-03`
     const col = el("button", "tl-day");
     col.type = "button";
@@ -68,6 +71,10 @@ function timelineStrip(tl) {
     col.addEventListener("click", () => S.search(`added:${day} sort:date`));
     days.appendChild(col);
   }
+  // Today is the reader's anchor in the strip, and it is the one column whose
+  // position never changes. Marked on the last child rather than by comparing
+  // dates in the browser: the buckets are UTC and the browser is not.
+  days.lastElementChild?.classList.add("now");
   box.appendChild(days);
 
   // Months are clickable: each one is one `added:` token, so the timeline
