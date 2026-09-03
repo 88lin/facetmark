@@ -48,6 +48,7 @@ from facetmark.search.pipeline import (
     DEFAULT_FACET_WEIGHTS,
     LEXICAL_FACETS,
     SNIPPET_CHARS,
+    _snippet,
     degrade_for_vector_store,
 )
 from facetmark.search.rerank import RerankDoc, get_reranker, reorder
@@ -884,6 +885,26 @@ class TestHydration:
 
     def test_hydrate_skips_ids_that_do_not_exist(self, ctxdb):
         assert set(hydrate(ctxdb, [1, 9999])) == {1}
+
+
+class TestSnippetWindow:
+    """The snippet is where a reader looks to see *why* a page is a hit."""
+
+    def test_the_window_centres_on_the_longest_matching_term(self):
+        """Clipping from the top of the page can stop before the paragraph the
+        query actually matched. The longest term is the most specific one, so
+        it is the one worth centring on.
+        """
+        text = "prelude " * 60 + "the paragraph about consumer rebalancing " + "coda " * 60
+        out = _snippet(None, text, ["rebalancing", "the"])
+        assert "consumer rebalancing" in out
+        # Honest ellipses on both sides: the window is not the whole page.
+        assert out.startswith("…") and out.endswith("…")
+        assert len(out) <= SNIPPET_CHARS + 2
+
+    def test_a_term_that_appears_nowhere_leaves_the_head_clip_alone(self):
+        text = "a " * 400
+        assert _snippet(None, text, ["absent"]) == _snippet(None, text)
 
 
 # ===========================================================================

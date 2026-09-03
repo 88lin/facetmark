@@ -53,6 +53,12 @@ episode it belongs to.
 Guidance:
 * Start with `search_bookmarks`. Vague, memory-shaped queries work: "that thing
   I saved while setting up Docker" is a supported query form, not a fallback.
+* Structured query syntax is supported in the same string: field filters
+  (`domain:github.com`, `host:`, `url:`, `title:`, `folder:`, `tag:`),
+  negation (`-term`, `-domain:pinterest.com`), quoted phrases (`"exact words"`),
+  alternation (`domain:(github.com|gitlab.com)`), date windows
+  (`after:30d`, `before:2024-06-01`, `added:2024`, `added:2024-06..2024-09`),
+  prefix (`kuber*`) and ordering (`sort:date`, `sort:-date`, `sort:title`).
 * `synthesize` answers a question over the library and cites bookmark numbers
   per claim. Prefer it over stitching search results together yourself.
 * `find_related` follows typed edges. `session` = saved in the same sitting,
@@ -102,9 +108,12 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
     # ---- 1 ----------------------------------------------------------------
     @mcp.tool
     async def search_bookmarks(
-        query: Annotated[str, Field(description="Natural language, keywords, or a "
+        query: Annotated[str, Field(description="Natural language, keywords, a "
                                     "memory fragment such as 'the CSS thing from "
-                                    "around when I was learning Svelte'.")],
+                                    "around when I was learning Svelte', or "
+                                    "structured syntax: domain:github.com, "
+                                    "-pinterest, \"exact phrase\", tag:work, "
+                                    "after:30d, sort:date.")],
         limit: Annotated[int, Field(ge=1, description="Hits per page. Clamped to "
                                     "the server's `max_page_size`; the response "
                                     "reports what was actually served.")] = 10,
@@ -307,6 +316,9 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
         title: str = "",
         folder: Annotated[str, Field(description="Display path. Stored verbatim; "
                                      "never split on '/'.")] = "",
+        tags: Annotated[list[str], Field(description="User tags, stored verbatim. "
+                                         "Searchable as free text and exactly "
+                                         "via `tag:...` in queries.")] = (),
     ) -> dict:
         """Add a URL to the facetmark index.
 
@@ -318,7 +330,8 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
         enrichment and vectors happen on the next index run.
         """
         return service.save_bookmark(
-            ctx.conn, url, title=title, folder=folder, settings=ctx.settings
+            ctx.conn, url, title=title, folder=folder, tags=tags,
+            settings=ctx.settings,
         )
 
     # ---- resources --------------------------------------------------------

@@ -23,6 +23,7 @@ rather than a ranker.
 | `title:` | words in the title only | `title:encryption` |
 | `text:` | words in the page body only | `text:"GDPR compliance"` |
 | `folder:` | the browser folder it was saved in | `folder:study` |
+| `tag:` | one of your own tags, exactly | `tag:work`, `tag:(work\|rust)` |
 | `topic:` | an enrichment topic | `topic:postgres` |
 | `lang:` | the detected language | `lang:zh` |
 | `added:` (aliases `saved:`, `before:`, `after:`) | when it was saved | `added:>90d`, `added:>=2026-04-01` |
@@ -102,6 +103,10 @@ domain:*.github.io
 url:*/docs/*
 title:compar*
 ```
+
+`tag:` is deliberately not in that list: a tag is a word you typed yourself,
+and a filter over a closed vocabulary should mean exactly what it says. Use
+`tag:(work|rust)` for more than one.
 
 ## Compatibility rules
 

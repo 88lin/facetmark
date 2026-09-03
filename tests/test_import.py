@@ -367,3 +367,79 @@ class TestFolderPathsMeasuredOnRealData:
         assert rows["https://a.example/1"] == 1
         assert rows["https://a.example/2"] == 2
         assert rows["https://a.example/3"] == 0
+
+
+class TestTagsRoundTrip:
+    """Tags were parsed since 1.0 and dropped at staging; v6 keeps them.
+
+    The Netscape ``TAGS="a,b"`` attribute is the one piece of user-authored
+    metadata the importers already understood, and losing it meant the user's
+    own filing vocabulary -- the vocabulary no other facet can reconstruct --
+    never reached the index.
+    """
+
+    TAGGED = """<!DOCTYPE NETSCAPE-Bookmark-file-1>
+<TITLE>Bookmarks</TITLE>
+<H1>Bookmarks</H1>
+<DL><p>
+    <DT><A HREF="https://example.com/a" ADD_DATE="1690000000" TAGS="rust,systems">Rust guide</A>
+    <DT><A HREF="https://example.com/b" ADD_DATE="1690000100" TAGS="ml, paper">attention paper</A>
+    <DT><A HREF="https://example.com/no-tags" ADD_DATE="1690000200">plain</A>
+</DL><p>
+"""
+
+    def test_tags_land_in_the_database(self, conn):
+        import_bookmarks(conn, content=self.TAGGED)
+        got = {
+            r["url"]: r["tags"]
+            for r in conn.execute("SELECT url, tags FROM bookmark").fetchall()  # type: ignore[arg-type]
+        }
+        import json
+
+        assert json.loads(got["https://example.com/a"]) == ["rust", "systems"]
+        # Whitespace around a comma is trimmed, exactly as the parser already did
+        assert json.loads(got["https://example.com/b"]) == ["ml", "paper"]
+        assert json.loads(got["https://example.com/no-tags"]) == []
+
+    def test_tags_are_reachable_as_free_text(self, conn):
+        """A tag is a word the user typed, so the word index must see it."""
+        import_bookmarks(conn, content=self.TAGGED)
+        rows = list(conn.execute("SELECT extra FROM fts_seg"))  # type: ignore[arg-type]
+        assert any("systems" in r["extra"] for r in rows)
+
+    def test_reimport_unions_tags_it_does_not_replace_them(self, conn):
+        """Import is an edit, not a restore: an earlier tag survives a re-import."""
+        import_bookmarks(conn, content=self.TAGGED)
+        edited = self.TAGGED.replace(
+            'TAGS="rust,systems"', 'TAGS="rust,async"'
+        )
+        import_bookmarks(conn, content=edited)
+        import json
+
+        tags = json.loads(
+            conn.execute(
+                "SELECT tags FROM bookmark WHERE url='https://example.com/a'"
+            ).fetchone()[0]
+        )
+        assert sorted(tags) == ["async", "rust", "systems"]
+
+    def test_a_tag_survives_the_duplicate_collapse_within_one_file(self, conn):
+        dup = self.TAGGED.replace(
+            '<DT><A HREF="https://example.com/a" ADD_DATE="1690000000" TAGS="rust,systems">Rust guide</A>',
+            '<DT><A HREF="https://example.com/a?utm_source=x" ADD_DATE="1690000000"'
+            ' TAGS="rust,systems">Rust guide</A>\n'
+            '    <DT><A HREF="https://example.com/a" ADD_DATE="1680000000"'
+            ' TAGS="extra">Rust guide again</A>',
+            1,
+        )
+        import_bookmarks(conn, content=dup)
+        import json
+
+        # One row survives the collapse; the kept display URL is whichever
+        # observation was seen first, so select by the tags themselves.
+        tags = json.loads(
+            conn.execute(
+                "SELECT tags FROM bookmark WHERE url LIKE 'https://example.com/a%'"
+            ).fetchone()[0]
+        )
+        assert "systems" in tags and "extra" in tags

@@ -34,7 +34,13 @@ from .context import ContextSignals, build_context, window_filter
 from .decay import cold_bookmark_ids, decay_hits
 from .graph import Expansion, expand
 from .lexical import lexical_lists, lexical_lists_scored
-from .querylang import apply_filters, parse_query, pool_from_filters, sort_pool
+from .querylang import (
+    ParsedQuery,
+    apply_filters,
+    parse_query,
+    pool_from_filters,
+    sort_pool,
+)
 from .rerank import RerankDoc, Reranker, get_reranker, reorder
 from .rrf import DEFAULT_K, Fused, guarantee_bonus, rrf
 from .understand import (
@@ -598,6 +604,9 @@ class SearchHit:
     utility: str = ""
     content_type: str = ""
     topics: list[str] = field(default_factory=list)
+    #: User-authored tags (imports, save API). Echoed so every client can
+    #: render the filing vocabulary the way it renders the folder.
+    tags: list[str] = field(default_factory=list)
     #: Only set on rows in the expansion group.
     via: int | None = None
     via_kind: str = ""
@@ -618,6 +627,7 @@ class SearchHit:
             "folder": self.folder, "domain": self.domain, "date_added": self.date_added,
             "snippet": self.snippet, "utility": self.utility,
             "content_type": self.content_type, "topics": self.topics,
+            "tags": self.tags,
         }
         if self.via is not None:
             d["via"] = self.via
@@ -714,7 +724,7 @@ class SearchResponse:
 # ---------------------------------------------------------------------------
 
 _ROW_SQL = """
-SELECT b.id, b.url, b.title, b.folder, b.domain, b.date_added,
+SELECT b.id, b.url, b.title, b.folder, b.domain, b.date_added, b.tags,
        e.summary, e.utility, e.content_type, e.topics,
        substr(c.body_text, 1, 400) AS body_head
 FROM bookmark b
@@ -724,10 +734,68 @@ WHERE b.id IN ({marks})
 """
 
 
-def _snippet(summary: str | None, body_head: str | None) -> str:
+def _snippet(summary: str | None, body_head: str | None, terms: Sequence[str] = ()) -> str:
+    """One line of context, centred on the first query term it contains.
+
+    Before the query language existed the snippet was the first 300 characters
+    of whatever was longest, summary or body head. That is the right default
+    when there is nothing to aim at. When the caller knows the query terms,
+    though, a snippet that starts at the top of the page and stops before the
+    paragraph the user actually matched is a missed explanation: the term is in
+    the hit, and the snippet is where a reader looks to see *why* it is a hit.
+
+    So: find the first occurrence of the longest term (the longest match is the
+    most specific one, and the one worth showing), and window around it within
+    :data:`SNIPPET_CHARS`. Terms that appear nowhere leave the old behaviour
+    untouched. CJK needs no special case -- ``str.find`` is position agnostic
+    and the terms arrive already split by the parser.
+    """
     text = (summary or "").strip() or (body_head or "").strip()
     text = " ".join(text.split())
+    if not text:
+        return ""
+    if terms:
+        low = text.lower()
+        for term in sorted({t for t in terms if t}, key=len, reverse=True):
+            pos = low.find(term.lower())
+            if pos >= 0:
+                return _window_around(text, pos, len(term))
     return text[:SNIPPET_CHARS]
+
+
+def _window_around(text: str, pos: int, hit_len: int) -> str:
+    """A ~SNIPPET_CHARS window centred on a hit, with honest ellipses."""
+    half_before = (SNIPPET_CHARS - hit_len) // 2
+    start = max(0, pos - half_before)
+    end = min(len(text), start + SNIPPET_CHARS)
+    # Re-widen the head if the tail clipped short (short text near the end).
+    start = max(0, end - SNIPPET_CHARS)
+    out = text[start:end]
+    if start > 0:
+        out = "…" + out
+    if end < len(text):
+        out = out + "…"
+    return out
+
+
+def _snippet_terms(parsed: ParsedQuery, u: QueryUnderstanding | None) -> list[str]:
+    """Every word worth centreing a snippet on, longest first.
+
+    The parser's positive words and phrase words, plus any phrases the
+    understanding layer pulled out of CJK quotes -- the two extractions agree
+    on double-quoted input and the union is cheap. Negated terms are left out
+    on purpose: a snippet centred on the word the user excluded would explain
+    the wrong thing.
+    """
+    terms: list[str] = []
+    for t in parsed.terms:
+        if t.negated:
+            continue
+        terms.extend(t.plain.split())
+    if u is not None:
+        for p in u.phrases:
+            terms.extend(p.split())
+    return sorted({t for t in terms if t}, key=len, reverse=True)
 
 
 def hydrate(conn: sqlite3.Connection, ids: Sequence[int]) -> dict[int, dict]:
@@ -739,7 +807,9 @@ def hydrate(conn: sqlite3.Connection, ids: Sequence[int]) -> dict[int, dict]:
     return out
 
 
-def _to_hit(row: Mapping, fused: Fused | None = None) -> SearchHit:
+def _to_hit(
+    row: Mapping, fused: Fused | None = None, terms: Sequence[str] = ()
+) -> SearchHit:
     return SearchHit(
         bookmark_id=int(row["id"]),
         url=str(row["url"]),
@@ -752,10 +822,11 @@ def _to_hit(row: Mapping, fused: Fused | None = None) -> SearchHit:
         folder=str(row["folder"] or ""),
         domain=str(row["domain"] or ""),
         date_added=int(row["date_added"]) if row["date_added"] else None,
-        snippet=_snippet(row["summary"], row["body_head"]),
+        snippet=_snippet(row["summary"], row["body_head"], terms),
         utility=str(row["utility"] or ""),
         content_type=str(row["content_type"] or ""),
         topics=jload(row["topics"], []),
+        tags=jload(row["tags"], []),
     )
 
 
@@ -812,7 +883,8 @@ def quick_search(
 
     window = fused[page.offset:page.stop]
     rows = hydrate(conn, [f.doc_id for f in window])
-    hits = [_to_hit(rows[f.doc_id], f) for f in window if f.doc_id in rows]
+    terms = _snippet_terms(parsed, u)
+    hits = [_to_hit(rows[f.doc_id], f, terms) for f in window if f.doc_id in rows]
     has_more, capped = page_signals(page, len(fused), truncated=truncated)
     return SearchResponse(
         query=query, hits=hits, understanding=u, config="quick",
@@ -1038,12 +1110,13 @@ async def search(
 
     window = fused[page.offset : page.stop]
     rows = hydrate(conn, [f.doc_id for f in window])
+    terms = _snippet_terms(parsed, understanding)
     hits: list[SearchHit] = []
     for f in window:
         row = rows.get(f.doc_id)
         if row is None:
             continue
-        hit = _to_hit(row, f)
+        hit = _to_hit(row, f, terms)
         hit.cold = f.doc_id in cold
         if ctx is not None:
             hit.context_boost = ctx.boost(f.doc_id)

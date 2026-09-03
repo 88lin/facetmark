@@ -38,7 +38,7 @@ const TIME_CHIPS = [
 // `dom` or `site:` flips the suggestion list to syntax mode before the full
 // token exists. Kept in sync with `facetmark.search.querylang.FIELDS`.
 const FIELD_WORDS = [
-  "domain", "site", "url", "title", "text", "folder", "topic", "lang",
+  "domain", "site", "url", "title", "text", "folder", "tag", "topic", "lang",
   "added", "saved", "before", "after", "opened", "sort",
 ];
 
@@ -439,6 +439,10 @@ function hitCard(h, rank, neighbour) {
     }
   }
   if (h.cold) marks.appendChild(chip("warn", "mark.cold"));
+  // Tags are the user's own filing vocabulary, verbatim -- shown untranslated
+  // for the same reason the understanding labels are: a translation would
+  // assert something nobody checked about what the user meant.
+  for (const tag of h.tags ?? []) marks.appendChild(pill("mute", `#${tag}`));
   if (h.content_type) marks.appendChild(pill("mute", h.content_type));
   const when = whenAdded(h.date_added, S.lang);
   if (when) marks.appendChild(pill("mute", when));
@@ -481,6 +485,29 @@ function renderResults({ append = false } = {}) {
   ui.aroundHead.textContent = t("group.expanded", { n: count(neighbours.length, S.lang) });
   ui.aroundList.replaceChildren();
   for (const h of neighbours) ui.aroundList.appendChild(hitCard(h, 0, true));
+}
+
+/**
+ * A compact, verbatim summary of the grammar the server applied: the field
+ * filters, the excluded terms, the sort, and anything it had to ignore. Shown
+ * in the status line so a user (or an agent) can see that
+ * "domain:github.com -pinterest" did what they meant rather than being
+ * searched as literal words. `null` (plain query) renders as nothing at all --
+ * the absence of the row is the information that no grammar was involved.
+ */
+function filterSummary(filters) {
+  if (!filters) return "";
+  const parts = [];
+  for (const f of filters.fields ?? []) {
+    parts.push(`${f.negate ? "-" : ""}${f.field}:${f.value}`);
+  }
+  for (const term of filters.exclude ?? []) parts.push(`-${term}`);
+  if (filters.sort) parts.push(`sort:${filters.sort}`);
+  // Ignored tokens are the one part of the echo the user has to see: the
+  // server kept the query running and dropped that token, so silence here
+  // would look like the filter applied.
+  for (const bad of filters.ignored ?? []) parts.push(`\u26a0 ${bad}`);
+  return parts.join(" \u00b7 ");
 }
 
 function note(cur, took, tail) {
@@ -618,6 +645,10 @@ export async function run(q, { force = false } = {}) {
     // expected" and "the index is not built yet".
     let tail = labels || t("results.ranked");
     if (full.degraded_from) tail = `${tail} · ${t("results.degraded")}`;
+    // The grammar echo: what the server actually parsed out of the query. Field
+    // names and values are the user's own words, shown verbatim like `labels`.
+    const applied = filterSummary(full.filters);
+    if (applied) tail = `${tail} · ${applied}`;
     note(cursor, full.took_ms, tail);
     if (!rows.length && !neighbours.length) {
       await ensureStats(api);

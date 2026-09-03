@@ -225,6 +225,27 @@ class TestFilterSets:
         assert include == {3}
         assert not ignored
 
+    def test_tag_filter_is_membership_not_a_substring(self, lib):
+        """Tags are a closed vocabulary the user typed themselves, so the
+        filter is membership in the JSON array. A substring match would make
+        ``tag:work`` quietly answer for ``workshop`` -- a filter that widens.
+        """
+        lib.execute("""UPDATE bookmark SET tags = '["work","rust"]' WHERE id = 1""")
+        lib.execute("""UPDATE bookmark SET tags = '["workshop"]' WHERE id = 2""")
+        lib.commit()
+        parsed = parse_query("tag:work", now=NOW)
+        include, _, ignored = filter_sets(lib, parsed, now=NOW)
+        assert include == {1}
+        assert not ignored
+
+    def test_tag_alternation_is_one_membership_test(self, lib):
+        lib.execute("""UPDATE bookmark SET tags = '["work"]' WHERE id = 1""")
+        lib.execute("""UPDATE bookmark SET tags = '["rust"]' WHERE id = 3""")
+        lib.commit()
+        parsed = parse_query("tag:(work|rust)", now=NOW)
+        include, _, _ = filter_sets(lib, parsed, now=NOW)
+        assert include == {1, 3}
+
     def test_opened_range(self, lib):
         lib.execute("UPDATE bookmark SET open_count = 12 WHERE id = 2")
         lib.commit()
@@ -300,6 +321,16 @@ class TestQuickSearch:
         r = quick_search(lib, "kafka rebalancing")
         assert r.filters is None and r.sort == ""
         assert [h.bookmark_id for h in r.hits] == [5]
+
+    def test_a_tag_browse_returns_the_tags_it_filtered_on(self, lib):
+        """The hit carries the tags back: the filing vocabulary is the user's
+        own, so every client can render it the way it renders the folder.
+        """
+        lib.execute("""UPDATE bookmark SET tags = '["work"]' WHERE id = 5""")
+        lib.commit()
+        r = quick_search(lib, "tag:work")
+        assert [h.bookmark_id for h in r.hits] == [5]
+        assert [h.tags for h in r.hits] == [["work"]]
 
     def test_domain_filter_on_first_paint(self, lib):
         r = quick_search(lib, "domain:github.com")

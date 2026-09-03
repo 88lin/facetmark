@@ -191,6 +191,9 @@ class SaveRequest(BaseModel):
     url: str
     title: str = ""
     folder: str = ""
+    #: Optional user tags. Stored on the bookmark (JSON array), indexed as
+    #: free text, and queryable exactly via ``tag:`` in the search box.
+    tags: list[str] = Field(default_factory=list)
     date_added: int | None = None
 
 
@@ -476,7 +479,7 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
         async with state.lock:
             return service.save_bookmark(
                 state.conn, req.url, title=req.title, folder=req.folder,
-                date_added=req.date_added, settings=state.settings,
+                tags=req.tags, date_added=req.date_added, settings=state.settings,
             )
 
     @app.post("/open", dependencies=auth)

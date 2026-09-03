@@ -313,6 +313,11 @@ Web 界面在另外三处说同一门语言：联想列表会补全字段名**�
 搜索框下方的 chips 会写入 `added:` token，库视图的保存时间线（`/timeline`）把
 你的保存按天/月分桶——每个桶就是你本可以手敲的一次搜索。
 
+**你自己的标签也在这门语言里。** Netscape 与 pinboard 导出自第一版导入器起就带着
+`TAGS` 属性，一直被解析出来又在入库前丢掉；现在它存在 bookmark 上、随每条命中返回、
+并且可以用 `tag:work` 查询——精确匹配数组里的一个元素，所以 `tag:work` 不会悄悄扩成
+`workshop`。`POST /save` 和 MCP 的 `save_bookmark` 工具同样接受 `tags`。
+
 ---
 
 ## 🔍 检索档位

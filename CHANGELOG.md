@@ -56,6 +56,34 @@ CONTRIBUTING.md 定义的「检索质量变更」，无需预注册协议。
 - Svelte 重写前端——原生 JS 是记录在案的刻意选择；
 - TUI 客户端——CLI 已覆盖终端场景。
 
+### 新增（tags 全链路，schema v6）
+
+- **书签终于保存导入器早已解析出的标签。** `RawBookmark.tags` 从 Netscape 的
+  `TAGS="a,b"` 解析出来后，在 staging 处被丢弃——用户自己的归档词汇表，唯一
+  无法由其他面重建的元数据，从未进过索引。v6 迁移给 `bookmark` 加 `tags` JSON
+  列（列尾，与 ALTER TABLE ADD COLUMN 的追加语义一致，新库与迁移库列序一致）；
+  导入按 `url_hash` 幂等合并时 tags 取并集（重导入是编辑不是恢复）；保存 API
+  （HTTP `/save` 与 MCP `save_bookmark`）接受 `tags` 参数，重复保存同样并集；
+  `sync_fts` 把 tags 拼进 `extra`（与 topics/entities 同权重），因此自由文本可搜；
+  `bookmark_record` 与 `SearchHit` 均回显 tags；网页结果卡渲染 `#tag` 徽章。
+- **`tag:` 精确过滤**接入上面那门查询语言：`json_each(b.tags)` 上的成员判定，
+  `tag:(work|rust)` 一次 EXISTS 覆盖整个多选。精确而非子串是刻意的——标签是用户
+  自己敲下的封闭词汇表，`tag:work` 顺带命中 `workshop` 属于悄悄放宽过滤器。
+  联想列表按库里真实存在的标签补全（`tag:` 也是唯一「敲过一次就记不清」的字段）。
+
+### 改进
+
+- **服务端 snippet 按查询词定位。** 此前 snippet 是 summary 或正文前 300 字符的
+  裸截断——命中的段落可能落在截断之外，读者看到的解释与命中无关。现在按最长
+  查询词（含短语拆出的词）首次出现的位置开窗（±~150 字符，诚实的省略号），
+  被排除的词不参与定位。CLI、弹窗、MCP、karakeep 桥等所有裸 snippet 消费方直接
+  受益。
+- **结果状态行回显实际生效的语法**：字段过滤、被排除的词、排序，以及被忽略的
+  token（`⚠` 标出）。忽略是必须让用户看见的那一半——服务端保留了查询并丢掉了那个
+  token，不说的话看起来就像过滤生效了。
+- **MCP 工具描述写明查询语法**（hister 的做法：能力演进时描述同步），
+  `save_bookmark` 增加 `tags` 参数。
+
 ### 修复（测试套件会读到开发机自己的 config.toml）
 
 - **在一台真的用过 facetmark 的机器上，`pytest` 失败 54 条（34 failed + 20 error），

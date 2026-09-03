@@ -173,6 +173,27 @@ def _v5_enrichment_basis(conn: sqlite3.Connection) -> None:
     conn.execute("UPDATE enrichment SET basis='title' WHERE source_hash LIKE 't:%'")
 
 
+def _v6_bookmark_tags(conn: sqlite3.Connection) -> None:
+    """Give bookmarks somewhere to keep their tags.
+
+    The importers have parsed tags since the first release -- Netscape exports
+    carry a ``TAGS="a,b"`` attribute and :class:`RawBookmark` has carried the
+    list end to end -- and staging dropped them, because the table had no
+    column. The user's own filing vocabulary is the one piece of metadata no
+    other facet can reconstruct, which makes this the cheapest recall win in
+    the system.
+
+    New column, JSON array of strings, empty for every existing row: tags
+    back-fill on the next re-import of the same file (import is idempotent by
+    ``url_hash`` and unions tags on update), and bookmarks saved through the
+    API can carry tags from now on.
+    """
+    if "tags" not in _columns(conn, "bookmark"):
+        conn.execute(
+            "ALTER TABLE bookmark ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'"
+        )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(2, "browser queue remembers when a retry is allowed", _v2_browser_queue_backoff),
     Migration(3, "content vectors remember what they were built from",
@@ -181,6 +202,8 @@ MIGRATIONS: tuple[Migration, ...] = (
               _v4_intent_scored_marker),
     Migration(5, "summaries remember whether they were written from the page "
                  "or only from its title", _v5_enrichment_basis),
+    Migration(6, "bookmarks keep the tags the importer already parsed",
+              _v6_bookmark_tags),
 )
 
 #: What this build writes into a new database. Derived from the migration list

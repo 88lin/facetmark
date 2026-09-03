@@ -43,6 +43,20 @@ CREATE TABLE IF NOT EXISTS meta (
 
 -- One row per bookmark. `url` is what we navigate to; `url_norm`/`url_hash`
 -- are the identity key produced by normalize.normalize_url.
+--
+-- `tags` holds user-assigned tags as a JSON array of strings
+-- ("[\"work\", \"rust\"]"). They have been parsed from Netscape TAGS /
+-- pinboard exports since the first importer and then dropped on the floor at
+-- staging; that column is where they land now. A JSON column rather than a
+-- join table: the tag vocabulary of a personal library is small, the table is
+-- never queried backwards ("which bookmarks have tag X" goes through the query
+-- language's tag: filter, which walks json_each), and one fewer join keeps the
+-- hot read path simple. Last position on purpose, like every column a
+-- migration adds: ALTER TABLE ADD COLUMN appends to the end, so a migrated
+-- database and a fresh one agree on column order (test_db._shape compares
+-- them positionally). Documented up here rather than above the column because
+-- a comment between the previous column's comma and the last column breaks
+-- ALTER TABLE DROP COLUMN -- see test_the_last_column_can_be_dropped.
 CREATE TABLE IF NOT EXISTS bookmark (
     id              INTEGER PRIMARY KEY,
     url             TEXT    NOT NULL,
@@ -62,7 +76,8 @@ CREATE TABLE IF NOT EXISTS bookmark (
     open_count      INTEGER NOT NULL DEFAULT 0,
     last_opened_at  INTEGER,
     created_at      INTEGER NOT NULL,
-    updated_at      INTEGER NOT NULL
+    updated_at      INTEGER NOT NULL,
+    tags            TEXT    NOT NULL DEFAULT '[]'   -- json array; see above
 );
 CREATE INDEX IF NOT EXISTS ix_bookmark_added  ON bookmark(date_added);
 CREATE INDEX IF NOT EXISTS ix_bookmark_domain ON bookmark(domain);

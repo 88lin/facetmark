@@ -200,12 +200,18 @@ _FTS_UPSERT_TRI = "INSERT INTO fts_tri(rowid, title, body, summary, extra) VALUE
 _FTS_UPSERT_SEG = "INSERT INTO fts_seg(rowid, title, body, summary, extra) VALUES(?,?,?,?,?)"
 
 
-def _extra_blob(topics: Iterable[str], entities: Iterable[str], key_points: Iterable[str]) -> str:
+def _extra_blob(
+    topics: Iterable[str],
+    entities: Iterable[str],
+    key_points: Iterable[str],
+    tags: Iterable[str] = (),
+) -> str:
     return " ".join(
         [
             *(t for t in topics if t),
             *(e for e in entities if e),
             *(k for k in key_points if k),
+            *(t for t in tags if t),
         ]
     )
 
@@ -221,13 +227,19 @@ def sync_fts(
     topics: Iterable[str] = (),
     entities: Iterable[str] = (),
     key_points: Iterable[str] = (),
+    tags: Iterable[str] = (),
 ) -> None:
     """Rewrite both lexical index rows for one bookmark.
 
     Delete-then-insert because FTS5 external-content UPDATE semantics are
     fiddlier than they are worth at this scale.
+
+    Tags are folded into ``extra`` (same weight as topics/entities) so a tag
+    word is retrievable as free text; the query language's ``tag:`` filter is
+    the exact-match view over the same vocabulary, read straight off the JSON
+    column instead.
     """
-    extra = _extra_blob(topics, entities, key_points)
+    extra = _extra_blob(topics, entities, key_points, tags)
     seg_body = body_seg if body_seg is not None else segment(body)
     seg_title = segment(title)
     seg_summary = segment(summary)

@@ -10,6 +10,7 @@ bookmark store and will be re-imported often.
 from __future__ import annotations
 
 import codecs
+import json
 import re
 import sqlite3
 from dataclasses import dataclass, field
@@ -206,6 +207,7 @@ def import_bookmarks(
                 else None,
                 "indexable": 1 if nu.indexable else 0,
                 "note": b.note,
+                "tags": [t for t in b.tags if t],
             }
         else:
             stats.merged_duplicates += 1
@@ -218,6 +220,16 @@ def import_bookmarks(
                 row["folder_depth"] = b.folder_depth
             if b.note and not row["note"]:
                 row["note"] = b.note
+            # Tags accumulate rather than replace across duplicate observations:
+            # two exports of the same URL are two edits of the user's own
+            # vocabulary, and the union is the only version that cannot lose a
+            # tag the user actually wrote.
+            if b.tags:
+                merged = list(row["tags"])
+                for t in b.tags:
+                    if t and t not in merged:
+                        merged.append(t)
+                row["tags"] = merged
 
     # ---- upsert ----------------------------------------------------------
     ts = now()
@@ -228,7 +240,7 @@ def import_bookmarks(
             stats.privacy_skipped += 1
 
         existing = conn.execute(
-            "SELECT id, date_added, title, folder, folder_depth FROM bookmark"
+            "SELECT id, date_added, title, folder, folder_depth, tags FROM bookmark"
             " WHERE url_hash=?",
             (row["url_hash"],),
         ).fetchone()
@@ -237,8 +249,8 @@ def import_bookmarks(
             cur = conn.execute(
                 "INSERT INTO bookmark(url, url_norm, url_hash, title, folder, folder_depth,"
                 " host, domain, date_added, date_modified, source, indexable,"
-                " privacy_skipped, created_at, updated_at)"
-                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                " privacy_skipped, tags, created_at, updated_at)"
+                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     row["url"],
                     row["url_norm"],
@@ -253,6 +265,7 @@ def import_bookmarks(
                     parsed.source,
                     row["indexable"],
                     privacy,
+                    json.dumps(row["tags"], ensure_ascii=False),
                     ts,
                     ts,
                 ),
@@ -268,10 +281,18 @@ def import_bookmarks(
                 keep_added is None or row["date_added"] < keep_added
             ):
                 keep_added = row["date_added"]
+            # Existing tags union the incoming ones, for the same reason the
+            # staging merge does: a re-import is an edit, not a replace.
+            from ..db import jload
+
+            keep_tags = jload(existing["tags"], []) if existing["tags"] else []
+            for t in row["tags"]:
+                if t not in keep_tags:
+                    keep_tags.append(t)
             conn.execute(
                 "UPDATE bookmark SET url=?, url_norm=?, title=?, folder=?, folder_depth=?,"
                 " host=?, domain=?, date_added=?, date_modified=?, indexable=?,"
-                " privacy_skipped=?, updated_at=? WHERE id=?",
+                " privacy_skipped=?, tags=?, updated_at=? WHERE id=?",
                 (
                     row["url"],
                     row["url_norm"],
@@ -284,6 +305,7 @@ def import_bookmarks(
                     row["date_modified"],
                     row["indexable"],
                     privacy,
+                    json.dumps(keep_tags, ensure_ascii=False),
                     ts,
                     bid,
                 ),
@@ -292,7 +314,9 @@ def import_bookmarks(
 
         # Title-only lexical index so search works before any fetching happens.
         # The note (<DD>) is genuine user-authored text, so it goes into `extra`
-        # where it gets the same weight as topics and entities.
+        # where it gets the same weight as topics and entities. Tags go in too:
+        # a tag the user typed is recall vocabulary like any other word, and the
+        # `tag:` filter is the precision instrument on top of that.
         body_row = conn.execute(
             "SELECT body_text, body_seg FROM content WHERE bookmark_id=?", (bid,)
         ).fetchone()
@@ -302,6 +326,9 @@ def import_bookmarks(
         ).fetchone()
         from ..db import jload
 
+        merged_tags = (
+            keep_tags if existing is not None else row["tags"]
+        )
         textmod.sync_fts(
             conn,
             bid,
@@ -312,6 +339,7 @@ def import_bookmarks(
             topics=jload(enr["topics"]) if enr else [],
             entities=jload(enr["entities"]) if enr else [],
             key_points=([*jload(enr["key_points"]), row["note"]] if enr else [row["note"]]),
+            tags=merged_tags,
         )
 
     return stats

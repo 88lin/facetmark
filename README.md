@@ -329,7 +329,7 @@ engine). Full guide in [`docs/query-language.md`](docs/query-language.md):
 facetmark search "postgres domain:github.com -title:tutorial"
 facetmark search "kafka added:<7d"                     # saved this week
 facetmark search 'title:encryption (signal|matrix)'     # title match, either site
-facetmark search "domain:github.com sort:date"          # a browse, newest first
+facetmark search "tag:work domain:github.com sort:date" # a browse, newest first
 facetmark crawl https://docs.sqlite.org/ --max-pages 25 # then index
 ```
 
@@ -345,6 +345,12 @@ completes field names *and the values that exist in your library*, the chips
 under the search box write `added:` tokens, and the Library view's activity
 timeline (`/timeline`) buckets your saves by day and month — every bucket is
 one search you could have typed.
+
+**Your own tags are part of it.** Netscape and pinboard exports have carried a
+`TAGS` attribute since the first importer, and it was parsed and then dropped at
+staging; it is now stored on the bookmark, returned with every hit, and queryable
+as `tag:work` — an exact match on one element, so `tag:work` never widens into
+`workshop`. `POST /save` and the MCP `save_bookmark` tool take `tags` too.
 
 ---
 

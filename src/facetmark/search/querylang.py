@@ -28,6 +28,7 @@ Supported syntax (hister-compatible where the fields exist)::
     url:*/docs/*                      * wildcards on url/title/domain/folder
     text:"GDPR compliance"            body-text substring
     folder:study topic:postgres       facetmark-specific fields
+    tag:work                          exact element of the user's own tags
     lang:zh opened:10..               language filter, open-count range
     added:>90d added:>=2026-04-01     relative age or absolute date
     before:2026-05-01 after:2024-01-01   absolute-date aliases for added:
@@ -61,6 +62,7 @@ FIELDS: dict[str, str] = {
     "title": "title",
     "text": "text",
     "folder": "folder",
+    "tag": "tag",
     "topic": "topic",
     "lang": "lang",
     "added": "added",
@@ -504,6 +506,18 @@ def _field_sql(f: FieldFilter, *, now: float) -> tuple[str, list[str]] | None:
             )
             params.extend(ps)
         return (" OR ".join(parts) if parts else "1=1", params)
+    if f.field == "tag":
+        # Exact element of the tags JSON array, not a substring: tags are a
+        # closed vocabulary the user typed themselves, so `tag:work` matching
+        # `workshop` would be a filter that quietly widens. One EXISTS covers
+        # the whole alternation -- `tag:(work|rust)` is one membership test.
+        vals = _split_value(f.value)
+        marks = ",".join("?" * len(vals))
+        return (
+            "EXISTS (SELECT 1 FROM json_each(b.tags) "
+            f"WHERE json_each.value IN ({marks}))",
+            vals,
+        )
     if f.field == "topic":
         parts, params = [], []
         for v in _split_value(f.value):
