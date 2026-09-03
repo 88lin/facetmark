@@ -688,6 +688,10 @@ def crawl(
     checker and `facetmark index` all work on crawled pages exactly as on
     imported ones. Enriching and embedding are left to `index`, which skips
     what has not changed.
+
+    A host on `privacy_excluded_domains` is not crawled at all, not even its
+    robots.txt: that list says which hosts this machine does not talk to, and
+    a crawl is talking to one.
     """
     from .crawl import crawl_site
 
@@ -709,7 +713,8 @@ def crawl(
         return
     t = Table(title=f"crawl {url}", box=None, show_header=False)
     for k in ("links_found", "pages_fetched", "inserted", "already_known",
-              "bodies_stored", "off_domain_skipped", "robots_denied", "errors"):
+              "bodies_stored", "off_domain_skipped", "privacy_skipped",
+              "robots_denied", "errors"):
         t.add_row(k, str(rep.as_dict()[k]))
     console.print(t)
     for note in rep.notes[:5]:

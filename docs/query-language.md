@@ -88,10 +88,14 @@ made, the ranking layers (context multiplier, decay, reranker) are skipped,
 and the order is the sort's. Paging through a browse works like any other
 query.
 
+`sort:relevance` names the ranking rather than a column, so it is a no-op on a
+ranked query and, on a browse, the same newest-first order an unsorted browse
+gets — there is nothing scored to rank when the filters *are* the retrieval.
+
 ## Wildcards
 
-`*` stands for any run of characters in `domain`, `url`, `title`, `folder`
-values:
+`*` stands for any run of characters in `domain`, `url`, `title`, `folder`,
+`text` values:
 
 ```textplain
 domain:*.github.io

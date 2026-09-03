@@ -11,7 +11,8 @@ does without a new dependency.
 The bounds are the feature, not a limitation. A personal bookmark library has
 no use for a general-purpose crawler, and a tool that can accidentally walk
 ten thousand pages is a tool that cannot be run casually. ``--max-pages``
-defaults to 25, off-domain links are ignored by default, and every discovered
+defaults to 25, off-domain links are ignored by default, hosts on
+``privacy_excluded_domains`` are not contacted at all, and every discovered
 page goes through ``save_bookmark`` so the URL-level dedup the importer already
 relies on applies to crawled pages too.
 
@@ -36,7 +37,7 @@ from .config import Settings, get_settings
 from .fetch.client import DEFAULT_UA, FetchPolicy, RobotsCache, _HostLimiter
 from .fetch.extract import extract
 from .fetch.store import store_body
-from .normalize import normalize_url, registrable_domain
+from .normalize import host_excluded, normalize_url, registrable_domain
 from .service import save_bookmark
 
 #: The default page budget. 25 pages is "read the section of the docs I am
@@ -110,6 +111,7 @@ class CrawlReport:
     errors: int = 0
     robots_denied: int = 0
     off_domain_skipped: int = 0
+    privacy_skipped: int = 0
     #: The last error per distinct verdict, for the operator; not per page.
     notes: list[str] = field(default_factory=list)
 
@@ -120,6 +122,7 @@ class CrawlReport:
             "already_known": self.already_known, "bodies_stored": self.bodies_stored,
             "skipped": self.skipped, "errors": self.errors,
             "robots_denied": self.robots_denied, "off_domain_skipped": self.off_domain_skipped,
+            "privacy_skipped": self.privacy_skipped,
             "notes": self.notes[:8],
         }
 
@@ -173,8 +176,13 @@ async def crawl_site(
         max_redirects=policy.max_redirects,
     ) as client:
         while frontier and report.pages_fetched < max_pages:
+            # The batch is capped by what is left of the budget as well as by
+            # the per-host concurrency: a batch sized only by concurrency can
+            # fetch past `--max-pages`, and the budget is the whole point of
+            # the flag.
+            room = max_pages - report.pages_fetched
             batch = []
-            while frontier and len(batch) < max(1, policy.per_host_concurrency):
+            while frontier and len(batch) < min(max(1, policy.per_host_concurrency), room):
                 batch.append(frontier.popleft())
 
             results = await asyncio.gather(
@@ -221,8 +229,19 @@ async def _fetch_and_save(
     page 3 of the docs 404s would strand the other 20.
     """
     st = settings or get_settings()
-    allowed, delay = await robots.allows(client, url)
     host = httpx.URL(url).host or ""
+    # The exclusion list is a promise about egress, so it is checked before the
+    # first request rather than at save time: `save_bookmark` would mark the row
+    # `privacy_skipped`, but by then the crawl has already fetched the page and
+    # `store_body` has already written its text into the library. Checked ahead
+    # of robots.txt too, because fetching robots.txt is itself a request to the
+    # host.
+    if host_excluded(host, st.privacy_excluded_domains):
+        report.privacy_skipped += 1
+        report.notes.append(f"{url}: host is on privacy_excluded_domains")
+        return url, False, []
+
+    allowed, delay = await robots.allows(client, url)
     limiter.note_crawl_delay(host, delay)
     if not allowed:
         report.robots_denied += 1
@@ -257,8 +276,10 @@ async def _fetch_and_save(
         links = extract_links(html, final_url)
 
         nu = normalize_url(final_url)
-        if nu.normalized in queued and final_url != url:
-            queued.add(nu.normalized)
+        # A redirect lands somewhere the frontier has not seen. Record the
+        # destination, or every other link to it spends another page of the
+        # budget re-fetching this same page.
+        queued.add(nu.normalized)
         rec = None
         if nu.hash in known_hashes:
             report.already_known += 1

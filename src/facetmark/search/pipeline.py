@@ -669,7 +669,7 @@ class SearchResponse:
     depth_capped: bool = False
     #: Set when the config that actually ran is not the one that was asked
     #: for: it named vector facets the library cannot run (no vector store),
- #: so the lexical facets stood in. Holds the *requested* config's name --
+    #: so the lexical facets stood in. Holds the *requested* config's name --
     #: ``config`` above holds the name of what ran. Empty when nothing moved.
     degraded_from: str = ""
     #: The query-language filters this query carried (``domain:``, ``added:``,

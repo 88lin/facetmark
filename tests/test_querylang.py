@@ -211,6 +211,20 @@ class TestFilterSets:
         include, _, _ = filter_sets(lib, parsed, now=NOW)
         assert include == {5}
 
+    def test_text_filter_matches_the_stored_body(self, lib):
+        """``text:`` is a filter over ``content.body_text``, so it needs a real
+        content row -- the fixture's FTS rows are the ranker's index, not this.
+        """
+        lib.execute(
+            "INSERT INTO content(bookmark_id, body_text) VALUES"
+            " (3, 'the tokenizer chapter, plus a note on GDPR compliance')"
+        )
+        lib.commit()
+        parsed = parse_query('text:"GDPR compliance"', now=NOW)
+        include, _, ignored = filter_sets(lib, parsed, now=NOW)
+        assert include == {3}
+        assert not ignored
+
     def test_opened_range(self, lib):
         lib.execute("UPDATE bookmark SET open_count = 12 WHERE id = 2")
         lib.commit()
@@ -238,6 +252,25 @@ class TestPoolFromFilters:
         parsed = parse_query("-facebook", now=NOW)
         ids = pool_from_filters(lib, parsed, limit=10, now=NOW)
         assert 4 not in ids and set(ids) == {1, 2, 3, 5}
+
+    def test_sort_relevance_on_a_browse_is_the_default_order(self, lib):
+        """A browse has nothing to rank -- the filters *are* the retrieval --
+        so the one sort that names the ranking degrades to the default
+        timeline. It is a legal directive, so it cannot be an error either.
+        """
+        parsed = parse_query("domain:github.com sort:relevance", now=NOW)
+        assert parsed.sort == "relevance"
+        assert pool_from_filters(lib, parsed, limit=10, now=NOW) == [1, 2]
+
+    def test_a_percent_in_a_negated_phrase_is_a_literal(self, lib):
+        """The title LIKE behind a negation declares an ESCAPE, so ``%`` is a
+        character the user typed, not a wildcard. Left unescaped this phrase
+        would span three words of id 5's title and exclude a page nobody
+        named -- the FTS side already refuses it, since a phrase has to be
+        adjacent.
+        """
+        parsed = parse_query('-"Kafka%guide"', now=NOW)
+        assert 5 in pool_from_filters(lib, parsed, limit=10, now=NOW)
 
 
 class TestSortPool:
@@ -286,6 +319,15 @@ class TestQuickSearch:
         r = quick_search(lib, "domain:github.com sort:-date")
         assert [h.bookmark_id for h in r.hits] == [2, 1]
         assert r.sort == "-date"
+
+    def test_sort_relevance_with_a_filter_still_answers(self, lib):
+        """First paint of ``domain:x sort:relevance``: a browse asked to rank
+        by a ranking that never ran. It reports the sort it was given and
+        falls back to the browse order.
+        """
+        r = quick_search(lib, "domain:github.com sort:relevance")
+        assert [h.bookmark_id for h in r.hits] == [1, 2]
+        assert r.sort == "relevance"
 
 
 class TestFullSearch:

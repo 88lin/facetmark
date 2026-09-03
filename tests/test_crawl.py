@@ -30,6 +30,11 @@ PAGE_B = """<html><head><title>Guide</title></head><body>
 <a href="/guide">Self-link</a>
 </body></html>"""
 
+PAGE_REF = """<html><head><title>Reference</title></head><body>
+<p>The reference lists every flag the guide mentions.</p>
+<a href="/manual">The manual</a>
+</body></html>"""
+
 ROBOTS_ALLOW = "User-agent: *\nAllow: /\n"
 ROBOTS_DENY = "User-agent: *\nDisallow: /\n"
 
@@ -184,6 +189,84 @@ class TestCrawlSite:
         rep = await crawl_site(conn, "javascript:alert(1)", settings=settings)
         assert rep.pages_fetched == 0
         assert rep.notes
+
+    @respx.mock
+    async def test_an_excluded_host_is_never_contacted(self, conn, tmp_path):
+        """``privacy_excluded_domains`` is a promise about egress, so the crawl
+        has to check it before the first request. ``save_bookmark`` marks the
+        row and moves on, which is too late: by then the page is fetched and
+        its text is in the library. Before robots.txt, too -- fetching
+        robots.txt is itself a request to the host.
+        """
+        from facetmark.config import Settings
+
+        st = Settings(
+            data_dir=tmp_path, use_mock_provider=True, embed_dim=32,
+            embed_model="mock-embed", chat_model="mock-chat",
+            health_enable_external=False,
+            privacy_excluded_domains=("docs.example",),
+        )
+        robots = respx.get("https://docs.example/robots.txt").respond(
+            200, text=ROBOTS_ALLOW, headers={"content-type": "text/plain"})
+        page = respx.get("https://docs.example/").mock(return_value=_page(PAGE_A))
+
+        rep = await crawl_site(conn, "https://docs.example/", settings=st)
+
+        assert rep.privacy_skipped == 1
+        assert not page.called and not robots.called
+        assert rep.pages_fetched == 0
+        assert conn.execute("SELECT COUNT(*) FROM bookmark").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM content").fetchone()[0] == 0
+        assert rep.notes
+
+    @respx.mock
+    async def test_a_redirect_destination_is_only_fetched_once(self, conn, settings):
+        """The frontier asked for ``/guide`` and the request landed on
+        ``/manual``. Only the destination says what was really visited, so the
+        destination is what the frontier has to record -- otherwise the next
+        page's link to it spends another page of the budget on the same
+        document.
+        """
+        respx.get("https://docs.example/robots.txt").respond(
+            200, text=ROBOTS_ALLOW, headers={"content-type": "text/plain"})
+        respx.get("https://docs.example/").mock(return_value=_page(PAGE_A))
+        respx.get("https://docs.example/guide").mock(
+            return_value=httpx.Response(301, headers={"location": "/manual"}))
+        manual = respx.get("https://docs.example/manual").mock(
+            return_value=_page(PAGE_B))
+        respx.get("https://docs.example/reference").mock(
+            return_value=_page(PAGE_REF))
+
+        rep = await crawl_site(conn, "https://docs.example/", max_pages=5,
+                               settings=settings)
+
+        assert manual.call_count == 1
+        assert rep.pages_fetched == 3      # /, /guide -> /manual, /reference
+        assert rep.already_known == 0
+
+    @respx.mock
+    async def test_the_budget_is_not_overshot_by_the_batch(self, conn, settings):
+        """The walk fetches a batch at a time, so the batch has to be sized by
+        what is left of the budget and not only by the concurrency. With two
+        pages of budget and two links in hand, a batch sized by concurrency
+        alone fetches three -- which makes ``--max-pages`` advice rather than
+        the bound the crawl is sold on.
+        """
+        respx.get("https://docs.example/robots.txt").respond(
+            200, text=ROBOTS_ALLOW, headers={"content-type": "text/plain"})
+        respx.get("https://docs.example/").mock(return_value=_page(PAGE_A))
+        guide = respx.get("https://docs.example/guide").mock(
+            return_value=_page(PAGE_B))
+        reference = respx.get("https://docs.example/reference").mock(
+            return_value=_page(PAGE_B))
+
+        rep = await crawl_site(conn, "https://docs.example/", max_pages=2,
+                               settings=settings)
+
+        assert rep.pages_fetched == 2
+        # The frontier is FIFO, so the budget buys the first link found.
+        assert guide.called and not reference.called
+        assert conn.execute("SELECT COUNT(*) FROM bookmark").fetchone()[0] == 2
 
     @respx.mock
     def test_the_cli_runs_the_crawl(self, settings, tmp_path, monkeypatch):

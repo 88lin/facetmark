@@ -494,11 +494,15 @@ def _field_sql(f: FieldFilter, *, now: float) -> tuple[str, list[str]] | None:
     if f.field == "text":
         parts, params = [], []
         for v in _split_value(f.value):
+            # Through `_value_sql` rather than a hand-rolled pattern, so
+            # `text:` gets the same wildcard and escaping rules as the columns
+            # above -- which is what that helper's docstring already promises.
+            inner, ps = _value_sql("c.body_text", v)
             parts.append(
                 "EXISTS (SELECT 1 FROM content c WHERE c.bookmark_id = b.id "
-                "AND c.body_text LIKE ? ESCAPE '\\')"
+                f"AND {inner})"
             )
-            params.append(_like(v))
+            params.extend(ps)
         return (" OR ".join(parts) if parts else "1=1", params)
     if f.field == "topic":
         parts, params = [], []
@@ -625,8 +629,11 @@ def _lexical_match_ids(conn: sqlite3.Connection, text: str, *, is_phrase: bool) 
         except sqlite3.OperationalError:
             out = set()
         # A phrase in the title is worth excluding on even when the body index
-        # has never seen the page: titles are always indexed.
-        like = f"%{phrase}%"
+        # has never seen the page: titles are always indexed. Through `_like`
+        # because the SQL declares an ESCAPE: a `%` or `_` inside the phrase
+        # is a character the user typed, not a wildcard, and left raw it would
+        # make `-"100%"` exclude the whole library.
+        like = _like(phrase, wrap="%{}%")
         out |= {
             int(r[0]) for r in conn.execute(
                 "SELECT id FROM bookmark WHERE title LIKE ? ESCAPE '\\'", (like,)
@@ -635,7 +642,7 @@ def _lexical_match_ids(conn: sqlite3.Connection, text: str, *, is_phrase: bool) 
         return out
     for ids in lexical_lists(conn, text, limit=1000).values():
         out |= set(ids)
-    like = f"%{text}%"
+    like = _like(text, wrap="%{}%")
     out |= {
         int(r[0]) for r in conn.execute(
             "SELECT id FROM bookmark WHERE title LIKE ? ESCAPE '\\'", (like,)
@@ -652,15 +659,25 @@ def _lexical_match_ids(conn: sqlite3.Connection, text: str, *, is_phrase: bool) 
 #: sort over that many small tuples is both correct and cheap.
 _SORT_COLUMNS = "id, date_added, domain, title, url"
 
+#: Newest-first: the order a browse gets when the query names none. A named
+#: constant because :func:`pool_from_filters` needs a spec that cannot be
+#: ``None``, and ``sort:relevance`` is a legal directive that names no
+#: orderable column.
+_DATE_DESC = (lambda r: (r["date_added"] or 0, r["id"]), True)
+
 
 def _sort_spec(sort: str):
     """``(key_fn, reverse)`` over rows from :func:`_row_map`, or ``None``.
+
+    ``None`` means "this directive is not an ordering over columns" -- either
+    an unknown value or ``relevance``, which is the fusion's own order and so
+    is a no-op for anything already ranked.
 
     Reverse sorts keep the id tiebreak ascending by negating it inside the key
     and letting ``reverse=True`` undo exactly that negation.
     """
     if sort == "date":
-        return (lambda r: (r["date_added"] or 0, r["id"]), True)
+        return _DATE_DESC
     if sort == "-date":
         return (lambda r: (r["date_added"] or 2**62, r["id"]), False)
     if sort == "domain":
@@ -696,7 +713,9 @@ def pool_from_filters(
 
     Ordered by the requested sort, or newest-first when unspecified: a pure
     filter browses (``domain:github.com``), and a browse is a timeline, not a
-    relevance contest.
+    relevance contest. ``sort:relevance`` names an order this path does not
+    have -- nothing was scored, because the filters *are* the retrieval -- so
+    it falls back to that same newest-first default.
     """
     now = time.time() if now is None else now
     include, exclude, _ = filter_sets(conn, parsed, now=now)
@@ -705,9 +724,8 @@ def pool_from_filters(
     ids = sorted(include - exclude)
     if not ids:
         return []
-    spec = _sort_spec(parsed.sort or "date")
+    key, rev = _sort_spec(parsed.sort) or _DATE_DESC
     rows = _row_map(conn, ids)
-    key, rev = spec
     ordered = sorted(ids, key=lambda i: key(rows[i]), reverse=rev)
     return ordered[:limit]
 
