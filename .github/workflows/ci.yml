@@ -185,3 +185,67 @@ jobs:
       # runtime, and drift on either side shows up as a diff in a checked-in file.
       - run: npm run contract:check
         working-directory: integrations/karakeep/typecheck
+
+  image:
+    # The README's second install path is `docker compose up -d`, and nothing
+    # here ever built it. A Dockerfile is code with no test: the dependency list
+    # is read out of pyproject.toml by an inline `tomllib` expression, the
+    # install is two layers deep, and `read_only: true` in compose.yml means the
+    # container has exactly two writable paths. Every one of those is a way for
+    # the deployment path to break while the wheel, the tests and the lint all
+    # stay green.
+    #
+    # So: build it, start it, and ask it a question. `/health` is the one route
+    # that answers without a token -- which is also what the image's own
+    # HEALTHCHECK relies on, so a 200 here proves both.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t facetmark:ci .
+      - name: it starts, and it answers
+        # Started under the same constraints compose.yml imposes -- read-only
+        # root, a tmpfs /tmp, one writable volume -- because "the image builds"
+        # and "the image runs with exactly two writable paths" are different
+        # claims and the second one is the one the deployment makes.
+        run: |
+          docker volume create fmdata
+          docker run -d --name fm \
+            --read-only --tmpfs /tmp:noexec,nosuid,size=64m \
+            -v fmdata:/data -p 127.0.0.1:8787:8787 facetmark:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8787/health >/dev/null 2>&1; then
+              echo "up after ${i}s"; break
+            fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8787/health | tee /tmp/health.json
+          python -c "import json; d=json.load(open('/tmp/health.json')); assert d['ok'] is True, d"
+      - name: the database it writes is on the volume
+        run: |
+          docker exec fm sh -c 'ls -1 /data' | tee /tmp/data.ls
+          grep -q '\.db' /tmp/data.ls
+      - name: it runs as the non-root user it claims to
+        run: |
+          test "$(docker exec fm id -u)" = "65532"
+      - name: the compose file is valid and stays on loopback
+        # Asserted against the *resolved* config rather than the file, and in
+        # JSON rather than by grepping YAML: `docker compose config` normalises
+        # `127.0.0.1:8787:8787` into a long-form mapping, so the literal string
+        # is not in its output and a grep for it fails while the pin is intact.
+        run: |
+          docker compose config --format json >/tmp/compose.json
+          python - <<'EOF'
+          import json
+          svc = json.load(open("/tmp/compose.json"))["services"]["facetmark"]
+          ports = svc["ports"]
+          assert len(ports) == 1, ports
+          p = ports[0]
+          assert p.get("host_ip") == "127.0.0.1", f"published beyond loopback: {p}"
+          assert str(p.get("published")) == "8787", p
+          assert svc.get("read_only") is True, "read_only was dropped"
+          assert svc.get("cap_drop") == ["ALL"], svc.get("cap_drop")
+          print("compose pins:", p, "read_only + cap_drop intact")
+          EOF
+      - name: logs, on failure
+        if: failure()
+        run: docker logs fm || true

@@ -68,6 +68,16 @@
   是不是当前内容渲染出来的」——而这三页正是从导航进来的人最常落地的地方。
   现在六页全覆盖：代码块的标题是散文（会被翻译），所以从对比里去掉。
 
+### CI
+
+- **`docker compose up -d` 是 README 的第二条安装路径，而 CI 从来没有构建过它。**
+  Dockerfile 是一段没有测试的代码：依赖清单由一行内联 `tomllib` 从 pyproject.toml
+  读出、安装分两层、compose 的 `read_only: true` 只留两个可写路径——这几件事任何
+  一件坏掉，wheel、测试和 lint 都还是全绿。新增 `image` 作业：构建镜像，**用
+  compose 同样的约束**（只读根、tmpfs `/tmp`、一个数据卷）把它跑起来，请求
+  `/health`（唯一免令牌的路由，也正是镜像自己 HEALTHCHECK 依赖的那条），断言数据库
+  文件落在卷上、进程 uid 是 65532、compose 解析出来的端口仍然钉在 127.0.0.1。
+
 ### 移植（来自 hister）
 
 对 [hister](https://github.com/asciimoo/hister)（searx 作者的私有搜索引擎）做了一次系统性的
