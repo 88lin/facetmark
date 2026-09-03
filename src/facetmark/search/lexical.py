@@ -25,7 +25,9 @@ text the user has actually seen and may half-remember.
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Collection
 
+from ..db import jdump
 from ..text import build_fts_query
 
 #: bm25 column weights: title, body, summary, extra.
@@ -34,21 +36,35 @@ WEIGHTS_TRI = (10.0, 1.0, 4.0, 3.0)
 
 
 def _run_scored(
-    conn: sqlite3.Connection, table: str, match: str, weights, limit: int
+    conn: sqlite3.Connection, table: str, match: str, weights, limit: int,
+    allow: Collection[int] | None = None,
 ) -> list[tuple[int, float]]:
     """Ranked ids with their bm25 score, sign-flipped so higher is better.
 
     FTS5's ``bm25()`` returns more-negative for better matches, which is fine
     for ``ORDER BY`` and confusing everywhere else. Negating here means every
     facet in the system hands back the same convention.
+
+    ``allow`` restricts the match *before* the ``LIMIT``. That is the whole
+    point of passing it: a query language filter applied after the fact can
+    only ever cut the list it was handed, so ``postgres domain:github.com``
+    used to return whatever survived among the top 50 for "postgres" -- often
+    nothing, on a library where the github pages rank 200th. Pushed down, rows
+    that fail the filter never occupy a ranked slot and deeper rows that pass
+    it move up into it. The ids arrive as one JSON parameter rather than an
+    ``IN (?,?,...)`` of unbounded length.
     """
     w = ", ".join(str(x) for x in weights)
+    gate = "" if allow is None else " AND rowid IN (SELECT value FROM json_each(?))"
     sql = (
         f"SELECT rowid AS id, bm25({table}, {w}) AS score FROM {table} "
-        f"WHERE {table} MATCH ? ORDER BY score LIMIT ?"
+        f"WHERE {table} MATCH ?{gate} ORDER BY score LIMIT ?"
+    )
+    params: tuple = (match, limit) if allow is None else (
+        match, jdump(sorted(allow)), limit
     )
     try:
-        return [(r["id"], -float(r["score"])) for r in conn.execute(sql, (match, limit))]
+        return [(r["id"], -float(r["score"])) for r in conn.execute(sql, params)]
     except sqlite3.OperationalError:
         # A query that survives sanitising can still be invalid FTS5 syntax.
         # An empty facet is a correct answer here; raising would take down a
@@ -56,24 +72,35 @@ def _run_scored(
         return []
 
 
-def _run(conn: sqlite3.Connection, table: str, match: str, weights, limit: int) -> list[int]:
-    return [i for i, _ in _run_scored(conn, table, match, weights, limit)]
+def _run(
+    conn: sqlite3.Connection, table: str, match: str, weights, limit: int,
+    allow: Collection[int] | None = None,
+) -> list[int]:
+    return [i for i, _ in _run_scored(conn, table, match, weights, limit, allow)]
 
 
 def lexical_lists(
-    conn: sqlite3.Connection, query: str, *, limit: int = 50
+    conn: sqlite3.Connection, query: str, *, limit: int = 50,
+    allow: Collection[int] | None = None,
 ) -> dict[str, list[int]]:
     """Both lexical paths, as separate ranked lists for the fusion step.
 
     They are kept separate rather than merged because RRF already knows what to
     do with two lists that agree, and merging first would throw away the
     agreement signal.
+
+    ``allow``, when given, is the set of ids a query-language filter leaves
+    eligible; it is applied inside the SQL, before the ``LIMIT``.
     """
-    return {k: [i for i, _ in v] for k, v in lexical_lists_scored(conn, query, limit=limit).items()}
+    return {
+        k: [i for i, _ in v]
+        for k, v in lexical_lists_scored(conn, query, limit=limit, allow=allow).items()
+    }
 
 
 def lexical_lists_scored(
-    conn: sqlite3.Connection, query: str, *, limit: int = 50
+    conn: sqlite3.Connection, query: str, *, limit: int = 50,
+    allow: Collection[int] | None = None,
 ) -> dict[str, list[tuple[int, float]]]:
     """:func:`lexical_lists` with the bm25 score kept, higher being better.
 
@@ -84,10 +111,10 @@ def lexical_lists_scored(
     out: dict[str, list[tuple[int, float]]] = {}
     seg = build_fts_query(query, segmented=True)
     if seg:
-        out["lex_seg"] = _run_scored(conn, "fts_seg", seg, WEIGHTS_SEG, limit)
+        out["lex_seg"] = _run_scored(conn, "fts_seg", seg, WEIGHTS_SEG, limit, allow)
     tri = build_fts_query(query, segmented=False)
     if tri:
-        out["lex_tri"] = _run_scored(conn, "fts_tri", tri, WEIGHTS_TRI, limit)
+        out["lex_tri"] = _run_scored(conn, "fts_tri", tri, WEIGHTS_TRI, limit, allow)
     return {k: v for k, v in out.items() if v}
 
 

@@ -37,6 +37,7 @@ from .lexical import lexical_lists, lexical_lists_scored
 from .querylang import (
     ParsedQuery,
     apply_filters,
+    filter_sets,
     parse_query,
     pool_from_filters,
     sort_pool,
@@ -142,6 +143,44 @@ def degrade_for_vector_store(
 _GUARANTEE_DEPTH = 50
 
 SNIPPET_CHARS = 300
+
+#: How much deeper a vector facet fetches when a filter is in play. A ``vec0``
+#: KNN takes no ``WHERE``, so the only way to give the filter something to
+#: survive is to ask for more neighbours and intersect. 5x, not 50x: the point
+#: is to stop a restrictive filter emptying the page, and a KNN's cost grows
+#: with the ask.
+VECTOR_FILTER_OVERFETCH = 5
+
+
+def _eligible_ids(conn: sqlite3.Connection, parsed: ParsedQuery) -> set[int] | None:
+    """The ids a positive filter leaves eligible, or ``None`` for no constraint.
+
+    Only the *include* side: see the note at the call site. ``set()`` is a real
+    answer -- a filter that matches nothing -- and is distinct from ``None``.
+    """
+    if not parsed.filters:
+        return None
+    include, exclude, _ = filter_sets(conn, parsed)
+    if include is None:
+        return None
+    return include - exclude
+
+
+def _gate_lists(
+    lists: dict[str, list[int]], allow: set[int] | None, limit: int
+) -> dict[str, list[int]]:
+    """Keep the eligible ids from an over-fetched facet, back down to ``limit``."""
+    if allow is None:
+        return lists
+    return {k: [i for i in v if i in allow][:limit] for k, v in lists.items()}
+
+
+def _gate_scored(
+    lists: dict[str, list[tuple[int, float]]], allow: set[int] | None, limit: int
+) -> dict[str, list[tuple[int, float]]]:
+    if allow is None:
+        return lists
+    return {k: [r for r in v if r[0] in allow][:limit] for k, v in lists.items()}
 
 #: Facet lists come through as bare ids on the default path and as
 #: ``(id, score)`` pairs on the abstention path. Trimming is the same operation
@@ -872,7 +911,11 @@ def quick_search(
         fused = rrf(lists, k=k)
         truncated = len(ids) >= page.fetch
     else:
-        lists, truncated = trim_pool(page, lexical_lists(conn, parsed.text, limit=page.fetch))
+        # The filter constrains retrieval, not just the list retrieval returned:
+        # see the note in `search`. Same reasoning, same one call.
+        lists, truncated = trim_pool(page, lexical_lists(
+            conn, parsed.text, limit=page.fetch, allow=_eligible_ids(conn, parsed)
+        ))
         fused = rrf(lists, k=k, weights=DEFAULT_FACET_WEIGHTS)
 
     if parsed.has_filters:
@@ -985,6 +1028,16 @@ async def search(
     # to require a filter, so ``sort:date`` answered nothing here while the
     # first paint answered the whole library.
     browse = parsed.is_browse
+    # The eligible set, when a positive filter names one. Pushed into the facet
+    # queries so a filter constrains *retrieval* rather than only trimming what
+    # retrieval happened to return: `postgres domain:github.com` on a library
+    # where the github pages rank 200th for "postgres" used to come back empty
+    # from a pool of 50. Exclusions are deliberately not pushed down -- the
+    # eligible set for `-facebook` is the whole library minus one page, and
+    # materialising that to remove one row is work for nothing. The post-fusion
+    # `apply_filters` below still runs, so the *answer* is unchanged either way;
+    # this only decides how deep the facets were allowed to look.
+    allow = _eligible_ids(conn, parsed) if not browse else None
     if browse:
         t0 = time.perf_counter()
         ids = pool_from_filters(conn, parsed, limit=page.fetch)
@@ -994,7 +1047,9 @@ async def search(
         t0 = time.perf_counter()
         scored: dict[str, list[tuple[int, float]]] = {}
         if config.facets & LEXICAL_FACETS and facet_query:
-            for name, rows in lexical_lists_scored(conn, facet_query, limit=per_facet).items():
+            for name, rows in lexical_lists_scored(
+                conn, facet_query, limit=per_facet, allow=allow
+            ).items():
                 if name in config.facets:
                     scored[name] = rows
         mark("lexical", t0)
@@ -1002,11 +1057,12 @@ async def search(
         t0 = time.perf_counter()
         if config.facets & VECTOR_FACETS and embed_query:
             vrows, _vec = await vector_lists_scored(
-                conn, embed_query, provider=prov, settings=s, limit=per_facet,
+                conn, embed_query, provider=prov, settings=s,
+                limit=per_facet * (VECTOR_FILTER_OVERFETCH if allow else 1),
                 want_content="content" in config.facets,
                 want_intent="intent" in config.facets,
             )
-            scored.update(vrows)
+            scored.update(_gate_scored(vrows, allow, per_facet))
         mark("vectors", t0)
 
         # Trim before abstention, not after: the margin is read off the shape
@@ -1020,7 +1076,9 @@ async def search(
     else:
         t0 = time.perf_counter()
         if config.facets & LEXICAL_FACETS and facet_query:
-            for name, ids in lexical_lists(conn, facet_query, limit=per_facet).items():
+            for name, ids in lexical_lists(
+                conn, facet_query, limit=per_facet, allow=allow
+            ).items():
                 if name in config.facets:
                     lists[name] = ids
         mark("lexical", t0)
@@ -1028,11 +1086,12 @@ async def search(
         t0 = time.perf_counter()
         if config.facets & VECTOR_FACETS and embed_query:
             vlists, _vec = await vector_lists(
-                conn, embed_query, provider=prov, settings=s, limit=per_facet,
+                conn, embed_query, provider=prov, settings=s,
+                limit=per_facet * (VECTOR_FILTER_OVERFETCH if allow else 1),
                 want_content="content" in config.facets,
                 want_intent="intent" in config.facets,
             )
-            lists.update(vlists)
+            lists.update(_gate_lists(vlists, allow, per_facet))
         mark("vectors", t0)
 
         lists, truncated = trim_pool(page, lists)
