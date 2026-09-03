@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import stat
+from pathlib import Path
 
 import pytest
 
@@ -69,6 +70,46 @@ def test_a_data_dir_inside_the_file_does_not_move_the_file(data_dir, tmp_path):
     write_config({"data_dir": str(elsewhere)})
     assert Settings().data_dir == elsewhere
     assert config_path() == data_dir / "config.toml"
+
+
+def test_the_suite_cannot_read_the_developer_s_own_config_file():
+    """The relocation in ``conftest._no_ambient_config`` is load-bearing.
+
+    The config-file source resolves its directory from the environment, and a
+    development machine's environment points at a real deployment. This suite
+    once failed 54 tests on the machine that wrote the code, because the
+    author's own ``config.toml`` carried ``embed_backend = "local"`` into
+    fixtures that ask for the mock provider. The relocation assert comes first
+    and the write second, so a suite without the relocation fails here rather
+    than editing the developer's real file on its way down.
+    """
+    with pytest.MonkeyPatch.context() as m:
+        # Strip both relocation variables so default_data_dir() lands on its
+        # final branch -- that is the location an unisolated process reads.
+        m.delenv("XDG_DATA_HOME", raising=False)
+        m.delenv("LOCALAPPDATA", raising=False)
+        unisolated = default_data_dir() / "config.toml"
+    assert config_path() != unisolated
+    write_config({"embed_backend": "local"}, config_path())
+    assert Settings().embed_backend == "local"
+
+
+def test_the_suite_cannot_read_a_dotenv_from_the_checkout():
+    """Same hazard, third source: ``.env`` in the current directory.
+
+    Two places read it -- ``Settings.model_config`` names ``env_file=".env"``
+    and ``configfile.external_settings`` calls ``dotenv_values(".env")`` --
+    and both paths are relative, so no environment variable can relocate this
+    one. The working directory moves instead, which is what the assert below
+    pins: a developer running the suite from a checkout with a ``.env`` in it
+    would otherwise configure all of it from that file. The write proves the
+    source is live and really would have been read.
+    """
+    assert Path.cwd() != Path(__file__).resolve().parent.parent
+    (Path.cwd() / ".env").write_text(
+        "FACETMARK_CHAT_MODEL=from-the-working-directory\n", encoding="utf-8"
+    )
+    assert Settings().chat_model == "from-the-working-directory"
 
 
 # --------------------------------------------------------------------------
