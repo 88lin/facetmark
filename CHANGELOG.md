@@ -4,6 +4,31 @@
 
 ## [Unreleased]
 
+### 修复（测试套件会读到开发机自己的 config.toml）
+
+- **在一台真的用过 facetmark 的机器上，`pytest` 失败 54 条（34 failed + 20 error），
+  而同一份代码在 CI 上全绿。** 根因：`conftest._no_ambient_config` 只清理
+  `FACETMARK_*` 环境变量，它写于 config.toml 配置源诞生之前，没覆盖后者——而配置
+  文件不在 `FACETMARK_*` 命名空间里，位置由环境在 `Settings` 构造之前解析
+  （`configfile.config_path`），所以开发机自己那份带着 `embed_backend = "local"`
+  的 `config.toml` 直接漏进了索要 mock provider 的 fixture（`get_provider` 因此
+  返回 `SplitProvider` 而非 `MockProvider`，连带 enrich/eval/service/karakeep 契约
+  共 54 条）。CI 没有这个文件所以永远看不见这个 bug。
+  现在同一个 fixture 把 `XDG_DATA_HOME` 与 `LOCALAPPDATA`（`default_data_dir`
+  在两个平台上分别检查的两个变量）重定位到每个测试自己的 tmp 目录：重定位而非
+  删除，是因为该源的查找发生在 `Settings` 存在之前；逐测试隔离，是防止测试自己
+  写的配置文件互相看见。新增
+  `tests/test_configfile.py::test_the_suite_cannot_read_the_developer_s_own_config_file`
+  把这条约定钉住——重定位断言在写之前，没有重定位的套件在这里失败，而不是在失败
+  的路上改写开发者的真实配置文件。
+- **同一类问题的第三个源：当前目录下的 `.env`。** 读它的地方有两处
+  （`Settings.model_config` 的 `env_file=".env"` 与 `configfile.external_settings`
+  里的 `dotenv_values(".env")`），两处都是相对路径，所以这个源没法用环境变量重定位
+  ——改的是工作目录：同一个 fixture 现在把每个测试 chdir 到它自己的 tmp 目录。
+  已有的几条 dotenv 测试本来就各自 `monkeypatch.chdir(tmp_path)`，因此不受影响。
+  新增 `test_the_suite_cannot_read_a_dotenv_from_the_checkout`：先断言工作目录不是
+  checkout，再写一个 `.env` 证明这个源确实是活的。
+
 ## [2.0.0] - 2026-08-19
 
 ### 修复（chat-only 冒烟测试带出来的三个）
