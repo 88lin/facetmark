@@ -55,6 +55,12 @@ function timelineStrip(tl) {
     const day = d.key.slice(4); // `day:2026-08-03` -> `2026-08-03`
     const col = el("button", "tl-day");
     col.type = "button";
+    // A day you saved nothing on is still a column -- seven bars with a gap in
+    // them is the shape of the week, and dropping the empty ones would redraw
+    // the axis every day. It is not a *button*, though: it would tab-stop and
+    // then run a search that is guaranteed to return nothing, which on a quiet
+    // week is most of the strip.
+    col.disabled = !d.count;
     col.style.setProperty("--h", `${Math.round((d.count / max) * 100)}%`);
     col.setAttribute("aria-label", `${day} \u00b7 ${count(d.count, S.lang)}`);
     col.title = `${day} \u00b7 ${count(d.count, S.lang)}`;

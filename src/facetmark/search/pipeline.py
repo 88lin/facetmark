@@ -862,17 +862,18 @@ def quick_search(
     page = resolve_page(s, limit=limit, offset=offset, depth=depth, over_fetch=3)
     u = classify(query)
 
-    if parsed.text:
-        lists, truncated = trim_pool(page, lexical_lists(conn, parsed.text, limit=page.fetch))
-        fused = rrf(lists, k=k, weights=DEFAULT_FACET_WEIGHTS)
-    else:
-        # A pure filter query (``domain:github.com``, ``-python``) is a browse,
-        # and the filters *are* the retrieval. RRF over one list preserves the
-        # order the filters chose (date-descending by default).
+    if parsed.is_browse:
+        # A query with nothing to rank (``domain:github.com``, ``-python``,
+        # or a bare ``sort:date``) is a browse, and the filters *are* the
+        # retrieval. RRF over one list preserves the order they chose
+        # (date-descending by default).
         ids = pool_from_filters(conn, parsed, limit=page.fetch)
         lists = {"filter": ids}
         fused = rrf(lists, k=k)
         truncated = len(ids) >= page.fetch
+    else:
+        lists, truncated = trim_pool(page, lexical_lists(conn, parsed.text, limit=page.fetch))
+        fused = rrf(lists, k=k, weights=DEFAULT_FACET_WEIGHTS)
 
     if parsed.has_filters:
         keep = set(apply_filters(conn, parsed, [f.doc_id for f in fused]))
@@ -892,7 +893,11 @@ def quick_search(
         took_ms={"total": (time.perf_counter() - t0) * 1000},
         limit=page.limit, offset=page.offset, depth=page.depth, total=len(fused),
         has_more=has_more, depth_capped=capped,
-        filters=parsed.echo() if parsed.has_syntax else None,
+        # `None` means the query carried no syntax at all -- the compatibility
+        # guarantee. An ignored token is syntax the user typed, so `echo()`
+        # being non-empty is the condition, not `has_syntax`: a query whose
+        # only syntax failed to parse reported nothing and looked plain.
+        filters=parsed.echo() or None,
         sort=parsed.sort,
     )
 
@@ -975,8 +980,11 @@ async def search(
     facet_confidence: dict[str, float] = {}
     truncated = False
     # ``-python`` with no positive text is also a browse: the whole library
-    # minus one thing. ``has_filters`` covers negated terms as well as fields.
-    browse = not facet_query and parsed.has_filters
+    # minus one thing. So is a bare ``sort:date``. ``is_browse`` is the one
+    # predicate both entry points read, because they disagreed: this path used
+    # to require a filter, so ``sort:date`` answered nothing here while the
+    # first paint answered the whole library.
+    browse = parsed.is_browse
     if browse:
         t0 = time.perf_counter()
         ids = pool_from_filters(conn, parsed, limit=page.fetch)
@@ -1195,6 +1203,10 @@ async def search(
         reranker=rr_name, took_ms=timings,
         limit=page.limit, offset=page.offset, depth=page.depth, total=len(fused),
         has_more=has_more, depth_capped=capped, degraded_from=degraded_from,
-        filters=parsed.echo() if parsed.has_syntax else None,
+        # `None` means the query carried no syntax at all -- the compatibility
+        # guarantee. An ignored token is syntax the user typed, so `echo()`
+        # being non-empty is the condition, not `has_syntax`: a query whose
+        # only syntax failed to parse reported nothing and looked plain.
+        filters=parsed.echo() or None,
         sort=parsed.sort,
     )

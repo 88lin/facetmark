@@ -113,6 +113,30 @@ class TestParser:
         assert p.filters[0].value == "github.com|gitlab.com"
         assert p.text == "postgres"
 
+    def test_host_is_its_own_field(self):
+        p = parse_query("host:news.ycombinator.com", now=NOW)
+        assert [(f.field, f.value) for f in p.filters] == [
+            ("host", "news.ycombinator.com"),
+        ]
+        assert not p.text
+
+    def test_a_relative_before_after_inverts_onto_an_age(self):
+        """`after:30d` is "saved in the last 30 days".
+
+        A duration is an age, so the comparison flips -- the same rule
+        `added:<30d` follows. The fold happens before the value is validated,
+        because `added:30d` on its own is *not* a filter and checking the
+        unfolded form threw the legal one away.
+        """
+        p = parse_query("after:30d before:1y", now=NOW)
+        assert [f.value for f in p.filters] == ["<30d", ">1y"]
+        assert not p.ignored
+
+    def test_sort_by_open_count(self):
+        assert parse_query("sort:opened").sort == "opened"
+        assert parse_query("sort:open_count").sort == "opened"
+        assert parse_query("sort:-opened").sort == "-opened"
+
     def test_before_after_fold_onto_added(self):
         p = parse_query("before:2026-05-01 after:2024-01-01", now=NOW)
         assert [f.field for f in p.filters] == ["added", "added"]
@@ -246,6 +270,21 @@ class TestFilterSets:
         include, _, _ = filter_sets(lib, parsed, now=NOW)
         assert include == {1, 3}
 
+    def test_host_filter_is_a_substring_of_the_hostname(self, lib):
+        """`domain:` is the site; `host:` is the machine. The fixture's hosts
+        are the same as its domains, so a substring is what distinguishes the
+        two fields here."""
+        parsed = parse_query("host:sqlite", now=NOW)
+        include, _, _ = filter_sets(lib, parsed, now=NOW)
+        assert include == {3}
+
+    def test_a_relative_after_window_resolves(self, lib):
+        """`after:30d` = saved in the last 30 days. ids 1 (10d) and 4 (5d)."""
+        parsed = parse_query("after:30d", now=NOW)
+        include, _, ignored = filter_sets(lib, parsed, now=NOW)
+        assert include == {1, 4}
+        assert not ignored
+
     def test_opened_range(self, lib):
         lib.execute("UPDATE bookmark SET open_count = 12 WHERE id = 2")
         lib.commit()
@@ -254,7 +293,28 @@ class TestFilterSets:
         assert include == {2}
 
     def test_unparseable_filter_is_reported(self, lib):
+        """A value that does not resolve is reported by the *parser*.
+
+        It used to be reported by ``filter_sets``, whose third return value
+        every caller discards, so the response echoed ``added:90d`` as a filter
+        that had applied and quietly answered the query without it.
+        """
         parsed = parse_query("added:90d", now=NOW)
+        assert not parsed.filters
+        assert parsed.ignored == ["added:90d"]
+        assert parsed.echo() == {"ignored": ["added:90d"]}
+        include, _, ignored = filter_sets(lib, parsed, now=NOW)
+        assert include is None and not ignored
+
+    def test_a_filter_that_cannot_resolve_is_still_reported_at_resolution(self, lib):
+        """The parser is the gate, not the only check.
+
+        ``filter_sets`` keeps its own report for a filter built by hand rather
+        than parsed -- the API takes ``ParsedQuery`` objects, not only strings.
+        """
+        from facetmark.search.querylang import FieldFilter, ParsedQuery
+
+        parsed = ParsedQuery(filters=[FieldFilter("added", "90d", False, alias="added")])
         include, _, ignored = filter_sets(lib, parsed, now=NOW)
         assert include is None
         assert ignored == ["added:90d"]
@@ -283,6 +343,22 @@ class TestPoolFromFilters:
         assert parsed.sort == "relevance"
         assert pool_from_filters(lib, parsed, limit=10, now=NOW) == [1, 2]
 
+    def test_a_bare_sort_directive_is_a_browse(self, lib):
+        """``sort:date`` on its own is "the library, newest first".
+
+        There is no text to rank and no filter to apply, but the query still
+        asked for something, so both entry points have to answer it the same
+        way. They did not: the first paint browsed and the ranked pass returned
+        nothing, so the results blinked out a moment after appearing.
+        """
+        parsed = parse_query("sort:date", now=NOW)
+        assert parsed.is_browse and not parsed.filters
+        assert pool_from_filters(lib, parsed, limit=10, now=NOW) == [4, 1, 5, 3, 2]
+
+    def test_an_empty_query_is_not_a_browse(self, lib):
+        """Nothing typed is not a request for everything."""
+        assert not parse_query("", now=NOW).is_browse
+
     def test_a_percent_in_a_negated_phrase_is_a_literal(self, lib):
         """The title LIKE behind a negation declares an ESCAPE, so ``%`` is a
         character the user typed, not a wildcard. Left unescaped this phrase
@@ -300,6 +376,13 @@ class TestSortPool:
 
     def test_date_sort(self, lib):
         assert sort_pool(lib, [1, 2, 3], "date") == [1, 3, 2]
+
+    def test_open_count_sort(self, lib):
+        lib.execute("UPDATE bookmark SET open_count = 5 WHERE id = 3")
+        lib.execute("UPDATE bookmark SET open_count = 9 WHERE id = 1")
+        lib.commit()
+        assert sort_pool(lib, [1, 2, 3], "opened") == [1, 3, 2]
+        assert sort_pool(lib, [1, 2, 3], "-opened") == [2, 3, 1]
 
     def test_domain_sort(self, lib):
         assert sort_pool(lib, [1, 3, 4], "domain") == [4, 1, 3]
@@ -350,6 +433,17 @@ class TestQuickSearch:
         r = quick_search(lib, "domain:github.com sort:-date")
         assert [h.bookmark_id for h in r.hits] == [2, 1]
         assert r.sort == "-date"
+
+    def test_a_bare_sort_is_answered_on_first_paint(self, lib):
+        r = quick_search(lib, "sort:date")
+        assert [h.bookmark_id for h in r.hits] == [4, 1, 5, 3, 2]
+        assert r.sort == "date"
+
+    def test_an_unresolvable_date_is_echoed_as_ignored(self, lib):
+        """The user sees which token was dropped, and the rest still answers."""
+        r = quick_search(lib, "postgres added:90d")
+        assert r.filters == {"ignored": ["added:90d"]}
+        assert [h.bookmark_id for h in r.hits] == [1]
 
     def test_sort_relevance_with_a_filter_still_answers(self, lib):
         """First paint of ``domain:x sort:relevance``: a browse asked to rank
@@ -431,3 +525,17 @@ class TestFullSearch:
             search(lib, '"index types"', limit=5, settings=settings), 5
         )
         assert set(r.ids) == {1}
+
+    async def test_a_bare_sort_agrees_with_the_first_paint(self, lib, settings):
+        """The ranked pass has to answer a browse the same way the paint did."""
+        import asyncio
+
+        from facetmark.search.pipeline import search
+
+        r = await asyncio.wait_for(
+            search(lib, "sort:date", limit=10, settings=settings), 5
+        )
+        assert r.ids == [4, 1, 5, 3, 2]
+        assert r.sort == "date"
+        # Still a browse: the order is the retrieval, so nothing was embedded.
+        assert "vectors" not in r.took_ms

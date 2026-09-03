@@ -25,6 +25,7 @@ Supported syntax (hister-compatible where the fields exist)::
 
     title:encryption                  field filter, substring match
     domain:github.com  site:github.com   site: is an alias of domain:
+    host:news.ycombinator.com         the hostname rather than the site
     url:*/docs/*                      * wildcards on url/title/domain/folder
     text:"GDPR compliance"            body-text substring
     folder:study topic:postgres       facetmark-specific fields
@@ -32,11 +33,13 @@ Supported syntax (hister-compatible where the fields exist)::
     lang:zh opened:10..               language filter, open-count range
     added:>90d added:>=2026-04-01     relative age or absolute date
     before:2026-05-01 after:2024-01-01   absolute-date aliases for added:
+    after:30d before:1y               a duration on those two is an age
     -facebook -domain:facebook.com    negation of a term or a field
     -"social media"                   negated phrase
     "privacy policy"                  exact phrase (lexical facet)
     (security|privacy)                alternation, expands to OR terms
     sort:date sort:-date sort:domain  ordering directive
+    sort:opened                       most-opened first (alias open_count)
 
 Relative durations compare against the *age* of the bookmark (``added:>90d``
 means saved more than 90 days ago), absolute dates compare against the
@@ -58,6 +61,7 @@ from ..db import in_chunks
 FIELDS: dict[str, str] = {
     "domain": "domain",
     "site": "domain",
+    "host": "host",
     "url": "url",
     "title": "title",
     "text": "text",
@@ -80,6 +84,8 @@ SORTS: dict[str, str] = {
     "domain": "domain",
     "title": "title",
     "url": "url",
+    "opened": "opened",
+    "open_count": "opened",
 }
 
 #: One relative unit in seconds. Weeks are 7 days; a year is 365 days, which
@@ -88,6 +94,10 @@ SORTS: dict[str, str] = {
 _DURATION_UNITS = {"s": 1, "m": 60, "h": 3600, "d": 86400, "w": 604800, "y": 31536000}
 
 _REL_RE = re.compile(r"^([<>]=?)(\d+(?:\.\d+)?)([smhdwy])$", re.IGNORECASE)
+#: The same duration without a comparison. `added:30d` is not a filter on its
+#: own -- 30 days is not a date -- but `after:30d` is, so the fold needs to
+#: recognise the bare form that `_REL_RE` deliberately rejects.
+_BARE_REL_RE = re.compile(r"^(\d+(?:\.\d+)?)([smhdwy])$", re.IGNORECASE)
 _ABS_RE = re.compile(r"^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?$")
 _RANGE_RE = re.compile(r"^(\S+)\.\.(\S*)$")
 
@@ -153,6 +163,19 @@ class ParsedQuery:
     def has_syntax(self) -> bool:
         return bool(self.filters) or bool(self.sort) or any(t.negated for t in self.terms)
 
+    @property
+    def is_browse(self) -> bool:
+        """No text to rank, but the query still asked for something.
+
+        The filters -- or, for a bare ``sort:date``, the order alone -- are then
+        the retrieval, and the answer is the library in that order rather than
+        a ranking of nothing. One property because the two entry points have to
+        agree: ``quick_search`` treated *any* textless query as a browse while
+        ``search`` required a filter, so ``sort:date`` painted the whole library
+        and then replaced it with an empty list a moment later.
+        """
+        return not self.text and self.has_syntax
+
     def echo(self) -> dict:
         """What the response should say about the parsed query."""
         out: dict = {}
@@ -173,6 +196,42 @@ def _split_value(value: str) -> list[str]:
     """Alternation parts: ``a|b`` -> ``["a", "b"]``; parens already stripped."""
     parts = [p for p in (s.strip().strip('"') for s in value.split("|")) if p]
     return parts or [value]
+
+
+def _fold_alias(f: FieldFilter) -> FieldFilter:
+    """``before:``/``after:`` are sugar for a comparison on ``added``.
+
+    Folded here rather than after the parse loop so the *folded* value is what
+    gets validated: ``after:30d`` is a legal filter and ``added:30d`` is not,
+    and checking the unfolded form threw the legal one away.
+    """
+    if f.alias not in ("before", "after") or f.negate or f.value.startswith(("<", ">")):
+        return f
+    if _BARE_REL_RE.match(f.value):
+        # A duration is an age, so the comparison inverts: the pages saved
+        # *after* "30 days ago" are the ones younger than 30 days, which is how
+        # `added:` reads a bare duration too (`added:<30d`).
+        op = ">" if f.alias == "before" else "<"
+    else:
+        op = "<" if f.alias == "before" else ">="
+    return FieldFilter("added", op + f.value, False, alias=f.alias)
+
+
+def _accept_filter(parsed: ParsedQuery, f: FieldFilter, raw: str, *, now: float) -> None:
+    """Keep a parsed filter, or report the token as ignored.
+
+    A value that does not resolve is not a filter, and that is a parsing fact:
+    it needs no database. Deciding it here puts it beside the ``sort:`` check,
+    so both kinds of unparseable value end up in ``ignored`` -- which the
+    response echoes. Left to resolution time it was reported to a caller that
+    throws it away (``filter_sets`` returns it third), so ``added:90d`` came
+    back looking like a filter that had applied.
+    """
+    f = _fold_alias(f)
+    if _field_sql(f, now=now) is None:
+        parsed.ignored.append(raw)
+    else:
+        parsed.filters.append(f)
 
 
 def parse_query(query: str, *, now: float | None = None) -> ParsedQuery:
@@ -252,9 +311,11 @@ def parse_query(query: str, *, now: float | None = None) -> ParsedQuery:
             # `field:"value"` / `-field:"value"`: a filter with a quoted value.
             fm = re.match(r"^([A-Za-z_]+):\"(.*)\"$", body) if ":" in body else None
             if fm and fm.group(1).lower() in FIELDS:
-                parsed.filters.append(
+                _accept_filter(
+                    parsed,
                     FieldFilter(FIELDS[fm.group(1).lower()], fm.group(2), negated,
-                                alias=fm.group(1).lower())
+                                alias=fm.group(1).lower()),
+                    body, now=now,
                 )
                 continue
             # A filter with a quoted value and trailing text glued on is rare
@@ -289,7 +350,8 @@ def parse_query(query: str, *, now: float | None = None) -> ParsedQuery:
                 v = value
                 if v.startswith("(") and v.endswith(")"):
                     v = v[1:-1]
-                parsed.filters.append(FieldFilter(FIELDS[low], v, negated, alias=low))
+                _accept_filter(parsed, FieldFilter(FIELDS[low], v, negated, alias=low),
+                               body, now=now)
                 continue
 
         # Alternation: ``(...|...)`` or a bare ``a|b`` is one term per part.
@@ -315,16 +377,6 @@ def parse_query(query: str, *, now: float | None = None) -> ParsedQuery:
             parsed.terms.append(Term(raw=body, plain=plain, negated=negated,
                                      is_phrase=is_phrase))
 
-    # ``before:``/``after:`` are sugar: fold them into an op on ``added``.
-    folded: list[FieldFilter] = []
-    for f in parsed.filters:
-        if f.alias in ("before", "after") and not f.negate \
-                and not _REL_RE.match(f.value) and not f.value.startswith(("<", ">")):
-            op = "<" if f.alias == "before" else ">="
-            folded.append(FieldFilter("added", op + f.value, False, alias=f.alias))
-        else:
-            folded.append(f)
-    parsed.filters = folded
     return parsed
 
 
@@ -487,6 +539,10 @@ def _field_sql(f: FieldFilter, *, now: float) -> tuple[str, list[str]] | None:
     """
     if f.field == "domain":
         return _values_sql("domain", _split_value(f.value), wrap="{}")
+    if f.field == "host":
+        # Substring, not exact: `host:news.` is a plausible thing to type, and
+        # the exact-with-subdomains reading is what `domain:` already is.
+        return _values_sql("host", _split_value(f.value))
     if f.field == "url":
         return _values_sql("url", _split_value(f.value))
     if f.field == "title":
@@ -671,7 +727,7 @@ def _lexical_match_ids(conn: sqlite3.Connection, text: str, *, is_phrase: bool) 
 #: batches are in id order, which silently mis-orders anything past 900 rows.
 #: The pools here are bounded by ``max_candidate_depth`` (2000), so a Python
 #: sort over that many small tuples is both correct and cheap.
-_SORT_COLUMNS = "id, date_added, domain, title, url"
+_SORT_COLUMNS = "id, date_added, domain, title, url, open_count"
 
 #: Newest-first: the order a browse gets when the query names none. A named
 #: constant because :func:`pool_from_filters` needs a spec that cannot be
@@ -706,6 +762,13 @@ def _sort_spec(sort: str):
         return (lambda r: ((r["url"] or "").lower(), r["id"]), False)
     if sort == "-url":
         return (lambda r: ((r["url"] or "").lower(), -r["id"]), True)
+    if sort == "opened":
+        # Most-opened first, like `date` puts newest first: the plain form of a
+        # sort is the end of the range worth looking at. The id tiebreak is
+        # negated inside the key so `reverse=True` leaves it ascending.
+        return (lambda r: (r["open_count"] or 0, -r["id"]), True)
+    if sort == "-opened":
+        return (lambda r: (r["open_count"] or 0, r["id"]), False)
     return None
 
 

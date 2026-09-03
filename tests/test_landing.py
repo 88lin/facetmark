@@ -52,7 +52,12 @@ def landing():
     return build_mod, content_en.EN, content_zh.ZH
 
 
-DOC_PAGES = ("quickstart", "guide", "measured")
+#: Every page built from a ``sections`` list. All six, not the three the
+#: parity checks used to cover: ``webui``, ``config`` and ``integrations`` were
+#: outside them, so a section added to one language and not the other -- and a
+#: committed page never re-rendered after a content edit -- were both invisible
+#: on exactly the three pages a reader is most likely to arrive on from the nav.
+DOC_PAGES = ("quickstart", "guide", "webui", "config", "integrations", "measured")
 
 
 def skeleton(block: tuple) -> tuple:
@@ -63,12 +68,16 @@ def skeleton(block: tuple) -> tuple:
     or the two languages render differently. A shot keeps only whether it has a
     dark variant -- the two languages point at *different* image files on
     purpose, because the UI in the screenshot is itself translated.
+
+    A code block's label is prose too: it is the caption in the window bar
+    ("shell", "local embeddings"), so it is translated like any other sentence
+    and comparing it would forbid translating it.
     """
     kind = block[0]
     if kind == "table":
         return ("table", len(block[1]), tuple(len(r) for r in block[2]))
     if kind == "cb":
-        return ("cb", block[1])
+        return ("cb",)
     if kind == "callout":
         return ("callout", block[1])
     if kind in ("ul", "ol", "steps"):

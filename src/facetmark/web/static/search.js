@@ -617,7 +617,12 @@ export async function run(q, { force = false } = {}) {
     ui.status.textContent = [
       rows.length ? t("results.all", { n: count(rows.length, S.lang) }) : t("results.searching"),
       t("results.lexical"),
-    ].join(" \u00b7 ");
+      // The grammar echo belongs on the first paint too, not only on the ranked
+      // one. A pure-filter query is *answered* by this stage -- the filters are
+      // the retrieval -- and an `ignored` token that only appears a few hundred
+      // milliseconds later is a correction nobody is still reading for.
+      filterSummary(quick.filters),
+    ].filter(Boolean).join(" \u00b7 ");
   } catch (e) {
     if (mine === generation) {
       ui.results.replaceChildren();

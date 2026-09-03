@@ -901,6 +901,16 @@ main.wide {
   opacity: 1;
 }
 
+/* An empty day is a gap in the week, not a control: no pointer, and the bar
+   stays at its minimum so the axis does not move. */
+.tl-day:disabled {
+  cursor: default;
+}
+
+.tl-day:disabled::before {
+  opacity: 0.4;
+}
+
 .tl-day .n {
   font-size: var(--fs-1);
   color: var(--ink-light);

@@ -106,7 +106,22 @@ class TestQuerySyntaxSuggest:
         out = suggest_query_syntax(conn, "sort:")
         assert [s["label"] for s in out["suggestions"]] == [
             "sort:date", "sort:-date", "sort:domain", "sort:title", "sort:url",
+            "sort:opened",
         ]
+
+    def test_site_completes_like_the_field_it_aliases(self, conn):
+        """`site:` is a documented alias of `domain:` and completed nothing:
+        the branches compared the name the user typed, not the canonical one."""
+        conn.execute("UPDATE bookmark SET domain='github.com' WHERE id=1")
+        conn.commit()
+        out = suggest_query_syntax(conn, "site:git")
+        assert out["suggestions"][0]["insert"] == "site:github.com"
+
+    def test_host_completes_from_the_hostnames_in_the_library(self, conn):
+        conn.execute("UPDATE bookmark SET host='news.ycombinator.com' WHERE id=1")
+        conn.commit()
+        out = suggest_query_syntax(conn, "host:ycomb")
+        assert out["suggestions"][0]["insert"] == "host:news.ycombinator.com"
 
     def test_added_offers_date_examples(self, conn):
         out = suggest_query_syntax(conn, "added:")

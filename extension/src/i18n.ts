@@ -49,6 +49,10 @@ const STRINGS: Record<string, { en: string; zh: string }> = {
   "pop.serverUnreachable": { en: "server unreachable - run `facetmark serve`", zh: "服务器不可达 - 运行 `facetmark serve`" },
   "pop.lexical": { en: "lexical", zh: "词法" },
   "pop.ranked": { en: "ranked", zh: "已排序" },
+  // The server answered the rest of the query and dropped this token. Marked
+  // rather than worded, because the status line has room for the token itself
+  // and that is the part the user needs to see.
+  "pop.ignored": { en: "⚠ ignored", zh: "⚠ 已忽略" },
 };
 
 export function getLang(): Lang {

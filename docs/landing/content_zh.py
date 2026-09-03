@@ -126,7 +126,7 @@ ZH["index"] = {
     ],
     "chips": [
         ("Python", "3.10+"),
-        ("\u6d4b\u8bd5", "1,514"),
+        ("\u6d4b\u8bd5", "1,619"),
         ("\u8bb8\u53ef\u8bc1", "MIT"),
         ("\u5b58\u50a8", "1 \u4e2a SQLite \u6587\u4ef6"),
         ("\u4e0a\u4f20", "\u65e0"),
@@ -311,6 +311,14 @@ ZH["index"] = {
         "\u540c\u4e00\u4e2a\u641c\u7d22\u9875\u7684\u6df1\u8272\u6a21\u5f0f",
     ),
     "app_points": [
+        (
+            "它说一门过滤语言",
+            "<code>domain:github.com</code>、<code>tag:work</code>、"
+            "<code>added:&lt;7d</code>、<code>-pinterest</code>、"
+            "<code>sort:date</code>——都在同一个输入框里，字段名<em>和</em>"
+            "你库里真实存在的值都会补全。只有过滤器的查询是一次浏览："
+            "完全不调用模型。",
+        ),
         (
             "\u5b83\u81ea\u5df1\u914d\u5bf9",
             "\u4ee4\u724c\u6765\u81ea\u4e00\u6761\u53ea\u5728<em>\u8c03\u7528\u65b9</em>\u548c<em>\u8bf7\u6c42\u91cc\u5199\u7684\u5730\u5740</em>\u4e24\u8005\u90fd\u662f\u56de"
@@ -517,7 +525,7 @@ ZH["index"] = {
         (
             "cli",
             "\u547d\u4ee4\u884c",
-            "16 \u6761\u547d\u4ee4\u3002<code>search</code> \u6709 "
+            "18 \u6761\u547d\u4ee4\u3002<code>search</code> \u6709 "
             "<code>--explain</code> \u53ef\u4ee5\u6253\u5370\u547d\u4e2d\u7684\u662f\u54ea"
             "\u4e2a\u9762\uff0c<code>--config</code> \u53ef\u4ee5\u6309\u540d\u5b57\u8dd1"
             "\u4efb\u4f55\u4e00\u4e2a\u6d88\u878d\u6863\u3002",
@@ -527,7 +535,7 @@ ZH["index"] = {
         (
             "http",
             "HTTP API",
-            "<code>facetmark serve</code> \u76d1\u542c 127.0.0.1:8787\u300227 \u6761\u8def"
+            "<code>facetmark serve</code> \u76d1\u542c 127.0.0.1:8787\u300229 \u6761\u8def"
             "\u7531\uff0c\u5176\u4e2d\u56db\u6761\u516c\u5f00 \u2014\u2014 \u6839\u8def\u5f84\u3001\u5065\u5eb7\u68c0\u67e5\uff0c\u4ee5\u53ca\u672c\u5730\u9875\u9762\u52a0\u8f7d\u81ea"
             "\u5df1\u9700\u8981\u7684\u90a3\u4e24\u6761\uff1b\u51e1\u662f\u78b0\u5230\u4e66\u7b7e\u5e93\u7684\u90fd\u8981\u914d\u5bf9\u4ee4\u724c\u3002",
             "guide.zh.html#serve",
@@ -968,7 +976,7 @@ ZH["guide"] = {
                  "cd facetmark\n"
                  "python -m venv .venv && . .venv/bin/activate\n"
                  'pip install -e ".[dev]"\n\n'
-                 "pytest -q                 # 1,514 \u4e2a\u6d4b\u8bd5\n"
+                 "pytest -q                 # 1,619 \u4e2a\u6d4b\u8bd5\n"
                  "ruff check src tests scripts"),
                 ("callout", "warn", "\u4e0d\u8981\u683c\u5f0f\u5316\u4ee3\u7801\u5e93",
                  "<p>\u5b83\u662f\u624b\u5199\u6392\u7248\u7684\u3002CI \u8dd1\u7684\u662f "
@@ -1372,6 +1380,95 @@ ZH["guide"] = {
                  "facetmark show 412 --body    # \u4e00\u6761\u4e66\u7b7e\u7684 JSON\n"
                  "facetmark stats              # \u7d22\u5f15\u89c4\u6a21\u4e0e\u8986\u76d6"
                  "\u7387"),
+            ],
+        ),
+        (
+            "query",
+            "查询语言",
+            [
+                ("p",
+                 "所有检索入口用的是同一套语法：网页搜索框、<code>facetmark search</code>、"
+                 "<code>/search</code> 与 <code>/quick</code>、MCP 工具、karakeep 插件。"
+                 "它是一门<em>过滤</em>语言，不是第二个排序器——过滤器只决定哪些页面有资格，"
+                 "从不改动幸存页面的分数。完整参考："
+                 "<a href=\"https://github.com/88lin/facetmark/blob/main/docs/"
+                 "query-language.md\">docs/query-language.md</a>。"),
+                ("cb", "shell",
+                 "facetmark search \"postgres domain:github.com -title:tutorial\"\n"
+                 "facetmark search \"kafka added:<7d\"          # 这周存的\n"
+                 "facetmark search 'title:encryption (signal|matrix)'\n"
+                 "facetmark search \"tag:work sort:date\"       # 一次浏览，按时间倒序"),
+                ("table", ["字段", "匹配什么", "例子"], [
+                    ["<code>domain:</code> <span class=\"tiny\">别名 "
+                     "<code>site:</code></span>", "站点，精确或通配",
+                     "<code>domain:github.com</code>"],
+                    ["<code>host:</code>", "完整主机名",
+                     "<code>host:news.ycombinator.com</code>"],
+                    ["<code>url:</code>", "地址的一部分",
+                     "<code>url:*/docs/*</code>"],
+                    ["<code>title:</code>", "只在标题里",
+                     "<code>title:encryption</code>"],
+                    ["<code>text:</code>", "抓下来的正文里",
+                     "<code>text:\"GDPR compliance\"</code>"],
+                    ["<code>folder:</code>", "来自哪个浏览器文件夹",
+                     "<code>folder:study</code>"],
+                    ["<code>tag:</code>", "你自己的标签，精确匹配",
+                     "<code>tag:work</code>"],
+                    ["<code>topic:</code>", "富集写出来的主题",
+                     "<code>topic:postgres</code>"],
+                    ["<code>lang:</code>", "检测到的页面语言",
+                     "<code>lang:zh</code>"],
+                    ["<code>opened:</code>", "你打开过几次",
+                     "<code>opened:10..</code>"],
+                ]),
+                ("h3", "否定、短语、多选、通配"),
+                ("cb", "shell",
+                 "-facebook                    排除一个词\n"
+                 "-domain:pinterest.com        排除整个站\n"
+                 "\"consumer group rebalancing\"  精确短语\n"
+                 "(security|privacy)           两个词任一\n"
+                 "domain:(github.com|gitlab.com)   两个值任一\n"
+                 "domain:*.github.io           * 是任意长度的一段字符"),
+                ("h3", "日期"),
+                ("p",
+                 "写<em>时长</em>时比的是书签的年龄，所以 <code>added:&gt;90d</code> "
+                 "是「存了 90 天以上」。写<em>绝对日期</em>时直接比时间戳，所以 "
+                 "<code>added:&gt;=2026-04-01</code> 是「那天及之后存的」。两者方向相反，"
+                 "因为对各自的写法来说，这都是唯一自然的读法。"),
+                ("table", ["写法", "含义"], [
+                    ["<code>added:&lt;7d</code>", "最近一周存的"],
+                    ["<code>added:&gt;90d</code>", "存了 90 天以上"],
+                    ["<code>added:2026-04</code>", "那个月存的"],
+                    ["<code>added:2026-04-01..2026-09-01</code>", "一个显式区间"],
+                    ["<code>before:2026-05-01</code> <code>after:30d</code>",
+                     "<code>added:</code> 的别名；这两个上的时长按年龄读，"
+                     "所以 <code>after:30d</code> 是最近 30 天"],
+                ]),
+                ("h3", "排序，以及什么叫一次浏览"),
+                ("p",
+                 "<code>sort:date</code> 最新在前，<code>sort:-date</code> 最旧在前；"
+                 "<code>title</code>、<code>domain</code>、<code>url</code> 和 "
+                 "<code>opened</code>（打开次数最多在前）同样可用。"
+                 "一条没有自由文本的查询——只有过滤器、只有一个否定，"
+                 "或者干脆只有 <code>sort:date</code>——是一次<strong>浏览</strong>："
+                 "过滤器本身就是检索，所以不请求嵌入、不调用模型，排序层全部跳过。"
+                 "这是唯一一种完全不花钱的检索。"),
+                ("callout", "info", "不带语法的查询行为不变",
+                 "<p>解析器只在一个 token「不可能是纯文本」时才把它当语法。"
+                 "<code>note: something</code> 不是过滤器，因为 <code>note</code> 不是字段；"
+                 "<code>state-of-the-art</code> 不是三个否定；"
+                 "<code>https://example.com/x</code> 是一个完整的词。"
+                 "而解析不了的值——比如 <code>added:90d</code>，一个没有比较符的时长"
+                 "——会出现在响应的 <code>filters.ignored</code> 里，"
+                 "既不悄悄生效，也不悄悄丢掉。</p>"),
+                ("h3", "你自己的标签"),
+                ("p",
+                 "Netscape 与 pinboard 导出带着 <code>TAGS</code> 属性，现在它被保留下来："
+                 "存在书签上、随每条命中返回、并且可以用 <code>tag:work</code> 查询。"
+                 "匹配的是列表里完整的一个元素，所以 <code>tag:work</code> 不会扩到 "
+                 "<code>workshop</code>；要匹配多个用 <code>tag:(work|rust)</code>。"
+                 "<code>POST /bookmark</code> 和 MCP 的 <code>save_bookmark</code> 也接受 "
+                 "<code>tags</code>；重复导入同一个文件时标签取并集而不是覆盖。"),
             ],
         ),
         (
@@ -2072,6 +2169,14 @@ ZH["guide"] = {
                    "<code>--mock</code>"],
                   ["<code>mcp</code>", "\u5728 stdio \u4e0a\u8dd1 MCP \u670d\u52a1\u5668"
                    "\u3002", "<code>--mock</code>"],
+                  ["<code>crawl URL</code>",
+                   "礼貌地把一个站点走进库里：遵守 robots.txt，隐私排除名单上的"
+                   "主机完全不碰，抓到的每一页都是一条普通书签。",
+                   "<code>--max-pages</code>、<code>--off-domain</code>"],
+                  ["<code>update</code>",
+                   "报告 PyPI 上有没有更新的 facetmark。只在你运行它的时候查——"
+                   "没有后台检查、没有遥测——而且它自己从不执行升级。",
+                   "<code>--json</code>"],
                   ["<code>demo</code>",
                    "\u79bb\u7ebf\u9020\u4e00\u4e2a\u5408\u6210\u5e93\u5e76\u641c\u5b83"
                    "\u3002", "<code>--size</code>\u3001<code>--keep</code>"],
@@ -2781,7 +2886,11 @@ ZH["webui"] = {
                     [
                         [
                             "<b>搜索</b>",
-                            "主角。打字，拿到排好序的页面，并看到四条路里是哪几条找到了它。",
+                            "主角。打字，拿到排好序的页面，并看到四条路里是哪几条找到了它。"
+                            "输入框同时接受过滤语法——<code>domain:</code>、"
+                            "<code>tag:</code>、<code>added:</code>、"
+                            "<code>-不要这个</code>、<code>sort:</code>"
+                            "——字段名和你库里真实存在的值都会补全。",
                         ],
                         [
                             "<b>提问</b>",
@@ -2791,7 +2900,9 @@ ZH["webui"] = {
                         [
                             "<b>库</b>",
                             "索引里到底有什么：多少页有正文、多少页有向量、"
-                            "哪些链接已经死了、队列里排着什么、哪些从来没被打开过。",
+                            "哪些链接已经死了、队列里排着什么、哪些从来没被打开过。"
+                            "最上面是一条保存时间线——每根柱子、每个月份都是按钮，"
+                            "点下去就是一次你本可以手敲的 <code>added:</code> 搜索。",
                         ],
                         [
                             "<b>时段</b>",
@@ -2886,6 +2997,10 @@ ZH["webui"] = {
                 (
                     "ul",
                     [
+                        "<b>#标签</b>——你自己的归档词，原样显示，从不翻译。"
+                        "它们来自浏览器或 pinboard 导出里的 <code>TAGS</code> 属性，"
+                        "或者你调用 <code>/bookmark</code> 时传进去的那些；"
+                        "每一个都离一次 <code>tag:</code> 搜索只有一步。",
                         "<b>从未打开</b>——facetmark 没见你打开过这一条。"
                         "浏览器导出里根本不带使用记录，所以第一天所有条目都是这样。",
                         "每行末尾那个 <b>⋯</b> 按钮——不离开结果列表，就地打开这个页面自己的面板："
