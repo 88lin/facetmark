@@ -525,7 +525,7 @@ ZH["index"] = {
         (
             "cli",
             "\u547d\u4ee4\u884c",
-            "19 \u6761\u547d\u4ee4\u3002<code>search</code> \u6709 "
+            "20 \u6761\u547d\u4ee4\u3002<code>search</code> \u6709 "
             "<code>--explain</code> \u53ef\u4ee5\u6253\u5370\u547d\u4e2d\u7684\u662f\u54ea"
             "\u4e2a\u9762\uff0c<code>--config</code> \u53ef\u4ee5\u6309\u540d\u5b57\u8dd1"
             "\u4efb\u4f55\u4e00\u4e2a\u6d88\u878d\u6863\u3002",
@@ -2162,6 +2162,11 @@ ZH["guide"] = {
                    "<code>--no-save-recovered</code>"],
                   ["<code>stats</code>", "\u7d22\u5f15\u89c4\u6a21\u4e0e\u8986\u76d6"
                    "\u7387\u3002", ""],
+                  ["<code>doctor</code>",
+                   "诊断这套装置——配置以及每一项设置来自哪里、schema 版本、"
+                   "索引有没有建起来、已存的向量和设置对不对得上。不修任何东西，"
+                   "也不调用模型；每一条发现都写清楚该跑哪条命令。",
+                   "<code>--json</code>"],
                   ["<code>token</code>", "\u6253\u5370\u6269\u5c55\u8981\u7684\u914d\u5bf9"
                    "\u4ee4\u724c\u3002", "<code>--rotate</code>"],
                   ["<code>serve</code>", "\u8dd1\u672c\u5730 HTTP \u670d\u52a1\u3002",
