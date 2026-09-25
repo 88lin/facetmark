@@ -38,6 +38,7 @@ from .querylang import (
     ParsedQuery,
     apply_filters,
     filter_sets,
+    include_predicate,
     parse_query,
     pool_from_filters,
     sort_pool,
@@ -151,12 +152,34 @@ SNIPPET_CHARS = 300
 #: with the ask.
 VECTOR_FILTER_OVERFETCH = 5
 
+#: A join is not free: SQLite probes `bookmark` by rowid once per matched row
+#: whether or not the predicate rejects anything. Measured on 20k bookmarks
+#: where the free text matches 4,363 rows, the same query costs
+#:
+#:     no filter                       17 ms
+#:     domain:github.com (0.6% pass)   13 ms   -- under the unfiltered cost:
+#:                                                only 113 rows are scored
+#:     folder:study (100% pass)        38 ms   -- the probes buy nothing
+#:
+#: so the pushdown is a win exactly when the filter is selective, which is also
+#: exactly when post-filtering starves the page. Deciding per query was tried
+#: and reverted: the selectivity costs one full evaluation of the predicate to
+#: learn, and for the `EXISTS`-shaped filters (`tag:`, `text:`, `topic:`,
+#: `lang:`) that probe is more expensive than the plan it was choosing between
+#: -- `tag:work` went from 36 ms to 48 ms paying for the measurement. One path,
+#: and a loose filter costs about double a bare query rather than returning an
+#: empty page.
+
 
 def _eligible_ids(conn: sqlite3.Connection, parsed: ParsedQuery) -> set[int] | None:
     """The ids a positive filter leaves eligible, or ``None`` for no constraint.
 
-    Only the *include* side: see the note at the call site. ``set()`` is a real
-    answer -- a filter that matches nothing -- and is distinct from ``None``.
+    Only for the vector facets: a ``vec0`` KNN takes no ``WHERE``, so its
+    results can only be intersected after the fact. The lexical facets get
+    :func:`include_predicate` instead, which is both exact and faster.
+
+    ``set()`` is a real answer -- a filter that matches nothing -- and is
+    distinct from ``None``.
     """
     if not parsed.filters:
         return None
@@ -914,7 +937,7 @@ def quick_search(
         # The filter constrains retrieval, not just the list retrieval returned:
         # see the note in `search`. Same reasoning, same one call.
         lists, truncated = trim_pool(page, lexical_lists(
-            conn, parsed.text, limit=page.fetch, allow=_eligible_ids(conn, parsed)
+            conn, parsed.text, limit=page.fetch, gate=include_predicate(parsed)
         ))
         fused = rrf(lists, k=k, weights=DEFAULT_FACET_WEIGHTS)
 
@@ -1028,16 +1051,27 @@ async def search(
     # to require a filter, so ``sort:date`` answered nothing here while the
     # first paint answered the whole library.
     browse = parsed.is_browse
-    # The eligible set, when a positive filter names one. Pushed into the facet
-    # queries so a filter constrains *retrieval* rather than only trimming what
-    # retrieval happened to return: `postgres domain:github.com` on a library
-    # where the github pages rank 200th for "postgres" used to come back empty
-    # from a pool of 50. Exclusions are deliberately not pushed down -- the
-    # eligible set for `-facebook` is the whole library minus one page, and
-    # materialising that to remove one row is work for nothing. The post-fusion
-    # `apply_filters` below still runs, so the *answer* is unchanged either way;
-    # this only decides how deep the facets were allowed to look.
-    allow = _eligible_ids(conn, parsed) if not browse else None
+    # A positive filter constrains *retrieval*, not just the list retrieval
+    # happened to return: `postgres domain:github.com` on a library where the
+    # github pages rank 200th for "postgres" used to come back empty from a
+    # pool of 50. Exclusions are deliberately not pushed down -- the eligible
+    # set for `-facebook` is the whole library minus one page, and narrowing to
+    # that to remove one row is work for nothing. The post-fusion
+    # `apply_filters` below still runs, so the *answer* is unchanged either
+    # way; this only decides how deep the facets were allowed to look.
+    #
+    # Two mechanisms for one predicate, because the two index types cannot take
+    # the same one: the lexical facets join `bookmark` and carry it as SQL,
+    # while a `vec0` KNN accepts no `WHERE` at all and can only over-fetch and
+    # intersect. The id set is therefore resolved only when a vector facet is
+    # actually going to run -- it costs a scan per filter, and on the lexical
+    # path nothing reads it.
+    gate = None if browse else include_predicate(parsed)
+    allow = (
+        _eligible_ids(conn, parsed)
+        if not browse and config.facets & VECTOR_FACETS and embed_query
+        else None
+    )
     if browse:
         t0 = time.perf_counter()
         ids = pool_from_filters(conn, parsed, limit=page.fetch)
@@ -1048,7 +1082,7 @@ async def search(
         scored: dict[str, list[tuple[int, float]]] = {}
         if config.facets & LEXICAL_FACETS and facet_query:
             for name, rows in lexical_lists_scored(
-                conn, facet_query, limit=per_facet, allow=allow
+                conn, facet_query, limit=per_facet, gate=gate
             ).items():
                 if name in config.facets:
                     scored[name] = rows
@@ -1077,7 +1111,7 @@ async def search(
         t0 = time.perf_counter()
         if config.facets & LEXICAL_FACETS and facet_query:
             for name, ids in lexical_lists(
-                conn, facet_query, limit=per_facet, allow=allow
+                conn, facet_query, limit=per_facet, gate=gate
             ).items():
                 if name in config.facets:
                     lists[name] = ids

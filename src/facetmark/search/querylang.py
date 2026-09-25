@@ -631,6 +631,43 @@ def _field_sql(f: FieldFilter, *, now: float) -> tuple[str, list[str]] | None:
     return None
 
 
+def include_predicate(
+    parsed: ParsedQuery, *, now: float | None = None
+) -> tuple[str, list] | None:
+    """The positive filters as one SQL predicate over a ``bookmark b``.
+
+    ``None`` when nothing positive constrains the pool. A facet query can then
+    join ``bookmark`` and carry the predicate rather than being handed a
+    materialised id set: SQLite drives from the small side and probes the index
+    by rowid, which is both exact and cheaper than scoring the whole match and
+    filtering it afterwards.
+
+    Negations stay out. They need set subtraction, not SQL ``NOT``: ``NOT
+    EXISTS`` is fine but ``NOT (c.lang = 'zh')`` also drops every bookmark with
+    no ``content`` row, which is a normal state and not an exclusion the user
+    asked for. :func:`filter_sets` remains the path for those.
+
+    Each filter's fragment is parenthesised before being ANDed -- an
+    alternation resolves to an unbracketed ``OR`` chain, and ``a OR b AND c``
+    does not mean what the caller intends.
+    """
+    now = time.time() if now is None else now
+    parts: list[str] = []
+    params: list = []
+    for f in parsed.filters:
+        if f.negate:
+            continue
+        sql = _field_sql(f, now=now)
+        if sql is None:
+            continue
+        where, ps = sql
+        parts.append(f"({where})")
+        params.extend(ps)
+    if not parts:
+        return None
+    return " AND ".join(parts), params
+
+
 def filter_sets(
     conn: sqlite3.Connection, parsed: ParsedQuery, *, now: float | None = None
 ) -> tuple[set[int] | None, set[int], list[str]]:
@@ -783,6 +820,23 @@ def _row_map(conn: sqlite3.Connection, ids: list[int]) -> dict[int, dict]:
     return out
 
 
+#: Sorts whose key is an integer column, as an equivalent ``ORDER BY``.
+#:
+#: Only these. ``domain``/``title``/``url`` sort on ``(value or "").lower()``,
+#: and SQLite's ``lower()`` folds ASCII only -- pushing those down would
+#: reorder a library with non-ASCII titles, which is the normal case here. The
+#: clauses mirror :func:`_sort_spec` exactly, reverse included: a Python sort
+#: that ascends on ``(k, id)`` and is then reversed descends on both, while one
+#: that ascends on ``(k, -id)`` reversed descends on ``k`` and ascends on
+#: ``id``.
+_SORT_SQL: dict[str, str] = {
+    "date": "COALESCE(date_added, 0) DESC, id DESC",
+    "-date": f"COALESCE(date_added, {2**62}) ASC, id ASC",
+    "opened": "COALESCE(open_count, 0) DESC, id ASC",
+    "-opened": "COALESCE(open_count, 0) ASC, id ASC",
+}
+
+
 def pool_from_filters(
     conn: sqlite3.Connection, parsed: ParsedQuery, *, limit: int, now: float | None = None
 ) -> list[int]:
@@ -796,13 +850,41 @@ def pool_from_filters(
     """
     now = time.time() if now is None else now
     include, exclude, _ = filter_sets(conn, parsed, now=now)
+    # The order that will actually apply: an unsorted browse and a
+    # `sort:relevance` one both fall back to newest-first, and the fast path
+    # has to agree with the general one about that.
+    effective = parsed.sort if _sort_spec(parsed.sort) else "date"
+    order_sql = _SORT_SQL.get(effective)
+    if include is None and not exclude and order_sql:
+        # The whole library in some order, and the order is one SQL can express
+        # identically: let it sort and stop at `limit` instead of handing 20,000
+        # rows to Python to sort and then throwing all but 60 away.
+        return [
+            int(r[0])
+            for r in conn.execute(
+                f"SELECT id FROM bookmark ORDER BY {order_sql} LIMIT ?", (limit,)
+            )
+        ]
     if include is None:
-        include = {int(r[0]) for r in conn.execute("SELECT id FROM bookmark").fetchall()}
-    ids = sorted(include - exclude)
+        # Nothing positive constrains the pool -- `-facebook`, or a text sort.
+        # Read the sort columns straight off the table in one scan: going
+        # through an id set first meant a scan to collect 20,000 ids and then
+        # `_row_map` handing them back to SQLite in chunked `IN (...)` lists to
+        # fetch the rows they name, which is two passes and 20-odd statements
+        # to learn what one `SELECT` already knew.
+        rows = {
+            int(r["id"]): dict(r)
+            for r in conn.execute(f"SELECT {_SORT_COLUMNS} FROM bookmark")
+        }
+        ids = sorted(rows.keys() - exclude) if exclude else sorted(rows)
+    else:
+        ids = sorted(include - exclude)
+        if not ids:
+            return []
+        rows = _row_map(conn, ids)
     if not ids:
         return []
     key, rev = _sort_spec(parsed.sort) or _DATE_DESC
-    rows = _row_map(conn, ids)
     ordered = sorted(ids, key=lambda i: key(rows[i]), reverse=rev)
     return ordered[:limit]
 

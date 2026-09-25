@@ -872,39 +872,56 @@ def timeline(
         hour=0, minute=0, second=0, microsecond=0
     )
     day0 = int(today.timestamp())
+    older_than = day0 - (TIMELINE_RECENT_DAYS - 1) * 86400
 
-    rows = conn.execute(
-        "SELECT date_added FROM bookmark WHERE date_added IS NOT NULL AND date_added > 0"
-    ).fetchall()
-    stamps = [int(r["date_added"]) for r in rows]
-    if not stamps:
+    # Bucketed in SQL. `strftime(..., 'unixepoch')` is UTC, which is the same
+    # answer the Python version computed and the same basis the `added:` filter
+    # a bucket links to resolves against. Doing it here rather than pulling
+    # every `date_added` into Python is the difference between one grouped scan
+    # and one scan plus seven linear passes over the whole column.
+    span = conn.execute(
+        "SELECT COUNT(*) n, MIN(date_added) oldest FROM bookmark"
+        " WHERE date_added IS NOT NULL AND date_added > 0"
+    ).fetchone()
+    if not span["n"]:
         return {"days": [], "months": [], "older": 0, "oldest": None}
 
+    day_counts = {
+        r["k"]: int(r["n"])
+        for r in conn.execute(
+            "SELECT strftime('%Y-%m-%d', date_added, 'unixepoch') k, COUNT(*) n"
+            " FROM bookmark WHERE date_added >= ? AND date_added < ? GROUP BY k",
+            (older_than, day0 + 86400),
+        )
+    }
     days: list[dict] = []
     for back in range(TIMELINE_RECENT_DAYS):
         lo = day0 - back * 86400
-        hi = lo + 86400
-        n = sum(1 for s in stamps if lo <= s < hi)
         key = _dt.datetime.fromtimestamp(lo, tz=_dt.timezone.utc).strftime("%Y-%m-%d")
-        days.append({"key": f"day:{key}", "from": lo, "to": hi, "count": n})
+        # Generated in Python, not read off the GROUP BY: a day nobody saved
+        # anything on has no row to return, and the strip needs seven columns.
+        days.append({"key": f"day:{key}", "from": lo, "to": lo + 86400,
+                     "count": day_counts.get(key, 0)})
 
-    older_than = day0 - (TIMELINE_RECENT_DAYS - 1) * 86400
-    older = sum(1 for s in stamps if s < older_than)
-    month_counts: dict[str, int] = {}
-    for s in stamps:
-        if s < older_than:
-            key = _dt.datetime.fromtimestamp(s, tz=_dt.timezone.utc).strftime("%Y-%m")
-            month_counts[key] = month_counts.get(key, 0) + 1
     month_list = [
-        {"key": f"month:{k}", "count": v} for k, v in sorted(
-            month_counts.items(), key=lambda kv: kv[0], reverse=True
-        )[:months]
+        {"key": f"month:{r['k']}", "count": int(r["n"])}
+        for r in conn.execute(
+            "SELECT strftime('%Y-%m', date_added, 'unixepoch') k, COUNT(*) n"
+            " FROM bookmark WHERE date_added IS NOT NULL AND date_added > 0"
+            " AND date_added < ? GROUP BY k ORDER BY k DESC LIMIT ?",
+            (older_than, months),
+        )
     ]
+    older = conn.execute(
+        "SELECT COUNT(*) n FROM bookmark WHERE date_added IS NOT NULL"
+        " AND date_added > 0 AND date_added < ?",
+        (older_than,),
+    ).fetchone()["n"]
     return {
         "days": days,
         "months": month_list,
-        "older": older,
-        "oldest": min(stamps),
+        "older": int(older),
+        "oldest": int(span["oldest"]),
     }
 
 

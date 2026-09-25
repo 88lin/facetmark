@@ -370,6 +370,65 @@ class TestPoolFromFilters:
         assert 5 in pool_from_filters(lib, parsed, limit=10, now=NOW)
 
 
+class TestTheSqlSortFastPath:
+    """Two implementations of one ordering have to agree.
+
+    A browse over the whole library sorts in SQL and stops at `limit`; every
+    other shape sorts in Python. The fast path only claims the four sorts whose
+    key is an integer column -- `domain`/`title`/`url` fold case, and SQLite's
+    `lower()` is ASCII-only -- so these compare it against `sort_pool`, which
+    is the Python reference the rest of the module already uses.
+    """
+
+    @pytest.fixture()
+    def ties(self):
+        """NULL dates, equal dates, equal open counts: where the tiebreak shows."""
+        conn = open_db(":memory:")
+        rows = [
+            (1, None, 0), (2, int(NOW), 5), (3, int(NOW), 5),
+            (4, int(NOW - 86400), 0), (5, None, 12), (6, int(NOW), 0),
+        ]
+        for i, added, opened in rows:
+            conn.execute(
+                "INSERT INTO bookmark(id,url,url_norm,url_hash,title,date_added,"
+                "open_count,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)",
+                (i, f"https://e{i}.test/", f"https://e{i}.test/", f"h{i}",
+                 f"page {i}", added, opened, int(NOW), int(NOW)),
+            )
+        conn.commit()
+        yield conn
+        conn.close()
+
+    @pytest.mark.parametrize("sort", ["date", "-date", "opened", "-opened"])
+    def test_sql_and_python_order_the_same_way(self, ties, sort):
+        ids = [r[0] for r in ties.execute("SELECT id FROM bookmark")]
+        parsed = parse_query(f"sort:{sort}", now=NOW)
+        assert pool_from_filters(ties, parsed, limit=10, now=NOW) == sort_pool(
+            ties, ids, sort
+        )
+
+    @pytest.mark.parametrize("query", ["sort:relevance", "sort:date"])
+    def test_the_fallback_orders_agree_too(self, ties, query):
+        """`sort:relevance` on a browse means the default, on both paths."""
+        ids = [r[0] for r in ties.execute("SELECT id FROM bookmark")]
+        parsed = parse_query(query, now=NOW)
+        assert pool_from_filters(ties, parsed, limit=10, now=NOW) == sort_pool(
+            ties, ids, "date"
+        )
+
+    def test_the_limit_is_applied_after_the_sort_not_before(self, ties):
+        parsed = parse_query("sort:date", now=NOW)
+        ids = [r[0] for r in ties.execute("SELECT id FROM bookmark")]
+        assert pool_from_filters(ties, parsed, limit=2, now=NOW) == sort_pool(
+            ties, ids, "date"
+        )[:2]
+
+    def test_an_excluded_term_falls_back_to_the_python_path(self, lib):
+        """The fast path cannot subtract, so a negation must not take it."""
+        parsed = parse_query("-facebook", now=NOW)
+        assert 4 not in pool_from_filters(lib, parsed, limit=10, now=NOW)
+
+
 class TestSortPool:
     def test_relevance_is_a_no_op(self, lib):
         assert sort_pool(lib, [4, 1, 3], "relevance") == [4, 1, 3]
