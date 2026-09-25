@@ -262,6 +262,39 @@ class TestFilterSets:
         assert include == {1}
         assert not ignored
 
+    def test_a_cjk_tag_survives_the_prune(self, lib):
+        """The `tag:` filter prunes rows by a LIKE on the raw JSON before
+        parsing it, which only works because every writer serialises tags with
+        `ensure_ascii=False`. Escaped as `\u5de5\u5177`, a Chinese tag would
+        not contain the literal element and would be pruned away -- silently,
+        and on the library this project is mostly built for."""
+        from facetmark.config import Settings
+        from facetmark.service import save_bookmark
+
+        st = Settings(data_dir="/tmp/fm-cjk-tag", use_mock_provider=True,
+                      health_enable_external=False)
+        rec = save_bookmark(lib, "https://cjk.example/x", title="tool page",
+                            tags=["工具", "效率"], settings=st)
+        lib.commit()
+        raw = lib.execute("SELECT tags FROM bookmark WHERE id=?",
+                          (rec["bookmark_id"],)).fetchone()[0]
+        assert "工具" in raw, f"tags were escaped, the prune will miss them: {raw}"
+        include, _, _ = filter_sets(lib, parse_query("tag:工具", now=NOW), now=NOW)
+        assert include == {rec["bookmark_id"]}
+
+    def test_a_tag_with_a_percent_in_it_is_not_widened(self, lib):
+        """The prune escapes its LIKE, and even if it did not, a superset
+        cannot change the answer: the EXISTS still decides."""
+        lib.execute("""UPDATE bookmark SET tags = '["50% off"]' WHERE id = 1""")
+        lib.execute("""UPDATE bookmark SET tags = '["50 off"]' WHERE id = 2""")
+        lib.commit()
+        # Quoted: a bare `tag:50% off` would parse as `tag:50%` plus the word
+        # "off", which is the language working as documented, not the prune.
+        parsed = parse_query('tag:"50% off"', now=NOW)
+        assert [f.value for f in parsed.filters] == ["50% off"]
+        include, _, _ = filter_sets(lib, parsed, now=NOW)
+        assert include == {1}
+
     def test_tag_alternation_is_one_membership_test(self, lib):
         lib.execute("""UPDATE bookmark SET tags = '["work"]' WHERE id = 1""")
         lib.execute("""UPDATE bookmark SET tags = '["rust"]' WHERE id = 3""")
