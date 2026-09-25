@@ -25,9 +25,7 @@ text the user has actually seen and may half-remember.
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Collection
 
-from ..db import jdump
 from ..text import build_fts_query
 
 #: bm25 column weights: title, body, summary, extra.
@@ -37,7 +35,7 @@ WEIGHTS_TRI = (10.0, 1.0, 4.0, 3.0)
 
 def _run_scored(
     conn: sqlite3.Connection, table: str, match: str, weights, limit: int,
-    allow: Collection[int] | None = None,
+    gate: tuple[str, list] | None = None,
 ) -> list[tuple[int, float]]:
     """Ranked ids with their bm25 score, sign-flipped so higher is better.
 
@@ -45,24 +43,35 @@ def _run_scored(
     for ``ORDER BY`` and confusing everywhere else. Negating here means every
     facet in the system hands back the same convention.
 
-    ``allow`` restricts the match *before* the ``LIMIT``. That is the whole
-    point of passing it: a query language filter applied after the fact can
-    only ever cut the list it was handed, so ``postgres domain:github.com``
-    used to return whatever survived among the top 50 for "postgres" -- often
-    nothing, on a library where the github pages rank 200th. Pushed down, rows
-    that fail the filter never occupy a ranked slot and deeper rows that pass
-    it move up into it. The ids arrive as one JSON parameter rather than an
-    ``IN (?,?,...)`` of unbounded length.
+    ``gate`` is a query-language predicate over ``bookmark b``, applied *before*
+    the ``LIMIT``. That is the whole point of passing it: a filter applied after
+    the fact can only cut the list it was handed, so ``postgres
+    domain:github.com`` used to return whatever survived among the top 50 for
+    "postgres" -- often nothing, on a library where the github pages rank
+    200th.
+
+    It arrives as a join rather than a ``rowid IN (...)`` of eligible ids
+    because the two are not close: measured on 20k bookmarks where "postgres"
+    matches 4,363 rows, the ``IN`` form costs 73 ms against the trigram index
+    (SQLite rescans the id list per matched row) and the join costs 5.6 ms --
+    *under* the 7.6 ms of not filtering at all, since only the eligible rows
+    are ever scored.
     """
     w = ", ".join(str(x) for x in weights)
-    gate = "" if allow is None else " AND rowid IN (SELECT value FROM json_each(?))"
-    sql = (
-        f"SELECT rowid AS id, bm25({table}, {w}) AS score FROM {table} "
-        f"WHERE {table} MATCH ?{gate} ORDER BY score LIMIT ?"
-    )
-    params: tuple = (match, limit) if allow is None else (
-        match, jdump(sorted(allow)), limit
-    )
+    if gate is None:
+        sql = (
+            f"SELECT rowid AS id, bm25({table}, {w}) AS score FROM {table} "
+            f"WHERE {table} MATCH ? ORDER BY score LIMIT ?"
+        )
+        params: tuple = (match, limit)
+    else:
+        where, gparams = gate
+        sql = (
+            f"SELECT f.rowid AS id, bm25({table}, {w}) AS score FROM {table} f "
+            f"JOIN bookmark b ON b.id = f.rowid "
+            f"WHERE {table} MATCH ? AND {where} ORDER BY score LIMIT ?"
+        )
+        params = (match, *gparams, limit)
     try:
         return [(r["id"], -float(r["score"])) for r in conn.execute(sql, params)]
     except sqlite3.OperationalError:
@@ -74,14 +83,14 @@ def _run_scored(
 
 def _run(
     conn: sqlite3.Connection, table: str, match: str, weights, limit: int,
-    allow: Collection[int] | None = None,
+    gate: tuple[str, list] | None = None,
 ) -> list[int]:
-    return [i for i, _ in _run_scored(conn, table, match, weights, limit, allow)]
+    return [i for i, _ in _run_scored(conn, table, match, weights, limit, gate)]
 
 
 def lexical_lists(
     conn: sqlite3.Connection, query: str, *, limit: int = 50,
-    allow: Collection[int] | None = None,
+    gate: tuple[str, list] | None = None,
 ) -> dict[str, list[int]]:
     """Both lexical paths, as separate ranked lists for the fusion step.
 
@@ -89,18 +98,18 @@ def lexical_lists(
     do with two lists that agree, and merging first would throw away the
     agreement signal.
 
-    ``allow``, when given, is the set of ids a query-language filter leaves
-    eligible; it is applied inside the SQL, before the ``LIMIT``.
+    ``gate``, when given, is the query-language predicate the rows must also
+    satisfy; it is applied inside the SQL, before the ``LIMIT``.
     """
     return {
         k: [i for i, _ in v]
-        for k, v in lexical_lists_scored(conn, query, limit=limit, allow=allow).items()
+        for k, v in lexical_lists_scored(conn, query, limit=limit, gate=gate).items()
     }
 
 
 def lexical_lists_scored(
     conn: sqlite3.Connection, query: str, *, limit: int = 50,
-    allow: Collection[int] | None = None,
+    gate: tuple[str, list] | None = None,
 ) -> dict[str, list[tuple[int, float]]]:
     """:func:`lexical_lists` with the bm25 score kept, higher being better.
 
@@ -111,10 +120,10 @@ def lexical_lists_scored(
     out: dict[str, list[tuple[int, float]]] = {}
     seg = build_fts_query(query, segmented=True)
     if seg:
-        out["lex_seg"] = _run_scored(conn, "fts_seg", seg, WEIGHTS_SEG, limit, allow)
+        out["lex_seg"] = _run_scored(conn, "fts_seg", seg, WEIGHTS_SEG, limit, gate)
     tri = build_fts_query(query, segmented=False)
     if tri:
-        out["lex_tri"] = _run_scored(conn, "fts_tri", tri, WEIGHTS_TRI, limit, allow)
+        out["lex_tri"] = _run_scored(conn, "fts_tri", tri, WEIGHTS_TRI, limit, gate)
     return {k: v for k, v in out.items() if v}
 
 

@@ -39,6 +39,43 @@
   字段名，所以 `domain:` 有补全、它的别名 `site:` 没有。改成按规范字段分派、
   按用户敲的别名插入；顺带 `host:` 也有了值补全。
 
+### 性能（20k 书签上实测，`scripts/bench_hot_paths.py`）
+
+| 路径 | 之前 | 之后 |
+|---|---|---|
+| `postgres domain:github.com`（首屏） | 145 ms | **13 ms** |
+| 同上，完整管线 | 150 ms | **15 ms** |
+| `sort:date`（浏览整库） | 94 ms | **6 ms** |
+| `sort:opened` | 86 ms | **3.5 ms** |
+| `-facebook`（仅否定的浏览） | 99 ms | **13 ms** |
+| `timeline()`（每次进库视图） | 86 ms | **14.5 ms** |
+| `postgres index`（无过滤，未动） | 33 ms | 32 ms |
+
+- **#30 的过滤器下推用错了 SQL 形式。** `rowid IN (SELECT value FROM json_each(?))`
+  会让 SQLite 对每一条 FTS 命中重扫一遍 id 列表：在 4363 条命中上，trigram 索引从
+  7.6 ms 涨到 **73 ms**（`IN (?,?,?…)` 内联同样 71 ms）。改成 `JOIN bookmark b ON
+  b.id = f.rowid` 并把谓词内联——5.6 ms，**比不过滤的 7.6 ms 还快**，因为只有合格的
+  行会被算 bm25。顺带整条路径不再需要物化 id 集合，`filter_sets` 从首屏路径上消失。
+  向量面仍然走 id 集合求交：`vec0` 的 KNN 不接受 `WHERE`，这条没得选，所以那个集合
+  现在只在真的要跑向量面时才解析。
+  已知取舍：join 对每条命中都要按 rowid 回探一次 bookmark，所以一个几乎不筛东西的
+  过滤器（`folder:study` 全库命中）会从 17 ms 变成 38 ms。试过按查询估选择性来选路，
+  又回退了——量选择性要把谓词在全表跑一遍，对 `tag:`/`text:`/`topic:`/`lang:` 这些
+  `EXISTS` 形状的过滤器，这次测量比它要选的两个计划都贵（`tag:work` 36 → 48 ms）。
+  一条路径，宽过滤器大约是裸查询的两倍，而不是返回空页。
+- **无约束的浏览把两万行搬进 Python 排序。** `pool_from_filters` 先扫一遍收集全部
+  id，再由 `_row_map` 把这些 id 分块塞回 `IN (...)` 去取它们指向的行——两趟扫描加
+  二十多条语句，去问一条 `SELECT` 已经知道的事。现在一趟扫完；并且当排序键是整数列
+  （`date`/`-date`/`opened`/`-opened`）时直接交给 SQL 排序并 `LIMIT`。
+  只有这四个：`domain`/`title`/`url` 按 `(value or "").lower()` 排序，而 SQLite 的
+  `lower()` 只折叠 ASCII，把它们下推会重排一个带非 ASCII 标题的库——在这个项目里那
+  是常态。新增 `TestTheSqlSortFastPath` 把两条实现对着 `sort_pool` 核对，NULL 日期与
+  并列值都在样本里。
+- **`timeline()` 把整列 `date_added` 拉进 Python，再做七遍线性扫描。** 改成在 SQL 里
+  `GROUP BY strftime(..., 'unixepoch')`——UTC，与桶点进去之后 `added:` 过滤器解析的
+  基准一致。没有保存记录的那一天仍然在 Python 里生成：GROUP BY 不会为它返回行，而
+  时间条需要七根柱子。
+
 ### 修复（两份 README 宣传了九个不存在的命令）
 
 - **`facetmark init` 是快速开始的第一行，而它不存在。** 一个新读者照 README 敲下的
