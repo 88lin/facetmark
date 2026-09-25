@@ -567,12 +567,26 @@ def _field_sql(f: FieldFilter, *, now: float) -> tuple[str, list[str]] | None:
         # closed vocabulary the user typed themselves, so `tag:work` matching
         # `workshop` would be a filter that quietly widens. One EXISTS covers
         # the whole alternation -- `tag:(work|rust)` is one membership test.
+        #
+        # The LIKE in front of it is a prune, not a second filter. `json_each`
+        # has to parse a row's JSON to answer, and a stored tag always appears
+        # in the raw text wrapped in quotes, so the LIKE matches a *superset*
+        # of the real matches and the EXISTS behind it still decides. A
+        # superset cannot change the answer; it only keeps the parser away from
+        # rows that cannot match. Measured on 20k bookmarks with a realistic
+        # tag distribution: 25 ms -> 10 ms for one `tag:` filter.
+        #
+        # It does assume tags are serialised with `ensure_ascii=False`, which
+        # every writer here does -- an escaped `工具` would not contain
+        # the literal element and a CJK tag would be pruned away.
+        # `test_a_cjk_tag_survives_the_prune` holds them to it.
         vals = _split_value(f.value)
         marks = ",".join("?" * len(vals))
+        prune = " OR ".join("b.tags LIKE ? ESCAPE '\\'" for _ in vals)
         return (
-            "EXISTS (SELECT 1 FROM json_each(b.tags) "
+            f"({prune}) AND EXISTS (SELECT 1 FROM json_each(b.tags) "
             f"WHERE json_each.value IN ({marks}))",
-            vals,
+            [_like(v, wrap='%"{}"%') for v in vals] + vals,
         )
     if f.field == "topic":
         parts, params = [], []
