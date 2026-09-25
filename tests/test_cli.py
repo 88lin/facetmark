@@ -23,6 +23,28 @@ from facetmark.cli import _harden_stdio, _harden_stream
 CJK = "\u4e2d\u6587\u6807\u9898\u6d4b\u8bd5"  # 中文标题测试
 
 
+def _child_stdout_encoding() -> str:
+    """What the redirect probe's subprocess will encode its stdout as.
+
+    ``LC_ALL=C`` is what decides it on POSIX, so the child gets ASCII. Windows
+    ignores those variables and uses the ANSI code page: cp1252 on an English
+    install, cp936 on a Chinese one -- and cp936 holds ``CJK`` perfectly well.
+    """
+    if os.name != "nt":
+        return "ascii"
+    import locale
+
+    return locale.getpreferredencoding(False)
+
+
+def _sample_fits_the_child() -> bool:
+    try:
+        CJK.encode(_child_stdout_encoding())
+    except (UnicodeEncodeError, LookupError):
+        return False
+    return True
+
+
 def _stream(encoding: str, errors: str = "strict") -> io.TextIOWrapper:
     return io.TextIOWrapper(io.BytesIO(), encoding=encoding, errors=errors)
 
@@ -102,6 +124,12 @@ class TestStreamsThatAreNotReallyStreams:
         assert sys.stdout is not None
 
 
+@pytest.mark.skipif(
+    _sample_fits_the_child(),
+    reason=f"the child's stdout is {_child_stdout_encoding()}, which holds the "
+           "sample: the failure these two reproduce cannot happen here, so the "
+           "pair would pass without proving anything",
+)
 class TestTheWholeProcessSurvivesTheRedirect:
     """The unit tests above check the lever. This checks the machine.
 
@@ -109,6 +137,12 @@ class TestTheWholeProcessSurvivesTheRedirect:
     Python an ASCII stdout, and output going to a pipe rather than a terminal --
     which is exactly what ``facetmark search > hits.txt`` looks like on a
     Windows box whose ANSI code page cannot hold the library's titles.
+
+    Skipped where the code page *can* hold them. On a Chinese Windows install
+    the child gets cp936, the bare interpreter writes the sample without
+    complaint, and the guard below fails -- correctly, because on that host the
+    test it guards proves nothing. CI's Windows runners are cp1252, so only a
+    cp936 machine ever sees it.
     """
 
     ENV = {
