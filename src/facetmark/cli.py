@@ -660,9 +660,30 @@ def stats(
         conn.close()
     if _emit(payload, json_out):
         return
+    # Flattened, not dumped. Four of these values are nested dicts, and
+    # `json.dumps` put `{"bookmarks": 3, "age_days": 365, "cutoff_ts":
+    # 1758886375, ...}` in a table cell, wrapped over three lines. A nested
+    # group becomes indented rows under its own name, and a `_ts` value becomes
+    # a date, because a human table is the one place a unix timestamp has no
+    # business being.
+    def cell(key: str, val) -> str:
+        if isinstance(val, (list, tuple)):
+            return ", ".join(str(x) for x in val) or "[dim]none[/dim]"
+        if key.endswith("_ts"):
+            return _fmt_ts(val)
+        return str(val)
+
     t = Table(box=None, show_header=False)
     for k, v in payload.items():
-        t.add_row(k, json.dumps(v, ensure_ascii=False) if isinstance(v, dict) else str(v))
+        if isinstance(v, dict):
+            if not v:
+                t.add_row(k, "[dim]none[/dim]")
+                continue
+            t.add_row(f"[bold]{k}[/bold]", "")
+            for sub, val in v.items():
+                t.add_row(f"  {sub}", cell(sub, val))
+        else:
+            t.add_row(k, cell(k, v))
     console.print(t)
 
 

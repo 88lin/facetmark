@@ -446,8 +446,10 @@ async def run_demo(
             "query": q.text,
             "target_rank": ids.index(q.target_id) + 1 if q.target_id in ids else 0,
             "hits": [{"rank": i + 1, "title": h.title, "url": h.url,
-                      "score": round(h.score, 4), "via": h.via}
+                      "domain": h.domain, "score": round(h.score, 4),
+                      "facets": list(h.facets)}
                      for i, h in enumerate(resp.hits[:5])],
+            "facet_sizes": dict(resp.facet_sizes),
             "took_ms": resp.took_ms,
         })
     await prov.aclose()
@@ -529,11 +531,24 @@ def _print_tail(console, report: dict) -> None:
 
 def _print_demo(console, payload: dict) -> None:
     c = payload["corpus"]
-    console.print(f"[bold]demo library[/bold] {c['pages']} pages, "
-                  f"{payload['db']}")
+    where = payload["db"] if payload["kept"] else "a scratch file, removed on exit"
+    console.print(f"[bold]demo library[/bold]  {c['pages']} pages  [dim]{where}[/dim]")
     for s in payload["samples"]:
         console.print(f"\n[bold]{s['type']}[/bold]  {s['query']}")
-        console.print(f"[dim]target at rank {s['target_rank'] or '-'} "
-                      f"in {s['took_ms']} ms[/dim]")
+        # `took_ms` is a per-stage breakdown, not a number: formatting it whole
+        # printed a 16-digit dict repr across three lines. The extension made
+        # the same mistake and prints `[object Object] ms` in the changelog for
+        # it; this is the same shape of bug on the surface a new reader sees
+        # first.
+        total = round(s["took_ms"].get("total", 0.0))
+        rank = f"rank {s['target_rank']}" if s["target_rank"] else "not in the top 5"
+        # How many candidates each facet returned, per query. The per-*row* facet
+        # list was tried and dropped: the demo runs all four, so every row said
+        # "content + intent + lex_seg + lex_tri" and wrapped. Constant on every
+        # line is noise; these numbers actually move with the query, which is
+        # the shape a demo exists to show.
+        mix = "  ".join(f"{k} {v}" for k, v in sorted(s["facet_sizes"].items()))
+        console.print(f"[dim]target: {rank}  ·  {total} ms  ·  {mix}[/dim]")
         for h in s["hits"]:
-            console.print(f"  {h['rank']}. {h['title']}  [dim]{h['via']} {h['score']}[/dim]")
+            console.print(f"  {h['rank']}. {h['title']}  "
+                          f"[dim]{h['domain']} · {h['score']}[/dim]")

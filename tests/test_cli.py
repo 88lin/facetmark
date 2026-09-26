@@ -269,6 +269,63 @@ def test_both_streams_are_covered(monkeypatch, stream_name):
     assert getattr(sys, stream_name).encoding == "utf-8"
 
 
+class TestTheStatsTable:
+    """Four of `library_stats`' values are nested dicts and one is a list.
+
+    They were handed to `json.dumps` and put in a table cell, so
+    `cold_layer` arrived as `{"bookmarks": 3, "age_days": 365, "cutoff_ts":
+    1758886375, ...}` wrapped over three lines, with a unix timestamp in it.
+    """
+
+    def _out(self, tmp_path, monkeypatch) -> str:
+        from typer.testing import CliRunner
+
+        from facetmark import cli
+        from facetmark.config import reset_settings
+
+        monkeypatch.setenv("FACETMARK_DATA_DIR", str(tmp_path))
+        monkeypatch.setenv("FACETMARK_USE_MOCK_PROVIDER", "1")
+        reset_settings()
+        try:
+            r = CliRunner().invoke(cli.app, ["stats"])
+        finally:
+            reset_settings()
+        assert r.exit_code == 0, r.output
+        return r.output
+
+    def test_no_json_or_python_repr_reaches_the_table(self, tmp_path, monkeypatch):
+        out = self._out(tmp_path, monkeypatch)
+        assert out.strip()
+        for bad in ('{"', "': ", "['", "}"):
+            assert bad not in out, f"{bad!r} in: {out}"
+
+    def test_a_timestamp_is_shown_as_a_date(self, tmp_path, monkeypatch):
+        import re
+
+        out = self._out(tmp_path, monkeypatch)
+        assert "cutoff_ts" in out
+        assert re.search(r"cutoff_ts\s+\d{4}-\d{2}-\d{2}", out), out
+
+    def test_json_output_is_untouched(self, tmp_path, monkeypatch):
+        """The table is for reading; `--json` is the contract and keeps its
+        nesting."""
+        from typer.testing import CliRunner
+
+        from facetmark import cli
+        from facetmark.config import reset_settings
+
+        monkeypatch.setenv("FACETMARK_DATA_DIR", str(tmp_path))
+        monkeypatch.setenv("FACETMARK_USE_MOCK_PROVIDER", "1")
+        reset_settings()
+        try:
+            r = CliRunner().invoke(cli.app, ["stats", "--json"])
+        finally:
+            reset_settings()
+        payload = json.loads(r.stdout)
+        assert isinstance(payload["cold_layer"], dict)
+        assert isinstance(payload["cold_layer"]["cutoff_ts"], int)
+
+
 class TestTheDocumentedCommands:
     """Every `facetmark X` the README names is a command that exists.
 
@@ -308,17 +365,22 @@ class TestTheDocumentedCommands:
 
         found: set[str] = set()
         fenced = False
+        # Both entry points: `fm` is registered in pyproject alongside
+        # `facetmark`, and the hint inside `facetmark health` uses it, so a
+        # command named through the short form is the same promise.
+        binaries = ("facetmark", "fm")
         for line in path.read_text(encoding="utf-8").splitlines():
             if line.lstrip().startswith("```"):
                 fenced = not fenced
                 continue
             bare = line.strip()
-            if fenced and bare.startswith("facetmark "):
-                word = bare.split()[1]
-                if re.fullmatch(r"[a-z][a-z0-9-]*", word):
-                    found.add(word)
-            for m in re.finditer(r"`facetmark ([a-z][a-z0-9-]*)", line):
-                found.add(m.group(1))
+            for binary in binaries:
+                if fenced and bare.startswith(binary + " "):
+                    word = bare.split()[1]
+                    if re.fullmatch(r"[a-z][a-z0-9-]*", word):
+                        found.add(word)
+                for m in re.finditer(rf"`{binary} ([a-z][a-z0-9-]*)", line):
+                    found.add(m.group(1))
         return found
 
     @pytest.mark.parametrize("readme", ["README.md", "README.zh-CN.md"])

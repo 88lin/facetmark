@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 
 import pytest
 
@@ -145,6 +146,35 @@ class TestBench:
         # the demo database is a scratch file and must not survive
         from pathlib import Path
         assert not Path(payload["db"]).exists()
+
+    async def test_the_demo_hits_carry_what_the_printer_needs(self):
+        payload = await run_demo(size=24, keep=False)
+        hit = payload["samples"][0]["hits"][0]
+        assert {"rank", "title", "url", "domain", "score", "facets"} <= set(hit)
+        assert payload["samples"][0]["facet_sizes"]
+
+    async def test_the_demo_prints_no_python_reprs(self):
+        """It is the first screen a new reader sees, and it was printing a
+        16-digit `took_ms` dict across three lines and a literal `None` on every
+        row -- `via` is only set on the expansion group, which that list is not.
+        The extension made the same `took_ms` mistake and prints
+        `[object Object] ms` in the changelog for it.
+        """
+        import io
+
+        from rich.console import Console
+
+        from facetmark.eval.harness import _print_demo
+
+        payload = await run_demo(size=24, keep=False)
+        buf = io.StringIO()
+        _print_demo(Console(file=buf, width=100, no_color=True), payload)
+        out = buf.getvalue()
+        assert out.strip()
+        assert "None" not in out
+        assert "{" not in out and "}" not in out
+        # A rounded millisecond total, not a float with sixteen digits of it.
+        assert not re.search(r"[0-9][.][0-9]{6}", out), out
 
     async def test_eval_reports_every_rung_split_by_query_type(self):
         rep = await run_eval(size=24, ablation=True, bootstrap=100)
