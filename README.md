@@ -273,6 +273,9 @@ Settings panel edits the file; `facetmark config path` prints it.
 
 ## 📋 Commands
 
+Every command is also available as `fm` — `fm search "kafka"` is the same
+thing, and it is what the hints inside the tool use.
+
 | Command | What it does |
 |---|---|
 | `facetmark import [FILE]` | Import a bookmark export — Netscape HTML or Chrome JSON, detected by shape. With no path, finds the live Chromium profile. Never writes back |

@@ -265,6 +265,9 @@ export FACETMARK_LOCAL_EMBED_MAX_SEQ=1024
 
 ## 📋 命令
 
+每条命令都还有一个短名 `fm`——`fm search "kafka"` 是同一回事，
+工具内部的提示用的也是它。
+
 | 命令 | 做什么 |
 |---|---|
 | `facetmark import [FILE]` | 导入书签导出文件——Netscape HTML 或 Chrome JSON，按文件形状自动识别。不带路径时自动找活着的 Chromium 配置目录。从不回写浏览器 |
