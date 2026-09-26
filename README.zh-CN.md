@@ -280,6 +280,7 @@ export FACETMARK_LOCAL_EMBED_MAX_SEQ=1024
 | `facetmark token` | 打印扩展需要的配对令牌 |
 | `facetmark health` | 复检已存 URL，记录 `gone` / `drifted` 判定 |
 | `facetmark stats` | 各表行数、各阶段覆盖率 |
+| `facetmark doctor` | 诊断这套装置：配置、schema、索引、模型服务。不修任何东西，也不调用模型 |
 | `facetmark config path` / `show` | `config.toml` 在哪；生效的设置及其来源 |
 | `facetmark migrate` | 把数据库 schema 升到这个版本要求的样子 |
 | `facetmark demo` | 合成库 + mock provider，不联网 |

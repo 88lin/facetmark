@@ -542,6 +542,62 @@ def health(
 
 
 @app.command()
+def doctor(
+    db: Path | None = typer.Option(None, "--db"),
+    json_out: bool = typer.Option(False, "--json"),
+) -> None:
+    """Diagnose the install: configuration, database, index, provider.
+
+    Ported from hister's `doctor`. It repairs nothing and calls no model -- a
+    diagnosis that edits what it is diagnosing cannot be run twice with the same
+    meaning, and one that costs a request is one people learn not to run. Every
+    check reads, and every finding names the command that fixes it.
+
+    Exits non-zero when any check is an error, so it is usable in a script.
+    """
+    from .db import connect
+    from .diagnose import run_checks, worst
+
+    st = _settings(db)
+    # `connect`, not `_open`: opening a library the normal way *migrates* it,
+    # and a diagnosis that upgrades your schema before reporting on it has
+    # already broken the one promise this command makes. It also means the
+    # schema check would never see a stale database, because it would have
+    # fixed it on the way in.
+    # A missing file is a state to report, not one to create: `connect` would
+    # happily make an empty database and the report would then describe
+    # something this command had just brought into being.
+    conn = connect(st.db_path) if Path(st.db_path).exists() else None
+    try:
+        checks = run_checks(conn, st)
+    finally:
+        if conn is not None:
+            conn.close()
+
+    if _emit({"status": worst(checks), "checks": [c.as_dict() for c in checks]}, json_out):
+        raise typer.Exit(1 if worst(checks) == "error" else 0)
+
+    tone = {"ok": "green", "warn": "yellow", "error": "red"}
+    mark = {"ok": "ok", "warn": "warn", "error": "FAIL"}
+    t = Table(box=None, show_header=False)
+    for c in checks:
+        t.add_row(f"[{tone[c.status]}]{mark[c.status]}[/{tone[c.status]}]",
+                  c.name, c.message)
+    console.print(t)
+
+    bad = [c for c in checks if c.status == "error"]
+    warned = [c for c in checks if c.status == "warn"]
+    if bad:
+        err.print(f"\n[red]{len(bad)} problem(s) need fixing.[/red]")
+        raise typer.Exit(1)
+    if warned:
+        console.print(f"\n[yellow]{len(warned)} thing(s) worth knowing about; "
+                      "nothing is broken.[/yellow]")
+    else:
+        console.print("\n[green]Everything checks out.[/green]")
+
+
+@app.command()
 def stats(
     db: Path | None = typer.Option(None, "--db"),
     json_out: bool = typer.Option(False, "--json"),

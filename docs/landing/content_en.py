@@ -509,7 +509,7 @@ EN = {
             (
                 "cli",
                 "Command line",
-                "Nineteen commands. <code>search</code> takes "
+                "Twenty commands. <code>search</code> takes "
                 "<code>--explain</code> to print which facet matched, and "
                 "<code>--config</code> to run any ablation rung by name.",
                 "guide.html#commands",
@@ -2121,6 +2121,13 @@ EN["guide"] = {
                    "<code>--check</code>, <code>--no-external</code>, "
                    "<code>--no-save-recovered</code>"],
                   ["<code>stats</code>", "Index size and coverage.", ""],
+                  ["<code>doctor</code>",
+                   "Diagnose the install — configuration and where each "
+                   "setting came from, schema version, whether the indexes "
+                   "were built, whether the stored vectors match the "
+                   "settings. Repairs nothing and calls no model; every "
+                   "finding names the command that fixes it.",
+                   "<code>--json</code>"],
                   ["<code>token</code>", "Print the extension's pairing token.",
                    "<code>--rotate</code>"],
                   ["<code>serve</code>", "Run the local HTTP service.",
