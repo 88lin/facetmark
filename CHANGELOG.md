@@ -39,6 +39,36 @@
   字段名，所以 `domain:` 有补全、它的别名 `site:` 没有。改成按规范字段分派、
   按用户敲的别名插入；顺带 `host:` 也有了值补全。
 
+### 新增（`facetmark export`，移植自 hister）
+
+README 曾经声称有这条命令，而它不存在——上一轮我把那句声称删掉了，这一轮把命令补上。
+
+移植了 hister `export` 的两个决定，正是它们让导出成为**备份**而不是一次转存：
+
+- **导出的文件，`facetmark import` 自己认得。** hister 用 `isHisterJSONExport` 做这件
+  事；这里加了 `importers/facetmark_json.py`，靠 `"facetmark"` 这个头部键识别，并且排在
+  Chromium JSON 之前判断——两种格式都以 `{` 开头，而底部那条通用回退会把一份好备份交给
+  一个找 `roots` 的解析器，然后得到一个空库。
+- **导出可以带一条查询**，只导一部分。facetmark 本来就有查询语言，所以
+  `facetmark export out.json "tag:work added:>90d"` 几乎是免费的。
+
+**只接受过滤器。** `tag:work` 是枚举，`postgres` 是排序——而「排序结果的前几条」放进备份
+文件里没有诚实的答案（前几条？多少条？），所以自由文本被拒绝，并且把能用的字段列出来，
+退出码 2。
+
+**派生数据默认不写。** summary、topics、向量、时段全都是派生的、带指纹的，
+`facetmark index` 会重建；写进备份只会让文件巨大，并且把某个旧模型的判断一起还原回来。
+`--full` 给想读这个文件的人加上那些字段，导入侧会忽略它们。
+
+一处诚实的有损：数据库只存 `folder` 显示路径，schema 里明写「不要按 `/` 切分」，因为
+文件夹名本身可能含 `/`。所以导出时连 `folder_depth` 一起写，读回来时**由 depth 决定怎么
+读这个字符串**：depth 1 就是一个名字里带斜杠的文件夹（这正是 `POST /bookmark` 收到
+`folder="read/write ratio"` 时记下的东西），depth 等于切分段数就切，两种读法都解释不了的
+分歧才报警。
+
+`tests/test_export.py` 里最要紧的一条是往返：导出、导进一个空库、两个库的行逐一相等，
+中文标题和中文标签都在样本里。
+
 ### 新增（`facetmark doctor`，移植自 hister）
 
 hister 有一条 `doctor` 命令，回答每个本地优先工具最后都要面对的问题：**东西装好了、

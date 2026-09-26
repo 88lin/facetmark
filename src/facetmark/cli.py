@@ -542,6 +542,55 @@ def health(
 
 
 @app.command()
+def export(
+    out: Path | None = typer.Argument(
+        None, help="Where to write it. Omit, or use '-', for stdout."),
+    query: str = typer.Argument(
+        "", help="Filters deciding what to export, e.g. 'tag:work added:>90d'. "
+                 "Empty exports everything."),
+    db: Path | None = typer.Option(None, "--db"),
+    full: bool = typer.Option(
+        False, "--full",
+        help="Also write the derived fields -- summary, topics, language. For "
+             "reading; import ignores them."),
+) -> None:
+    """Write the library, or a filtered part of it, as JSON.
+
+    Ported from hister's `export`, with the two decisions that make it a backup
+    rather than a dump: `facetmark import` recognises the file it writes, and it
+    takes a query so you can export a part.
+
+    Filters only. `tag:work added:>90d` enumerates; `postgres` ranks, and the
+    top of a ranking is not a thing to keep in a backup file.
+
+    Derived data is left out on purpose -- summaries, vectors and sessions are
+    fingerprinted and `facetmark index` rebuilds them, so a restore is
+    `facetmark import` followed by `facetmark index`.
+    """
+    st = _settings(db)
+    conn = _open(st)
+    try:
+        payload = service.export_bookmarks(conn, query, full=full)
+    except service.ExportRefused as exc:
+        err.print(f"[red]{exc}[/red]")
+        raise typer.Exit(2) from None
+    finally:
+        conn.close()
+
+    text = json.dumps(payload, ensure_ascii=False, indent=1)
+    if out is None or str(out) == "-":
+        # `print`, not the console: rich would wrap and colour it, and this is
+        # a file that happens to be going to a pipe.
+        sys.stdout.write(text + "\n")
+        return
+    out.write_text(text + "\n", encoding="utf-8")
+    n = payload["facetmark"]["count"]
+    console.print(f"wrote {n} bookmark(s) to {out}")
+    console.print("[dim]restore:[/dim] facetmark import "
+                  f"{out}   [dim]then[/dim] facetmark index")
+
+
+@app.command()
 def doctor(
     db: Path | None = typer.Option(None, "--db"),
     json_out: bool = typer.Option(False, "--json"),

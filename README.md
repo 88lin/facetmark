@@ -289,6 +289,7 @@ Settings panel edits the file; `facetmark config path` prints it.
 | `facetmark health` | Re-check saved URLs, record `gone` / `drifted` verdicts |
 | `facetmark stats` | Row counts per table, coverage per stage |
 | `facetmark doctor` | Diagnose the install: config, schema, index, provider. Repairs nothing, calls no model |
+| `facetmark export [FILE] [QUERY]` | Write the library, or a filtered part, as JSON that `import` reads back |
 | `facetmark config path` / `show` | Where `config.toml` lives; effective settings and their source |
 | `facetmark migrate` | Bring the schema up to what this build expects |
 | `facetmark demo` | Synthetic library, mock provider, no network |
