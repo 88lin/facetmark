@@ -509,7 +509,7 @@ EN = {
             (
                 "cli",
                 "Command line",
-                "Twenty commands. <code>search</code> takes "
+                "Twenty-one commands. <code>search</code> takes "
                 "<code>--explain</code> to print which facet matched, and "
                 "<code>--config</code> to run any ablation rung by name.",
                 "guide.html#commands",
@@ -2121,6 +2121,12 @@ EN["guide"] = {
                    "<code>--check</code>, <code>--no-external</code>, "
                    "<code>--no-save-recovered</code>"],
                   ["<code>stats</code>", "Index size and coverage.", ""],
+                  ["<code>export [FILE] [QUERY]</code>",
+                   "Write the library, or the part a filter query names, as "
+                   "JSON that <code>import</code> reads back. Filters only "
+                   "— the top of a ranking is not a backup. Derived data "
+                   "is left out; <code>index</code> rebuilds it.",
+                   "<code>--full</code>"],
                   ["<code>doctor</code>",
                    "Diagnose the install — configuration and where each "
                    "setting came from, schema version, whether the indexes "

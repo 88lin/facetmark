@@ -871,6 +871,123 @@ def record_open(conn: sqlite3.Connection, bookmark_id: int, *, query: str = "") 
 TIMELINE_RECENT_DAYS = 7
 
 
+class ExportRefused(ValueError):
+    """An export query that names something an enumeration cannot answer."""
+
+
+def export_bookmarks(
+    conn: sqlite3.Connection,
+    query: str = "",
+    *,
+    full: bool = False,
+) -> dict:
+    """The library, or a filtered part of it, in facetmark's own JSON format.
+
+    Ported from hister's ``export``, including the two decisions that make it a
+    backup rather than a dump: the file is written in a format
+    :func:`facetmark.importers.detect_and_parse` recognises, so it can be read
+    back, and it takes a query so a part of the library can be exported.
+
+    **Filters only.** ``tag:work added:>90d`` enumerates; ``postgres`` ranks, and
+    the top of a ranking is not a thing to put in a backup file -- there is no
+    honest answer to "how many of them". Free text is refused with the fields
+    that do work.
+
+    What is written is the source of truth: the URL, the title, the folder, the
+    save date and the tags. Everything else -- summary, topics, vectors,
+    sessions -- is derived and fingerprinted, and ``facetmark index`` rebuilds
+    it. ``full=True`` adds the derived fields for reading; the importer ignores
+    them.
+
+    Ordered by id, which is import order: deterministic, and two exports of an
+    unchanged library diff to nothing.
+    """
+    from . import __version__
+    from .importers.facetmark_json import FORMAT_VERSION, MARKER
+    from .search.querylang import filter_sets, parse_query
+
+    parsed = parse_query(query)
+    if parsed.text:
+        raise ExportRefused(
+            f"export takes filters, not free text: {parsed.text!r} would have to "
+            "be ranked, and the top of a ranking is not a backup. Use "
+            "domain:/host:/url:/title:/text:/folder:/tag:/topic:/lang:/added:/"
+            "opened: instead."
+        )
+
+    include, exclude, _ = filter_sets(conn, parsed)
+    if include is None:
+        ids = [int(r[0]) for r in conn.execute("SELECT id FROM bookmark ORDER BY id")]
+    else:
+        ids = sorted(include)
+    ids = [i for i in ids if i not in exclude]
+
+    cols = ("id", "url", "title", "folder", "folder_depth", "date_added", "tags",
+            "source", "date_modified")
+    rows: dict[int, dict] = {}
+    for batch in dbmod.in_chunks(ids):
+        marks = ",".join("?" * len(batch))
+        for r in conn.execute(
+            f"SELECT {', '.join(cols)} FROM bookmark WHERE id IN ({marks})", batch
+        ):
+            rows[int(r["id"])] = dict(r)
+
+    extra: dict[int, dict] = {}
+    if full and ids:
+        for batch in dbmod.in_chunks(ids):
+            marks = ",".join("?" * len(batch))
+            for r in conn.execute(
+                "SELECT e.bookmark_id, e.summary, e.topics, e.entities, e.utility,"
+                " e.content_type, c.char_count, c.lang"
+                " FROM bookmark b"
+                " LEFT JOIN enrichment e ON e.bookmark_id = b.id"
+                " LEFT JOIN content c ON c.bookmark_id = b.id"
+                f" WHERE b.id IN ({marks})", batch
+            ):
+                extra[int(r["bookmark_id"] or 0)] = dict(r)
+
+    out: list[dict] = []
+    for i in ids:
+        row = rows.get(i)
+        if row is None:
+            continue
+        rec: dict = {
+            "url": row["url"],
+            "title": row["title"] or "",
+            "folder": row["folder"] or "",
+            "folder_depth": int(row["folder_depth"] or 0),
+            "date_added": row["date_added"],
+            "tags": _jlist(row["tags"]),
+        }
+        if row["date_modified"]:
+            rec["date_modified"] = row["date_modified"]
+        if full:
+            e = extra.get(i) or {}
+            rec["derived"] = {
+                "source": row["source"] or "",
+                "summary": e.get("summary") or "",
+                "topics": _jlist(e.get("topics")),
+                "entities": _jlist(e.get("entities")),
+                "utility": e.get("utility") or "",
+                "content_type": e.get("content_type") or "",
+                "chars": int(e.get("char_count") or 0),
+                "lang": e.get("lang") or "",
+            }
+        out.append(rec)
+
+    return {
+        MARKER: {
+            "version": FORMAT_VERSION,
+            "app_version": __version__,
+            "exported_at": int(time.time()),
+            "count": len(out),
+            "query": query,
+            "full": bool(full),
+        },
+        "bookmarks": out,
+    }
+
+
 def timeline(
     conn: sqlite3.Connection, *, now: int | None = None, months: int = 12
 ) -> dict:

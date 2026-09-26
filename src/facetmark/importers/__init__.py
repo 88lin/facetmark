@@ -20,7 +20,7 @@ from .. import text as textmod
 from ..config import Settings, get_settings
 from ..db import now
 from ..normalize import host_excluded, normalize_url, registrable_domain
-from . import chrome_json, netscape_html, timestamps
+from . import chrome_json, facetmark_json, netscape_html, timestamps
 from .base import ImportResult, RawBookmark, folder_collisions
 
 __all__ = [
@@ -30,6 +30,7 @@ __all__ = [
     "chrome_json",
     "decode_bookmark_bytes",
     "detect_and_parse",
+    "facetmark_json",
     "import_bookmarks",
     "netscape_html",
     "read_text",
@@ -121,7 +122,12 @@ def read_text(path: str | Path) -> str:
 def detect_and_parse(content: str) -> ImportResult:
     """Dispatch on file shape, then fill in the detected timestamp unit."""
     stripped = content.lstrip()
-    if stripped.startswith("{") and chrome_json.looks_like_chrome_json(content):
+    if stripped.startswith("{") and facetmark_json.looks_like_facetmark_export(content):
+        # Checked before Chromium's: both are JSON objects, and the generic
+        # `{` fallback at the bottom would hand our own export to a parser
+        # looking for `roots` and get an empty library out of a good backup.
+        result = facetmark_json.parse(content)
+    elif stripped.startswith("{") and chrome_json.looks_like_chrome_json(content):
         result = chrome_json.parse(content)
     elif netscape_html.looks_like_netscape(content):
         result = netscape_html.parse(content)
