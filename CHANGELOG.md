@@ -39,6 +39,26 @@
   字段名，所以 `domain:` 有补全、它的别名 `site:` 没有。改成按规范字段分派、
   按用户敲的别名插入；顺带 `host:` 也有了值补全。
 
+### 修复（把剩下的命令也跑完，同一类问题又出现两次）
+
+接着上一条的方法，把没跑过的路径跑完：`search --explain`、`show --body`、`reindex`、
+`crawl`（真去抓了 sqlite.org）、MCP 走真实 stdio 管道。MCP 22 项全过，前两条输出正常，
+后两条各有一个问题——而且**都是上一条已经修过的那一类**。
+
+- **`index` / `reindex` 的每行阶段报告都是 Python dict repr。** 每个阶段回报一个计数
+  字典，而打印处是 `f"{value}"`，于是带引号的键、16 位小数、以及在字典中间硬断行：
+  `by_verdict': {'ok': 2, 'not_found': 1}}` / `keep_rate': 0.5, 'already_scored': 0,`。
+  现在走一个专门的格式化函数：`attempted=5  stored=4  by_verdict=(ok=4 not_found=1)`，
+  嵌套字典压成一层括号、列表逗号连接、空的说 `nothing to do`、浮点保留三位有效数字。
+  `reindex` 就是带 `force=True` 的 `index`，所以一处修复覆盖两条命令。
+- **`crawl` 把 URL 放进了表格标题里。** Rich 的表格标题在表格自身宽度内居中，而那个宽度
+  由最宽的单元格决定——这里是两列很短的计数器。于是 40 个字符的网址被从中间硬切成
+  `https://sqlite.org/fts5.h` 和 `tml` 两行。URL 移到表格上方单独一行。
+
+这已经是同一个 bug 类的第三、第四次出现（扩展端的 `[object Object] ms`、demo 的
+`took_ms` 字典、`stats` 的嵌套字典，现在是 index 和 crawl）。共同的形状是：**把为
+`--json` 准备的结构化数据，直接交给给人看的那一行**。
+
 ### 修复（把每条命令真跑一遍才看见的输出问题）
 
 不加新功能，改成把已有的路径一条条真敲进去看。第一个敲的是 `facetmark demo`——README

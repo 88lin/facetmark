@@ -289,6 +289,32 @@ def migrate(
     console.print(f"schema v{out['from']} -> v{out['to']}")
 
 
+def _stage_line(value: object) -> str:
+    """One index stage's report as something a person reads.
+
+    Every stage hands back a dict of counters, and `f"{value}"` printed the
+    Python repr: quoted keys, sixteen digits of float, and a wrap mid-dict. The
+    same mistake as the demo printer and the stats table -- structured data is
+    for `--json`, and this line is not that.
+    """
+    if isinstance(value, dict):
+        parts = []
+        for k, v in value.items():
+            if isinstance(v, dict):
+                inner = " ".join(f"{ik}={iv}" for ik, iv in v.items())
+                parts.append(f"{k}=({inner})" if inner else f"{k}=none")
+            elif isinstance(v, (list, tuple)):
+                parts.append(f"{k}={','.join(str(x) for x in v) or 'none'}")
+            elif isinstance(v, float):
+                parts.append(f"{k}={v:.3g}")
+            else:
+                parts.append(f"{k}={v}")
+        return "  ".join(parts) or "nothing to do"
+    if isinstance(value, (list, tuple)):
+        return ", ".join(str(x) for x in value) or "none"
+    return str(value)
+
+
 @app.command()
 def index(
     db: Path | None = typer.Option(None, "--db"),
@@ -308,7 +334,7 @@ def index(
     try:
         def progress(name: str, value) -> None:
             if not json_out:
-                console.print(f"  [dim]{name}[/dim] {value}")
+                console.print(f"  [dim]{name}[/dim] {_stage_line(value)}")
 
         rep = asyncio.run(service.index_all(
             conn, settings=st, fetch=not no_fetch, limit=limit, force=force,
@@ -837,11 +863,17 @@ def crawl(
         conn.close()
     if _emit(rep.as_dict(), json_out):
         return
-    t = Table(title=f"crawl {url}", box=None, show_header=False)
+    # The URL goes above the table, not in its title: a Rich table title is
+    # centred inside the table's own width, and that width is set by the widest
+    # cell -- two short columns of counters. A 40-character URL was hard-wrapped
+    # mid-token into `https://sqlite.org/fts5.h` / `tml`.
+    payload = rep.as_dict()
+    console.print(f"[bold]crawl[/bold] {url}")
+    t = Table(box=None, show_header=False)
     for k in ("links_found", "pages_fetched", "inserted", "already_known",
               "bodies_stored", "off_domain_skipped", "privacy_skipped",
               "robots_denied", "errors"):
-        t.add_row(k, str(rep.as_dict()[k]))
+        t.add_row(k, str(payload[k]))
     console.print(t)
     for note in rep.notes[:5]:
         err.print(f"[yellow]note[/yellow] {note}")

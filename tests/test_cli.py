@@ -326,6 +326,57 @@ class TestTheStatsTable:
         assert isinstance(payload["cold_layer"]["cutoff_ts"], int)
 
 
+class TestTheIndexStageLines:
+    """Every index stage reports a dict of counters.
+
+    `f"{value}"` printed the Python repr, so a stage arrived as
+    `{'understand': 1.0566999999355176, 'lexical': 1.51759...}` with quoted
+    keys, sixteen digits of float and a wrap mid-dict. Same mistake as the demo
+    printer and the stats table: structured data is what `--json` is for.
+    """
+
+    def test_a_counter_dict_becomes_readable_pairs(self):
+        from facetmark.cli import _stage_line
+
+        out = _stage_line({"attempted": 5, "stored": 4, "keep_rate": 0.5})
+        assert out == "attempted=5  stored=4  keep_rate=0.5"
+        for bad in ("{", "}", "'", '"'):
+            assert bad not in out
+
+    def test_a_nested_dict_is_flattened_not_dumped(self):
+        from facetmark.cli import _stage_line
+
+        out = _stage_line({"total": 8, "by_verdict": {"ok": 4, "not_found": 1}})
+        assert out == "total=8  by_verdict=(ok=4 not_found=1)"
+
+    def test_a_long_float_is_cut_to_something_a_person_reads(self):
+        from facetmark.cli import _stage_line
+
+        assert _stage_line({"t": 1.0566999999355176}) == "t=1.06"
+
+    def test_lists_and_empties_say_so_rather_than_showing_a_repr(self):
+        from facetmark.cli import _stage_line
+
+        assert _stage_line({"skipped": []}) == "skipped=none"
+        assert _stage_line({"kinds": ["session", "same_domain"]}) == (
+            "kinds=session,same_domain")
+        assert _stage_line({}) == "nothing to do"
+
+
+class TestTheCrawlReport:
+    def test_the_url_is_not_in_the_table_title(self):
+        """A Rich table title is centred inside the table's own width, which is
+        set by its widest cell -- two short counter columns. A 40-character URL
+        was hard-wrapped mid-token into `https://sqlite.org/fts5.h` / `tml`."""
+        import inspect
+
+        from facetmark import cli
+
+        src = inspect.getsource(cli.crawl)
+        assert 'Table(title=f"crawl' not in src
+        assert 'console.print(f"[bold]crawl[/bold] {url}")' in src
+
+
 class TestTheDocumentedCommands:
     """Every `facetmark X` the README names is a command that exists.
 
