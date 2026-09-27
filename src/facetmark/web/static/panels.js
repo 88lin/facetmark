@@ -69,6 +69,20 @@ export function tokenPanel(rejected, into) {
 export function failPanel(e, into) {
   if (e instanceof ApiError && e.status === 401) return tokenPanel(true, into);
   if (e instanceof ApiError && e.status === 0) {
+    // Both of these are "no HTTP response", and the difference decides what the
+    // reader should do. An abort that gets this far is the one we started on a
+    // timeout -- a superseded request is dropped by its caller's generation
+    // guard and never reaches a panel -- so the server is running and busy, and
+    // `facetmark serve` would be the wrong thing to tell anyone to run.
+    if (e.aborted) {
+      return showPanel({
+        title: t("err.slow.title"),
+        body: t("err.slow.body"),
+        cmd: t("err.slow.cmd"),
+        tone: "warn",
+        into,
+      });
+    }
     return showPanel({
       title: t("err.offline.title"),
       body: t("err.offline.body"),

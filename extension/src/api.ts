@@ -122,7 +122,11 @@ export interface SearchResponse {
    * across pages when the depth is held fixed.
    */
   depth: number;
-  /** Documents ranked. A lower bound on the library's matches when `depth_capped`. */
+  /**
+   * How many documents matched. Exact for a browse, where the filters are the
+   * retrieval; for a ranked query it is the size of the pool that was ranked,
+   * and a lower bound on the library's matches when `depth_capped`.
+   */
   total: number;
   has_more: boolean;
   /** The pool was cut by the server's depth ceiling, not by the library ending. */

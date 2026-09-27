@@ -392,6 +392,68 @@ class TestPoolFromFilters:
         """Nothing typed is not a request for everything."""
         assert not parse_query("", now=NOW).is_browse
 
+    class TestTheMatchCount:
+        """How many bookmarks the filters select, which is not how many fit.
+
+        A browse's filters *are* its retrieval, so the count is exact and is
+        already known by the time the window is cut. It was thrown away, and the
+        window's own length went out as the result count -- so the same filter
+        reported "51" at ``limit=5`` and "160" at ``limit=200`` on a real
+        library, and the page said "1-5 of 51" with nothing to mark 51 as a
+        ceiling. Three code paths build the pool; each has to answer this.
+        """
+
+        def test_a_positive_filter_counts_past_the_window(self, lib):
+            from facetmark.search.querylang import browse_pool
+
+            parsed = parse_query("domain:github.com", now=NOW)
+            pool = browse_pool(lib, parsed, limit=1, now=NOW)
+            assert pool.ids == [1]
+            assert pool.matched == 2
+
+        def test_a_negation_only_browse_counts_past_the_window(self, lib):
+            """The ``include is None`` path: the library minus one thing."""
+            from facetmark.search.querylang import browse_pool
+
+            pool = browse_pool(lib, parse_query("-facebook", now=NOW), limit=2, now=NOW)
+            assert len(pool.ids) == 2
+            assert pool.matched == 4
+
+        def test_the_sql_fast_path_counts_past_the_window(self, lib):
+            """``sort:date`` alone: no filter at all, so the count is a
+            ``COUNT(*)`` this path is the only one that has to ask for."""
+            from facetmark.search.querylang import browse_pool
+
+            pool = browse_pool(lib, parse_query("sort:date", now=NOW), limit=2, now=NOW)
+            assert len(pool.ids) == 2
+            assert pool.matched == 5
+
+        def test_a_window_with_room_to_spare_needs_no_count_query(self, lib):
+            """The count is only asked for when the window came back full --
+            a short window cannot be hiding anything."""
+            from facetmark.search.querylang import browse_pool
+
+            asked: list[str] = []
+            lib.set_trace_callback(asked.append)
+            try:
+                pool = browse_pool(lib, parse_query("sort:date", now=NOW), limit=10, now=NOW)
+            finally:
+                lib.set_trace_callback(None)
+            assert pool.matched == 5 == len(pool.ids)
+            assert not [s for s in asked if "COUNT(*)" in s], asked
+
+        def test_nothing_matched_is_zero_rather_than_absent(self, lib):
+            from facetmark.search.querylang import browse_pool
+
+            pool = browse_pool(lib, parse_query("domain:nope.example", now=NOW),
+                               limit=10, now=NOW)
+            assert pool == ([], 0)
+
+        def test_the_old_entry_point_still_returns_just_the_ids(self, lib):
+            """``pool_from_filters`` is what the tests above this class call."""
+            parsed = parse_query("domain:github.com", now=NOW)
+            assert pool_from_filters(lib, parsed, limit=10, now=NOW) == [1, 2]
+
     def test_a_percent_in_a_negated_phrase_is_a_literal(self, lib):
         """The title LIKE behind a negation declares an ESCAPE, so ``%`` is a
         character the user typed, not a wildcard. Left unescaped this phrase
