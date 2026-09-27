@@ -37,10 +37,10 @@ from .lexical import lexical_lists, lexical_lists_scored
 from .querylang import (
     ParsedQuery,
     apply_filters,
+    browse_pool,
     filter_sets,
     include_predicate,
     parse_query,
-    pool_from_filters,
     sort_pool,
 )
 from .rerank import RerankDoc, Reranker, get_reranker, reorder
@@ -726,10 +726,20 @@ class SearchResponse:
     #: on the next page: fusion is only order-stable across pages at a fixed
     #: depth once more than one facet is in play (see the paging note above).
     depth: int = 0
-    #: Documents ranked for this query, i.e. the size of the fused pool. It is
-    #: a count of what fusion *considered*, which at the depth ceiling is a
-    #: lower bound on the library's true match count rather than the whole of
-    #: it -- ``depth_capped`` says which of the two this is.
+    #: How many documents this query matched.
+    #:
+    #: For a ranked query that is the size of the fused pool: a count of what
+    #: fusion *considered*, which at the depth ceiling is a lower bound on the
+    #: library's true match count rather than the whole of it -- ``depth_capped``
+    #: says which of the two this is. "How many documents match" is not a
+    #: well-defined question for a ranking, so this is the closest honest answer.
+    #:
+    #: For a browse (``domain:github.com``, a bare ``sort:date``) it is exact.
+    #: There the filters are the retrieval, so the number of bookmarks they
+    #: select is a property of the query rather than of how deep we looked, and
+    #: it is already known by the time the window is cut. Reporting the pool size
+    #: there made the count move with the page size: the same filter answered
+    #: "51" at ``limit=5`` and "160" at ``limit=200``.
     total: int = 0
     #: Whether another page exists. Derived from the pool, except at the depth
     #: ceiling where the pool itself is truncated and the honest answer is
@@ -929,11 +939,16 @@ def quick_search(
         # or a bare ``sort:date``) is a browse, and the filters *are* the
         # retrieval. RRF over one list preserves the order they chose
         # (date-descending by default).
-        ids = pool_from_filters(conn, parsed, limit=page.fetch)
+        pool = browse_pool(conn, parsed, limit=page.fetch)
+        ids = pool.ids
         lists = {"filter": ids}
         fused = rrf(lists, k=k)
-        truncated = len(ids) >= page.fetch
+        # The filters know exactly how many bookmarks they select, so the count
+        # is theirs rather than the window's. See `BrowsePool`.
+        browse_total = pool.matched
+        truncated = pool.matched > len(ids)
     else:
+        browse_total = None
         # The filter constrains retrieval, not just the list retrieval returned:
         # see the note in `search`. Same reasoning, same one call.
         lists, truncated = trim_pool(page, lexical_lists(
@@ -952,12 +967,13 @@ def quick_search(
     rows = hydrate(conn, [f.doc_id for f in window])
     terms = _snippet_terms(parsed, u)
     hits = [_to_hit(rows[f.doc_id], f, terms) for f in window if f.doc_id in rows]
-    has_more, capped = page_signals(page, len(fused), truncated=truncated)
+    total = len(fused) if browse_total is None else browse_total
+    has_more, capped = page_signals(page, total, truncated=truncated)
     return SearchResponse(
         query=query, hits=hits, understanding=u, config="quick",
         facet_sizes={k2: len(v) for k2, v in lists.items()},
         took_ms={"total": (time.perf_counter() - t0) * 1000},
-        limit=page.limit, offset=page.offset, depth=page.depth, total=len(fused),
+        limit=page.limit, offset=page.offset, depth=page.depth, total=total,
         has_more=has_more, depth_capped=capped,
         # `None` means the query carried no syntax at all -- the compatibility
         # guarantee. An ignored token is syntax the user typed, so `echo()`
@@ -1045,6 +1061,10 @@ async def search(
     lists: dict[str, list[int]] = {}
     facet_confidence: dict[str, float] = {}
     truncated = False
+    # Set only on the browse path, where the count is exact. `None` means "use
+    # the size of the pool that was ranked", which is the honest answer when a
+    # ranking rather than a filter decided what is in it.
+    browse_total: int | None = None
     # ``-python`` with no positive text is also a browse: the whole library
     # minus one thing. So is a bare ``sort:date``. ``is_browse`` is the one
     # predicate both entry points read, because they disagreed: this path used
@@ -1074,8 +1094,13 @@ async def search(
     )
     if browse:
         t0 = time.perf_counter()
-        ids = pool_from_filters(conn, parsed, limit=page.fetch)
+        pool = browse_pool(conn, parsed, limit=page.fetch)
+        ids = pool.ids
         lists = {"filter": ids}
+        # The filters are the retrieval here, so they know the exact count. See
+        # `BrowsePool`.
+        browse_total = pool.matched
+        truncated = pool.matched > len(ids)
         mark("filter", t0)
     elif config.abstain_margin > 0.0:
         t0 = time.perf_counter()
@@ -1287,14 +1312,15 @@ async def search(
         expanded.append(h)
 
     timings["total"] = (time.perf_counter() - t_start) * 1000
-    has_more, capped = page_signals(page, len(fused), truncated=truncated)
+    total = len(fused) if browse_total is None else browse_total
+    has_more, capped = page_signals(page, total, truncated=truncated)
     return SearchResponse(
         query=query, hits=hits, expanded=expanded, understanding=understanding,
         config=config.name, facet_sizes={k: len(v) for k, v in lists.items()},
         facet_confidence=facet_confidence,
         context=ctx.as_dict() if ctx else None, rescued=rescued,
         reranker=rr_name, took_ms=timings,
-        limit=page.limit, offset=page.offset, depth=page.depth, total=len(fused),
+        limit=page.limit, offset=page.offset, depth=page.depth, total=total,
         has_more=has_more, depth_capped=capped, degraded_from=degraded_from,
         # `None` means the query carried no syntax at all -- the compatibility
         # guarantee. An ignored token is syntax the user typed, so `echo()`

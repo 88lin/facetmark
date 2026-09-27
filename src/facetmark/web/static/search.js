@@ -24,6 +24,19 @@ const DEBOUNCE_MS = 160;
 const SUGGEST_MS = 200;
 const SUGGEST_MIN = 4;
 
+// A slow search is not a broken one. Stage two waits on an embedding from
+// whatever model the library is pointed at, and a provider that is busy --
+// answering this box while a background index run works through a queue, say --
+// can take tens of seconds. Two numbers, for two different things:
+//
+// SLOW_MS is when the spinner stops being an honest description and we say what
+// is actually happening. GIVE_UP_MS sits past the server's own
+// `request_timeout` (60s by default) so that a model which never answers
+// surfaces as the server's error, with the server's reason, rather than being
+// pre-empted by ours.
+const SLOW_MS = 6000;
+const GIVE_UP_MS = 75000;
+
 // The time chips, as `added:` values. Each chip is one query-language token,
 // so what the chip row does and what the reader can type by hand are the same
 // mechanism wearing two skins -- ported from hister's time-filter chips.
@@ -47,6 +60,9 @@ let rows = [];
 let neighbours = [];
 let cursor = startCursor("");
 let generation = 0;
+// The request the current generation is waiting on, so the next generation can
+// stop it rather than just ignore it. See `run`.
+let inflight = null;
 let timer;
 let sugTimer;
 let sugGeneration = 0;
@@ -601,10 +617,39 @@ export async function run(q, { force = false } = {}) {
   if (!force && q === cursor.query && rows.length) return;
 
   const mine = ++generation;
+  // The generation counter drops a superseded reply. Dropping it is not the
+  // same as stopping it: an ignored request still holds one of the browser's
+  // six connections to this origin until the server gets round to answering
+  // it. Six slow searches -- six keystrokes while the provider is busy -- and
+  // every later request queues behind requests whose answers nobody wants, with
+  // nothing on screen to say why. Aborting is what gives the connection back.
+  inflight?.abort(new DOMException("superseded", "AbortError"));
+  const ac = new AbortController();
+  inflight = ac;
+
   cursor = startCursor(q);
   ui.panel.replaceChildren();
   ui.status.textContent = t("results.searching");
   ui.results.replaceChildren(skeleton(5));
+
+  const slow = setTimeout(() => {
+    if (mine !== generation) return;
+    const line = ui.status.textContent;
+    ui.status.textContent = line ? `${line} · ${t("results.slow")}` : t("results.slow");
+  }, SLOW_MS);
+  const giveUp = setTimeout(() => ac.abort(new DOMException("timeout", "TimeoutError")), GIVE_UP_MS);
+
+  try {
+    await stages(q, mine, ac.signal);
+  } finally {
+    clearTimeout(slow);
+    clearTimeout(giveUp);
+    if (inflight === ac) inflight = null;
+  }
+}
+
+/** The two-stage draw, split out so `run` can own the timers in a `finally`. */
+async function stages(q, mine, signal) {
 
   // Stage one is FTS5 and answers in single-digit milliseconds; stage two needs
   // an embedding round trip. Drawing nothing until stage two is what makes
@@ -612,7 +657,7 @@ export async function run(q, { force = false } = {}) {
   // stage one: it is a different ranking, with its own depth, and paging from
   // it would continue a list that is about to be replaced.
   try {
-    const quick = await api.quick(q, 10);
+    const quick = await api.quick(q, 10, { signal });
     if (mine !== generation) return;
     rows = quick.hits ?? [];
     neighbours = [];
@@ -636,7 +681,7 @@ export async function run(q, { force = false } = {}) {
   }
 
   try {
-    const full = await api.search({ q, limit: PAGE, config: rung, expand });
+    const full = await api.search({ q, limit: PAGE, config: rung, expand, signal });
     if (mine !== generation) return;
     rows = full.hits ?? [];
     neighbours = full.expanded ?? [];

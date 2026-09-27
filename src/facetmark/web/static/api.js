@@ -12,9 +12,15 @@
 // extension's save path, and this page is a reader, not a saver.
 
 export class ApiError extends Error {
-  constructor(status, detail) {
+  constructor(status, detail, { aborted = false } = {}) {
     super(detail || `HTTP ${status}`);
     this.status = status;
+    // Status 0 is "no HTTP response at all", which covers two situations that
+    // need opposite words on screen: the server went away, or we stopped
+    // waiting for one that is still there. Telling a reader to start a server
+    // that is already running is the wrong instruction, so the cause travels
+    // with the error rather than being guessed from the status.
+    this.aborted = aborted;
   }
 }
 
@@ -46,6 +52,12 @@ export async function call(path, init = {}) {
     // A failed fetch to our own origin means the server went away. Status 0 is
     // this client's convention for "never got an HTTP response at all", which
     // is a different problem from any status the server could return.
+    //
+    // Unless we are the ones who stopped it: an aborted request rejects here
+    // too, and it says nothing about whether the server is healthy.
+    if (init.signal?.aborted) {
+      throw new ApiError(0, String(init.signal.reason ?? cause), { aborted: true });
+    }
     throw new ApiError(0, String(cause));
   }
   if (!res.ok) {
@@ -71,23 +83,34 @@ export function qs(params) {
   return s ? `?${s}` : "";
 }
 
-const post = (path, body) => call(path, { method: "POST", body: JSON.stringify(body) });
+const post = (path, body, init = {}) =>
+  call(path, { ...init, method: "POST", body: JSON.stringify(body) });
 
 export const api = {
   // -- search ------------------------------------------------------------
-  quick: (q, limit) => call(`/quick${qs({ q, limit })}`),
-  search: ({ q, limit, offset = 0, depth = 0, config = "full", expand }) =>
-    post("/search", {
-      q,
-      limit,
-      offset,
-      ...(depth ? { depth } : {}),
-      ...(config ? { config } : {}),
-      ...(expand === undefined ? {} : { expand }),
-    }),
-  suggest: (text, limit = 8) => post("/suggest", { text, limit }),
+  //
+  // The four calls a keystroke can start take a `signal`. Every one of them is
+  // superseded by the next keystroke, and a superseded request that is merely
+  // ignored still holds one of the browser's connections to this origin until
+  // the server answers it.
+  quick: (q, limit, { signal } = {}) => call(`/quick${qs({ q, limit })}`, { signal }),
+  search: ({ q, limit, offset = 0, depth = 0, config = "full", expand, signal }) =>
+    post(
+      "/search",
+      {
+        q,
+        limit,
+        offset,
+        ...(depth ? { depth } : {}),
+        ...(config ? { config } : {}),
+        ...(expand === undefined ? {} : { expand }),
+      },
+      { signal },
+    ),
+  suggest: (text, limit = 8, { signal } = {}) => post("/suggest", { text, limit }, { signal }),
   // The query-language completer: fields, values from this library, sorts.
-  suggestQuery: (text, limit = 8) => post("/suggest/query", { text, limit }),
+  suggestQuery: (text, limit = 8, { signal } = {}) =>
+    post("/suggest/query", { text, limit }, { signal }),
   // Save-activity buckets for the library view's timeline strip.
   timeline: () => call("/timeline"),
   synthesize: (q, limit = 8) => post("/synthesize", { q, limit }),

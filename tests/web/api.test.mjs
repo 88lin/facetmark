@@ -8,7 +8,7 @@
 import { test, describe, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 
-import { ApiError, setToken, getToken, call, qs } from "../../src/facetmark/web/static/api.js";
+import { ApiError, setToken, getToken, call, qs, api } from "../../src/facetmark/web/static/api.js";
 
 // A fetch that records what it was asked for and answers however the test set
 // it up. `globalThis.fetch` is restored after every test.
@@ -148,5 +148,83 @@ describe("call", () => {
     setToken("tok");
     await call("/stats", { headers: { authorization: "Bearer other" } });
     assert.equal(seen[0].init.headers.authorization, "Bearer other");
+  });
+});
+
+describe("giving up on a request", () => {
+  // Status 0 means "no HTTP response at all", and it arrives two ways: the
+  // server went away, or we stopped waiting for one that is still there. The
+  // panel that reads this error tells the reader to run `facetmark serve` for
+  // the first, which is the wrong instruction for the second.
+
+  test("an abort is marked, so a busy server is not reported as a dead one", async () => {
+    const ac = new AbortController();
+    globalThis.fetch = async (_path, init) => {
+      ac.abort(new DOMException("timeout", "TimeoutError"));
+      throw new DOMException("The user aborted a request.", "AbortError");
+    };
+    await assert.rejects(call("/search", { signal: ac.signal }), (err) => {
+      assert.ok(err instanceof ApiError);
+      assert.equal(err.status, 0);
+      assert.equal(err.aborted, true);
+      return true;
+    });
+  });
+
+  test("a server that went away is not marked aborted", async () => {
+    globalThis.fetch = async () => {
+      throw new TypeError("fetch failed");
+    };
+    await assert.rejects(call("/stats"), (err) => {
+      assert.equal(err.status, 0);
+      assert.equal(err.aborted, false);
+      return true;
+    });
+  });
+
+  test("an error that is not an abort keeps its own aborted flag false", async () => {
+    answer = { ok: false, status: 503, body: { detail: "busy" } };
+    await assert.rejects(call("/stats"), (err) => {
+      assert.equal(err.aborted, false);
+      return true;
+    });
+  });
+});
+
+describe("the calls a keystroke can start", () => {
+  // Each of these is superseded by the next keystroke. A superseded request
+  // that is only ignored still holds one of the browser's six connections to
+  // this origin until the server answers, so every one of them has to be
+  // stoppable -- which means the signal has to actually reach `fetch`.
+
+  test("forward the abort signal", async () => {
+    const ac = new AbortController();
+    await api.quick("rust", 10, { signal: ac.signal });
+    await api.search({ q: "rust", limit: 20, signal: ac.signal });
+    await api.suggest("rust", 8, { signal: ac.signal });
+    await api.suggestQuery("dom", 8, { signal: ac.signal });
+    assert.deepEqual(
+      seen.map((s) => s.init.signal),
+      [ac.signal, ac.signal, ac.signal, ac.signal],
+    );
+  });
+
+  test("still work when no signal is given", async () => {
+    await api.quick("rust", 10);
+    await api.suggest("rust");
+    assert.equal(seen[0].init.signal, undefined);
+    assert.equal(seen[1].init.signal, undefined);
+  });
+
+  test("keep the signal out of the request body", async () => {
+    // `search` takes one options object and splits it: everything the server
+    // named goes in the JSON, the signal stays in the fetch init. Passing them
+    // through together would send `"signal": {}` to an endpoint that would
+    // reject the whole body.
+    const ac = new AbortController();
+    await api.search({ q: "rust", limit: 20, signal: ac.signal });
+    const body = JSON.parse(seen[0].init.body);
+    assert.equal("signal" in body, false);
+    assert.deepEqual(body, { q: "rust", limit: 20, offset: 0, config: "full" });
   });
 });

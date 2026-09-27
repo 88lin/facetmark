@@ -675,6 +675,65 @@ class TestQuickSearch:
         assert "lex_seg" in r.facet_sizes      # trigram alone would return nothing
 
 
+class TestABrowsesResultCount:
+    """A browse reports how many bookmarks matched, not how many it looked at.
+
+    Found on a real 1857-bookmark library: `domain:github.com` answered
+    `total=51` at `limit=5` and `total=160` at `limit=200`, and `-facebook`
+    answered 51 for a filter that matches almost everything. The count was the
+    candidate pool's length, so it moved with the page size -- and because the
+    depth ceiling was not what cut it, `depth_capped` stayed false and the page
+    presented the number as exact. Every library in this suite was small enough
+    that the pool held the whole match set, which is why nothing caught it.
+    """
+
+    @pytest.fixture
+    def many(self):
+        """A library bigger than the candidate pool, on two domains.
+
+        The size is the point. Every other library in this suite fits inside
+        `page.fetch`, so the pool holds the whole match set and its length *is*
+        the count -- which is exactly why the bug was invisible here and obvious
+        on a real one. 120 puts both domains past the default ceiling of 50.
+        """
+        conn = open_db(":memory:")
+        base = 1_700_000_000
+        for i in range(1, 121):
+            domain = "a.test" if i % 2 else "b.test"
+            url = f"https://{domain}/{i}"
+            ts = base + i * 300
+            conn.execute(
+                "INSERT INTO bookmark(id,url,url_norm,url_hash,title,domain,"
+                "date_added,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)",
+                (i, url, url, f"h{i}", f"page {i}", domain, ts, ts, ts),
+            )
+            sync_fts(conn, i, title=f"page {i}")
+        conn.commit()
+        return conn
+
+    @pytest.mark.parametrize("q,matched", [
+        ("domain:a.test", 60),       # a positive filter
+        ("-nothing", 120),           # negation only: the whole library
+        ("sort:date", 120),          # no filter at all: the SQL fast path
+    ])
+    @pytest.mark.parametrize("limit", [2, 5, 50])
+    def test_the_count_does_not_move_with_the_page_size(self, many, q, matched, limit):
+        r = quick_search(many, q, limit=limit)
+        assert r.total == matched
+        assert len(r.hits) == min(limit, matched)
+
+    def test_has_more_follows_the_real_count(self, many):
+        assert quick_search(many, "domain:a.test", limit=2).has_more
+        assert not quick_search(many, "domain:a.test", limit=60).has_more
+
+    async def test_the_ranked_pass_agrees_with_the_first_paint(self, many, mock_settings):
+        """The two entry points disagreeing about a browse is the bug class this
+        file keeps finding: the count has to come from the same place in both."""
+        first = quick_search(many, "domain:a.test", limit=2)
+        ranked = await search(many, "domain:a.test", limit=2, settings=mock_settings)
+        assert (first.total, ranked.total) == (60, 60)
+
+
 class TestFullSearch:
     async def test_it_returns_hits_with_provenance(self, indexed, mock_settings):
         conn, prov = indexed

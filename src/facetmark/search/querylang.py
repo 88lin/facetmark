@@ -52,6 +52,7 @@ import re
 import sqlite3
 import time
 from dataclasses import dataclass, field
+from typing import NamedTuple
 
 from ..db import in_chunks
 
@@ -851,9 +852,38 @@ _SORT_SQL: dict[str, str] = {
 }
 
 
+class BrowsePool(NamedTuple):
+    """A browse's candidate window, and how many bookmarks its filters select.
+
+    ``ids`` is capped at the caller's ``limit``: that is all one page can rank.
+    ``matched`` is not capped, and it is the number that belongs in a result
+    count -- a browse's filters *are* its retrieval, so how many bookmarks they
+    select is exact rather than an artefact of how deep we chose to look, and it
+    is already known by the time the window is cut.
+
+    Reporting ``len(ids)`` instead makes the count a property of the page size:
+    ``domain:github.com`` answered "51" at ``limit=5`` and "160" at
+    ``limit=200`` on the same library, and the page said "1-5 of 51" with no
+    sign that 51 was a ceiling.
+    """
+
+    ids: list[int]
+    matched: int
+
+
 def pool_from_filters(
     conn: sqlite3.Connection, parsed: ParsedQuery, *, limit: int, now: float | None = None
 ) -> list[int]:
+    """The candidate pool for a query whose filters left no free text.
+
+    See :func:`browse_pool`, which this drops the match count from.
+    """
+    return browse_pool(conn, parsed, limit=limit, now=now).ids
+
+
+def browse_pool(
+    conn: sqlite3.Connection, parsed: ParsedQuery, *, limit: int, now: float | None = None
+) -> BrowsePool:
     """The candidate pool for a query whose filters left no free text.
 
     Ordered by the requested sort, or newest-first when unspecified: a pure
@@ -873,12 +903,21 @@ def pool_from_filters(
         # The whole library in some order, and the order is one SQL can express
         # identically: let it sort and stop at `limit` instead of handing 20,000
         # rows to Python to sort and then throwing all but 60 away.
-        return [
+        ids = [
             int(r[0])
             for r in conn.execute(
                 f"SELECT id FROM bookmark ORDER BY {order_sql} LIMIT ?", (limit,)
             )
         ]
+        # This is the one path that does not already know the answer. Only a
+        # full window can be hiding more rows, so that is the only time the
+        # count is worth a statement of its own.
+        matched = (
+            len(ids)
+            if len(ids) < limit
+            else int(conn.execute("SELECT COUNT(*) FROM bookmark").fetchone()[0])
+        )
+        return BrowsePool(ids, matched)
     if include is None:
         # Nothing positive constrains the pool -- `-facebook`, or a text sort.
         # Read the sort columns straight off the table in one scan: going
@@ -894,13 +933,14 @@ def pool_from_filters(
     else:
         ids = sorted(include - exclude)
         if not ids:
-            return []
+            return BrowsePool([], 0)
         rows = _row_map(conn, ids)
     if not ids:
-        return []
+        return BrowsePool([], 0)
     key, rev = _sort_spec(parsed.sort) or _DATE_DESC
     ordered = sorted(ids, key=lambda i: key(rows[i]), reverse=rev)
-    return ordered[:limit]
+    # `ids` is every bookmark the filters select; the window is a slice of it.
+    return BrowsePool(ordered[:limit], len(ids))
 
 
 def sort_pool(
@@ -936,10 +976,12 @@ def apply_filters(
 __all__ = [
     "FIELDS",
     "SORTS",
+    "BrowsePool",
     "FieldFilter",
     "ParsedQuery",
     "Term",
     "apply_filters",
+    "browse_pool",
     "filter_sets",
     "parse_query",
     "pool_from_filters",
