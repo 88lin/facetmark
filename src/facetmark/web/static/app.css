@@ -1785,10 +1785,17 @@ li:nth-child(3) .hit.lead {
   border-color: var(--facet-edge);
 }
 
-/* A command to copy, inset into the panel that asked for it. Light, not a
-   terminal: the app scene forbids dark panels in functional areas, and a
-   black slab inside a gold notice is exactly the thing it forbids. */
-.panel .cmd {
+/* A command to copy, inset into whatever asked for it. Light, not a terminal:
+   the app scene forbids dark panels in functional areas, and a black slab
+   inside a gold notice is exactly the thing it forbids.
+
+   Not `.panel .cmd`. The settings view puts the config file's path in one of
+   these and it is not inside a panel, so it got none of this -- including the
+   `overflow-x`. A bare `<pre>` does not wrap, so on Windows, where the path is
+   half again as long as it is on Linux, it ran 212px past a 390px viewport and
+   took the page's width with it. CI never saw it because CI's path is short
+   enough to fit. */
+.cmd {
   margin: var(--sp-4) 0 0;
   padding: var(--sp-3) var(--sp-4);
   border: 1px solid var(--border);
@@ -1797,6 +1804,13 @@ li:nth-child(3) .hit.lead {
   color: var(--ink);
   font-family: var(--font-mono);
   font-size: var(--fs-1);
+  /* Wrap rather than scroll. A `<pre>` defaults to `white-space: pre`, and a
+     212px-wide horizontal scrollbar inside a 390px phone is a worse answer
+     than two lines. `anywhere` is needed because a path has no spaces to break
+     at. A soft wrap is not copied as a newline, so the command still pastes as
+     one line -- which `pre-wrap` also guarantees for any real newline in it. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   overflow-x: auto;
 }
 
