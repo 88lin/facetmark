@@ -796,12 +796,26 @@ main.wide {
   background: var(--iris-soft);
 }
 
-.sugg .t {
-  font-size: var(--fs-2);
-  font-weight: 500;
+/* Both of these are spans -- a button's content model is phrasing -- and
+   `overflow` and `text-overflow` are ignored on an inline box. So the ellipsis
+   below was inert: `white-space: nowrap` took effect, nothing clipped the
+   result, and a long Chinese title ran 900px past a 390px viewport and gave the
+   whole page a horizontal scrollbar. The result cards next door never had this
+   because they use divs. A block box is the whole fix.
+
+   Both lines are clipped, not just the title: the second line carries a domain
+   and a folder path, which is the other thing in this list that gets long. */
+.sugg .t,
+.sugg .w {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.sugg .t {
+  font-size: var(--fs-2);
+  font-weight: 500;
 }
 
 .sugg .w {
@@ -1293,6 +1307,9 @@ li:nth-child(3) .hit.lead {
 }
 
 .hit .where {
+  /* Same reason as `.line .t`: a clip needs a block box to clip against. This
+     one renders as a div today and works by luck rather than by rule. */
+  display: block;
   margin-top: 2px;
   font-size: var(--fs-1);
   color: var(--ink-faint);
@@ -1569,7 +1586,14 @@ li:nth-child(3) .hit.lead {
   min-width: 0;
 }
 
+/* `display: block` is load-bearing, not decoration. These two rules clip, and
+   `overflow` and `text-overflow` do nothing on an inline box -- so whether the
+   ellipsis works comes down to which tag the JS happened to render. `.w` is a
+   div and worked; `.t` is the `<a>` to the bookmark and did not, so a long
+   title in the related list ran 63px past the sheet. Declaring the box here
+   makes the rule independent of that choice. */
 .line .t {
+  display: block;
   font-size: var(--fs-2);
   font-weight: 500;
   overflow: hidden;
@@ -1578,6 +1602,7 @@ li:nth-child(3) .hit.lead {
 }
 
 .line .w {
+  display: block;
   font-size: var(--fs-1);
   color: var(--ink-faint);
   overflow: hidden;
@@ -1605,7 +1630,12 @@ li:nth-child(3) .hit.lead {
  */
 .sittings {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  /* `min(300px, 100%)` rather than a bare 300px: a minmax floor is hard, so on
+     a 320px phone -- 270px of content box -- every card stayed 300px wide and
+     hung 30px off the side, taking the whole page's width with it. The six
+     other content grids here had the same floor and are spelled the same way;
+     with room to spare the two are identical. */
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
   gap: var(--sp-4);
   margin-top: var(--sp-4);
 }
@@ -2178,7 +2208,7 @@ li:nth-child(3) .hit.lead {
 
 .grid2 {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(252px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(252px, 100%), 1fr));
   gap: var(--sp-4) var(--sp-5);
   margin-top: var(--sp-4);
 }
@@ -2230,7 +2260,7 @@ li:nth-child(3) .hit.lead {
    one character per line. */
 .stages {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(92px, 100%), 1fr));
   gap: var(--sp-2);
   margin-top: var(--sp-4);
 }
@@ -2400,7 +2430,7 @@ li:nth-child(3) .hit.lead {
    window each. */
 .numbers {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
   gap: var(--sp-3);
   margin-top: var(--sp-5);
 }
@@ -2498,7 +2528,7 @@ li:nth-child(3) .hit.lead {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
   gap: var(--sp-3);
   margin-top: var(--sp-4);
 }
@@ -2507,7 +2537,7 @@ li:nth-child(3) .hit.lead {
    and wrong for a block that is always exactly two cards: the pair ends up
    huddled against the left edge of a four-column grid. */
 .grid.duo {
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
 }
 
 /* Labelled progress row: label, thin track, right-aligned percent. */
@@ -3040,6 +3070,18 @@ li:nth-child(3) .hit.lead {
 
   .tab .n {
     display: none;
+  }
+
+  /* One ellipsised line of a Chinese title is about eight characters at this
+     width -- enough to see that a suggestion exists, not enough to tell two
+     apart. Two clamped lines stay bounded and show twice as much. The domain
+     line underneath stays at one: it is an identifier, and its front is the
+     part that identifies it. */
+  .sugg .t {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
   }
 }
 
