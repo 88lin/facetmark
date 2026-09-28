@@ -649,7 +649,30 @@ export async function run(q, { force = false } = {}) {
 }
 
 /** The two-stage draw, split out so `run` can own the timers in a `finally`. */
+/** The status line for the lexical first paint, before the ranking lands.
+ *
+ * `unranked` means stage two is over and did not answer, so the line has to
+ * stop describing a request in flight. With no lexical hit there is nothing
+ * honest left to say -- the count is unknown rather than zero, because the
+ * ranking never ran -- so the panel carries it alone.
+ */
+function firstPaintLine(quick, { unranked = false } = {}) {
+  const n = rows.length;
+  if (!n && unranked) return "";
+  return [
+    n ? t("results.all", { n: count(n, S.lang) }) : t("results.searching"),
+    t("results.lexical"),
+    unranked ? t("results.unranked") : "",
+    // The grammar echo belongs on the first paint too, not only on the ranked
+    // one. A pure-filter query is *answered* by this stage -- the filters are
+    // the retrieval -- and an `ignored` token that only appears a few hundred
+    // milliseconds later is a correction nobody is still reading for.
+    filterSummary(quick.filters),
+  ].filter(Boolean).join(" \u00b7 ");
+}
+
 async function stages(q, mine, signal) {
+  let first = null;
 
   // Stage one is FTS5 and answers in single-digit milliseconds; stage two needs
   // an embedding round trip. Drawing nothing until stage two is what makes
@@ -657,20 +680,12 @@ async function stages(q, mine, signal) {
   // stage one: it is a different ranking, with its own depth, and paging from
   // it would continue a list that is about to be replaced.
   try {
-    const quick = await api.quick(q, 10, { signal });
+    first = await api.quick(q, 10, { signal });
     if (mine !== generation) return;
-    rows = quick.hits ?? [];
+    rows = first.hits ?? [];
     neighbours = [];
     renderResults();
-    ui.status.textContent = [
-      rows.length ? t("results.all", { n: count(rows.length, S.lang) }) : t("results.searching"),
-      t("results.lexical"),
-      // The grammar echo belongs on the first paint too, not only on the ranked
-      // one. A pure-filter query is *answered* by this stage -- the filters are
-      // the retrieval -- and an `ignored` token that only appears a few hundred
-      // milliseconds later is a correction nobody is still reading for.
-      filterSummary(quick.filters),
-    ].filter(Boolean).join(" \u00b7 ");
+    ui.status.textContent = firstPaintLine(first);
   } catch (e) {
     if (mine === generation) {
       ui.results.replaceChildren();
@@ -710,7 +725,16 @@ async function stages(q, mine, signal) {
   } catch (e) {
     // Stage one is already on screen and is a real answer, so a stage-two
     // failure downgrades the page rather than blanking it.
-    if (mine === generation) failPanel(e, ui.panel);
+    //
+    // The status line has to be told, though. It was left describing a request
+    // that is over: with no lexical hit it still read "searching", so the page
+    // claimed to be working and to have failed at the same time, and stayed
+    // that way. A query with no lexical hit is precisely the vague one this
+    // index exists for, so that is not a corner.
+    if (mine === generation) {
+      ui.status.textContent = firstPaintLine(first, { unranked: true });
+      failPanel(e, ui.panel);
+    }
   }
 }
 

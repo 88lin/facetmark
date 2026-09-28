@@ -115,6 +115,8 @@ class App:
         self.port = free_port()
         self.dir = Path(tempfile.mkdtemp(prefix="fm-browser-"))
         self.proc: subprocess.Popen | None = None
+        self.log: Path = self.dir / "serve.log"
+        self._log_fh = None
 
     def __enter__(self) -> App:
         db = self.dir / "demo.db"
@@ -131,9 +133,16 @@ class App:
             "FACETMARK_USE_MOCK_PROVIDER": "true",
             "FACETMARK_PORT": str(self.port),
         }
+        # A file, not `PIPE`. uvicorn logs a line per request and nothing here
+        # ever reads the pipe, so once the OS buffer fills the server blocks on
+        # its own write and stops answering: the first check passes and every
+        # navigation after it times out. Linux' 64KB buffer is why CI has been
+        # getting away with it; a Windows pipe is small enough to hit in one
+        # check. The log stays on disk so a failure is still diagnosable.
+        self._log_fh = open(self.log, "wb")
         self.proc = subprocess.Popen(
             [sys.executable, "-m", "facetmark.cli", "serve"],
-            env=env, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            env=env, cwd=ROOT, stdout=self._log_fh, stderr=subprocess.STDOUT,
         )
         self._wait()
         return self
@@ -145,8 +154,7 @@ class App:
         deadline = time.time() + seconds
         while time.time() < deadline:
             if self.proc is not None and self.proc.poll() is not None:
-                out = self.proc.stdout.read().decode() if self.proc.stdout else ""
-                raise RuntimeError(f"server exited early:\n{out}")
+                raise RuntimeError(f"server exited early:\n{self.log_text()}")
             with (
                 suppress(urllib.error.URLError, ConnectionError, OSError),
                 urllib.request.urlopen(f"{self.base}/health", timeout=2) as r,
@@ -156,11 +164,18 @@ class App:
             time.sleep(0.3)
         raise RuntimeError("server did not come up")
 
+    def log_text(self) -> str:
+        with suppress(OSError):
+            return self.log.read_text(encoding="utf-8", errors="replace")
+        return ""
+
     def __exit__(self, *_exc: object) -> None:
         if self.proc is not None:
             self.proc.terminate()
             with suppress(subprocess.TimeoutExpired):
                 self.proc.wait(timeout=10)
+        if self._log_fh is not None:
+            self._log_fh.close()
 
     @property
     def base(self) -> str:
@@ -923,6 +938,65 @@ async def the_fifth_tab_is_reachable(browser, app: App, rep: Report) -> None:
             await ctx.close()
 
 
+async def a_failed_ranking_stops_saying_searching(browser, app: App, rep: Report) -> None:
+    """The status line went on claiming to be searching after it had given up.
+
+    Stage one is FTS5 and stage two needs an embedding, so a slow or unreachable
+    model provider fails only the second one. That path was already right about
+    the results -- the lexical hits stay on screen, and the failure panel goes
+    above them rather than over them -- but the status line was left describing
+    a request that was over. With no lexical hit it still read "searching", so
+    the page claimed to be working and to have failed at the same time, and
+    stayed that way until the reader typed again.
+
+    A query with no lexical hit is precisely the vague one this index exists
+    for, which is why this is not a corner.
+    """
+    async def refuse_the_ranking(route) -> None:
+        await route.fulfill(
+            status=503,
+            content_type="application/json",
+            body='{"detail":"probe: the ranking stage refused"}',
+        )
+
+    for label, query, expect_hits in (
+        ("no lexical hit", "qzzxjwvk", False),
+        ("with lexical hits", QUERY["en"], True),
+    ):
+        ctx, page, _, _ = await open_page(browser, width=1280, lang="en", theme="light")
+        # Fail stage two the way an unreachable provider does, and let stage one
+        # through untouched: that is the state the defect lived in.
+        await page.route("**/search", refuse_the_ranking)
+        await page.goto(f"{app.base}/app#/search", wait_until="load")
+        await settle(page)
+        await page.fill("#q", query)
+        await page.keyboard.press("Enter")
+        await page.wait_for_selector("#panel .panel", timeout=20000)
+        await page.wait_for_timeout(400)
+
+        state = await page.evaluate("""() => ({
+          status: document.getElementById('status').textContent.trim(),
+          panel: document.getElementById('panel').innerText.trim(),
+          n: document.querySelectorAll('#results li').length,
+        })""")
+        w = f"regression/unranked ({label})"
+        rep.ok(w, bool(state["panel"]), "the failure was not reported at all")
+        rep.ok(w, "searching" not in state["status"].lower(),
+               f"still saying it is searching after giving up: {state['status']!r}")
+        if expect_hits:
+            rep.ok(w, state["n"] > 0,
+                   "a stage-two failure took the lexical results with it")
+            rep.ok(w, "ranking" in state["status"].lower(),
+                   f"the shown results are not named as unranked: {state['status']!r}")
+        else:
+            # Nothing was retrieved and nothing ranked, so the count is unknown
+            # rather than zero. Claiming "no results" would assert something the
+            # request never established.
+            rep.ok(w, state["status"] == "",
+                   f"invented a verdict with nothing to back it: {state['status']!r}")
+        await ctx.close()
+
+
 async def touch_hides_the_keyboard_hint(browser, app: App, rep: Report) -> None:
     """The `/` shortcut badge stayed on a phone that has no `/` key."""
     ctx, page, _, _ = await open_page(browser, width=390, lang="en", theme="light")
@@ -1088,6 +1162,7 @@ async def run(only: str) -> int:
             if only in ("all", "regressions"):
                 await esc_keeps_the_search(browser, app, rep)
                 await the_fifth_tab_is_reachable(browser, app, rep)
+                await a_failed_ranking_stops_saying_searching(browser, app, rep)
                 await touch_hides_the_keyboard_hint(browser, app, rep)
                 await a_session_link_opens_that_session(browser, app, rep)
                 await dark_mode_is_actually_dark(browser, land, rep)
