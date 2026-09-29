@@ -1077,6 +1077,13 @@ footer.site { padding: var(--sp-6) 0 var(--sp-7); background: var(--cream-dark);
 
 @media (max-width: 900px) {
   .gext { grid-template-columns: minmax(0, 1fr); }
+  /* The full nav needs about 740px of its own, and between here and the 700px
+     rules below there was nothing: at 768px GitHub ended 4px past the edge and
+     the language toggle sat entirely off screen -- on a bilingual site, the one
+     control for the other language. Compact rather than hide, so every page
+     stays one tap away until the row genuinely cannot hold them. */
+  nav.top { gap: 0; min-width: 0; }
+  nav.top a { font-size: var(--fs-2); padding: var(--sp-1) var(--sp-2); }
 }
 @media (max-width: 820px) {
   .g6 { grid-template-columns: repeat(2, minmax(0, 1fr)); }

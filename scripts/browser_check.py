@@ -57,7 +57,7 @@ PAGES = ["index", "quickstart", "webui", "config", "integrations", "guide", "mea
 # 390 is an iPhone 14; 768 an iPad in portrait; 1440 a laptop.  The narrow two
 # are where the layout bugs live, so both languages get both of them.
 APP_WIDTHS = [390, 768, 1440]
-SITE_WIDTHS = [390, 1280]
+SITE_WIDTHS = [390, 768, 1280]
 
 QUERY = {"en": "vector index", "zh": "向量 索引"}
 
