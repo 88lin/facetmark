@@ -15,7 +15,7 @@ EN = {
     "other_label": "\u4e2d\u6587",
     "other_title": "\u5207\u6362\u5230\u4e2d\u6587",
     "skip": "Skip to content",
-    "copy": {"label": "copy", "done": "copied"},
+    "copy": {"label": "copy", "done": "copied", "seealso": "See also"},
     "nav": {
         "home": "Overview",
         "quickstart": "Start",
@@ -105,7 +105,7 @@ EN = {
             ),
         ],
         "bar": [
-            "facetmark v{version} \u00b7 MIT",
+            "facetmark v@@VERSION@@ \u00b7 MIT",
             "Python 3.10+ \u00b7 one SQLite file",
             "No number on this site without a protocol behind it.",
         ],
@@ -807,7 +807,7 @@ EN["quickstart"] = {
                 ("p",
                  "It prints the address. Open the second line in a browser:"),
                 ("cb", "shell",
-                 "facetmark 1.6.1  http://127.0.0.1:8787\n"
+                 "facetmark @@VERSION@@  http://127.0.0.1:8787\n"
                  "open the search page:     http://127.0.0.1:8787/app"),
                 ("p",
                  "That is the whole interface. Type a question the way you "
@@ -1535,7 +1535,7 @@ EN["guide"] = {
                  "editor to configure, no <code>curl</code>."),
                 ("cb", "shell",
                  "facetmark serve\n"
-                 "# facetmark 1.6.1  http://127.0.0.1:8787\n"
+                 "# facetmark @@VERSION@@  http://127.0.0.1:8787\n"
                  "# open the search page:     http://127.0.0.1:8787/app\n"
                  "# pairing token written to: ~/.facetmark/pairing-token.txt"),
                 ("p",
