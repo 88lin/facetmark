@@ -1048,11 +1048,26 @@ def timeline(
             (older_than, months),
         )
     ]
-    older = conn.execute(
-        "SELECT COUNT(*) n FROM bookmark WHERE date_added IS NOT NULL"
-        " AND date_added > 0 AND date_added < ?",
-        (older_than,),
-    ).fetchone()["n"]
+    # What the strip says is "N older than the months shown", so this has to be
+    # the tail the month list did not reach -- not everything outside the week,
+    # which is what the month buckets are drawn from. Counted the old way it
+    # double-counted every bucket above it: a 40-bookmark demo showed three
+    # months summing to 40 and then claimed 40 more below them, and a real
+    # 1,857-bookmark library claimed 1,832.
+    #
+    # Compared on the same `strftime` expression that did the bucketing rather
+    # than on a reconstructed month boundary, so the two cannot disagree about
+    # where a month starts. Lexical order on `YYYY-MM` is chronological.
+    if len(month_list) < months:
+        older = 0
+    else:
+        oldest_shown = month_list[-1]["key"].split(":", 1)[1]
+        older = conn.execute(
+            "SELECT COUNT(*) n FROM bookmark WHERE date_added IS NOT NULL"
+            " AND date_added > 0 AND date_added < ?"
+            " AND strftime('%Y-%m', date_added, 'unixepoch') < ?",
+            (older_than, oldest_shown),
+        ).fetchone()["n"]
     return {
         "days": days,
         "months": month_list,

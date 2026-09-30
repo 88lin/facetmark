@@ -58,8 +58,97 @@ class TestTimeline:
     def test_months_bucket_the_rest(self, conn):
         tl = timeline(conn, now=NOW)
         assert tl["months"][0]["count"] == 1
-        assert tl["older"] == 1
+        # Not 1. The one bookmark outside the week *is* that month bucket, and
+        # the strip's label reads "N older than the months shown". This line
+        # asserted 1 and was counting the same bookmark twice -- the bug the
+        # page was printing, written down as an expectation.
+        assert tl["older"] == 0
         assert tl["oldest"] == D40
+
+
+def _month_start(now_ts: int, back: int) -> int:
+    """Midnight UTC on the first of the month ``back`` months before ``now``."""
+    import datetime as dt
+
+    d = dt.datetime.fromtimestamp(now_ts, tz=dt.timezone.utc).replace(
+        day=1, hour=0, minute=0, second=0, microsecond=0
+    )
+    for _ in range(back):
+        d = (d - dt.timedelta(days=1)).replace(day=1)
+    return int(d.timestamp())
+
+
+def _add(conn, i: int, ts: int) -> None:
+    conn.execute(
+        "INSERT INTO bookmark(id, url, url_norm, url_hash, title, host, domain,"
+        " date_added, source, indexable, created_at, updated_at)"
+        " VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+        (i, f"https://e.test/{i}", f"https://e.test/{i}", f"hh{i}",
+         f"page {i}", "e.test", "e.test", ts, "api", 1, ts, ts),
+    )
+
+
+class TestTheOlderCount:
+    """The strip says "N older than the months shown", so N is the tail the
+    month list did not reach.
+
+    It was counting everything outside the seven-day window, which is the set
+    the month buckets are drawn *from*. The demo library showed three months
+    summing to 40 and then claimed 40 more below them; a real 1,857-bookmark
+    library claimed 1,832 under twelve months that held almost all of them.
+    """
+
+    @pytest.fixture()
+    def empty(self):
+        from facetmark.db import open_db
+
+        c = open_db(":memory:")
+        yield c
+        c.close()
+
+    def test_a_library_the_months_reach_has_no_tail(self, empty):
+        for i in range(1, 6):
+            _add(empty, i, _month_start(NOW, i) + 10 * 86400)
+        empty.commit()
+        tl = timeline(empty, now=NOW)
+        assert len(tl["months"]) == 5
+        assert tl["older"] == 0
+
+    def test_only_what_the_month_list_did_not_reach_is_counted(self, empty):
+        for i in range(1, 16):
+            _add(empty, i, _month_start(NOW, i) + 10 * 86400)
+        empty.commit()
+        tl = timeline(empty, now=NOW, months=12)
+        assert len(tl["months"]) == 12
+        assert tl["older"] == 3
+
+    @pytest.mark.parametrize("seeded,months", [(5, 12), (15, 12), (15, 6), (1, 1)])
+    def test_the_three_pieces_add_up_to_the_library(self, empty, seeded, months):
+        """The invariant that makes the label true: a bookmark is in the week,
+        or in a month shown, or in the tail -- and in exactly one of them."""
+        for i in range(1, seeded + 1):
+            _add(empty, i, _month_start(NOW, i) + 10 * 86400)
+        empty.commit()
+        tl = timeline(empty, now=NOW, months=months)
+        counted = (
+            sum(d["count"] for d in tl["days"])
+            + sum(m["count"] for m in tl["months"])
+            + tl["older"]
+        )
+        assert counted == seeded
+
+    def test_the_month_boundary_is_the_one_the_buckets_used(self, empty):
+        """A save in the first second of the oldest month shown belongs to that
+        bucket, not to the tail. The count and the bucketing read the same
+        ``strftime`` expression so they cannot disagree about where a month
+        starts -- this is the assertion that keeps them reading it."""
+        for i in range(1, 13):
+            _add(empty, i, _month_start(NOW, i) + 10 * 86400)
+        _add(empty, 99, _month_start(NOW, 12))
+        empty.commit()
+        tl = timeline(empty, now=NOW, months=12)
+        assert tl["months"][-1]["count"] == 2
+        assert tl["older"] == 0
 
     def test_an_empty_library_answers_zeroes_not_an_error(self, conn):
         conn.execute("DELETE FROM bookmark")

@@ -26,6 +26,28 @@ sys.path.insert(0, HERE)
 from content_en import EN, REPO  # noqa: E402
 from content_zh import ZH  # noqa: E402
 
+
+def project_version() -> str:
+    """The version the site claims, read from the package rather than typed.
+
+    The footer said ``v1.6.1`` while the product was ``2.0.0``. Nothing caught
+    it: every test on this site checks how it looks, and none of them asks
+    whether what it says is true. Read rather than imported, so building the
+    site does not require the package to be installed.
+    """
+    init = os.path.join(HERE, "..", "..", "src", "facetmark", "__init__.py")
+    with open(init, encoding="utf-8") as fh:
+        m = re.search(r'__version__\s*=\s*"([^"]+)"', fh.read())
+    if not m:
+        raise SystemExit(f"no __version__ in {init}")
+    return m.group(1)
+
+
+#: Facts the site states that the repository already knows. Written as
+#: ``{name}`` in the content files and filled in here, so the claim and the
+#: source of truth cannot drift apart.
+DERIVED = {"version": project_version()}
+
 # Where the pages are actually served, derived from REPO so a move of the
 # repository does not leave a stale absolute URL behind.  Link previews need
 # absolute image URLs, which is the only reason the site knows its own address.
@@ -488,7 +510,7 @@ def foot_html(t: dict) -> str:
             out.append(f'<li><a href="{href}"{rel}>{esc(label)}</a></li>')
         out.append("</ul></div>")
     out.append('</div><div class="foot-bar">')
-    out += [f"<span>{esc(x)}</span>" for x in t["foot"]["bar"]]
+    out += [f"<span>{esc(x.format(**DERIVED))}</span>" for x in t["foot"]["bar"]]
     out.append("</div></div></footer>")
     return "".join(out)
 
@@ -631,7 +653,6 @@ def page_index(t: dict) -> str:
     o.append('</div><div class="chips">')
     for k, v in i["chips"]:
         o.append(f'<span class="chip">{esc(k)} <b>{esc(v)}</b></span>')
-    o.append('<span class="chip" id="stars-chip" hidden>\u2605 <b id="star-count"></b></span>')
     o.append("</div></div><div>")
     o.append(
         '<div class="win dark term"><div class="win-bar">'

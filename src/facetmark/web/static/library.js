@@ -75,7 +75,11 @@ function timelineStrip(tl) {
   // position never changes. Marked on the last child rather than by comparing
   // dates in the browser: the buckets are UTC and the browser is not.
   days.lastElementChild?.classList.add("now");
-  box.appendChild(days);
+  // A week with nothing in it draws seven 3px stubs under 60px of empty box,
+  // which reads as a chart that failed to load rather than as a quiet week --
+  // and a library imported once and then left alone is in that state most of
+  // the time. Say it instead. The months below still carry the history.
+  box.appendChild(tl.days.some((d) => d.count) ? days : el("p", "dim", t("tl.quiet")));
 
   // Months are clickable: each one is one `added:` token, so the timeline
   // and the search box are the same language.

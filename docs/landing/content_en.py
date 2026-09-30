@@ -67,17 +67,20 @@ EN = {
                     ("Get your bookmarks in", "guide.html#import"),
                     ("Model access", "guide.html#models"),
                     ("Build the index", "guide.html#index"),
+                    ("Settings", "config.html"),
                     ("Troubleshooting", "guide.html#trouble"),
                 ],
             ),
             (
                 "Interfaces",
                 [
+                    ("The web page", "webui.html"),
                     ("The local page", "guide.html#webui"),
                     ("Command line", "guide.html#commands"),
                     ("HTTP API", "guide.html#serve"),
                     ("MCP server", "guide.html#mcp"),
                     ("Browser extension", "guide.html#extension"),
+                    ("Connect other tools", "integrations.html"),
                     ("karakeep plugin", "guide.html#karakeep"),
                 ],
             ),
@@ -102,7 +105,7 @@ EN = {
             ),
         ],
         "bar": [
-            "facetmark v1.6.1 \u00b7 MIT",
+            "facetmark v{version} \u00b7 MIT",
             "Python 3.10+ \u00b7 one SQLite file",
             "No number on this site without a protocol behind it.",
         ],
@@ -124,7 +127,7 @@ EN = {
         ],
         "chips": [
             ("Python", "3.10+"),
-            ("Tests", "1,619"),
+            ("Tests", "1,700+"),
             ("Licence", "MIT"),
             ("Storage", "1 SQLite file"),
             ("Upload", "none"),
@@ -979,7 +982,7 @@ EN["guide"] = {
                  "cd facetmark\n"
                  "python -m venv .venv && . .venv/bin/activate\n"
                  'pip install -e ".[dev]"\n\n'
-                 "pytest -q                 # 1,619 tests\n"
+                 "pytest -q                 # 1,700+ tests\n"
                  "ruff check src tests scripts"),
                 ("callout", "warn", "Do not reformat the codebase",
                  "<p>It is hand-formatted. <code>ruff check</code> is part of "

@@ -543,7 +543,6 @@ nav.top a.on:hover { color: var(--btn-fg); background: var(--btn-bg-h); }
 }
 .chip { grid-column: span 2; }
 .chip:nth-child(4), .chip:nth-child(5) { grid-column: span 3; }
-.chip[hidden] { display: none; }
 .chip {
   display: block; padding: var(--sp-2) var(--sp-3) var(--sp-3);
   border: 1.6px dashed var(--indigo); border-radius: var(--radius);
@@ -1039,8 +1038,16 @@ kbd {
   border-left: 2px solid var(--hairline); position: relative; border-radius: 0 6px 6px 0;
 }
 .toc a::before {
-  content: counter(t, decimal-leading-zero); position: absolute; left: 8px; top: 50%; width: 22px;
-  transform: translateY(-50%); text-align: right; color: var(--ink-light); font-variant-numeric: tabular-nums;
+  /* The number box ran from 8px to 30px and the label started at 32px, so the
+     two were 2px apart and read as one word: `01How to read this page`. Moved
+     left and narrowed rather than padding the label further in, because the
+     rail is ~230px wide and 16px of it is a wrapped line.
+
+     Top rather than centred: on a three-line entry the number sat against the
+     middle line, so it read as interrupting the title instead of labelling it.
+     A numbered list is numbered from its first line. */
+  content: counter(t, decimal-leading-zero); position: absolute; left: var(--sp-1); top: var(--sp-1); width: 20px;
+  text-align: right; color: var(--ink-light); font-variant-numeric: tabular-nums;
 }
 .toc a:hover { color: var(--ink); background: var(--surface-2); }
 .toc a.on { color: var(--accent-ink); border-left-color: var(--brand); background: var(--info-soft); font-weight: 600; }
@@ -1077,6 +1084,13 @@ footer.site { padding: var(--sp-6) 0 var(--sp-7); background: var(--cream-dark);
 
 @media (max-width: 900px) {
   .gext { grid-template-columns: minmax(0, 1fr); }
+  /* The full nav needs about 740px of its own, and between here and the 700px
+     rules below there was nothing: at 768px GitHub ended 4px past the edge and
+     the language toggle sat entirely off screen -- on a bilingual site, the one
+     control for the other language. Compact rather than hide, so every page
+     stays one tap away until the row genuinely cannot hold them. */
+  nav.top { gap: 0; min-width: 0; }
+  nav.top a { font-size: var(--fs-2); padding: var(--sp-1) var(--sp-2); }
 }
 @media (max-width: 820px) {
   .g6 { grid-template-columns: repeat(2, minmax(0, 1fr)); }

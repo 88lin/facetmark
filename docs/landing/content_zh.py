@@ -66,17 +66,20 @@ ZH = {
                     ("\u628a\u4e66\u7b7e\u5bfc\u8fdb\u6765", "guide.zh.html#import"),
                     ("\u6a21\u578b\u63a5\u5165", "guide.zh.html#models"),
                     ("\u5efa\u7d22\u5f15", "guide.zh.html#index"),
+                    ("\u8bbe\u7f6e", "config.zh.html"),
                     ("\u6392\u9519", "guide.zh.html#trouble"),
                 ],
             ),
             (
                 "\u63a5\u53e3",
                 [
+                    ("\u7f51\u9875\u754c\u9762", "webui.zh.html"),
                     ("\u672c\u5730\u9875\u9762", "guide.zh.html#webui"),
                     ("\u547d\u4ee4\u884c", "guide.zh.html#commands"),
                     ("HTTP API", "guide.zh.html#serve"),
                     ("MCP \u670d\u52a1\u5668", "guide.zh.html#mcp"),
                     ("\u6d4f\u89c8\u5668\u6269\u5c55", "guide.zh.html#extension"),
+                    ("\u8fde\u63a5\u5176\u4ed6\u5de5\u5177", "integrations.zh.html"),
                     ("karakeep \u63d2\u4ef6", "guide.zh.html#karakeep"),
                 ],
             ),
@@ -101,7 +104,7 @@ ZH = {
             ),
         ],
         "bar": [
-            "facetmark v1.6.1 \u00b7 MIT",
+            "facetmark v{version} \u00b7 MIT",
             "Python 3.10+ \u00b7 \u4e00\u4e2a SQLite \u6587\u4ef6",
             "\u8fd9\u4e2a\u7ad9\u4e0a\u6ca1\u6709\u4e00\u4e2a\u6570\u5b57\u662f\u6ca1\u6709\u534f"
             "\u8bae\u6491\u7740\u7684\u3002",
@@ -126,7 +129,7 @@ ZH["index"] = {
     ],
     "chips": [
         ("Python", "3.10+"),
-        ("\u6d4b\u8bd5", "1,619"),
+        ("\u6d4b\u8bd5", "1,700+"),
         ("\u8bb8\u53ef\u8bc1", "MIT"),
         ("\u5b58\u50a8", "1 \u4e2a SQLite \u6587\u4ef6"),
         ("\u4e0a\u4f20", "\u65e0"),
@@ -976,7 +979,7 @@ ZH["guide"] = {
                  "cd facetmark\n"
                  "python -m venv .venv && . .venv/bin/activate\n"
                  'pip install -e ".[dev]"\n\n'
-                 "pytest -q                 # 1,619 \u4e2a\u6d4b\u8bd5\n"
+                 "pytest -q                 # 1,700+ \u4e2a\u6d4b\u8bd5\n"
                  "ruff check src tests scripts"),
                 ("callout", "warn", "\u4e0d\u8981\u683c\u5f0f\u5316\u4ee3\u7801\u5e93",
                  "<p>\u5b83\u662f\u624b\u5199\u6392\u7248\u7684\u3002CI \u8dd1\u7684\u662f "

@@ -278,6 +278,56 @@ class TestThePaletteWiring:
         for family in ("Fraunces", "Noto+Serif+SC", "Caveat"):
             assert family not in html, f"{name} still names {family}"
 
+    #: `<link rel>` values whose href the browser goes and gets. Everything
+    #: else a `<link>` can be -- `canonical`, `alternate` -- is a statement
+    #: about this page, not a request for another one.
+    LINKS_THAT_FETCH = frozenset(
+        {"stylesheet", "icon", "mask-icon", "apple-touch-icon", "manifest",
+         "preload", "prefetch", "preconnect", "dns-prefetch", "modulepreload"}
+    )
+
+    @pytest.mark.parametrize("name", PAGES)
+    def test_nothing_on_a_page_fetches_from_another_origin(self, name):
+        """The rule above, applied to what the page *does* rather than to the
+        one family of hosts that broke it first.
+
+        `site.js` fetched `https://api.github.com/...` on every load for a star
+        chip that stayed hidden below a hundred stars. Three things at once:
+        the single third-party request on a local-first project's own
+        documentation, a console entry for every reader GitHub rate-limited,
+        and -- on a CI address, where the anonymous quota is shared and usually
+        spent -- an intermittent failure in a suite nobody had touched.
+
+        A link is not a request, so `<a href="https://github.com/...">` is
+        fine and has to stay fine, and so are the `<link>` kinds that only
+        declare something -- `canonical` and `alternate` name this page's own
+        published address and its other language, and a browser fetches
+        neither. What is checked is what the browser fetches without being
+        asked: `src`, a `<link>` that loads something, `@import`, and an
+        absolute URL written into the script.
+        """
+        html = (LANDING / name).read_text(encoding="utf-8")
+        offenders = re.findall(r'(?:src|@import url)\s*=?\s*"(https?://[^"]+)"', html)
+        fetching = 0
+        for tag in re.findall(r"<link\b[^>]*>", html, re.I):
+            rel = re.search(r'rel="([^"]*)"', tag, re.I)
+            if not rel or rel.group(1).lower() not in self.LINKS_THAT_FETCH:
+                continue
+            fetching += 1
+            href = re.search(r'href="(https?://[^"]+)"', tag, re.I)
+            if href:
+                offenders.append(href.group(1))
+        # Every page links two stylesheets and an icon. Nothing found by a
+        # parser that found nothing to look at is not a passing check.
+        assert fetching >= 3, f"{name}: the link scan matched {fetching} tags"
+        assert not offenders, f"{name} fetches from {offenders}"
+
+    def test_the_script_and_the_stylesheet_fetch_nothing_either(self):
+        for asset in ("site.js", "style.css", "palettes.css"):
+            text = (LANDING / asset).read_text(encoding="utf-8")
+            urls = re.findall(r'["\'(](https?://[^"\'\s)]+)', text)
+            assert not urls, f"{asset} reaches out to {urls}"
+
     def test_the_stylesheet_defines_the_display_stack(self):
         """The headings read `--display`; if the token vanished they would
         fall back to the body sans with no error anywhere."""
