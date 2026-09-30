@@ -910,6 +910,48 @@ async def esc_keeps_the_search(browser, app: App, rep: Report) -> None:
     await ctx.close()
 
 
+async def the_contents_numbers_do_not_touch_their_labels(browser, land: Landing, rep: Report) -> None:
+    """`01How to read this page` -- the rail's counter had 2px of air.
+
+    The number is absolutely positioned and the label is padded past it, so the
+    gap between them is the difference between two lengths that nothing tied
+    together. It came out at 2px, which is not a gap, and the counter was
+    vertically centred, so on a three-line entry it sat against the middle line
+    and read as interrupting the title rather than labelling it.
+    """
+    for page in ("measured.html", "guide.html", "measured.zh.html", "guide.zh.html"):
+        ctx, page_obj, _, _ = await open_page(browser, width=1280, lang="en", theme="light")
+        await page_obj.goto(land.url(page), wait_until="load")
+        await settle(page_obj, 250)
+        rows = await page_obj.evaluate("""() => {
+          const out = [];
+          for (const a of document.querySelectorAll('.toc a')) {
+            const cs = getComputedStyle(a), be = getComputedStyle(a, '::before');
+            const px = (v) => parseFloat(v) || 0;
+            const r = a.getBoundingClientRect();
+            out.push({
+              gap: px(cs.paddingLeft) - (px(be.left) + px(be.width)),
+              // How far the counter's box sits below the label's first line.
+              drop: px(be.top) - px(cs.paddingTop),
+              lines: Math.round(r.height / (px(cs.lineHeight) || 1)),
+              text: a.textContent.trim().slice(0, 30),
+            });
+          }
+          return out;
+        }""")
+        w = f"regression/toc {page}"
+        rep.ok(w, len(rows) >= 5, f"only {len(rows)} contents entries to measure")
+        tight = [r for r in rows if r["gap"] < 6]
+        rep.ok(w, not tight,
+               f"the number runs into the label ({[(r['gap'], r['text']) for r in tight][:3]})")
+        # The counter belongs to the entry, so it sits on the entry's first
+        # line however many lines the label wraps onto.
+        adrift = [r for r in rows if r["lines"] > 1 and r["drop"] > 4]
+        rep.ok(w, not adrift,
+               f"the number is not on the first line ({[(r['drop'], r['text']) for r in adrift][:3]})")
+        await ctx.close()
+
+
 async def the_fifth_tab_is_reachable(browser, app: App, rep: Report) -> None:
     """On a 390px phone the fifth view sat off the right edge.
 
@@ -1169,6 +1211,7 @@ async def run(only: str) -> int:
                 await a_named_page_stays_on_that_page(browser, land, rep)
                 await the_highlighted_phrase_stays_on_one_line(browser, land, rep)
                 await the_site_reads_with_scripting_off(browser, land, rep)
+                await the_contents_numbers_do_not_touch_their_labels(browser, land, rep)
                 await the_page_uses_the_system_face(browser, app, land, rep)
                 say("regressions measured")
             await browser.close()

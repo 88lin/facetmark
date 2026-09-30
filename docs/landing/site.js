@@ -472,20 +472,17 @@
 
   /* ---------- stars ----------------------------------------------------- */
 
-  function initStars() {
-    var chip = document.getElementById("stars-chip");
-    if (!chip) return;
-    fetch("https://api.github.com/repos/88lin/facetmark")
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        var n = d.stargazers_count;
-        if (typeof n === "number" && n >= 100) {
-          document.getElementById("star-count").textContent = n.toLocaleString("en-US");
-          chip.removeAttribute("hidden");
-        }
-      })
-      .catch(function () {});
-  }
+  /* A star count used to be fetched from api.github.com on every page load.
+     It was three things at once and none of them good: the one request on a
+     local-first project's own documentation that phoned a third party, an
+     entry in every reader's console when GitHub rate-limited them -- which on
+     a shared CI address is most of the time, and is why this suite failed
+     intermittently on a page nobody had touched -- and, below the chip's own
+     hundred-star floor, invisible anyway. `test_no_page_asks_a_font_cdn_for_
+     anything` had already written the rule down and given the reason; it read
+     the markup, so a `fetch` in here was outside it. It is inside it now.
+
+     If the count is wanted back, read it at build time and bake it in. */
 
   /* ---------- go --------------------------------------------------------- */
 
@@ -497,7 +494,6 @@
     initCopy();
     initToc();
     initTerm();
-    initStars();
   }
 
   if (document.readyState === "loading")

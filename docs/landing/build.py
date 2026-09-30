@@ -653,7 +653,6 @@ def page_index(t: dict) -> str:
     o.append('</div><div class="chips">')
     for k, v in i["chips"]:
         o.append(f'<span class="chip">{esc(k)} <b>{esc(v)}</b></span>')
-    o.append('<span class="chip" id="stars-chip" hidden>\u2605 <b id="star-count"></b></span>')
     o.append("</div></div><div>")
     o.append(
         '<div class="win dark term"><div class="win-bar">'
