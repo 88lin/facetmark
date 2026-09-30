@@ -44,9 +44,19 @@ def project_version() -> str:
 
 
 #: Facts the site states that the repository already knows. Written as
-#: ``{name}`` in the content files and filled in here, so the claim and the
-#: source of truth cannot drift apart.
-DERIVED = {"version": project_version()}
+#: ``@@NAME@@`` in the content and filled in once per page, so the claim and
+#: the source of truth cannot drift apart.
+#:
+#: A plain substitution rather than ``str.format``: half this site is code
+#: samples, and a shell brace or a JSON object would make a format string
+#: raise or, worse, silently eat a pair of braces.
+DERIVED = {"@@VERSION@@": project_version()}
+
+
+def fill_derived(doc: str) -> str:
+    for token, value in DERIVED.items():
+        doc = doc.replace(token, value)
+    return doc
 
 # Where the pages are actually served, derived from REPO so a move of the
 # repository does not leave a stale absolute URL behind.  Link previews need
@@ -510,7 +520,7 @@ def foot_html(t: dict) -> str:
             out.append(f'<li><a href="{href}"{rel}>{esc(label)}</a></li>')
         out.append("</ul></div>")
     out.append('</div><div class="foot-bar">')
-    out += [f"<span>{esc(x.format(**DERIVED))}</span>" for x in t["foot"]["bar"]]
+    out += [f"<span>{esc(x)}</span>" for x in t["foot"]["bar"]]
     out.append("</div></div></footer>")
     return "".join(out)
 
@@ -535,7 +545,10 @@ def shell(t: dict, page: str, body: str) -> str:
     card = f"{SITE_BASE}/assets/og-{t['code']}.png"
     esc_title = html.escape(title, quote=True)
     esc_desc = html.escape(desc, quote=True)
-    return (
+    # Substituted here rather than on the way to disk: `shell` is what the
+    # render-is-current test calls, and a token filled in only at write time
+    # would make every committed page differ from a fresh render of it.
+    return fill_derived(
         "<!doctype html>\n"
         f'<html lang="{t["html_lang"]}" data-palette="G">\n<head>\n'
         '<meta charset="utf-8">\n'
@@ -867,6 +880,33 @@ def page_index(t: dict) -> str:
 # --------------------------------------------------------------------------
 
 
+#: For a reference section, the task page covering the same ground.
+#:
+#: The guide is the reference layer -- what a thing is, in full -- and these
+#: are the task layer: what to do, in order, with pictures. The task pages link
+#: into the guide 48 times between them; the guide linked back exactly once, so
+#: 47 of those were a door into a room with no way out. A reader who arrives at
+#: `guide.html#webui` from a search engine had nothing to tell them a tour of
+#: the same screens exists.
+#:
+#: Keyed by the guide's own anchors. `test_landing_facts` asserts both ends
+#: still exist, so renaming a section fails a test instead of quietly dropping
+#: the way back.
+GUIDE_COMPANIONS = {
+    "install": "quickstart",
+    "import": "quickstart",
+    "models": "config",
+    "index": "quickstart",
+    "webui": "webui",
+    "extension": "integrations",
+    "mcp": "integrations",
+    "karakeep": "integrations",
+    "commands": "integrations",
+    "env": "config",
+    "trouble": "quickstart",
+}
+
+
 def page_doc(t: dict, key: str) -> str:
     d = t[key]
     o = ['<main id="main">']
@@ -882,10 +922,18 @@ def page_doc(t: dict, key: str) -> str:
     o.append("</ol></aside>")
 
     o.append("<article>")
+    suffix = ".zh" if t["code"] == "zh" else ""
     for n, (sid, title, blocks) in enumerate(d["sections"], 1):
+        companion = GUIDE_COMPANIONS.get(sid) if key == "guide" else None
+        back = ""
+        if companion:
+            back = (
+                f'<p class="seealso">{esc(t["copy"]["seealso"])}: '
+                f'<a href="{companion}{suffix}.html">{esc(t[companion]["h1"])}</a></p>'
+            )
         o.append(
             f'<section id="{sid}"><h2><span class="n">{n:02d}</span>'
-            f"<span>{esc(title)}</span></h2>{r_blocks(blocks)}</section>"
+            f"<span>{esc(title)}</span></h2>{r_blocks(blocks)}{back}</section>"
         )
     o.append("</article></div></div></main>")
     return "".join(o)

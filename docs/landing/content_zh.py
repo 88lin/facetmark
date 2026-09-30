@@ -13,7 +13,7 @@ ZH = {
     "other_label": "EN",
     "other_title": "Switch to English",
     "skip": "\u8df3\u5230\u6b63\u6587",
-    "copy": {"label": "\u590d\u5236", "done": "\u5df2\u590d\u5236"},
+    "copy": {"label": "\u590d\u5236", "done": "\u5df2\u590d\u5236", "seealso": "\u53e6\u89c1"},
     "nav": {
         "home": "\u9996\u9875",
         "quickstart": "\u4e0a\u624b",
@@ -104,7 +104,7 @@ ZH = {
             ),
         ],
         "bar": [
-            "facetmark v{version} \u00b7 MIT",
+            "facetmark v@@VERSION@@ \u00b7 MIT",
             "Python 3.10+ \u00b7 \u4e00\u4e2a SQLite \u6587\u4ef6",
             "\u8fd9\u4e2a\u7ad9\u4e0a\u6ca1\u6709\u4e00\u4e2a\u6570\u5b57\u662f\u6ca1\u6709\u534f"
             "\u8bae\u6491\u7740\u7684\u3002",
@@ -821,7 +821,7 @@ ZH["quickstart"] = {
                 ("cb", "shell", "facetmark serve"),
                 ("p", "\u5b83\u4f1a\u628a\u5730\u5740\u6253\u51fa\u6765\u3002\u628a\u7b2c\u4e8c\u884c\u90a3\u4e2a\u5728\u6d4f\u89c8\u5668\u91cc\u6253\u5f00\uff1a"),
                 ("cb", "shell",
-                 "facetmark 1.6.1  http://127.0.0.1:8787\n"
+                 "facetmark @@VERSION@@  http://127.0.0.1:8787\n"
                  "open the search page:     http://127.0.0.1:8787/app"),
                 ("p",
                  "\u754c\u9762\u5c31\u8fd9\u4e9b\u3002\u7528\u4f60\u5e73\u65f6\u8bf4\u8bdd\u7684\u65b9\u5f0f\u6253\u4e00\u4e2a\u95ee\u9898\u8fdb\u53bb \u2014\u2014 \u4f60\u4e0d\u7528\u8bb0"
@@ -1569,7 +1569,7 @@ ZH["guide"] = {
                  "\u89c8\u5668\u6269\u5c55\uff0c\u4e0d\u7528\u914d\u7f16\u8f91\u5668\uff0c\u4e5f\u4e0d\u7528 <code>curl</code>\u3002"),
                 ("cb", "shell",
                  "facetmark serve\n"
-                 "# facetmark 1.6.1  http://127.0.0.1:8787\n"
+                 "# facetmark @@VERSION@@  http://127.0.0.1:8787\n"
                  "# open the search page:     http://127.0.0.1:8787/app\n"
                  "# pairing token written to: ~/.facetmark/pairing-token.txt"),
                 ("p",

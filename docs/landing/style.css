@@ -1058,6 +1058,10 @@ kbd {
 .doc article h2 .n { font-size: 0.8em; color: var(--ink-light); font-variant-numeric: tabular-nums; font-weight: 700; }
 .doc article h3 { margin-top: 1.7em; }
 .doc article > section > p, .doc article > section > ul, .doc article > section > ol { max-width: var(--readw); }
+/* The way back out of the reference, at the foot of a section that has a
+   task-oriented twin. Quiet on purpose: it is an exit, not a call to action,
+   and eleven of them down one page would shout. */
+.seealso { margin-top: var(--sp-5); font-size: var(--fs-2); color: var(--ink-light); }
 .steps { counter-reset: s; list-style: none; padding: 0; }
 .steps > li { counter-increment: s; position: relative; padding-left: var(--sp-6); margin-bottom: var(--sp-3); }
 .steps > li::before {

@@ -108,14 +108,114 @@ class TestEveryPageCanBeReached:
         assert not sorted(want - links(built[page]))
 
 
+class TestTheReferenceIsNotACulDeSac:
+    """The guide is the reference layer; four pages are the task layer.
+
+    They cover the same ground at different altitudes, which is a sound way to
+    organise a manual -- but the links only went one way. The task pages link
+    into the guide 48 times between them and the guide linked back exactly
+    once, so 47 of those were a door into a room with no way out: a reader who
+    lands on `guide.html#webui` had nothing to tell them a walkthrough of the
+    same screens exists.
+    """
+
+    @pytest.fixture(scope="class")
+    def companions(self) -> dict[str, str]:
+        sys.path.insert(0, str(LANDING))
+        try:
+            import build as build_mod
+        finally:
+            sys.path.remove(str(LANDING))
+        return dict(build_mod.GUIDE_COMPANIONS)
+
+    def test_every_pairing_names_a_section_and_a_page_that_exist(self, companions):
+        sys.path.insert(0, str(LANDING))
+        try:
+            import content_en
+            import content_zh
+        finally:
+            sys.path.remove(str(LANDING))
+        for lang in (content_en.EN, content_zh.ZH):
+            anchors = {s[0] for s in lang["guide"]["sections"]}
+            for anchor, page in companions.items():
+                assert anchor in anchors, f"no guide section `{anchor}`"
+                assert page in lang, f"no page `{page}`"
+                assert lang[page].get("h1"), f"`{page}` has no title to link with"
+
+    #: The task layer: the pages that say what to do, as opposed to the
+    #: reference (`guide`), the pitch (`index`) and the evidence (`measured`).
+    #: Named here rather than read off `GUIDE_COMPANIONS`, so this asserts the
+    #: map is complete instead of agreeing with itself.
+    TASK_PAGES = ("quickstart", "webui", "config", "integrations")
+
+    @pytest.mark.parametrize("guide", ["guide.html", "guide.zh.html"])
+    def test_the_guide_links_back_to_every_page_that_links_into_it(self, built, guide):
+        """The invariant the defect broke: if a task page sends readers into
+        the reference, the reference sends them back.
+
+        Scoped to the task layer. `index` is the pitch and is one nav item away
+        from everywhere, `measured` is the evidence and is nobody's how-to, and
+        the guide's own anchors link into itself -- none of those wants eleven
+        signposts pointing at it.
+        """
+        lang = ".zh" if guide.endswith(".zh.html") else ""
+        inbound = {
+            f"{p}{lang}.html" for p in self.TASK_PAGES
+            if re.search(rf'href="guide{re.escape(lang)}\.html#', built[f"{p}{lang}.html"])
+        }
+        assert len(inbound) == len(self.TASK_PAGES), (
+            f"only {sorted(inbound)} link into {guide} -- the pairing this "
+            "asserts is with pages that do"
+        )
+        out = set(re.findall(r'class="seealso">[^<]*<a href="([^"]+)"', built[guide]))
+        missing = sorted(inbound - out)
+        assert not missing, f"{guide} is a dead end for {missing}"
+
+    @pytest.mark.parametrize("guide", ["guide.html", "guide.zh.html"])
+    def test_a_back_link_stays_in_the_reader_s_language(self, built, guide):
+        lang = ".zh" if guide.endswith(".zh.html") else ""
+        for target in re.findall(r'class="seealso">[^<]*<a href="([^"]+)"', built[guide]):
+            assert target.endswith(f"{lang}.html"), f"{guide} points at {target}"
+
+    def test_the_two_languages_offer_the_same_way_out(self, built, companions):
+        counts = {
+            g: len(re.findall(r'class="seealso"', built[g]))
+            for g in ("guide.html", "guide.zh.html")
+        }
+        assert counts["guide.html"] == counts["guide.zh.html"] == len(companions), counts
+
+
 class TestTheNumbersAreTrue:
     def test_the_footer_names_the_version_the_package_reports(self, built):
         """It said v1.6.1 for a 2.0.0 product. Now filled in at build time."""
-        init = (ROOT / "src" / "facetmark" / "__init__.py").read_text(encoding="utf-8")
-        version = re.search(r'__version__\s*=\s*"([^"]+)"', init).group(1)
         for name, html in built.items():
-            assert f"facetmark v{version}" in html, f"{name} does not name v{version}"
-            assert "v1.6.1" not in html, f"{name} still names a version that shipped"
+            assert f"facetmark v{self._version()}" in html, f"{name} does not name the version"
+
+    def test_no_page_names_a_version_that_is_not_the_one_shipping(self, built):
+        """The footer was one of six. The other four were inside the terminal
+        samples -- `facetmark 1.6.1  http://127.0.0.1:8787`, which is what a
+        reader compares against what their own machine just printed. The first
+        version of this test looked for `v1.6.1` and those four have no `v`,
+        so they went straight through it. Match the shape, not the string.
+        """
+        version = self._version()
+        stale = []
+        for name, html in built.items():
+            for found in re.findall(r"facetmark v?(\d+\.\d+\.\d+)", html):
+                if found != version:
+                    stale.append(f"{name} says {found}")
+        assert not stale, f"the package is {version}: {stale}"
+
+    def test_no_placeholder_survives_the_build(self, built):
+        """A token that never got substituted is worse than a stale number:
+        it is visibly broken and says nothing at all."""
+        for name, html in built.items():
+            assert "@@" not in html, f"{name} has an unfilled placeholder"
+
+    @staticmethod
+    def _version() -> str:
+        init = (ROOT / "src" / "facetmark" / "__init__.py").read_text(encoding="utf-8")
+        return re.search(r'__version__\s*=\s*"([^"]+)"', init).group(1)
 
     def test_the_advertised_test_count_is_a_floor_the_suite_clears(self):
         """A precise count drifts on every commit, so the site rounds down and
