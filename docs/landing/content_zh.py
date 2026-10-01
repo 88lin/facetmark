@@ -762,11 +762,12 @@ ZH["quickstart"] = {
                  "\u8def\uff0c\u7b2c\u4e09\u6761\u662f\u5e72\u8106\u4e0d\u8981\u3002"),
                 ("h3", "\u7528\u5728\u7ebf API"),
                 ("p",
-                 "\u4efb\u4f55 OpenAI \u517c\u5bb9\u7684\u63a5\u53e3\u90fd\u884c\u3002\u5199\u8fdb "
-                 "<code>~/.facetmark/.env</code> \u2014\u2014 \u8fd9\u4e2a\u6587\u4ef6\u7b2c\u4e00\u6b21\u8fd0\u884c\u65f6\u4f1a"
-                 "\u81ea\u52a8\u5efa\u597d\uff1a"),
+                 "任何 OpenAI 兼容的接口都行。在运行 facetmark 命令的工作目录中，"
+                 "手动创建 <code>.env</code> 并写入下面的设置。程序不会自动创建这个文件。"
+                 "如果希望从任意目录启动都能读取配置，请使用 <code>config.toml</code>；"
+                 "<code>facetmark config path</code> 会打印它的完整路径。"),
                 ("cb", "dotenv",
-                 "FACETMARK_API_BASE=https://api.openai.com/v1\n"
+                 "FACETMARK_BASE_URL=https://api.openai.com/v1\n"
                  "FACETMARK_API_KEY=sk-your-key"),
                 ("callout", "warn", "\u6700\u5e38\u89c1\u7684\u4e00\u4e2a\u914d\u7f6e\u9519\u8bef",
                  "<p>base URL \u5fc5\u987b\u4ee5 <code>/v1</code> \u7ed3\u5c3e\u3002\u5c11\u4e86\u5b83\uff0c\u6bcf\u6b21\u6a21\u578b"
@@ -916,8 +917,10 @@ ZH["quickstart"] = {
                  "\u539f\u56e0\u3002"),
                 ("h3", "\u6211\u7684\u6570\u636e\u5728\u54ea\u513f"),
                 ("p",
-                 "\u4e00\u4e2a\u76ee\u5f55\uff1amacOS \u548c Linux \u4e0a\u662f <code>~/.facetmark</code>\uff0c"
-                 "Windows \u4e0a\u662f <code>%USERPROFILE%\\.facetmark</code>\u3002\u91cc\u9762\u662f"
+                 "\u4e00\u4e2a\u76ee\u5f55\uff1amacOS \u548c Linux \u4e0a\u662f <code>~/.local/share/facetmark</code>"
+                 "\uff08\u8bbe\u4e86 <code>$XDG_DATA_HOME</code> \u5c31\u662f\u5b83\u4e0b\u9762\u7684 facetmark\uff09\uff0c"
+                 "Windows \u4e0a\u662f <code>%LOCALAPPDATA%\\facetmark</code>\u3002"
+                 "<code>facetmark config path</code> 会打印该目录中 <code>config.toml</code> 的完整路径。里面是"
                  "\u4e00\u4e2a SQLite \u6587\u4ef6\u52a0\u4e00\u4e2a\u914d\u5bf9\u4ee4\u724c\u3002\u642c\u8d70\u3001\u5907\u4efd\u3001\u62f7\u5230\u53e6\u4e00\u53f0\u673a"
                  "\u5668 \u2014\u2014 \u8fd9\u5c31\u662f\u5168\u90e8\u72b6\u6001\u3002<code>FACETMARK_DATA_DIR</code> \u53ef\u4ee5"
                  "\u628a\u5b83\u653e\u5230\u522b\u5904\u3002"),
@@ -1571,7 +1574,8 @@ ZH["guide"] = {
                  "facetmark serve\n"
                  "# facetmark @@VERSION@@  http://127.0.0.1:8787\n"
                  "# open the search page:     http://127.0.0.1:8787/app\n"
-                 "# pairing token written to: ~/.facetmark/pairing-token.txt"),
+                 "# pairing token written to the data directory\n"
+                 "#   (facetmark config show lists the effective data_dir)"),
                 ("p",
                  "Python \u5305\u91cc\u7684\u7eaf HTML\u3001CSS \u548c ES \u6a21\u5757\uff1a\u6ca1\u6709 Node\uff0c\u6ca1\u6709\u6253\u5305\u5668\uff0c"
                  "\u4e5f\u5c31\u6ca1\u6709\u4f1a\u548c\u670d\u52a1\u7aef\u5bf9\u4e0d\u4e0a\u7684\u6784\u5efa\u4ea7\u7269\u3002\u9875\u9762\u548c API \u7531\u540c\u4e00\u4e2a\u8fdb\u7a0b"

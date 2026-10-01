@@ -19,6 +19,7 @@ from __future__ import annotations
 import re
 import subprocess
 import sys
+from html import unescape
 from pathlib import Path
 
 import pytest
@@ -56,6 +57,27 @@ def pages() -> dict[str, str]:
 @pytest.fixture(scope="module")
 def built() -> dict[str, str]:
     return pages()
+
+
+@pytest.mark.parametrize("name", ["quickstart.html", "quickstart.zh.html"])
+def test_quickstart_api_example_is_loaded_from_the_working_directory(name, built, tmp_path):
+    """Exercise the copied example; an unknown setting is silently ignored."""
+    from facetmark.config import Settings
+
+    html = unescape(built[name])
+    assignments = re.findall(r"(FACETMARK_[A-Z_]+)=([^\s<]+)", html)
+    assert assignments
+    for key, _ in assignments:
+        assert key.removeprefix("FACETMARK_").lower() in Settings.model_fields, key
+    endpoint = "https://example.invalid/v1"
+    # Use a custom endpoint so a misspelled key cannot pass via the default.
+    example = dict(assignments)
+    example["FACETMARK_BASE_URL"] = endpoint
+    dotenv = tmp_path / "cwd" / ".env"
+    dotenv.write_text("\n".join(f"{k}={v}" for k, v in example.items()), encoding="utf-8")
+    st = Settings()
+    assert st.base_url == endpoint
+    assert st.api_key == "sk-your-key"
 
 
 def links(html: str, *, phone_only: bool = False) -> set[str]:
@@ -259,3 +281,32 @@ class TestTheNumbersAreTrue:
         floor = re.search(r'requires-python\s*=\s*">=([\d.]+)"', pyproject).group(1)
         for name, html in built.items():
             assert f"{floor}+" in html, f"{name} does not state Python {floor}+"
+
+    def test_the_data_directory_is_the_one_the_code_picks(self, built, monkeypatch):
+        """The site told every reader to look in `~/.facetmark`, and claimed
+        `%USERPROFILE%\\.facetmark` on Windows. Neither is used on any
+        platform, so somebody following the docs to find their pairing token
+        looked in a directory that does not exist.
+
+        Asserted against the bases `default_data_dir` actually reads rather
+        than against a rendered path: the prose writes `%LOCALAPPDATA%` and
+        `~`, the function returns them expanded, and comparing those two
+        directly is how this test would end up asserting the shape of the
+        machine it runs on.
+        """
+        from facetmark.config import default_data_dir
+
+        monkeypatch.setenv("LOCALAPPDATA", "/SENTINEL")
+        assert default_data_dir(os_name="nt").as_posix() == "/SENTINEL/facetmark"
+        monkeypatch.setenv("XDG_DATA_HOME", "/SENTINEL")
+        assert default_data_dir(os_name="posix").as_posix() == "/SENTINEL/facetmark"
+        monkeypatch.delenv("XDG_DATA_HOME")
+        assert default_data_dir(os_name="posix").as_posix().endswith(
+            ".local/share/facetmark"
+        )
+
+        pages = "\n".join(built.values()).replace("\\", "/")
+        for named in ("LOCALAPPDATA", "XDG_DATA_HOME", ".local/share/facetmark"):
+            assert named in pages, f"no page names {named}, which is where the data is"
+        assert "~/.facetmark" not in pages, "a page names a directory nothing uses"
+        assert "%USERPROFILE%" not in pages, "a page names the wrong Windows base"

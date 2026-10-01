@@ -130,6 +130,28 @@ def version() -> None:
     console.print(f"facetmark {__version__}")
 
 
+def _version_now(show: bool) -> None:
+    if show:
+        console.print(f"facetmark {__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def _root(
+    version: bool = typer.Option(
+        False, "--version", "-V", callback=_version_now,
+        is_eager=True, help="Print the version and exit.",
+    ),
+) -> None:
+    """`--version` as well as `version`.
+
+    The subcommand was the only way to ask, and `facetmark --version` answered
+    `No such option`. It is the first thing anyone types at an unfamiliar
+    binary, and getting an error back reads as a broken install rather than as
+    a spelling difference. Eager, so it answers before any subcommand parses.
+    """
+
+
 @app.command("import")
 def import_cmd(
     path: Path | None = typer.Argument(
@@ -660,16 +682,18 @@ def doctor(
                   c.name, c.message)
     console.print(t)
 
+    console.print("[dim]Local checks only: provider credentials, connectivity and "
+                  "model loading were not tested.[/dim]")
     bad = [c for c in checks if c.status == "error"]
     warned = [c for c in checks if c.status == "warn"]
     if bad:
         err.print(f"\n[red]{len(bad)} problem(s) need fixing.[/red]")
         raise typer.Exit(1)
     if warned:
-        console.print(f"\n[yellow]{len(warned)} thing(s) worth knowing about; "
-                      "nothing is broken.[/yellow]")
+        console.print(f"\n[yellow]{len(warned)} warning(s) need attention. "
+                      "See the findings above.[/yellow]")
     else:
-        console.print("\n[green]Everything checks out.[/green]")
+        console.print("\n[green]No issues found by local checks.[/green]")
 
 
 @app.command()

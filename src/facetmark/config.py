@@ -370,7 +370,23 @@ class Settings(BaseSettings):
         return chain
 
     def ensure_dirs(self) -> None:
-        self.data_dir.mkdir(parents=True, exist_ok=True)
+        """Create the data directory, readable only by its owner.
+
+        0700 on creation, not on every call: a directory somebody deliberately
+        widened is their decision, and silently narrowing it on the next run
+        would be a surprise. `facetmark doctor` reports a loose one instead.
+
+        The mode matters because of what is in here. The pairing token is
+        written 0600, but the token only guards the API -- the database beside
+        it holds the reading history itself, and SQLite creates it, plus its
+        `-wal` and `-shm`, at whatever the umask allows: 0644 on a stock Debian
+        box. Guarding the key and leaving the door open is not a threat model.
+        Denying traversal here covers the sidecars too, which SQLite recreates
+        on its own schedule and nothing else gets a chance to chmod.
+
+        Windows ignores the mode, like it ignores the token's chmod.
+        """
+        self.data_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
 
 
 _settings: Settings | None = None

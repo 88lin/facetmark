@@ -742,11 +742,14 @@ EN["quickstart"] = {
                  "third is to do without."),
                 ("h3", "A hosted API"),
                 ("p",
-                 "Any OpenAI-compatible endpoint. Put this in "
-                 "<code>~/.facetmark/.env</code> \u2014 the file is created "
-                 "for you on first run:"),
+                 "Any OpenAI-compatible endpoint. Create a <code>.env</code> "
+                 "file in the working directory where you run facetmark "
+                 "and add these settings. This file is not created automatically. "
+                 "For settings that work from any directory, use "
+                 "<code>config.toml</code>; <code>facetmark config path</code> "
+                 "prints its full path."),
                 ("cb", "dotenv",
-                 "FACETMARK_API_BASE=https://api.openai.com/v1\n"
+                 "FACETMARK_BASE_URL=https://api.openai.com/v1\n"
                  "FACETMARK_API_KEY=sk-your-key"),
                 ("callout", "warn", "The single most common setup mistake",
                  "<p>The base URL must end in <code>/v1</code>. Without it "
@@ -918,12 +921,15 @@ EN["quickstart"] = {
                  "common failure by a wide margin."),
                 ("h3", "Where is my data?"),
                 ("p",
-                 "One folder: <code>~/.facetmark</code> on macOS and Linux, "
-                 "<code>%USERPROFILE%\\.facetmark</code> on Windows. Inside it "
-                 "is a single SQLite file plus the pairing token. Move it, "
-                 "back it up, or copy it to another machine \u2014 it is the "
-                 "whole state. <code>FACETMARK_DATA_DIR</code> puts it "
-                 "somewhere else."),
+                 "One folder: <code>~/.local/share/facetmark</code> on macOS "
+                 "and Linux (<code>$XDG_DATA_HOME/facetmark</code> if you set "
+                 "that), <code>%LOCALAPPDATA%\\facetmark</code> on Windows. "
+                 "<code>facetmark config path</code> prints the full path to "
+                 "<code>config.toml</code> in that folder. Inside it is a "
+                 "single SQLite file plus the "
+                 "pairing token. Move it, back it up, or copy it to another "
+                 "machine \u2014 it is the whole state. "
+                 "<code>FACETMARK_DATA_DIR</code> puts it somewhere else."),
                 ("h3", "How do I delete everything?"),
                 ("p",
                  "Delete that folder. There is no uninstall step and nothing "
@@ -1537,7 +1543,8 @@ EN["guide"] = {
                  "facetmark serve\n"
                  "# facetmark @@VERSION@@  http://127.0.0.1:8787\n"
                  "# open the search page:     http://127.0.0.1:8787/app\n"
-                 "# pairing token written to: ~/.facetmark/pairing-token.txt"),
+                 "# pairing token written to the data directory\n"
+                 "#   (facetmark config show lists the effective data_dir)"),
                 ("p",
                  "Plain HTML, CSS and ES modules inside the Python package: no "
                  "Node, no bundler, no build artefact that can go stale "

@@ -29,6 +29,9 @@ vectors and a profile that only ranks with them.
 
 from __future__ import annotations
 
+import os
+import shlex
+import shutil
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
@@ -77,6 +80,23 @@ def check_data_dir(st: Settings) -> list[Check]:
     except OSError as exc:
         return [Check("data_dir", "error", f"{d} is not writable: {exc}")]
     return [Check("data_dir", "ok", f"{d} exists and is writable")]
+
+
+def check_disk_space(st: Settings) -> list[Check]:
+    """An empty probe file can succeed even when the next database write cannot."""
+    try:
+        free = shutil.disk_usage(st.data_dir).free
+    except FileNotFoundError:
+        return []  # The data-directory check already reports this.
+    except OSError as exc:
+        return [Check("disk_space", "warn", f"could not check free space: {exc}")]
+    if free == 0:
+        return [Check(
+            "disk_space", "error",
+            "the data filesystem has no free space. Free space or move the data "
+            "directory before rerunning facetmark index",
+        )]
+    return [Check("disk_space", "ok", f"{free:,} bytes free on the data filesystem")]
 
 
 def check_config(st: Settings) -> list[Check]:
@@ -189,10 +209,8 @@ def check_lexical(conn: sqlite3.Connection) -> list[Check]:
 def check_vectors(conn: sqlite3.Connection, st: Settings) -> list[Check]:
     """Where a library most often turns out to be quietly lexical-only.
 
-    Three separate ways to have no vectors, and they need different answers:
-    the tables were never created, they exist and are empty, or they hold
-    vectors built with settings that no longer match -- which is a hard error at
-    write time and would otherwise only surface on the next index run.
+    Check presence, compatibility and progress. A nonempty vector table can
+    still be an interrupted index, or hold vectors built from outdated text.
     """
     from .db import get_meta
 
@@ -229,6 +247,28 @@ def check_vectors(conn: sqlite3.Connection, st: Settings) -> list[Check]:
         ))
     else:
         out.append(Check("vectors", "ok", f"{n} content vectors, dim {st.embed_dim}"))
+    # Share the indexer's definition of work: exclude private/non-indexable
+    # pages and empty texts, and compare the exact content fingerprints. A
+    # count against all bookmarks would report intentional exclusions as gaps.
+    from .enrich.vectors import content_work
+
+    try:
+        pending, _, current = content_work(conn)
+        existing = {int(r[0]) for r in conn.execute("SELECT bookmark_id FROM vec_content")}
+    except sqlite3.Error as exc:
+        # doctor must still explain an older schema without migrating it.
+        out.append(Check("vectors.coverage", "warn",
+                         f"could not check content-vector coverage: {exc}. "
+                         "See the schema check before rebuilding the index."))
+        return out
+    eligible = current + len(pending)
+    if eligible:
+        missing = sum(bid not in existing for bid, _, _ in pending)
+        stale = len(pending) - missing
+        message = f"{current} of {eligible} eligible pages have up-to-date content vectors"
+        if pending:
+            message += f"; {missing} missing, {stale} stale. Run: facetmark index"
+        out.append(Check("vectors.coverage", "warn" if pending else "ok", message))
     return out
 
 
@@ -240,18 +280,20 @@ def check_provider(st: Settings) -> list[Check]:
                       "vector, which is deterministic and meaningless -- fine for "
                       "a demo, not for a real library.")]
     out = [Check("provider.models", "ok",
-                 f"chat {st.chat_model or '(unset)'}, embed "
+                 f"configured: chat {st.chat_model or '(unset)'}, embed "
                  f"{st.embed_model or '(unset)'} at {st.embed_dim} dims")]
     if st.embed_backend == "local":
         out.append(Check("provider.embed", "ok",
-                         "embeddings are computed locally; no key needed"))
+                         "local embedding backend configured; no embedding key needed. "
+                         "Model availability and loading were not tested."))
     elif not st.api_key:
         out.append(Check("provider.embed", "warn",
                          "no API key is set and the embedding backend is not "
                          "local, so nothing can be embedded or enriched"))
     else:
         out.append(Check("provider.embed", "ok",
-                         f"key set, base url {st.base_url or '(default)'}"))
+                         f"key set, base url {st.base_url or '(default)'}. "
+                         "Credentials and connectivity were not tested."))
     return out
 
 
@@ -273,6 +315,60 @@ def check_privacy(conn: sqlite3.Connection, st: Settings) -> list[Check]:
     return [Check("privacy", "ok",
                   f"{len(excluded)} excluded domain(s), {skipped} bookmarks never "
                   f"fetched because of them: {', '.join(excluded[:5])}")]
+
+
+def check_permissions(st: Settings) -> list[Check]:
+    """Who besides you can read the library.
+
+    New installs get an owner-only directory and database. An install made
+    before that, or one whose directory was widened by hand, keeps whatever it
+    had -- so this reports rather than repairs, like every other check here.
+
+    Measured on a stock Debian box: the token was 0600 and the database 0644
+    inside a 0775 directory. The token guards the API; the database *is* the
+    reading history, and its `-wal` holds whatever was written most recently.
+    Skipped on Windows, which has no POSIX mode for this to be about.
+    """
+    if os.name == "nt":
+        return []
+    db = Path(st.db_path)
+    targets = [
+        ("directory", Path(st.data_dir)),
+        ("database", db),
+        ("wal", Path(f"{db}-wal")),
+        ("shm", Path(f"{db}-shm")),
+    ]
+    loose = []
+    commands = []
+    unreadable = []
+    checked = 0
+    for label, path in targets:
+        try:
+            mode = path.stat().st_mode & 0o777
+        except FileNotFoundError:
+            # A new library has no database yet; WAL files are transient.
+            continue
+        except OSError as exc:
+            unreadable.append(f"{label}: {exc}")
+            continue
+        checked += 1
+        if mode & 0o077:
+            loose.append(f"{label} {mode:03o}")
+            desired = "700" if label == "directory" else "600"
+            commands.append(f"chmod {desired} -- {shlex.quote(str(path))}")
+    messages = []
+    if loose:
+        # Name only files we inspected. A wildcard can also chmod backups,
+        # and an unquoted library path can contain spaces or shell syntax.
+        messages.append("group/other permission bits are set: " + ", ".join(loose)
+                        + ". Tighten with: " + " && ".join(commands))
+    if unreadable:
+        messages.append("could not inspect permissions: " + "; ".join(unreadable))
+    if messages:
+        return [Check("permissions", "warn", ". ".join(messages))]
+    if not checked:
+        return []  # check_data_dir reports a missing directory separately.
+    return [Check("permissions", "ok", "checked paths have owner-only POSIX permissions")]
 
 
 def check_token(st: Settings) -> list[Check]:
@@ -300,6 +396,7 @@ def run_checks(
     st = settings or get_settings()
     checks: list[Check] = []
     checks += check_data_dir(st)
+    checks += check_disk_space(st)
     checks += check_config(st)
     if conn is None:
         checks.append(Check("database", "warn",
@@ -307,6 +404,7 @@ def run_checks(
                             "Run: facetmark import"))
         checks += check_provider(st)
         checks += check_token(st)
+        checks += check_permissions(st)
         return checks
     checks.append(Check("database", "ok", str(st.db_path)))
     checks += check_schema(conn)
@@ -318,6 +416,7 @@ def run_checks(
     checks += check_queue(conn)
     checks += check_privacy(conn, st)
     checks += check_token(st)
+    checks += check_permissions(st)
     return checks
 
 

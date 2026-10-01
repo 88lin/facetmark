@@ -12,6 +12,7 @@ require touching any other file.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import sqlite3
 import struct
@@ -259,11 +260,24 @@ def connect(
     by an asyncio lock in :class:`facetmark.api.AppState`.
     """
     p = Path(db_path)
+    fresh = False
     if str(p) != ":memory:":
-        p.parent.mkdir(parents=True, exist_ok=True)
+        p.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        fresh = not p.exists()
     conn = sqlite3.connect(
         str(p), timeout=30.0, isolation_level=None, check_same_thread=same_thread
     )
+    if fresh:
+        # SQLite creates the file at whatever the umask allows -- 0644 on a
+        # stock Debian box, which makes a reading history world-readable on any
+        # shared machine. The pairing token next to it is already written 0600;
+        # this is the file that token exists to protect. Owner-only on creation
+        # only, so a deliberately widened file stays widened and `doctor`
+        # reports it rather than this changing it under anyone.
+        #
+        # Best effort: Windows has no POSIX mode to set.
+        with contextlib.suppress(OSError):
+            p.chmod(0o600)
     conn.row_factory = sqlite3.Row
     conn.enable_load_extension(True)
     sqlite_vec.load(conn)

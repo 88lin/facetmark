@@ -23,6 +23,22 @@ from facetmark.cli import _harden_stdio, _harden_stream
 CJK = "\u4e2d\u6587\u6807\u9898\u6d4b\u8bd5"  # 中文标题测试
 
 
+@pytest.mark.parametrize("args", [["version"], ["--version"], ["-V"], ["--version", "import"]])
+def test_version_does_not_need_valid_settings_or_create_data(args, tmp_path, monkeypatch):
+    from typer.testing import CliRunner
+
+    from facetmark import __version__
+    from facetmark.cli import app
+
+    target = tmp_path / "not-created"
+    monkeypatch.setenv("FACETMARK_DATA_DIR", str(target))
+    monkeypatch.setenv("FACETMARK_PORT", "invalid")
+    result = CliRunner().invoke(app, args)
+    assert result.exit_code == 0, result.output
+    assert result.stdout.strip() == f"facetmark {__version__}"
+    assert not target.exists()
+
+
 def _child_stdout_encoding() -> str:
     """What the redirect probe's subprocess will encode its stdout as.
 
