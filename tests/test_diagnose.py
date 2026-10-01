@@ -398,15 +398,22 @@ class TestTheCommand:
                    for c in payload["checks"])
 
     @pytest.mark.parametrize("status", ["ok", "warn"])
-    def test_summary_stays_within_what_was_checked(self, tmp_path, monkeypatch, status):
+    @pytest.mark.parametrize("width", [60, 80, 120])
+    def test_summary_stays_within_what_was_checked(self, tmp_path, monkeypatch, status, width):
+        from rich.console import Console
+
+        monkeypatch.setattr("facetmark.cli.console", Console(width=width))
         monkeypatch.setattr("facetmark.diagnose.run_checks", lambda *args: [
             Check("example", status, "local finding"),
         ])
         result = self._run(["doctor"], tmp_path, monkeypatch)
         assert result.exit_code == 0, result.output
-        assert "Everything checks out" not in result.stdout
-        assert "nothing is broken" not in result.stdout
-        assert "not tested" in result.stdout
+        # Rich wraps prose at the terminal width; the diagnostic promise must
+        # be present regardless of whether "not tested" spans two lines.
+        output = " ".join(result.stdout.split())
+        assert "Everything checks out" not in output
+        assert "nothing is broken" not in output
+        assert "not tested" in output
 
 
 @pytest.mark.parametrize("statuses,expected", [
