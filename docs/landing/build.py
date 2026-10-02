@@ -473,6 +473,9 @@ GH_MARK = (
 )
 
 
+THEME_ICON = '<svg class="theme-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g class="icon-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4m0-14.2-1.4 1.4M6.3 17.7l-1.4 1.4"/></g><path class="icon-moon" d="M20.6 13.2A8.8 8.8 0 0 1 10.8 3.4a8.8 8.8 0 1 0 9.8 9.8Z"/></svg>'
+
+
 def nav_html(t: dict, page: str) -> str:
     z = t["code"] == "zh"
     suffix = ".zh.html" if z else ".html"
@@ -518,7 +521,7 @@ def nav_html(t: dict, page: str) -> str:
     aria = "\u5207\u6362\u6df1\u8272\u6a21\u5f0f" if z else "Toggle dark mode"
     out.append(
         '<button class="ctl" type="button" data-theme-toggle '
-        f'aria-label="{esc(aria)}">\u263e</button>'
+        f'aria-label="{esc(aria)}">{THEME_ICON}</button>'
     )
     out.append("</nav>")
     return "".join(out)
@@ -614,7 +617,7 @@ def shell(t: dict, page: str, body: str) -> str:
         f'<a class="skip" href="#main">{esc(t["skip"])}</a>\n'
         '<div class="progress" aria-hidden="true"></div>\n'
         '<header class="site"><div class="site-inner">'
-        f'<a class="logo" href="index{".zh" if z else ""}.html">'
+        f'<a class="logo" aria-label="facetmark {"首页" if z else "home"}" href="index{".zh" if z else ""}.html">'
         '<img class="mark" src="assets/favicon.svg" alt="" width="20" height="20">'
         '<span class="word">facetmark</span></a>'
         f"{nav_html(t, page)}</div></header>\n"

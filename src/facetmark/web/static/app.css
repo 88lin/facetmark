@@ -507,6 +507,15 @@ button {
   padding: 0 var(--sp-3);
 }
 
+.ctl svg { display: block; width: 18px; height: 18px; flex: none; }
+.theme-icon > * { display: none; }
+.theme-icon[data-mode="light"] .icon-sun,
+.theme-icon[data-mode="dark"] .icon-moon,
+.theme-icon[data-mode="system"] .icon-system { display: inline; }
+@media (max-width: 700px) {
+  .tools .ctl { height: 32px; min-width: 32px; }
+}
+
 .ctl:hover {
   border-color: var(--brand-border);
   color: var(--link);

@@ -31,7 +31,6 @@
     if (LS) LS.setItem("fm-theme", t);
     var btns = document.querySelectorAll("[data-theme-toggle]");
     for (var i = 0; i < btns.length; i++) {
-      btns[i].textContent = t === "dark" ? "\u2600" : "\u263D";
       btns[i].setAttribute(
         "aria-label",
         root.lang === "zh-CN"

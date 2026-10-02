@@ -13,6 +13,7 @@
 
 import { api, setToken } from "./api.js";
 import * as ask from "./ask.js";
+import { isComposing } from "./composition.js";
 import * as detail from "./detail.js";
 import { $, $$ } from "./dom.js";
 import { applyTo, pickLang, translator } from "./i18n.js";
@@ -21,7 +22,7 @@ import * as search from "./search.js";
 import * as sessions from "./sessions.js";
 import * as settings from "./settings.js";
 import * as setup from "./setup.js";
-import { S, ensureStats } from "./state.js";
+import { S, ensureStats, t } from "./state.js";
 import * as system from "./system.js";
 
 const TOKEN_KEY = "fm-token";
@@ -103,11 +104,20 @@ function applyLang(next) {
   ui.lang.textContent = next === "zh" ? "EN" : "\u4e2d\u6587";
   applyTo(document, S.say);
   badges();
+  drawThemeControl();
   try {
     localStorage.setItem(LANG_KEY, next);
   } catch {
     /* private mode: the choice then lasts for this tab only */
   }
+}
+
+function drawThemeControl() {
+  const target = theme === "system" ? "light" : theme === "light" ? "dark" : "system";
+  ui.themeGlyph.dataset.mode = target;
+  const label = t(target === "light" ? "nav.theme.light" : target === "dark" ? "nav.theme.dark" : "nav.theme.system");
+  ui.theme.title = label;
+  ui.theme.setAttribute("aria-label", label);
 }
 
 function setTheme(next) {
@@ -120,8 +130,7 @@ function setTheme(next) {
         : "light"
       : next,
   );
-  ui.themeGlyph.textContent =
-    next === "light" ? "\u2600" : next === "dark" ? "\u263e" : "\u25d1";
+  drawThemeControl();
   try {
     localStorage.setItem(THEME_KEY, next);
   } catch {
@@ -132,6 +141,7 @@ function setTheme(next) {
 // ----------------------------------------------------------------- keyboard
 
 function keys(e) {
+  if (isComposing(e)) return;
   // The dialog runs its own trap. Two handlers both answering Escape would
   // close the dialog and clear the query behind it in the same keystroke.
   if (detail.isOpen()) return;

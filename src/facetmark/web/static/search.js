@@ -9,6 +9,7 @@
 // one facet in play, RRF is not order-stable as the candidate pool deepens.
 
 import { api, getToken } from "./api.js";
+import { isComposing, onCommittedInput } from "./composition.js";
 import { ADVANCED_RUNGS, RUNGS } from "./derive.js";
 import { $, btn, el, fbadge, fbar, pill, skeleton, togglePill } from "./dom.js";
 import { FACET_KEYS, FACET_ORDER, FACET_TONE, count, shortUrl, totalMs, whenAdded } from "./format.js";
@@ -834,7 +835,7 @@ export function mount() {
     aroundList: $("#around-list"),
   };
 
-  ui.q.addEventListener("input", () => {
+  const composing = onCommittedInput(ui.q, () => {
     const v = ui.q.value.trim();
     clearTimeout(timer);
     clearTimeout(sugTimer);
@@ -845,10 +846,16 @@ export function mount() {
     timer = setTimeout(() => void run(v), DEBOUNCE_MS);
     sugTimer = setTimeout(() => void askSuggest(v), SUGGEST_MS);
     drawTimebar();
+  }, () => {
+    clearTimeout(timer);
+    clearTimeout(sugTimer);
+    ++sugGeneration;
+    closeSuggest();
   });
 
   ui.form.addEventListener("submit", (e) => {
     e.preventDefault();
+    if (composing()) return;
     clearTimeout(timer);
     // Both timers, not just the search one. The suggestion timer is the
     // slower of the two, so a submit typed straight after the last keystroke
@@ -859,6 +866,12 @@ export function mount() {
   });
 
   ui.q.addEventListener("keydown", (e) => {
+    if (isComposing(e)) {
+      // Some engines end composition before its confirming Enter. Suppress
+      // that key's native form submit without touching active candidate keys.
+      if (!composing() && e.key === "Enter") e.preventDefault();
+      return;
+    }
     if (ui.sugg.hidden) return;
     if (e.key === "ArrowDown" && moveSuggest(1)) return e.preventDefault();
     if (e.key === "ArrowUp" && moveSuggest(-1)) return e.preventDefault();

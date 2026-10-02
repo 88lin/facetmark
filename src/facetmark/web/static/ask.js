@@ -13,6 +13,7 @@
 // citation count is the honest version of the same signal.
 
 import { api, getToken } from "./api.js";
+import { isComposing, onCommittedInput } from "./composition.js";
 import { HEALTH_TONE, sourceIndex } from "./derive.js";
 import { $, btn, el, link, pill, skeleton } from "./dom.js";
 import { count, shortUrl } from "./format.js";
@@ -325,20 +326,29 @@ export function mount() {
     out: $("#aout"),
   };
 
-  ui.q.addEventListener("input", () => {
+  const composing = onCommittedInput(ui.q, () => {
     const v = ui.q.value.trim();
     clearTimeout(sugTimer);
     sugTimer = setTimeout(() => void askSuggest(v), SUGGEST_MS);
+  }, () => {
+    clearTimeout(sugTimer);
+    ++sugGeneration;
+    closeSuggest();
   });
 
   ui.form.addEventListener("submit", (e) => {
     e.preventDefault();
+    if (composing()) return;
     clearTimeout(sugTimer);
     closeSuggest();
     void run(ui.q.value.trim());
   });
 
   ui.q.addEventListener("keydown", (e) => {
+    if (isComposing(e)) {
+      if (!composing() && e.key === "Enter") e.preventDefault();
+      return;
+    }
     if (ui.sugg.hidden) return;
     if (e.key === "ArrowDown" && moveSuggest(1)) return e.preventDefault();
     if (e.key === "ArrowUp" && moveSuggest(-1)) return e.preventDefault();

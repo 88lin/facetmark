@@ -461,6 +461,11 @@ nav.top a.on:hover { color: var(--btn-fg); background: var(--btn-bg-h); }
   text-decoration: none; cursor: pointer;
 }
 .ctl:hover { color: var(--ink); border-color: var(--ink-faint); }
+.ctl[data-theme-toggle] { width: 34px; padding: 0; }
+.ctl .theme-icon { display: block; width: 18px; height: 18px; flex: none; }
+.theme-icon .icon-sun { display: none; }
+:root[data-theme="dark"] .theme-icon .icon-sun { display: inline; }
+:root[data-theme="dark"] .theme-icon .icon-moon { display: none; }
 /* below 700px the text nav drops the repo link, so the control cluster carries
    a mark instead: a GitHub project with no way back to GitHub is a dead end */
 .ctl.gh { display: none; }
@@ -480,7 +485,7 @@ nav.top a.on:hover { color: var(--btn-fg); background: var(--btn-bg-h); }
 }
 .hero-inner {
   position: relative;
-  max-width: var(--maxw); margin: 0 auto; padding: var(--sp-8) var(--sp-5); display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: var(--sp-7); align-items: center;
+  max-width: var(--maxw); margin: 0 auto; padding: var(--sp-7) var(--sp-5); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-7); align-items: center;
 }
 .kicker {
   display: inline-block; margin: 0 0 var(--sp-3);
@@ -553,6 +558,12 @@ nav.top a.on:hover { color: var(--btn-fg); background: var(--btn-bg-h); }
 .chip:nth-child(3) { border-color: var(--rose); background: var(--rose-soft); }
 .chip:nth-child(4) { border-color: var(--plum); background: var(--plum-soft); }
 .chip:nth-child(5) { border-color: var(--iris); background: var(--iris-soft); }
+
+/* Keep the three coloured facts aligned and the runtime on one line. */
+.hero .chips { grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr)); margin-top: var(--sp-5); padding-top: 0; }
+.hero .chip { min-width: 0; grid-column: auto; padding: var(--sp-3); letter-spacing: var(--ls-none); text-transform: none; }
+.hero .chip b { margin-top: var(--sp-2); font-size: var(--fs-4); line-height: var(--lh-snug); white-space: nowrap; }
+.hero .cta { gap: var(--sp-3); margin-bottom: 0; }
 
 /* ---------- terminal ---------- */
 
@@ -1086,7 +1097,7 @@ footer.site { padding: var(--sp-6) 0 var(--sp-7); background: var(--cream-dark);
 .hero-preview .shot { box-shadow: var(--shadow-2); }
 .hero-preview .shot img { aspect-ratio: 1.12; object-fit: cover; object-position: top; }
 .hero-preview .cap { font-size: var(--fs-2); }
-.hero .lede { font-size: var(--fs-4); max-width: 36em; }
+.hero .lede { font-size: var(--fs-4); max-width: 36em; margin: var(--sp-5) 0; }
 .breadcrumb { font-size: var(--fs-2); padding-bottom: var(--sp-4); }
 .pagehead .lede { font-size: var(--fs-4); }
 .toc summary { cursor: pointer; font-weight: 700; margin-bottom: var(--sp-3); }
@@ -1146,6 +1157,7 @@ h2:hover .anchor-link, .anchor-link:focus-visible { opacity: 1; }
   body { font-size: var(--fs-3); }
   
   nav.top a.hide-sm { display: none; }
+  nav.top > a, .mobile-nav summary { white-space: nowrap; }
   .mobile-nav { display: block; }
   .toc { max-height: none; overflow: visible; }
   .ctl.gh { display: none; }
@@ -1153,7 +1165,8 @@ h2:hover .anchor-link, .anchor-link:focus-visible { opacity: 1; }
   .logo { font-size: var(--fs-3); gap: var(--sp-2); }
   nav.top { gap: 0; min-width: 0; }
   nav.top a { font-size: var(--fs-2); padding: var(--sp-1) var(--sp-2); }
-  .ctl { height: 30px; min-width: 30px; padding: 0 var(--sp-2); margin-left: 3px; font-size: var(--fs-2); }
+  .ctl { height: 32px; min-width: 32px; padding: 0 var(--sp-2); margin-left: 3px; font-size: var(--fs-2); }
+  .ctl[data-theme-toggle] { width: 32px; }
   .wrap { padding: 0 var(--sp-4); }
   .hero-inner { padding: var(--sp-6) var(--sp-4) var(--sp-6); }
   .bar-row { grid-template-columns: 1fr auto; grid-template-areas: "lb vv" "tr tr"; gap: var(--sp-1) var(--sp-2); }
@@ -1165,17 +1178,20 @@ h2:hover .anchor-link, .anchor-link:focus-visible { opacity: 1; }
   table { font-size: var(--fs-2); }
   th, td { padding: var(--sp-2) var(--sp-2); }
 }
-@media (max-width: 430px) {
+@media (max-width: 560px) {
   /* the mark alone still reads as the home link; the nav needs the room */
   .logo .word { display: none; }
   nav.top a { padding: var(--sp-1) var(--sp-1); }
 }
 @media (max-width: 380px) {
-  /* three nav links plus three controls: at 320px every pixel of chrome
-     has to come out of the header or the whole page scrolls sideways */
+  .hero .chips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero .chip:first-child { grid-column: 1 / -1; }
+  /* The logo keeps Home reachable; give the remaining links room to read. */
   .site-inner { padding: var(--sp-2) var(--sp-2); gap: var(--sp-1); }
+  nav.top > a:first-child { display: none; }
+  .mobile-nav summary { padding: var(--sp-1); }
   nav.top a { font-size: var(--fs-2); padding: var(--sp-1) var(--sp-1); }
-  .ctl { height: 28px; min-width: 28px; padding: 0 var(--sp-1); margin-left: 2px; font-size: var(--fs-1); }
+  .ctl { padding: 0 var(--sp-1); margin-left: 2px; font-size: var(--fs-1); }
   .ctl.gh svg { width: 16px; height: 16px; }
   .wrap { padding: 0 var(--sp-3); }
   .hero-inner { padding: var(--sp-6) var(--sp-3) var(--sp-6); }

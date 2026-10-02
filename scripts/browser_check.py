@@ -1212,6 +1212,110 @@ async def clearing_search_discards_pending_work(browser, app: App, rep: Report) 
         await ctx.close()
 
 
+async def ime_candidates_are_not_queries(browser, app: App, rep: Report) -> None:
+    """Exercise composition event orders against the mounted search and ask forms."""
+    for view, selector in (("search", "#q"), ("ask", "#aq")):
+        ctx, page, logged, _ = await open_page(browser, width=1280, lang="zh", theme="light")
+        await page.goto(f"{app.base}/app#/search", wait_until="load")
+        await settle(page)
+        # Leave actual result links behind: ArrowDown must not steal IME focus.
+        await page.fill("#q", "vector index")
+        await page.keyboard.press("Enter")
+        await page.wait_for_selector("#results li")
+        if view == "ask":
+            await page.click('[data-view="ask"]')
+        checks = await page.evaluate("""async ({selector, view}) => {
+            const {api} = await import('/app/static/api.js');
+            const q = document.querySelector(selector);
+            const popup = document.querySelector(view === 'search' ? '#sugg' : '#asugg');
+            const checks = [], calls = [];
+            const pause = () => new Promise(resolve => setTimeout(resolve, 300));
+            const check = (name, ok) => checks.push({name, ok, calls: [...calls]});
+            const empty = {hits: [], expanded: [], total: 0, took_ms: {}};
+            api.quick = async text => { calls.push(['quick', text]); return empty; };
+            api.search = async ({q}) => { calls.push(['search', q]); return empty; };
+            api.suggest = async text => { calls.push(['suggest', text]); return empty; };
+            api.suggestQuery = async text => { calls.push(['syntax', text]); return {suggestions: []}; };
+            const synthesize = api.synthesize;
+            api.synthesize = async (...args) => { calls.push(['synthesize', args[0]]); return synthesize(...args); };
+            const input = (text, composing = false) => {
+                q.value = text;
+                q.dispatchEvent(new InputEvent('input', {bubbles: true, isComposing: composing}));
+            };
+            const compose = type => q.dispatchEvent(new CompositionEvent(type, {bubbles: true}));
+            q.focus();
+            input('pending query');
+            compose('compositionstart');
+            input('zhongwen', true);
+            // Include unflagged input/keys from engines that rely on composition events.
+            input('zhongwen');
+            for (const key of ['ArrowDown', 'ArrowUp', 'Escape', 'Enter']) {
+                q.dispatchEvent(new KeyboardEvent('keydown', {key, bubbles: true, cancelable: true}));
+            }
+            q.form.requestSubmit();
+            await pause();
+            check('candidate input cancels timers and does not request', calls.length === 0);
+            check('candidate keys preserve text and focus', q.value === 'zhongwen' && document.activeElement === q);
+            check('candidate input hides suggestions', popup.hidden);
+            for (const finalInput of [true, false]) {
+                if (!finalInput) compose('compositionstart');
+                calls.length = 0;
+                q.value = finalInput ? '中文输入' : '中文检索';
+                compose('compositionend');
+                if (finalInput) input(q.value);
+                // Safari's confirming key can follow compositionend with code 229.
+                q.dispatchEvent(new KeyboardEvent('keydown', {
+                    key: 'Escape', keyCode: 229, bubbles: true, cancelable: true
+                }));
+                const enter = new KeyboardEvent('keydown', {
+                    key: 'Enter', keyCode: 229, bubbles: true, cancelable: true
+                });
+                q.dispatchEvent(enter);
+                check('confirming Enter cannot submit after compositionend', enter.defaultPrevented);
+                await pause();
+                const expected = view === 'search' ? ['quick', 'search', 'suggest'] : ['suggest'];
+                check(`commit once, final input=${finalInput}`,
+                    JSON.stringify(calls.map(c => c[0]).sort()) === JSON.stringify(expected.sort()) &&
+                    calls.every(c => c[1] === q.value) && q.value.startsWith('中文'));
+            }
+            let release;
+            api.suggest = text => {
+                calls.push(['suggest', text]);
+                return new Promise(resolve => { release = resolve; });
+            };
+            input('earlier query');
+            await pause();
+            compose('compositionstart');
+            calls.length = 0;
+            // Even syntax-looking pre-edit text must not ask the query completer.
+            input('tag:zhong', true);
+            release({hits: [{bookmark_id: 1, title: 'Late suggestion', url: 'https://example.invalid/'}]});
+            await pause();
+            check('late suggestions stay closed during composition', popup.hidden && calls.length === 0);
+            api.suggest = async text => { calls.push(['suggest', text]); return empty; };
+            q.value = 'normal query';
+            compose('compositionend');
+            await pause();
+            return checks;
+        }""", {"selector": selector, "view": view})
+        for check in checks:
+            rep.ok(f"regression/ime {view}: {check['name']}", check["ok"], str(check["calls"]))
+        # A real Enter still submits after composition has finished.
+        if view == "search":
+            await page.evaluate("""async () => {
+                const {api} = await import('/app/static/api.js');
+                api.search = async ({q}) => { window.enterQuery = q; return {hits: [], total: 0}; };
+            }""")
+            await page.keyboard.press("Enter")
+            await page.wait_for_function("window.enterQuery === 'normal query'")
+        else:
+            async with page.expect_request(lambda r: r.url.endswith("/synthesize") and r.method == "POST"):
+                await page.keyboard.press("Enter")
+        rep.ok(f"regression/ime {view}: normal Enter", True, "")
+        rep.ok(f"regression/ime {view}: console", not logged, f"console: {logged[:4]}")
+        await ctx.close()
+
+
 async def a_session_link_opens_that_session(browser, app: App, rep: Report) -> None:
     """Clicking a session in the dialog raced the router and lost.
 
@@ -1359,6 +1463,19 @@ async def polished_navigation_and_remote_guidance(browser, app: App, land: Landi
         await settle(page)
         rep.ok(f"polish/options {lang}", not await page.locator("#rungs").is_visible(),
                "experiment modes should start in the closed options panel")
+        for target, glyph, zh, en in (
+            ("dark", "moon", "切换深色主题", "Switch to dark theme"),
+            ("system", "system", "跟随系统主题", "Use system theme"),
+            ("light", "sun", "切换浅色主题", "Switch to light theme"),
+        ):
+            rep.ok(f"polish/theme-action {lang}/{target}",
+                   await page.locator("#theme").get_attribute("aria-label") == (zh if lang == "zh" else en)
+                   and await page.locator(f"#theme-glyph .icon-{glyph}").is_visible(),
+                   "theme label or visible icon did not describe the next action")
+            await page.click("#theme")
+            rep.ok(f"polish/theme-switch {lang}/{target}",
+                   await page.evaluate("localStorage.getItem('fm-theme')") == target,
+                   "theme click did not apply the advertised mode")
         await page.click("#opts-toggle")
         rep.ok(f"polish/options {lang}", await page.locator("#rungs").is_visible(),
                "opening search options did not expose the modes")
@@ -1399,6 +1516,12 @@ async def polished_navigation_and_remote_guidance(browser, app: App, land: Landi
         suffix = ".zh.html" if lang == "zh" else ".html"
         await page.goto(land.url("quickstart" + suffix), wait_until="load")
         await settle(page, 200)
+        await page.locator("[data-theme-toggle]").click()
+        rep.ok(f"polish/site-theme {lang}",
+               await page.locator("html").get_attribute("data-theme") == "dark"
+               and await page.locator(".theme-icon .icon-sun").is_visible()
+               and not await page.locator(".theme-icon .icon-moon").is_visible(),
+               "site theme icon did not update after switching")
         rep.ok(f"polish/mobile-toc {lang}", not await page.locator(".toc ol").is_visible(),
                "the mobile table of contents should start collapsed")
         await page.locator(".toc summary").click()
@@ -1428,6 +1551,7 @@ async def run(only: str) -> int:
                 await settings_buttons_save_their_own_fields(browser, app, rep)
                 await job_updates_preserve_settings_drafts(browser, app, rep)
                 await clearing_search_discards_pending_work(browser, app, rep)
+                await ime_candidates_are_not_queries(browser, app, rep)
                 await polished_navigation_and_remote_guidance(browser, app, land, rep)
                 say("settings and search interactions measured")
             if only in ("all", "regressions"):
