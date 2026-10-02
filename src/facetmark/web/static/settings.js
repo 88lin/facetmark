@@ -60,6 +60,8 @@ let cfg = null;
 /** The setInterval handle for the job poll. Never more than one. */
 let poll = 0;
 let job = null;
+// Drafts stay in this tab, including secret fields; never persist them in storage.
+const drafts = new Map();
 
 // ------------------------------------------------------------------ fields
 
@@ -102,9 +104,15 @@ function field(key) {
     input.value = initial;
   }
   if (r?.locked) {
+    drafts.delete(key);
     input.readOnly = true;
     input.setAttribute("aria-describedby", `${id}-why`);
   }
+  if (drafts.has(key)) input.value = drafts.get(key);
+  input.addEventListener("input", () => {
+    if (input.value === (r?.secret ? "" : initial)) drafts.delete(key);
+    else drafts.set(key, input.value);
+  });
   wrap.appendChild(input);
 
   const why = el("p", "hint");
@@ -132,6 +140,7 @@ function field(key) {
     return Array.isArray(r.value) ? splitList(v) : v;
   };
   wrap.probe = () => input.value.trim();
+  wrap.draft = () => input.value;
   return wrap;
 }
 
@@ -143,14 +152,17 @@ function modelForm() {
   sec.appendChild(el("p", "lede", t("settings.model.lede")));
 
   const form = el("form", "grid2");
+  form.id = "settings-model-form";
   const fields = new Map(MODEL_FIELDS.map((k) => [k, field(k)]));
   for (const f of fields.values()) form.appendChild(f);
   sec.appendChild(form);
 
   const say = el("p", "note");
+  say.id = `${form.id}-status`;
   say.setAttribute("aria-live", "polite");
   const save = btn(t("settings.save"), "primary");
   save.type = "submit";
+  save.setAttribute("form", form.id);
   const test = btn(t("settings.test"), "", () => void probe(fields, say));
   sec.appendChild(el("div", "row")).append(save, test, say);
 
@@ -163,9 +175,13 @@ function modelForm() {
 
 async function write(fields, say, save) {
   const values = {};
+  const submitted = new Map();
   for (const [key, f] of fields) {
     const v = f.read();
-    if (v !== undefined) values[key] = v;
+    if (v !== undefined) {
+      values[key] = v;
+      submitted.set(key, f.draft());
+    }
   }
   if (!Object.keys(values).length) {
     say.className = "note";
@@ -179,12 +195,18 @@ async function write(fields, say, save) {
     const r = await api.adminSettingsWrite(values);
     cfg = { path: r.path ?? cfg?.path, settings: r.settings };
     setup.invalidate();
+    for (const [key, value] of submitted) {
+      // Keep edits made while the save was in flight, and other forms' drafts.
+      if (drafts.get(key) === value) drafts.delete(key);
+    }
+    // Refresh sources and secret masks, then report success on the new node.
+    const statusId = say.id;
+    draw();
+    say = $(`#${statusId}`, ui.body);
     say.className = "note ok";
     say.textContent = r.restart_required?.length
       ? t("settings.saved.restart", { keys: r.restart_required.join(", ") })
       : t("settings.saved", { n: r.applied?.length ?? Object.keys(values).length });
-    // Redraw so `source` flips from default to file and the mask updates.
-    draw();
   } catch (e) {
     say.className = "note bad";
     say.textContent = e instanceof ApiError ? e.message : String(e);
@@ -234,13 +256,16 @@ function otherGroups() {
     const sec = el("section", "block");
     sec.appendChild(el("h2", null, t(g.key)));
     const form = el("form", "grid2");
+    form.id = `settings-${g.key.split(".").pop()}-form`;
     const fields = new Map(g.fields.map((k) => [k, field(k)]));
     for (const f of fields.values()) form.appendChild(f);
     sec.appendChild(form);
     const say = el("p", "note");
+    say.id = `${form.id}-status`;
     say.setAttribute("aria-live", "polite");
     const save = btn(t("settings.save"), "");
     save.type = "submit";
+    save.setAttribute("form", form.id);
     sec.appendChild(el("div", "row")).append(save, say);
     form.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -263,6 +288,7 @@ function stageState(j, name) {
 
 function jobSection() {
   const sec = el("section", "tint lex");
+  sec.id = "settings-job";
   sec.appendChild(el("h2", null, t("settings.job.title")));
   sec.appendChild(el("p", "lede", t("settings.job.lede")));
 
@@ -321,11 +347,11 @@ async function start(force) {
   try {
     job = await api.adminIndex({ fetch: true, force });
     watch();
-    draw();
+    drawJob();
   } catch (e) {
     if (e instanceof ApiError && e.status === 409) {
       await refreshJob();
-      draw();
+      drawJob();
       return;
     }
     const into = el("div");
@@ -338,7 +364,7 @@ async function cancel() {
   try {
     const r = await api.adminCancel();
     if (r.job) job = r.job;
-    draw();
+    drawJob();
   } catch {
     /* the next poll will say what actually happened */
   }
@@ -373,7 +399,7 @@ function watch() {
         S.stats = null;
         setup.invalidate();
       }
-      if (ui && !$("#view-settings").hidden) draw();
+      if (ui && !$("#view-settings").hidden) drawJob();
     })();
   }, POLL_MS);
 }
@@ -385,6 +411,11 @@ function stopWatching() {
 }
 
 // ------------------------------------------------------------------ render
+
+function drawJob() {
+  // Polling must not replace inputs, their focus, or their selection.
+  $("#settings-job", ui.body)?.replaceWith(jobSection());
+}
 
 function draw() {
   if (!cfg) return;

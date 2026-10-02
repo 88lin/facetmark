@@ -601,7 +601,17 @@ function emptyPanel(queried) {
 // ------------------------------------------------------------------- search
 
 export async function run(q, { force = false } = {}) {
+  if (!force && q && q === cursor.query && rows.length) return;
+  const mine = ++generation;
+  clearTimeout(timer);
+  // Clearing the box is a new generation too: old successes and errors must
+  // not repopulate the empty view, even if cancellation arrives too late.
+  inflight?.abort(new DOMException("superseded", "AbortError"));
+  inflight = null;
   if (!q) {
+    clearTimeout(sugTimer);
+    ++sugGeneration;
+    closeSuggest();
     rows = [];
     neighbours = [];
     cursor = startCursor("");
@@ -610,20 +620,17 @@ export async function run(q, { force = false } = {}) {
     ui.around.hidden = true;
     ui.status.textContent = "";
     await ensureStats(api);
+    if (mine !== generation) return;
     drawTimebar();
     emptyPanel(false);
     return;
   }
-  if (!force && q === cursor.query && rows.length) return;
-
-  const mine = ++generation;
   // The generation counter drops a superseded reply. Dropping it is not the
   // same as stopping it: an ignored request still holds one of the browser's
   // six connections to this origin until the server gets round to answering
   // it. Six slow searches -- six keystrokes while the provider is busy -- and
   // every later request queues behind requests whose answers nobody wants, with
   // nothing on screen to say why. Aborting is what gives the connection back.
-  inflight?.abort(new DOMException("superseded", "AbortError"));
   const ac = new AbortController();
   inflight = ac;
 
@@ -832,6 +839,10 @@ export function mount() {
     const v = ui.q.value.trim();
     clearTimeout(timer);
     clearTimeout(sugTimer);
+    if (!v) {
+      void run("");
+      return;
+    }
     timer = setTimeout(() => void run(v), DEBOUNCE_MS);
     sugTimer = setTimeout(() => void askSuggest(v), SUGGEST_MS);
     drawTimebar();

@@ -21,6 +21,7 @@ against a real Chromium.
 
     python scripts/browser_check.py            # everything
     python scripts/browser_check.py --only app # or: site, regressions
+    python scripts/browser_check.py --only interactions # settings and search races
 
 Exit status is 0 when every check passes and 1 otherwise; each failure prints
 the measurement that produced it, not just the name of the check.
@@ -1051,6 +1052,166 @@ async def touch_hides_the_keyboard_hint(browser, app: App, rep: Report) -> None:
     await ctx.close()
 
 
+async def settings_buttons_save_their_own_fields(browser, app: App, rep: Report) -> None:
+    """Click each Save against the disposable server, then reload its settings."""
+    from facetmark.configfile import config_path, read_config
+
+    ctx, page, logged, _ = await open_page(browser, width=1280, lang="en", theme="light")
+    await page.goto(f"{app.base}/app#/settings", wait_until="load")
+    await page.wait_for_selector("#set-chat_model")
+    # Saving the model must also leave the adjacent form's unsaved work alone.
+    await page.fill("#set-request_timeout", "61")
+    changes = (
+        ("chat_model", "browser-check-chat", "browser-check-chat"),
+        ("local_embed_path", "/tmp/facetmark-browser-check", "/tmp/facetmark-browser-check"),
+        ("request_timeout", "61", "61"),
+        ("privacy_excluded_domains", "audit.invalid", ["audit.invalid"]),
+    )
+    restart = set()
+    for key, value, sent in changes:
+        await page.fill(f"#set-{key}", value)
+        section = page.locator(f"#settings-body section:has(#set-{key})")
+        async with page.expect_response(
+            lambda r: r.url.endswith("/admin/settings") and r.request.method == "PUT"
+        ) as pending:
+            await section.get_by_role("button", name="Save", exact=True).click()
+        response = await pending.value
+        w = f"regression/save {key}"
+        rep.ok(w, response.ok, f"save returned {response.status}")
+        rep.ok(w, response.request.post_data_json == {"values": {key: sent}},
+               f"submitted unrelated or malformed fields: {response.request.post_data_json}")
+        restart.update((await response.json()).get("restart_required", []))
+        await section.locator(".note.ok").wait_for()
+        if key in restart:
+            rep.ok(w, "restart" in (await section.locator(".note.ok").inner_text()).lower(),
+                   "a restart-only setting was reported as immediately active")
+        if key == "chat_model":
+            rep.ok(w, await page.input_value("#set-request_timeout") == "61",
+                   "saving the model cleared the limits draft")
+    await page.reload(wait_until="load")
+    await page.wait_for_selector("#set-chat_model")
+    saved = read_config(config_path(app.dir))
+    for key, value, sent in changes:
+        persisted = saved.get(key)
+        expected = float(sent) if key == "request_timeout" else sent
+        if isinstance(expected, str):
+            persisted = str(persisted).replace("\\", "/")
+        rep.ok(f"regression/persist {key}", persisted == expected,
+               f"save did not reach the config file: {persisted!r}")
+        if key in restart:
+            continue
+        got = await page.input_value(f"#set-{key}")
+        # Paths are normalised by the server on Windows.
+        rep.ok(f"regression/reload {key}", got.replace("\\", "/") == value,
+               f"saved value did not survive reload: {got!r}")
+    rep.ok("regression/save", not logged, f"console: {logged[:4]}")
+    await ctx.close()
+
+
+async def job_updates_preserve_settings_drafts(browser, app: App, rep: Report) -> None:
+    """A real polling tick must update progress without replacing the inputs."""
+    ctx, page, logged, _ = await open_page(browser, width=1280, lang="en", theme="light")
+    current = {"state": "idle"}
+    reads = 0
+
+    async def job_read(route) -> None:
+        nonlocal reads
+        if current["state"] == "running":
+            reads += 1
+            current["progress"] = min(reads, 9) / 10
+        await route.fulfill(json=current)
+
+    async def job_start(route) -> None:
+        current.update(state="running", current="fetch", progress=0, stages=[])
+        await route.fulfill(json=current)
+
+    async def job_cancel(route) -> None:
+        current.update(state="cancelled")
+        await route.fulfill(json={"job": current})
+
+    await page.route("**/admin/job", job_read)
+    await page.route("**/admin/index", job_start)
+    await page.route("**/admin/job/cancel", job_cancel)
+    await page.goto(f"{app.base}/app#/settings", wait_until="load")
+    await page.wait_for_selector("#set-chat_model")
+    await page.fill("#set-chat_model", "draft-while-indexing")
+    await page.get_by_role("button", name="Run the index", exact=True).click()
+    rep.ok("regression/job-start", await page.input_value("#set-chat_model") == "draft-while-indexing",
+           "starting the index cleared the draft")
+    await page.locator("#set-chat_model").focus()
+    await page.eval_on_selector("#set-chat_model", "e => e.setSelectionRange(2, 5)")
+    await page.wait_for_function("""() => [...document.querySelectorAll('.stages + .note')]
+        .some(e => e.textContent.includes('10%'))""")
+    state = await page.eval_on_selector("#set-chat_model", """e => ({
+        value: e.value, focused: document.activeElement === e,
+        selection: [e.selectionStart, e.selectionEnd]
+    })""")
+    rep.ok("regression/job-poll", state == {
+        "value": "draft-while-indexing", "focused": True, "selection": [2, 5],
+    }, f"poll changed the editor: {state}")
+    await page.get_by_role("button", name="Stop", exact=True).click()
+    rep.ok("regression/job-cancel", await page.input_value("#set-chat_model") == "draft-while-indexing",
+           "cancelling the index cleared the draft")
+    await page.click("#lang")
+    rep.ok("regression/settings-language", await page.input_value("#set-chat_model") == "draft-while-indexing",
+           "changing language cleared the draft")
+    rep.ok("regression/job", not logged, f"console: {logged[:4]}")
+    await ctx.close()
+
+
+async def clearing_search_discards_pending_work(browser, app: App, rep: Report) -> None:
+    """Deliver a late success/error even after abort, at either search stage."""
+    for stage, fail in (("quick", False), ("ranked", False), ("ranked", True)):
+        ctx, page, logged, _ = await open_page(browser, width=1280, lang="en", theme="light")
+        await page.goto(f"{app.base}/app#/search", wait_until="load")
+        await settle(page)
+        await page.evaluate("""async stage => {
+            const {api} = await import('/app/static/api.js');
+            const empty = {hits: [], expanded: [], total: 0, took_ms: {}};
+            const pending = signal => new Promise((resolve, reject) => {
+                window.pendingSignal = signal;
+                window.releaseSearch = fail => fail ? reject(new Error('late failure')) : resolve({
+                    ...empty, total: 1, hits: [{bookmark_id: 1, title: 'Late result',
+                    url: 'https://example.invalid/', snippet: 'Previous query'}]
+                });
+            });
+            api.quick = async (q, n, {signal}) => stage === 'quick' ? pending(signal) : empty;
+            api.search = async ({signal}) => pending(signal);
+        }""", stage)
+        await page.fill("#q", "oak")
+        await page.keyboard.press("Enter")
+        await page.wait_for_function("() => typeof window.releaseSearch === 'function'")
+        await page.fill("#q", "")
+        await page.wait_for_function("() => document.querySelector('#status').textContent === ''")
+        await page.evaluate("""async fail => {
+            window.releaseSearch(fail);
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }""", fail)
+        state = await page.evaluate("""() => ({
+            value: document.querySelector('#q').value,
+            rows: document.querySelectorAll('#results li').length,
+            status: document.querySelector('#status').textContent,
+            failed: !!document.querySelector('#panel .bad'),
+            aborted: window.pendingSignal.aborted
+        })""")
+        rep.ok(f"regression/clear {stage} fail={fail}", state == {
+            "value": "", "rows": 0, "status": "", "failed": False, "aborted": True,
+        }, f"cleared search was repopulated: {state}")
+        # Escape before the debounce fires must also cancel the scheduled query.
+        await page.evaluate("""async () => {
+            const {api} = await import('/app/static/api.js');
+            window.quickCalls = 0;
+            api.quick = async () => { window.quickCalls++; return {hits: [], total: 0}; };
+        }""")
+        await page.fill("#q", "ash")
+        await page.keyboard.press("Escape")
+        await page.wait_for_timeout(250)
+        rep.ok("regression/clear-debounce", await page.evaluate("window.quickCalls") == 0,
+               "Escape left a scheduled search running")
+        rep.ok("regression/clear", not logged, f"console: {logged[:4]}")
+        await ctx.close()
+
+
 async def a_session_link_opens_that_session(browser, app: App, rep: Report) -> None:
     """Clicking a session in the dialog raced the router and lost.
 
@@ -1201,6 +1362,11 @@ async def run(only: str) -> int:
                 await sweep_app(browser, app, rep)
             if only in ("all", "site"):
                 await sweep_site(browser, land, rep)
+            if only in ("all", "regressions", "interactions"):
+                await settings_buttons_save_their_own_fields(browser, app, rep)
+                await job_updates_preserve_settings_drafts(browser, app, rep)
+                await clearing_search_discards_pending_work(browser, app, rep)
+                say("settings and search interactions measured")
             if only in ("all", "regressions"):
                 await esc_keeps_the_search(browser, app, rep)
                 await the_fifth_tab_is_reachable(browser, app, rep)
@@ -1228,7 +1394,7 @@ async def run(only: str) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--only", default="all", choices=["all", "app", "site", "regressions"])
+    ap.add_argument("--only", default="all", choices=["all", "app", "site", "regressions", "interactions"])
     args = ap.parse_args()
     return asyncio.run(run(args.only))
 
