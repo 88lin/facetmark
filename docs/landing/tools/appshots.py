@@ -1,4 +1,4 @@
-"""Re-shoot the eight `/app` frames the landing pages embed.
+"""Re-shoot the `/app` frames and cropped homepage previews.
 
 This replaces the node version that used to live here, for two reasons.
 
@@ -88,6 +88,11 @@ async def main() -> int:
                     await page.wait_for_selector("#results li:nth-child(4)", timeout=20000)
                     await page.wait_for_timeout(900)
                     await shoot(page, f"app-search{suffix}.png", clip=await cut(page))
+                    # The hero shows the reading column at a legible size,
+                    # excluding the large margins of the desktop viewport.
+                    await shoot(page, f"app-preview{suffix}.png", clip={
+                        "x": 280, "y": 145, "width": 880, "height": 760,
+                    })
 
                     await page.click('[data-view="library"]')
                     await page.wait_for_selector("#stats .block", timeout=20000)

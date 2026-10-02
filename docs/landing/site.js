@@ -34,7 +34,9 @@
       btns[i].textContent = t === "dark" ? "\u2600" : "\u263D";
       btns[i].setAttribute(
         "aria-label",
-        t === "dark" ? "Switch to light theme" : "Switch to dark theme"
+        root.lang === "zh-CN"
+          ? (t === "dark" ? "切换浅色主题" : "切换深色主题")
+          : (t === "dark" ? "Switch to light theme" : "Switch to dark theme")
       );
     }
   }
@@ -82,7 +84,7 @@
 
     var links = document.querySelectorAll("[data-lang-switch]");
     for (var i = 0; i < links.length; i++) {
-      links[i].setAttribute("href", target);
+      links[i].setAttribute("href", target + location.hash);
       links[i].addEventListener("click", function () {
         if (LS) LS.setItem("fm-lang", other);
       });
@@ -203,6 +205,20 @@
   /* ---------- table of contents ------------------------------------------ */
 
   function initToc() {
+    var contents = document.querySelector(".toc details");
+    if (contents && matchMedia("(max-width: 980px)").matches) contents.open = false;
+    var menu = document.querySelector(".mobile-nav");
+    if (menu) {
+      document.addEventListener("click", function (e) {
+        if (!menu.contains(e.target)) menu.open = false;
+      });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && menu.open) {
+          menu.open = false;
+          menu.querySelector("summary").focus();
+        }
+      });
+    }
     var links = document.querySelectorAll(".toc a[href^='#']");
     if (!links.length || !("IntersectionObserver" in window)) return;
     var map = {};
@@ -228,8 +244,12 @@
           }
         }
         if (!active) return;
-        for (var id2 in map) map[id2].classList.remove("on");
+        for (var id2 in map) {
+          map[id2].classList.remove("on");
+          map[id2].removeAttribute("aria-current");
+        }
         map[active].classList.add("on");
+        map[active].setAttribute("aria-current", "location");
       },
       { rootMargin: "-84px 0px -62% 0px", threshold: 0 }
     );

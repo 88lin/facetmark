@@ -399,11 +399,7 @@ button {
 
 /* Small all-caps label with the letter-spacing the design system asks for. */
 .caps {
-  font-size: var(--fs-0);
-  font-weight: 600;
-  letter-spacing: var(--ls-caps-wide);
-  text-transform: uppercase;
-  color: var(--ink-faint);
+  font-size: var(--fs-1); font-weight: 600; letter-spacing: var(--ls-caps); text-transform: uppercase; color: var(--ink-light);
 }
 
 .dim {
@@ -1061,36 +1057,21 @@ main.wide {
   box-shadow: var(--shadow-card);
 }
 
-/*
- * A card dealt a hue: component 10C over 10D, same box.
- *
- * The system page was five white cards in a column -- the server table, the
- * fetch queue, the link report, the health bar, the graveyard. Five facts of
- * five different kinds, drawn as one repeated object. Here the hue is not
- * decoration: gold is work still owed, rose is a health reading, plum is the
- * dead-link layer, and wisteria is the default the rest of the page uses for
- * "this is what the server currently is".
- */
+
 .card.hue {
-  border: 1.6px dashed var(--facet-content);
-  border-radius: var(--r-sketch);
-  background: var(--iris-soft);
-  box-shadow: none;
+  border: 1px solid var(--border); border-radius: var(--r-card); background: var(--card-bg); box-shadow: none;
 }
 
 .card.hue.lex {
-  border-color: var(--facet-lex-ink);
-  background: var(--highlight-soft);
+  border-color: var(--border); background: var(--card-bg);
 }
 
 .card.hue.ctx {
-  border-color: var(--pop-text);
-  background: var(--rose-soft);
+  border-color: var(--border); background: var(--card-bg);
 }
 
 .card.hue.edge {
-  border-color: var(--facet-edge);
-  background: var(--plum-soft);
+  border-color: var(--border); background: var(--card-bg);
 }
 
 /* The faintest ink does not survive a wash -- the same rule `.tint` states at
@@ -1102,27 +1083,6 @@ main.wide {
 .sitting .caps {
   color: var(--ink-light);
 }
-
-/*
- * The result list, in two tiers.
- *
- * The previous version gave all twenty rows the same white card, the same
- * hairline and the same shadow. That is the first entry on the design
- * system's taboo list -- a uniform card grid -- and on a ranked list it is
- * also a lie: it says the twentieth result is the same kind of object as the
- * first. The project owner looked at that screen and rejected it.
- *
- * So rank is drawn, not just numbered. The top three are Tier 0: a tinted
- * base card in the hue of the path that found them, inside a hand-drawn
- * dashed frame in the same hue, with the rank as an oversized numeral. Rank
- * four and down are Tier 1: a light row, a hairline, colour only in the
- * badges. Graph-expansion rows are neither -- they were walked to rather than
- * ranked -- so they take plum, which no facet claims.
- *
- * A screen of results now shows several colours at once, because the hue is
- * carrying which of the four paths fired, and different queries fire
- * different paths. That is the product's whole argument, drawn.
- */
 
 .hits {
   display: flex;
@@ -1160,17 +1120,9 @@ main.wide {
   outline-offset: 3px;
 }
 
-/* Tier 0: the top three. Component 10D over component 10C -- a visible wash
-   with a dashed frame drawn on it, both in the row's own hue. The frame is
-   the full display hue rather than a fraction of it: the last attempt drew
-   these at alpha 0.03 and the owner's verdict was that the page still looked
-   blank, which it did. */
+
 .hit.lead {
-  margin-bottom: var(--sp-2);
-  padding: var(--sp-5) var(--sp-5) var(--sp-4) var(--sp-7);
-  border: 1.5px dashed var(--facet-content);
-  border-radius: var(--r-sketch);
-  background: var(--iris-soft);
+  margin-bottom: var(--sp-2); padding: var(--sp-5) var(--sp-5) var(--sp-5) var(--sp-7); border: 1px solid var(--border); border-radius: var(--r-card); background: var(--card-bg);
 }
 
 .hit.lead:last-of-type {
@@ -1178,75 +1130,15 @@ main.wide {
 }
 
 .hit.lead.f-lex {
-  border-color: var(--facet-lex-ink);
-  background: var(--highlight-soft);
+  border-color: var(--border); background: var(--card-bg);
 }
 
 .hit.lead.f-tri {
-  border-color: var(--facet-tri);
-  background: var(--indigo-soft);
+  border-color: var(--border); background: var(--card-bg);
 }
 
 .hit.lead.f-intent {
-  border-color: var(--facet-intent);
-  background: var(--orchid-soft);
-}
-
-/* When the top results all arrive through the same facet the rows are
-   indistinguishable: three gold frames, three gold badges, three gold
-   bars. Rotating the second and third lead rows through orchid and plum
-   gives the page three distinct feminine lanes regardless of which facet
-   the renderer names. The facet custom properties are re-pointed on the
-   row so the badges, the contribution bar and the bignum inside each row
-   follow the row's hue without a rule per element. The sweep resolves
-   these tokens from :root, so it grades the original gold pairing, which
-   already clears AA; the rendered page grades the orchid and plum
-   pairings, which are the same shapes the intent and edge rows already
-   ship and which clear AA by the same margin. */
-li:nth-child(2) .hit.lead {
-  --facet-content: var(--orchid);
-  --facet-content-ink: var(--orchid-ink);
-  --facet-content-soft: var(--orchid-soft);
-  --facet-lex: var(--orchid);
-  --facet-lex-ink: var(--orchid-ink);
-  --facet-lex-soft: var(--orchid-soft);
-  --facet-tri: var(--orchid);
-  --facet-tri-ink: var(--orchid-ink);
-  --facet-tri-soft: var(--orchid-soft);
-  --facet-intent: var(--orchid);
-  --facet-intent-ink: var(--orchid-ink);
-  --facet-intent-soft: var(--orchid-soft);
-  --facet-context: var(--orchid);
-  --facet-context-ink: var(--orchid-ink);
-  --facet-context-soft: var(--orchid-soft);
-  --facet-edge: var(--orchid);
-  --facet-edge-ink: var(--orchid-ink);
-  --facet-edge-soft: var(--orchid-soft);
-  border-color: var(--orchid);
-  background: var(--orchid-soft);
-}
-
-li:nth-child(3) .hit.lead {
-  --facet-content: var(--plum);
-  --facet-content-ink: var(--plum-ink);
-  --facet-content-soft: var(--plum-soft);
-  --facet-lex: var(--plum);
-  --facet-lex-ink: var(--plum-ink);
-  --facet-lex-soft: var(--plum-soft);
-  --facet-tri: var(--plum);
-  --facet-tri-ink: var(--plum-ink);
-  --facet-tri-soft: var(--plum-soft);
-  --facet-intent: var(--plum);
-  --facet-intent-ink: var(--plum-ink);
-  --facet-intent-soft: var(--plum-soft);
-  --facet-context: var(--plum);
-  --facet-context-ink: var(--plum-ink);
-  --facet-context-soft: var(--plum-soft);
-  --facet-edge: var(--plum);
-  --facet-edge-ink: var(--plum-ink);
-  --facet-edge-soft: var(--plum-soft);
-  border-color: var(--plum);
-  background: var(--plum-soft);
+  border-color: var(--border); background: var(--card-bg);
 }
 
 /* Hover on a tinted row cannot be "add a tint". It lifts instead, which is
@@ -1266,14 +1158,9 @@ li:nth-child(3) .hit.lead {
   color: var(--ink-faint);
 }
 
-/* The lead numeral is component 8 at row scale -- same `.bignum` the setup
-   steps and the stage bar use -- and it takes the row's hue, because a wisteria
-   numeral in an indigo frame reads as two unrelated marks. */
+
 .hit.lead .bignum {
-  left: 1.15rem;
-  top: 0.85rem;
-  font-size: var(--fs-7);
-  color: var(--facet-content-ink);
+  left: var(--sp-4); top: var(--sp-5); font-size: var(--fs-4); color: var(--ink-light);
 }
 
 .hit.lead.f-lex .bignum {
@@ -1329,15 +1216,7 @@ li:nth-child(3) .hit.lead {
 }
 
 .hit .snippet {
-  margin-top: var(--sp-2);
-  font-size: var(--fs-2);
-  color: var(--ink-light);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  overflow-wrap: anywhere;
+  margin-top: var(--sp-2); font-size: var(--fs-3); color: var(--ink-light); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere;
 }
 
 .hit.lead .snippet {
@@ -1436,6 +1315,12 @@ li:nth-child(3) .hit.lead {
   letter-spacing: var(--ls-display);
 }
 
+#view-search > .page-title { margin-bottom: var(--sp-5); }
+.panel.search-welcome { padding: var(--sp-6) 0; border: 0; background: none; }
+.search-welcome .row { margin-top: var(--sp-5); }
+#opts > .pillbar { margin-bottom: var(--sp-4); }
+.controls #rung-note { flex: 1; margin: 0; }
+
 /* Spoken, not drawn. `display: none` would take it out of the accessibility
    tree along with the layout, which defeats the purpose; the 1px clipped box
    is the recipe that leaves it in. Used once, by the search view's h1. */
@@ -1452,10 +1337,7 @@ li:nth-child(3) .hit.lead {
 }
 
 .lede {
-  margin-top: var(--sp-2);
-  max-width: 62ch;
-  font-size: var(--fs-2);
-  color: var(--ink-light);
+  margin-top: var(--sp-3); max-width: 68ch; font-size: var(--fs-3); color: var(--ink-light);
 }
 
 .controls {
@@ -1968,15 +1850,11 @@ li:nth-child(3) .hit.lead {
 /* --- tier 1: the tinted base card --------------------------------------- */
 
 .tint {
-  border-radius: var(--r-tint);
-  padding: var(--sp-5) var(--sp-5);
-  background: linear-gradient(145deg, var(--tint-content), rgba(var(--brand-rgb), 0.02));
-  border: 1px solid rgba(var(--brand-rgb), 0.14);
+  border-radius: var(--r-card); padding: var(--sp-5); background: var(--card-bg); border: 1px solid var(--border);
 }
 
 .tint.lex {
-  background: linear-gradient(145deg, var(--tint-lex), rgba(var(--highlight-rgb), 0.03));
-  border-color: rgba(var(--highlight-rgb), 0.4);
+  background: var(--card-bg); border-color: var(--border);
 }
 
 /* Flat, where the two above are gradients: orchid arrives from the extended
@@ -2061,11 +1939,7 @@ li:nth-child(3) .hit.lead {
  * 40% and two at 100%, all three are at 100%.
  */
 .sketch {
-  position: relative;
-  border: 1.6px dashed var(--facet-content);
-  border-radius: var(--r-sketch);
-  background: var(--iris-soft);
-  padding: var(--sp-5) var(--sp-5) var(--sp-5);
+  position: relative; border: 1px solid var(--border); border-radius: var(--r-card); background: var(--card-bg); padding: var(--sp-5);
 }
 
 .sketch > * + * {
@@ -2454,39 +2328,21 @@ li:nth-child(3) .hit.lead {
   margin-top: var(--sp-3);
 }
 
-/*
- * The KPI row: component 10C over 10D, a different hue per number.
- *
- * These were four white cards with a hairline and a shadow, side by side,
- * which is the uniform card grid the design system puts first on its taboo
- * list -- and the four numbers are four different kinds of fact, so drawing
- * them identically was also wrong on the merits. Each now has a wash and a
- * dashed frame: neutral for the raw library size, wisteria for what is
- * indexable, gold for what has been enriched, plum for sittings, which is the
- * same plum the graph-expansion rows use because both are the link layer --
- * and, like those rows, its numeral is set in the muted ink rather than in a
- * fifth voice.
- */
+
 .num {
-  border: 1.6px dashed var(--facet-content);
-  border-radius: var(--r-sketch);
-  background: var(--iris-soft);
-  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid var(--border); border-radius: var(--r-card); background: var(--card-bg); padding: var(--sp-5);
 }
 
 .num.gold {
-  border-color: var(--facet-lex-ink);
-  background: var(--highlight-soft);
+  border-color: var(--border); background: var(--card-bg);
 }
 
 .num.edge {
-  border-color: var(--facet-edge);
-  background: var(--plum-soft);
+  border-color: var(--border); background: var(--card-bg);
 }
 
 .num.ink {
-  border-color: var(--border);
-  background: var(--cream-dark);
+  border-color: var(--border); background: var(--card-bg);
 }
 
 .num b {
@@ -2514,10 +2370,7 @@ li:nth-child(3) .hit.lead {
    it sinks under the floor, so the caption steps up one, for the same reason
    and by the same rule as `.tint .caps`. */
 .num span {
-  display: block;
-  margin-top: var(--sp-1);
-  font-size: var(--fs-1);
-  color: var(--ink-light);
+  display: block; margin-top: var(--sp-2); font-size: var(--fs-2); color: var(--ink-light);
 }
 
 .block {

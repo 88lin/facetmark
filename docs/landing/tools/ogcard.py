@@ -2,8 +2,7 @@
 """Render the 1200x630 link-preview cards into ../assets/og-{en,zh}.png.
 
 The card reads its colours from the real style.css and its words from the real
-content files, so it cannot drift away from the page it is advertising.  Two of
-the three numbers on the card are negative results; that is deliberate.
+content files, so the shared link matches the website's title and brand.
 
 usage:  python3 tools/ogcard.py          # from docs/landing/
 requires: python playwright (pip install playwright && playwright install chromium)
@@ -28,7 +27,7 @@ SITE = "88lin.github.io/facetmark"
 W, H = 1200, 630
 
 CARD = """<!doctype html>
-<html lang="{lang}" data-theme="light">
+<html lang="{lang}" data-theme="light" data-palette="G">
 <head>
 <meta charset="utf-8">
 <link rel="stylesheet" href="palettes.css">
@@ -46,55 +45,35 @@ CARD = """<!doctype html>
     display: flex; align-items: center; gap: 15px;
     font-weight: 700; font-size: 31px; letter-spacing: -0.022em;
   }}
-  .brand .mark {{
-    width: 40px; height: 40px; border-radius: 10px; flex: none;
-    background:
-      linear-gradient(135deg, var(--brand) 0 50%, transparent 50% 100%),
-      linear-gradient(135deg, var(--highlight) 0 100%);
-  }}
+  .brand .mark {{ width: 40px; height: 40px; flex: none; }}
   .url {{
     position: absolute; top: 72px; right: 72px;
     font-family: var(--mono); font-size: 17px; color: var(--ink-light);
   }}
-  .kick {{
-    font-size: 18px; font-weight: 700; letter-spacing: 0.15em;
-    text-transform: uppercase; color: var(--ink-light); margin: 0 0 20px;
-  }}
-  .kick.cjk {{ letter-spacing: 0.07em; text-transform: none; font-size: 20px; }}
-  .kick::after {{
-    content: ""; display: block; width: 40px; height: 3px; border-radius: 3px;
-    margin: 14px 0 0; background: var(--brand);
-  }}
+  .summary {{ font-size: 22px; line-height: 1.65; color: var(--ink-light); margin: 24px 0 0; }}
   h1 {{
     margin: 0; max-width: 1000px; font-weight: 800;
     font-size: {h1}px; line-height: 1.15; letter-spacing: -0.024em;
   }}
   h1 em {{
     font-style: normal; color: var(--accent-ink);
-    background: linear-gradient(transparent 62%, rgba(var(--highlight-rgb), 0.4) 62%);
-    padding: 0 0.06em; border-radius: 3px;
   }}
   .stats {{
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    display: flex; gap: 48px; border-top: 1px solid var(--border); padding-top: 24px;
   }}
   .s {{
-    padding: 20px 22px 22px; border-radius: 16px;
-    border: 2px dashed var(--brand); background: var(--blue-wash);
+    display: flex; align-items: baseline; gap: 12px;
   }}
-  .s:nth-child(2) {{ border-color: var(--warning); background: var(--yellow-soft); }}
-  .s:nth-child(3) {{ border-color: var(--peach); background: var(--peach-soft); }}
-  .s b {{ display: block; font-size: 42px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }}
-  .s.good b {{ color: var(--success); }}
-  .s.bad b {{ color: var(--danger-strong); }}
-  .s span {{ display: block; margin-top: 10px; font-size: 17px; line-height: 1.35; color: var(--ink-light); }}
+  .s b {{ font-size: 22px; font-weight: 700; }}
+  .s span {{ font-size: 17px; color: var(--ink-light); }}
 </style>
 </head>
 <body>
 <div class="url">{site}</div>
-<div class="brand"><span class="mark"></span><span>facetmark</span></div>
+<div class="brand"><img class="mark" src="favicon.svg" alt=""><span>facetmark</span></div>
 <div>
-  <p class="kick{cjk}">{kicker}</p>
   <h1>{h1_text}</h1>
+  <p class="summary">{lede}</p>
 </div>
 <div class="stats">{stats}</div>
 </body>
@@ -105,9 +84,8 @@ CARD = """<!doctype html>
 def card(t: dict, cjk: bool, h1_px: int) -> str:
     i = t["index"]
     stats = "".join(
-        f'<div class="s {kind}"><b>{html.escape(num)}</b>'
-        f"<span>{html.escape(label)}</span></div>"
-        for num, label, kind in i["meas_stats"]
+        f'<div class="s"><span>{html.escape(label)}</span><b>{html.escape(value)}</b></div>'
+        for label, value in i["chips"]
     )
     return CARD.format(
         lang=t["html_lang"],
@@ -118,6 +96,7 @@ def card(t: dict, cjk: bool, h1_px: int) -> str:
         cjk=" cjk" if cjk else "",
         kicker=html.escape(i["kicker"]),
         h1_text=i["h1"],
+        lede=i["lede"],
         stats=stats,
     )
 
@@ -141,6 +120,7 @@ def main() -> int:
         work = Path(tmp)
         shutil.copy(LANDING / "style.css", work / "style.css")
         shutil.copy(LANDING / "palettes.css", work / "palettes.css")
+        shutil.copy(LANDING / "assets" / "favicon.svg", work / "favicon.svg")
         jobs = [("en", EN, False, 62), ("zh", ZH, True, 64)]
         for code, t, cjk, h1_px in jobs:
             src = work / f"og-{code}.html"

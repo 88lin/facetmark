@@ -10,7 +10,7 @@
 
 import { api, getToken } from "./api.js";
 import { ADVANCED_RUNGS, RUNGS } from "./derive.js";
-import { $, btn, el, fbadge, fbar, numberCard, numbers, pill, skeleton, togglePill } from "./dom.js";
+import { $, btn, el, fbadge, fbar, pill, skeleton, togglePill } from "./dom.js";
 import { FACET_KEYS, FACET_ORDER, FACET_TONE, count, shortUrl, totalMs, whenAdded } from "./format.js";
 import { advance, mergePage, nextRequest, pageLabel, startCursor } from "./paging.js";
 import { failPanel, showPanel, tokenPanel } from "./panels.js";
@@ -91,6 +91,7 @@ export function focus() {
 // ------------------------------------------------------------------- rungs
 
 function drawRungs() {
+  ui.optsToggle.textContent = t(ui.opts.hidden ? "opts.more" : "opts.less");
   const bar = ui.rungs;
   bar.replaceChildren();
   for (const r of RUNGS) {
@@ -575,18 +576,16 @@ function emptyPanel(queried) {
     });
   }
   if (!queried) {
-    // A library that already holds pages earns its census on the first screen:
-    // the four headline numbers above the invitation copy, so the page is not
-    // a search box floating in whitespace. The same four cards the library
-    // view leads with, so the two screens agree about what counts.
+    // Show useful starting points; the full census belongs in Library.
     if (s && s.bookmarks) {
-      const strip = numbers([
-        numberCard(count(s.bookmarks, S.lang), t("stats.bookmarks"), "ink"),
-        numberCard(count(s.indexable, S.lang), t("stats.indexable")),
-        numberCard(count(s.enriched, S.lang), t("stats.enriched"), "gold"),
-        numberCard(count(s.sessions, S.lang), t("stats.sessions"), "edge"),
-      ]);
-      return showPanel({ title: t("start.title"), body: t("start.body"), extra: [strip], into });
+      const actions = el("div", "row");
+      actions.append(
+        btn(t("start.recent"), "", () => S.search("sort:date")),
+        btn(t("start.library", { n: count(s.bookmarks, S.lang) }), "", () => S.go("library")),
+      );
+      const panel = showPanel({ title: t("start.title"), body: t("start.body"), extra: [actions], into });
+      panel.classList.add("search-welcome");
+      return panel;
     }
     return showPanel({ title: t("start.title"), body: t("start.body"), into });
   }
@@ -878,6 +877,7 @@ export function mount() {
     const open = ui.opts.hidden;
     ui.opts.hidden = !open;
     ui.optsToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    ui.optsToggle.textContent = t(open ? "opts.less" : "opts.more");
   });
 
   ui.expand.addEventListener("change", () => {

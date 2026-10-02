@@ -77,6 +77,7 @@
         </a>
 
         <div class="tools">
+          <a class="ctl wide" href="https://88lin.github.io/facetmark/quickstart.html" target="_blank" rel="noopener" data-i18n="nav.docs" data-i18n-attr="href:nav.docs.url">Guide</a>
           <button
             type="button"
             id="gear"
@@ -146,33 +147,20 @@
       -->
       <section id="view-setup" class="view-panel" hidden>
         <h1 class="page-title" data-i18n="setup.title">Three steps to a working library</h1>
-        <p class="lede" data-i18n="setup.lede">
-          facetmark reads pages you have already saved and indexes them on this machine. Nothing
-          here leaves your computer except the text you choose to send to a model.
-        </p>
+        <p class="lede" data-i18n="setup.lede">Import bookmarks, choose models, then build the index. Data stays on the machine running your connected facetmark service; online models receive the relevant text and queries.</p>
         <div id="setup-steps" class="steps"></div>
       </section>
 
       <!-- -------------------------------------------------------- settings -->
       <section id="view-settings" class="view-panel" hidden>
         <h1 class="page-title" data-i18n="settings.title">Settings</h1>
-        <p class="lede" data-i18n="settings.lede">
-          What this server is configured with, where each value came from, and whether the model it
-          points at answers. Saved to a file on this machine.
-        </p>
+        <p class="lede" data-i18n="settings.lede">Manage models, privacy rules and index jobs for this service. Each setting shows its source; changes requiring a restart are labelled.</p>
         <div id="settings-body"></div>
       </section>
 
       <!-- ---------------------------------------------------------- search -->
       <section id="view-search" class="view-panel">
-        <!-- Every other view opens with a visible `.page-title`. This one opens
-             with the search field, on purpose: a heading that says "Search your
-             library" directly above a box that says "what were you looking
-             for?" is the same sentence twice, and it pushes the field down.
-             The heading still has to exist -- a page with no h1 leaves a screen
-             reader's document outline starting at h2 -- so it is spoken, not
-             drawn. This is the only visually hidden element in the app. -->
-        <h1 class="page-title vh" data-i18n="search.title">Search your library</h1>
+        <h1 class="page-title" data-i18n="search.title">Search your library</h1>
         <form id="seek" class="ask" role="search" autocomplete="off">
           <span class="lens" aria-hidden="true">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -219,13 +207,7 @@
         ></div>
 
         <div class="controls">
-          <div
-            class="pillbar"
-            id="rungs"
-            role="group"
-            data-i18n-attr="aria-label:mode.label"
-            aria-label="Retrieval mode"
-          ></div>
+          <p class="dim note" id="rung-note"></p>
           <button
             type="button"
             id="opts-toggle"
@@ -233,13 +215,18 @@
             aria-expanded="false"
             aria-controls="opts"
             data-i18n="opts.more"
-          >
-            More options
-          </button>
+          >Search options</button>
         </div>
-        <p class="dim note" id="rung-note"></p>
 
         <div class="opts" id="opts" hidden>
+          <div
+            class="pillbar"
+            id="rungs"
+            role="group"
+            data-i18n-attr="aria-label:mode.label"
+            aria-label="Retrieval mode"
+          ></div>
+
           <label class="opt" for="expand">
             <span data-i18n="opts.expand">Saved-around rows</span>
             <input id="expand" class="field num" type="number" min="0" max="20" step="1" value="8" />
@@ -249,7 +236,7 @@
             group off.
           </p>
           <div class="opt-group">
-            <span class="opt-label" data-i18n="opts.advanced">Advanced rungs</span>
+            <span class="opt-label" data-i18n="opts.advanced">More retrieval combinations</span>
             <div
               class="pillbar"
               id="adv-rungs"
@@ -276,10 +263,7 @@
       <!-- ------------------------------------------------------ synthesise -->
       <section id="view-ask" class="view-panel" hidden>
         <h1 class="page-title" data-i18n="ask.title">One answer, with its sources</h1>
-        <p class="lede" data-i18n="ask.lede">
-          Reads the pages your library already holds and writes short claims from them. Every claim
-          carries the numbered sources it came from, so you can check it.
-        </p>
+        <p class="lede" data-i18n="ask.lede">Build an answer from retrieved summaries and snippets, with sources attached. Generated claims can be wrong; follow citations to check the originals.</p>
 
         <form id="askform" class="ask with-go" autocomplete="off">
           <span class="lens" aria-hidden="true">
@@ -327,10 +311,7 @@
       <!-- --------------------------------------------------------- library -->
       <section id="view-library" class="view-panel" hidden>
         <h1 class="page-title" data-i18n="library.title">Your library</h1>
-        <p class="lede" data-i18n="library.lede">
-          What facetmark has actually indexed. If a search came back empty, the answer is usually on
-          this page.
-        </p>
+        <p class="lede" data-i18n="library.lede">Explore save activity and check text coverage and indexing progress. Bodies, summaries and vectors are counted separately so you can see what is missing.</p>
         <div class="controls">
           <button
             type="button"

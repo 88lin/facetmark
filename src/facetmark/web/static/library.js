@@ -103,7 +103,7 @@ function timelineStrip(tl) {
 function topNumbers(s) {
   return numbers([
     numberCard(count(s.bookmarks, S.lang), t("stats.bookmarks"), "ink"),
-    numberCard(count(s.indexable, S.lang), t("stats.indexable")),
+    numberCard(count(s.with_body, S.lang), t("stats.with_body")),
     numberCard(count(s.enriched, S.lang), t("stats.enriched"), "gold"),
     numberCard(count(s.sessions, S.lang), t("stats.sessions"), "edge"),
   ]);
@@ -326,9 +326,9 @@ export async function render() {
   cols.append(...coverage(s), health(s), graph(s), queue(s), cold(s), shape(s));
   ui.stats.replaceChildren(
     topNumbers(s),
-    facetLegend(),
     ...(tl && s.bookmarks ? [timelineStrip(tl)] : []),
     cols,
+    facetLegend(),
   );
 }
 

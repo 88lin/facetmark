@@ -13,13 +13,13 @@ real browsing history ever ends up on a public page.
 
     # the rest are Python; run them from the repository root
     pip install playwright && python -m playwright install chromium
-    python docs/landing/tools/appshots.py   # app-{search,library}[-zh][-dark].png
+    python docs/landing/tools/appshots.py   # app-{search,library,preview}[-zh][-dark].png
     python docs/landing/tools/ogcard.py     # og-en.png, og-zh.png
 
 | script | output | notes |
 |---|---|---|
 | `mockshots.js` | the three extension frames | loads the real `extension/src/popup.html` and `options.html` against mock data, captured at full content height and native aspect ratio |
-| `appshots.py` | the eight `/app` frames | boots the real server on an offline `facetmark demo` corpus and photographs it at 1440px |
+| `appshots.py` | eight `/app` frames and four homepage previews | boots the real server on an offline `facetmark demo` corpus at 1440px; crops the reading column to 880×760 for legible homepage previews |
 | `ogcard.py` | the two 1200×630 link previews | reads its colours from `style.css` and its words from `content_{en,zh}.py`, so the card cannot drift from the page it advertises |
 | `shot.js` | — | generic "screenshot this file at exactly W×H"; kept for one-off captures |
 

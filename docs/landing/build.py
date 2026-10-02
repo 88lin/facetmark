@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the facetmark landing site.
 
-Six static pages, no dependencies, no build chain:
+Fourteen static pages in two languages, no build dependencies:
 
     index.html     index.zh.html      the landing page
     guide.html     guide.zh.html      install -> import -> index -> search -> serve
@@ -57,6 +57,7 @@ def fill_derived(doc: str) -> str:
     for token, value in DERIVED.items():
         doc = doc.replace(token, value)
     return doc
+
 
 # Where the pages are actually served, derived from REPO so a move of the
 # repository does not leave a stale absolute URL behind.  Link previews need
@@ -139,9 +140,7 @@ def r_block(b: tuple) -> str:
     if kind == "table":
         return r_table(b[1], b[2], tuple(b[3]) if len(b) > 3 else ())
     if kind == "callout":
-        return (
-            f'<div class="callout {b[1]}"><div class="t">{b[2]}</div>{b[3]}</div>'
-        )
+        return f'<div class="callout {b[1]}"><div class="t">{b[2]}</div>{b[3]}</div>'
     if kind == "shot":
         # A framed screenshot inside a doc section. `_shot` pins margin:0 for
         # the grid it was written for, so the wrapper puts the vertical rhythm
@@ -263,10 +262,12 @@ def diagram(lang: str) -> str:
     d = DIAGRAM[lang]
     p: list[str] = []
 
-    p.append('<svg viewBox="0 0 1020 430" role="img" xmlns="http://www.w3.org/2000/svg" '
-             f'aria-label="{esc(d["q"][0])} \u2192 {esc(d["rrf"][0])} \u2192 {esc(d["hits"][0])}">')
     p.append(
-        '<defs>'
+        '<svg viewBox="0 0 1020 430" role="img" xmlns="http://www.w3.org/2000/svg" '
+        f'aria-label="{esc(d["q"][0])} \u2192 {esc(d["rrf"][0])} \u2192 {esc(d["hits"][0])}">'
+    )
+    p.append(
+        "<defs>"
         '<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">'
         '<path class="d-head" d="M0,0 L10,5 L0,10 z"/></marker>'
         '<marker id="ahOn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">'
@@ -314,12 +315,16 @@ def diagram(lang: str) -> str:
     p.append(_t(651, m + 13, d["rrf"][1], "d-s"))
 
     # RRF -> post-stages -> hits
-    p.append(f'<path class="d-arrow-on" d="M702,{m} H734" stroke-width="2" marker-end="url(#ahOn)"/>')
+    p.append(
+        f'<path class="d-arrow-on" d="M702,{m} H734" stroke-width="2" marker-end="url(#ahOn)"/>'
+    )
     p.append(_box(740, m - 46, 126, 92))
     p.append(_t(803, m - 25, d["post"][0]))
     for k, line in enumerate(d["post"][1]):
         p.append(_t(803, m - 5 + k * 17, line, "d-s"))
-    p.append(f'<path class="d-arrow-on" d="M866,{m} H898" stroke-width="2" marker-end="url(#ahOn)"/>')
+    p.append(
+        f'<path class="d-arrow-on" d="M866,{m} H898" stroke-width="2" marker-end="url(#ahOn)"/>'
+    )
     p.append(_box(904, m - 27, 106, 54, "d-box-key"))
     p.append(_t(957, m - 4, d["hits"][0]))
     p.append(_t(957, m + 13, d["hits"][1], "d-s"))
@@ -333,7 +338,9 @@ def diagram(lang: str) -> str:
     p.append(_box(700, gy, 166, 54))
     p.append(_t(783, gy + 23, d["graph"][0]))
     p.append(_t(783, gy + 39, d["graph"][1], "d-s"))
-    p.append(f'<path class="d-arrow" d="M866,{gy + 27} H898" stroke-width="1.5" marker-end="url(#ah)"/>')
+    p.append(
+        f'<path class="d-arrow" d="M866,{gy + 27} H898" stroke-width="1.5" marker-end="url(#ah)"/>'
+    )
     p.append(_box(904, gy, 106, 54, "d-box-key"))
     p.append(_t(957, gy + 23, d["linked"][0]))
     p.append(_t(957, gy + 39, d["linked"][1], "d-s"))
@@ -377,10 +384,7 @@ def diagram_stack(lang: str) -> str:
     # architecture, so they sit inside a bracketed, labelled group and the
     # arrows enter and leave the group rather than any single facet.
     p.append('<div class="dpar">')
-    p.append(
-        f'<p class="dpar-h"><b>{esc(d["parallel"][0])}</b>'
-        f'<i>{esc(d["parallel"][1])}</i></p>'
-    )
+    p.append(f'<p class="dpar-h"><b>{esc(d["parallel"][0])}</b><i>{esc(d["parallel"][1])}</i></p>')
     p.append('<div class="dgrid">')
     for k, (title, sub, off) in enumerate(d["f"]):
         p.append(_dn(title, sub, off, "on" if k == ON else "off"))
@@ -439,7 +443,7 @@ def term_static(t: dict) -> str:
     out.append("<div>&nbsp;</div>")
     out.append(
         f'<div class="dim">5 {esc(lab["hits"])} \u00b7 {d["ms"]} ms \u00b7 '
-        f'{esc(lab["found"])} {d["target"]}</div>'
+        f"{esc(lab['found'])} {d['target']}</div>"
     )
     return "".join(out)
 
@@ -464,7 +468,7 @@ GH_MARK = (
     "4-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2"
     ".2.82a5.4 5.4 0 0 1 1.5-.2c.51 0 1.02.07 1.5.2 1.53-1.04 2.2-.82 2.2-.82.44"
     " 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25"
-    '.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A7.99 7.99 0 0 0 16 '
+    ".54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A7.99 7.99 0 0 0 16 "
     '8c0-4.42-3.58-8-8-8Z"/></svg>'
 )
 
@@ -484,7 +488,7 @@ def nav_html(t: dict, page: str) -> str:
         ("measured", "measured" + suffix, page == "measured", True),
         ("gh", REPO, False, True),
     ]
-    out = ['<nav class="top">']
+    out = ['<nav class="top" aria-label="' + ("主导航" if z else "Main navigation") + '">']
     for key, href, on, small in items:
         cls = []
         if on:
@@ -493,9 +497,18 @@ def nav_html(t: dict, page: str) -> str:
             cls.append("hide-sm")
         c = f' class="{" ".join(cls)}"' if cls else ""
         rel = ' target="_blank" rel="noopener"' if href.startswith("http") else ""
-        out.append(f'<a href="{href}"{c}{rel}>{esc(t["nav"][key])}</a>')
+        current = ' aria-current="page"' if on else ""
+        out.append(f'<a href="{href}"{c}{rel}{current}>{esc(t["nav"][key])}</a>')
     out.append(
-        f'<a class="ctl" data-lang-switch href="#" title="{esc(t["other_title"])}" '
+        '<details class="mobile-nav"><summary>' + ("更多" if z else "More") + "</summary><div>"
+    )
+    for key, href, on, small in items:
+        if small:
+            current = ' aria-current="page"' if on else ""
+            out.append(f'<a href="{href}"{current}>{esc(t["nav"][key])}</a>')
+    out.append("</div></details>")
+    out.append(
+        f'<a class="ctl" data-lang-switch href="{page}{".html" if z else ".zh.html"}" title="{esc(t["other_title"])}" '
         f'hreflang="{t["other_code"]}">{esc(t["other_label"])}</a>'
     )
     out.append(
@@ -594,7 +607,7 @@ def shell(t: dict, page: str, body: str) -> str:
         # scripting off these pages served a header, a footer, and thirteen
         # thousand characters of nothing. The bars had the same shape: their
         # fill is `width: 0` until the observer arrives.
-        '<noscript><style>.reveal{opacity:1;transform:none}'
+        "<noscript><style>.reveal{opacity:1;transform:none}"
         ".bar-fill{width:var(--w);transition:none}</style></noscript>\n"
         f"<script>{THEME_BOOT}</script>\n"
         "</head>\n<body>\n"
@@ -654,8 +667,7 @@ def page_index(t: dict) -> str:
 
     # ---- hero -------------------------------------------------------------
     o.append('<section class="hero"><div class="hero-inner"><div>')
-    o.append(f'<span class="kicker">{esc(i["kicker"])}</span>')
-    o.append(f'<h1>{i["h1"]}</h1>')
+    o.append(f"<h1>{i['h1']}</h1>")
     o.append(f'<p class="lede">{i["lede"]}</p>')
     o.append('<div class="cta">')
     for label, href, primary in i["cta"]:
@@ -666,8 +678,19 @@ def page_index(t: dict) -> str:
     o.append('</div><div class="chips">')
     for k, v in i["chips"]:
         o.append(f'<span class="chip">{esc(k)} <b>{esc(v)}</b></span>')
-    o.append("</div></div><div>")
+    o.append('</div></div><div class="hero-preview">')
+    preview = (i["app_shot"][0].replace("app-search", "app-preview"), *i["app_shot"][1:])
+    preview_dark = (
+        i["app_shot_dark"][0].replace("app-search", "app-preview"),
+        i["app_shot_dark"][1],
+    )
     o.append(
+        _shot(preview, preview_dark).replace(
+            'loading="lazy"', 'loading="eager" fetchpriority="high"'
+        )
+    )
+    o.append("</div></div></section>")
+    terminal = (
         '<div class="win dark term"><div class="win-bar">'
         "<i></i><i></i><i></i>"
         f'<span class="win-name">{esc(i["term_title"])}</span>'
@@ -682,21 +705,18 @@ def page_index(t: dict) -> str:
         f"{term_static(t)}</div>"
         f'<div class="win-note">{i["term_note"]}</div></div>'
     )
-    o.append("</div></div></section>")
 
     # ---- three kinds of query --------------------------------------------
     o.append('<section class="band alt" id="queries"><div class="wrap">')
-    o.append(f'<p class="seclabel">{esc(i["prob_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["prob_h2"]}</h2>')
     o.append(f'<p class="lede read reveal">{i["prob_lede"]}</p>')
     o.append('<div class="grid g3 reveal">')
-    for eyebrow, title, body, example, value, metric, cls in i["prob_cards"]:
+    for _eyebrow, title, body, example, _value, _metric, _cls in i["prob_cards"]:
         o.append(
-            f'<article class="card"><div class="eyebrow">{esc(eyebrow)}</div>'
+            '<article class="card">'
             f"<h3>{title}</h3><p>{body}</p>"
             f'<p class="ex">{example}</p>'
-            f'<div class="stat"><div class="v{" " + cls if cls else ""}">{esc(value)}</div>'
-            f'<div class="k">{esc(metric)}</div></div></article>'
+            "</article>"
         )
     o.append("</div>")
     o.append(f'<p class="tiny reveal">{i["prob_note"]}</p>')
@@ -712,7 +732,15 @@ def page_index(t: dict) -> str:
     o.append(f'<div class="callout"><p>{i["qs_offline"]}</p></div>')
     o.append("</div><div>")
     o.append('<ol class="steps">' + "".join(f"<li>{s}</li>" for s in i["qs_steps"]) + "</ol>")
-    o.append("</div></div></div></section>")
+    o.append("</div></div>")
+    o.append(
+        '<details class="demo-details"><summary>'
+        + ("查看离线演示输出" if t["code"] == "zh" else "See the offline demo output")
+        + "</summary>"
+        + terminal
+        + "</details>"
+    )
+    o.append("</div></section>")
 
     # ---- the four facets --------------------------------------------------
     o.append('<section class="band alt" id="facets"><div class="wrap">')
@@ -752,9 +780,6 @@ def page_index(t: dict) -> str:
     o.append(f'<p class="seclabel">{esc(i["app_label"])}</p>')
     o.append(f'<h2 class="reveal">{i["app_h2"]}</h2>')
     o.append(f'<p class="lede read reveal">{i["app_lede"]}</p>')
-    o.append('<div class="reveal" style="margin-bottom:var(--sp-5)">')
-    o.append(_shot(i["app_shot"], i["app_shot_dark"]))
-    o.append("</div>")
     o.append('<div class="grid g3 reveal">')
     for title, body in i["app_points"]:
         o.append(f'<article class="card"><h3>{esc(title)}</h3><p>{body}</p></article>')
@@ -784,10 +809,7 @@ def page_index(t: dict) -> str:
     # frame. Stacked in the right column it left the popup column 299px short
     # of the band floor (31% of the band) with nothing in it.
     legend_title, legend_items = i["shot_legend"]
-    o.append(
-        f'<div class="mlegend wide reveal"><h3>{esc(legend_title)}</h3>'
-        f'<ul class="mlist">'
-    )
+    o.append(f'<div class="mlegend wide reveal"><h3>{esc(legend_title)}</h3><ul class="mlist">')
     for kind, label, desc in legend_items:
         mk = {
             "chip": f'<span class="chip mk">{esc(label)}</span>',
@@ -813,7 +835,7 @@ def page_index(t: dict) -> str:
         )
     o.append("</div>")
     o.append('<div class="grid g2"><div>')
-    o.append(f'<h3>{esc(i["meas_bars_title"])}</h3>')
+    o.append(f"<h3>{esc(i['meas_bars_title'])}</h3>")
     o.append('<div class="bars">')
     for label, val, pct, win in i["meas_bars"]:
         o.append(
@@ -872,7 +894,8 @@ def page_index(t: dict) -> str:
     o.append("</div></div></section>")
 
     o.append("</main>")
-    return "".join(o)
+    # Headings carry the hierarchy; repeated eyebrow labels add no navigation.
+    return re.sub(r'<p class="seclabel">.*?</p>', "", "".join(o))
 
 
 # --------------------------------------------------------------------------
@@ -911,19 +934,19 @@ def page_doc(t: dict, key: str) -> str:
     d = t[key]
     o = ['<main id="main">']
     o.append(
-        f'<div class="pagehead"><div class="wrap"><h1>{esc(d["h1"])}</h1>'
+        f'<div class="pagehead"><div class="wrap"><p class="breadcrumb"><a href="index{".zh" if t["code"] == "zh" else ""}.html">facetmark</a> / {esc(t["nav"][key])}</p><h1>{esc(d["h1"])}</h1>'
         f'<p class="lede">{d["lede"]}</p></div></div>'
     )
     o.append('<div class="wrap"><div class="doc">')
 
-    o.append(f'<aside class="toc"><div class="h">{esc(d["toc_title"])}</div><ol>')
+    o.append(f'<aside class="toc"><details open><summary>{esc(d["toc_title"])}</summary><ol>')
     for sid, title, _ in d["sections"]:
         o.append(f'<li><a href="#{sid}">{esc(title)}</a></li>')
-    o.append("</ol></aside>")
+    o.append("</ol></details></aside>")
 
     o.append("<article>")
     suffix = ".zh" if t["code"] == "zh" else ""
-    for n, (sid, title, blocks) in enumerate(d["sections"], 1):
+    for sid, title, blocks in d["sections"]:
         companion = GUIDE_COMPANIONS.get(sid) if key == "guide" else None
         back = ""
         if companion:
@@ -932,9 +955,26 @@ def page_doc(t: dict, key: str) -> str:
                 f'<a href="{companion}{suffix}.html">{esc(t[companion]["h1"])}</a></p>'
             )
         o.append(
-            f'<section id="{sid}"><h2><span class="n">{n:02d}</span>'
-            f"<span>{esc(title)}</span></h2>{r_blocks(blocks)}{back}</section>"
+            f'<section id="{sid}"><h2>{esc(title)}'
+            f'<a class="anchor-link" href="#{sid}" aria-label="{esc(title)}">#</a></h2>{r_blocks(blocks)}{back}</section>'
         )
+    order = ["quickstart", "webui", "config", "integrations", "guide", "measured"]
+    at = order.index(key)
+    o.append(
+        '<nav class="doc-next" aria-label="'
+        + ("文档导航" if t["code"] == "zh" else "Documentation navigation")
+        + '">'
+    )
+    for offset, label in [
+        (-1, "上一篇" if t["code"] == "zh" else "Previous"),
+        (1, "下一篇" if t["code"] == "zh" else "Next"),
+    ]:
+        if 0 <= at + offset < len(order):
+            dest = order[at + offset]
+            o.append(
+                f'<a href="{dest}{suffix}.html"><span>{label}</span><strong>{esc(t[dest]["h1"])}</strong></a>'
+            )
+    o.append("</nav>")
     o.append("</article></div></div></main>")
     return "".join(o)
 
@@ -951,21 +991,17 @@ def build() -> None:
         COPY = t["copy"]
         z = t["code"] == "zh"
         pages = {
-            f'index{".zh" if z else ""}.html': shell(t, "index", page_index(t)),
-            f'quickstart{".zh" if z else ""}.html': shell(
+            f"index{'.zh' if z else ''}.html": shell(t, "index", page_index(t)),
+            f"quickstart{'.zh' if z else ''}.html": shell(
                 t, "quickstart", page_doc(t, "quickstart")
             ),
-            f'webui{".zh" if z else ""}.html': shell(t, "webui", page_doc(t, "webui")),
-            f'config{".zh" if z else ""}.html': shell(
-                t, "config", page_doc(t, "config")
-            ),
-            f'integrations{".zh" if z else ""}.html': shell(
+            f"webui{'.zh' if z else ''}.html": shell(t, "webui", page_doc(t, "webui")),
+            f"config{'.zh' if z else ''}.html": shell(t, "config", page_doc(t, "config")),
+            f"integrations{'.zh' if z else ''}.html": shell(
                 t, "integrations", page_doc(t, "integrations")
             ),
-            f'guide{".zh" if z else ""}.html': shell(t, "guide", page_doc(t, "guide")),
-            f'measured{".zh" if z else ""}.html': shell(
-                t, "measured", page_doc(t, "measured")
-            ),
+            f"guide{'.zh' if z else ''}.html": shell(t, "guide", page_doc(t, "guide")),
+            f"measured{'.zh' if z else ''}.html": shell(t, "measured", page_doc(t, "measured")),
         }
         for name, doc in pages.items():
             path = os.path.join(HERE, name)

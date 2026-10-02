@@ -20,7 +20,7 @@
 import { api, ApiError } from "./api.js";
 import { $, btn, card, el, pill } from "./dom.js";
 import { splitList } from "./format.js";
-import { failPanel } from "./panels.js";
+import { failPanel, showPanel } from "./panels.js";
 import * as setup from "./setup.js";
 import { S, t } from "./state.js";
 
@@ -432,6 +432,16 @@ export async function render() {
   const [c, j] = await Promise.allSettled([api.adminSettings(), api.adminJob()]);
   if (mine !== generation) return;
   if (c.status === "rejected") {
+    cfg = null;
+    if (c.reason instanceof ApiError && c.reason.status === 403) {
+      showPanel({
+        title: t("settings.remote.title"),
+        body: [t("settings.remote.body"), t("settings.remote.next")],
+        extra: [btn(t("nav.search"), "primary", () => S.go("search"))],
+        into: ui.body,
+      });
+      return;
+    }
     failPanel(c.reason, ui.body);
     return;
   }

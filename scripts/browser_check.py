@@ -1351,6 +1351,68 @@ async def the_page_uses_the_system_face(browser, app: App, land: Landing, rep: R
 # -------------------------------------------------------------------- main
 
 
+async def polished_navigation_and_remote_guidance(browser, app: App, land: Landing, rep: Report) -> None:
+    """The new disclosure controls must keep their actions reachable in both languages."""
+    for lang in ("en", "zh"):
+        ctx, page, logged, _ = await open_page(browser, width=390, lang=lang, theme="light")
+        await page.goto(f"{app.base}/app#/search", wait_until="load")
+        await settle(page)
+        rep.ok(f"polish/options {lang}", not await page.locator("#rungs").is_visible(),
+               "experiment modes should start in the closed options panel")
+        await page.click("#opts-toggle")
+        rep.ok(f"polish/options {lang}", await page.locator("#rungs").is_visible(),
+               "opening search options did not expose the modes")
+        await page.fill("#q", "vector index")
+        await page.keyboard.press("Enter")
+        await page.wait_for_selector("#results li")
+        async with page.expect_request(lambda r: r.url.endswith("/search") and
+                                       r.method == "POST" and r.post_data_json.get("config") == "A"):
+            await page.locator("#rungs button").nth(1).click()
+        rep.ok(f"polish/mode {lang}", True, "")
+        await page.click("#opts-toggle")
+        rep.ok(f"polish/options-state {lang}", await page.locator("#opts-toggle").get_attribute("aria-expanded") == "false",
+               "closed options left aria-expanded enabled")
+        await page.fill("#q", "")
+        recent = "浏览最近收藏" if lang == "zh" else "Browse recent saves"
+        async with page.expect_request(lambda r: r.url.endswith("/search") and
+                                       r.method == "POST" and r.post_data_json.get("q") == "sort:date"):
+            await page.get_by_role("button", name=recent, exact=True).click()
+        rep.ok(f"polish/recent {lang}", await page.input_value("#q") == "sort:date",
+               "recent saves did not open the date browser")
+        await page.evaluate("""async () => {
+            const {api, ApiError} = await import('/app/static/api.js');
+            api.adminSettings = async () => { throw new ApiError(403, 'admin API is loopback-only'); };
+        }""")
+        await page.click("#gear")
+        title = "此连接无法管理服务" if lang == "zh" else "Administration is unavailable on this connection"
+        await page.get_by_role("heading", name=title, exact=True).wait_for()
+        rep.ok(f"polish/remote {lang}", await page.locator("#settings-body input").count() == 0,
+               "remote restriction still showed editable settings")
+        rep.ok(f"polish/remote-help {lang}", "SSH" in await page.locator("#settings-body").inner_text(),
+               "remote restriction did not explain the SSH alternative")
+        await page.locator("#settings-body button").click()
+        await page.locator("#q").wait_for(state="visible")
+        rep.ok(f"polish/return {lang}", await page.locator("#q").is_visible(),
+               "the restricted-settings action did not return to search")
+        rep.ok(f"polish/console {lang}", not logged, f"console: {logged[:3]}")
+
+        suffix = ".zh.html" if lang == "zh" else ".html"
+        await page.goto(land.url("quickstart" + suffix), wait_until="load")
+        await settle(page, 200)
+        rep.ok(f"polish/mobile-toc {lang}", not await page.locator(".toc ol").is_visible(),
+               "the mobile table of contents should start collapsed")
+        await page.locator(".toc summary").click()
+        rep.ok(f"polish/mobile-toc-open {lang}", await page.locator('.toc a[href="#server"]').is_visible(),
+               "server instructions are unreachable from the table of contents")
+        await page.locator(".mobile-nav summary").click()
+        rep.ok(f"polish/mobile-menu {lang}", await page.locator(f'.mobile-nav a[href="config{suffix}"]').is_visible(),
+               "configuration is unreachable from the mobile navigation")
+        await page.keyboard.press("Escape")
+        rep.ok(f"polish/mobile-menu-escape {lang}", not await page.locator(".mobile-nav > div").is_visible(),
+               "Escape did not close the mobile menu")
+        await ctx.close()
+
+
 async def run(only: str) -> int:
     rep = Report()
     started = time.time()
@@ -1366,6 +1428,7 @@ async def run(only: str) -> int:
                 await settings_buttons_save_their_own_fields(browser, app, rep)
                 await job_updates_preserve_settings_drafts(browser, app, rep)
                 await clearing_search_discards_pending_work(browser, app, rep)
+                await polished_navigation_and_remote_guidance(browser, app, land, rep)
                 say("settings and search interactions measured")
             if only in ("all", "regressions"):
                 await esc_keeps_the_search(browser, app, rep)
