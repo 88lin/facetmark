@@ -1169,7 +1169,7 @@ class TestTheContrast:
                     f"{selector} ({prop}) starts at alpha {alphas[0]:.2f} and "
                     f"peaks at {max(alphas):.2f}; the sweep only reads the first"
                 )
-        assert found >= 2, f"only {found} gradients seen; the scan stopped reading the file"
+        assert found >= 3, f"only {found} gradients seen; the scan stopped reading the file"
 
     @pytest.mark.parametrize("theme", ["light", "dark"])
     def test_every_line_of_text_clears_aa_against_what_is_behind_it(self, theme):
@@ -1288,27 +1288,27 @@ class TestTheTint:
     #: that is the point of it, and it is also eleven new surfaces with text on
     #: them. Listing them here is what puts them through the same machine.
     TINTS = {
-        ".tint": "var(--card-bg)",
-        ".tint.lex": "var(--card-bg)",
+        ".tint": "var(--tint-content)",
+        ".tint.lex": "var(--tint-lex)",
         ".tint.intent": "var(--tint-intent)",
         ".tint.context": "var(--tint-context)",
         ".tint.plain": "var(--tint-plain)",
         # The result list. Hue by the path that found the row; plum for the
         # rows that were walked to rather than ranked.
-        ".hit.lead": "var(--card-bg)",
-        ".hit.lead.f-lex": "var(--card-bg)",
-        ".hit.lead.f-tri": "var(--card-bg)",
-        ".hit.lead.f-intent": "var(--card-bg)",
+        ".hit.lead": "var(--iris-soft)",
+        ".hit.lead.f-lex": "var(--highlight-soft)",
+        ".hit.lead.f-tri": "var(--indigo-soft)",
+        ".hit.lead.f-intent": "var(--orchid-soft)",
         ".hit.near": "var(--plum-soft)",
         # The three first-run frames.
-        ".sketch": "var(--card-bg)",
+        ".sketch": "var(--iris-soft)",
         ".sketch.lex": "var(--highlight-soft)",
         ".sketch.intent": "var(--orchid-soft)",
         # The dashboard KPI row.
-        ".num": "var(--card-bg)",
-        ".num.gold": "var(--card-bg)",
-        ".num.edge": "var(--card-bg)",
-        ".num.ink": "var(--card-bg)",
+        ".num": "var(--iris-soft)",
+        ".num.gold": "var(--highlight-soft)",
+        ".num.edge": "var(--plum-soft)",
+        ".num.ink": "var(--cream-dark)",
         # Synthesis: the claim list is one frame, and a source jumped to from
         # a citation is lit rather than bordered.
         ".claims": "var(--iris-soft)",
@@ -1321,10 +1321,10 @@ class TestTheTint:
         ".sitting.f-intent": "var(--orchid-soft)",
         ".sitting.f-tri": "var(--indigo-soft)",
         # The system page, where the hue does mean something.
-        ".card.hue": "var(--card-bg)",
-        ".card.hue.lex": "var(--card-bg)",
-        ".card.hue.ctx": "var(--card-bg)",
-        ".card.hue.edge": "var(--card-bg)",
+        ".card.hue": "var(--iris-soft)",
+        ".card.hue.lex": "var(--highlight-soft)",
+        ".card.hue.ctx": "var(--rose-soft)",
+        ".card.hue.edge": "var(--plum-soft)",
     }
 
     #: The inks that can land on a tint by inheritance. `--ink-faint` is
