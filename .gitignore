@@ -52,3 +52,5 @@ pairing-token.txt
 # landing page (GitHub Pages)
 !docs/landing/*.html
 !docs/landing/*.css
+!desktop/splash/*.html
+!frontend/index.html
