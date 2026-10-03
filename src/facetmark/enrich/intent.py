@@ -159,11 +159,13 @@ async def filter_intents(
     k_keep = s.intent_keep_n if keep_n is None else keep_n
     top_k = s.intent_probe_top_k
     rep = IntentReport(probe_top_k=top_k, keep_n=k_keep)
+    if ids is not None and not ids:
+        return rep
 
-    where = ""
+    where = " WHERE bookmark_id IN (SELECT id FROM bookmark WHERE privacy_skipped=0 AND indexable=1)"
     params: list[object] = []
     if ids:
-        where = f" WHERE bookmark_id IN ({','.join('?' * len(ids))})"
+        where += f" AND bookmark_id IN ({','.join('?' * len(ids))})"
         params = list(ids)
     rows = conn.execute(
         "SELECT id, bookmark_id, text, kept, probe_rank, scored_at"

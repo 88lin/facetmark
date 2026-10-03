@@ -16,6 +16,7 @@ structurally identical and drift is visible in a diff.  Run:
 from __future__ import annotations
 
 import html
+import json
 import os
 import re
 import sys
@@ -453,10 +454,34 @@ def term_static(t: dict) -> str:
 # --------------------------------------------------------------------------
 
 THEME_BOOT = (
-    "(function(){try{var t=localStorage.getItem('fm-theme');"
-    "if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';"
-    "document.documentElement.setAttribute('data-theme',t);}catch(e){}})();"
+    "(function(){var t;try{t=localStorage.getItem('fm-theme');}catch(e){}"
+    "if(t!=='light'&&t!=='dark')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';"
+    "document.documentElement.setAttribute('data-theme',t);})();"
 )
+
+
+def hero_shots(t: dict) -> tuple[tuple, tuple]:
+    i = t["index"]
+    light = (i["app_shot"][0].replace("app-search", "app-preview"), *i["app_shot"][1:])
+    dark = (i["app_shot_dark"][0].replace("app-search", "app-preview"), i["app_shot_dark"][1])
+    return light, dark
+
+
+def hero_preload(t: dict) -> str:
+    """Fetch only the active hero before layout; the hidden twin stays lazy.
+
+    A media-query preload alone cannot honour a manually saved theme. Resolve
+    it after THEME_BOOT, before either image is parsed. Without JS the visible
+    lazy image still loads normally.
+    """
+    light, dark = hero_shots(t)
+    return (
+        "<script>(function(){var p=document.createElement('link');"
+        "p.rel='preload';p.as='image';p.setAttribute('fetchpriority','high');"
+        "p.href=document.documentElement.getAttribute('data-theme')==='dark'?"
+        f"{json.dumps(dark[0])}:{json.dumps(light[0])};"
+        "document.head.appendChild(p);})();</script>\n"
+    )
 
 
 # the text nav drops the repo link below 700px; the control cluster shows this
@@ -613,6 +638,7 @@ def shell(t: dict, page: str, body: str) -> str:
         "<noscript><style>.reveal{opacity:1;transform:none}"
         ".bar-fill{width:var(--w);transition:none}</style></noscript>\n"
         f"<script>{THEME_BOOT}</script>\n"
+        f"{hero_preload(t) if page == 'index' else ''}"
         "</head>\n<body>\n"
         f'<a class="skip" href="#main">{esc(t["skip"])}</a>\n'
         '<div class="progress" aria-hidden="true"></div>\n'
@@ -682,16 +708,7 @@ def page_index(t: dict) -> str:
     for k, v in i["chips"]:
         o.append(f'<span class="chip">{esc(k)} <b>{esc(v)}</b></span>')
     o.append('</div></div><div class="hero-preview">')
-    preview = (i["app_shot"][0].replace("app-search", "app-preview"), *i["app_shot"][1:])
-    preview_dark = (
-        i["app_shot_dark"][0].replace("app-search", "app-preview"),
-        i["app_shot_dark"][1],
-    )
-    o.append(
-        _shot(preview, preview_dark).replace(
-            'loading="lazy"', 'loading="eager" fetchpriority="high"'
-        )
-    )
+    o.append(_shot(*hero_shots(t)))
     o.append("</div></div></section>")
     terminal = (
         '<div class="win dark term"><div class="win-bar">'

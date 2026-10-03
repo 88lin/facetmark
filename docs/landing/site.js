@@ -26,9 +26,9 @@
   /* The pre-paint bootstrap lives inline in <head>; this only wires the
      toggle so a flash of the wrong theme is impossible. */
 
-  function setTheme(t) {
+  function setTheme(t, remember) {
     root.setAttribute("data-theme", t);
-    if (LS) LS.setItem("fm-theme", t);
+    if (LS && remember !== false) LS.setItem("fm-theme", t);
     var btns = document.querySelectorAll("[data-theme-toggle]");
     for (var i = 0; i < btns.length; i++) {
       btns[i].setAttribute(
@@ -41,7 +41,8 @@
   }
 
   function initTheme() {
-    setTheme(root.getAttribute("data-theme") === "dark" ? "dark" : "light");
+    // Reading the site must not replace the app's saved "system" preference.
+    setTheme(root.getAttribute("data-theme") === "dark" ? "dark" : "light", false);
     document.addEventListener("click", function (e) {
       var b = e.target.closest && e.target.closest("[data-theme-toggle]");
       if (!b) return;

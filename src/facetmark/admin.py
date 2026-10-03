@@ -38,7 +38,8 @@ from .config import Settings, split_list
 from .configfile import config_path, external_setting_keys, read_config, update_config
 from .db import open_db
 from .importers import decode_bookmark_bytes
-from .providers import get_provider
+from .privacy import refresh_privacy
+from .providers import MockProvider, ProviderError, SplitProvider, get_provider
 
 #: Stage names emitted by :func:`service.index_all`, in the order it runs them.
 #: The UI draws a progress bar from this, so it is asserted against the real
@@ -65,9 +66,12 @@ WRITABLE = (
     "api_key",
     "base_url",
     "chat_model",
+    "chat_extra_body",
     "chat_model_fallbacks",
     "embed_model",
     "embed_dim",
+    "embed_send_dimensions",
+    "embed_batch_size",
     "embed_backend",
     "local_embed_path",
     "request_timeout",
@@ -193,7 +197,7 @@ class JobRunner:
         )
         job.log.append(f"started: fetch={fetch} limit={limit} force={force}")
         self.job = job
-        self._task = asyncio.create_task(self._run(job, settings))
+        self._task = asyncio.create_task(self._run(job, settings.model_copy(deep=True)))
         return job
 
     def cancel(self) -> bool:
@@ -216,7 +220,8 @@ class JobRunner:
         # asyncio lock that every search takes, and an index run holding that
         # for minutes would make the UI look hung. WAL means a second writer
         # blocks only on the write itself, which is short.
-        conn = open_db(settings.db_path, same_thread=False)
+        conn = None
+        provider = None
         last = time.monotonic()
 
         def progress(name: str, value: Any) -> None:
@@ -229,9 +234,11 @@ class JobRunner:
                 raise _Cancelled
 
         try:
+            conn = open_db(settings.db_path, same_thread=False)
+            provider = get_provider(settings)
             await service.index_all(
                 conn,
-                provider=get_provider(settings),
+                provider=provider,
                 settings=settings,
                 fetch=job.fetch,
                 limit=job.limit,
@@ -255,6 +262,9 @@ class JobRunner:
             job.log.append(job.error)
         finally:
             job.finished_at = time.monotonic()
+            if provider is not None:
+                with contextlib.suppress(Exception):
+                    await provider.aclose()
             with contextlib.suppress(Exception):
                 conn.close()
 
@@ -287,6 +297,7 @@ class ProbeRequest(BaseModel):
     api_key: str | None = None
     base_url: str | None = None
     chat_model: str | None = None
+    chat_extra_body: str | None = None
     embed_model: str | None = None
 
 
@@ -314,7 +325,7 @@ def env_locked() -> frozenset[str]:
     return external_setting_keys(WRITABLE)
 
 
-def settings_view(settings: Settings) -> dict:
+def settings_view(settings: Settings, pending: dict[str, Any] | None = None) -> dict:
     """Every writable setting, its value, and where the value came from.
 
     ``source`` is the field people actually need. Editing a box and seeing the
@@ -328,12 +339,21 @@ def settings_view(settings: Settings) -> dict:
     ``serve --db /elsewhere/x.db`` and would write settings nothing ever reads.
     """
     locked = env_locked()
-    file_keys = set(read_config())
+    file_values = read_config()
+    # Restart-only fields are edited as their saved values. Keep the active
+    # value alongside them so a reload never makes a successful save vanish.
+    saved = Settings(**{
+        **settings.model_dump(),
+        **{k: v for k, v in file_values.items() if k in NEEDS_RESTART and k not in locked},
+        **(pending or {}),
+    })
     rows = []
     for name in WRITABLE:
         env = name in locked
-        source = "env" if env else ("file" if name in file_keys else "default")
-        value = getattr(settings, name)
+        source = "env" if env else ("file" if name in file_values else "default")
+        active = getattr(settings, name)
+        value = getattr(saved, name) if name in NEEDS_RESTART and not env else active
+        pending_restart = value != active
         if isinstance(value, tuple):
             value = list(value)
         rows.append({
@@ -346,6 +366,8 @@ def settings_view(settings: Settings) -> dict:
             # input is rendered read-only rather than silently ineffective.
             "locked": env,
             "needs_restart": name in NEEDS_RESTART,
+            "active_value": mask(active) if name == "api_key" else active,
+            "pending_restart": pending_restart,
         })
     return {"path": str(config_path()), "settings": rows}
 
@@ -358,20 +380,42 @@ async def probe(settings: Settings) -> dict:
     of them to ``/embeddings``, and a combined pass/fail hides which half is
     broken.
     """
-    provider = get_provider(settings)
+    try:
+        provider = get_provider(settings)
+    except Exception as exc:
+        error = f"{type(exc).__name__}: {exc}"[:400]
+        return {
+            "ok": False,
+            "chat": {"ok": False, "ms": None, "model": settings.chat_model, "error": error},
+            "embed": {"ok": False, "ms": None, "model": settings.embed_model, "error": error,
+                      "dim": 0, "expected_dim": settings.embed_dim, "dim_matches": False},
+        }
+    chat_provider = provider.chat_provider if isinstance(provider, SplitProvider) else provider
+    embed_provider = provider.embed_provider if isinstance(provider, SplitProvider) else provider
+    mock_reason = (
+        "Offline demo mode; no real model connection was tested."
+        if settings.use_mock_provider else
+        "API key is not configured; connection was not tested."
+    )
     out: dict[str, Any] = {}
     try:
+        if isinstance(chat_provider, MockProvider):
+            raise ProviderError(mock_reason)
         t = time.monotonic()
         await provider.chat_json(
             "Reply with compact JSON.",
             'Return exactly {"ok": true} and nothing else.',
         )
         out["chat"] = {"ok": True, "ms": round((time.monotonic() - t) * 1000),
-                       "model": settings.chat_model, "error": None}
+                       "model": getattr(provider, "chat_model_in_use", settings.chat_model),
+                       "error": None}
     except Exception as exc:  # noqa: BLE001 - the message is the product here
-        out["chat"] = {"ok": False, "ms": None, "model": settings.chat_model,
+        out["chat"] = {"ok": False, "ms": None,
+                       "model": "mock" if isinstance(chat_provider, MockProvider) else settings.chat_model,
                        "error": f"{type(exc).__name__}: {exc}"[:400]}
     try:
+        if isinstance(embed_provider, MockProvider):
+            raise ProviderError(mock_reason)
         t = time.monotonic()
         vectors = await provider.embed(["facetmark connection test"])
         dim = len(vectors[0]) if vectors and vectors[0] else 0
@@ -387,7 +431,9 @@ async def probe(settings: Settings) -> dict:
             "error": None,
         }
     except Exception as exc:  # noqa: BLE001
-        out["embed"] = {"ok": False, "ms": None, "model": settings.embed_model, "dim": 0,
+        out["embed"] = {"ok": False, "ms": None,
+                        "model": "mock" if isinstance(embed_provider, MockProvider) else settings.embed_model,
+                        "dim": 0,
                         "dim_matches": False, "expected_dim": settings.embed_dim,
                         "error": f"{type(exc).__name__}: {exc}"[:400]}
     with contextlib.suppress(Exception):
@@ -472,7 +518,8 @@ def register(app: FastAPI, auth: list) -> None:
 
     @app.get("/admin/settings", dependencies=deps)
     async def admin_settings(request: Request) -> dict:
-        return settings_view(_state(request).settings)
+        state = _state(request)
+        return settings_view(state.settings, state.pending_settings)
 
     @app.put("/admin/settings", dependencies=deps)
     async def admin_settings_write(body: SettingsPatch, request: Request) -> dict:
@@ -528,17 +575,29 @@ def register(app: FastAPI, auth: list) -> None:
             key: None if value is None else getattr(validated, key)
             for key, value in changes.items()
         }
-        update_config(persisted)
-        # Refresh the live objects so anything that can take effect now, does.
         applied = [k for k in changes if k not in NEEDS_RESTART]
-        for key in applied:
-            with contextlib.suppress(Exception):
-                setattr(state.settings, key, getattr(validated, key))
-        state._provider = None
+        async with state.lock:
+            # A job already selected its targets. Applying privacy rules while
+            # it runs would claim to protect requests already queued by it.
+            if "privacy_excluded_domains" in changes and state.jobs.running:
+                raise HTTPException(409, "stop the index job before changing privacy rules")
+            update_config(persisted)
+            state.settings = state.settings.model_copy(update={
+                key: getattr(validated, key) for key in applied
+            })
+            for key in set(changes) & NEEDS_RESTART:
+                state.pending_settings[key] = getattr(validated, key)
+            if "privacy_excluded_domains" in changes:
+                refresh_privacy(state.conn, state.settings)
+            old_provider, state._provider = state._provider, None
+            if old_provider is not None:
+                with contextlib.suppress(Exception):
+                    await old_provider.aclose()
+        view = settings_view(state.settings, state.pending_settings)
         return {
-            **settings_view(state.settings),
+            **view,
             "applied": applied,
-            "restart_required": sorted(set(changes) & NEEDS_RESTART),
+            "restart_required": sorted(row["key"] for row in view["settings"] if row["pending_restart"]),
         }
 
     @app.post("/admin/settings/test", dependencies=deps)
@@ -546,6 +605,10 @@ def register(app: FastAPI, auth: list) -> None:
         state = _state(request)
         base = state.settings.model_dump()
         for key, value in body.model_dump(exclude_none=True).items():
-            if value != "":
+            if value != "" or key == "chat_extra_body":
                 base[key] = value
-        return await probe(Settings(**base))
+        try:
+            settings = Settings(**base)
+        except ValueError as exc:
+            raise HTTPException(400, f"invalid settings: {exc}"[:400]) from None
+        return await probe(settings)

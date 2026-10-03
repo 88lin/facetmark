@@ -240,7 +240,7 @@ const out = JSON.stringify({ base: BASE, calls: recorded }, null, 2) + "\n";
 const check = process.argv.includes("--check");
 if (check) {
   const have = readFileSync(WIRE, "utf8");
-  if (have !== out) {
+  if (have.replace(/\r\n/g, "\n") !== out) {
     fail(
       "wire.json is stale -- the plugin now sends something different.\n" +
       "  Run `npm run contract` and commit the result, then make sure\n" +

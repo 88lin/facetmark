@@ -377,12 +377,8 @@ def _l2_normalize(vec: Sequence[float]) -> list[float]:
     return [x / s for x in vec]
 
 
-def ensure_vec_tables(conn: sqlite3.Connection, dim: int, model: str) -> None:
-    """Create the vector tables, pinning dimension and model in ``meta``.
-
-    A dimension or model change invalidates every stored vector, so it is a hard
-    error rather than a silent mix.
-    """
+def validate_vec_schema(conn: sqlite3.Connection, dim: int, model: str) -> None:
+    """Check model identity before reading or writing vectors, without writes."""
     stored_dim = get_meta(conn, "embed_dim")
     stored_model = get_meta(conn, "embed_model")
 
@@ -397,6 +393,10 @@ def ensure_vec_tables(conn: sqlite3.Connection, dim: int, model: str) -> None:
             f"Run 'facetmark reindex --vectors' to rebuild."
         )
 
+
+def ensure_vec_tables(conn: sqlite3.Connection, dim: int, model: str) -> None:
+    """Create vector tables only when their model and dimensions agree."""
+    validate_vec_schema(conn, dim, model)
     conn.execute(
         f"CREATE VIRTUAL TABLE IF NOT EXISTS vec_content USING vec0("
         f"  bookmark_id INTEGER PRIMARY KEY, embedding FLOAT[{dim}])"

@@ -4,6 +4,8 @@
 真实输出。没有为了好看而四舍五入，也没有估算。没有协议撑着的说法，不会出现在站上。
 """
 
+from model_presets import provider_blocks
+
 REPO = "https://github.com/88lin/facetmark"
 
 ZH = {
@@ -641,7 +643,7 @@ ZH["quickstart"] = {
                     "dotenv",
                     "FACETMARK_BASE_URL=https://api.openai.com/v1\n"
                     "FACETMARK_API_KEY=sk-your-key\n"
-                    "FACETMARK_CHAT_MODEL=gpt-4o-mini\n"
+                    "FACETMARK_CHAT_MODEL=gpt-6-luna\n"
                     "FACETMARK_EMBED_MODEL=text-embedding-3-small\n"
                     "FACETMARK_EMBED_DIM=1536",
                 ),
@@ -660,7 +662,7 @@ ZH["quickstart"] = {
                 (
                     "cb",
                     "dotenv",
-                    "FACETMARK_EMBED_BACKEND=local\nFACETMARK_LOCAL_EMBED_PATH=BAAI/bge-m3\nFACETMARK_EMBED_DIM=1024",
+                    "FACETMARK_EMBED_BACKEND=local\nFACETMARK_LOCAL_EMBED_PATH=BAAI/bge-m3\nFACETMARK_EMBED_MODEL=BAAI/bge-m3\nFACETMARK_EMBED_DIM=1024",
                 ),
                 ("p", '<a href="config.zh.html">完整配置、优先级与服务商示例 →</a>'),
             ],
@@ -969,14 +971,14 @@ ZH["guide"] = {
                     "shell",
                     "export FACETMARK_API_KEY=sk-...\n"
                     "export FACETMARK_BASE_URL=https://api.openai.com/v1\n"
-                    "export FACETMARK_CHAT_MODEL=gpt-4o-mini\n"
+                    "export FACETMARK_CHAT_MODEL=gpt-6-luna\n"
                     "export FACETMARK_EMBED_MODEL=text-embedding-3-small\n"
                     "export FACETMARK_EMBED_DIM=1536",
                 ),
                 (
                     "callout",
                     "warn",
-                    "base URL 必须以 /v1 结尾",
+                    "使用服务商的 API 根路径",
                     "<p>这是最常见的配置失败，没之一。少了 <code>/v1</code>，每一次调用都 404，包括第一次；而错误是从 provider 那边回来的，看起来像是密钥问题。</p>",
                 ),
                 (
@@ -988,14 +990,14 @@ ZH["guide"] = {
                     "dotenv",
                     "FACETMARK_API_KEY=sk-...\n"
                     "FACETMARK_BASE_URL=https://api.deepseek.com/v1\n"
-                    "FACETMARK_CHAT_MODEL=deepseek-chat",
+                    "FACETMARK_CHAT_MODEL=deepseek-flash",
                 ),
                 ("h3", "共享端点或免费端点"),
                 (
                     "p",
                     "备用对话模型按配置顺序尝试。请先确认每个模型在当前账户和端点可用；不要用备用链掩盖错误的接口地址或权限。",
                 ),
-                ("cb", "shell", "export FACETMARK_CHAT_MODEL_FALLBACKS=deepseek-chat,qwen-plus"),
+                ("cb", "shell", "export FACETMARK_CHAT_MODEL_FALLBACKS=deepseek-flash,deepseek-v4-pro"),
                 (
                     "p",
                     "provider 会记录每一次调用到底是哪个模型答的。任何建立在降级链上的报告，都必须把这个混合比例公开。",
@@ -1013,7 +1015,7 @@ ZH["guide"] = {
                     "export FACETMARK_EMBED_BACKEND=local\n"
                     "export FACETMARK_EMBED_MODEL=bge-m3\n"
                     "export FACETMARK_EMBED_DIM=1024\n"
-                    "export FACETMARK_LOCAL_EMBED_PATH=/path/to/bge-m3   # 不设就下载\n"
+                    "export FACETMARK_LOCAL_EMBED_PATH=BAAI/bge-m3   # 或本地模型目录\n"
                     "export FACETMARK_LOCAL_EMBED_MAX_SEQ=1024",
                 ),
                 (
@@ -1446,7 +1448,7 @@ ZH["guide"] = {
                     "Python 包里的纯 HTML、CSS 和 ES 模块：没有 Node，没有打包器，也就没有会和服务端对不上的构建产物。页面和 API 由同一个进程发出，所以是同源的 —— "
                     "这也是它没法托管到别处去的原因：这个服务的 CORS 只对浏览器扩展的来源开放。",
                 ),
-                ("h3", "两个视图"),
+                ("h3", "五个标签页与管理入口"),
                 (
                     "table",
                     ["视图", "地址", "干什么用"],
@@ -1454,22 +1456,46 @@ ZH["guide"] = {
                         [
                             "搜索",
                             "<code>/app#/search</code>",
-                            "搜索框和排好序的列表。一敲字先出字面匹配的结果，完全不调模型；排好序的答案到了就替换掉，<b>加载更多</b>翻后面的。",
+                            "输入确认后先显示不调用模型的词面结果，再更新完整检索结果；中文选字期间暂停查询。用<b>加载更多</b>继续浏览。",
+                        ],
+                        [
+                            "综述",
+                            "<code>/app#/ask</code>",
+                            "输入问题并提交，根据已存摘要或片段生成带编号引用的回答。沿引用查看来源并核对原文。",
                         ],
                         [
                             "书签库",
                             "<code>/app#/library</code>",
-                            "<code>facetmark stats</code> "
-                            "打印的所有东西，按行列出来：书签数、多少条抓到了正文、多少条做了向量、会话、按类型分的边、抓取队列、链接健康，还有冷层清点。“我搜了但什么都没有” 这个问题就靠这个视图回答。",
+                            "查看收藏活动、正文与向量覆盖、浏览批次和关联规模。搜不到内容时，先确认书签是否导入、正文与索引是否齐全。",
+                        ],
+                        [
+                            "浏览批次",
+                            "<code>/app#/sessions</code>",
+                            "查看同一时间段保存的书签，进入某个批次继续阅读。",
+                        ],
+                        [
+                            "系统",
+                            "<code>/app#/system</code>",
+                            "查看服务与模型状态、抓取队列、链接健康和冷层清单。",
+                        ],
+                        [
+                            "设置（齿轮）",
+                            "<code>/app#/settings</code>",
+                            "测试并保存模型配置，调整索引选项，启动或取消索引任务。",
+                        ],
+                        [
+                            "首次设置",
+                            "<code>/app#/setup</code>",
+                            "按导入书签、选择模型、建立索引三步完成初始化；已有书签时也可再次进入。",
                         ],
                     ],
                 ),
                 (
                     "callout",
                     "info",
-                    "它故意不做的事",
-                    "<p>它只读。没有删除，没有编辑，没有队列控制，也没有综述按钮。那些在命令行和 API 里有，在那儿犯错至少是主动犯的。页面唯一写的一次，是你点开某条结果时的 <code>POST "
-                    "/open</code>，冷层就是靠它喂的。</p>",
+                    "哪些操作需要管理入口",
+                    "<p>配对后可以搜索、生成综述和查看书签。导入文件、保存配置与控制索引任务还要求本机连接或 SSH 转发。"
+                    "从搜索结果打开原文会记录阅读活动；搜索和详情页不提供书签编辑、删除操作。</p>",
                 ),
                 ("h3", "结果行上的标记是什么意思"),
                 (
@@ -1482,7 +1508,7 @@ ZH["guide"] = {
                     [
                         [
                             '<span class="chip mk">内容相关</span>',
-                            "命中了<b>内容</b>面 —— 页面自己正文的向量。",
+                            "命中了<b>内容</b>面 —— 已存内容的向量，可能来自正文或标题推断的摘要。",
                             '<span class="badge info">开</span>',
                         ],
                         [
@@ -1537,13 +1563,13 @@ ZH["guide"] = {
                     "table",
                     ["按键", "作用"],
                     [
-                        ["<kbd>/</kbd>", "在页面任何地方聚焦到搜索框。"],
-                        ["<kbd>Enter</kbd>", "搜索。"],
+                        ["<kbd>/</kbd>", "未在输入框内打字时，切换到搜索并聚焦查询框。"],
+                        ["<kbd>Enter</kbd>", "提交查询；有选中建议时采用该建议。中文选字的确认回车不会提交。"],
                         [
                             "<kbd>↑</kbd> <kbd>↓</kbd>",
-                            "在结果之间移动。在搜索框里按 <kbd>↓</kbd> 进入列表。",
+                            "建议列表打开时选择建议；否则在搜索结果之间移动。输入法选字期间保留给输入法。",
                         ],
-                        ["<kbd>Esc</kbd>", "清空查询，回到搜索框。"],
+                        ["<kbd>Esc</kbd>", "先关闭建议或详情；搜索页没有弹层时清空查询并聚焦搜索框。"],
                     ],
                 ),
                 ("h3", "语言和主题"),
@@ -1927,9 +1953,12 @@ ZH["guide"] = {
                         [
                             "<code>BASE_URL</code>",
                             "<code>https://api.openai.com/v1</code>",
-                            "必须以 <code>/v1</code> 结尾。",
+                            "通常以 <code>/v1</code> 结尾；智谱使用 <code>/api/paas/v4</code>。",
                         ],
-                        ["<code>CHAT_MODEL</code>", "<code>gpt-4o-mini</code>", ""],
+                        ["<code>CHAT_MODEL</code>", "<code>gpt-6-luna</code>", ""],
+                        ["<code>CHAT_EXTRA_BODY</code>", "", "JSON 对象字符串；可设置思考和输出上限。留空不强制采样参数。"],
+                        ["<code>EMBED_SEND_DIMENSIONS</code>", "false", "dimensions"],
+                        ["<code>EMBED_BATCH_SIZE</code>", "64", "百炼使用 20。"],
                         ["<code>CHAT_MODEL_FALLBACKS</code>", "空", "逗号分隔。默认为空是故意的。"],
                         ["<code>EMBED_MODEL</code>", "<code>text-embedding-3-small</code>", ""],
                         [
@@ -2719,8 +2748,8 @@ ZH["webui"] = {
                     "steps",
                     [
                         "导入：选择浏览器导出的 HTML 或 Chromium Bookmarks JSON。文件发送到当前连接的 facetmark 服务。",
-                        "模型：设置接口与模型，分别测试对话和向量连接。也可以先用词面搜索。",
-                        "索引：开始任务，完成后检查正文覆盖与向量数量。失败时保留错误信息，修正配置后重试。",
+                        "模型：点击“去配置模型”，填写接口和模型，点击“测试连接”分别检查对话与向量，再点击“保存”。也可以先用词面搜索。",
+                        "索引：回到首次设置页点击“开始建索引”，完成后检查正文覆盖与向量数量。失败时记录错误，修正配置后重试。",
                     ],
                 ),
                 (
@@ -2780,10 +2809,10 @@ ZH["webui"] = {
                     ["操作", "效果"],
                     [
                         ["<kbd>/</kbd>", "聚焦搜索框（不在其他输入框内时）。"],
-                        ["<kbd>↑</kbd> / <kbd>↓</kbd>", "移动搜索建议中的选中项。"],
-                        ["<kbd>Enter</kbd>", "执行搜索，或打开当前选中的建议。"],
-                        ["<kbd>Esc</kbd>", "关闭建议列表或详情弹层。"],
-                        ["语言 / 主题", "支持中英文、浅色与深色；偏好保存在当前浏览器。"],
+                        ["<kbd>↑</kbd> / <kbd>↓</kbd>", "建议列表打开时选择建议，否则在搜索结果间移动；选字期间不干扰输入法。"],
+                        ["<kbd>Enter</kbd>", "提交搜索或综述；有选中建议时采用该建议。确认中文选字不会提交。"],
+                        ["<kbd>Esc</kbd>", "先关闭建议或详情；搜索页没有弹层时清空查询。"],
+                        ["语言 / 主题", "支持中英文；应用主题依次切换为浅色、深色、跟随系统，按钮提示下一步操作。"],
                     ],
                 )
             ],
@@ -2857,7 +2886,7 @@ ZH["config"] = {
                         ],
                         [
                             "<code>chat_model</code>",
-                            "用来读页面，以及在「提问」屏上回答。这里便宜快比聪明重要。",
+                            "建索引时生成网页摘要，使用“综述”时生成带引用的回答。",
                         ],
                         ["<code>embed_model</code>", "把文字变成向量。决定搜索质量的是这一项。"],
                     ],
@@ -2870,90 +2899,12 @@ ZH["config"] = {
                 ),
                 (
                     "p",
-                    "在本机或 SSH 转发的设置页点击“测试连接”，分别确认对话和向量结果。保存后重新测试；需要重启的字段在重启前仍使用旧值。",
+                    "通过本机或 SSH 转发打开设置，填写模型字段后点击“测试连接”。测试使用表单中的值，但不会保存；分别确认对话与向量结果后，再点击该组的“保存”。"
+                    "每组保存只处理本组改动。标为需重启的字段保存后，要重启服务才会用于实际任务。",
                 ),
             ],
         ),
-        (
-            "presets",
-            "服务商配置示例",
-            [
-                (
-                    "p",
-                    "以下是配置格式示例。先通过 <code>facetmark config path</code> "
-                    "找到文件，再填入你实际开通的模型名。服务商的端点、可用模型和权限可能变化；以当前账户可用能力为准。",
-                ),
-                (
-                    "cb",
-                    "OpenAI",
-                    'api_key = "sk-..."\n'
-                    'base_url = "https://api.openai.com/v1"\n'
-                    'chat_model = "gpt-4o-mini"\n'
-                    'embed_model = "text-embedding-3-small"\n'
-                    "embed_dim = 1536",
-                ),
-                (
-                    "cb",
-                    "DeepSeek（只有对话——向量要另找一家）",
-                    'api_key = "sk-..."\nbase_url = "https://api.deepseek.com/v1"\nchat_model = "deepseek-chat"',
-                ),
-                (
-                    "cb",
-                    "月之暗面 Kimi",
-                    'api_key = "sk-..."\nbase_url = "https://api.moonshot.cn/v1"\nchat_model = "moonshot-v1-8k"',
-                ),
-                (
-                    "cb",
-                    "智谱 GLM",
-                    'api_key = "..."\n'
-                    'base_url = "https://open.bigmodel.cn/api/paas/v4"\n'
-                    'chat_model = "glm-4-flash"\n'
-                    'embed_model = "embedding-3"\n'
-                    "embed_dim = 2048",
-                ),
-                (
-                    "cb",
-                    "硅基流动 SiliconFlow",
-                    'api_key = "sk-..."\n'
-                    'base_url = "https://api.siliconflow.cn/v1"\n'
-                    'chat_model = "Qwen/Qwen2.5-7B-Instruct"\n'
-                    'embed_model = "BAAI/bge-m3"\n'
-                    "embed_dim = 1024",
-                ),
-                (
-                    "cb",
-                    "阿里云百炼（OpenAI 兼容端点）",
-                    'api_key = "sk-..."\n'
-                    'base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"\n'
-                    'chat_model = "qwen-plus"\n'
-                    'embed_model = "text-embedding-v3"\n'
-                    "embed_dim = 1024",
-                ),
-                (
-                    "cb",
-                    "Ollama（跑在你自己机器上，不用 key）",
-                    'base_url = "http://127.0.0.1:11434/v1"\n'
-                    'api_key = "ollama"\n'
-                    'chat_model = "qwen2.5:7b"\n'
-                    'embed_model = "bge-m3"\n'
-                    "embed_dim = 1024",
-                ),
-                (
-                    "cb",
-                    "vLLM（你自己的服务）",
-                    'base_url = "http://127.0.0.1:8000/v1"\n'
-                    'api_key = "not-used"\n'
-                    'chat_model = "Qwen/Qwen2.5-7B-Instruct"',
-                ),
-                (
-                    "callout",
-                    "",
-                    "混着用是常态",
-                    "<p>facetmark 只发两种请求：对话的和向量的。很多人对话用最便宜的、向量用最好的。把 <code>base_url</code> "
-                    "指向做向量那家、对话模型写全名；或者向量放本地跑，API 只留给对话。</p>",
-                ),
-            ],
-        ),
+        ("presets", "服务商配置示例", provider_blocks("zh")),
         (
             "local",
             "使用本地向量",
@@ -2966,7 +2917,7 @@ ZH["config"] = {
                 (
                     "cb",
                     "本地向量",
-                    'embed_backend = "local"\nlocal_embed_path = "BAAI/bge-m3"\nembed_dim = 1024',
+                    'embed_backend = "local"\nlocal_embed_path = "BAAI/bge-m3"\nembed_model = "BAAI/bge-m3"\nembed_dim = 1024',
                 ),
                 (
                     "p",
@@ -3081,7 +3032,7 @@ ZH["config"] = {
                         ],
                         [
                             "对话能用，向量 403",
-                            "很常见。这个账号有一种权限没有另一种。把 <code>embed_backend</code> 切成本地，或者把向量指到另一家。",
+                            "确认当前接口和账号支持所选向量模型。可改用同时支持两种能力的接口，或按上面的步骤配置本地向量；对话和在线向量共用接口地址。",
                         ],
                         [
                             "保存时报 <code>unknown setting</code>",

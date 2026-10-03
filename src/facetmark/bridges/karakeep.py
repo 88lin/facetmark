@@ -72,7 +72,8 @@ from ..config import Settings, get_settings
 from ..db import jdump, jload, now
 from ..enrich.vectors import embed_content
 from ..fetch.store import store_body
-from ..normalize import normalize_url, registrable_domain
+from ..normalize import host_excluded, normalize_url, registrable_domain
+from ..privacy import refresh_privacy
 from ..providers import Provider
 from ..search.pipeline import ALL_CONFIGS, search
 from ..text import sync_fts
@@ -193,6 +194,7 @@ def _upsert_one(
     that enrichment was left alone.
     """
     nu = normalize_url(doc.url or f"karakeep://{doc.id}")
+    privacy = int(host_excluded(nu.host, settings.privacy_excluded_domains))
     ts = doc.created_at if doc.created_at is not None else now()
     row = conn.execute(
         "SELECT bookmark_id FROM karakeep_doc WHERE karakeep_id = ?", (doc.id,)
@@ -211,10 +213,10 @@ def _upsert_one(
                 "INSERT INTO bookmark(url, url_norm, url_hash, title, folder, folder_depth,"
                 " host, domain, date_added, source, indexable, privacy_skipped,"
                 " tags, created_at, updated_at)"
-                " VALUES(?,?,?,?,?,?,?,?,?,'karakeep',?,0,?,?,?)",
+                " VALUES(?,?,?,?,?,?,?,?,?,'karakeep',?,?,?,?,?)",
                 (nu.original, nu.normalized, nu.hash, doc.display_title, doc.folder,
                  len(doc.tags), nu.host, registrable_domain(nu.host), ts,
-                 1 if nu.indexable else 0, jdump(doc.tags), now(), now()),
+                 1 if nu.indexable else 0, privacy, jdump(doc.tags), now(), now()),
             )
             bid = int(cur.lastrowid)
             created = True
@@ -237,9 +239,9 @@ def _upsert_one(
                 keep_tags.append(tag)
         conn.execute(
             "UPDATE bookmark SET title=?, folder=?, folder_depth=?, date_added=?,"
-            " tags=?, updated_at=? WHERE id=?",
+            " tags=?, privacy_skipped=?, updated_at=? WHERE id=?",
             (doc.display_title, doc.folder, len(doc.tags), ts,
-             jdump(keep_tags), now(), bid),
+             jdump(keep_tags), privacy, now(), bid),
         )
 
     body = doc.body
@@ -333,6 +335,7 @@ async def add_documents(
         ids.append(bid)
         created += int(was_new)
         kept_enrichment += int(kept)
+    refresh_privacy(conn, st)
     conn.commit()
 
     embedded = 0

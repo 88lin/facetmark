@@ -29,7 +29,7 @@ import sqlite3
 from collections.abc import Sequence
 
 from ..config import Settings, get_settings
-from ..db import in_chunks, knn_content, knn_intent, vec_tables_exist
+from ..db import in_chunks, knn_content, knn_intent, validate_vec_schema, vec_tables_exist
 from ..providers import Provider, get_provider
 
 
@@ -170,6 +170,7 @@ async def vector_lists(
         return {}, None
     s = settings or get_settings()
     prov = provider or get_provider(s)
+    validate_vec_schema(conn, prov.embed_dim, prov.embed_model)
     vec = (await prov.embed([query]))[0]
     return vector_lists_from_vec(
         conn, vec, limit=limit, want_content=want_content, want_intent=want_intent
@@ -191,6 +192,7 @@ async def vector_lists_scored(
         return {}, None
     s = settings or get_settings()
     prov = provider or get_provider(s)
+    validate_vec_schema(conn, prov.embed_dim, prov.embed_model)
     vec = (await prov.embed([query]))[0]
     return vector_lists_from_vec_scored(
         conn, vec, limit=limit, want_content=want_content, want_intent=want_intent

@@ -231,11 +231,18 @@ class OpenAICompatibleProvider(Provider):
                 last = exc
             else:
                 if r.status_code < 400:
-                    return r.json()
+                    try:
+                        data = r.json()
+                    except ValueError as exc:
+                        raise ProviderError(f"{path} returned invalid JSON") from exc
+                    if not isinstance(data, dict):
+                        raise ProviderError(f"{path} returned a non-object JSON response")
+                    return data
                 if r.status_code not in _RETRYABLE:
                     raise ProviderError(f"{path} -> HTTP {r.status_code}: {r.text[:300]}")
                 last = ProviderError(f"HTTP {r.status_code}")
-            await asyncio.sleep(min(2 ** attempt, 8) * 0.5)
+            if attempt + 1 < self.settings.max_retries:
+                await asyncio.sleep(min(2 ** attempt, 8) * 0.5)
         # Name the exception *class*. httpx raises several of its timeout and
         # protocol errors with an empty message, so interpolating only ``last``
         # produces "failed after 3 attempts: " -- which was, for one full
@@ -248,10 +255,10 @@ class OpenAICompatibleProvider(Provider):
 
     async def _chat_once(self, model: str, system: str, user: str) -> dict:
         data = await self._post("/chat/completions", {
+            **json.loads(self.settings.chat_extra_body or "{}"),
             "model": model,
             "messages": [{"role": "system", "content": system},
                          {"role": "user", "content": user}],
-            "temperature": 0.2,
             "response_format": {"type": "json_object"},
         })
         u = data.get("usage") or {}
@@ -259,9 +266,15 @@ class OpenAICompatibleProvider(Provider):
         self.usage.prompt_tokens += int(u.get("prompt_tokens") or 0)
         self.usage.completion_tokens += int(u.get("completion_tokens") or 0)
         try:
-            text = data["choices"][0]["message"]["content"]
-        except (KeyError, IndexError, TypeError) as exc:
+            choice = data["choices"][0]
+            message = choice["message"]
+            text = message.get("content")
+        except (KeyError, IndexError, TypeError, AttributeError) as exc:
             raise ProviderError(f"unexpected chat response shape: {str(data)[:300]}") from exc
+        if choice.get("finish_reason") in {"length", "content_filter"}:
+            raise ProviderError(f"{model} did not complete JSON output: {choice['finish_reason']}")
+        if message.get("refusal"):
+            raise ProviderError(f"{model} refused the JSON request")
         # parse_json_object is inside the failover boundary on purpose: a model
         # that ignores response_format has failed at the only thing this method
         # is for, and that is not distinguishable from absence to the caller.
@@ -317,27 +330,40 @@ class OpenAICompatibleProvider(Provider):
     async def embed(self, texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
+        vecs: list[list[float]] = []
+        size = self.settings.embed_batch_size
+        for start in range(0, len(texts), size):
+            vecs.extend(await self._embed_batch(texts[start:start + size]))
+        return vecs
+
+    async def _embed_batch(self, texts: list[str]) -> list[list[float]]:
         data = await self._post("/embeddings", {
             "model": self.settings.embed_model,
             "input": texts,
+            **({"dimensions": self.embed_dim} if self.settings.embed_send_dimensions else {}),
         })
         u = data.get("usage") or {}
         self.usage.calls += 1
         self.usage.embed_tokens += int(u.get("total_tokens") or 0)
         try:
-            rows = sorted(data["data"], key=lambda d: d.get("index", 0))
+            rows = sorted(data["data"], key=lambda d: d["index"])
+            if [d["index"] for d in rows] != list(range(len(texts))):
+                raise ProviderError("embedding response indices do not match the input batch")
             vecs = [list(map(float, d["embedding"])) for d in rows]
         except (KeyError, TypeError, ValueError) as exc:
             raise ProviderError(f"unexpected embedding response: {str(data)[:300]}") from exc
         if len(vecs) != len(texts):
             raise ProviderError(f"asked for {len(texts)} embeddings, got {len(vecs)}")
-        got = len(vecs[0])
-        if got != self.embed_dim:
-            raise ProviderError(
-                f"{self.embed_model} returned {got}-dim vectors but settings say "
-                f"{self.embed_dim}. Set FACETMARK_EMBED_DIM={got} and rebuild the "
-                f"index with `facetmark reindex --vectors`."
-            )
+        for vec in vecs:
+            got = len(vec)
+            if got != self.embed_dim:
+                raise ProviderError(
+                    f"{self.embed_model} returned {got}-dim vectors but settings say "
+                    f"{self.embed_dim}. Set FACETMARK_EMBED_DIM={got} and rebuild the "
+                    f"index with `facetmark reindex --vectors`."
+                )
+            if not all(math.isfinite(x) for x in vec):
+                raise ProviderError("embedding response contains non-finite values")
         return vecs
 
 
@@ -512,7 +538,9 @@ def parse_json_object(text: str) -> dict:
     that failing on them would make half the OpenAI-compatible ecosystem
     unusable, and cheap enough to handle here.
     """
-    text = (text or "").strip()
+    if not isinstance(text, str):
+        raise ProviderError("model returned no text JSON content")
+    text = text.strip()
     for candidate in (text, *(m.group(1).strip() for m in _JSON_FENCE.finditer(text))):
         try:
             got = json.loads(candidate)
@@ -534,11 +562,13 @@ def parse_json_object(text: str) -> dict:
 
 def get_provider(settings: Settings | None = None, **kw) -> Provider:
     s = settings or get_settings()
+    # Validate local configuration before allocating the chat HTTP client.
+    local = LocalEmbeddingProvider(s) if s.embed_backend == "local" else None
     base: Provider
     if s.use_mock_provider or not s.api_key:
         base = MockProvider(s)
     else:
         base = OpenAICompatibleProvider(s, **kw)
-    if s.embed_backend == "local":
-        return SplitProvider(base, LocalEmbeddingProvider(s), settings=s)
+    if local is not None:
+        return SplitProvider(base, local, settings=s)
     return base

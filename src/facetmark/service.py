@@ -604,8 +604,11 @@ async def synthesize(
         resp = await search(conn, query, limit=limit, settings=st, provider=provider)
 
     sources: list[dict] = []
-    for n, hit in enumerate(resp.hits[:limit], start=1):
+    for hit in resp.hits[:limit]:
         rec = bookmark_record(conn, hit.bookmark_id, settings=st)
+        if rec and rec["privacy_skipped"]:
+            continue
+        n = len(sources) + 1
         excerpt = ""
         if rec:
             excerpt = rec["summary"] or _clip(hit.snippet, SNIPPET_CHARS)

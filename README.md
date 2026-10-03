@@ -191,15 +191,19 @@ model** (for enrichment and intent generation) and an **embedding model**.
 
 ```bash
 export FACETMARK_API_KEY=sk-...
-export FACETMARK_BASE_URL=https://api.openai.com/v1     # must include /v1
-export FACETMARK_CHAT_MODEL=gpt-4o-mini
+export FACETMARK_BASE_URL=https://api.openai.com/v1     # provider API base path
+export FACETMARK_CHAT_MODEL=gpt-6-luna
+export FACETMARK_CHAT_EXTRA_BODY='{"reasoning_effort":"none","max_completion_tokens":4096}'
 export FACETMARK_EMBED_MODEL=text-embedding-3-small
 export FACETMARK_EMBED_DIM=1536
 ```
 
 > [!TIP]
-> Works unchanged against **Azure OpenAI**, **together.ai**, **DeepSeek**, **SiliconFlow**,
-> **Ollama** (`http://localhost:11434/v1`), **vLLM**, **LM Studio**, or an internal gateway.
+> Compatible chat endpoints include **DeepSeek**, **SiliconFlow**, **Ollama**
+> (`http://localhost:11434/v1`), **vLLM**, **LM Studio**, and internal gateways.
+> Use the provider-specific parameters below and ensure it also serves embeddings, or use local embeddings.
+
+Models and endpoints were checked against **official documentation on 2026-10-03**. [Current provider configurations, parameter limits and sources](docs/model-access.md) cover DeepSeek, Kimi, Zhipu, SiliconFlow, Bailian, Ollama and vLLM. Updating the default does not overwrite existing user settings or migrate stored vectors.
 
 ### Local embeddings
 
@@ -211,7 +215,7 @@ pip install "facetmark[local]"
 export FACETMARK_EMBED_BACKEND=local
 export FACETMARK_EMBED_MODEL=bge-m3
 export FACETMARK_EMBED_DIM=1024
-export FACETMARK_LOCAL_EMBED_PATH=/path/to/bge-m3     # or leave unset to download
+export FACETMARK_LOCAL_EMBED_PATH=BAAI/bge-m3           # or a local model directory
 export FACETMARK_LOCAL_EMBED_MAX_SEQ=1024
 ```
 
@@ -242,8 +246,11 @@ Settings panel edits the file; `facetmark config path` prints it.
 | `DATA_DIR` | per OS, above | Where the database and caches live |
 | `DB_NAME` | `facetmark.db` | Database filename inside `DATA_DIR` |
 | `API_KEY` | — | Key for the OpenAI-compatible endpoint |
-| `BASE_URL` | `https://api.openai.com/v1` | Endpoint root; **must** include `/v1` |
-| `CHAT_MODEL` | `gpt-4o-mini` | Enrichment and intent generation |
+| `BASE_URL` | `https://api.openai.com/v1` | Provider API base path; usually `/v1`, or `/api/paas/v4` for Zhipu |
+| `CHAT_MODEL` | `gpt-6-luna` | Enrichment and intent generation |
+| `CHAT_EXTRA_BODY` | empty | JSON string for reasoning, temperature and output limits; shared by fallbacks |
+| `EMBED_SEND_DIMENSIONS` | `false` | Enable only for models supporting `dimensions` |
+| `EMBED_BATCH_SIZE` | `64` | Endpoint request batch limit; use `20` for current Bailian models |
 | `EMBED_MODEL` | `text-embedding-3-small` | Embeddings |
 | `EMBED_DIM` | `1536` | Vector width; changing it invalidates the store |
 | `EMBED_BACKEND` | `endpoint` | `endpoint` or `local` |
@@ -704,7 +711,7 @@ One SQLite file. The tables you are likely to query directly:
 | Symptom | Cause & Fix |
 |---|---|
 | `Dimension mismatch: expected 1024, received 1536` | Stored vectors and `FACETMARK_EMBED_DIM` disagree. Restore the old dim, or re-embed with `--force`. |
-| `base_url` errors / 404 on every call | The URL must end in `/v1`. Gateways that present `https://host/` without it will 404 on `/chat/completions`. |
+| `base_url` errors / 404 on every call | Use the provider API base path, usually `/v1`; Zhipu uses `/api/paas/v4`. Do not append `/chat/completions` yourself. |
 | Enrichment silently does nothing | `enrich.targets()` skips a row when `source_hash` already equals the body hash. Use `facetmark index --force`. |
 | A page has a vector but bad results | That is the stale-text failure mode above. `facetmark index --force` rebuilds from the current text. |
 | `disk I/O error` opening the database | SQLite cannot run on some network or FUSE filesystems. Copy the file to local disk first. |
@@ -740,8 +747,7 @@ You lose the content and intent facets.
 <details>
 <summary><b>How much does indexing cost?</b></summary>
 
-Dominated by enrichment: roughly one small chat call per page. On 1,700 pages with
-`gpt-4o-mini` that is cents, not dollars. Embeddings are cheaper still, and free if local.
+Cost depends on page length, reasoning tokens, retries and intent generation. The current example uses GPT-6 Luna without reasoning. Measure tokens on a small batch before estimating a full run using current provider prices. Local embeddings have no API charge but use local compute.
 
 </details>
 

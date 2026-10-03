@@ -39,11 +39,11 @@ const STAGES = [
 const POLL_MS = 2000;
 
 /** The fields the model form owns, in the order they are asked for. */
-const MODEL_FIELDS = ["api_key", "base_url", "chat_model", "embed_model"];
+const MODEL_FIELDS = ["api_key", "base_url", "chat_model", "embed_model", "chat_extra_body"];
 
 /** Everything else writable, grouped so the page is not one long list. */
 const GROUPS = [
-  { key: "settings.group.embed", fields: ["embed_backend", "embed_dim", "local_embed_path"] },
+  { key: "settings.group.embed", fields: ["embed_backend", "embed_dim", "embed_send_dimensions", "embed_batch_size", "local_embed_path"] },
   {
     key: "settings.group.limits",
     fields: ["request_timeout", "fetch_concurrency", "enrich_concurrency"],
@@ -126,6 +126,9 @@ function field(key) {
     );
     why.appendChild(src);
     if (r.needs_restart) why.appendChild(pill("mute", t("settings.restart")));
+    if (r.pending_restart) {
+      why.appendChild(document.createTextNode(` ${t("settings.pending", { value: asText(r.active_value) })}`));
+    }
   }
   wrap.appendChild(why);
 
@@ -228,7 +231,7 @@ async function probe(fields, say) {
   const patch = {};
   for (const [key, f] of fields) {
     const v = f.probe();
-    if (v) patch[key] = v;
+    if (v || key === "chat_extra_body") patch[key] = v;
   }
   try {
     const r = await api.adminSettingsTest(patch);
@@ -239,7 +242,12 @@ async function probe(fields, say) {
             kind: t(`settings.probe.${kind}`),
             why: res?.error ?? t("settings.probe.unknown"),
           });
-    const bad = !r.chat?.ok || !r.embed?.ok;
+    const bad = !r.ok;
+    if (r.embed?.ok && r.embed.dim_matches === false) {
+      r.embed = { ...r.embed, ok: false, error: t("settings.probe.dimension", {
+        got: r.embed.dim, expected: r.embed.expected_dim,
+      }) };
+    }
     say.className = bad ? "note bad" : "note ok";
     say.textContent = `${line("chat", r.chat)} \u00b7 ${line("embed", r.embed)}`;
   } catch (e) {

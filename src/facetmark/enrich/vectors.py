@@ -97,6 +97,8 @@ def content_fingerprint(text: str) -> str:
 
 
 def _content_rows(conn: sqlite3.Connection, ids: Sequence[int] | None):
+    if ids is not None and not ids:
+        return []
     where = ["b.indexable=1", "b.privacy_skipped=0"]
     params: list[object] = []
     if ids:
@@ -196,7 +198,10 @@ async def embed_intents(
     ensure_vec_tables(conn, s.embed_dim, s.embed_model)
     rep = VectorReport(dim=s.embed_dim, model=s.embed_model)
 
-    sql = "SELECT id, text FROM intent_query WHERE kept=1"
+    sql = (
+        "SELECT id, text FROM intent_query WHERE kept=1 AND bookmark_id IN "
+        "(SELECT id FROM bookmark WHERE privacy_skipped=0 AND indexable=1)"
+    )
     if not force:
         sql += " AND id NOT IN (SELECT intent_id FROM vec_intent)"
     rows = conn.execute(sql + " ORDER BY id").fetchall()

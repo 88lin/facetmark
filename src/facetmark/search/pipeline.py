@@ -796,7 +796,7 @@ class SearchResponse:
 # ---------------------------------------------------------------------------
 
 _ROW_SQL = """
-SELECT b.id, b.url, b.title, b.folder, b.domain, b.date_added, b.tags,
+SELECT b.id, b.url, b.title, b.folder, b.domain, b.date_added, b.tags, b.privacy_skipped,
        e.summary, e.utility, e.content_type, e.topics,
        substr(c.body_text, 1, 400) AS body_head
 FROM bookmark b
@@ -1264,11 +1264,15 @@ async def search(
         # is the depth `search.rerank` already documents; rows past it keep
         # their fused order, which is a tradeoff nothing here has measured.
         rr_depth = max(1, s.rerank_depth)
-        head = hits[:rr_depth]
+        # Excluded pages can still match lexically, but their titles and
+        # excerpts must never be included in a model's reranking prompt.
+        head = [h for h in hits[:rr_depth] if not rows[h.bookmark_id]["privacy_skipped"]]
         docs = [RerankDoc(h.bookmark_id, h.title, h.snippet) for h in head]
-        scores = await rr.score(facet_query or query, docs)
-        if len(scores) == len(head):
-            hits = reorder(hits, scores, depth=rr_depth)
+        scores = await rr.score(facet_query or query, docs) if docs else []
+        if head and len(scores) == len(head):
+            ranked = iter(reorder(head, scores, depth=len(head)))
+            allowed = {h.bookmark_id for h in head}
+            hits = [next(ranked) if h.bookmark_id in allowed else h for h in hits]
         mark("rerank", t0)
 
     # --- 6. one hop out, as its own group ---------------------------------

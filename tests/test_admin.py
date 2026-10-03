@@ -373,6 +373,39 @@ class TestSettings:
         client.put("/admin/settings", json={"values": {"chat_model": "live-now"}}, headers=auth)
         assert client.app.state.fm.settings.chat_model == "live-now"
 
+    def test_chat_options_are_validated_saved_and_clearable(self, client, auth):
+        options = '{"reasoning_effort":"low"}'
+        r = client.put("/admin/settings", json={"values": {"chat_extra_body": options}},
+                       headers=auth)
+        assert r.status_code == 200
+        assert "low" in read_config()["chat_extra_body"]
+        r = client.put("/admin/settings", json={"values": {"chat_extra_body": "[]"}},
+                       headers=auth)
+        assert r.status_code == 400
+        assert "low" in read_config()["chat_extra_body"]
+        r = client.put("/admin/settings", json={"values": {"chat_extra_body": ""}},
+                       headers=auth)
+        assert r.status_code == 200
+        assert client.app.state.fm.settings.chat_extra_body == ""
+
+    def test_probe_can_clear_saved_chat_options_without_saving(self, client, auth, monkeypatch):
+        import facetmark.admin
+
+        client.app.state.fm.settings.chat_extra_body = '{"reasoning_effort":"low"}'
+        seen = []
+
+        async def capture(settings):
+            seen.append(settings.chat_extra_body)
+            return {"ok": True}
+
+        monkeypatch.setattr(facetmark.admin, "probe", capture)
+        r = client.post("/admin/settings/test", json={"chat_extra_body": ""}, headers=auth)
+        assert r.status_code == 200
+        assert seen == [""]
+        assert "low" in client.app.state.fm.settings.chat_extra_body
+        assert client.post("/admin/settings/test", json={"chat_extra_body": "[]"},
+                           headers=auth).status_code == 400
+
     @pytest.mark.parametrize("key", ["fetch_concurrency", "enrich_concurrency", "request_timeout"])
     def test_numeric_settings_are_typed_and_positive_live(self, client, auth, key):
         sent = "2" if key != "request_timeout" else "2.5"
@@ -575,6 +608,22 @@ class TestTheConfigFilePath:
 
 
 class TestConnectionProbe:
+    @pytest.fixture(autouse=True)
+    def endpoint(self, client):
+        import respx
+
+        client.app.state.fm.settings.use_mock_provider = False
+        client.app.state.fm.settings.api_key = "test-key"
+        client.app.state.fm.settings.base_url = "https://probe.example/v1"
+        with respx.mock:
+            respx.post("https://probe.example/v1/chat/completions").respond(
+                200, json={"choices": [{"message": {"content": '{"ok":true}'}}]},
+            )
+            respx.post("https://probe.example/v1/embeddings").respond(
+                200, json={"data": [{"index": 0, "embedding": [0.1] * 1536}]},
+            )
+            yield
+
     def test_the_probe_reports_chat_and_embed_separately(self, client, auth):
         """They fail independently on aggregated endpoints, constantly."""
         body = client.post("/admin/settings/test", json={}, headers=auth).json()
@@ -593,7 +642,7 @@ class TestConnectionProbe:
             return [[0.0] * 8 for _ in texts]
 
         with pytest.MonkeyPatch.context() as mp:
-            mp.setattr("facetmark.providers.MockProvider.embed", short)
+            mp.setattr("facetmark.providers.OpenAICompatibleProvider.embed", short)
             body = client.post("/admin/settings/test", json={}, headers=auth).json()
         assert body["embed"]["ok"] is True
         assert body["embed"]["dim"] == 8
@@ -606,7 +655,7 @@ class TestConnectionProbe:
             raise RuntimeError("404 page not found: /v1/embeddings")
 
         with pytest.MonkeyPatch.context() as mp:
-            mp.setattr("facetmark.providers.MockProvider.embed", boom)
+            mp.setattr("facetmark.providers.OpenAICompatibleProvider.embed", boom)
             body = client.post("/admin/settings/test", json={}, headers=auth).json()
         assert body["embed"]["ok"] is False
         assert "/v1/embeddings" in body["embed"]["error"]

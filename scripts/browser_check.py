@@ -1063,6 +1063,9 @@ async def settings_buttons_save_their_own_fields(browser, app: App, rep: Report)
     await page.fill("#set-request_timeout", "61")
     changes = (
         ("chat_model", "browser-check-chat", "browser-check-chat"),
+        ("chat_extra_body", '{"reasoning_effort": "low"}', '{"reasoning_effort": "low"}'),
+        ("embed_batch_size", "20", "20"),
+        ("embed_send_dimensions", "true", "true"),
         ("local_embed_path", "/tmp/facetmark-browser-check", "/tmp/facetmark-browser-check"),
         ("request_timeout", "61", "61"),
         ("privacy_excluded_domains", "audit.invalid", ["audit.invalid"]),
@@ -1094,17 +1097,58 @@ async def settings_buttons_save_their_own_fields(browser, app: App, rep: Report)
     for key, value, sent in changes:
         persisted = saved.get(key)
         expected = float(sent) if key == "request_timeout" else sent
+        if key == "embed_batch_size":
+            expected = int(sent)
+        elif key == "embed_send_dimensions":
+            expected = sent == "true"
         if isinstance(expected, str):
             persisted = str(persisted).replace("\\", "/")
         rep.ok(f"regression/persist {key}", persisted == expected,
                f"save did not reach the config file: {persisted!r}")
-        if key in restart:
-            continue
         got = await page.input_value(f"#set-{key}")
         # Paths are normalised by the server on Windows.
         rep.ok(f"regression/reload {key}", got.replace("\\", "/") == value,
                f"saved value did not survive reload: {got!r}")
     rep.ok("regression/save", not logged, f"console: {logged[:4]}")
+    # Clearing a saved option must probe the cleared value without persisting it.
+    await page.fill("#set-chat_extra_body", "")
+    section = page.locator("#settings-body section:has(#set-chat_extra_body)")
+    async with page.expect_response(lambda r: r.url.endswith("/admin/settings/test")) as pending:
+        await section.get_by_role("button", name="Test the connection", exact=True).click()
+    response = await pending.value
+    rep.ok("regression/probe-clear-options", response.ok, f"probe returned {response.status}")
+    rep.ok("regression/probe-clear-options",
+           response.request.post_data_json.get("chat_extra_body") == "",
+           "clearing the field probed the saved options instead")
+    rep.ok("regression/probe-keeps-options",
+           bool(read_config(config_path(app.dir)).get("chat_extra_body")),
+           "probe changed the saved configuration")
+    probe = await response.json()
+    rep.ok("regression/probe-offline", not probe["ok"] and probe["chat"]["model"] == "mock",
+           f"offline demo claimed a real connection: {probe}")
+    await section.locator(".note.bad").wait_for()
+
+    # A restart-only change is still visible after reload and can be cancelled
+    # by saving the currently active value, without restarting the server.
+    field = page.locator("#set-embed_dim")
+    active = await field.input_value()
+    await field.fill(str(int(active) + 1))
+    section = page.locator("#settings-body section:has(#set-embed_dim)")
+    async with page.expect_response(lambda r: r.url.endswith("/admin/settings") and r.request.method == "PUT"):
+        await section.get_by_role("button", name="Save", exact=True).click()
+    await section.locator(".note.ok").wait_for()
+    await page.reload(wait_until="load")
+    await page.wait_for_selector("#set-embed_dim")
+    rep.ok("regression/pending-reload", await field.input_value() == str(int(active) + 1),
+           "restart-only draft reverted to the active value on reload")
+    rep.ok("regression/pending-active", active in await page.locator("#set-embed_dim-why").inner_text(),
+           "the pending value hides the currently active one")
+    await field.fill(active)
+    async with page.expect_response(lambda r: r.url.endswith("/admin/settings") and r.request.method == "PUT") as pending:
+        await section.get_by_role("button", name="Save", exact=True).click()
+    restored = await (await pending.value).json()
+    rep.ok("regression/pending-revert", "embed_dim" not in restored["restart_required"],
+           "restoring the active value left a restart pending")
     await ctx.close()
 
 
@@ -1536,6 +1580,75 @@ async def polished_navigation_and_remote_guidance(browser, app: App, land: Landi
         await ctx.close()
 
 
+async def hero_downloads_only_the_active_theme(browser, land: Landing, rep: Report) -> None:
+    """Measure real image requests, including saved themes that differ from the OS."""
+    cases = (
+        ("light", "dark", False, True),
+        ("dark", "light", False, True),
+        ("system", "dark", False, True),
+        (None, "light", False, True),
+        (None, "dark", False, True),
+        (None, "dark", True, True),
+        (None, "dark", False, False),
+    )
+    for lang in ("en", "zh"):
+        suffix = ".zh" if lang == "zh" else ""
+        for saved, system, blocked, scripts in cases:
+            where = f"hero/{lang} saved={saved} os={system} blocked={blocked} js={scripts}"
+            ctx = await browser.new_context(
+                viewport={"width": 390 if lang == "zh" else 1440, "height": 1000},
+                color_scheme=system, java_script_enabled=scripts,
+            )
+            if blocked:
+                await ctx.add_init_script("""Object.defineProperty(window, 'localStorage', {
+                    get() { throw new DOMException('Storage disabled', 'SecurityError'); }
+                });""")
+            elif saved:
+                await ctx.add_init_script(f"localStorage.setItem('fm-theme', '{saved}')")
+            page = await ctx.new_page()
+            requested, logged = [], []
+            page.on("request", lambda r, out=requested: out.append(r.url) if "app-preview" in r.url else None)
+            page.on("pageerror", lambda e, out=logged: out.append(str(e)))
+            await page.goto(land.url(f"index{suffix}.html"), wait_until="networkidle")
+            active = (saved if saved in ("light", "dark") else system) if scripts else "light"
+            stem = f"app-preview{'-zh' if lang == 'zh' else ''}"
+            expected = land.url(f"assets/{stem}{'-dark' if active == 'dark' else ''}.png")
+            shot = page.locator(f".hero-preview .only-{active} img")
+            await shot.scroll_into_view_if_needed()
+            await page.wait_for_function("""theme => {
+                const i = document.querySelector(`.hero-preview .only-${theme} img`);
+                return i.complete && i.naturalWidth > 0;
+            }""", arg=active)
+            # Browsers disable native lazy loading when scripting is off.
+            # That fallback must remain readable; one-image loading applies
+            # when the page can resolve the saved theme and run its preload.
+            if scripts:
+                rep.ok(where, requested == [expected], f"initial preview requests: {requested}")
+            rep.ok(where, await shot.is_visible(), "the active preview is not visible")
+            rep.ok(where, await shot.locator("..").get_attribute("href") == f"assets/{stem}{'-dark' if active == 'dark' else ''}.png",
+                   "opening the preview links to the wrong theme")
+            if scripts:
+                if not blocked:
+                    rep.ok(where, await page.evaluate("localStorage.getItem('fm-theme')") == saved,
+                           "opening the site overwrote the saved theme preference")
+                preload = await page.locator('link[rel="preload"][as="image"]').evaluate_all(
+                    "links => links.map(l => [l.href, l.getAttribute('fetchpriority')])")
+                rep.ok(where, preload == [[expected, "high"]], f"preload: {preload}")
+                await page.locator("[data-theme-toggle]").click()
+                other = "light" if active == "dark" else "dark"
+                await page.wait_for_function("""theme => {
+                    const i = document.querySelector(`.hero-preview .only-${theme} img`);
+                    return i.complete && i.naturalWidth > 0;
+                }""", arg=other)
+                rep.ok(where, len(requested) == 2 and len(set(requested)) == 2,
+                       f"switching themes should fetch the other image once: {requested}")
+                await page.locator("[data-theme-toggle]").click()
+                await page.wait_for_timeout(100)
+                rep.ok(where, len(requested) == 2, "returning to the first theme fetched its preview again")
+            rep.ok(where, not logged, f"console: {logged}")
+            await ctx.close()
+
+
 async def run(only: str) -> int:
     rep = Report()
     started = time.time()
@@ -1547,6 +1660,9 @@ async def run(only: str) -> int:
                 await sweep_app(browser, app, rep)
             if only in ("all", "site"):
                 await sweep_site(browser, land, rep)
+            if only in ("all", "site", "regressions", "images"):
+                await hero_downloads_only_the_active_theme(browser, land, rep)
+                say("hero image requests measured")
             if only in ("all", "regressions", "interactions"):
                 await settings_buttons_save_their_own_fields(browser, app, rep)
                 await job_updates_preserve_settings_drafts(browser, app, rep)
@@ -1581,7 +1697,7 @@ async def run(only: str) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--only", default="all", choices=["all", "app", "site", "regressions", "interactions"])
+    ap.add_argument("--only", default="all", choices=["all", "app", "site", "regressions", "interactions", "images"])
     args = ap.parse_args()
     return asyncio.run(run(args.only))
 

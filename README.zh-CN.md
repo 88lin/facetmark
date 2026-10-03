@@ -186,15 +186,18 @@ facetmark 对接**任何 OpenAI 协议兼容的端点**。要两样东西：一�
 
 ```bash
 export FACETMARK_API_KEY=sk-...
-export FACETMARK_BASE_URL=https://api.openai.com/v1     # 必须带 /v1
-export FACETMARK_CHAT_MODEL=gpt-4o-mini
+export FACETMARK_BASE_URL=https://api.openai.com/v1     # 服务商 API 根路径
+export FACETMARK_CHAT_MODEL=gpt-6-luna
+export FACETMARK_CHAT_EXTRA_BODY='{"reasoning_effort":"none","max_completion_tokens":4096}'
 export FACETMARK_EMBED_MODEL=text-embedding-3-small
 export FACETMARK_EMBED_DIM=1536
 ```
 
 > [!TIP]
-> Azure OpenAI、together.ai、DeepSeek、硅基流动、Ollama（`http://localhost:11434/v1`）、
-> vLLM、LM Studio、公司内网网关，都是同一套配置。
+> 可对接 DeepSeek、硅基流动、Ollama（`http://localhost:11434/v1`）、vLLM、
+> LM Studio 和内网网关的兼容对话接口；按服务商设置参数，并确认它支持向量接口，或搭配本地向量。
+
+模型与接口已按 **2026-10-03 官方文档**核对。[查看各家最新配置、参数限制与来源](docs/model-access.md)，包括 DeepSeek、Kimi、智谱、硅基流动、百炼、Ollama 和 vLLM。修改型号不会自动改变现有用户配置，也不会迁移已有向量。
 
 ### 本地嵌入
 
@@ -205,7 +208,7 @@ pip install "facetmark[local]"
 export FACETMARK_EMBED_BACKEND=local
 export FACETMARK_EMBED_MODEL=bge-m3
 export FACETMARK_EMBED_DIM=1024
-export FACETMARK_LOCAL_EMBED_PATH=/path/to/bge-m3     # 不设就联网下载
+export FACETMARK_LOCAL_EMBED_PATH=BAAI/bge-m3           # 或本地模型目录
 export FACETMARK_LOCAL_EMBED_MAX_SEQ=1024
 ```
 
@@ -234,8 +237,11 @@ export FACETMARK_LOCAL_EMBED_MAX_SEQ=1024
 | `DATA_DIR` | 见上，按系统 | 数据库和缓存放哪 |
 | `DB_NAME` | `facetmark.db` | `DATA_DIR` 里的数据库文件名 |
 | `API_KEY` | — | OpenAI 协议端点的 key |
-| `BASE_URL` | `https://api.openai.com/v1` | 端点根地址，**必须**带 `/v1` |
-| `CHAT_MODEL` | `gpt-4o-mini` | 富集和意图生成 |
+| `BASE_URL` | `https://api.openai.com/v1` | API 根路径，通常为 `/v1`；智谱使用 `/api/paas/v4` |
+| `CHAT_MODEL` | `gpt-6-luna` | 富集和意图生成 |
+| `CHAT_EXTRA_BODY` | 空 | JSON 字符串，控制思考、温度和输出上限；备用模型共用 |
+| `EMBED_SEND_DIMENSIONS` | `false` | 仅对支持 `dimensions` 的模型开启 |
+| `EMBED_BATCH_SIZE` | `64` | 接口请求批量上限；当前百炼模型设为 `20` |
 | `EMBED_MODEL` | `text-embedding-3-small` | 嵌入 |
 | `EMBED_DIM` | `1536` | 向量维度，改了就作废整个向量库 |
 | `EMBED_BACKEND` | `endpoint` | `endpoint` 或 `local` |
@@ -659,7 +665,7 @@ export FACETMARK_TOKEN=...
 | 症状 | 原因与修法 |
 |---|---|
 | `Dimension mismatch: expected 1024, received 1536` | 库里的向量和 `FACETMARK_EMBED_DIM` 对不上。要么把维度改回去，要么带 `--force` 重新嵌入。 |
-| `base_url` 报错 / 每个调用都 404 | 地址必须以 `/v1` 结尾。只给 `https://host/` 的网关会在 `/chat/completions` 上 404。 |
+| `base_url` 报错 / 每个调用都 404 | 填写服务商的 API 根路径，通常为 `/v1`；智谱使用 `/api/paas/v4`。不要自行附加 `/chat/completions`。 |
 | 富集悄无声息什么都没干 | `enrich.targets()` 在 `source_hash` 已经等于正文哈希时会跳过这一行。用 `facetmark index --force`。 |
 | 某一页有向量但结果很差 | 就是上面说的那种失效模式。`facetmark index --force` 会按当前文本重建。 |
 | 打开数据库报 `disk I/O error` | SQLite 在某些网络盘和 FUSE 文件系统上跑不了。先把文件拷到本地盘。 |
@@ -694,8 +700,7 @@ export FACETMARK_TOKEN=...
 <details>
 <summary><b>索引要花多少钱？</b></summary>
 
-主要成本在富集：大约每页一次小的对话调用。1,700 页用 `gpt-4o-mini` 是几分钱的量级。
-嵌入更便宜，用本地模型就是免费。
+主要成本取决于网页长度、思考 token、重试和意图生成次数。当前示例使用 GPT-6 Luna 并关闭思考；先用少量页面测量实际 token 用量，再按服务商当前价格估算。本地向量没有 API 费用，但会使用本机算力。
 
 </details>
 

@@ -120,7 +120,15 @@ class Settings(BaseSettings):
     # ---------- model access (OpenAI-compatible, single entry point) ----------
     api_key: str = ""
     base_url: str = "https://api.openai.com/v1"
-    chat_model: str = "gpt-4o-mini"
+    chat_model: str = "gpt-6-luna"
+    chat_extra_body: str = ""
+    """Optional JSON object of chat parameters, shared by the fallback chain.
+
+    For example, '{"reasoning_effort":"none"}' for GPT-6 Luna or
+    '{"thinking":{"type":"disabled"}}' for DeepSeek. Empty means use the
+    endpoint defaults. No sampling parameters are forced on reasoning models.
+    Kept as a JSON string so .env, flat TOML and the settings UI agree.
+    """
     chat_model_fallbacks: str = ""
     """Comma-separated models to try, in order, when ``chat_model`` will not
     answer. Empty by default: a paid endpoint that returns an error is telling
@@ -133,10 +141,20 @@ class Settings(BaseSettings):
     built on a failover chain has to publish that mix; see
     ``providers.OpenAICompatibleProvider``."""
     embed_model: str = "text-embedding-3-small"
-    embed_dim: int = 1536
+    embed_dim: int = Field(default=1536, ge=1)
     """Must match the model's real output dimension. Recorded in the ``meta``
     table on first index build; a later mismatch raises rather than silently
     mixing incompatible vectors."""
+
+    embed_send_dimensions: bool = False
+    """Send ``embed_dim`` as the API's ``dimensions`` parameter. Opt in only
+    for models that support it; otherwise the native output width is checked.
+    """
+
+    embed_batch_size: int = Field(default=64, ge=1)
+    """Maximum texts per endpoint request; set 20 for current Bailian models.
+    Larger pipeline batches are split without changing input order.
+    """
 
     embed_backend: str = "endpoint"
     """Where embeddings come from: ``endpoint`` or ``local``.
@@ -169,7 +187,7 @@ class Settings(BaseSettings):
     unaffected either way. Raising it costs CPU quadratically for no gain here."""
 
     request_timeout: float = Field(default=60.0, gt=0)
-    max_retries: int = 3
+    max_retries: int = Field(default=3, ge=1)
 
     #: When true, all model calls are served by the deterministic offline mock.
     #: This is what makes ``facetmark demo`` runnable with no credentials.
@@ -345,6 +363,27 @@ class Settings(BaseSettings):
         if v not in ("endpoint", "local"):
             raise ValueError(f"embed_backend must be 'endpoint' or 'local', not {v!r}")
         return v
+
+    @field_validator("chat_extra_body")
+    @classmethod
+    def _chat_options(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            return ""
+        try:
+            options = json.loads(v)
+        except ValueError as exc:
+            raise ValueError("chat_extra_body must be a JSON object") from exc
+        if not isinstance(options, dict):
+            raise ValueError("chat_extra_body must be a JSON object")
+        reserved = {
+            "model", "messages", "stream", "response_format", "n",
+            "tools", "tool_choice", "functions", "function_call",
+        }
+        if blocked := reserved.intersection(options):
+            raise ValueError(f"chat_extra_body cannot override {', '.join(sorted(blocked))}")
+        # Reject NaN/Infinity too: json.loads accepts them, HTTP JSON does not.
+        return json.dumps(options, ensure_ascii=False, allow_nan=False)
 
     @property
     def db_path(self) -> Path:

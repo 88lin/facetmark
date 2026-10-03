@@ -688,12 +688,13 @@ class TestFullSearch:
         # have answered, but no call means no `vectors` timing entry either.
         assert "vectors" not in r.took_ms
 
-    async def test_browse_skips_decay_on_old_bookmarks(self, lib, settings):
+    async def test_browse_skips_decay_on_old_bookmarks(self, lib, settings, monkeypatch):
         """`added:>90d` asks for old pages; the cold layer must not demote them."""
         import asyncio
 
         from facetmark.search.pipeline import search
 
+        monkeypatch.setattr("facetmark.search.querylang.time.time", lambda: NOW)
         cfg = FULL
         r = await asyncio.wait_for(
             search(lib, "added:>90d", limit=5, config=cfg, settings=settings), 5

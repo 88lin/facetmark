@@ -40,8 +40,9 @@ from . import __version__, admin, service
 from . import health as healthmod
 from .bridges import karakeep as kkbridge
 from .config import Settings, get_settings
-from .db import open_db
+from .db import SchemaMismatch, open_db
 from .fetch import store as fetchstore
+from .privacy import refresh_privacy
 from .providers import get_provider
 from .search.pipeline import ALL_CONFIGS, default_config
 from .web import INDEX_HTML, STATIC_DIR
@@ -82,6 +83,8 @@ class AppState:
         self.settings = settings or get_settings()
         self.settings.ensure_dirs()
         self.conn: sqlite3.Connection = open_db(self.settings.db_path, same_thread=False)
+        refresh_privacy(self.conn, self.settings)
+        self.pending_settings: dict[str, Any] = {}
         self.lock = asyncio.Lock()
         #: At most one index run, on its own connection. See `facetmark.admin`.
         self.jobs = admin.JobRunner()
@@ -603,10 +606,11 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
     ) -> dict:
         if req.config not in ALL_CONFIGS:
             raise HTTPException(status_code=400, detail=f"unknown config {req.config!r}")
-        return await kkbridge.search_documents(
-            state.conn, req.model_dump(), provider=state.provider,
-            settings=state.settings, config=req.config,
-        )
+        async with state.lock:
+            return await kkbridge.search_documents(
+                state.conn, req.model_dump(), provider=state.provider,
+                settings=state.settings, config=req.config,
+            )
 
     @app.post("/karakeep/clear", dependencies=auth)
     async def karakeep_clear(state: AppState = Depends(get_state)) -> dict:
@@ -616,6 +620,10 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
     @app.get("/karakeep/stats", dependencies=auth)
     async def karakeep_stats(state: AppState = Depends(get_state)) -> dict:
         return kkbridge.mapping_stats(state.conn)
+
+    @app.exception_handler(SchemaMismatch)
+    async def _vector_schema_error(request: Request, exc: SchemaMismatch) -> JSONResponse:
+        return JSONResponse(status_code=409, content={"detail": str(exc)})
 
     @app.exception_handler(sqlite3.Error)
     async def _sqlite_error(request: Request, exc: sqlite3.Error) -> JSONResponse:

@@ -6,6 +6,8 @@ nothing is estimated. If a claim has no protocol behind it, it is not on the
 site.
 """
 
+from model_presets import provider_blocks
+
 REPO = "https://github.com/88lin/facetmark"
 
 EN = {
@@ -673,7 +675,7 @@ EN["quickstart"] = {
                     "dotenv",
                     "FACETMARK_BASE_URL=https://api.openai.com/v1\n"
                     "FACETMARK_API_KEY=sk-your-key\n"
-                    "FACETMARK_CHAT_MODEL=gpt-4o-mini\n"
+                    "FACETMARK_CHAT_MODEL=gpt-6-luna\n"
                     "FACETMARK_EMBED_MODEL=text-embedding-3-small\n"
                     "FACETMARK_EMBED_DIM=1536",
                 ),
@@ -694,7 +696,7 @@ EN["quickstart"] = {
                 (
                     "cb",
                     "dotenv",
-                    "FACETMARK_EMBED_BACKEND=local\nFACETMARK_LOCAL_EMBED_PATH=BAAI/bge-m3\nFACETMARK_EMBED_DIM=1024",
+                    "FACETMARK_EMBED_BACKEND=local\nFACETMARK_LOCAL_EMBED_PATH=BAAI/bge-m3\nFACETMARK_EMBED_MODEL=BAAI/bge-m3\nFACETMARK_EMBED_DIM=1024",
                 ),
                 (
                     "p",
@@ -1050,14 +1052,14 @@ EN["guide"] = {
                     "shell",
                     "export FACETMARK_API_KEY=sk-...\n"
                     "export FACETMARK_BASE_URL=https://api.openai.com/v1\n"
-                    "export FACETMARK_CHAT_MODEL=gpt-4o-mini\n"
+                    "export FACETMARK_CHAT_MODEL=gpt-6-luna\n"
                     "export FACETMARK_EMBED_MODEL=text-embedding-3-small\n"
                     "export FACETMARK_EMBED_DIM=1536",
                 ),
                 (
                     "callout",
                     "warn",
-                    "The base URL must end in /v1",
+                    "Use the provider API base path",
                     "<p>This is the single most common setup failure. A base URL without <code>/v1</code> produces a "
                     "404 on every call, including the first one, and the error comes from the provider rather than "
                     "from facetmark so it reads as a credentials problem.</p>",
@@ -1072,7 +1074,7 @@ EN["guide"] = {
                     "dotenv",
                     "FACETMARK_API_KEY=sk-...\n"
                     "FACETMARK_BASE_URL=https://api.deepseek.com/v1\n"
-                    "FACETMARK_CHAT_MODEL=deepseek-chat",
+                    "FACETMARK_CHAT_MODEL=deepseek-flash",
                 ),
                 ("h3", "Shared or free endpoints"),
                 (
@@ -1080,7 +1082,7 @@ EN["guide"] = {
                     "Fallback chat models are tried in the configured order. Check that each is available on your "
                     "account and endpoint; a fallback chain should not conceal incorrect endpoints or permissions.",
                 ),
-                ("cb", "shell", "export FACETMARK_CHAT_MODEL_FALLBACKS=deepseek-chat,qwen-plus"),
+                ("cb", "shell", "export FACETMARK_CHAT_MODEL_FALLBACKS=deepseek-flash,deepseek-v4-pro"),
                 (
                     "p",
                     "The provider records which model actually answered each call. Any report built on a failover "
@@ -1101,7 +1103,7 @@ EN["guide"] = {
                     "export FACETMARK_EMBED_BACKEND=local\n"
                     "export FACETMARK_EMBED_MODEL=bge-m3\n"
                     "export FACETMARK_EMBED_DIM=1024\n"
-                    "export FACETMARK_LOCAL_EMBED_PATH=/path/to/bge-m3   # unset = download\n"
+                    "export FACETMARK_LOCAL_EMBED_PATH=BAAI/bge-m3   # or a local model directory\n"
                     "export FACETMARK_LOCAL_EMBED_MAX_SEQ=1024",
                 ),
                 (
@@ -1626,7 +1628,7 @@ EN["guide"] = {
                     "as the API it is same-origin, which is also why it cannot be hosted anywhere else — CORS on this "
                     "service is restricted to browser-extension origins.",
                 ),
-                ("h3", "Two views"),
+                ("h3", "Five tabs and administration entry points"),
                 (
                     "table",
                     ["View", "Address", "What it is for"],
@@ -1634,27 +1636,52 @@ EN["guide"] = {
                         [
                             "Search",
                             "<code>/app#/search</code>",
-                            "The query box and the ranked list. Typing paints a lexical result first, with no model call at "
-                            "all; the ranked answer replaces it when it arrives, and <b>Load more</b> pages through the "
-                            "rest.",
+                            "Committed input first shows lexical results without a model call, then the full retrieval "
+                            "results. Queries pause during IME composition. Use <b>Load more</b> to continue browsing.",
+                        ],
+                        [
+                            "Ask",
+                            "<code>/app#/ask</code>",
+                            "Submit a question to generate an answer from stored summaries or snippets, with numbered "
+                            "citations. Follow the sources and verify the original pages.",
                         ],
                         [
                             "Library",
                             "<code>/app#/library</code>",
-                            "Everything <code>facetmark stats</code> prints, as labelled rows: bookmarks, how many have a "
-                            "body, how many are embedded, sessions, edges by kind, the fetch queue, link health, and the "
-                            "cold-layer census. This is the view that answers “I searched and got nothing”.",
+                            "Inspect save activity, text and vector coverage, sessions and connections. When search finds "
+                            "nothing, first check that bookmarks were imported and their text and indexes are available.",
+                        ],
+                        [
+                            "Sessions",
+                            "<code>/app#/sessions</code>",
+                            "Find bookmarks saved together and open a session to continue reading.",
+                        ],
+                        [
+                            "System",
+                            "<code>/app#/system</code>",
+                            "Inspect service and model status, fetch queues, link health and the cold-layer list.",
+                        ],
+                        [
+                            "Settings (gear)",
+                            "<code>/app#/settings</code>",
+                            "Test and save model configuration, adjust indexing options, and start or cancel an index job.",
+                        ],
+                        [
+                            "First run",
+                            "<code>/app#/setup</code>",
+                            "Import bookmarks, choose models and build the index. You can revisit these steps with an "
+                            "existing library.",
                         ],
                     ],
                 ),
                 (
                     "callout",
                     "info",
-                    "What it deliberately does not do",
-                    "<p>It reads. There is no delete, no edit, no queue control and no synthesize button. Those exist "
-                    "on the command line and in the API, where a mistake is at least deliberate. The one thing the "
-                    "page writes is a <code>POST /open</code> when you follow a result, which is what feeds the cold "
-                    "layer.</p>",
+                    "Which actions require administration access",
+                    "<p>Paired connections can search, generate answers and inspect bookmarks. Importing files, saving "
+                    "configuration and controlling index jobs additionally require loopback access or SSH forwarding. "
+                    "Opening an original page from a result records reading activity; search and detail views do not "
+                    "offer bookmark editing or deletion.</p>",
                 ),
                 ("h3", "What the markers on a row mean"),
                 (
@@ -1668,7 +1695,8 @@ EN["guide"] = {
                     [
                         [
                             '<span class="chip mk">about</span>',
-                            "The <b>content</b> facet matched — a vector over the page’s own text.",
+                            "The <b>content</b> facet matched — an embedding of stored content, which can include a "
+                            "title-derived summary.",
                             '<span class="badge info">on</span>',
                         ],
                         [
@@ -1733,13 +1761,14 @@ EN["guide"] = {
                     "table",
                     ["Key", "Does"],
                     [
-                        ["<kbd>/</kbd>", "Focus the query box from anywhere on the page."],
-                        ["<kbd>Enter</kbd>", "Search."],
+                        ["<kbd>/</kbd>", "Open and focus Search when you are not typing in another field."],
+                        ["<kbd>Enter</kbd>", "Submit the query, or accept a selected suggestion. Confirming IME text does not submit."],
                         [
                             "<kbd>↑</kbd> <kbd>↓</kbd>",
-                            "Walk the results. From the box, <kbd>↓</kbd> enters the list.",
+                            "Select suggestions when the list is open; otherwise move through search results. During "
+                            "composition these keys stay with the IME.",
                         ],
-                        ["<kbd>Esc</kbd>", "Clear the query and go back to the box."],
+                        ["<kbd>Esc</kbd>", "Close suggestions or details first; with neither open on Search, clear and focus the query."],
                     ],
                 ),
                 ("h3", "Language and theme"),
@@ -2194,7 +2223,10 @@ EN["guide"] = {
                             "<code>https://api.openai.com/v1</code>",
                             "Must end in <code>/v1</code>.",
                         ],
-                        ["<code>CHAT_MODEL</code>", "<code>gpt-4o-mini</code>", ""],
+                        ["<code>CHAT_MODEL</code>", "<code>gpt-6-luna</code>", ""],
+                        ["<code>CHAT_EXTRA_BODY</code>", "", "JSON object string for reasoning and output limits. Empty uses endpoint defaults without forced sampling."],
+                        ["<code>EMBED_SEND_DIMENSIONS</code>", "false", "dimensions"],
+                        ["<code>EMBED_BATCH_SIZE</code>", "64", "Use 20 for Bailian."],
                         [
                             "<code>CHAT_MODEL_FALLBACKS</code>",
                             "empty",
@@ -3119,10 +3151,10 @@ EN["webui"] = {
                     [
                         "Import: select browser-exported HTML or Chromium Bookmarks JSON. The file is sent to the "
                         "facetmark service you are connected to.",
-                        "Models: configure the endpoint and models, then test chat and embedding connections separately. "
-                        "You can begin with lexical search.",
-                        "Index: start the job and check text coverage and vector counts. If it fails, note the error, "
-                        "correct the configuration and retry.",
+                        "Models: choose Set up the model, fill in the endpoint and models, then use Test connection to "
+                        "check chat and embeddings separately. Click Save afterwards. You can begin with lexical search.",
+                        "Index: return to First run and choose Build the index. Check text coverage and vector counts "
+                        "afterwards. If it fails, note the error, correct the configuration and retry.",
                     ],
                 ),
                 (
@@ -3147,7 +3179,7 @@ EN["webui"] = {
                             "Find pages by words or a description; adjust modes in Search options and narrow by save date.",
                         ],
                         [
-                            "Synthesise",
+                            "Ask",
                             "Build an answer from retrieved, stored summaries or snippets and check the numbered sources.",
                         ],
                         ["Library", "Browse save activity and inspect text and vector coverage."],
@@ -3190,12 +3222,13 @@ EN["webui"] = {
                     ["Action", "Result"],
                     [
                         ["<kbd>/</kbd>", "Focus search when you are not typing in another field."],
-                        ["<kbd>↑</kbd> / <kbd>↓</kbd>", "Move through search suggestions."],
-                        ["<kbd>Enter</kbd>", "Search or open the selected suggestion."],
-                        ["<kbd>Esc</kbd>", "Close suggestions or a detail overlay."],
+                        ["<kbd>↑</kbd> / <kbd>↓</kbd>", "Select suggestions when open, otherwise move through results. IME candidate keys are left alone."],
+                        ["<kbd>Enter</kbd>", "Submit Search or Ask, or accept the selected suggestion. Confirming IME text does not submit."],
+                        ["<kbd>Esc</kbd>", "Close suggestions or details first; with neither open on Search, clear the query."],
                         [
                             "Language / theme",
-                            "Choose Chinese or English and light or dark mode; preferences stay in this browser.",
+                            "Choose Chinese or English. The app cycles through light, dark and system themes; the button "
+                            "describes its next action.",
                         ],
                     ],
                 )
@@ -3287,7 +3320,7 @@ EN["config"] = {
                         ],
                         [
                             "<code>chat_model</code>",
-                            "Used to read pages and to answer on the Ask screen. Cheap and fast beats clever here.",
+                            "Generates page summaries during indexing and answers with citations in Ask.",
                         ],
                         [
                             "<code>embed_model</code>",
@@ -3304,94 +3337,14 @@ EN["config"] = {
                 ),
                 (
                     "p",
-                    "Click Test connection in Settings over loopback or SSH and verify chat and embeddings separately. "
-                    "Test again after saving; fields requiring a restart keep their old active values until then.",
+                    "Open Settings over loopback or SSH, fill in the model fields and click Test connection. Testing "
+                    "uses the form values without saving them. Check chat and embedding results, then click Save for "
+                    "that group. Each Save handles only its own group's changes. Restart the service after saving "
+                    "fields marked as requiring a restart before using them in actual jobs.",
                 ),
             ],
         ),
-        (
-            "presets",
-            "Provider examples",
-            [
-                (
-                    "p",
-                    "These examples show configuration formats. Locate the file with <code>facetmark config "
-                    "path</code> and choose models available to your account. Provider endpoints, models and "
-                    "permissions can change.",
-                ),
-                (
-                    "cb",
-                    "OpenAI",
-                    'api_key = "sk-..."\n'
-                    'base_url = "https://api.openai.com/v1"\n'
-                    'chat_model = "gpt-4o-mini"\n'
-                    'embed_model = "text-embedding-3-small"\n'
-                    "embed_dim = 1536",
-                ),
-                (
-                    "cb",
-                    "DeepSeek  (chat only — pair it with embeddings from elsewhere)",
-                    'api_key = "sk-..."\nbase_url = "https://api.deepseek.com/v1"\nchat_model = "deepseek-chat"',
-                ),
-                (
-                    "cb",
-                    "Moonshot / Kimi",
-                    'api_key = "sk-..."\nbase_url = "https://api.moonshot.cn/v1"\nchat_model = "moonshot-v1-8k"',
-                ),
-                (
-                    "cb",
-                    "Zhipu / GLM",
-                    'api_key = "..."\n'
-                    'base_url = "https://open.bigmodel.cn/api/paas/v4"\n'
-                    'chat_model = "glm-4-flash"\n'
-                    'embed_model = "embedding-3"\n'
-                    "embed_dim = 2048",
-                ),
-                (
-                    "cb",
-                    "SiliconFlow",
-                    'api_key = "sk-..."\n'
-                    'base_url = "https://api.siliconflow.cn/v1"\n'
-                    'chat_model = "Qwen/Qwen2.5-7B-Instruct"\n'
-                    'embed_model = "BAAI/bge-m3"\n'
-                    "embed_dim = 1024",
-                ),
-                (
-                    "cb",
-                    "Aliyun Bailian  (OpenAI-compatible endpoint)",
-                    'api_key = "sk-..."\n'
-                    'base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"\n'
-                    'chat_model = "qwen-plus"\n'
-                    'embed_model = "text-embedding-v3"\n'
-                    "embed_dim = 1024",
-                ),
-                (
-                    "cb",
-                    "Ollama  (on your machine, no key)",
-                    'base_url = "http://127.0.0.1:11434/v1"\n'
-                    'api_key = "ollama"\n'
-                    'chat_model = "qwen2.5:7b"\n'
-                    'embed_model = "bge-m3"\n'
-                    "embed_dim = 1024",
-                ),
-                (
-                    "cb",
-                    "vLLM  (your own server)",
-                    'base_url = "http://127.0.0.1:8000/v1"\n'
-                    'api_key = "not-used"\n'
-                    'chat_model = "Qwen/Qwen2.5-7B-Instruct"',
-                ),
-                (
-                    "callout",
-                    "",
-                    "Mixing providers is normal",
-                    "<p>facetmark makes one kind of request for chat and one for embeddings. Plenty of people run chat "
-                    "on whatever is cheapest and embeddings on whatever is best. Set <code>base_url</code> to the "
-                    "embedding provider and give the chat model a fully-qualified name, or run the embeddings locally "
-                    "and leave the API for chat.</p>",
-                ),
-            ],
-        ),
+        ("presets", "Provider examples", provider_blocks("en")),
         (
             "local",
             "Local embeddings",
@@ -3405,7 +3358,7 @@ EN["config"] = {
                 (
                     "cb",
                     "local embeddings",
-                    'embed_backend = "local"\nlocal_embed_path = "BAAI/bge-m3"\nembed_dim = 1024',
+                    'embed_backend = "local"\nlocal_embed_path = "BAAI/bge-m3"\nembed_model = "BAAI/bge-m3"\nembed_dim = 1024',
                 ),
                 (
                     "p",
@@ -3530,8 +3483,9 @@ EN["config"] = {
                         ],
                         [
                             "Chat works, embeddings 403",
-                            "Common. The account has one entitlement and not the other. Switch <code>embed_backend</code> to "
-                            "local, or point embeddings at another provider.",
+                            "Check that the endpoint and account support the chosen embedding model. Use an endpoint "
+                            "offering both capabilities, or configure local embeddings as above; online chat and "
+                            "embeddings share the same endpoint.",
                         ],
                         [
                             "<code>unknown setting</code> on save",
