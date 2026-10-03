@@ -464,6 +464,15 @@ def register(app: FastAPI, auth: list) -> None:
     def _state(request: Request):
         return request.app.state.fm
 
+    @app.get("/admin/runtime", dependencies=deps)
+    async def runtime_identity(request: Request) -> dict:
+        from . import __version__
+        from .desktop import database_identity
+
+        state = _state(request)
+        return {"service": "facetmark", "version": __version__,
+                "database_identity": database_identity(state.settings.db_path)}
+
     @app.post("/admin/import", dependencies=deps)
     async def admin_import(request: Request) -> dict:
         """Import a bookmark export sent as the raw request body.

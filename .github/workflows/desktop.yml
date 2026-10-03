@@ -1,0 +1,69 @@
+name: desktop-preview
+
+on:
+  push:
+    branches: ['desktop/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 50
+    env:
+      PYTHONUTF8: '1'
+      CARGO_INCREMENTAL: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+      - name: Isolated packaging environment
+        run: |
+          python -m venv .desktop-build/venv
+          .desktop-build/venv/Scripts/python -m pip install --disable-pip-version-check -e . pyinstaller pillow
+      - name: Freeze Python backend
+        run: .desktop-build/venv/Scripts/python -m PyInstaller --noconfirm desktop/facetmark.spec
+      - name: Stage sidecar and icons
+        run: .desktop-build/venv/Scripts/python scripts/desktop_assets.py
+      - name: Build offline Windows installer
+        working-directory: desktop
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm run build
+      - name: Verify frozen service in isolation
+        run: .desktop-build/venv/Scripts/python scripts/desktop_smoke.py dist/facetmark-service/facetmark-service.exe
+      - name: Offline installation and desktop launch
+        shell: pwsh
+        run: ./scripts/desktop_install_smoke.ps1
+      - name: Upload installer and verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: facetmark-windows-x64-preview
+          path: |
+            desktop/src-tauri/target/release/bundle/nsis/*-setup.exe
+            .desktop-build/evidence/*
+          retention-days: 14
+      - name: Upload dependency locks
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-dependency-locks
+          path: |
+            desktop/package-lock.json
+            desktop/src-tauri/Cargo.lock
+          retention-days: 14

@@ -14,6 +14,12 @@ htmlcov/
 node_modules/
 extension/dist/
 extension/*.zip
+desktop/src-tauri/target/
+desktop/src-tauri/binaries/
+desktop/src-tauri/icons/
+.desktop-build/
+!desktop/splash/*.html
+!frontend/index.html
 
 # local data - never commit a bookmark library or an index
 data/
