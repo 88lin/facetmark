@@ -24,10 +24,13 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import hashlib
+import json
 import time
 import uuid
 from collections import deque
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, get_args, get_origin
 
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -39,7 +42,13 @@ from .configfile import config_path, external_setting_keys, read_config, update_
 from .db import open_db
 from .importers import decode_bookmark_bytes
 from .privacy import refresh_privacy
-from .providers import MockProvider, ProviderError, SplitProvider, get_provider
+from .providers import (
+    MockProvider,
+    OpenAICompatibleProvider,
+    ProviderError,
+    SplitProvider,
+    get_provider,
+)
 
 #: Stage names emitted by :func:`service.index_all`, in the order it runs them.
 #: The UI draws a progress bar from this, so it is asserted against the real
@@ -65,6 +74,8 @@ MAX_UPLOAD_BYTES = 64 * 1024 * 1024
 WRITABLE = (
     "api_key",
     "base_url",
+    "chat_base_url", "chat_api_key", "chat_allow_no_key",
+    "embed_base_url", "embed_api_key", "embed_allow_no_key",
     "chat_model",
     "chat_extra_body",
     "chat_model_fallbacks",
@@ -96,7 +107,9 @@ TUPLE_FIELDS = frozenset(
 #: Changing these mid-flight would leave the running process disagreeing with
 #: the file it just wrote, so the UI says "restart to apply" instead of
 #: pretending.
-NEEDS_RESTART = frozenset({"embed_dim", "embed_backend", "local_embed_path"})
+NEEDS_RESTART = frozenset({"embed_dim", "embed_backend", "local_embed_path", "embed_model",
+                           "embed_base_url", "embed_api_key", "embed_allow_no_key", "embed_send_dimensions"})
+SECRETS = frozenset({'api_key', 'chat_api_key', 'embed_api_key'})
 
 _LOOPBACK_PEERS = frozenset({"127.0.0.1", "::1"})
 
@@ -175,9 +188,33 @@ class JobRunner:
     that describes neither run, and nobody has ever wanted two.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, data_dir: Path | None = None) -> None:
         self.job: IndexJob | None = None
         self._task: asyncio.Task | None = None
+        self.path = data_dir / 'last-index-job.json' if data_dir else None
+        self.previous = None
+        if self.path:
+            try:
+                self.previous = json.loads(self.path.read_text(encoding='utf-8'))
+                if self.previous.get('state') == 'running':
+                    self.previous['state'] = 'interrupted'
+            except (OSError, ValueError, AttributeError):
+                self.previous = None
+
+    def persist(self) -> None:
+        if self.path and self.job:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self.path.with_suffix('.tmp')
+            tmp.write_text(json.dumps(self.job.as_dict()), encoding='utf-8')
+            with contextlib.suppress(OSError):
+                tmp.chmod(0o600)
+            tmp.replace(self.path)
+
+    async def shutdown(self) -> None:
+        if self._task and not self._task.done():
+            self._task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._task
 
     @property
     def running(self) -> bool:
@@ -197,6 +234,7 @@ class JobRunner:
         )
         job.log.append(f"started: fetch={fetch} limit={limit} force={force}")
         self.job = job
+        self.persist()
         self._task = asyncio.create_task(self._run(job, settings.model_copy(deep=True)))
         return job
 
@@ -213,6 +251,7 @@ class JobRunner:
             return False
         self.job.cancel_requested = True
         self.job.log.append("cancel requested; stopping after the current stage")
+        self.persist()
         return True
 
     async def _run(self, job: IndexJob, settings: Settings) -> None:
@@ -229,6 +268,7 @@ class JobRunner:
             now = time.monotonic()
             job.stages.append(Stage(name=name, value=value, seconds=now - last))
             job.log.append(_summarise(name, value))
+            self.persist()
             last = now
             if job.cancel_requested:
                 raise _Cancelled
@@ -253,15 +293,16 @@ class JobRunner:
             with contextlib.suppress(Exception):
                 conn.commit()
         except asyncio.CancelledError:  # pragma: no cover - process shutdown
-            job.state = "cancelled"
-            job.log.append("cancelled by shutdown")
+            job.state = "interrupted"
+            job.log.append("interrupted by shutdown; completed items can be reused")
             raise
         except Exception as exc:  # noqa: BLE001 - surfaced to the operator
             job.state = "failed"
-            job.error = f"{type(exc).__name__}: {exc}"
+            job.error = safe_error(exc, settings)
             job.log.append(job.error)
         finally:
             job.finished_at = time.monotonic()
+            self.persist()
             if provider is not None:
                 with contextlib.suppress(Exception):
                     await provider.aclose()
@@ -279,6 +320,8 @@ class IndexRequest(BaseModel):
     """Crawl page bodies first. Off is the fast path for a re-index."""
     limit: int | None = Field(default=None, ge=1)
     force: bool = False
+    confirmed: bool = False
+    """Consent to send indexable titles, URLs and extracted text to configured models."""
 
 
 class SettingsPatch(BaseModel):
@@ -299,6 +342,17 @@ class ProbeRequest(BaseModel):
     chat_model: str | None = None
     chat_extra_body: str | None = None
     embed_model: str | None = None
+    chat_base_url: str | None = None
+    chat_api_key: str | None = None
+    chat_allow_no_key: bool | None = None
+    embed_base_url: str | None = None
+    embed_api_key: str | None = None
+    embed_allow_no_key: bool | None = None
+    embed_dim: int | None = Field(default=None, ge=1)
+    embed_send_dimensions: bool | None = None
+    embed_backend: str | None = None
+    local_embed_path: str | None = None
+    channel: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -310,7 +364,52 @@ def mask(value: str) -> str:
     """Enough of a secret to recognise, never enough to use."""
     if not value:
         return ""
-    return value if len(value) <= 8 else f"{value[:3]}...{value[-4:]}"
+    return '••••' if len(value) <= 8 else f"{value[:3]}...{value[-4:]}"
+
+
+def safe_error(exc: Exception, settings: Settings) -> str:
+    text = f'{type(exc).__name__}: {exc}'
+    for key in SECRETS:
+        secret = getattr(settings, key, None)
+        if secret:
+            text = text.replace(secret, '[redacted]')
+    return text[:400]
+
+
+def draft_settings(settings: Settings, changes: dict) -> Settings:
+    """Validate a snapshot without re-inheriting keys from the environment."""
+    values = settings.model_dump()
+    effective = dict(changes)
+    for key, value in list(effective.items()):
+        if value is None:
+            effective[key] = Settings.model_fields[key].get_default(call_default_factory=True)
+    if 'base_url' in effective or 'api_key' in effective:
+        if 'base_url' in effective and effective['base_url'] != settings.base_url and 'api_key' not in effective:
+            effective['api_key'] = ''
+        for channel in ('chat', 'embed'):
+            effective.setdefault(f'{channel}_base_url', effective.get('base_url', settings.base_url))
+            effective.setdefault(f'{channel}_api_key', effective.get('api_key', settings.api_key))
+    for channel in ('chat', 'embed'):
+        url, key = f'{channel}_base_url', f'{channel}_api_key'
+        if url in effective and effective[url] != getattr(settings, url) and key not in effective:
+            effective[key] = ''
+        if key in effective and effective[key] is None:
+            effective[key] = ''
+    # model_validate bypasses settings sources, while retaining field validators.
+    # All fields are passed explicitly so no process/file source can fill holes.
+    result = Settings(**{**values, **effective})
+    result.channel_settings('chat')
+    result.channel_settings('embed')
+    return result
+
+
+def probe_fingerprint(settings: Settings, channel: str) -> str:
+    names = ([f'{channel}_base_url', f'{channel}_api_key', f'{channel}_allow_no_key',
+              f'{channel}_model', 'use_mock_provider'] +
+             (['embed_dim', 'embed_backend', 'local_embed_path', 'embed_send_dimensions']
+              if channel == 'embed' else ['chat_extra_body', 'chat_model_fallbacks']))
+    return hashlib.sha256(json.dumps({k: getattr(settings, k) for k in names},
+                                    sort_keys=True, default=str).encode()).hexdigest()
 
 
 def env_locked() -> frozenset[str]:
@@ -322,7 +421,10 @@ def env_locked() -> frozenset[str]:
     the UI is not the only caller of a localhost HTTP API, so the rule lives
     here and both the view and the write path read it.
     """
-    return external_setting_keys(WRITABLE)
+    locked = set(external_setting_keys(WRITABLE))
+    if locked.intersection({'base_url', 'api_key'}):
+        locked.update({'chat_base_url', 'chat_api_key', 'embed_base_url', 'embed_api_key'})
+    return frozenset(locked)
 
 
 def settings_view(settings: Settings, pending: dict[str, Any] | None = None) -> dict:
@@ -358,21 +460,24 @@ def settings_view(settings: Settings, pending: dict[str, Any] | None = None) -> 
             value = list(value)
         rows.append({
             "key": name,
-            "value": mask(value) if name == "api_key" else value,
-            "secret": name == "api_key",
+            "value": mask(value or '') if name in SECRETS else value,
+            "secret": name in SECRETS,
             "set": bool(value),
             "source": source,
             # An environment variable cannot be overridden from a file, so the
             # input is rendered read-only rather than silently ineffective.
             "locked": env,
             "needs_restart": name in NEEDS_RESTART,
-            "active_value": mask(active) if name == "api_key" else active,
+            "active_value": mask(active or '') if name in SECRETS else active,
             "pending_restart": pending_restart,
         })
-    return {"path": str(config_path()), "settings": rows}
+    return {"path": str(config_path()), "settings": rows,
+            "channels": {name: {"configured": saved.channel_ready(name),
+                "base_url": getattr(saved, f'{name}_base_url') or saved.base_url,
+                "key_set": bool(getattr(saved, f'{name}_api_key'))} for name in ('chat', 'embed')}}
 
 
-async def probe(settings: Settings) -> dict:
+async def probe(settings: Settings, channel: str | None = None) -> dict:
     """One chat call and one embed call. Report each independently.
 
     Independently because they fail independently and constantly: aggregated
@@ -383,7 +488,7 @@ async def probe(settings: Settings) -> dict:
     try:
         provider = get_provider(settings)
     except Exception as exc:
-        error = f"{type(exc).__name__}: {exc}"[:400]
+        error = safe_error(exc, settings)
         return {
             "ok": False,
             "chat": {"ok": False, "ms": None, "model": settings.chat_model, "error": error},
@@ -399,6 +504,8 @@ async def probe(settings: Settings) -> dict:
     )
     out: dict[str, Any] = {}
     try:
+        if channel == 'embed':
+            raise ProviderError('Not requested')
         if isinstance(chat_provider, MockProvider):
             raise ProviderError(mock_reason)
         t = time.monotonic()
@@ -412,12 +519,16 @@ async def probe(settings: Settings) -> dict:
     except Exception as exc:  # noqa: BLE001 - the message is the product here
         out["chat"] = {"ok": False, "ms": None,
                        "model": "mock" if isinstance(chat_provider, MockProvider) else settings.chat_model,
-                       "error": f"{type(exc).__name__}: {exc}"[:400]}
+                       "error": safe_error(exc, settings)}
     try:
+        if channel == 'chat':
+            raise ProviderError('Not requested')
         if isinstance(embed_provider, MockProvider):
             raise ProviderError(mock_reason)
         t = time.monotonic()
-        vectors = await provider.embed(["facetmark connection test"])
+        vectors = (await embed_provider.probe_embedding()
+                   if isinstance(embed_provider, OpenAICompatibleProvider)
+                   else await provider.embed(["facetmark connection test"]))
         dim = len(vectors[0]) if vectors and vectors[0] else 0
         out["embed"] = {
             "ok": bool(dim),
@@ -435,10 +546,12 @@ async def probe(settings: Settings) -> dict:
                         "model": "mock" if isinstance(embed_provider, MockProvider) else settings.embed_model,
                         "dim": 0,
                         "dim_matches": False, "expected_dim": settings.embed_dim,
-                        "error": f"{type(exc).__name__}: {exc}"[:400]}
+                        "error": safe_error(exc, settings)}
     with contextlib.suppress(Exception):
         await provider.aclose()
     out["ok"] = out["chat"]["ok"] and out["embed"]["ok"] and out["embed"]["dim_matches"]
+    if channel:
+        out['ok'] = out[channel]['ok'] and (channel != 'embed' or out[channel]['dim_matches'])
     return out
 
 
@@ -503,6 +616,18 @@ def register(app: FastAPI, auth: list) -> None:
     @app.post("/admin/index", dependencies=deps)
     async def admin_index(body: IndexRequest, request: Request) -> dict:
         state = _state(request)
+        if state.pending_settings:
+            raise HTTPException(409, 'Apply the saved embedding settings before indexing')
+        if not state.settings.use_mock_provider:
+            if not all(state.settings.channel_ready(c) for c in ('chat', 'embed')):
+                raise HTTPException(409, 'Configure chat and embedding models before indexing')
+            if not body.confirmed:
+                raise HTTPException(400, 'Confirm sending titles, URLs and extracted text to the configured models')
+            if not all(state.probe_results.get(c, {}).get('fingerprint') == probe_fingerprint(state.settings, c)
+                       for c in ('chat', 'embed')):
+                raise HTTPException(409, 'Test both saved model connections before indexing')
+        from .workbench import validate_space
+        validate_space(state.conn, state.settings)
         try:
             job = state.jobs.start(
                 state.settings, fetch=body.fetch, limit=body.limit, force=body.force
@@ -515,8 +640,8 @@ def register(app: FastAPI, auth: list) -> None:
 
     @app.get("/admin/job", dependencies=deps)
     async def admin_job(request: Request) -> dict:
-        job = _state(request).jobs.job
-        return job.as_dict() if job else {"state": "idle", "planned": list(INDEX_STAGES)}
+        runner = _state(request).jobs
+        return runner.job.as_dict() if runner.job else (runner.previous or {"state": "idle", "planned": list(INDEX_STAGES)})
 
     @app.post("/admin/job/cancel", dependencies=deps)
     async def admin_job_cancel(request: Request) -> dict:
@@ -568,16 +693,16 @@ def register(app: FastAPI, auth: list) -> None:
                     raise ValueError(f"{key} must be a string or a list of strings")
 
             state = _state(request)
-            current = {k: getattr(state.settings, k) for k in WRITABLE}
-            effective = dict(changes)
-            for key, value in changes.items():
-                if value is None:
-                    effective[key] = Settings.model_fields[key].get_default(
-                        call_default_factory=True
-                    )
-            validated = Settings(**{**current, **effective})
+            current = draft_settings(state.settings, state.pending_settings)
+            validated = draft_settings(current, changes)
+            # Include implicit key clearing and legacy-to-channel changes in
+            # both persistence and the active/pending snapshot.
+            for key in WRITABLE:
+                if getattr(validated, key) != getattr(current, key):
+                    changes.setdefault(key, getattr(validated, key))
         except Exception as exc:  # noqa: BLE001
-            raise HTTPException(400, f"invalid settings: {exc}"[:400]) from None
+            # Validation exceptions can echo entire input dictionaries, keys included.
+            raise HTTPException(400, f"invalid settings ({type(exc).__name__}); check field types and endpoint URLs") from None
 
         # Persist and apply the validated representation, not raw JSON strings.
         persisted = {
@@ -588,14 +713,17 @@ def register(app: FastAPI, auth: list) -> None:
         async with state.lock:
             # A job already selected its targets. Applying privacy rules while
             # it runs would claim to protect requests already queued by it.
-            if "privacy_excluded_domains" in changes and state.jobs.running:
-                raise HTTPException(409, "stop the index job before changing privacy rules")
+            if state.jobs.running:
+                raise HTTPException(409, "stop the index job before changing settings or privacy rules")
             update_config(persisted)
             state.settings = state.settings.model_copy(update={
                 key: getattr(validated, key) for key in applied
             })
             for key in set(changes) & NEEDS_RESTART:
-                state.pending_settings[key] = getattr(validated, key)
+                if getattr(validated, key) == getattr(state.settings, key):
+                    state.pending_settings.pop(key, None)
+                else:
+                    state.pending_settings[key] = getattr(validated, key)
             if "privacy_excluded_domains" in changes:
                 refresh_privacy(state.conn, state.settings)
             old_provider, state._provider = state._provider, None
@@ -612,12 +740,18 @@ def register(app: FastAPI, auth: list) -> None:
     @app.post("/admin/settings/test", dependencies=deps)
     async def admin_settings_test(body: ProbeRequest, request: Request) -> dict:
         state = _state(request)
-        base = state.settings.model_dump()
-        for key, value in body.model_dump(exclude_none=True).items():
-            if value != "" or key == "chat_extra_body":
-                base[key] = value
+        if body.channel not in (None, 'chat', 'embed'):
+            raise HTTPException(400, 'channel must be chat or embed')
         try:
-            settings = Settings(**base)
-        except ValueError as exc:
-            raise HTTPException(400, f"invalid settings: {exc}"[:400]) from None
-        return await probe(settings)
+            base = draft_settings(state.settings, state.pending_settings)
+            settings = draft_settings(base, body.model_dump(exclude_none=True, exclude={'channel'}))
+        except ValueError:
+            raise HTTPException(400, 'Invalid model settings; check endpoint URLs and field types') from None
+        result = await probe(settings, body.channel) if body.channel else await probe(settings)
+        for channel in ('chat', 'embed') if body.channel is None else (body.channel,):
+            if result.get(channel, {}).get('ok') and (channel != 'embed' or result[channel]['dim_matches']):
+                state.probe_results[channel] = {'fingerprint': probe_fingerprint(settings, channel),
+                                                'result': result[channel]}
+            else:
+                state.probe_results.pop(channel, None)
+        return result

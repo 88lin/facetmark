@@ -12,6 +12,13 @@
 # only from the machine's point of view. Publishing it wider is a one-line
 # edit the reader makes on purpose.
 
+FROM node:22-slim AS frontend
+WORKDIR /build/frontend
+COPY frontend/package*.json ./
+RUN npm install --ignore-scripts --no-audit --no-fund
+COPY frontend ./
+RUN npm run build
+
 FROM python:3.12-slim AS runtime
 
 LABEL org.opencontainers.image.title="facetmark" \
@@ -40,6 +47,7 @@ RUN python -c "import subprocess, sys, tomllib; deps = tomllib.load(open('pyproj
 
 COPY LICENSE ./
 COPY src ./src
+COPY --from=frontend /build/src/facetmark/web/dist ./src/facetmark/web/dist
 RUN pip install --no-cache-dir --no-deps .
 
 USER 65532:65532

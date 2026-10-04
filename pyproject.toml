@@ -81,6 +81,9 @@ Issues = "https://github.com/88lin/facetmark/issues"
 [tool.hatch.build.targets.wheel]
 packages = ["src/facetmark"]
 
+[tool.hatch.build]
+artifacts = ["src/facetmark/web/dist/**"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"

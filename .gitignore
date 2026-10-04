@@ -12,6 +12,10 @@ htmlcov/
 
 # node
 node_modules/
+frontend/playwright-report/
+frontend/test-results/
+frontend/screenshots/
+.impeccable/review/
 extension/dist/
 extension/*.zip
 desktop/src-tauri/target/

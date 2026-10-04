@@ -19,6 +19,7 @@ jobs:
         python-version: ["3.10", "3.12"]
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/workbench
       - uses: astral-sh/setup-uv@v3
       - uses: actions/setup-python@v5
         with:
@@ -99,6 +100,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/workbench
       - uses: astral-sh/setup-uv@v3
       - uses: actions/setup-python@v5
         with:
@@ -106,9 +108,11 @@ jobs:
       - name: install
         run: uv pip install --system -e ".[dev]" playwright
       - name: browser
-        run: python -m playwright install --with-deps chromium
-      - name: drive the shipped pages
-        run: python scripts/browser_check.py
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: drive the shipped workbench
+        working-directory: frontend
+        run: npm test
 
   wheel:
     # .gitignore line 23 is `*.html`, and hatchling honours VCS ignore files
@@ -120,8 +124,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/workbench
       - uses: astral-sh/setup-uv@v3
       - run: uv build --wheel
+      - run: python scripts/check_web_bundle.py
       - name: the web assets are in the wheel
         run: |
           python - <<'EOF'

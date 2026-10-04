@@ -1,0 +1,13 @@
+name: Build shared workbench
+description: Build the React UI before packaging or testing a distribution
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+    - shell: bash
+      working-directory: frontend
+      run: |
+        npm install --ignore-scripts --no-audit --no-fund
+        npm run build

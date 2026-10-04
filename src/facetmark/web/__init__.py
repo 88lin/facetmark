@@ -26,6 +26,10 @@ from pathlib import Path
 #: Directory containing ``index.html`` and ``static/``.
 WEB_DIR = Path(__file__).resolve().parent
 
+# The old modules remain available for integration compatibility. /app uses
+# the shared React build; release builds must include it (checked in CI).
+BUNDLE_DIR = WEB_DIR / 'dist'
+
 #: Directory served at ``/app/static``.
 STATIC_DIR = WEB_DIR / "static"
 

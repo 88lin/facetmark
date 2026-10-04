@@ -1,0 +1,71 @@
+name: experience-validation
+on:
+  push:
+    branches: ['desktop/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: experience-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: pip install -e '.[dev]' build
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Build the shared React workbench
+        working-directory: frontend
+        run: npm run build
+      - name: Backend lint and regression
+        run: |
+          ruff check src tests scripts
+          pytest -q
+      - name: Browser for cloud validation
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Behavior and render matrix
+        working-directory: frontend
+        run: npm test
+      - name: Build Python distributions containing the workbench
+        run: python -m build
+      - name: Verify wheel resources
+        run: python scripts/check_web_bundle.py
+      - name: Upload review evidence and shared Web build
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: facetmark-experience-review
+          path: |
+            frontend/screenshots/
+            frontend/playwright-report/
+            frontend/test-results/
+            frontend/package-lock.json
+            src/facetmark/web/dist/
+            dist/*.whl
+            dist/*.tar.gz
+          retention-days: 14
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t facetmark:experience .
+      - name: Verify shared UI in isolated container
+        run: |
+          docker run -d --name facetmark-check --read-only --tmpfs /tmp -v fmtest:/data -p 127.0.0.1:8792:8787 facetmark:experience
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8792/health && break; sleep 1; done
+          curl -fsS http://127.0.0.1:8792/app | grep 'id="root"'
+          test "$(docker exec facetmark-check id -u)" = '65532'
+      - if: failure()
+        run: docker logs facetmark-check

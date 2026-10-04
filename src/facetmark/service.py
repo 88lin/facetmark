@@ -1156,6 +1156,10 @@ async def index_all(
     st = settings or get_settings()
     prov = provider or get_provider(st)
     rep = IndexReport()
+    from .db import set_meta
+    from .workbench import space_id, validate_space
+    validate_space(conn, st)
+    set_meta(conn, 'embedding_space', space_id(st))
 
     def note(name: str, value: Any, t0: float) -> None:
         rep.steps[name] = value

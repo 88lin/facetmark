@@ -31,6 +31,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: desktop/src-tauri
+      - name: Build shared React workbench
+        working-directory: frontend
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm run build
       - name: Isolated packaging environment
         run: |
           python -m venv .desktop-build/venv
@@ -42,7 +47,7 @@ jobs:
       - name: Build offline Windows installer
         working-directory: desktop
         run: |
-          npm install --ignore-scripts --no-audit --no-fund
+          npm ci --ignore-scripts --no-audit --no-fund
           npm run build
       - name: Verify frozen service in isolation
         run: .desktop-build/venv/Scripts/python scripts/desktop_smoke.py dist/facetmark-service/facetmark-service.exe

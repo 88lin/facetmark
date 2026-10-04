@@ -3,10 +3,8 @@
 Everything the user may need to tune lives here, loadable from a ``.env`` file or
 environment variables prefixed with ``FACETMARK_``.
 
-Design rule: the model layer is reached through **one** OpenAI-compatible endpoint.
-A single ``base_url`` + ``api_key`` pair covers OpenAI, DeepSeek, Kimi, Zhipu,
-SiliconFlow, Aliyun Bailian, Ollama and vLLM. There is deliberately no
-provider-specific branching anywhere in the codebase.
+Chat and embeddings use independently configurable OpenAI-compatible endpoints.
+Legacy base_url/api_key remain valid defaults, at their original source priority.
 """
 
 from __future__ import annotations
@@ -15,6 +13,7 @@ import contextlib
 import json
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
@@ -105,7 +104,7 @@ class Settings(BaseSettings):
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         """Priority, highest first. The config file is deliberately last."""
-        return (
+        sources = (
             init_settings,
             env_settings,
             dotenv_settings,
@@ -113,13 +112,52 @@ class Settings(BaseSettings):
             ConfigFileSource(settings_cls),
         )
 
+        def channels_by_source() -> dict:
+            # Resolve endpoint/key pairs together, low priority first. A key
+            # belongs to an endpoint, never to an arbitrary higher-level URL.
+            merged: dict = {}
+            for source in reversed(sources):
+                values = dict(source())
+                old_url = merged.get('base_url', 'https://api.openai.com/v1')
+                legacy_url = values.get('base_url', old_url)
+                if legacy_url.rstrip('/') != old_url.rstrip('/') and 'api_key' not in values:
+                    values['api_key'] = ''
+                legacy_key = values.get('api_key', merged.get('api_key', ''))
+                legacy_changed = 'base_url' in values or 'api_key' in values
+                for channel in ('chat', 'embed'):
+                    url_key, secret_key = f'{channel}_base_url', f'{channel}_api_key'
+                    old_channel = merged.get(url_key) or old_url
+                    url = values.get(url_key) or (legacy_url if legacy_changed else old_channel)
+                    changed = url.rstrip('/') != old_channel.rstrip('/')
+                    if values.get(secret_key) is None:
+                        if legacy_changed and url.rstrip('/') == legacy_url.rstrip('/'):
+                            values[secret_key] = legacy_key
+                        elif changed:
+                            values[secret_key] = ''
+                        else:
+                            values[secret_key] = merged.get(secret_key, '')
+                    values[url_key] = url
+                    flag = f'{channel}_allow_no_key'
+                    if changed and flag not in values:
+                        values[flag] = False
+                merged.update(values)
+            return merged
+
+        return (channels_by_source,)
+
     # ---------- storage ----------
     data_dir: Path = Field(default_factory=default_data_dir)
     db_name: str = "facetmark.db"
 
-    # ---------- model access (OpenAI-compatible, single entry point) ----------
+    # ---------- independent OpenAI-compatible model channels ----------
     api_key: str = ""
     base_url: str = "https://api.openai.com/v1"
+    chat_base_url: str | None = None
+    chat_api_key: str | None = None
+    chat_allow_no_key: bool = False
+    embed_base_url: str | None = None
+    embed_api_key: str | None = None
+    embed_allow_no_key: bool = False
     chat_model: str = "gpt-6-luna"
     chat_extra_body: str = ""
     """Optional JSON object of chat parameters, shared by the fallback chain.
@@ -388,6 +426,38 @@ class Settings(BaseSettings):
     @property
     def db_path(self) -> Path:
         return self.data_dir / self.db_name
+
+    def channel_settings(self, channel: str) -> Settings:
+        """A frozen provider configuration; no environment is re-read mid-job."""
+        if channel not in ('chat', 'embed'):
+            raise ValueError('Unknown model channel')
+        url = getattr(self, f'{channel}_base_url') or self.base_url
+        key = getattr(self, f'{channel}_api_key')
+        if key is None:
+            key = self.api_key if url.rstrip('/') == self.base_url.rstrip('/') else ''
+        no_key = getattr(self, f'{channel}_allow_no_key')
+        parsed = urlsplit(url)
+        if no_key and parsed.hostname not in ('localhost', '127.0.0.1', '::1'):
+            raise ValueError('Keyless access is only supported for explicit loopback endpoints')
+        if (parsed.scheme not in ('http', 'https') or not parsed.hostname
+                or parsed.username or parsed.password or parsed.query or parsed.fragment):
+            raise ValueError('Model endpoint must be an HTTP(S) URL without embedded credentials')
+        return self.model_copy(update={'base_url': url, 'api_key': key,
+                                      'endpoint_allow_no_key': no_key})
+
+    # Internal materialized provider flag; not writable from the settings API.
+    endpoint_allow_no_key: bool = False
+
+    def channel_ready(self, channel: str) -> bool:
+        if self.use_mock_provider:
+            return False
+        if channel == 'embed' and self.embed_backend == 'local':
+            return bool(self.local_embed_path)
+        try:
+            configured = self.channel_settings(channel)
+            return bool(configured.api_key or configured.endpoint_allow_no_key)
+        except ValueError:
+            return False
 
     @property
     def token_path(self) -> Path:
