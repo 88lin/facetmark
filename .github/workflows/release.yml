@@ -45,7 +45,7 @@ jobs:
       - name: Build shared Web assets for Python users
         working-directory: frontend
         run: |
-          npm install --ignore-scripts --no-audit --no-fund
+          npm ci --ignore-scripts --no-audit --no-fund
           npm run build
       - run: pip install build twine
       - run: python -m build

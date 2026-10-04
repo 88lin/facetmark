@@ -23,8 +23,9 @@ jobs:
       - run: pip install -e '.[dev]' build
       - name: Install frontend dependencies
         working-directory: frontend
-        run: npm install --ignore-scripts --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Build the shared React workbench
+        id: frontend
         working-directory: frontend
         run: npm run build
       - name: Backend lint and regression
@@ -32,12 +33,15 @@ jobs:
           ruff check src tests scripts
           pytest -q
       - name: Browser for cloud validation
+        if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
         working-directory: frontend
         run: npx playwright install --with-deps chromium
       - name: Behavior and render matrix
+        if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
         working-directory: frontend
         run: npm test
       - name: Build Python distributions containing the workbench
+        if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
         run: python -m build
       - name: Verify wheel resources
         run: python scripts/check_web_bundle.py
@@ -54,6 +58,24 @@ jobs:
             src/facetmark/web/dist/
             dist/*.whl
             dist/*.tar.gz
+          retention-days: 14
+  extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - working-directory: extension
+        run: |
+          npm ci
+          npx tsc --noEmit
+          npm test
+          npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: facetmark-extension-preview
+          path: extension/dist/
           retention-days: 14
   docker:
     runs-on: ubuntu-latest

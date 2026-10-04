@@ -34,12 +34,12 @@ jobs:
       - name: Build shared React workbench
         working-directory: frontend
         run: |
-          npm install --ignore-scripts --no-audit --no-fund
+          npm ci --ignore-scripts --no-audit --no-fund
           npm run build
       - name: Isolated packaging environment
         run: |
           python -m venv .desktop-build/venv
-          .desktop-build/venv/Scripts/python -m pip install --disable-pip-version-check -e . pyinstaller pillow
+          .desktop-build/venv/Scripts/python -m pip install --disable-pip-version-check -e . pyinstaller pillow playwright
       - name: Freeze Python backend
         run: .desktop-build/venv/Scripts/python -m PyInstaller --noconfirm desktop/facetmark.spec
       - name: Stage sidecar and icons

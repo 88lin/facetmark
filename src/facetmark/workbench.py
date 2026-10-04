@@ -91,6 +91,34 @@ class ApplyRequest(BaseModel):
 def register(app: FastAPI, auth: list) -> None:
     deps = [*auth, Depends(admin.admin_gate)]
 
+    @app.post('/admin/updates/check', dependencies=deps)
+    async def check_updates():
+        import httpx
+
+        from . import __version__
+
+        try:
+            async with httpx.AsyncClient(timeout=10, trust_env=False) as client:
+                response = await client.get('https://api.github.com/repos/88lin/facetmark/releases/latest',
+                    headers={'Accept': 'application/vnd.github+json', 'User-Agent': 'Facetmark'})
+            if response.status_code == 404:
+                return {'current': __version__, 'latest': None, 'available': False,
+                        'url': 'https://github.com/88lin/facetmark/actions/workflows/desktop.yml'}
+            response.raise_for_status()
+            version = str(response.json().get('tag_name', '')).removeprefix('v')
+            def parts(value):
+                return tuple(int(n) for n in value.split('.') if n.isdecimal())
+            return {'current': __version__, 'latest': version, 'available': parts(version) > parts(__version__),
+                    'url': 'https://github.com/88lin/facetmark/releases/latest'}
+        except (httpx.HTTPError, ValueError):
+            raise HTTPException(502, 'Cannot check GitHub releases right now; retry or open the downloads page') from None
+
+    @app.get('/admin/extension-status', dependencies=deps)
+    async def extension_status(request: Request):
+        last_seen = request.app.state.fm.extension_seen_at
+        return {'last_seen_at': last_seen,
+                'recently_connected': bool(last_seen and time.time() - last_seen < 180)}
+
     @app.get("/bookmarks", dependencies=auth)
     async def bookmarks(
         request: Request,

@@ -9,5 +9,5 @@ runs:
     - shell: bash
       working-directory: frontend
       run: |
-        npm install --ignore-scripts --no-audit --no-fund
+        npm ci --ignore-scripts --no-audit --no-fund
         npm run build

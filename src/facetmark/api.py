@@ -92,6 +92,7 @@ class AppState:
         self.token = service.pairing_token(self.settings)
         self.started_at = int(time.time())
         self._provider = None
+        self.extension_seen_at: int | None = None
 
     @property
     def provider(self):
@@ -118,6 +119,8 @@ def require_token(request: Request) -> None:
         supplied = request.headers.get("x-facetmark-token", "").strip()
     if supplied != state.token:
         raise HTTPException(status_code=401, detail="bad or missing pairing token")
+    if request.headers.get('x-facetmark-client') == 'extension':
+        state.extension_seen_at = int(time.time())
 
 
 def _pairing_gate(request: Request) -> str:
@@ -286,7 +289,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_origin_regex=r"^(chrome|moz|safari-web)-extension://.*$",
         allow_credentials=False,
         allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["authorization", "content-type", "x-facetmark-token"],
+        allow_headers=["authorization", "content-type", "x-facetmark-token", "x-facetmark-client"],
     )
 
     _register(app)

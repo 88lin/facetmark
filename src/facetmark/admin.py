@@ -276,7 +276,7 @@ class JobRunner:
         try:
             conn = open_db(settings.db_path, same_thread=False)
             provider = get_provider(settings)
-            await service.index_all(
+            report = await service.index_all(
                 conn,
                 provider=provider,
                 settings=settings,
@@ -285,8 +285,10 @@ class JobRunner:
                 force=job.force,
                 progress=progress,
             )
-            job.state = "done"
-            job.log.append("finished")
+            partial = any(isinstance(value, dict) and value.get('failed', 0)
+                          for value in report.steps.values())
+            job.state = "partial" if partial else "done"
+            job.log.append("finished with failed items; retry to process them" if partial else "finished")
         except _Cancelled:
             job.state = "cancelled"
             job.log.append("cancelled")
@@ -596,7 +598,12 @@ def register(app: FastAPI, auth: list) -> None:
         bytes just as happily. The format is sniffed from the content, so
         Netscape HTML and Chrome JSON both just work.
         """
-        raw = await request.body()
+        buffer = bytearray()
+        async for chunk in request.stream():
+            if len(buffer) + len(chunk) > MAX_UPLOAD_BYTES:
+                raise HTTPException(413, 'file larger than 64 MB')
+            buffer.extend(chunk)
+        raw = bytes(buffer)
         if not raw:
             raise HTTPException(400, "empty body")
         if len(raw) > MAX_UPLOAD_BYTES:

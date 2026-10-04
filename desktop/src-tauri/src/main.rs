@@ -88,13 +88,24 @@ fn spawn_backend(app: &tauri::AppHandle) -> Result<(), String> {
     let state = app.state::<Backend>();
     if state.starting.swap(true, Ordering::SeqCst) { return Ok(()); }
     state.ready.store(false, Ordering::SeqCst);
-    let command = app.shell().sidecar("facetmark-service").map_err(|e| e.to_string())?
+    let command = app.shell().sidecar("facetmark-service").map_err(|e| {
+            state.starting.store(false, Ordering::SeqCst); e.to_string()
+        })?
         .args(["--parent-pid", &std::process::id().to_string()]);
     let (mut events, child) = match command.spawn() {
         Ok(result) => result,
         Err(e) => { state.starting.store(false, Ordering::SeqCst); return Err(e.to_string()); }
     };
     *state.child.lock().unwrap() = Some(child);
+    let timeout_handle = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_secs(45));
+        let state = timeout_handle.state::<Backend>();
+        if state.starting.swap(false, Ordering::SeqCst) && !state.ready.load(Ordering::SeqCst) && !state.exiting.load(Ordering::SeqCst) {
+            if let Some(child) = state.child.lock().unwrap().take() { let _ = child.kill(); }
+            startup_error(&timeout_handle, "服务启动超时。请重试或检查数据目录权限。 / Startup timed out. Retry or check data directory permissions.");
+        }
+    });
     let handle = app.clone();
     tauri::async_runtime::spawn(async move {
         while let Some(event) = events.recv().await {
@@ -132,6 +143,21 @@ fn spawn_backend(app: &tauri::AppHandle) -> Result<(), String> {
         }
     });
     Ok(())
+}
+fn request_exit(app: &tauri::AppHandle) {
+    let state = app.state::<Backend>();
+    if state.exiting.swap(true, Ordering::SeqCst) { return; }
+    if let Some(child) = state.child.lock().unwrap().as_mut() { let _ = child.write(b"stop\n"); }
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        // Give lifespan shutdown time to persist interrupted work and close SQLite.
+        for _ in 0..100 {
+            if handle.state::<Backend>().child.lock().unwrap().is_none() { break; }
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+        if let Some(child) = handle.state::<Backend>().child.lock().unwrap().take() { let _ = child.kill(); }
+        handle.exit(0);
+    });
 }
 #[tauri::command]
 fn restart_backend(window: tauri::WebviewWindow, app: tauri::AppHandle) -> Result<(), String> {
@@ -175,16 +201,15 @@ fn main() {
                             let _ = shortcut.set_checked(prefs.shortcut);
                         },
                         "update" => { let _ = app.opener().open_url("https://github.com/88lin/facetmark/releases", None::<&str>); },
-                        "exit" => {
-                            let state = app.state::<Backend>();
-                            state.exiting.store(true, Ordering::SeqCst);
-                            if let Some(child) = state.child.lock().unwrap().as_mut() { let _ = child.write(b"stop\n"); }
-                            app.exit(0);
-                        },
+                        "exit" => request_exit(app),
                         _ => {},
                     }
                 }).build(app)?;
-            if prefs.shortcut { let _ = app.global_shortcut().register(SHORTCUT); }
+            if prefs.shortcut {
+                if let Err(error) = app.global_shortcut().register(SHORTCUT) {
+                    app.dialog().message(format!("无法注册全局快捷键，可能已被占用。 / Global shortcut unavailable: {error}")).title("Facetmark").show(|_| {});
+                }
+            }
             if let Err(e) = spawn_backend(app.handle()) { startup_error(app.handle(), &e); }
             Ok(())
         })
@@ -199,6 +224,9 @@ fn main() {
                         prefs.tray_notice_seen = true; save_preferences(app, &prefs);
                     }
                     let _ = win.hide();
+                } else if win.label() == "loading" {
+                    api.prevent_close();
+                    request_exit(win.app_handle());
                 }
             }
         })

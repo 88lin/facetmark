@@ -75,6 +75,7 @@ FIELDS: dict[str, str] = {
     "before": "added",
     "after": "added",
     "opened": "opened",
+    "session": "session",
 }
 
 #: Values ``sort:`` understands. ``date`` and ``added`` are the same key.
@@ -563,6 +564,10 @@ def _field_sql(f: FieldFilter, *, now: float) -> tuple[str, list[str]] | None:
             )
             params.extend(ps)
         return (" OR ".join(parts) if parts else "1=1", params)
+    if f.field == "session":
+        if not f.value.isdecimal():
+            return None
+        return ('b.id IN (SELECT bookmark_id FROM bookmark_session WHERE session_id = ?)', [int(f.value)])
     if f.field == "tag":
         # Exact element of the tags JSON array, not a substring: tags are a
         # closed vocabulary the user typed themselves, so `tag:work` matching

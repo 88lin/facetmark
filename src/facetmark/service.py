@@ -223,7 +223,7 @@ def session_list(
 ) -> list[dict]:
     rows = conn.execute(
         "SELECT id, started_at, ended_at, size, label, method, eps_seconds "
-        "FROM session WHERE size >= ? ORDER BY started_at DESC LIMIT ? OFFSET ?",
+        "FROM session WHERE size >= ? ORDER BY started_at DESC, id DESC LIMIT ? OFFSET ?",
         (min_size, limit, offset),
     ).fetchall()
     return [

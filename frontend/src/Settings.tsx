@@ -72,8 +72,11 @@ export function Models({setup, refresh}: {setup: Setup | null; refresh: () => Pr
 
 export function ExtensionSettings() {
   const t = useText(); const [copied,setCopied] = useState('');
+  const [connected,setConnected] = useState(false);
+  useEffect(()=>{const refresh=()=>api<{recently_connected:boolean}>('/admin/extension-status').then(data=>setConnected(data.recently_connected)).catch(()=>setConnected(false));refresh();const timer=setInterval(refresh,5000);return()=>clearInterval(timer);},[]);
   async function copy(value: string, name: string) {try { await navigator.clipboard.writeText(value); setCopied(name); } catch {setCopied(t('无法复制，请手动选择。', 'Copy unavailable; select the text manually.'));} }
   return <section className="extension-settings"><h2>{t('连接浏览器扩展', 'Connect the browser extension')}</h2>
+    <p role="status">{connected?t('扩展最近已连接此书库','Extension recently connected to this library'):t('尚未收到扩展连接。安装并配对后，在扩展中执行一次操作。','No extension connection received. After installing and pairing, perform an action in the extension.')}</p>
     <p>{t('扩展帮助保存页面，并在你启用后读取需要浏览器的页面。请从测试产物下载扩展，在浏览器扩展管理页开启开发者模式并加载解压后的文件夹。', 'The extension saves pages and, when enabled, reads pages that need a browser. Download it from the preview artifacts, enable developer mode in your browser and load the extracted folder.')}</p>
     <a href="https://github.com/88lin/facetmark/actions" target="_blank" rel="noreferrer">{t('查看扩展下载与构建', 'Extension downloads and builds')}<ExternalLink size={14}/></a>
     <div className="pairing-row"><code>{location.origin}</code><button className="secondary" onClick={() => copy(location.origin,t('地址已复制','URL copied'))}><Copy/>{t('复制地址','Copy URL')}</button><button className="secondary" onClick={() => copy(getToken(),t('配对令牌已复制','Pairing token copied'))}><Copy/>{t('复制配对令牌','Copy pairing token')}</button></div>

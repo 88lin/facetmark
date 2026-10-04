@@ -61,7 +61,7 @@ function Workbench({language,theme,setLanguage,setTheme}: {language:Language;the
     setLoading(true);setError('');
     const timer=setTimeout(async()=>{try{
       if(!search.trim()){update(await api<Page>(`/bookmarks?${query({...filters,offset,limit:30})}`,{signal:abort.signal}));return;}
-      const terms=[search,...Object.entries(filters).filter(([key])=>key!=='session').map(([key,value])=>`${key}:${JSON.stringify(value)}`)].join(' ');
+      const terms=[search,...Object.entries(filters).filter(([,value])=>value!==undefined).map(([key,value])=>`${key}:${JSON.stringify(value)}`)].join(' ');
       const fast=await api<Page>(`/quick?${query({q:terms,offset,limit:30,depth})}`,{signal:abort.signal});update(fast);
       if(semantic){const full=await post<Page>('/search',{q:terms,offset,limit:30,depth:depth??fast.depth},abort.signal);update(full);}
     }catch(e){if(id===requestId.current&&!abort.signal.aborted){setError(String(e));setLoading(false);}}},search?240:0);
