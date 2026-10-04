@@ -51,6 +51,11 @@ desktop users. See [desktop setup and validation boundaries](docs/desktop-previe
 The same React assets ship in CI-built Python wheels and Docker images. Source
 contributors build `frontend/` before packaging; Python end users do not run Node.
 
+![React workbench with synthetic bookmarks](docs/landing/assets/workbench-en-light.png)
+
+The screenshot is from the shared application rendered in GitHub Actions with
+synthetic data. See [screenshot provenance](docs/landing/assets/workbench-provenance.md).
+
 ---
 
 ## 🎯 The Problem

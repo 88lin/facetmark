@@ -13,6 +13,13 @@ use tauri_plugin_shell::{process::{CommandChild, CommandEvent}, ShellExt};
 
 const SHORTCUT: &str = "Ctrl+Shift+Space";
 
+fn cloud_webview_inspection() -> bool {
+    std::env::var("GITHUB_ACTIONS").as_deref() == Ok("true")
+        && std::env::var("RUNNER_ENVIRONMENT").as_deref() == Ok("github-hosted")
+        && std::env::var("FACETMARK_CI_WEBVIEW_INSPECT").as_deref() == Ok("1")
+}
+const CI_BROWSER_ARGS: &str = "--remote-debugging-port=9223 --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection";
+
 #[derive(Default)]
 struct Backend {
     child: Mutex<Option<CommandChild>>,
@@ -69,7 +76,7 @@ fn open_workspace(app: &tauri::AppHandle, port: u16) -> Result<(), String> {
     let origin = url.origin();
     let handle = app.clone();
     let new_handle = app.clone();
-    let window = WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
+    let mut builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
         .title("Facetmark").inner_size(1440., 920.).min_inner_size(780., 560.)
         .center()
         .on_navigation(move |target| {
@@ -80,8 +87,9 @@ fn open_workspace(app: &tauri::AppHandle, port: u16) -> Result<(), String> {
         .on_new_window(move |target, _| {
             if matches!(target.scheme(), "http" | "https") { let _ = new_handle.opener().open_url(target.as_str(), None::<&str>); }
             tauri::webview::NewWindowResponse::Deny
-        })
-        .build().map_err(|e| e.to_string())?;
+        });
+    if cloud_webview_inspection() { builder = builder.additional_browser_args(CI_BROWSER_ARGS); }
+    let window = builder.build().map_err(|e| e.to_string())?;
     let _ = window.set_focus();
     if let Some(splash) = app.get_webview_window("loading") { let _ = splash.destroy(); }
     Ok(())
@@ -172,6 +180,11 @@ fn restart_backend(window: tauri::WebviewWindow, app: tauri::AppHandle) -> Resul
 }
 fn main() {
     let mut context = tauri::generate_context!();
+    if cloud_webview_inspection() {
+        for window in &mut context.config_mut().app.windows {
+            window.additional_browser_args = Some(CI_BROWSER_ARGS.into());
+        }
+    }
     // Explicit libraries have independent desktop single-instance namespaces.
     // Canonicalizing matches Python's resolved data directory, including aliases.
     let directory = std::env::var_os("FACETMARK_DATA_DIR").or_else(|| {

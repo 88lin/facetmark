@@ -13,6 +13,7 @@ $installTarget = Join-Path $env:LOCALAPPDATA 'Facetmark CI 中文 Test'
 $dataTarget = Join-Path $env:RUNNER_TEMP 'Facetmark CI 资料库'
 $env:FACETMARK_DATA_DIR = $dataTarget
 $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--remote-debugging-port=9223'
+$env:FACETMARK_CI_WEBVIEW_INSPECT = '1'
 $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
 Get-ChildItem Env: | Where-Object Name -Like 'PYTHON*' | ForEach-Object { Remove-Item -LiteralPath "Env:$($_.Name)" }
 

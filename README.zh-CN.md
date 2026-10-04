@@ -48,6 +48,11 @@ Windows 可能显示 SmartScreen。安装包携带 Python 后端和 WebView2 离
 CI 构建的 Python wheel 与 Docker 镜像共享同一套 React 静态资源。
 源码开发者在打包前构建 `frontend/`；Python 包用户无需自行运行 Node。
 
+![React 三栏工作台，使用合成演示书签](docs/landing/assets/workbench-zh-light.png)
+
+截图来自 GitHub Actions 中真实运行的共享界面，仅使用合成数据。
+参见[截图来源](docs/landing/assets/workbench-provenance.md)。
+
 ---
 
 ## 🎯 它要解决的问题
