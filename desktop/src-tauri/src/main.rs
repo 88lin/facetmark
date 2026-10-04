@@ -1,7 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use serde::{Deserialize, Serialize};
-use std::sync::{atomic::{AtomicBool, Ordering}, Mutex};
+use std::sync::{atomic::{AtomicBool, AtomicU64, Ordering}, Mutex};
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri::menu::{CheckMenuItem, Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
@@ -20,6 +20,7 @@ struct Backend {
     starting: AtomicBool,
     ready: AtomicBool,
     owned: AtomicBool,
+    generation: AtomicU64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -34,15 +35,16 @@ fn preferences(app: &tauri::AppHandle) -> Preferences {
         .and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default()
 }
 fn save_preferences(app: &tauri::AppHandle, prefs: &Preferences) {
-    if let Ok(dir) = app.path().app_config_dir() {
-        if std::fs::create_dir_all(&dir).is_ok() {
-            let temp = dir.join("desktop.tmp");
-            if let Ok(bytes) = serde_json::to_vec(prefs) {
-                if std::fs::write(&temp, bytes).is_ok() {
-                    let _ = std::fs::rename(temp, dir.join("desktop.json"));
-                }
-            }
-        }
+    let write = || -> Result<(), Box<dyn std::error::Error>> {
+        let dir = app.path().app_config_dir()?;
+        std::fs::create_dir_all(&dir)?;
+        let temp = dir.join("desktop.tmp");
+        std::fs::write(&temp, serde_json::to_vec(prefs)?)?;
+        std::fs::rename(temp, dir.join("desktop.json"))?;
+        Ok(())
+    };
+    if let Err(error) = write() {
+        app.dialog().message(format!("偏好未能保存，重启后可能恢复默认值。 / Preferences could not be saved: {error}")).title("Facetmark").show(|_| {});
     }
 }
 fn focus_main(app: &tauri::AppHandle) {
@@ -87,6 +89,7 @@ fn open_workspace(app: &tauri::AppHandle, port: u16) -> Result<(), String> {
 fn spawn_backend(app: &tauri::AppHandle) -> Result<(), String> {
     let state = app.state::<Backend>();
     if state.starting.swap(true, Ordering::SeqCst) { return Ok(()); }
+    let generation = state.generation.fetch_add(1, Ordering::SeqCst) + 1;
     state.ready.store(false, Ordering::SeqCst);
     let command = app.shell().sidecar("facetmark-service").map_err(|e| {
             state.starting.store(false, Ordering::SeqCst); e.to_string()
@@ -101,6 +104,7 @@ fn spawn_backend(app: &tauri::AppHandle) -> Result<(), String> {
     std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_secs(45));
         let state = timeout_handle.state::<Backend>();
+        if state.generation.load(Ordering::SeqCst) != generation { return; }
         if state.starting.swap(false, Ordering::SeqCst) && !state.ready.load(Ordering::SeqCst) && !state.exiting.load(Ordering::SeqCst) {
             if let Some(child) = state.child.lock().unwrap().take() { let _ = child.kill(); }
             startup_error(&timeout_handle, "服务启动超时。请重试或检查数据目录权限。 / Startup timed out. Retry or check data directory permissions.");
@@ -109,6 +113,7 @@ fn spawn_backend(app: &tauri::AppHandle) -> Result<(), String> {
     let handle = app.clone();
     tauri::async_runtime::spawn(async move {
         while let Some(event) = events.recv().await {
+            if handle.state::<Backend>().generation.load(Ordering::SeqCst) != generation { break; }
             match event {
                 CommandEvent::Stdout(line) => {
                     if let Ok(record) = serde_json::from_slice::<serde_json::Value>(&line) {
@@ -166,6 +171,18 @@ fn restart_backend(window: tauri::WebviewWindow, app: tauri::AppHandle) -> Resul
     spawn_backend(&app)
 }
 fn main() {
+    let mut context = tauri::generate_context!();
+    // Explicit libraries have independent desktop single-instance namespaces.
+    // Canonicalizing matches Python's resolved data directory, including aliases.
+    if let Some(directory) = std::env::var_os("FACETMARK_DATA_DIR") {
+        let path = std::path::PathBuf::from(directory);
+        let _ = std::fs::create_dir_all(&path);
+        if let Ok(path) = path.canonicalize() {
+            let normalized = path.to_string_lossy().to_lowercase();
+            let hash = normalized.bytes().fold(0xcbf29ce484222325u64, |h, b| (h ^ b as u64).wrapping_mul(0x100000001b3));
+            context.config_mut().identifier.push_str(&format!(".library-{hash:016x}"));
+        }
+    }
     tauri::Builder::default()
         .manage(Backend::default())
         .plugin(tauri_plugin_single_instance::init(|app, _, _| focus_main(app)))
@@ -182,7 +199,7 @@ fn main() {
             let startup = CheckMenuItem::with_id(app, "startup", "开机启动 / Launch at login", true, app.autolaunch().is_enabled().unwrap_or(false), None::<&str>)?;
             let prefs = preferences(app.handle());
             let shortcut = CheckMenuItem::with_id(app, "shortcut", "全局快捷键 Ctrl+Shift+Space", true, prefs.shortcut, None::<&str>)?;
-            let update = MenuItem::with_id(app, "update", "下载更新 / Updates", true, None::<&str>)?;
+            let update = MenuItem::with_id(app, "update", "检查更新 / Check for updates", true, None::<&str>)?;
             let exit = MenuItem::with_id(app, "exit", "退出 / Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &startup, &shortcut, &update, &exit])?;
             TrayIconBuilder::new().icon(app.default_window_icon().unwrap().clone()).tooltip("Facetmark")
@@ -200,7 +217,10 @@ fn main() {
                             if result.is_ok() { prefs.shortcut = !prefs.shortcut; save_preferences(app, &prefs); }
                             let _ = shortcut.set_checked(prefs.shortcut);
                         },
-                        "update" => { let _ = app.opener().open_url("https://github.com/88lin/facetmark/releases", None::<&str>); },
+                        "update" => {
+                            if let Some(win) = app.get_webview_window("main") { let _ = win.eval("window.location.hash = 'settings'"); }
+                            focus_main(app);
+                        },
                         "exit" => request_exit(app),
                         _ => {},
                     }
@@ -230,7 +250,7 @@ fn main() {
                 }
             }
         })
-        .build(tauri::generate_context!()).expect("Cannot initialize Facetmark")
+        .build(context).expect("Cannot initialize Facetmark")
         .run(|app, event| {
             if let tauri::RunEvent::ExitRequested { api, .. } = event {
                 if !app.state::<Backend>().exiting.load(Ordering::SeqCst) { api.prevent_exit(); }

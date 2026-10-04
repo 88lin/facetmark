@@ -58,6 +58,7 @@ try {
     $webviews = @(Get-CimInstance Win32_Process -Filter "Name='msedgewebview2.exe'" | Where-Object { $_.CommandLine -like '*facetmark*' })
     if ($webviews.Count -eq 0) { throw 'No Facetmark WebView2 process started' }
     # Attach to this installed app's WebView, not a separately launched browser.
+    $webviews | Select-Object ProcessId, ParentProcessId, CommandLine | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidenceDir 'webview-processes.json') -Encoding utf8
     & (Join-Path $repoRoot '.desktop-build/venv/Scripts/python.exe') (Join-Path $repoRoot 'scripts/installed_webview_check.py') $evidenceDir
     if ($LASTEXITCODE -ne 0) { throw 'Installed WebView did not render the React workbench' }
     $token = (Get-Content -LiteralPath (Join-Path $dataTarget 'pairing-token.txt') -Raw).Trim()

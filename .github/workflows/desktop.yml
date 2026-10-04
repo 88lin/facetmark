@@ -72,3 +72,10 @@ jobs:
             desktop/package-lock.json
             desktop/src-tauri/Cargo.lock
           retention-days: 14
+      - name: Upload small installation evidence separately
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-install-evidence
+          path: .desktop-build/evidence/
+          retention-days: 14

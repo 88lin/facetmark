@@ -267,3 +267,46 @@ def test_index_requires_real_config_test_and_explicit_consent(client):
     state.settings = Settings(data_dir=state.settings.data_dir, api_key="test", embed_dim=8)
     assert client.post("/admin/index", json={}).status_code == 400
     assert client.post("/admin/index", json={"confirmed": True}).status_code == 409
+
+
+async def test_vector_stages_reject_same_dimension_different_endpoint(client):
+    from facetmark.db import SchemaMismatch, set_meta
+    from facetmark.enrich.vectors import embed_content
+    from facetmark.modelspace import space_id
+    from facetmark.search.vectors import vector_lists
+
+    state = client.app.state.fm
+    original = Settings(data_dir=state.settings.data_dir, embed_dim=8, api_key="test")
+    ensure_vec_tables(state.conn, 8, original.embed_model)
+    set_meta(state.conn, "embedding_space", space_id(original))
+    changed = original.model_copy(update={"embed_base_url": "https://different.example/v1"})
+    with pytest.raises(SchemaMismatch, match="endpoint or model changed"):
+        await vector_lists(state.conn, "question", settings=changed)
+    with pytest.raises(SchemaMismatch, match="endpoint or model changed"):
+        await embed_content(state.conn, settings=changed)
+
+
+def test_session_filter_is_shared_by_browse_and_query(client):
+    state = client.app.state.fm
+    bids = [service.save_bookmark(state.conn, f"https://session.example/{i}", title=f"session target {i}", settings=state.settings)["bookmark_id"] for i in range(3)]
+    sid = state.conn.execute("INSERT INTO session(started_at,ended_at,size,method) VALUES(1,2,2,'temporal')").lastrowid
+    state.conn.executemany("INSERT INTO bookmark_session(bookmark_id,session_id) VALUES(?,?)", [(bid, sid) for bid in bids[:2]])
+    state.conn.commit()
+    browse = client.get(f"/bookmarks?session={sid}").json()
+    search = client.get("/quick", params={"q": f"target session:{sid}"}).json()
+    assert {row["bookmark_id"] for row in browse["items"]} == set(bids[:2])
+    assert {row["bookmark_id"] for row in search["hits"]} == set(bids[:2])
+
+
+def test_update_check_and_extension_connection_are_observed(client):
+    assert not client.get("/admin/extension-status").json()["recently_connected"]
+    client.get("/stats", headers={"X-Facetmark-Client": "extension"})
+    assert client.get("/admin/extension-status").json()["recently_connected"]
+    with respx.mock as router:
+        route = router.get("https://api.github.com/repos/88lin/facetmark/releases/latest")
+        route.respond(404)
+        assert client.post("/admin/updates/check").json()["latest"] is None
+        route.respond(200, json={"tag_name": "v999.0.0"})
+        assert client.post("/admin/updates/check").json()["available"]
+        route.respond(503)
+        assert client.post("/admin/updates/check").status_code == 502

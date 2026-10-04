@@ -35,7 +35,12 @@ jobs:
       - name: Browser for cloud validation
         if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
         working-directory: frontend
-        run: npx playwright install --with-deps chromium
+        run: |
+          npx playwright install --with-deps chromium
+          sudo apt-get install -y fonts-noto-cjk
+      - name: Format frontend review sources
+        working-directory: frontend
+        run: npx --yes prettier@3.6.2 --write src tests
       - name: Behavior and render matrix
         if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
         working-directory: frontend
@@ -44,6 +49,7 @@ jobs:
         if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
         run: python -m build
       - name: Verify wheel resources
+        if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
         run: python scripts/check_web_bundle.py
       - name: Upload review evidence and shared Web build
         if: always()
@@ -55,6 +61,8 @@ jobs:
             frontend/playwright-report/
             frontend/test-results/
             frontend/package-lock.json
+            frontend/src/
+            frontend/tests/
             src/facetmark/web/dist/
             dist/*.whl
             dist/*.tar.gz

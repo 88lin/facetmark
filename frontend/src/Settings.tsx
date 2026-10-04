@@ -16,7 +16,7 @@ export function Models({setup, refresh}: {setup: Setup | null; refresh: () => Pr
   useEffect(() => { load().catch(e => setError(String(e))); }, []);
   const row = (key: string) => rows.find(r => r.key === key);
   const value = (key: string) => key in draft ? draft[key] : row(key)?.secret ? '' : row(key)?.value ?? '';
-  const change = (key: string, next: unknown) => { setDraft(d => ({...d, [key]: next})); setNotice(''); setResults({}); };
+  const change = (key: string, next: unknown) => { setDraft(d => ({...d, [key]: next, ...(key.endsWith('_allow_no_key') && next ? {[key.replace('_allow_no_key','_api_key')]:''} : {})})); setNotice(''); setResults({}); };
   async function run(name: string, work: () => Promise<void>) { setBusy(name); setError(''); setNotice(''); try { await work(); } catch(e) { setError(String(e)); } finally { setBusy(''); } }
   async function test(channel: string) {
     await run(channel, async () => {
@@ -81,5 +81,13 @@ export function ExtensionSettings() {
     <a href="https://github.com/88lin/facetmark/actions" target="_blank" rel="noreferrer">{t('查看扩展下载与构建', 'Extension downloads and builds')}<ExternalLink size={14}/></a>
     <div className="pairing-row"><code>{location.origin}</code><button className="secondary" onClick={() => copy(location.origin,t('地址已复制','URL copied'))}><Copy/>{t('复制地址','Copy URL')}</button><button className="secondary" onClick={() => copy(getToken(),t('配对令牌已复制','Pairing token copied'))}><Copy/>{t('复制配对令牌','Copy pairing token')}</button></div>
     <p className="hint">{t('将地址和令牌粘贴到扩展设置中，再点击连接。扩展需要手动安装；端口以这里显示的地址为准。', 'Paste the URL and token into extension settings and connect. Installation is manual; use the current port shown here.')}</p><p role="status">{copied}</p>
+  </section>;
+}
+
+export function UpdateSettings(){
+  const t=useText();const [busy,setBusy]=useState(false);const [message,setMessage]=useState('');
+  return <section className="desktop-note"><h2>{t('桌面与更新','Desktop and updates')}</h2><p>{t('开机启动、全局快捷键与退出位于系统托盘菜单。关闭窗口后任务继续运行。','Launch at login, global shortcut and Quit are in the system tray menu. Tasks continue after the window closes.')}</p>
+    <p>{t('预览安装包尚未签名，Windows 可能显示 SmartScreen 提示。更新由你下载和安装，不会自动替换应用。','Preview installers are unsigned; Windows may show SmartScreen. You choose when to download and install an update.')}</p>
+    <div className="form-actions"><button className="secondary" disabled={busy} onClick={async()=>{setBusy(true);try{const data=await post<{current:string;latest:string|null;available:boolean}>('/admin/updates/check',{});setMessage(data.latest?(data.available?t(`可用版本 ${data.latest}，当前 ${data.current}`,`Version ${data.latest} available; current ${data.current}`):t(`当前 ${data.current}，最新正式版本 ${data.latest}`,`Current ${data.current}; latest release ${data.latest}`)):t('尚无正式版本，请查看测试构建。','No stable release is available. See the preview builds.'));}catch(e){setMessage(String(e));}finally{setBusy(false);}}}>{busy?<LoaderCircle className="spin"/>:<ExternalLink/>}{t('检查更新','Check for updates')}</button><a href="https://github.com/88lin/facetmark/actions/workflows/desktop.yml" target="_blank" rel="noreferrer">{t('下载测试构建','Download preview builds')}<ExternalLink size={14}/></a></div><p role="status">{message}</p>
   </section>;
 }

@@ -14,33 +14,10 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from . import admin, service
-from .config import Settings
-from .db import SchemaMismatch, get_meta, validate_vec_schema, vec_tables_exist
+from .db import SchemaMismatch, vec_tables_exist
 from .importers import decode_bookmark_bytes
 from .importers.discovery import discover_bookmark_files
-
-
-def space_id(settings: Settings) -> str:
-    channel = settings.channel_settings("embed")
-    parts = [
-        settings.embed_backend,
-        settings.embed_model,
-        settings.embed_dim,
-        settings.local_embed_path
-        if settings.embed_backend == "local"
-        else channel.base_url.rstrip("/"),
-        settings.use_mock_provider,
-    ]
-    return hashlib.sha256(json.dumps(parts).encode()).hexdigest()
-
-
-def validate_space(conn, settings: Settings) -> None:
-    validate_vec_schema(conn, settings.embed_dim, settings.embed_model)
-    stored = get_meta(conn, "embedding_space")
-    if stored and stored != space_id(settings):
-        raise SchemaMismatch(
-            "Embedding endpoint or model changed. Confirm a backed-up vector rebuild in Settings."
-        )
+from .modelspace import space_id, validate_space
 
 
 def browse(conn, *, limit=40, offset=0, folder=None, tag=None, domain=None, session=None):

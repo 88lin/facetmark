@@ -30,8 +30,26 @@
 </p>
 
 > [!NOTE]
-> Everything runs on your machine against a single SQLite file. Nothing is uploaded,
-> nothing is deleted, and your browser's own bookmark store is **never** written to.
+> Your library lives in a local SQLite file and your browser's bookmark store is **never**
+> written to. Keyword search needs no AI. When you confirm indexing with cloud models,
+> eligible titles, URLs and extracted text are sent to the services you configure.
+
+### Windows desktop preview
+
+The `desktop/facetmark-experience` test branch introduces a Tauri 2 desktop app and a
+shared React workbench: browse bookmarks, search and read side by side, import through
+a guided flow, configure chat and embeddings separately, and follow background tasks.
+Paper white and graphite themes, Chinese/English and narrow-window reading are included.
+
+Download the `facetmark-windows-x64-preview` artifact from a successful
+[desktop-preview run](https://github.com/88lin/facetmark/actions/workflows/desktop.yml).
+These are **unsigned test installers**, not a production release. Windows may show
+SmartScreen. The package includes the Python sidecar and offline WebView2 installer;
+it does not include large AI models. No Python, Node or Rust installation is needed by
+desktop users. See [desktop setup and validation boundaries](docs/desktop-preview.md).
+
+The same React assets ship in CI-built Python wheels and Docker images. Source
+contributors build `frontend/` before packaging; Python end users do not run Node.
 
 ---
 

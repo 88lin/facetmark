@@ -7,11 +7,11 @@ test.beforeEach(async({page})=>{
 
 test('real library: stable paging, preview, filters and keyboard',async({page})=>{
   await page.goto('/app');await expect(page.locator('.result-row')).toHaveCount(30);
-  const first=await page.locator('.result-row').first().innerText();
+  const first=await page.locator('.result-title').first().innerText();
   await page.locator('.result-row').first().click();await expect(page.locator('.body-text')).toContainText('synthetic content');
   await page.getByRole('button',{name:'下一页',exact:true}).click();await expect(page.locator('.results-footer')).toContainText('31–60');
-  await expect(page.locator('.result-row').first()).not.toHaveText(first);
-  await page.getByRole('button',{name:'上一页',exact:true}).click();await expect(page.locator('.result-row').first()).toHaveText(first);
+  await expect(page.locator('.result-title').first()).not.toHaveText(first);
+  await page.getByRole('button',{name:'上一页',exact:true}).click();await expect(page.locator('.result-title').first()).toHaveText(first);
   await page.locator('.result-row').first().focus();await page.keyboard.press('ArrowDown');await expect(page.locator('.result-row').nth(1)).toBeFocused();
   await page.keyboard.press('Control+k');await expect(page.getByRole('textbox',{name:'搜索书签'})).toBeFocused();
   await page.getByRole('textbox',{name:'搜索书签'}).fill('SQLite');await expect(page.locator('.result-row').first()).toContainText('SQLite');
@@ -45,12 +45,27 @@ test('import uses the real endpoint and survives a reload',async({page})=>{
   await expect(page.getByRole('status')).toContainText('导入完成');await page.getByRole('button',{name:'全部书签',exact:false}).click();await page.getByRole('textbox',{name:'搜索书签'}).fill('CI imported');await expect(page.locator('.result-row').first()).toContainText('CI imported bookmark');await page.reload();await expect(page.locator('.result-row').first()).toContainText('CI imported bookmark');
 });
 
+test('query suggestions and cited synthesis preserve the query',async({page})=>{
+  await page.goto('/app');
+  const input=page.getByRole('textbox',{name:'搜索书签'});
+  await input.fill('dom');await page.locator('.query-help summary').click();
+  await page.getByRole('button',{name:'domain:',exact:true}).click();await expect(input).toHaveValue('domain:');
+  await input.fill('SQLite');await expect(page.locator('.result-row').first()).toContainText('SQLite');
+  await page.locator('.search-answer>summary').click();
+  await page.getByRole('button',{name:'确认并生成回答'}).click();
+  await expect(page.getByRole('button',{name:'查看来源 1'}).first()).toBeVisible();
+  await page.getByRole('button',{name:'查看来源 1'}).first().click();
+  await expect(page.locator('.preview-title h1')).toContainText('SQLite');await expect(input).toHaveValue('SQLite');
+});
+
 test('render matrix: Chinese, English, light, dark, desktop and narrow',async({page})=>{
   await mkdir('screenshots',{recursive:true});
   for(const language of ['zh','en'])for(const theme of ['light','dark'])for(const width of [1440,390]){
     await page.setViewportSize({width,height:960});
     await page.addInitScript(({language,theme})=>{localStorage.setItem('fm-language',language);localStorage.setItem('fm-theme',theme);},{language,theme});
     await page.goto('/app');await expect(page.locator('.result-row').first()).toBeVisible();
+    await page.getByRole('textbox',{name:language==='zh'?'搜索书签':'Search bookmarks'}).fill('tag:demo');
+    await expect(page.locator('.result-row').first()).not.toContainText('CI imported bookmark');
     if(width===1440)await page.locator('.result-row').nth(1).click();
     if(width===1440)await expect(page.locator('.body-text')).toBeVisible();
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);

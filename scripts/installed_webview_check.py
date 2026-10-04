@@ -7,7 +7,7 @@ import sys
 import time
 from pathlib import Path
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import Error, sync_playwright
 
 if os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('RUNNER_ENVIRONMENT') != 'github-hosted':
     raise SystemExit('Installed WebView inspection is restricted to GitHub-hosted runners')
@@ -15,7 +15,17 @@ if os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('RUNNER_ENVIRONM
 output = Path(sys.argv[1])
 output.mkdir(parents=True, exist_ok=True)
 with sync_playwright() as playwright:
-    browser = playwright.chromium.connect_over_cdp('http://127.0.0.1:9223', timeout=30000)
+    # The splash WebView is destroyed just before the main one is created.
+    # Runtime readiness alone does not mean the main WebView's CDP port exists.
+    deadline = time.monotonic() + 60
+    while True:
+        try:
+            browser = playwright.chromium.connect_over_cdp('http://127.0.0.1:9223', timeout=5000)
+            break
+        except Error:
+            if time.monotonic() >= deadline:
+                raise
+            time.sleep(.5)
     deadline = time.monotonic() + 45
     page = None
     while time.monotonic() < deadline:
