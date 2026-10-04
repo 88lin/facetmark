@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 
 import pytest
 import respx
@@ -310,3 +311,44 @@ def test_update_check_and_extension_connection_are_observed(client):
         assert client.post("/admin/updates/check").json()["available"]
         route.respond(503)
         assert client.post("/admin/updates/check").status_code == 502
+
+
+def test_real_provider_setup_apply_index_and_search(client):
+    """Exercise the HTTP provider contract without contacting a real model."""
+    import httpx
+
+    state = client.app.state.fm
+    bid = service.save_bookmark(state.conn, "https://guide.example/sqlite", title="SQLite retrieval guide", settings=state.settings)["bookmark_id"]
+    values = {
+        "chat_base_url": "https://chat.example/v1", "chat_api_key": "chat-only",
+        "chat_model": "chat-test", "embed_base_url": "https://embed.example/v1",
+        "embed_api_key": "embed-only", "embed_model": "embed-test", "embed_dim": 8,
+    }
+    assert not state.settings.use_mock_provider
+    with respx.mock as router:
+        chat = router.post("https://chat.example/v1/chat/completions").respond(200, json={"choices": [{"message": {"content": json.dumps({"summary": "SQLite provides a reliable local retrieval store.", "key_points": ["Keep the source"], "entities": ["SQLite"], "topics": ["databases"], "utility": "reference", "content_type": "article", "intent_queries": ["How does SQLite store local data?"]})}}]})
+
+        def embeddings(request):
+            payload = json.loads(request.content)
+            assert request.headers["authorization"] == "Bearer embed-only"
+            return httpx.Response(200, json={"data": [{"index": i, "embedding": [1.0] + [0.0] * 7} for i, _ in enumerate(payload["input"])]})
+
+        router.post("https://embed.example/v1/embeddings").mock(side_effect=embeddings)
+        assert client.put("/admin/settings", json={"values": values}).status_code == 200
+        assert client.post("/admin/settings/apply", json={}).status_code == 409
+        for channel in ("chat", "embed"):
+            probe = client.post("/admin/settings/test", json={"channel": channel})
+            assert probe.status_code == 200 and probe.json()["ok"], probe.text
+        assert client.post("/admin/settings/apply", json={}).status_code == 200
+        assert client.post("/admin/index", json={"confirmed": True, "fetch": False}).status_code == 200
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            job = client.get("/admin/job").json()
+            if job["state"] not in ("running", "cancelling"):
+                break
+            time.sleep(.02)
+        assert job["state"] == "done", job
+        assert all(call.request.headers["authorization"] == "Bearer chat-only" for call in chat.calls)
+        result = client.post("/search", json={"q": "SQLite"})
+        assert result.status_code == 200 and bid in [row["bookmark_id"] for row in result.json()["hits"]]
+        assert client.get("/admin/setup-status").json()["has_vectors"]

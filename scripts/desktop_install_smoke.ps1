@@ -82,6 +82,22 @@ try {
     if (-not (Test-Path -LiteralPath $dbFile)) { throw 'Uninstall removed user data' }
     if ((Get-Content -LiteralPath (Join-Path $dataTarget 'pairing-token.txt') -Raw).Trim() -ne $token) { throw 'Pairing changed during uninstall' }
     @{ same_version_reinstall = $true; uninstall_kept_data = $true; backend_stopped_with_parent = $true; synthetic_bookmark_id = $saved.bookmark_id } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidenceDir 'lifecycle.json') -Encoding utf8
+} catch {
+    # Capture the disposable runner's desktop when CDP is unavailable, so a
+    # startup error and a WebView inspection failure can be distinguished.
+    try {
+        Add-Type -AssemblyName System.Windows.Forms
+        Add-Type -AssemblyName System.Drawing
+        $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+        $capture = New-Object System.Drawing.Bitmap($bounds.Width, $bounds.Height)
+        $graphics = [System.Drawing.Graphics]::FromImage($capture)
+        $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+        $capture.Save((Join-Path $evidenceDir 'runner-failure.png'))
+        $graphics.Dispose()
+        $capture.Dispose()
+        Get-CimInstance Win32_Process | Where-Object { $_.Name -like '*facetmark*' -or $_.Name -eq 'msedgewebview2.exe' } | Select-Object ProcessId, ParentProcessId, Name, CommandLine | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidenceDir 'failure-processes.json') -Encoding utf8
+    } catch { Write-Warning "Failure evidence unavailable: $_" }
+    throw
 } finally {
     Get-NetFirewallRule -Group $firewallGroup -ErrorAction SilentlyContinue | Remove-NetFirewallRule
 }

@@ -204,7 +204,7 @@ def register(app: FastAPI, auth: list) -> None:
             "demo": candidate.use_mock_provider,
             "pending_apply": bool(state.pending_settings),
             "vector_compatible": compatible,
-            "has_vectors": vec_tables_exist(state.conn),
+            "has_vectors": bool(stats["vectors"] and sum(stats["vectors"]) > 0),
             "channels": {
                 c: {
                     "configured": candidate.channel_ready(c),

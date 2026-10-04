@@ -174,10 +174,15 @@ fn main() {
     let mut context = tauri::generate_context!();
     // Explicit libraries have independent desktop single-instance namespaces.
     // Canonicalizing matches Python's resolved data directory, including aliases.
-    if let Some(directory) = std::env::var_os("FACETMARK_DATA_DIR") {
+    let directory = std::env::var_os("FACETMARK_DATA_DIR").or_else(|| {
+        std::env::var_os("LOCALAPPDATA").or_else(|| std::env::var_os("USERPROFILE"))
+            .map(|base| std::path::PathBuf::from(base).join("facetmark").into_os_string())
+    });
+    if let Some(directory) = directory {
         let path = std::path::PathBuf::from(directory);
         let _ = std::fs::create_dir_all(&path);
         if let Ok(path) = path.canonicalize() {
+            std::env::set_var("FACETMARK_DATA_DIR", &path);
             let normalized = path.to_string_lossy().to_lowercase();
             let hash = normalized.bytes().fold(0xcbf29ce484222325u64, |h, b| (h ^ b as u64).wrapping_mul(0x100000001b3));
             context.config_mut().identifier.push_str(&format!(".library-{hash:016x}"));

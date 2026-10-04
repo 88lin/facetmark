@@ -26,6 +26,7 @@ def ready(process):
 
     def drain():
         for line in process.stdout:
+            print(f"service[{process.pid}]: {line.rstrip()}", flush=True)
             try:
                 event = json.loads(line)
                 if event.get('event') in ('ready', 'error'):
@@ -44,6 +45,7 @@ def main():
     env = {k: v for k, v in os.environ.items() if not k.startswith(('PYTHON', 'FACETMARK_'))}
     env['PATH'] = os.path.join(os.environ['SYSTEMROOT'], 'System32')
     env['PYTHONNOUSERSITE'] = '1'
+    env['FACETMARK_DIAGNOSTICS'] = '1'
     evidence = {'frozen_service': str(exe), 'no_python_on_child_path': True, 'checks': []}
     with tempfile.TemporaryDirectory(prefix='Facetmark 中文 路径 ') as temporary:
         temp = Path(temporary)
@@ -58,7 +60,7 @@ def main():
         command = [str(exe), '--data-dir', str(data)]
         started = time.monotonic()
         process = subprocess.Popen(command, env=env, cwd=temp, stdin=subprocess.PIPE,
-                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                    text=True, encoding='utf-8')
         try:
             first = ready(process)
@@ -80,7 +82,7 @@ def main():
             except urllib.error.HTTPError as error:
                 assert error.code == 401
             second = subprocess.Popen(command, env=env, cwd=temp, stdin=subprocess.PIPE,
-                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                       text=True, encoding='utf-8')
             try:
                 reused = ready(second)

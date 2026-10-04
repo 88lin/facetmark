@@ -12,11 +12,17 @@ export function Models({setup, refresh}: {setup: Setup | null; refresh: () => Pr
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [consent, setConsent] = useState(false);
+  const hasDraft = Object.keys(draft).length > 0;
+  const channelStatus = (channel:string) => {
+    const dirty = Object.keys(draft).some(key=>key.startsWith(`${channel}_`)||channel==='embed'&&key==='local_embed_path');
+    if(dirty)return results[channel]?.ok&&results[channel]?.dim_matches!==false?t('草稿已测试 · 尚未保存','Draft tested · not saved'):t('尚未保存 · 需测试','Unsaved · needs test');
+    return setup?.channels[channel]?.tested?t('已测试','Tested'):setup?.channels[channel]?.configured?t('待测试','Needs test'):t('未配置','Not configured');
+  };
   async function load() { const data = await api<{settings: Setting[]}>('/admin/settings'); setRows(data.settings); }
   useEffect(() => { load().catch(e => setError(String(e))); }, []);
   const row = (key: string) => rows.find(r => r.key === key);
   const value = (key: string) => key in draft ? draft[key] : row(key)?.secret ? '' : row(key)?.value ?? '';
-  const change = (key: string, next: unknown) => { setDraft(d => ({...d, [key]: next, ...(key.endsWith('_allow_no_key') && next ? {[key.replace('_allow_no_key','_api_key')]:''} : {})})); setNotice(''); setResults({}); };
+  const change = (key: string, next: unknown) => { setDraft(d => ({...d, [key]: next, ...(key.endsWith('_allow_no_key') && next ? {[key.replace('_allow_no_key','_api_key')]:''} : {})})); setNotice(''); setResults({}); setConsent(false); };
   async function run(name: string, work: () => Promise<void>) { setBusy(name); setError(''); setNotice(''); try { await work(); } catch(e) { setError(String(e)); } finally { setBusy(''); } }
   async function test(channel: string) {
     await run(channel, async () => {
@@ -41,7 +47,7 @@ export function Models({setup, refresh}: {setup: Setup | null; refresh: () => Pr
   return <section className="models">
     <div className="section-heading"><h2>{t('让两个模型各司其职', 'Two models, two clear roles')}</h2><p>{t('聊天负责理解与摘要，向量负责语义检索。可以使用不同服务。', 'Chat understands and summarizes. Embeddings power semantic search. Each can use a different service.')}</p></div>
     <div className="model-columns">{['chat','embed'].map(channel => <section className="model-panel" key={channel}>
-      <header><h3>{channel === 'chat' ? t('聊天模型', 'Chat model') : t('向量模型', 'Embedding model')}</h3><span className="quiet">{setup?.channels[channel]?.tested ? t('已测试', 'Tested') : setup?.channels[channel]?.configured ? t('待测试', 'Needs test') : t('未配置', 'Not configured')}</span></header>
+      <header><h3>{channel === 'chat' ? t('聊天模型', 'Chat model') : t('向量模型', 'Embedding model')}</h3><span className="quiet">{channelStatus(channel)}</span></header>
       {field(`${channel}_base_url`, t('服务地址', 'Base URL'), 'url', 'https://api.openai.com/v1')}
       {field(`${channel}_api_key`, 'API Key', 'password')}
       {field(`${channel}_model`, t('模型名称', 'Model name'))}
@@ -63,9 +69,9 @@ export function Models({setup, refresh}: {setup: Setup | null; refresh: () => Pr
     {error && <p className="error" role="alert">{error}</p>}{notice && <p role="status" className="notice">{notice}</p>}
     <div className="form-actions"><button className="primary" disabled={!!busy || !Object.keys(draft).length} onClick={save}><Save/>{t('保存配置', 'Save settings')}</button><span className="hint">{t('测试只发送固定测试句，不发送书签。', 'Tests send fixed sample text, never your bookmarks.')}</span></div>
     {(setup?.pending_apply || setup?.vector_compatible === false) && <section className="apply-panel">
-      <h3>{t('应用向量配置', 'Apply embedding settings')}</h3><p>{t('如果向量空间发生变化，会先备份数据库，再清理旧向量。书签和原文会保留，之后需重新索引。', 'If the vector space changes, the database is backed up before old vectors are cleared. Bookmarks and page text stay; indexing must run again.')}</p>
+      <h3>{t('应用向量配置', 'Apply embedding settings')}</h3>{hasDraft&&<p className="hint">{t('请先保存可见草稿，再测试并应用。','Save the visible draft before testing and applying it.')}</p>}<p>{t('如果向量空间发生变化，会先备份数据库，再清理旧向量。书签和原文会保留，之后需重新索引。', 'If the vector space changes, the database is backed up before old vectors are cleared. Bookmarks and page text stay; indexing must run again.')}</p>
       <label className="check"><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}/>{t('我确认备份并在需要时重建向量', 'I confirm backup and vector rebuild when needed')}</label>
-      <button className="secondary" disabled={!!busy || !consent || !setup.channels.embed.tested} onClick={() => run('apply',async () => {const result = await post<{backup: string|null}>('/admin/settings/apply',{confirm_rebuild:consent}); await refresh(); await load(); setNotice(result.backup ? `${t('备份已保存：','Backup saved: ')}${result.backup}` : t('配置已应用', 'Settings applied'));})}>{t('应用已测试的配置', 'Apply tested settings')}</button>
+      <button className="secondary" disabled={!!busy || hasDraft || !consent || !setup.channels.embed.tested} onClick={() => run('apply',async () => {const result = await post<{backup: string|null}>('/admin/settings/apply',{confirm_rebuild:consent}); await refresh(); await load(); setNotice(result.backup ? `${t('备份已保存：','Backup saved: ')}${result.backup}` : t('配置已应用', 'Settings applied'));})}>{t('应用已测试的配置', 'Apply tested settings')}</button>
     </section>}
   </section>;
 }

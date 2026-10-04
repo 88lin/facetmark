@@ -158,6 +158,10 @@ async def run_service(settings, *, parent_pid: int = 0) -> None:
         def control():
             for line in sys.stdin:
                 if line.strip() == 'stop':
+                    emit('stopping', phase='stdin')
+                    if os.environ.get('FACETMARK_DIAGNOSTICS') == '1':
+                        import faulthandler
+                        faulthandler.dump_traceback_later(12)
                     server.should_exit = True
                     return
             if parent_pid:
@@ -196,6 +200,10 @@ async def run_service(settings, *, parent_pid: int = 0) -> None:
         try:
             await server.serve(sockets=[sock])
         finally:
+            emit('stopping', phase='server_closed')
+            if os.environ.get('FACETMARK_DIAGNOSTICS') == '1':
+                import faulthandler
+                faulthandler.cancel_dump_traceback_later()
             ready_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await ready_task
