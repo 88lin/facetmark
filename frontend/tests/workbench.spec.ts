@@ -103,7 +103,7 @@ test("setup, separate model tests, consent and persistent tasks", async ({ page 
 
 test("import uses the real endpoint and survives a reload", async ({ page }) => {
   await page.goto("/app");
-  await page.getByRole("button", { name: "导入书签", exact: true }).click();
+  await page.locator('.sidebar').getByRole("button", { name: "导入书签", exact: true }).click();
   await page
     .locator("input[type=file]")
     .setInputFiles({
@@ -211,7 +211,7 @@ test("render matrix: Chinese, English, light, dark, desktop and narrow", async (
   await mkdir("screenshots", { recursive: true });
   for (const language of ["zh", "en"])
     for (const theme of ["light", "dark"])
-      for (const width of [1440, 390]) {
+      for (const width of [1440, 1280, 1024, 390]) {
         await page.setViewportSize({ width, height: 960 });
         await page.addInitScript(
           ({ language, theme }) => {
@@ -226,8 +226,8 @@ test("render matrix: Chinese, English, light, dark, desktop and narrow", async (
           .getByRole("textbox", { name: language === "zh" ? "搜索书签" : "Search bookmarks" })
           .fill("tag:demo");
         await expect(page.locator(".result-row").first()).not.toContainText("CI imported bookmark");
-        if (width === 1440) await page.locator(".result-row").nth(1).click();
-        if (width === 1440) await expect(page.locator(".body-text")).toBeVisible();
+        if (width >= 1120) await page.locator(".result-row").nth(1).click();
+        if (width >= 1120) await expect(page.locator(".body-text")).toBeVisible();
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
           true,
         );

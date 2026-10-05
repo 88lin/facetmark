@@ -77,6 +77,13 @@ export default function App() {
   );
 }
 
+function SavedDate({ seconds, language }: { seconds?: number | null; language: Language }) {
+  if (seconds == null) return null;
+  const date = new Date(seconds * 1000);
+  if (!Number.isFinite(date.getTime())) return null;
+  return <time dateTime={date.toISOString()}>{date.toLocaleDateString(language === "zh" ? "zh-CN" : "en", { month: "short", day: "numeric" })}</time>;
+}
+
 function Workbench({
   language,
   theme,
@@ -470,8 +477,8 @@ function Workbench({
       ) : (
         <div className="preview-scroll">
           <div className="preview-title">
-            <span className="domain">{preview.domain}</span>
             <h1>{preview.title || preview.url}</h1>
+            <span className="domain"><Globe2 size={13}/>{preview.domain}</span>
             <p className="quiet">
               {preview.folder || t("未分类", "Unfiled")}
               {preview.date_added
@@ -541,7 +548,7 @@ function Workbench({
           >
             {previewTab === "body" ? (
               preview.body_text ? (
-                <div className="body-text">{preview.body_text}</div>
+                <div className="body-text">{preview.body_text.split(/\n\s*\n/).filter((paragraph,index)=>index!==0||paragraph.trim()!==preview.title).map((paragraph,index)=><p key={index}>{paragraph}</p>)}</div>
               ) : (
                 <div className="reading-empty">
                   <h3>{t("正文还未保存", "Page text is not saved yet")}</h3>
@@ -671,7 +678,7 @@ function Workbench({
             openView("library");
           }}
         >
-          <Layers3 size={25} />
+          <span className="brand-mark"><Layers3 size={24} /></span>
           <span>Facetmark</span>
         </a>
         <button
@@ -890,6 +897,7 @@ function Workbench({
                   </h1>
                   {setup?.demo && <span className="demo-label">{t("演示数据", "Demo data")}</span>}
                 </div>
+                <p className="workspace-description">{t("从一个线索，回到值得重读的那一页。", "A small clue. A page worth returning to.")}</p>
                 <div className="search-box">
                   <Search size={20} />
                   <input
@@ -984,7 +992,7 @@ function Workbench({
                     onSelect={(id) => select(id)}
                   />
                 )}
-                {loading && !items.length ? (
+                {error && !items.length ? null : (loading || !page) && !items.length ? (
                   <div className="empty">
                     <LoaderCircle className="spin" />
                     {t("正在检索…", "Searching…")}
@@ -1053,7 +1061,7 @@ function Workbench({
                         {(record.domain || record.title || "F").slice(0, 1).toUpperCase()}
                       </span>
                       <span className="result-copy">
-                        <span className="result-title">{record.title || record.url}</span>
+                        <span className="result-title-line"><span className="result-title">{record.title || record.url}</span><SavedDate seconds={record.date_added} language={language} /></span>
                         <span className="result-summary">
                           {record.snippet || record.summary || record.url}
                         </span>
