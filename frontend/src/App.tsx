@@ -47,6 +47,7 @@ import Reader, { Skeleton } from "./Reader";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { motionTiming } from "./motion";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 type View = "library" | "sessions" | "tasks" | "settings" | "setup" | "import";
 type Facet = { value: string; count: number };
@@ -107,6 +108,7 @@ function Workbench({
   setTheme: (t: string) => void;
 }) {
   const t = useText();
+  const reduceMotion = useReducedMotion();
   const [paired, setPaired] = useState(false);
   const [pairingRequired, setPairingRequired] = useState(false);
   const [manualToken, setManualToken] = useState("");
@@ -136,26 +138,38 @@ function Workbench({
   const readerPane = useRef<HTMLElement>(null);
   const readerCache = useRef(new Map<number, Bookmark>());
   const focusTimeline = useRef<gsap.core.Timeline | null>(null);
+  const focusFrame = useRef<number | null>(null);
   const { contextSafe } = useGSAP({ scope: workspace });
   const toggleFocus = contextSafe(() => {
     const pane = readerPane.current;
     if (!pane) return;
     const before = pane.getBoundingClientRect().left;
+    if (focusFrame.current !== null) cancelAnimationFrame(focusFrame.current);
     const next = !focusReading;
     setFocusReading(next);
     // React commits layout before the next frame; do not queue a delayed entrance.
-    requestAnimationFrame(contextSafe(() => {
-      if (!readerPane.current) return;
-      focusTimeline.current?.kill();
-      const after = readerPane.current.getBoundingClientRect().left;
-      if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        gsap.set(readerPane.current, { clearProps: 'transform' });
-        return;
-      }
-      focusTimeline.current = gsap.timeline({ defaults: motionTiming })
-        .fromTo(readerPane.current, { x: before - after }, { x: 0, clearProps: 'transform' });
-    }));
+    focusFrame.current = requestAnimationFrame(
+      contextSafe(() => {
+        if (!readerPane.current) return;
+        focusTimeline.current?.kill();
+        gsap.set(readerPane.current, { x: 0 });
+        const after = readerPane.current.getBoundingClientRect().left;
+        if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          gsap.set(readerPane.current, { clearProps: "transform" });
+          return;
+        }
+        focusTimeline.current = gsap
+          .timeline({ defaults: motionTiming })
+          .fromTo(readerPane.current, { x: before - after }, { x: 0, clearProps: "transform" });
+      }),
+    );
   });
+  useEffect(
+    () => () => {
+      if (focusFrame.current !== null) cancelAnimationFrame(focusFrame.current);
+    },
+    [],
+  );
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [relatedError, setRelatedError] = useState("");
   const [previewRevision, setPreviewRevision] = useState(0);
@@ -241,7 +255,10 @@ function Workbench({
   }, [paired, refresh]);
   useEffect(() => {
     const media = matchMedia("(max-width: 1119px)");
-    const update = () => { setDrawer(media.matches); if (media.matches) setFocusReading(false); };
+    const update = () => {
+      setDrawer(media.matches);
+      if (media.matches) setFocusReading(false);
+    };
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);
@@ -410,7 +427,8 @@ function Workbench({
       .then((record) => {
         if (id === previewId.current && !abort.signal.aborted) {
           readerCache.current.set(record.bookmark_id, record);
-          if (readerCache.current.size > 24) readerCache.current.delete(readerCache.current.keys().next().value!);
+          if (readerCache.current.size > 24)
+            readerCache.current.delete(readerCache.current.keys().next().value!);
           setPreview(record);
         }
       })
@@ -469,25 +487,54 @@ function Workbench({
     setPreviewTab("body");
     setSelected(id);
   };
-  const selectedPosition = items.findIndex(item => item.bookmark_id === selected);
+  const selectedPosition = items.findIndex((item) => item.bookmark_id === selected);
   const moveSelection = (step: number) => {
     const next = items[selectedPosition + step];
-    const button = list.current?.querySelectorAll<HTMLButtonElement>(".result-row")[selectedPosition + step];
-    if (next) { select(next.bookmark_id, button); button?.scrollIntoView({ block: "nearest" }); }
+    const button =
+      list.current?.querySelectorAll<HTMLButtonElement>(".result-row")[selectedPosition + step];
+    if (next) {
+      select(next.bookmark_id, button);
+      button?.scrollIntoView({ block: "nearest" });
+    }
   };
-  const previewContent = <Reader
-    record={preview} selected={selected} pending={selected !== null && !preview && !previewError}
-    error={previewError} related={related} relatedLoading={relatedLoading} relatedError={relatedError}
-    tab={previewTab} setTab={setPreviewTab} hit={items.find(item => item.bookmark_id === selected)}
-    search={search} language={language} onClose={closePreview}
-    onRetry={() => setPreviewRevision(v => v + 1)} onSelect={id => select(id)}
-    onQuery={q => { changeQuery(q); if (drawer) closePreview(); }}
-    onTag={tag => { selectFilter("tag", tag); if (drawer) closePreview(); }}
-    focus={focusReading} onFocus={toggleFocus} canFocus={!drawer}
-    position={selectedPosition} total={items.length}
-    onPrevious={selectedPosition > 0 ? () => moveSelection(-1) : undefined}
-    onNext={selectedPosition >= 0 && selectedPosition < items.length - 1 ? () => moveSelection(1) : undefined}
-  />;
+  const previewContent = (
+    <Reader
+      record={preview}
+      selected={selected}
+      pending={selected !== null && !preview && !previewError}
+      error={previewError}
+      related={related}
+      relatedLoading={relatedLoading}
+      relatedError={relatedError}
+      tab={previewTab}
+      setTab={setPreviewTab}
+      hit={items.find((item) => item.bookmark_id === selected)}
+      search={search}
+      language={language}
+      onClose={closePreview}
+      onRetry={() => setPreviewRevision((v) => v + 1)}
+      onSelect={(id) => select(id)}
+      onQuery={(q) => {
+        changeQuery(q);
+        if (drawer) closePreview();
+      }}
+      onTag={(tag) => {
+        selectFilter("tag", tag);
+        if (drawer) closePreview();
+      }}
+      focus={focusReading}
+      onFocus={toggleFocus}
+      canFocus={!drawer}
+      position={selectedPosition}
+      total={items.length}
+      onPrevious={selectedPosition > 0 ? () => moveSelection(-1) : undefined}
+      onNext={
+        selectedPosition >= 0 && selectedPosition < items.length - 1
+          ? () => moveSelection(1)
+          : undefined
+      }
+    />
+  );
   return (
     <div className="app-shell">
       <aside
@@ -514,7 +561,11 @@ function Workbench({
         <div className="nav-section-label">{t("我的书库", "MY LIBRARY")}</div>
         <nav className="main-nav" aria-label={t("工作区", "Workspace")}>
           <button
-            className={view === "library" && !Object.values(filters).some(v => v !== undefined) ? "active" : ""}
+            className={
+              view === "library" && !Object.values(filters).some((v) => v !== undefined)
+                ? "active"
+                : ""
+            }
             onClick={() => {
               openView("library");
               setFilters({});
@@ -555,7 +606,10 @@ function Workbench({
                       className={filters[field as keyof Filters] === facet.value ? "active" : ""}
                       onClick={() => selectFilter(field as keyof Filters, facet.value)}
                     >
-                      <span>{field === "folder" && <Folder size={13} />}{facet.value}</span>
+                      <span>
+                        {field === "folder" && <Folder size={13} />}
+                        {facet.value}
+                      </span>
                       <small>{facet.count}</small>
                     </button>
                   ))
@@ -609,8 +663,18 @@ function Workbench({
               {language === "zh" ? "EN" : "中文"}
             </button>
             <span className="local-status">
-              {connectionError ? <WifiOff size={13} /> : paired ? <Check size={13} /> : <LoaderCircle size={13} className="spin" />}
-              {connectionError ? t("连接中断", "Disconnected") : paired ? t("书库已连接", "Connected") : t("连接中", "Connecting")}
+              {connectionError ? (
+                <WifiOff size={13} />
+              ) : paired ? (
+                <Check size={13} />
+              ) : (
+                <LoaderCircle size={13} className="spin" />
+              )}
+              {connectionError
+                ? t("连接中断", "Disconnected")
+                : paired
+                  ? t("书库已连接", "Connected")
+                  : t("连接中", "Connecting")}
             </span>
           </div>
         </div>
@@ -711,51 +775,58 @@ function Workbench({
         ) : view === "library" ? (
           <>
             <header className="workspace-toolbar">
-              <div className="toolbar-location"><BookmarkIcon size={16}/><span>{t("收藏", "Library")}</span></div>
-                <div className="search-box">
-                  <Search size={20} />
-                  <input
-                    ref={searchInput}
-                    aria-label={t("搜索书签", "Search bookmarks")}
-                    placeholder={t("你想找回什么？", "What would you like to find again?")}
-                    value={input}
-                    onChange={(e) => changeQuery(e.target.value)}
-                    onCompositionStart={() => {
-                      composing.current = true;
-                      abortRef.current?.abort();
-                      requestId.current++;
-                    }}
-                    onCompositionEnd={(e) => {
-                      composing.current = false;
-                      changeQuery(e.currentTarget.value);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.nativeEvent.isComposing && !composing.current)
-                        changeQuery(input);
-                    }}
-                  />
-                  {input ? (
-                    <button
-                      className="icon-button"
-                      aria-label={t("清空搜索", "Clear search")}
-                      onClick={() => changeQuery("")}
-                    >
-                      <X size={16} />
-                    </button>
-                  ) : (
-                    <kbd>Ctrl K</kbd>
-                  )}
-                </div>
+              <div className="toolbar-location">
+                <BookmarkIcon size={16} />
+                <span>{t("收藏", "Library")}</span>
+              </div>
+              <div className="search-box">
+                <Search size={20} />
+                <input
+                  ref={searchInput}
+                  aria-label={t("搜索书签", "Search bookmarks")}
+                  placeholder={t("你想找回什么？", "What would you like to find again?")}
+                  value={input}
+                  onChange={(e) => changeQuery(e.target.value)}
+                  onCompositionStart={() => {
+                    composing.current = true;
+                    abortRef.current?.abort();
+                    requestId.current++;
+                  }}
+                  onCompositionEnd={(e) => {
+                    composing.current = false;
+                    changeQuery(e.currentTarget.value);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.nativeEvent.isComposing && !composing.current)
+                      changeQuery(input);
+                  }}
+                />
+                {input ? (
+                  <button
+                    className="icon-button"
+                    aria-label={t("清空搜索", "Clear search")}
+                    onClick={() => changeQuery("")}
+                  >
+                    <X size={16} />
+                  </button>
+                ) : (
+                  <kbd>Ctrl K</kbd>
+                )}
+              </div>
 
-              <div className="query-tool">                <QuerySuggestions
+              <div className="query-tool">
+                {" "}
+                <QuerySuggestions
                   text={search}
                   onSelect={(value) => {
                     changeQuery(value);
                     searchInput.current?.focus();
                   }}
                 />
-</div>
-              {setup?.demo && <span className="demo-label">{t("合成演示数据", "Synthetic demo")}</span>}
+              </div>
+              {setup?.demo && (
+                <span className="demo-label">{t("合成演示数据", "Synthetic demo")}</span>
+              )}
             </header>
             <section className="results-column" inert={focusReading}>
               <header className="search-header">
@@ -763,19 +834,26 @@ function Workbench({
                   <h1>
                     {search ? t("搜索结果", "Search results") : t("全部书签", "All bookmarks")}
                   </h1>
-                  <span className="result-count" aria-live="polite">{loading ? <LoaderCircle size={13} className="spin" /> : page?.total ?? "—"}{page?.depth_capped ? "+" : ""}</span>
+                  <span className="result-count" aria-live="polite">
+                    {loading ? <LoaderCircle size={13} className="spin" /> : (page?.total ?? "—")}
+                    {page?.depth_capped ? "+" : ""}
+                  </span>
                 </div>
                 <div className="search-controls">
-                <div className="search-meta">
-                  <span>
-                    {search
-                      ? semantic
-                        ? t("关键词 + 语义检索", "Keyword + semantic search")
-                        : t("关键词检索", "Keyword search")
-                      : t("按收藏时间排列", "Recently saved first")}
-                  </span>
-                  <span className="list-key-hint"><kbd>↑</kbd><kbd>↓</kbd>{t("选择", "Navigate")}</span>
-                </div>
+                  <div className="search-meta">
+                    <span>
+                      {search
+                        ? semantic
+                          ? t("关键词 + 语义检索", "Keyword + semantic search")
+                          : t("关键词检索", "Keyword search")
+                        : t("按收藏时间排列", "Recently saved first")}
+                    </span>
+                    <span className="list-key-hint">
+                      <kbd>↑</kbd>
+                      <kbd>↓</kbd>
+                      {t("选择", "Navigate")}
+                    </span>
+                  </div>
                 </div>
                 {Object.entries(filters).some(([, v]) => v !== undefined) && (
                   <div className="filter-chips">
@@ -795,7 +873,13 @@ function Workbench({
               </header>
               {error && (
                 <div className="error search-error" role="alert">
-                  {error}
+                  <strong>
+                    {t(
+                      "搜索暂时不可用，请稍后重试。",
+                      "Search is temporarily unavailable. Please retry.",
+                    )}
+                  </strong>
+                  <p className="error-detail">{error}</p>
                   <button className="text-button" onClick={() => setRequestRevision((v) => v + 1)}>
                     {t("重试", "Retry")}
                   </button>
@@ -818,7 +902,12 @@ function Workbench({
                   />
                 )}
                 {error && !items.length ? null : (loading || !page) && !items.length ? (
-                  <><span role="status" className="sr-only">{t("正在检索…", "Searching…")}</span><Skeleton rows /></>
+                  <>
+                    <span role="status" className="sr-only">
+                      {t("正在检索…", "Searching…")}
+                    </span>
+                    <Skeleton rows />
+                  </>
                 ) : !items.length ? (
                   <div className="empty">
                     <BookmarkIcon size={36} />
@@ -882,12 +971,27 @@ function Workbench({
                     >
                       <span className="result-copy">
                         <span className="result-meta">
-                          <span><span className="site-letter" aria-hidden="true">{(record.domain || record.title || "F").slice(0, 1).toUpperCase()}</span>{record.domain}</span>
+                          <span>
+                            <span className="site-letter" aria-hidden="true">
+                              {(record.domain || record.title || "F").slice(0, 1).toUpperCase()}
+                            </span>
+                            {record.domain}
+                          </span>
                           <SavedDate seconds={record.date_added} language={language} />
                         </span>
                         <span className="result-title">{record.title || record.url}</span>
-                        <span className="result-summary">{record.snippet || record.summary || record.url}</span>
-                        {record.folder && <span className="result-folder"><Folder size={11} />{record.folder}{selected === record.bookmark_id && <span className="reading-label">{t("正在阅读", "Reading")}</span>}</span>}
+                        <span className="result-summary">
+                          {record.snippet || record.summary || record.url}
+                        </span>
+                        {record.folder && (
+                          <span className="result-folder">
+                            <Folder size={11} />
+                            {record.folder}
+                            {selected === record.bookmark_id && (
+                              <span className="reading-label">{t("正在阅读", "Reading")}</span>
+                            )}
+                          </span>
+                        )}
                       </span>
                       <ChevronRight className="row-chevron" size={15} />
                     </button>
@@ -920,7 +1024,11 @@ function Workbench({
                 </div>
               </footer>
             </section>
-            {!drawer && <aside ref={readerPane} className="preview-pane">{previewContent}</aside>}
+            {!drawer && (
+              <aside ref={readerPane} className="preview-pane">
+                {previewContent}
+              </aside>
+            )}
             {drawer && (
               <Dialog.Root
                 open={selected !== null}
@@ -928,21 +1036,48 @@ function Workbench({
                   if (!open) closePreview();
                 }}
               >
-                <Dialog.Portal>
-                  <Dialog.Overlay className="drawer-overlay" />
-                  <Dialog.Content
-                    className="preview-drawer"
-                    aria-describedby={undefined}
-                    onCloseAutoFocus={(e) => {
-                      e.preventDefault();
-                      lastRow.current?.focus();
-                    }}
-                  >
-                    <Dialog.Title className="sr-only">
-                      {t("书签预览", "Bookmark preview")}
-                    </Dialog.Title>
-                    {previewContent}
-                  </Dialog.Content>
+                <Dialog.Portal forceMount>
+                  <AnimatePresence initial={false}>
+                    {selected !== null && (
+                      <Dialog.Overlay forceMount asChild key="overlay">
+                        <motion.div
+                          className="drawer-overlay"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: reduceMotion ? 0 : 0.18 }}
+                        />
+                      </Dialog.Overlay>
+                    )}
+                    {selected !== null && (
+                      <Dialog.Content
+                        forceMount
+                        asChild
+                        key="reader"
+                        aria-describedby={undefined}
+                        onCloseAutoFocus={(e) => {
+                          e.preventDefault();
+                          lastRow.current?.focus();
+                        }}
+                      >
+                        <motion.div
+                          className="preview-drawer"
+                          initial={{ x: reduceMotion ? 0 : "100%" }}
+                          animate={{ x: 0 }}
+                          exit={{ x: reduceMotion ? 0 : "100%" }}
+                          transition={{
+                            duration: reduceMotion ? 0 : 0.22,
+                            ease: [0.22, 1, 0.36, 1],
+                          }}
+                        >
+                          <Dialog.Title className="sr-only">
+                            {t("书签预览", "Bookmark preview")}
+                          </Dialog.Title>
+                          {previewContent}
+                        </motion.div>
+                      </Dialog.Content>
+                    )}
+                  </AnimatePresence>
                 </Dialog.Portal>
               </Dialog.Root>
             )}
@@ -981,7 +1116,12 @@ function Workbench({
                 <Models setup={setup} refresh={refresh} />
                 <ExtensionSettings />
                 <UpdateSettings />
-                <p className="credits">{t("界面组件致谢：", "Interface credits: ")}<a href="https://rareui.com" target="_blank" rel="noreferrer">Rare UI</a></p>
+                <p className="credits">
+                  {t("界面组件致谢：", "Interface credits: ")}
+                  <a href="https://rareui.com" target="_blank" rel="noreferrer">
+                    Rare UI
+                  </a>
+                </p>
               </>
             ) : view === "tasks" ? (
               <>
@@ -1007,6 +1147,7 @@ function Workbench({
                 </header>
                 {sessionsError && (
                   <div role="alert">
+                    <h3>{t("暂时无法读取浏览批次", "Saving sessions could not be loaded")}</h3>
                     <p className="error">{sessionsError}</p>
                     <button className="secondary" onClick={() => setSessionsRevision((v) => v + 1)}>
                       {t("重试浏览批次", "Retry saving sessions")}

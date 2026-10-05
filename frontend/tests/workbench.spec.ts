@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/*", (route) =>
@@ -189,6 +189,8 @@ test("draft status, filtered emptiness and contextual request recovery", async (
   await page.locator(".result-row").first().click();
   await page.getByRole("tab", { name: "相关书签" }).click();
   await expect(page.getByRole("button", { name: "重试相关书签" })).toBeVisible();
+  await expect(page.getByText("暂时无法读取相关书签", { exact: true })).toBeVisible();
+  await expect(page.locator(".reading-progress-track")).toHaveCount(0);
   await page.screenshot({ path: "screenshots/fix-related-error.png", fullPage: true });
   await page.unroute("**/bookmark/*/related");
   await page.getByRole("button", { name: "重试相关书签" }).click();
@@ -224,8 +226,49 @@ test("render matrix: Chinese, English, light, dark, desktop and narrow", async (
           .getByRole("textbox", { name: language === "zh" ? "搜索书签" : "Search bookmarks" })
           .fill("tag:demo");
         await expect(page.locator(".result-row").first()).not.toContainText("CI imported bookmark");
-        if (width >= 1120) await page.locator(".result-row").nth(language === "zh" ? 0 : 1).click();
+        if (width >= 1120)
+          await page
+            .locator(".result-row")
+            .nth(language === "zh" ? 0 : 1)
+            .click();
         if (width >= 1120) await expect(page.locator(".body-text")).toBeVisible();
+        if (language === "zh" && theme === "light" && width === 1440) {
+          const cdp = await page.context().newCDPSession(page);
+          await cdp.send("DOM.enable");
+          await cdp.send("CSS.enable");
+          const { root } = await cdp.send("DOM.getDocument");
+          const { nodeId } = await cdp.send("DOM.querySelector", {
+            nodeId: root.nodeId,
+            selector: ".body-text p",
+          });
+          const fonts = await cdp.send("CSS.getPlatformFontsForNode", { nodeId });
+          const styles = await page.evaluate(() =>
+            Object.fromEntries(
+              ["body", ".result-title", ".result-meta", ".reading", ".preview-title h1"].map(
+                (selector) => {
+                  const element = document.querySelector(selector)!;
+                  const style = getComputedStyle(element);
+                  return [
+                    selector,
+                    {
+                      family: style.fontFamily,
+                      size: style.fontSize,
+                      weight: style.fontWeight,
+                      lineHeight: style.lineHeight,
+                      color: style.color,
+                      background: style.backgroundColor,
+                    },
+                  ];
+                },
+              ),
+            ),
+          );
+          await writeFile(
+            "screenshots/rendering-styles.json",
+            JSON.stringify({ fonts, styles }, null, 2),
+          );
+          await cdp.detach();
+        }
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
           true,
         );

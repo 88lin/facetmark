@@ -38,7 +38,10 @@ export function QuerySuggestions({
   }, [open, fragment]);
   return (
     <details className="query-help" onToggle={(e) => setOpen(e.currentTarget.open)}>
-      <summary title={t("查询语法与建议", "Query syntax and suggestions")}><SlidersHorizontal size={14} /><span>{t("检索语法", "Search syntax")}</span></summary>
+      <summary title={t("查询语法与建议", "Query syntax and suggestions")}>
+        <SlidersHorizontal size={14} />
+        <span>{t("检索语法", "Search syntax")}</span>
+      </summary>
       <p>
         {t(
           "用 domain:、folder:、tag: 缩小范围，用 - 排除，用引号保留词组。",

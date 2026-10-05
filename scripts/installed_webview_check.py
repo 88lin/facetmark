@@ -44,4 +44,31 @@ with sync_playwright() as playwright:
         'body_text': page.locator('h1').first.inner_text(),
         'browser': browser.version, 'synthetic_empty_library': True,
     }, indent=2), encoding='utf-8')
+    # Exercise the installed app's real import/search/reader flow as well as setup.
+    # This disposable export never reads a browser profile or contacts its URLs.
+    page.locator('input[type=file]').set_input_files({
+        'name': 'facetmark-synthetic-ci.html',
+        'mimeType': 'text/html',
+        'buffer': (
+            '<!DOCTYPE NETSCAPE-Bookmark-file-1><DL>'
+            '<DT><A HREF="https://notes.example/reading">合成示例：为收藏留下可以找回的线索</A>'
+            '<DT><A HREF="https://design.example/context">合成示例：保持阅读与检索的上下文</A>'
+            '</DL>'
+        ).encode(),
+    })
+    page.get_by_role('status').filter(has_text='导入完成').wait_for(timeout=15000)
+    page.get_by_role('button', name='先用关键词检索', exact=True).click()
+    page.get_by_role('textbox', name='搜索书签').fill('合成示例')
+    page.locator('.result-row').first.wait_for(timeout=15000)
+    page.locator('.result-row').first.click()
+    page.get_by_text('正文还未保存', exact=True).wait_for(timeout=15000)
+    page.screenshot(path=str(output / 'installed-reader.png'))
+    page.get_by_role('button', name='关闭预览', exact=True).click()
+    assert page.get_by_role('textbox', name='搜索书签').input_value() == '合成示例'
+    (output / 'installed-reader.json').write_text(json.dumps({
+        'commit': os.environ.get('GITHUB_SHA'), 'data': 'synthetic HTML import only',
+        'import_rendered': True, 'keyword_search': True,
+        'reader_missing_body_state': True, 'close_preserved_query': True,
+        'real_provider_used': False,
+    }, indent=2), encoding='utf-8')
     # Stop the CDP connection with Playwright; do not close the user's app.

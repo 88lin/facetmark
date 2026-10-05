@@ -37,7 +37,7 @@ jobs:
         working-directory: frontend
         run: |
           npx playwright install --with-deps chromium
-          sudo apt-get install -y fonts-noto-cjk
+          sudo apt-get install -y fonts-noto-cjk ffmpeg
       - name: Format frontend review sources
         working-directory: frontend
         run: npx --yes prettier@3.6.2 --write src tests
@@ -52,6 +52,7 @@ jobs:
           python scripts/experience_evidence.py
           if test -f frontend/recordings/facetmark-reading.webm; then
             ffmpeg -y -i frontend/recordings/facetmark-reading.webm -vf scale=1280:-2 -c:v libx264 -crf 25 -pix_fmt yuv420p -movflags +faststart frontend/visual-evidence/facetmark-reading.mp4
+            ffmpeg -y -i frontend/recordings/facetmark-reading.webm -vf 'fps=1,scale=480:-2,tile=3x4' -frames:v 1 frontend/visual-evidence/interaction-storyboard.jpg
           fi
       - name: Upload small visual evidence separately
         if: always()
