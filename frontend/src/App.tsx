@@ -916,12 +916,6 @@ function Workbench({
                   </h1>
                   {setup?.demo && <span className="demo-label">{t("演示数据", "Demo data")}</span>}
                 </div>
-                <p className="workspace-description">
-                  {t(
-                    "从一个线索，回到值得重读的那一页。",
-                    "A small clue. A page worth returning to.",
-                  )}
-                </p>
                 <div className="search-box">
                   <Search size={20} />
                   <input
@@ -956,6 +950,7 @@ function Workbench({
                     <kbd>Ctrl K</kbd>
                   )}
                 </div>
+                <div className="search-controls">
                 <QuerySuggestions
                   text={search}
                   onSelect={(value) => {
@@ -975,6 +970,7 @@ function Workbench({
                     {page?.total ?? "—"}
                     {page?.depth_capped ? "+" : ""} {t("条", "items")}
                   </span>
+                </div>
                 </div>
                 {Object.entries(filters).some(([, v]) => v !== undefined) && (
                   <div className="filter-chips">
@@ -1081,9 +1077,6 @@ function Workbench({
                       }}
                       aria-pressed={selected === record.bookmark_id}
                     >
-                      <span className="site-letter" aria-hidden="true">
-                        {(record.domain || record.title || "F").slice(0, 1).toUpperCase()}
-                      </span>
                       <span className="result-copy">
                         <span className="result-title-line">
                           <span className="result-title">{record.title || record.url}</span>
@@ -1093,7 +1086,7 @@ function Workbench({
                           {record.snippet || record.summary || record.url}
                         </span>
                         <span className="result-meta">
-                          <span>{record.domain}</span>
+                          <span><span className="site-letter" aria-hidden="true">{(record.domain || record.title || "F").slice(0, 1).toUpperCase()}</span>{record.domain}</span>
                           {record.folder && (
                             <span>
                               <Folder size={11} />
