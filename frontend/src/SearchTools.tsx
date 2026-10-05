@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LoaderCircle, Sparkles } from "lucide-react";
+import { LoaderCircle, SlidersHorizontal, Sparkles } from "lucide-react";
 import { post, type Bookmark } from "./api";
 import { useText } from "./locale";
 
@@ -38,7 +38,7 @@ export function QuerySuggestions({
   }, [open, fragment]);
   return (
     <details className="query-help" onToggle={(e) => setOpen(e.currentTarget.open)}>
-      <summary>{t("查询语法与建议", "Query syntax and suggestions")}</summary>
+      <summary title={t("查询语法与建议", "Query syntax and suggestions")}><SlidersHorizontal size={14} /><span>{t("检索语法", "Search syntax")}</span></summary>
       <p>
         {t(
           "用 domain:、folder:、tag: 缩小范围，用 - 排除，用引号保留词组。",

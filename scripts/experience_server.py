@@ -98,10 +98,14 @@ def main():
                 + "\n\n"
                 + text
                 + "\n\n"
-                + "这是为界面验证编写的合成示例，不含真实书签。\nThis is synthetic content for interface verification.\n\n"
-                + "留下线索\n\n记录一个具体的问题，把标题、标签和保存时的上下文放在一起。下一次回来时，这些线索会比模糊的印象更有用。\n\n"
-                + "回到原文\n\n摘要帮助你判断方向，原文保留论证与细节。把两者放在同一处，阅读就不必打断检索。\n\n"
-                + "Keep the context\n\nA useful collection connects a question to its source. Keep the result list in place while inspecting the evidence, then return to the next page with the same question in mind."
+                + "收藏一个页面很容易，真正困难的是在需要时重新找到它。标题、来源和保存时的问题，构成了回到那段思考的路径。\n\n"
+                + "## 留下能找回来的线索\n\n记录一个具体的问题，把标题、标签和保存时的上下文放在一起。下一次回来时，这些线索会比模糊的印象更有用。\n\n"
+                + "文件夹回答它属于哪里，标签记录它与什么有关，而一句自己的问题，往往能解释为什么当时值得收藏。三者并不需要重复。\n\n"
+                + "## 从摘要回到原文\n\n摘要帮助你判断方向，原文保留论证与细节。把两者放在同一处，阅读就不必打断检索。\n\n"
+                + "读到一个有用的段落时，试着追问：它解决了什么问题？这个结论依赖哪些条件？哪些细节值得回到原网页继续核对？\n\n"
+                + "## 保持思考的上下文\n\n在结果之间切换时，让问题留在原处。你可以继续比较下一条收藏，也可以展开当前文章，读完后再回到刚才的位置。\n\n"
+                + "A useful collection connects a question to its source. Keep the result list in place while inspecting the evidence, then return with the same question in mind.\n\n"
+                + "这是为界面验证编写的合成示例，不含真实书签。This is synthetic content for interface verification."
             )
             store_body(conn, record["bookmark_id"], body=body)
         asyncio.run(service.index_all(conn, settings=settings, fetch=False))

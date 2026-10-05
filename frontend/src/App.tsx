@@ -42,7 +42,11 @@ import { Locale, useText, type Language } from "./locale";
 import SetupFlow, { Importer } from "./Setup";
 import { ExtensionSettings, Models, UpdateSettings } from "./Settings";
 import { Tasks } from "./Tasks";
-import { QuerySuggestions, SearchAnswer, SearchExplanation } from "./SearchTools";
+import { QuerySuggestions, SearchAnswer } from "./SearchTools";
+import Reader, { Skeleton } from "./Reader";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
+import { motionTiming } from "./motion";
 
 type View = "library" | "sessions" | "tasks" | "settings" | "setup" | "import";
 type Facet = { value: string; count: number };
@@ -127,6 +131,31 @@ function Workbench({
   const [related, setRelated] = useState<Bookmark[]>([]);
   const [drawer, setDrawer] = useState(() => matchMedia("(max-width: 1119px)").matches);
   const [previewTab, setPreviewTab] = useState("body");
+  const [focusReading, setFocusReading] = useState(false);
+  const workspace = useRef<HTMLElement>(null);
+  const readerPane = useRef<HTMLElement>(null);
+  const readerCache = useRef(new Map<number, Bookmark>());
+  const focusTimeline = useRef<gsap.core.Timeline | null>(null);
+  const { contextSafe } = useGSAP({ scope: workspace });
+  const toggleFocus = contextSafe(() => {
+    const pane = readerPane.current;
+    if (!pane) return;
+    const before = pane.getBoundingClientRect().left;
+    const next = !focusReading;
+    setFocusReading(next);
+    // React commits layout before the next frame; do not queue a delayed entrance.
+    requestAnimationFrame(contextSafe(() => {
+      if (!readerPane.current) return;
+      focusTimeline.current?.kill();
+      const after = readerPane.current.getBoundingClientRect().left;
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        gsap.set(readerPane.current, { clearProps: 'transform' });
+        return;
+      }
+      focusTimeline.current = gsap.timeline({ defaults: motionTiming })
+        .fromTo(readerPane.current, { x: before - after }, { x: 0, clearProps: 'transform' });
+    }));
+  });
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [relatedError, setRelatedError] = useState("");
   const [previewRevision, setPreviewRevision] = useState(0);
@@ -152,6 +181,7 @@ function Workbench({
   };
   const closePreview = useCallback(() => {
     setSelected(null);
+    setFocusReading(false);
     requestAnimationFrame(() => lastRow.current?.focus());
   }, []);
   const refresh = useCallback(async () => {
@@ -211,7 +241,7 @@ function Workbench({
   }, [paired, refresh]);
   useEffect(() => {
     const media = matchMedia("(max-width: 1119px)");
-    const update = () => setDrawer(media.matches);
+    const update = () => { setDrawer(media.matches); if (media.matches) setFocusReading(false); };
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);
@@ -220,18 +250,20 @@ function Workbench({
       if (event.isComposing) return;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
+        setFocusReading(false);
         setView("library");
         setNavOpen(false);
         requestAnimationFrame(() => searchInput.current?.focus());
       }
-      if (event.key === "Escape" && selected !== null && !drawer) {
+      if (event.key === "Escape" && selected !== null && !drawer && !event.defaultPrevented) {
         event.preventDefault();
-        closePreview();
+        if (focusReading) setFocusReading(false);
+        else closePreview();
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [selected, drawer, closePreview]);
+  }, [selected, drawer, closePreview, focusReading]);
   useEffect(() => {
     const media = matchMedia("(max-width:719px)");
     const change = () => {
@@ -278,6 +310,7 @@ function Workbench({
     };
   }, [mobileNav, navOpen]);
   function changeQuery(value: string) {
+    setFocusReading(false);
     setInput(value);
     abortRef.current?.abort();
     requestId.current++;
@@ -368,14 +401,18 @@ function Workbench({
     }
     const id = ++previewId.current;
     const abort = new AbortController();
-    setPreview(null);
+    setPreview(readerCache.current.get(selected) || null);
     setRelated([]);
     setPreviewError("");
     setRelatedError("");
     setRelatedLoading(true);
     api<Bookmark>(`/bookmark/${selected}?body=true`, { signal: abort.signal })
       .then((record) => {
-        if (id === previewId.current) setPreview(record);
+        if (id === previewId.current && !abort.signal.aborted) {
+          readerCache.current.set(record.bookmark_id, record);
+          if (readerCache.current.size > 24) readerCache.current.delete(readerCache.current.keys().next().value!);
+          setPreview(record);
+        }
       })
       .catch((e) => {
         if (!abort.signal.aborted) setPreviewError(String(e));
@@ -412,6 +449,7 @@ function Workbench({
   }, [view, paired, sessionsRevision]);
   const items = page?.items || page?.hits || [];
   function selectFilter(key: keyof Filters, value: string | number | undefined) {
+    setFocusReading(false);
     abortRef.current?.abort();
     requestId.current++;
     setFilters((old) => ({ ...old, [key]: value }));
@@ -426,257 +464,30 @@ function Workbench({
   }
   const select = (id: number, button?: HTMLButtonElement) => {
     if (button) lastRow.current = button;
+    setPreview(readerCache.current.get(id) || null);
+    setPreviewError("");
+    setPreviewTab("body");
     setSelected(id);
   };
-  const previewContent = (
-    <>
-      <header className="preview-heading">
-        <span>
-          <FileText size={16} />
-          {t("阅读预览", "Reading preview")}
-        </span>
-        <button
-          className="icon-button"
-          title={t("关闭预览", "Close preview")}
-          aria-label={t("关闭预览", "Close preview")}
-          onClick={closePreview}
-        >
-          <PanelRightClose />
-        </button>
-      </header>
-      {previewError ? (
-        <div className="empty">
-          <p className="error" role="alert">
-            {previewError}
-          </p>
-          <button
-            className="secondary"
-            onClick={() => {
-              const id = selected;
-              setSelected(null);
-              setTimeout(() => setSelected(id), 0);
-            }}
-          >
-            {t("重试", "Retry")}
-          </button>
-        </div>
-      ) : !preview ? (
-        <div className="empty">
-          {selected ? (
-            <>
-              <LoaderCircle className="spin" />
-              <p>{t("正在读取…", "Loading page…")}</p>
-            </>
-          ) : (
-            <>
-              <FileText size={32} />
-              <h2>{t("留在此处，读得更深", "Read without losing your place")}</h2>
-              <p>
-                {t(
-                  "选择一条书签，在这里查看正文、摘要和相关内容。",
-                  "Select a bookmark to read its text, summary and related pages here.",
-                )}
-              </p>
-              <span className="key-hint">↑ ↓ {t("浏览列表", "navigate results")}</span>
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="preview-scroll">
-          <div className="preview-title">
-            <h1>{preview.title || preview.url}</h1>
-            <span className="domain">
-              <Globe2 size={13} />
-              {preview.domain}
-            </span>
-            <p className="quiet">
-              {preview.folder || t("未分类", "Unfiled")}
-              {preview.date_added
-                ? ` · ${new Date(preview.date_added * 1000).toLocaleDateString(language === "zh" ? "zh-CN" : "en")}`
-                : ""}
-            </p>
-            {safeUrl(preview.url) && (
-              <a
-                className="external-link"
-                href={safeUrl(preview.url)}
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => {
-                  post("/open", { bookmark_id: preview.bookmark_id, query: search }).catch(
-                    () => {},
-                  );
-                }}
-              >
-                {t("打开原网页", "Open original")}
-                <ExternalLink size={14} />
-              </a>
-            )}
-          </div>
-          <SearchExplanation hit={items.find((item) => item.bookmark_id === selected)} />
-          <div
-            className="preview-tabs"
-            role="tablist"
-            aria-label={t("预览内容", "Preview content")}
-          >
-            {[
-              ["body", t("正文", "Page text")],
-              ["summary", t("AI 摘要", "AI summary")],
-              ["related", t("相关书签", "Related")],
-            ].map(([id, label]) => (
-              <button
-                role="tab"
-                id={`preview-tab-${id}`}
-                aria-controls="preview-tabpanel"
-                tabIndex={previewTab === id ? 0 : -1}
-                aria-selected={previewTab === id}
-                key={id}
-                onKeyDown={(e) => {
-                  const tabs = ["body", "summary", "related"];
-                  if (["ArrowRight", "ArrowLeft", "Home", "End"].includes(e.key)) {
-                    e.preventDefault();
-                    const next =
-                      e.key === "Home"
-                        ? "body"
-                        : e.key === "End"
-                          ? "related"
-                          : tabs[(tabs.indexOf(id) + (e.key === "ArrowRight" ? 1 : 2)) % 3];
-                    setPreviewTab(next);
-                    document.getElementById(`preview-tab-${next}`)?.focus();
-                  }
-                }}
-                onClick={() => setPreviewTab(id)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <div
-            role="tabpanel"
-            id="preview-tabpanel"
-            aria-labelledby={`preview-tab-${previewTab}`}
-            className="reading"
-          >
-            {previewTab === "body" ? (
-              preview.body_text ? (
-                <div className="body-text">
-                  {preview.body_text
-                    .split(/\n\s*\n/)
-                    .filter((paragraph, index) => index !== 0 || paragraph.trim() !== preview.title)
-                    .map((paragraph, index) => (
-                      <p key={index}>{paragraph}</p>
-                    ))}
-                </div>
-              ) : (
-                <div className="reading-empty">
-                  <h3>{t("正文还未保存", "Page text is not saved yet")}</h3>
-                  <p>
-                    {t(
-                      "仍可用标题和网址搜索。可在任务中提取正文，或直接打开原网页。",
-                      "Search still works on titles and URLs. Fetch text from Tasks, or open the original page.",
-                    )}
-                  </p>
-                </div>
-              )
-            ) : previewTab === "summary" ? (
-              <>
-                <div className="summary-label">
-                  <Sparkles size={16} />
-                  {preview.indexed?.summary_basis === "title"
-                    ? t("基于标题推断", "Inferred from title")
-                    : t("基于已保存内容", "From saved content")}
-                </div>
-                <p>
-                  {preview.indexed?.enriched_by
-                    ? preview.summary
-                    : t(
-                        "尚未生成 AI 摘要。配置模型后，在任务中开始索引。",
-                        "No AI summary yet. Configure models and start indexing from Tasks.",
-                      )}
-                </p>
-                {!!preview.key_points?.length && (
-                  <ul>
-                    {preview.key_points.map((point) => (
-                      <li key={point}>{point}</li>
-                    ))}
-                  </ul>
-                )}
-                {!!preview.intent_queries?.length && (
-                  <>
-                    <h3>{t("这些问题也能找到它", "Questions that lead here")}</h3>
-                    {preview.intent_queries.map((q) => (
-                      <button
-                        className="suggested-query"
-                        key={q}
-                        onClick={() => {
-                          changeQuery(q);
-                          setView("library");
-                          if (drawer) closePreview();
-                        }}
-                      >
-                        {q}
-                        <ArrowRight size={14} />
-                      </button>
-                    ))}
-                  </>
-                )}
-              </>
-            ) : relatedLoading ? (
-              <p role="status">{t("正在读取相关书签…", "Loading related pages…")}</p>
-            ) : relatedError ? (
-              <div role="alert">
-                <p className="error">{relatedError}</p>
-                <button className="secondary" onClick={() => setPreviewRevision((v) => v + 1)}>
-                  {t("重试相关书签", "Retry related pages")}
-                </button>
-              </div>
-            ) : related.length ? (
-              related.map((record) => (
-                <button
-                  className="related-item"
-                  key={record.bookmark_id}
-                  onClick={() => select(record.bookmark_id)}
-                >
-                  <span>{record.title || record.url}</span>
-                  <small>{record.domain}</small>
-                </button>
-              ))
-            ) : (
-              <p className="quiet">
-                {t(
-                  "暂无相关书签。完成索引后，关联会在这里出现。",
-                  "No related pages yet. Connections appear here after indexing.",
-                )}
-              </p>
-            )}
-          </div>
-          {!!preview.tags?.length && (
-            <div className="preview-tags">
-              <Tags size={14} />
-              {preview.tags.map((tag) => (
-                <button
-                  key={tag}
-                  onClick={() => {
-                    selectFilter("tag", tag);
-                    if (drawer) closePreview();
-                  }}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-          )}
-          {preview.privacy_skipped && (
-            <p className="notice">
-              {t(
-                "此书签已从云端处理和正文抓取中排除。",
-                "This bookmark is excluded from model processing and fetching.",
-              )}
-            </p>
-          )}
-        </div>
-      )}
-    </>
-  );
+  const selectedPosition = items.findIndex(item => item.bookmark_id === selected);
+  const moveSelection = (step: number) => {
+    const next = items[selectedPosition + step];
+    const button = list.current?.querySelectorAll<HTMLButtonElement>(".result-row")[selectedPosition + step];
+    if (next) { select(next.bookmark_id, button); button?.scrollIntoView({ block: "nearest" }); }
+  };
+  const previewContent = <Reader
+    record={preview} selected={selected} pending={selected !== null && !preview && !previewError}
+    error={previewError} related={related} relatedLoading={relatedLoading} relatedError={relatedError}
+    tab={previewTab} setTab={setPreviewTab} hit={items.find(item => item.bookmark_id === selected)}
+    search={search} language={language} onClose={closePreview}
+    onRetry={() => setPreviewRevision(v => v + 1)} onSelect={id => select(id)}
+    onQuery={q => { changeQuery(q); if (drawer) closePreview(); }}
+    onTag={tag => { selectFilter("tag", tag); if (drawer) closePreview(); }}
+    focus={focusReading} onFocus={toggleFocus} canFocus={!drawer}
+    position={selectedPosition} total={items.length}
+    onPrevious={selectedPosition > 0 ? () => moveSelection(-1) : undefined}
+    onNext={selectedPosition >= 0 && selectedPosition < items.length - 1 ? () => moveSelection(1) : undefined}
+  />;
   return (
     <div className="app-shell">
       <aside
@@ -700,20 +511,10 @@ function Workbench({
           </span>
           <span>Facetmark</span>
         </a>
-        <button
-          className="nav-search"
-          onClick={() => {
-            openView("library");
-            requestAnimationFrame(() => searchInput.current?.focus());
-          }}
-        >
-          <Search />
-          {t("搜索收藏", "Search library")}
-          <kbd>Ctrl K</kbd>
-        </button>
+        <div className="nav-section-label">{t("我的书库", "MY LIBRARY")}</div>
         <nav className="main-nav" aria-label={t("工作区", "Workspace")}>
           <button
-            className={view === "library" ? "active" : ""}
+            className={view === "library" && !Object.values(filters).some(v => v !== undefined) ? "active" : ""}
             onClick={() => {
               openView("library");
               setFilters({});
@@ -754,7 +555,7 @@ function Workbench({
                       className={filters[field as keyof Filters] === facet.value ? "active" : ""}
                       onClick={() => selectFilter(field as keyof Filters, facet.value)}
                     >
-                      <span>{facet.value}</span>
+                      <span>{field === "folder" && <Folder size={13} />}{facet.value}</span>
                       <small>{facet.count}</small>
                     </button>
                   ))
@@ -808,8 +609,8 @@ function Workbench({
               {language === "zh" ? "EN" : "中文"}
             </button>
             <span className="local-status">
-              {connectionError ? <WifiOff size={13} /> : <Check size={13} />}{" "}
-              {t("本地书库", "Local library")}
+              {connectionError ? <WifiOff size={13} /> : paired ? <Check size={13} /> : <LoaderCircle size={13} className="spin" />}
+              {connectionError ? t("连接中断", "Disconnected") : paired ? t("书库已连接", "Connected") : t("连接中", "Connecting")}
             </span>
           </div>
         </div>
@@ -822,8 +623,9 @@ function Workbench({
         />
       )}
       <main
+        ref={workspace}
         inert={mobileNav && navOpen}
-        className={`main-workspace ${view === "library" ? "with-preview" : ""}`}
+        className={`main-workspace ${view === "library" ? "with-preview" : ""} ${focusReading && view === "library" ? "focus-mode" : ""}`}
       >
         <div className="mobile-toolbar">
           <button
@@ -908,14 +710,8 @@ function Workbench({
           </div>
         ) : view === "library" ? (
           <>
-            <section className="results-column">
-              <header className="search-header">
-                <div className="workspace-heading">
-                  <h1>
-                    {search ? t("搜索结果", "Search results") : t("全部书签", "All bookmarks")}
-                  </h1>
-                  {setup?.demo && <span className="demo-label">{t("演示数据", "Demo data")}</span>}
-                </div>
+            <header className="workspace-toolbar">
+              <div className="toolbar-location"><BookmarkIcon size={16}/><span>{t("收藏", "Library")}</span></div>
                 <div className="search-box">
                   <Search size={20} />
                   <input
@@ -950,14 +746,26 @@ function Workbench({
                     <kbd>Ctrl K</kbd>
                   )}
                 </div>
-                <div className="search-controls">
-                <QuerySuggestions
+
+              <div className="query-tool">                <QuerySuggestions
                   text={search}
                   onSelect={(value) => {
                     changeQuery(value);
                     searchInput.current?.focus();
                   }}
                 />
+</div>
+              {setup?.demo && <span className="demo-label">{t("合成演示数据", "Synthetic demo")}</span>}
+            </header>
+            <section className="results-column" inert={focusReading}>
+              <header className="search-header">
+                <div className="workspace-heading">
+                  <h1>
+                    {search ? t("搜索结果", "Search results") : t("全部书签", "All bookmarks")}
+                  </h1>
+                  <span className="result-count" aria-live="polite">{loading ? <LoaderCircle size={13} className="spin" /> : page?.total ?? "—"}{page?.depth_capped ? "+" : ""}</span>
+                </div>
+                <div className="search-controls">
                 <div className="search-meta">
                   <span>
                     {search
@@ -966,10 +774,7 @@ function Workbench({
                         : t("关键词检索", "Keyword search")
                       : t("按收藏时间排列", "Recently saved first")}
                   </span>
-                  <span>
-                    {page?.total ?? "—"}
-                    {page?.depth_capped ? "+" : ""} {t("条", "items")}
-                  </span>
+                  <span className="list-key-hint"><kbd>↑</kbd><kbd>↓</kbd>{t("选择", "Navigate")}</span>
                 </div>
                 </div>
                 {Object.entries(filters).some(([, v]) => v !== undefined) && (
@@ -1013,10 +818,7 @@ function Workbench({
                   />
                 )}
                 {error && !items.length ? null : (loading || !page) && !items.length ? (
-                  <div className="empty">
-                    <LoaderCircle className="spin" />
-                    {t("正在检索…", "Searching…")}
-                  </div>
+                  <><span role="status" className="sr-only">{t("正在检索…", "Searching…")}</span><Skeleton rows /></>
                 ) : !items.length ? (
                   <div className="empty">
                     <BookmarkIcon size={36} />
@@ -1058,6 +860,7 @@ function Workbench({
                 ) : (
                   items.map((record, index) => (
                     <button
+                      data-bookmark-id={record.bookmark_id}
                       className={`result-row ${selected === record.bookmark_id ? "selected" : ""}`}
                       key={record.bookmark_id}
                       onClick={(e) => select(record.bookmark_id, e.currentTarget)}
@@ -1078,22 +881,13 @@ function Workbench({
                       aria-pressed={selected === record.bookmark_id}
                     >
                       <span className="result-copy">
-                        <span className="result-title-line">
-                          <span className="result-title">{record.title || record.url}</span>
-                          <SavedDate seconds={record.date_added} language={language} />
-                        </span>
-                        <span className="result-summary">
-                          {record.snippet || record.summary || record.url}
-                        </span>
                         <span className="result-meta">
                           <span><span className="site-letter" aria-hidden="true">{(record.domain || record.title || "F").slice(0, 1).toUpperCase()}</span>{record.domain}</span>
-                          {record.folder && (
-                            <span>
-                              <Folder size={11} />
-                              {record.folder}
-                            </span>
-                          )}
+                          <SavedDate seconds={record.date_added} language={language} />
                         </span>
+                        <span className="result-title">{record.title || record.url}</span>
+                        <span className="result-summary">{record.snippet || record.summary || record.url}</span>
+                        {record.folder && <span className="result-folder"><Folder size={11} />{record.folder}{selected === record.bookmark_id && <span className="reading-label">{t("正在阅读", "Reading")}</span>}</span>}
                       </span>
                       <ChevronRight className="row-chevron" size={15} />
                     </button>
@@ -1126,7 +920,7 @@ function Workbench({
                 </div>
               </footer>
             </section>
-            {!drawer && <aside className="preview-pane">{previewContent}</aside>}
+            {!drawer && <aside ref={readerPane} className="preview-pane">{previewContent}</aside>}
             {drawer && (
               <Dialog.Root
                 open={selected !== null}
@@ -1187,6 +981,7 @@ function Workbench({
                 <Models setup={setup} refresh={refresh} />
                 <ExtensionSettings />
                 <UpdateSettings />
+                <p className="credits">{t("界面组件致谢：", "Interface credits: ")}<a href="https://rareui.com" target="_blank" rel="noreferrer">Rare UI</a></p>
               </>
             ) : view === "tasks" ? (
               <>

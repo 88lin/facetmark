@@ -45,6 +45,21 @@ jobs:
         if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
         working-directory: frontend
         run: npm test
+      - name: Prepare small visual evidence with source provenance
+        if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
+        run: |
+          pip install pillow
+          python scripts/experience_evidence.py
+          if test -f frontend/recordings/facetmark-reading.webm; then
+            ffmpeg -y -i frontend/recordings/facetmark-reading.webm -vf scale=1280:-2 -c:v libx264 -crf 25 -pix_fmt yuv420p -movflags +faststart frontend/visual-evidence/facetmark-reading.mp4
+          fi
+      - name: Upload small visual evidence separately
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: facetmark-visual-evidence
+          path: frontend/visual-evidence/
+          retention-days: 14
       - name: Build Python distributions containing the workbench
         if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
         run: python -m build

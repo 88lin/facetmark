@@ -224,7 +224,7 @@ test("render matrix: Chinese, English, light, dark, desktop and narrow", async (
           .getByRole("textbox", { name: language === "zh" ? "搜索书签" : "Search bookmarks" })
           .fill("tag:demo");
         await expect(page.locator(".result-row").first()).not.toContainText("CI imported bookmark");
-        if (width >= 1120) await page.locator(".result-row").nth(1).click();
+        if (width >= 1120) await page.locator(".result-row").nth(language === "zh" ? 0 : 1).click();
         if (width >= 1120) await expect(page.locator(".body-text")).toBeVisible();
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
           true,
