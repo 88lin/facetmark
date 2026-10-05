@@ -103,16 +103,14 @@ test("setup, separate model tests, consent and persistent tasks", async ({ page 
 
 test("import uses the real endpoint and survives a reload", async ({ page }) => {
   await page.goto("/app");
-  await page.locator('.sidebar').getByRole("button", { name: "导入书签", exact: true }).click();
-  await page
-    .locator("input[type=file]")
-    .setInputFiles({
-      name: "synthetic.html",
-      mimeType: "text/html",
-      buffer: Buffer.from(
-        '<!DOCTYPE NETSCAPE-Bookmark-file-1><DL><DT><A HREF="https://import.example/unique">CI imported bookmark</A></DL>',
-      ),
-    });
+  await page.locator(".sidebar").getByRole("button", { name: "导入书签", exact: true }).click();
+  await page.locator("input[type=file]").setInputFiles({
+    name: "synthetic.html",
+    mimeType: "text/html",
+    buffer: Buffer.from(
+      '<!DOCTYPE NETSCAPE-Bookmark-file-1><DL><DT><A HREF="https://import.example/unique">CI imported bookmark</A></DL>',
+    ),
+  });
   await expect(page.getByRole("status")).toContainText("导入完成");
   await page.getByRole("button", { name: "全部书签", exact: false }).click();
   await page.getByRole("textbox", { name: "搜索书签" }).fill("CI imported");
