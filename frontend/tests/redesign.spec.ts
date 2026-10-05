@@ -84,6 +84,22 @@ test("reader tabs, expansion reversal and keyboard preserve query and scroll con
   await page.keyboard.press("Escape");
   await expect(page.locator(".result-row").first()).toBeFocused();
   await expect(input).toHaveValue("tag:demo");
+
+  // Keep a real, visible selection in a scrolled index so focus restoration
+  // does not need to bring an offscreen row back into view.
+  const list = page.locator(".result-list");
+  const selectedRow = page.locator(".result-row").nth(8);
+  await selectedRow.click();
+  await expect(page.locator(".body-text")).toBeVisible();
+  const listPosition = await list.evaluate((el) => el.scrollTop);
+  expect(listPosition).toBeGreaterThan(0);
+  await page.locator(".focus-reading").click();
+  await page.locator(".focus-reading").click();
+  await expect(page.locator(".main-workspace")).not.toHaveClass(/focus-mode/);
+  await page.keyboard.press("Escape");
+  await expect(selectedRow).toBeFocused();
+  expect(Math.abs((await list.evaluate((el) => el.scrollTop)) - listPosition)).toBeLessThanOrEqual(1);
+  await expect(input).toHaveValue("tag:demo");
 });
 
 test("narrow reader reverses, contains focus and supports reduced motion", async ({ page }) => {
