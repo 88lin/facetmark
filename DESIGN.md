@@ -1,99 +1,98 @@
 ---
-name: "Facetmark workbench"
-description: "An open search and reading desk in porcelain white, graphite and plum."
+name: "Facetmark collection and reader"
+description: "A content-led collection on a violet-grey desk, with porcelain reading surfaces and plum interactions."
 colors:
   canvas: "#ffffff"
-  rail: "#f7f7fa"
+  desk: "#f5f4f7"
   inset: "#f5f5f8"
-  ink: "#282831"
-  muted: "#696977"
-  rule: "#e9e8ef"
-  accent: "#7255c1"
-  soft: "#f1edf9"
+  ink: "#272330"
+  muted: "#6d6678"
+  rule: "#e7e3ed"
+  accent: "#7050b5"
+  soft: "#eee8f7"
   on-accent: "#fff"
   danger: "#ad3448"
   overlay: "#20202b55"
-  canvas-dark: "#202027"
-  rail-dark: "#1b1b22"
+  canvas-dark: "#28252f"
+  desk-dark: "#1c1a20"
   inset-dark: "#282830"
-  ink-dark: "#eeeef3"
-  muted-dark: "#aba9b8"
-  rule-dark: "#35343f"
-  accent-dark: "#b7a0ec"
-  soft-dark: "#30293f"
+  ink-dark: "#f0edf5"
+  muted-dark: "#b0a8bd"
+  rule-dark: "#3e3749"
+  accent-dark: "#c0a4ef"
+  soft-dark: "#393044"
   on-accent-dark: "#241b35"
   danger-dark: "#f7a0ae"
   overlay-dark: "#09091099"
 typography:
-  headline:
+  collection-heading:
     fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
-    fontSize: "26px"
-    fontWeight: 600
+    fontSize: "27px"
+    lineHeight: 1.35
+    fontWeight: 650
+    letterSpacing: "-0.025em"
+  page-title:
+    fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
+    fontSize: "30px"
     lineHeight: 1.5
+    fontWeight: 600
     letterSpacing: "-0.02em"
-  section:
-    fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
-    fontSize: "20px"
-    fontWeight: 600
-    lineHeight: 1.5
-    letterSpacing: "-0.02em"
-  subheading:
-    fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
-    fontSize: "16px"
-    fontWeight: 600
-    lineHeight: 1.5
-    letterSpacing: "-0.02em"
-  workspace-title:
-    fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
-    fontSize: "16px"
-    fontWeight: 600
-    lineHeight: 1.5
-    letterSpacing: "0"
   article-title:
     fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
-    fontSize: "28px"
-    fontWeight: 600
-    lineHeight: 1.5
+    fontSize: "30px"
+    lineHeight: 1.4
+    fontWeight: 650
+    letterSpacing: "-0.025em"
+  article-title-focus:
+    fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
+    fontSize: "34px"
+    lineHeight: 1.4
+    fontWeight: 650
     letterSpacing: "-0.025em"
   article-section:
     fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
     fontSize: "18px"
-    fontWeight: 600
     lineHeight: 1.65
+    fontWeight: 600
     letterSpacing: "-0.02em"
+  collection-title:
+    fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
+    fontSize: "19px"
+    lineHeight: 1.55
+    fontWeight: 600
+  index-title:
+    fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
+    fontSize: "16px"
+    lineHeight: 1.55
+    fontWeight: 600
+  collection-summary:
+    fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
+    fontSize: "14px"
+    lineHeight: 1.7
+  index-summary:
+    fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
+    fontSize: "13px"
+    lineHeight: 1.7
   body:
     fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
     fontSize: "14px"
     lineHeight: 1.6
-  result-title:
-    fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
-    fontSize: "14px"
-    fontWeight: 600
-    lineHeight: 1.6
-  result-summary:
-    fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
-    fontSize: "12px"
-    lineHeight: 1.7
-  result-meta:
-    fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
-    fontSize: "11px"
-    lineHeight: "18px"
   reading:
     fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
     fontSize: "16px"
-    lineHeight: 1.95
+    lineHeight: 1.85
   button:
     fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
     fontSize: "13px"
-    fontWeight: 550
     lineHeight: 1.5
+    fontWeight: 550
   search:
     fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
-    fontSize: "14px"
+    fontSize: "15px"
     lineHeight: 1.6
   tab:
     fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
-    fontSize: "12px"
+    fontSize: "13px"
     lineHeight: 1.6
   label:
     fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
@@ -103,10 +102,6 @@ typography:
     fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
     fontSize: "11px"
     lineHeight: 1.6
-  micro:
-    fontFamily: "\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif"
-    fontSize: "10px"
-    lineHeight: 1.6
   diagnostic:
     fontFamily: "ui-monospace, Consolas, monospace"
     fontSize: "11px"
@@ -115,10 +110,9 @@ rounded:
   hint: "4px"
   facet: "5px"
   control: "6px"
-  search: "7px"
   popover: "8px"
-  session: "10px"
-  panel: "12px"
+  entry: "10px"
+  sheet: "12px"
 spacing:
   micro: "4px"
   tight: "6px"
@@ -129,8 +123,8 @@ spacing:
   section: "24px"
   gutter: "28px"
   large: "32px"
-  title-top: "36px"
-  reader-gutter: "48px"
+  frame: "36px"
+  reader-gutter: "46px"
 components:
   button-primary:
     backgroundColor: "{colors.accent}"
@@ -153,196 +147,234 @@ components:
     rounded: "{rounded.control}"
     width: "32px"
     height: "32px"
+  reader-back:
+    textColor: "{colors.muted}"
+    typography: "{typography.tab}"
   search-field:
-    backgroundColor: "{colors.inset}"
+    backgroundColor: "{colors.canvas}"
     textColor: "{colors.ink}"
     typography: "{typography.search}"
-    rounded: "{rounded.search}"
-    padding: "5px 12px"
-    height: "40px"
-  navigation-active:
-    backgroundColor: "{colors.soft}"
-    textColor: "{colors.accent}"
-    rounded: "{rounded.control}"
-    padding: "9px 12px"
+    rounded: "{rounded.entry}"
+    padding: "7px 15px"
+    height: "48px"
+  header-navigation-active:
+    textColor: "{colors.ink}"
+    typography: "{typography.tab}"
+    padding: "0"
   filter-chip:
     backgroundColor: "{colors.soft}"
     textColor: "{colors.accent}"
-    typography: "{typography.caption}"
-    rounded: "{rounded.hint}"
-    padding: "3px 8px"
-  settings-panel:
+    typography: "{typography.label}"
+    rounded: "{rounded.facet}"
+    padding: "5px 9px"
+  collection-entry:
     textColor: "{colors.ink}"
-    padding: "24px 0"
-  apply-panel:
+    typography: "{typography.collection-title}"
+    padding: "23px 16px 24px"
+  result-selected:
     backgroundColor: "{colors.canvas}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.panel}"
-    padding: "24px"
-  result-selected:
-    backgroundColor: "{colors.soft}"
+    rounded: "{rounded.entry}"
+    padding: "19px 20px"
+  reading-sheet:
+    backgroundColor: "{colors.canvas}"
     textColor: "{colors.ink}"
-    padding: "12px 24px"
+    rounded: "{rounded.sheet}"
   preview-tabs:
     backgroundColor: "{colors.canvas}"
     textColor: "{colors.muted}"
     typography: "{typography.tab}"
-    padding: "0 24px"
-    height: "47px"
+    padding: "0 26px"
+    height: "54px"
+  apply-panel:
+    backgroundColor: "{colors.canvas}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.sheet}"
+    padding: "24px"
+  model-field:
+    backgroundColor: "{colors.canvas}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.control}"
+    padding: "11px 12px"
 ---
 
-# Design System: Facetmark workbench
+# Design System: Facetmark collection and reader
 
 ## Overview
 
-**Creative North Star: "Shared workbench — Operate / Read"**
+**Creative North Star: "Shared collection and reader — Operate / Read"**
 
-Facetmark is an index beside an open reading desk. Porcelain white working surfaces, faint violet-grey navigation, graphite text and plum selection marks make finding a saved thought and reading its source feel continuous. Small controls and ruled rows establish precision; generous prose establishes a different pace for reading.
+Facetmark puts saved content on a quiet violet-grey desk. A bounded collection gives titles and excerpts room to invite recognition; selecting an entry makes that collection a supporting index beside a porcelain reading sheet. Graphite text and restrained plum interactions retain Facetmark’s independent identity and layered mark.
 
-The workbench keeps Facetmark’s layered mark and independent identity. Its brightness and order continue the approved direction, while the settled implementation uses source-first rows and a stable reader. The shared React interface serves the Tauri desktop shell, Python distribution and Docker image, with local Chinese and English typography and matching light/dark semantic roles.
+The interface changes proportion with the task. Navigation lives in a horizontal header, filters open on demand, and focused reading removes competing chrome. The same components serve the desktop and Web interface in Chinese or English, using local font fallbacks and corresponding light/dark semantic roles.
 
 **Key Characteristics:**
 
-- White working surfaces and pale navigation, separated by fine rules.
-- Source, title, excerpt and folder form a compact result hierarchy.
-- Fixed reader controls frame an independently scrolling article.
-- Focus reading expands within the same workspace; narrow windows use a modal drawer.
-- Plum marks actions and selection; restrained motion preserves context.
+- Title and excerpt lead the collection; source and saved date support them.
+- An open two-column collection becomes a subordinate index beside the article.
+- Porcelain sheets sit on a violet-grey desk with fine rules and restrained soft depth.
+- Reader tabs and actions stay outside the article scroller; details are disclosed on demand.
+- Focus reading hides navigation, utilities, search and results; narrow reading has a text return control.
 
-This refresh records the shared frontend at UI revision `d618c52`. Source inspection and cloud browser diagnostics agree on the design values below. Experience run `37311576521` completed with 14 tests and 32 captures. Windows installation and the additional nonzero list-scroll assertion passed separately; exact evidence and boundaries are in `docs/desktop-validation.md`. These checks are not user screenshot approval. Product constraints and synthetic-data capture rules remain in PRODUCT.md.
+This authorized refresh records the current source after the rejected permanent-column design. `frontend/src/main.tsx` loads `workbench.css` after `styles.css`: the former owns composition and overrides; the latter supplies shared forms, reader internals and semantic states. Source inspection is the evidence for this document. The corrected composition was confirmed in cloud run 37410551657 and independently reviewed against the user request. Earlier first-batch captures are historical; neither validation nor this document implies user acceptance.
 
 ## Colors
 
-Frontmatter values are normative. Base names map directly to the CSS custom properties; each `-dark` entry supplies the corresponding role under the dark theme.
+Frontmatter is normative. Base names map to the used CSS custom properties; each `-dark` token supplies the same role in the dark theme. The retained but visually superseded navigation-color variable is not a new surface prescription.
 
 ### Primary
 
-- **Plum** (`accent`): primary buttons, links, active navigation, tab indicator, focus rings and reading progress.
-- **Faint Violet** (`soft`): selected rows, active navigation, filter chips, notices and text selection.
+- **Plum** (`accent`): actions, links, header underline, active tabs, selected index titles, focus and measured reading position.
+- **Faint Violet** (`soft`): filter chips, pressed controls, notices and text selection.
 - **On Plum** (`on-accent`): primary-button text.
 
 ### Neutral
 
-- **Porcelain White** (`canvas`): the main workspace, reader, fields and outlined panels.
-- **Violet-grey Navigation** (`rail`): the light navigation surface.
-- **Inset Paper** (`inset`): the resting search field, row hover, disabled fields, skeletons and diagnostic/error surfaces.
-- **Graphite** (`ink`): headings, result titles and body text.
-- **Secondary Graphite** (`muted`): excerpts, metadata, hints and inactive controls.
-- **Fine Rule** (`rule`): structural seams, borders, scrollbars and navigation hover.
-- **Modal Scrim** (`overlay`): modal drawer and mobile navigation backdrops.
+- **Porcelain** (`canvas`): header, search, article sheet, selected index entry, support pages and form fields.
+- **Violet-grey Desk** (`desk`): the shell and collection background, focus header and import drop target.
+- **Inset Paper** (`inset`): shared control hover, disabled fields, skeletons and diagnostic/error surfaces.
+- **Graphite** (`ink`): titles, prose and active header labels.
+- **Secondary Graphite** (`muted`): excerpts, source metadata, hints and inactive controls.
+- **Fine Rule** (`rule`): collection dividers, field outlines, tab/footer seams and scrollbar color.
+- **Navigation Scrim** (`overlay`): temporary navigation backdrop. The narrow reader itself fills the viewport and uses a transparent overlay.
 
 ### Status and themes
 
-**Error Red** (`danger`) accompanies visible failure text and recovery controls. The dark theme uses graphite surfaces, pale text and lighter plum while retaining all role assignments. Text selection uses Faint Violet with Plum text; inputs use a Plum caret. The sidecar’s generated tonal ramps are swatch previews, not additional runtime colors.
+**Error Red** (`danger`) accompanies explicit failures and recovery controls. Dark mode uses a deeper desk beneath a lighter article surface, pale type and lighter plum; it preserves the same hierarchy. Text selection uses Faint Violet with Plum text, and fields use a Plum caret. Sidecar tonal ramps are generated swatch previews, not additional runtime palette tokens.
 
-**The One Accent Rule.** Use plum for actions, focus and selected-state details. Keep result titles graphite, including selected rows, and reserve the danger role for failures.
+**The Interaction Plum Rule.** Use plum for actions, keyboard focus, active tabs and the selected index title. Keep unselected titles graphite and reserve the danger role for failure text and recovery context.
 
 ## Typography
 
-**Body and interface font:** the declared local stack in frontmatter. The interface requires no remote font download. Diagnostic output uses the separate monospace stack; there is no promotional display-face token. In the confirmed cloud browser sample, CDP resolved Chinese text to Noto Sans CJK SC (Fontations); computed reading, article-title and result-metadata styles matched the frontmatter roles. This verifies that browser environment, not the installed fonts on every supported platform.
+**Interface and reading font:** the local stack in frontmatter, with Chinese fallbacks and no remote font dependency. Diagnostic output has its own monospace role. The system does not introduce a decorative display font.
 
 ### Hierarchy
 
-- **Interface headings:** the headline, section and subheading roles describe base headings. Base Chinese headings have zero letter spacing; scoped workspace and article rules take precedence. Model headings use (18px) with the base heading weight/leading.
-- **Workspace and results:** the workspace heading and result title use their compact roles. Result titles clamp to two lines. Excerpts clamp to one line on desktop and two below the drawer breakpoint. The source/domain and saved date appear before the title; the date uses (10px) and tabular numerals. Folder metadata follows the excerpt.
-- **Article:** the title uses the article-title role. Its scoped tracking remains (-0.025em), including Chinese. Body text uses the reading role, with paragraph spacing (1.5em). The article container has a maximum width (780px), inclusive of its horizontal content gutters. Explicit Markdown headings use the article-section role; arbitrary short paragraphs do not become headings.
-- **Controls and metadata:** button, search, tab, label, caption and micro roles separate actions from secondary information. Model fields use (13px / 1.5); placeholder text uses (12px). Counts, dates, pagination and reading percentages use tabular numerals.
-- **Responsive reading:** compact desktop article titles use (26px). On mobile, article/page titles use (23px), article body uses (15px) with its existing leading, and section/import headings use (19px). Result titles retain their desktop size.
+- **Collection and page headings:** the collection-heading role introduces the library above search; support pages use page-title. Smaller result counts and the list label remain subordinate.
+- **Collection entries:** collection-title and collection-summary apply before selection; index-title and index-summary apply beside the article. Both titles and excerpts clamp to two lines. Visual order is title, excerpt, domain/date, then selected folder context. The current DOM still lists metadata before the title; this document does not make that implementation detail a reading-order rule.
+- **Article:** article-title leads the sheet, and article-title-focus enlarges it in focus mode. Saved details use caption type behind a disclosure. Reading uses generous leading with paragraph space (1.25em); explicit Markdown sections use article-section and margins (28px above, 10px below).
+- **Controls and secondary information:** actions, tabs, fields and labels use their specific roles. Collection domain metadata is (12px / 18px) with (11px) dates; index metadata is (11px / 18px) with (10px) dates. Counts, dates, pagination and percentages use tabular numerals.
+- **Language:** base Chinese headings remove tracking; the more specific collection and article heading rules retain their declared tracking. Font availability remains platform-dependent. Do not infer font rendering in Windows or a browser from CSS declarations alone.
 
-**The Reading Rhythm Rule.** Keep controls and source metadata compact while giving article text generous leading and paragraph space. Wrap Chinese text, long titles and URLs without widening the workspace.
+At compact desktop widths, article titles become (28px). Below the drawer breakpoint, the collection heading is (24px). On mobile it is (26px), support-page titles are (26px), article titles are (25px), result titles are (17px), summaries are (13px), search is (14px), and article prose remains (16px). Mobile tabs use (12px). These are context overrides, not a second visual system.
+
+**The Reading Rhythm Rule.** Give titles and excerpts room in the collection, then let article text set the reading pace. Wrap Chinese text, long titles and URLs without widening the workspace.
 
 ## Layout
 
-The shell fills the dynamic viewport (`100dvh`) with a minimum height (400px), no outer frame and no inset workspace margin. At the standard desktop width, navigation is (208px), the result index is (424px), and the reader occupies the remaining space. The main grid has a shared search toolbar (72px) above its two content columns. The navigation brand aligns to the same top seam.
+The shell fills the dynamic viewport (`100dvh`) with a minimum height (400px). A horizontal header (72px) contains identity, collection/session navigation and compact utilities. Navigation never consumes a permanent vertical column. The on-demand navigation/filter drawer is (300px), fixed at the left edge, and closed/inert by default.
 
-The toolbar uses horizontal padding (28px), gap (20px), a location label, an inset search field capped at (680px), and compact search help. The input height comes from the search-field token. The result header uses padding (22px 24px 15px); filters wrap beneath the count and search context. The result list scrolls independently without outer card padding, above a footer (48px). Standard result-row padding comes from the result-selected token.
+The main workspace is centered within a maximum width (1480px), with side padding (36px) and bottom space (24px). A search-and-collection toolbar (88px) spans the content. Its title block sits left, an outlined search field is capped at (520px), and search help plus Filters sit alongside it.
 
-The reader has a heading/action bar (51px), a fixed tab strip, an independent article scroller and a bottom position bar (48px). The article is centered; title padding is (36px 48px 24px) and reading padding is (28px 48px 44px) at standard desktop widths. The shared reader gutter also aligns context, search explanations and privacy notices. Focus reading covers the index within the main workspace below the toolbar; navigation and search remain present, and the covered result list is inert.
+### Collection and selected reading
 
-Content pages use padding (44px clamp(24px, 5vw, 72px) 64px). Page headings, settings and tasks have a maximum width (1040px). Model channels use two equal columns with a gap (48px), each beginning with a fine top rule.
+Before selection, the toolbar and results are bounded by (1160px). Entries form two equal columns with a gap (52px), content-sized rows and fine lower rules. Collection entries use their frontmatter padding and a minimum height (122px); text determines additional height. The list scrolls independently above its pagination footer (46px).
 
-| Viewport | Implemented layout |
+After selection, the desktop layout becomes an index (360px), gutter (28px) and flexible article sheet. The index stays mounted; its selected entry is a soft, rounded white surface with a plum title. The article does not reserve an empty welcome column before selection.
+
+The desktop reader places actions at the upper right of the same (54px) strip as the tabs. Source, title, disclosed details and body share the reader gutter. The article is centered within (820px), including its inner gutters. Standard title padding is (26px 46px 0); body padding is (14px 46px 44px). The article scroller sits between the fixed tab strip and the reading-position footer (42px).
+
+Focus mode reduces the header to (56px), hides header navigation/utilities, search and results, and places the sheet inside the workspace at (16px top, 36px sides, 24px bottom). The article width becomes (800px), title top space (35px), and the title uses the focus role. Hidden results are also inert. The brand and reader controls remain available.
+
+### Support views
+
+Import, setup, tasks, settings and saving sessions retain the same header. Their white content surface is centered within (1050px), with top margin (28px), padding (36px 48px 48px) and the sheet radius. Model channels remain two unboxed columns with a gap (48px) and a top rule. Scoped apply, consent, stage and session panels preserve their separate purposes.
+
+| Viewport | Composition overrides |
 | --- | --- |
-| At least 1600px | Navigation (224px), result index (460px), reader gutter (56px). |
-| 1301–1599px | Standard navigation (208px), index (424px), reader gutter (48px). |
-| 1120–1300px | Navigation (188px), index (374px), reader gutter (32px); toolbar gap (14px) and horizontal padding (24px); row padding (12px 22px). |
-| At most 1119px | Reader becomes a right modal drawer, width `min(650px, 94vw)`; results fill the remaining workspace. Row padding (18px 28px); excerpts allow two lines. Model channels stack with gap (16px). |
-| At most 719px | Navigation becomes an off-canvas rail (250px) with a mobile toolbar (52px). Search toolbar height (68px), horizontal padding (18px); result padding (17px 22px). Reader drawer fills the viewport width with gutter (24px). Page padding becomes (28px 22px 40px). |
+| At least 1600px | Index (390px), reader gutter (56px). The outer workspace remains bounded. |
+| 1301–1599px | Standard index (360px), reader gutter (46px), outer sides (36px). |
+| 1120–1300px | Index (330px), reader gutter (36px), outer sides (28px), selected-layout gap (22px), search basis (430px), article title (28px). Reader count hides. |
+| 720–1119px | Results retain two columns with gap (28px). A selected article uses a full-width, full-height modal reader; its top row (52px) has Back to collection and previous/next, followed by tabs (48px). The collection toolbar is (100px). Header navigation remains; a menu button exposes the drawer, and language/demo text hide. Support padding becomes (32px); model channels stack with gap (16px). |
+| At most 719px | Header (60px) shows menu and brand; navigation/utilities move into the drawer. Workspace sides are (18px). The toolbar becomes a two-row grid with a heading/count row and search/help/filter row; search height is (45px). Results become one ruled column with padding (19px 5px). Full-width reading uses a (24px) article gutter, (25px) title and (16px) prose. Support margin becomes (16px), padding (24px 20px). |
 
-The location label hides below (1120px); the toolbar demo label hides in compact desktop and mobile layouts. The mobile search shortcut hint hides; saved dates remain in source metadata. Page headings and form actions stack on mobile. Search help fits the viewport using `min(340px, calc(100vw - 36px))`.
+The full-width reader uses a visible text return control, not a gray remainder beside a partial-width sheet. Its tab-strip height remains (48px) on mobile because the drawer-specific selector takes precedence. Mobile search hides the shortcut hint, and search help fits within `min(340px, calc(100vw - 36px))`. Shared mobile form actions and page headings stack.
 
 ## Elevation & Depth
 
-The shell, rows and reader stay flat. Pale navigation, inset fields and one-pixel rules define structure. Floating search help alone uses a subtle shadow (`0 12px 36px #17132112`), plus a fine border; drawers use a scrim and stacking order. There is no blur or raised result-card treatment.
+The desk and porcelain surfaces establish depth before shadows. Unselected collection entries stay transparent with lower rules. Selected entries, article sheets and the temporary navigation drawer use restrained ambient shadows; the system is not flat-only.
 
-Keyboard focus uses an accent outline (2px, offset 3px); result rows inset that outline with offset (-3px). Search focus changes its container border to Plum and its fill to Porcelain White.
+### Shadow vocabulary
 
-**The Flat Surfaces Rule.** Use pale tone and fine rules for structural separation. Reserve the small shadow for floating search help and the scrim for modal depth.
+- **Selected entry:** `0 4px 16px #20142e08`.
+- **Article sheet:** `0 8px 36px #20142e0c`.
+- **Temporary navigation:** `8px 0 40px #16102014`.
+- **Floating search help:** `0 12px 36px #17132112`, with a fine border.
+
+There is no backdrop blur. Keyboard focus uses an accent outline (2px, offset 3px); result rows use an inset offset (-3px). Search focus changes its border to Plum while retaining Porcelain fill.
+
+**The Quiet Depth Rule.** Use soft depth to separate the selected entry, article sheet and temporary navigation. Keep the unselected collection open and ruled, with no decorative floating effect.
 
 ## Shapes
 
-Structural columns, result rows and model sections have square edges. Small radii distinguish controls: hints, result source initials and chips use the hint radius; facet controls and article source initials use the facet radius; buttons, fields and navigation use the control radius. Search and floating help have their own radii.
+The main collection remains open and ruled. Its unselected entries have square edges; selected index entries and search use the entry radius, while the article and support surface use the sheet radius. The current selection has no left-edge stripe.
 
-Session rows and import drop targets use the session radius; apply, consent and stage panels use the panel radius. These scoped panels remain part of the system even though the primary workbench is unboxed. Import targets use dashed rules. Circular step numbers and activity dots are functional status shapes. Lucide SVGs supply small stroke icons; domain initials remain text within compact source markers.
+Shared buttons, model fields and notices use the control radius. Filter chips use the facet radius; shortcut hints and article tags use the hint radius. The outlined header import action and search help use the popover radius. Import drop targets and saving-session rows use the entry radius. Consent, apply and stage panels retain the sheet radius.
+
+Lucide SVGs supply stroke icons; the header retains Facetmark’s layered mark. Domain-initial badges and trailing result chevrons are hidden in the current collection. Hashtag prefixes in disclosed article tags identify tags rather than substitute for action icons.
 
 ## Components
 
 ### Buttons and fields
 
-Primary and secondary buttons use their frontmatter padding, a minimum height (36px), icon gap (8px) and (16px) icons. Primary hover applies `brightness(0.94)`; secondary hover uses Inset Paper. Text buttons underline on hover. Icon buttons use the compact square token, an inset hover fill and Faint Violet when pressed. Disabled buttons use opacity (0.42).
+Primary and secondary buttons retain their frontmatter padding, minimum height (36px), icon gap (8px) and icon size (16px). Primary hover uses `brightness(0.94)`; secondary and icon hover use Inset Paper. Text actions underline on hover. Pressed icon buttons use Faint Violet and Plum; disabled buttons use opacity (0.42).
 
-Search rests on Inset Paper and changes border/fill on focus. Model fields are outlined on Porcelain White, with padding (11px 12px) and the control radius. Disabled fields use muted text and Inset Paper. Search clearing remains inside the field; Ctrl/Cmd+K returns to the library and focuses search.
+Search is an outlined Porcelain field at rest, with a Plum focus border and internal clear action. Ctrl/Cmd+K returns to the library, leaves focus reading and focuses search. Model fields use a fine outline and their own padding; disabled fields use muted type and Inset Paper. Password fields retain the separate saved/replace/clear state language.
 
-### Navigation and chips
+### Horizontal navigation and on-demand filters
 
-Main navigation uses muted text, (13px) labels, (16px) icons, a minimum height (38px) and the active token. Hover uses Fine Rule; active navigation uses Faint Violet, Plum and weight (600). Facet rows are smaller, use their own radius and show counts separately. Mobile navigation traps focus while open, makes background content inert, closes on Escape and restores focus; the closed off-canvas rail is inert.
+Header navigation uses muted (13px) labels. The active item uses Graphite, weight (650), and a Plum underline (3px high, 13px above the header bottom); it is not a filled navigation pill. The header import action is outlined with padding (8px 13px). Its hover uses Faint Violet.
 
-Filter chips use the frontmatter token and a remove icon. Article tags use Inset Paper, padding (2px 7px), (10px) text and the hint radius; hover changes them to Faint Violet and Plum. Tags act as search filters.
+Filters open the navigation drawer at every width. Drawer navigation retains its compact filled active state, icon labels and facet counts. Opening it makes the header/main inert, traps focus, closes on Escape and returns focus; closed navigation is inert and hidden from assistive technology.
 
-### Model columns and scoped panels
+Removable filter chips use the frontmatter token. Article tags are lightweight text with a hashtag prefix, revealed inside saved details; their hover adds Faint Violet and Plum. Clicking a tag applies the corresponding filter.
 
-Model channels remain unboxed columns with a top rule, independent status/test controls and aligned fields. Headers separate from fields by (26px); fields have a bottom margin (19px). Apply, consent and stage surfaces retain thin outlined panels. Import targets use Inset Paper and dashed borders with padding (44px 28px), reduced to (32px 18px) on mobile. Apply and consent padding becomes (18px) on mobile. Notices and errors include readable explanations; configured, tested, indexed and applied states remain distinct.
+### Collection entries
 
-### Source-first results
+A result is a full-width button whose visual hierarchy is title, two-line excerpt, then source/date. Its content gap is (7px). Hover mixes Porcelain at (65%) with transparency. Selection changes the compact index entry to Porcelain with soft depth and a Plum title; folder context and the Reading label appear when present. The accessible pressed state identifies the selected entry.
 
-A result is a full-width button: source initial/domain and date, title, excerpt, then optional folder context. The row gap is (5px). Hover uses Inset Paper. Selection uses Faint Violet, a one-pixel Plum mark inset vertically (16px), an accented source initial and `aria-pressed`; selected titles stay Graphite. The reading label appears with folder metadata for the selected row. Trailing chevrons remain hidden.
+ArrowUp/ArrowDown selects and focuses adjacent entries. Opening an entry stores the collection scroll position and brings the selected index entry into view. Returning restores collection position and the originating row’s focus. Query, filters and page remain intact; pagination resets the collection scroll position. Empty collection, no matches and retrieval failures keep distinct explanations and actions.
 
-ArrowUp/ArrowDown selects and focuses adjacent results. Opening a result keeps the list and search context; closing restores focus to the originating row. Empty libraries, no matches and retrieval failures have separate explanations and actions.
+### Reader
 
-### Coherent reader
+Desktop previous/next, focus and close actions occupy the tab row. The narrow reader replaces focus/close icons with a visible **Back to collection** control while retaining previous/next. Tabs have one active tab stop, ArrowLeft/ArrowRight and Home/End navigation, a linked panel and a moving underline (2px). The original-page link is the article’s source label above its title.
 
-The heading holds previous/next, focus-reading and close controls. Tabs and the original-page link stay above the article scroller; the active tab uses Plum text, weight (600) and a moving two-pixel underline. Tabs use a single active tab stop, ArrowLeft/ArrowRight and Home/End navigation, with a linked tab panel.
+Saved folder, tags and search explanations live behind **Saved details & search context**. Body, AI summary and related content keep their own loading, missing-content and error states. Changing tabs preserves each tab’s scroll position for the current bookmark; changing bookmarks resets them. Only explicit Markdown headings form section targets, and an exact duplicated first title paragraph is omitted.
 
-Source, saved date, title, folder and tags precede the content. The reader has separate body, AI-summary and related-bookmark states, with distinct loading, missing-content and error messages. Switching tabs saves each tab’s scroll position for the current bookmark; selecting another bookmark resets those positions. Only explicit Markdown headings create section targets, and a duplicated first title paragraph is omitted.
+The position rail measures the actual saved-body scroll extent, with a section picker only when explicit sections exist. It shows progress only for successfully loaded saved body text; non-scrollable text is complete. Other tabs retain the rail without a fabricated percentage. Focus expands the same pane and saves the prior split-view article position. Escape restores split view first, then closes the preview. Radix supplies narrow-reader modality and focus restoration.
 
-The bottom rail reports the actual scrollable article position, with a section picker only when explicit sections exist and a back-to-top action. Progress is shown only for successfully loaded saved body text; a non-scrollable body reports complete. AI summary and related views retain the rail without a synthetic percentage.
+### Support panels
 
-Desktop focus reading expands the same pane while retaining the mounted result list. Escape first restores split view; a subsequent Escape closes the preview. At the drawer breakpoint, Radix supplies modal reader behavior and focus restoration.
+Model channels remain ruled columns with independent status and test controls. Apply, consent and indexing stages use thin outlined panels. The import target is a dashed region on the Desk with padding (48px 24px); this later rule also governs mobile. Saving-session rows use a fine outline, the entry radius and Inset Paper hover.
+
+Configured, tested, indexed and applied states stay separate. Failures pair semantic color with readable status and recovery actions. Synthetic demo identification and privacy exclusions remain functional notices, never ornamental headings.
 
 ### Motion
 
-Motion is scoped to functional continuity. CSS handles control/background changes (150ms), facet-chevron rotation (180ms) and mobile-navigation translation (220ms), using the shared ease `cubic-bezier(0.22, 1, 0.36, 1)`. Busy spinners rotate linearly over (1.1s).
+CSS owns shared control transitions (150ms), facet-chevron rotation (180ms) and navigation translation (220ms), using `cubic-bezier(0.22, 1, 0.36, 1)`. Busy spinners rotate linearly over (1.1s). Collection entries are immediately interactive with no staggered entrance.
 
-GSAP owns the tab indicator’s horizontal position/width (180ms, `power3.out`, overwrite `auto`) and the desktop focus pane’s horizontal transform (220ms with the same ease and overwrite policy). Repeated focus changes kill the previous timeline and continue from the current geometry; completed focus motion clears the transform.
+GSAP owns tab-indicator position/width (180ms, `power3.out`, overwrite `auto`) and focus-pane translation on both axes (220ms with the same ease). A new focus action kills the prior timeline and uses current geometry; completed motion clears the transform.
 
-Motion owns drawer translation (220ms, easing [0.22, 1, 0.36, 1]), drawer-overlay opacity (180ms), and the reading-progress scale. Its progress spring uses stiffness (180), damping (35) and mass (0.25). These owners do not share animated properties on the same element. Reduced motion removes CSS animation/transition, makes GSAP/drawer changes immediate, uses the direct progress value and switches programmatic scrolling to automatic behavior.
+Motion owns narrow-reader translation (220ms, easing [0.22, 1, 0.36, 1]), transparent-overlay opacity (180ms), and progress scale. The progress spring uses stiffness (180), damping (35), mass (0.25). Owners do not share animated properties on one element. Reduced motion removes CSS transitions/animations, makes GSAP/drawer changes immediate, uses direct progress and changes programmatic scrolling to automatic behavior.
 
 ## Do's and Don'ts
 
 ### Do:
 
-- **Do** keep the light workspace white, the navigation pale and structural edges straight.
-- **Do** preserve the source-first result order and graphite selected titles.
-- **Do** keep reader actions and tabs outside the article scroller.
-- **Do** preserve query, filters, pagination and list position when expanding and restoring reading.
-- **Do** bind both themes to the same semantic roles and retain local Chinese/English font fallbacks.
-- **Do** provide visible focus, keyboard navigation, reduced motion and distinct recovery states.
-- **Do** show measured reading position only when saved body text is available.
+- **Do** lead collection entries with a visible title and meaningful excerpt.
+- **Do** let selection change the collection into a supporting index beside the article.
+- **Do** keep reader tabs and actions outside the article scroller and disclose saved details on demand.
+- **Do** preserve query, filters, pagination, collection position and originating-row focus when returning from reading.
+- **Do** make focus reading remove competing navigation and search chrome.
+- **Do** provide a visible Back to collection control in the full-width narrow reader.
+- **Do** bind both themes to semantic roles and retain local Chinese/English font fallbacks.
+- **Do** preserve visible focus, keyboard selection, reduced motion and distinct recovery states.
 
 ### Don't:
 
-- **Don't** turn the result list into raised cards, large source avatars or a candy-colored dashboard.
-- **Don't** reintroduce a dark navigation frame in the light theme, an inset rounded workspace shell or hand-drawn borders.
-- **Don't** add promotional labels to the compact search toolbar.
+- **Don't** restore the rejected permanent three-column management shell.
+- **Don't** make operational status, filters or maintenance controls dominate the collection.
+- **Don't** reintroduce source avatars, a selection-edge stripe or source-first visual ordering into collection entries.
+- **Don't** replace the independent Facetmark identity with hand-drawn borders, glass or a candy-colored dashboard.
 - **Don't** let GSAP, Motion and CSS animate the same property on the same element.
-- **Don't** invent reading percentages, inferred section headings or successful task states.
+- **Don't** invent reading percentages, section headings or successful task states.

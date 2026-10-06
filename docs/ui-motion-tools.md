@@ -1,6 +1,6 @@
 # UI and motion tools
 
-Updated on 2026-10-05 for the shared React workbench redesign. Impeccable owns
+Updated on 2026-10-06 for the shared React collection and reader rebuild. Impeccable owns
 the visual system. Runtime dependencies are selected for specific interactions:
 `gsap` 3.13.0, `@gsap/react` 2.1.2 and `motion` 12.23.24.
 
@@ -46,6 +46,8 @@ The redesign used core, React, timeline and performance guidance. GSAP owns the
 interruptible desktop reader expansion and tab indicator in `App.tsx` and
 `motion.ts`. Timelines and queued frames are cancelled before reversal; unmount
 cleanup is scoped through `useGSAP`.
+The new focus composition removes the search row and reduces the app header;
+the pane transition accounts for both horizontal and vertical displacement.
 
 Motion owns the Radix reading drawer's horizontal position and overlay opacity,
 plus the adapted Rare UI scroll indicator. The drawer uses `AnimatePresence`
@@ -81,7 +83,9 @@ The machine-specific entry points and maintenance commands are documented at
 
 `frontend/tests/redesign.spec.ts` exercises rapid selection, delayed responses,
 tab scroll restoration, expansion reversal, drawer focus return, reduced motion,
-chapter jumps and explicit loading/error states. GitHub Actions creates the
+chapter jumps and explicit loading/error states. Collection/toolbar alignment,
+natural result-row height and visible narrow-reader
+return are also checked. GitHub Actions creates the
 screenshots and short recording from the actual shared frontend. The small
 `facetmark-visual-evidence` artifact includes PNG source metadata, capture hashes,
 font diagnostics, contact sheets and MP4/WEBM. See `desktop-validation.md` for

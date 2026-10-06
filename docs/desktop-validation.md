@@ -7,14 +7,87 @@ tool. Its functional results remain historical evidence, not visual acceptance.
 A fresh independent review returned **rebuild**. Revision `33bee64` introduces
 top navigation, on-demand filters, a full collection index and a content-led
 reader. [First render run 37407299839](https://github.com/88lin/facetmark/actions/runs/37407299839)
-is pending. The previous screenshots are not evidence for this new composition.
+passed build/backend/distribution checks but only 8/14 browser tests: five
+duplicate navigation-role matches and one obsolete fixed scroll-offset assertion.
+The first screenshot batch exposed inconsistent collection alignment, clipped
+row metadata, excess focused-reading chrome and an unclear narrow-reader return.
+Consolidated correction `90f551b` addresses those findings and records actual
+scroll extent. This is the current rendered application source.
 
-Updated 2026-10-05. Branch: `desktop/facetmark-experience`.
+### Confirmed shared frontend
+
+[Experience 37410551657](https://github.com/88lin/facetmark/actions/runs/37410551657)
+passed **14/14 Playwright tests**, **1882 Python tests / 1 skipped**, TypeScript/Vite,
+wheel/sdist, extension and Docker checks on `d6597e9a488bf434afe3121cd5d68587c9b3140f`.
+That revision changes only the test activation of the moving reader control;
+application source is unchanged from `90f551b38bd1ee15833d40c97cf1e2cf93c082fd`.
+[CI 37411031139](https://github.com/88lin/facetmark/actions/runs/37411031139)
+passed all ten jobs on `d6597e9`, including Linux/Windows × Python 3.10/3.12.
+
+The small [visual evidence artifact](https://github.com/88lin/facetmark/actions/runs/37410551657/artifacts/11389029798)
+contains **33 actual captures**, MP4/WEBM, font measurements and source provenance.
+Local evidence is `.desktop-build/collection-final`; landing assets copy its four
+1440px language/theme captures without changing image pixels. All data is synthetic.
+
+Inspected scope: Chinese/English and light/dark at 1440, 1280, 1024 and 390 widths;
+unselected collection, selected article, focus reading, full-width narrow/mobile
+reading, import, settings, tasks, long titles, loading, empty and controlled errors.
+Runtime checks cover stale responses, real import persistence, model test/consent
+boundaries, filter recovery, chapter navigation, tab scroll restoration, immediate
+keyboard reversal, narrow-reader return, focus restoration and reduced motion.
+`scroll-context.json` records a real article position of 247px within a 248px extent
+and exact restoration. The same test then verifies a nonzero result-list position
+across focus/restore/close, selected-row focus and unchanged query.
+
+The failed confirmation `37409459848` and CI `37409462928` each passed 13/14 browser
+tests. Their remaining failure was a forced coordinate click missing an animating
+button, demonstrated by the captured Playwright trace: the second click left
+`aria-pressed=false`, so Escape correctly closed the reader. `d6597e9` uses real
+keyboard activation on that focusable button and asserts both transitions instead
+of forcing stale coordinates. Product code was not changed to accommodate the test.
+
+The fresh independent full rebuild review returned **ship** for the supplied
+visual composition, states and interaction storyboard; all four structural
+corrections were resolved. It read the final provenance and scroll diagnostics.
+The reviewer did not directly play the MP4, so its verdict does not certify every
+animation frame or Windows installation. Specialized Impeccable roles were
+unavailable; fresh default agents used the shipped reviewer/documenter contracts.
+This verdict is not user acceptance of the visual design.
+
+DESIGN.md and `.impeccable/design.json` now describe the actual stylesheet order
+and three collection/reading compositions. Shared forms remain in `styles.css`;
+`workbench.css` owns composition overrides. No local build or browser ran.
+
+### Windows confirmation
+
+The `90f551b` desktop run built and installed the application, rendered setup,
+imported synthetic HTML and opened the correct missing-body state. Its smoke
+script then failed because it sought the old close-button label in the new
+full-width narrow reader. Test-only `429e6e0` follows the visible “返回收藏”
+action in that layout and captures the returned collection. The product source
+is unchanged. [Windows run 37411693696](https://github.com/88lin/facetmark/actions/runs/37411693696)
+passed on `429e6e0a57459be8dbaec459737153678ac83429`:
+
+- Frozen-service isolation, no Python on child PATH, port conflict, Unicode path,
+  static assets, keyword search, authenticated identity, single-instance data scope
+  and graceful shutdown/data retention passed.
+- Installed Tauri WebView at 1028×749 rendered setup, imported two synthetic
+  bookmarks, searched, opened the truthful missing-body state and returned via
+  “返回收藏” with the query intact. All three installed captures were inspected.
+- Same-version reinstall, uninstall data retention and parent-process cleanup passed.
+
+Small [installation evidence](https://github.com/88lin/facetmark/actions/runs/37411693696/artifacts/11390071119)
+is saved in `.desktop-build/collection-windows-final`.
+The [unsigned Windows x64 installer](https://github.com/88lin/facetmark/actions/runs/37411693696/artifacts/11390096074)
+remains in Actions; it was not downloaded or executed locally. Hosted Windows
+Server limitations below still apply.
+
+Historical record from 2026-10-05. Branch: `desktop/facetmark-experience`.
 This is an unsigned test-branch delivery. No main merge, production deployment or
 formal release is part of this work. All browsers, installers, large downloads
 and packaging run in GitHub Actions.
 
-## Current redesign: rendered UI `d618c52`
+## Historical redesign rejected by the user: rendered UI `d618c52`
 
 The shared frontend was redesigned around a source-first result index and a
 continuous reader. [Experience run 37311576521](https://github.com/88lin/facetmark/actions/runs/37311576521)
