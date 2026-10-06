@@ -40,7 +40,7 @@ def extend(content):
             [say('浏览批次', 'Saving sessions'), say('选择收藏时段，以批次范围继续检索。', 'Select a saving session and search within it.')],
             [say('任务与设置', 'Tasks and settings'), say('索引、取消、诊断、双模型连接、扩展配对和手动检查更新。', 'Indexing, cancellation, diagnostics, independent models, extension pairing and manual update checks.')],
         ])],
-        'read': [('shot', light, alt, caption, dark, alt), ('p', say('从收藏索引中打开文章，搜索条件和列表位置会保留。桌面可展开专注阅读；窄窗口以全屏阅读打开，点击“返回收藏”继续查找。展开“收藏信息与检索线索”查看来源信息；排名不是事实核查。', 'Open an article from the collection while keeping your query and list position. Expand focused reading on desktop; narrow windows use full-screen reading with a “Back to collection” action. Expand “Saved details & search context” for source information; ranking is not fact checking.'))],
+        'read': [('shot', light, alt, caption, dark, alt), ('p', say('从收藏索引中打开文章，搜索条件和列表位置会保留。桌面可展开专注阅读；窄窗口以全屏阅读打开，点击“返回收藏”继续查找。展开“收藏信息与检索线索”查看来源信息；排名不是事实核查。', 'Open an article from the collection while keeping your query and list position. Expand focused reading on desktop; narrow windows use full-screen reading with a “Back to collection” action. Expand “Saved details &amp; search context” for source information; ranking is not fact checking.'))],
         'keys': [('table', [say('操作', 'Action'), say('结果', 'Result')], [
             ['Ctrl+K', say('聚焦搜索；支持中文输入法组合输入。', 'Focus search; IME composition is preserved.')],
             ['↑ / ↓', say('在结果列表中选择相邻书签。', 'Select adjacent bookmarks in the result list.')],

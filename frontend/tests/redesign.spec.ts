@@ -129,6 +129,7 @@ test("narrow reader reverses, contains focus and supports reduced motion", async
   await page.goto("/app");
   await page.locator(".result-row").first().click();
   await expect(page.locator(".body-text")).toBeVisible();
+  await expect.poll(() => page.locator(".preview-drawer").evaluate((el) => getComputedStyle(el).transform)).toBe("none");
   await page.screenshot({ path: "screenshots/reader-zh-1024.png", animations: "disabled" });
   await page.getByRole("button", { name: "返回收藏" }).click();
   await expect(page.locator(".result-row").first()).toBeFocused();
@@ -232,6 +233,7 @@ test("supporting views and small-window reader share the same system", async ({ 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator(".result-row").first().click();
   await expect(page.locator(".body-text")).toBeVisible();
+  await expect.poll(() => page.locator(".preview-drawer").evaluate((el) => getComputedStyle(el).transform)).toBe("none");
   await page.screenshot({ path: "screenshots/reader-zh-390.png", animations: "disabled" });
   await page.getByRole("button", { name: "返回收藏" }).click();
   await expect(page.locator(".result-row").first()).toBeFocused();
