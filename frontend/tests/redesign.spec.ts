@@ -89,6 +89,8 @@ test("reader tabs, expansion reversal and keyboard preserve query and scroll con
   // does not need to bring an offscreen row back into view.
   const list = page.locator(".result-list");
   const selectedRow = page.locator(".result-row").nth(8);
+  await selectedRow.scrollIntoViewIfNeeded();
+  const browsePosition = await list.evaluate((el) => el.scrollTop);
   await selectedRow.click();
   await expect(page.locator(".body-text")).toBeVisible();
   const listPosition = await list.evaluate((el) => el.scrollTop);
@@ -96,9 +98,14 @@ test("reader tabs, expansion reversal and keyboard preserve query and scroll con
   await page.locator(".focus-reading").click();
   await page.locator(".focus-reading").click();
   await expect(page.locator(".main-workspace")).not.toHaveClass(/focus-mode/);
+  expect(Math.abs((await list.evaluate((el) => el.scrollTop)) - listPosition)).toBeLessThanOrEqual(
+    1,
+  );
   await page.keyboard.press("Escape");
   await expect(selectedRow).toBeFocused();
-  expect(Math.abs((await list.evaluate((el) => el.scrollTop)) - listPosition)).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs((await list.evaluate((el) => el.scrollTop)) - browsePosition),
+  ).toBeLessThanOrEqual(1);
   await expect(input).toHaveValue("tag:demo");
 });
 
@@ -180,7 +187,11 @@ test("loading, empty, failure and long-title states have real rendered evidence"
 
 test("supporting views and small-window reader share the same system", async ({ page }) => {
   await page.goto("/app");
-  await page.locator(".sidebar").getByRole("button", { name: "导入书签", exact: true }).click();
+  await expect(page.locator(".result-row").first()).toBeVisible();
+  await expect(page.locator(".sidebar")).toHaveAttribute("inert", "");
+  await expect(page.locator(".preview-pane")).toHaveCount(0);
+  await page.screenshot({ path: "screenshots/collection-zh-light.png", animations: "disabled" });
+  await page.locator(".app-header").getByRole("button", { name: "导入书签", exact: true }).click();
   await expect(page.locator(".dropzone")).toBeVisible();
   await page.screenshot({ path: "screenshots/import-zh-light.png", animations: "disabled" });
   await page.getByRole("button", { name: "设置", exact: true }).click();

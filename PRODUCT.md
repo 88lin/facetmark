@@ -38,8 +38,10 @@ main merge or production release. Existing CLI and integration contracts remain.
 
 ## Brand Commitments
 
-Independent Facetmark identity. Paper white and graphite with purple accents;
-three-column search workbench. GithubStarsManager is engineering background only,
+Independent Facetmark identity. Paper white and graphite with purple accents.
+The user rejected the permanent three-column management layout on 2026-10-06:
+collection content and reading must lead, with navigation and filters secondary.
+GithubStarsManager is engineering background only,
 not a visual reference. No hand-drawn borders or candy-colored dashboards.
 
 ## Evidence on Hand

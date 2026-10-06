@@ -247,16 +247,12 @@ export default function Reader({
   return (
     <>
       <header className="preview-heading">
-        <span>
-          <BookOpen size={15} />
-          {t("阅读", "Reader")}
-          {position >= 0 && (
-            <small>
-              {position + 1} / {total}
-            </small>
-          )}
-        </span>
         <div className="reader-actions">
+          {position >= 0 && (
+            <span className="reader-count">
+              {position + 1} / {total}
+            </span>
+          )}
           {selected !== null && (
             <>
               <button
@@ -362,30 +358,28 @@ export default function Reader({
               </button>
             ))}
             <span className="tab-indicator" aria-hidden="true" />
-            {original && (
-              <a
-                className="reader-original"
-                href={original}
-                target="_blank"
-                rel="noreferrer"
-                title={t("打开原网页", "Open original")}
-                onClick={() => {
-                  post("/open", { bookmark_id: selected, query: search }).catch(() => {});
-                }}
-              >
-                {t("原网页", "Original")}
-                <ArrowUpRight size={14} />
-              </a>
-            )}
           </div>
           <div className="preview-scroll" ref={scroller} aria-busy={pending}>
             <article id="reader-start" className="reader-article">
               <div className="preview-title">
                 <div className="article-source">
-                  <span className="site-letter" aria-hidden="true">
-                    {(visibleRecord?.domain || "F").slice(0, 1).toUpperCase()}
-                  </span>
-                  <span>{visibleRecord?.domain || t("正在读取来源…", "Loading source…")}</span>
+                  {original ? (
+                    <a
+                      className="source-link"
+                      href={original}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={t("打开原网页", "Open original")}
+                      onClick={() => {
+                        post("/open", { bookmark_id: selected, query: search }).catch(() => {});
+                      }}
+                    >
+                      {visibleRecord?.domain}
+                      <ArrowUpRight size={13} />
+                    </a>
+                  ) : (
+                    <span>{visibleRecord?.domain || t("正在读取来源…", "Loading source…")}</span>
+                  )}
                   <span className="source-rule" />
                   <span>
                     {visibleRecord?.date_added
@@ -401,24 +395,27 @@ export default function Reader({
                     visibleRecord?.url ||
                     t("正在读取收藏…", "Loading bookmark…")}
                 </h1>
-                <div className="article-context">
-                  <span>
-                    <Folder size={13} />
-                    {visibleRecord?.folder || t("未分类", "Unfiled")}
-                  </span>
-                  {!!record?.tags?.length && (
-                    <div className="preview-tags">
-                      {record.tags.map((tag) => (
-                        <button key={tag} onClick={() => onTag(tag)}>
-                          <Tags size={11} />
-                          {tag}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <details className="article-details">
+                  <summary>{t("收藏信息与检索线索", "Saved details & search context")}</summary>
+                  <div className="article-context">
+                    <span>
+                      <Folder size={13} />
+                      {visibleRecord?.folder || t("未分类", "Unfiled")}
+                    </span>
+                    {!!record?.tags?.length && (
+                      <div className="preview-tags">
+                        {record.tags.map((tag) => (
+                          <button key={tag} onClick={() => onTag(tag)}>
+                            <Tags size={11} />
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {search.trim() && <SearchExplanation hit={hit} />}
+                </details>
               </div>
-              {search.trim() && <SearchExplanation hit={hit} />}
               <div
                 className="reading"
                 role="tabpanel"

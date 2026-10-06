@@ -176,7 +176,6 @@ function Workbench({
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [sessionsError, setSessionsError] = useState("");
   const [sessionsRevision, setSessionsRevision] = useState(0);
-  const [mobileNav, setMobileNav] = useState(() => matchMedia("(max-width:719px)").matches);
   const sidebar = useRef<HTMLElement>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [sessionsMore, setSessionsMore] = useState(false);
@@ -184,6 +183,7 @@ function Workbench({
   const composing = useRef(false);
   const firstRefresh = useRef(true);
   const list = useRef<HTMLDivElement>(null);
+  const browseScroll = useRef(0);
   const lastRow = useRef<HTMLButtonElement | null>(null);
   const [requestRevision, setRequestRevision] = useState(0);
   const requestId = useRef(0);
@@ -196,7 +196,11 @@ function Workbench({
   const closePreview = useCallback(() => {
     setSelected(null);
     setFocusReading(false);
-    requestAnimationFrame(() => lastRow.current?.focus());
+    requestAnimationFrame(() => {
+      if (list.current) list.current.scrollTop = browseScroll.current;
+      if (lastRow.current?.isConnected) lastRow.current.focus({ preventScroll: true });
+      else searchInput.current?.focus();
+    });
   }, []);
   const refresh = useCallback(async () => {
     try {
@@ -282,16 +286,7 @@ function Workbench({
     return () => window.removeEventListener("keydown", handler);
   }, [selected, drawer, closePreview, focusReading]);
   useEffect(() => {
-    const media = matchMedia("(max-width:719px)");
-    const change = () => {
-      setMobileNav(media.matches);
-      if (!media.matches) setNavOpen(false);
-    };
-    media.addEventListener("change", change);
-    return () => media.removeEventListener("change", change);
-  }, []);
-  useEffect(() => {
-    if (!mobileNav || !navOpen) return;
+    if (!navOpen) return;
     const previous = document.activeElement as HTMLElement | null;
     const focusables = () =>
       Array.from(
@@ -325,8 +320,9 @@ function Workbench({
       document.removeEventListener("keydown", trap, true);
       previous?.focus();
     };
-  }, [mobileNav, navOpen]);
+  }, [navOpen]);
   function changeQuery(value: string) {
+    browseScroll.current = 0;
     setFocusReading(false);
     setInput(value);
     abortRef.current?.abort();
@@ -467,6 +463,7 @@ function Workbench({
   }, [view, paired, sessionsRevision]);
   const items = page?.items || page?.hits || [];
   function selectFilter(key: keyof Filters, value: string | number | undefined) {
+    browseScroll.current = 0;
     setFocusReading(false);
     abortRef.current?.abort();
     requestId.current++;
@@ -477,15 +474,19 @@ function Workbench({
     setNavOpen(false);
   }
   function paginate(next: number) {
+    browseScroll.current = 0;
     setOffset(next);
     list.current?.scrollTo({ top: 0 });
   }
   const select = (id: number, button?: HTMLButtonElement) => {
+    if (selected === null) browseScroll.current = list.current?.scrollTop ?? 0;
     if (button) lastRow.current = button;
     setPreview(readerCache.current.get(id) || null);
     setPreviewError("");
     setPreviewTab("body");
     setSelected(id);
+    if (!drawer && selected === null)
+      requestAnimationFrame(() => lastRow.current?.scrollIntoView({ block: "nearest" }));
   };
   const selectedPosition = items.findIndex((item) => item.bookmark_id === selected);
   const moveSelection = (step: number) => {
@@ -536,12 +537,95 @@ function Workbench({
     />
   );
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${focusReading ? "is-reading-focused" : ""}`}>
+      <header className="app-header" inert={navOpen}>
+        <button
+          className="icon-button nav-trigger"
+          aria-label={t("打开导航", "Open navigation")}
+          onClick={() => setNavOpen(true)}
+        >
+          <Menu />
+        </button>
+        <a
+          className="brand app-brand"
+          href="/app"
+          onClick={(event) => {
+            event.preventDefault();
+            openView("library");
+          }}
+        >
+          <span className="brand-mark">
+            <Layers3 size={25} />
+          </span>
+          <span>Facetmark</span>
+        </a>
+        <nav className="header-navigation" aria-label={t("主要导航", "Main navigation")}>
+          <button
+            className={view === "library" ? "active" : ""}
+            onClick={() => {
+              openView("library");
+              setFilters({});
+              changeQuery("");
+            }}
+          >
+            {t("全部书签", "All bookmarks")}
+          </button>
+          <button
+            className={view === "sessions" ? "active" : ""}
+            onClick={() => openView("sessions")}
+          >
+            {t("浏览批次", "Saving sessions")}
+          </button>
+        </nav>
+        <div className="header-utilities">
+          {setup?.demo && <span className="demo-label">{t("合成演示数据", "Synthetic demo")}</span>}
+          {adminAvailable && (
+            <>
+              <button
+                className="icon-button"
+                aria-label={t("任务", "Tasks")}
+                title={t("任务", "Tasks")}
+                onClick={() => openView("tasks")}
+              >
+                {job.state === "running" ? <LoaderCircle className="spin" /> : <Layers3 />}
+              </button>
+              <button
+                className="icon-button"
+                aria-label={t("设置", "Settings")}
+                title={t("设置", "Settings")}
+                onClick={() => openView("settings")}
+              >
+                <Settings2 />
+              </button>
+            </>
+          )}
+          <button
+            className="icon-button"
+            aria-label={t("切换主题", "Toggle theme")}
+            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+          >
+            {theme === "light" ? <Moon /> : <Sun />}
+          </button>
+          <button
+            className="language"
+            aria-label="Switch language"
+            onClick={() => setLanguage(language === "zh" ? "en" : "zh")}
+          >
+            {language === "zh" ? "EN" : "中文"}
+          </button>
+          {adminAvailable && (
+            <button className="header-import" onClick={() => openView("import")}>
+              <Import size={16} />
+              {t("导入书签", "Import bookmarks")}
+            </button>
+          )}
+        </div>
+      </header>
       <aside
         ref={sidebar}
-        inert={mobileNav && !navOpen}
-        role={mobileNav && navOpen ? "dialog" : undefined}
-        aria-modal={mobileNav && navOpen ? true : undefined}
+        inert={!navOpen}
+        role={navOpen ? "dialog" : undefined}
+        aria-modal={navOpen ? true : undefined}
         aria-label={t("导航", "Navigation")}
         className={`sidebar ${navOpen ? "is-open" : ""}`}
       >
@@ -558,7 +642,7 @@ function Workbench({
           </span>
           <span>Facetmark</span>
         </a>
-        <div className="nav-section-label">{t("我的书库", "MY LIBRARY")}</div>
+        <div className="nav-section-label">{t("书库与筛选", "Library & filters")}</div>
         <nav className="main-nav" aria-label={t("工作区", "Workspace")}>
           <button
             className={
@@ -688,29 +772,9 @@ function Workbench({
       )}
       <main
         ref={workspace}
-        inert={mobileNav && navOpen}
-        className={`main-workspace ${view === "library" ? "with-preview" : ""} ${focusReading && view === "library" ? "focus-mode" : ""}`}
+        inert={navOpen}
+        className={`main-workspace ${view === "library" ? "with-preview" : ""} ${selected !== null ? "has-selection" : "browse-mode"} ${focusReading && view === "library" ? "focus-mode" : ""}`}
       >
-        <div className="mobile-toolbar">
-          <button
-            className="icon-button"
-            aria-label={t("打开导航", "Open navigation")}
-            onClick={() => setNavOpen(true)}
-          >
-            <Menu />
-          </button>
-          <strong>Facetmark</strong>
-          <button
-            className="icon-button"
-            aria-label={t("搜索", "Search")}
-            onClick={() => {
-              openView("library");
-              searchInput.current?.focus();
-            }}
-          >
-            <Search />
-          </button>
-        </div>
         {connectionError && (
           <div className="connection-error" role="alert">
             <WifiOff size={16} />
@@ -776,8 +840,12 @@ function Workbench({
           <>
             <header className="workspace-toolbar">
               <div className="toolbar-location">
-                <BookmarkIcon size={16} />
-                <span>{t("收藏", "Library")}</span>
+                <h1>
+                  {search ? t("搜索收藏", "Find a saved page") : t("我的收藏", "Your collection")}
+                </h1>
+                <span>
+                  {setup?.bookmarks ?? "—"} {t("条收藏", "saved pages")}
+                </span>
               </div>
               <div className="search-box">
                 <Search size={20} />
@@ -824,9 +892,14 @@ function Workbench({
                   }}
                 />
               </div>
-              {setup?.demo && (
-                <span className="demo-label">{t("合成演示数据", "Synthetic demo")}</span>
-              )}
+              <button
+                className="filter-trigger"
+                onClick={() => setNavOpen(true)}
+                aria-label={t("筛选收藏", "Filter collection")}
+              >
+                <Settings2 size={17} />
+                <span>{t("筛选", "Filters")}</span>
+              </button>
             </header>
             <section className="results-column" inert={focusReading}>
               <header className="search-header">
@@ -980,9 +1053,12 @@ function Workbench({
                           <SavedDate seconds={record.date_added} language={language} />
                         </span>
                         <span className="result-title">{record.title || record.url}</span>
-                        <span className="result-summary">
-                          {record.snippet || record.summary || record.url}
-                        </span>
+                        {(record.snippet || record.summary) &&
+                          (record.snippet || record.summary) !== record.title && (
+                            <span className="result-summary">
+                              {record.snippet || record.summary}
+                            </span>
+                          )}
                         {record.folder && (
                           <span className="result-folder">
                             <Folder size={11} />
@@ -1024,7 +1100,7 @@ function Workbench({
                 </div>
               </footer>
             </section>
-            {!drawer && (
+            {!drawer && selected !== null && (
               <aside ref={readerPane} className="preview-pane">
                 {previewContent}
               </aside>
@@ -1057,7 +1133,7 @@ function Workbench({
                         aria-describedby={undefined}
                         onCloseAutoFocus={(e) => {
                           e.preventDefault();
-                          lastRow.current?.focus();
+                          lastRow.current?.focus({ preventScroll: true });
                         }}
                       >
                         <motion.div

@@ -1,17 +1,19 @@
-# Shared workbench — Operate / Read
+# Shared collection and reader — Operate / Read
 
-## Direction contract
+## Direction contract: rebuild after user rejection
 
-THESIS: An index and an open reading desk. Finding a saved thought and reading its source share one continuous workspace. Search is the primary global action; administrative controls recede into navigation.
+USER EVIDENCE: The user rejected the d618c52 screenshots: “整体太普通，像后台管理工具”. The earlier seven-fix review is historical and does not certify this direction. Fresh independent review returned rebuild across the shell, content index, reader, focus and narrow-window composition.
 
-OWN-WORLD: Porcelain white, faint violet-grey navigation, graphite Chinese typography and plum selection marks. Small precise controls, ruled source-first result rows, generous prose, aligned horizontal toolbar seams. The existing Facetmark layered mark stays.
+THESIS: Saved content is the workspace. An open, bounded two-column collection becomes a supporting index beside a full article when selected. Navigation never permanently occupies a vertical column.
 
-STORY: Type a clue, scan source/title/excerpt, select, read. A stable reader with fixed tabs and real reading progress holds context. Focus reading expands on the same desk and returns to the untouched list.
+OWN-WORLD: Facetmark layered mark, porcelain article surface, faint violet-grey desk, graphite text and restrained plum interaction. Typography and content proportions carry the identity, without glass, generated imagery or decorative motion.
 
-FIRST VIEWPORT: 208px navigation, a 72px shared search toolbar, a 420–460px index, and the remaining width for reading. Six complete results at typical desktop height. Article title 28px, prose 16px/1.95. Actions live above prose; metadata and tags never compete with it.
+FIRST VIEWPORT: 72px horizontal app header, 88px search-and-collection toolbar, then content. No selection: bounded two-column index, titles and meaningful excerpts first. Selection: 360px supporting index and a dominant white reading sheet, 28px gutter between them. Reader controls share one 54px row; source/title/body share one reading axis. Tags and match details are disclosed on demand. Ordinary desktop prose begins around 350px rather than behind multiple stacked toolbars.
 
-FORM: User-directed code-led design; Impeccable seed db981777 was consulted. User explicitly delegated selection and prohibited repeated preference rounds. The brief's bright, precise working environment wins. Grounded references: library index, marginal annotations, reference edition, journal reading room, wayfinding, book typography, research notebook. Reference-edition discipline informs type, density, and the focus-reading move without turning controls into print decoration. Catalog costumes (split-flap, cassette, poster wall, instrument console, dance notation) lose product clarity; their useful disciplines are stable columns, continuity, focus priority, explicit states, and measurable timing.
+PATH: Search, scan content, select, read, optionally expand, restore. Preserve query, filters, page, selected row and focus. Collection and reading layouts have their own saved list position; switching back restores the original collection position. Result content is immediately interactive, with no row stagger. Narrow windows use full-width reading and a clear close control instead of a sidebar plus grey detail overlay.
 
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+REACH: The same top frame contains import, tasks, model settings and saving sessions. All existing consent, probe, indexing, pagination, keyboard and desktop behaviors remain. Both themes and languages use the same components.
 
-Constraints: shared React, all business capabilities retained; synthetic data only. No local browser/build/package execution. One cloud inspection batch, one consolidated correction and confirmation. Fresh finish review and token documentation follow.
+FORM: User-directed code-led rebuild, informed by original seed db981777 and the new independent rejection review. No approved mockup exists. The user delegated design decisions and clarified that the administration-tool silhouette is the defect; no new color/radius preference round is required.
+
+VERIFY: GitHub Actions only for build/browser/package. Synthetic data only. First capture batch, consolidated corrections, then confirmation. Judge whole silhouette and content priority against the rejected screenshots, not only CSS consistency. Fresh review and source-derived documentation are required before delivery. Current composition source: frontend/src/workbench.css; shared component foundations: frontend/src/styles.css.
