@@ -4,16 +4,16 @@
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
   color-scheme: light;
   --canvas: #ffffff;
-  --rail: #f7f7fa;
-  --inset: #f5f5f8;
-  --ink: #282831;
-  --muted: #696977;
-  --rule: #e9e8ef;
-  --accent: #7255c1;
-  --soft: #f1edf9;
+  --rail: #f0f6f9;
+  --inset: #f3f8fb;
+  --ink: #193549;
+  --muted: #526d7e;
+  --rule: #dce8ee;
+  --accent: #087293;
+  --soft: #e0f2f8;
   --on-accent: #fff;
   --danger: #ad3448;
-  --overlay: #20202b55;
+  --overlay: #16374a55;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --reader-gutter: 48px;
   --index-width: 424px;
@@ -27,17 +27,17 @@
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --canvas: #202027;
-  --rail: #1b1b22;
-  --inset: #282830;
-  --ink: #eeeef3;
-  --muted: #aba9b8;
-  --rule: #35343f;
-  --accent: #b7a0ec;
-  --soft: #30293f;
-  --on-accent: #241b35;
+  --canvas: #1b303e;
+  --rail: #152631;
+  --inset: #243b49;
+  --ink: #e4f0f5;
+  --muted: #a6becc;
+  --rule: #345060;
+  --accent: #70cde9;
+  --soft: #203f50;
+  --on-accent: #0c2b3b;
   --danger: #f7a0ae;
-  --overlay: #09091099;
+  --overlay: #06151f99;
 }
 * {
   box-sizing: border-box;
@@ -207,7 +207,7 @@ small,
   text-align: left;
   padding: 9px 12px;
   min-height: 38px;
-  border-radius: 6px;
+  border-radius: 10px;
   color: var(--muted);
   font-size: 13px;
   transition:
@@ -270,7 +270,7 @@ small,
   width: 100%;
   min-height: 35px;
   padding: 7px 12px;
-  border-radius: 5px;
+  border-radius: 8px;
   gap: 8px;
   font-size: 12px;
 }
@@ -333,7 +333,7 @@ kbd {
   color: var(--muted);
   border: 1px solid var(--rule);
   padding: 1px 4px;
-  border-radius: 4px;
+  border-radius: 7px;
   white-space: nowrap;
   line-height: 1.6;
 }
@@ -443,7 +443,7 @@ kbd {
   border: 1px solid var(--rule);
   border-radius: 8px;
   background: var(--canvas);
-  box-shadow: 0 12px 36px #17132112;
+  box-shadow: 0 12px 36px #244e6718;
 }
 .query-tool:has([open]) {
   width: 108px;
@@ -498,7 +498,7 @@ kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: 7px;
 }
 .search-controls {
   margin-top: 10px;
@@ -532,7 +532,7 @@ kbd {
   padding: 3px 8px;
   background: var(--soft);
   color: var(--accent);
-  border-radius: 4px;
+  border-radius: 7px;
   font-size: 11px;
   max-width: 100%;
   overflow-wrap: anywhere;
@@ -606,7 +606,7 @@ kbd {
   width: 18px;
   height: 18px;
   border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: 7px;
   display: inline-grid;
   place-items: center;
   font-size: 10px;
@@ -707,7 +707,7 @@ kbd {
   justify-content: center;
   width: 32px;
   height: 32px;
-  border-radius: 6px;
+  border-radius: 10px;
   flex-shrink: 0;
   transition: background 0.15s var(--ease);
 }
@@ -728,7 +728,7 @@ kbd {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: 6px;
+  border-radius: 10px;
   font-size: 13px;
   font-weight: 550;
   line-height: 1.5;
@@ -912,7 +912,7 @@ kbd {
   width: 24px;
   height: 24px;
   font-size: 12px;
-  border-radius: 5px;
+  border-radius: 8px;
   margin-right: 4px;
 }
 .source-rule {
@@ -955,7 +955,7 @@ kbd {
   font-size: 10px;
   background: var(--inset);
   padding: 2px 7px;
-  border-radius: 4px;
+  border-radius: 7px;
 }
 .preview-tags button:hover {
   background: var(--soft);
@@ -1271,9 +1271,9 @@ kbd {
 .field input {
   width: 100%;
   padding: 11px 12px;
-  background: var(--canvas);
+  background: var(--inset);
   border: 1px solid var(--rule);
-  border-radius: 6px;
+  border-radius: 10px;
   color: var(--ink);
   font-size: 13px;
   line-height: 1.5;
@@ -1330,7 +1330,7 @@ kbd {
   color: var(--danger);
   background: var(--inset);
   padding: 12px;
-  border-radius: 6px;
+  border-radius: 10px;
   font-size: 12px;
   overflow-wrap: anywhere;
 }
@@ -1341,7 +1341,7 @@ kbd {
   background: var(--soft);
   color: var(--accent);
   padding: 12px 16px;
-  border-radius: 6px;
+  border-radius: 10px;
   font-size: 12px;
   display: flex;
   align-items: center;
@@ -1376,7 +1376,7 @@ pre {
   overflow-wrap: anywhere;
   background: var(--inset);
   padding: 16px;
-  border-radius: 6px;
+  border-radius: 10px;
   max-height: 320px;
   overflow: auto;
 }
@@ -1421,7 +1421,7 @@ pre {
 .pairing-row code {
   padding: 8px 12px;
   background: var(--inset);
-  border-radius: 5px;
+  border-radius: 8px;
   font-size: 12px;
 }
 .setup-steps {

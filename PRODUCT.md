@@ -38,7 +38,9 @@ main merge or production release. Existing CLI and integration contracts remain.
 
 ## Brand Commitments
 
-Independent Facetmark identity. Paper white and graphite with purple accents.
+Independent Facetmark identity. The user explicitly chose pure white and lake blue
+with clear rounded panels and refined controls on 2026-10-06, superseding the
+rejected flat grey-violet treatment. Keep the recognizable layered brand mark.
 The user rejected the permanent three-column management layout on 2026-10-06:
 collection content and reading must lead, with navigation and filters secondary.
 GithubStarsManager is engineering background only,

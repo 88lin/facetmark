@@ -217,6 +217,8 @@ test("supporting views and small-window reader share the same system", async ({ 
     expect(meta!.y + meta!.height).toBeLessThanOrEqual(bounds!.y + bounds!.height);
   }
   await page.screenshot({ path: "screenshots/collection-zh-light.png", animations: "disabled" });
+  await page.locator(".result-row").first().focus();
+  await page.screenshot({ path: "screenshots/collection-keyboard-focus.png", animations: "disabled" });
   await page.locator(".app-header").getByRole("button", { name: "导入书签", exact: true }).click();
   await expect(page.locator(".dropzone")).toBeVisible();
   await page.screenshot({ path: "screenshots/import-zh-light.png", animations: "disabled" });
