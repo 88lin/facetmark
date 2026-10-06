@@ -76,8 +76,12 @@ test("reader tabs, expansion reversal and keyboard preserve query and scroll con
   await expect
     .poll(async () => (await page.locator(".preview-pane").boundingBox())?.y)
     .toBe(header!.y + header!.height + 16);
-  await page.locator(".focus-reading").click({ force: true });
-  await page.locator(".focus-reading").click({ force: true });
+  // The focused button moves with the pane. Use real keyboard activation to
+  // reverse mid-flight; a forced coordinate click can miss a moving target.
+  await page.locator(".focus-reading").press("Enter");
+  await expect(page.locator(".focus-reading")).toHaveAttribute("aria-pressed", "false");
+  await page.locator(".focus-reading").press("Enter");
+  await expect(page.locator(".focus-reading")).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("Escape");
   await expect(page.locator(".main-workspace")).not.toHaveClass(/focus-mode/);
   await expect(page.locator(".body-text")).toBeVisible();
