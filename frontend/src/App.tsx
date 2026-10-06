@@ -353,8 +353,8 @@ function Workbench({
   const filterKey = JSON.stringify(filters);
   const hasSearchContext = Boolean(
     search.trim() ||
-    Object.values(filters).some((value) => value !== undefined) ||
-    (setup?.bookmarks || 0) > 0,
+      Object.values(filters).some((value) => value !== undefined) ||
+      (setup?.bookmarks || 0) > 0,
   );
   const searchTerms = [
     search,
@@ -364,11 +364,11 @@ function Workbench({
   ].join(" ");
   const semantic = Boolean(
     setup &&
-    !setup.demo &&
-    setup.channels.embed.configured &&
-    setup.has_vectors &&
-    setup.vector_compatible &&
-    !setup.pending_apply,
+      !setup.demo &&
+      setup.channels.embed.configured &&
+      setup.has_vectors &&
+      setup.vector_compatible &&
+      !setup.pending_apply,
   );
   useEffect(() => {
     if (!paired || view !== "library") return;
@@ -585,51 +585,57 @@ function Workbench({
               changeQuery("");
             }}
           >
+            <BookmarkIcon size={15} aria-hidden="true" />
             {t("全部书签", "All bookmarks")}
           </button>
           <button
             className={view === "sessions" ? "active" : ""}
             onClick={() => openView("sessions")}
           >
+            <Clock3 size={15} aria-hidden="true" />
             {t("浏览批次", "Saving sessions")}
           </button>
         </nav>
         <div className="header-utilities">
           {setup?.demo && <span className="demo-label">{t("合成演示数据", "Synthetic demo")}</span>}
-          {adminAvailable && (
-            <>
-              <button
-                className="icon-button"
-                aria-label={t("任务", "Tasks")}
-                title={t("任务", "Tasks")}
-                onClick={() => openView("tasks")}
-              >
-                {job.state === "running" ? <LoaderCircle className="spin" /> : <Layers3 />}
-              </button>
-              <button
-                className="icon-button"
-                aria-label={t("设置", "Settings")}
-                title={t("设置", "Settings")}
-                onClick={() => openView("settings")}
-              >
-                <Settings2 />
-              </button>
-            </>
-          )}
-          <button
-            className="icon-button"
-            aria-label={t("切换主题", "Toggle theme")}
-            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-          >
-            {theme === "light" ? <Moon /> : <Sun />}
-          </button>
-          <button
-            className="language"
-            aria-label="Switch language"
-            onClick={() => setLanguage(language === "zh" ? "en" : "zh")}
-          >
-            {language === "zh" ? "EN" : "中文"}
-          </button>
+          <div className="utility-cluster">
+            {adminAvailable && (
+              <>
+                <button
+                  className="icon-button"
+                  aria-label={t("任务", "Tasks")}
+                  aria-pressed={view === "tasks"}
+                  title={t("任务", "Tasks")}
+                  onClick={() => openView("tasks")}
+                >
+                  {job.state === "running" ? <LoaderCircle className="spin" /> : <Layers3 />}
+                </button>
+                <button
+                  className="icon-button"
+                  aria-label={t("设置", "Settings")}
+                  aria-pressed={view === "settings"}
+                  title={t("设置", "Settings")}
+                  onClick={() => openView("settings")}
+                >
+                  <Settings2 />
+                </button>
+              </>
+            )}
+            <button
+              className="icon-button"
+              aria-label={t("切换主题", "Toggle theme")}
+              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+            >
+              {theme === "light" ? <Moon /> : <Sun />}
+            </button>
+            <button
+              className="language"
+              aria-label="Switch language"
+              onClick={() => setLanguage(language === "zh" ? "en" : "zh")}
+            >
+              {language === "zh" ? "EN" : "中文"}
+            </button>
+          </div>
           {adminAvailable && (
             <button className="header-import" onClick={() => openView("import")}>
               <Import size={16} />
@@ -1062,6 +1068,13 @@ function Workbench({
                       aria-pressed={selected === record.bookmark_id}
                     >
                       <span className="result-copy">
+                        <span className="result-title">{record.title || record.url}</span>
+                        {(record.snippet || record.summary) &&
+                          (record.snippet || record.summary) !== record.title && (
+                            <span className="result-summary">
+                              {record.snippet || record.summary}
+                            </span>
+                          )}
                         <span className="result-meta">
                           <span>
                             <span className="site-letter" aria-hidden="true">
@@ -1071,13 +1084,6 @@ function Workbench({
                           </span>
                           <SavedDate seconds={record.date_added} language={language} />
                         </span>
-                        <span className="result-title">{record.title || record.url}</span>
-                        {(record.snippet || record.summary) &&
-                          (record.snippet || record.summary) !== record.title && (
-                            <span className="result-summary">
-                              {record.snippet || record.summary}
-                            </span>
-                          )}
                         {record.folder && (
                           <span className="result-folder">
                             <Folder size={11} />

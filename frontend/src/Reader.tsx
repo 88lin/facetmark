@@ -5,6 +5,7 @@ import {
   ArrowUp,
   ArrowUpRight,
   BookOpen,
+  ChevronDown,
   FileText,
   Folder,
   Maximize2,
@@ -294,6 +295,7 @@ export default function Reader({
                   onClick={onFocus}
                 >
                   {focus ? <Minimize2 /> : <Maximize2 />}
+                  <span>{focus ? t("收起", "Restore") : t("专注阅读", "Focus")}</span>
                 </button>
               )}
               {canFocus && (
@@ -363,6 +365,13 @@ export default function Reader({
                   document.getElementById(`preview-tab-${next}`)?.focus();
                 }}
               >
+                {id === "body" ? (
+                  <FileText size={14} aria-hidden="true" />
+                ) : id === "summary" ? (
+                  <Sparkles size={14} aria-hidden="true" />
+                ) : (
+                  <BookOpen size={14} aria-hidden="true" />
+                )}
                 {label}
               </button>
             ))}
@@ -405,7 +414,10 @@ export default function Reader({
                     t("正在读取收藏…", "Loading bookmark…")}
                 </h1>
                 <details className="article-details">
-                  <summary>{t("收藏信息与检索线索", "Saved details & search context")}</summary>
+                  <summary>
+                    {t("收藏信息与检索线索", "Saved details & search context")}
+                    <ChevronDown size={13} aria-hidden="true" />
+                  </summary>
                   <div className="article-context">
                     <span>
                       <Folder size={13} />

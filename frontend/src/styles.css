@@ -15,6 +15,8 @@
   --danger: #ad3448;
   --overlay: #16374a55;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --radius-pill: 999px;
+  --control-height: 40px;
   --reader-gutter: 48px;
   --index-width: 424px;
   font-size: 14px;
@@ -207,7 +209,7 @@ small,
   text-align: left;
   padding: 9px 12px;
   min-height: 38px;
-  border-radius: 10px;
+  border-radius: var(--radius-pill);
   color: var(--muted);
   font-size: 13px;
   transition:
@@ -268,9 +270,9 @@ small,
   align-items: center;
   text-align: left;
   width: 100%;
-  min-height: 35px;
-  padding: 7px 12px;
-  border-radius: 8px;
+  min-height: var(--control-height);
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
   gap: 8px;
   font-size: 12px;
 }
@@ -705,9 +707,9 @@ kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   flex-shrink: 0;
   transition: background 0.15s var(--ease);
 }
@@ -728,12 +730,15 @@ kbd {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-pill);
   font-size: 13px;
-  font-weight: 550;
+  font-weight: 600;
   line-height: 1.5;
-  transition: background 0.15s var(--ease);
-  min-height: 36px;
+  transition:
+    background 0.18s var(--ease),
+    color 0.18s var(--ease),
+    border-color 0.18s var(--ease);
+  min-height: var(--control-height);
 }
 .primary > svg,
 .secondary > svg {
@@ -741,7 +746,7 @@ kbd {
   height: 16px;
 }
 .primary {
-  padding: 10px 16px;
+  padding: 10px 20px;
   background: var(--accent);
   color: var(--on-accent);
 }
@@ -749,12 +754,14 @@ kbd {
   filter: brightness(0.94);
 }
 .secondary {
-  padding: 9px 14px;
+  padding: 9px 18px;
   border: 1px solid var(--rule);
   background: var(--canvas);
 }
 .secondary:hover:not(:disabled) {
-  background: var(--inset);
+  background: var(--soft);
+  border-color: var(--selected-edge, var(--accent));
+  color: var(--accent);
 }
 .text-button {
   display: inline-flex;
@@ -762,11 +769,12 @@ kbd {
   gap: 7px;
   color: var(--accent);
   font-size: 12px;
-  padding: 5px 0;
+  min-height: 32px;
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
 }
-.text-button:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+.text-button:hover:not(:disabled) {
+  background: var(--soft);
 }
 .empty {
   display: flex;
@@ -955,7 +963,7 @@ kbd {
   font-size: 10px;
   background: var(--inset);
   padding: 2px 7px;
-  border-radius: 7px;
+  border-radius: var(--radius-pill);
 }
 .preview-tags button:hover {
   background: var(--soft);
@@ -1100,7 +1108,7 @@ kbd {
   padding: 0 24px;
   border-top: 1px solid var(--rule);
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 .reading-progress-track {
   position: absolute;
@@ -1126,11 +1134,13 @@ kbd {
   border: 0;
   background: transparent;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   max-width: 240px;
   text-overflow: ellipsis;
   cursor: pointer;
-  padding: 4px 0;
+  min-height: 36px;
+  padding: 4px 8px;
+  border-radius: var(--radius-pill);
 }
 .reading-percent {
   margin-left: auto;
@@ -1258,9 +1268,9 @@ kbd {
 .field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 19px;
-  font-size: 12px;
+  gap: 9px;
+  margin-bottom: 20px;
+  font-size: 13px;
 }
 .field > span {
   display: flex;
@@ -1270,13 +1280,19 @@ kbd {
 }
 .field input {
   width: 100%;
-  padding: 11px 12px;
+  padding: 12px 14px;
+  min-height: 46px;
   background: var(--inset);
   border: 1px solid var(--rule);
   border-radius: 10px;
   color: var(--ink);
   font-size: 13px;
   line-height: 1.5;
+}
+.field input:focus-visible {
+  outline-offset: 2px;
+  border-color: var(--accent);
+  background: var(--canvas);
 }
 .field input:disabled {
   color: var(--muted);
@@ -1287,27 +1303,31 @@ kbd {
   font-size: 12px;
 }
 .field .text-button {
-  font-size: 11px;
+  font-size: 12px;
   align-self: flex-start;
-  padding: 0;
+  margin-left: -10px;
 }
 .check {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  font-size: 12px;
-  margin: 12px 0;
+  gap: 10px;
+  font-size: 13px;
+  margin: 10px 0;
+  padding: 8px 0;
+  min-height: 40px;
   line-height: 1.7;
+  cursor: pointer;
 }
 .check input {
   accent-color: var(--accent);
   flex-shrink: 0;
-  margin-top: 4px;
-  width: 14px;
-  height: 14px;
+  margin: 3px 0 0;
+  width: 17px;
+  height: 17px;
+  cursor: pointer;
 }
 .model-panel .hint {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.7;
 }
 .model-panel > .secondary {
@@ -1426,23 +1446,29 @@ pre {
 }
 .setup-steps {
   display: flex;
-  gap: 32px;
+  gap: 8px;
+  flex-wrap: wrap;
   border-bottom: 1px solid var(--rule);
-  margin: 0 0 36px;
+  padding-bottom: 20px;
+  margin: 0 0 32px;
   max-width: 1040px;
 }
 .setup-steps button {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 0 17px;
-  font-size: 12px;
+  padding: 8px 14px;
+  min-height: var(--control-height);
+  border-radius: var(--radius-pill);
+  font-size: 13px;
   color: var(--muted);
-  border-bottom: 2px solid transparent;
 }
 .setup-steps button[aria-current="step"] {
-  border-color: var(--accent);
+  background: var(--soft);
   color: var(--accent);
+}
+.setup-steps button:hover:not(:disabled) {
+  background: var(--inset);
 }
 .setup-steps button > span {
   width: 22px;

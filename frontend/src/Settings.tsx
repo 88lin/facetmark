@@ -136,92 +136,98 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
       <div className="model-columns">
         {["chat", "embed"].map((channel) => (
           <section className="model-panel" key={channel}>
-            <header>
-              <h3>
-                {channel === "chat"
-                  ? t("聊天模型", "Chat model")
-                  : t("向量模型", "Embedding model")}
-              </h3>
-              <span className="quiet">{channelStatus(channel)}</span>
-            </header>
-            {field(
-              `${channel}_base_url`,
-              t("服务地址", "Base URL"),
-              "url",
-              "https://api.openai.com/v1",
-            )}
-            {field(`${channel}_api_key`, "API Key", "password")}
-            {field(`${channel}_model`, t("模型名称", "Model name"))}
-            {channel === "embed" && field("embed_dim", t("向量维度", "Dimensions"), "number")}
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={Boolean(value(`${channel}_allow_no_key`))}
-                disabled={!!busy || row(`${channel}_allow_no_key`)?.locked}
-                onChange={(e) => change(`${channel}_allow_no_key`, e.target.checked)}
-              />
-              {t("连接本机服务，不使用 Key", "Use a local service without a key")}
-            </label>
-            <p className="hint">
-              {t(
-                "免 Key 仅接受 localhost、127.0.0.1 或 ::1。Ollama 可用 http://127.0.0.1:11434/v1。",
-                "Keyless access only accepts localhost, 127.0.0.1 or ::1. Ollama: http://127.0.0.1:11434/v1.",
+            <div className="model-fields">
+              <header>
+                <h3>
+                  {channel === "chat"
+                    ? t("聊天模型", "Chat model")
+                    : t("向量模型", "Embedding model")}
+                </h3>
+                <span className="quiet">{channelStatus(channel)}</span>
+              </header>
+              {field(
+                `${channel}_base_url`,
+                t("服务地址", "Base URL"),
+                "url",
+                "https://api.openai.com/v1",
               )}
-            </p>
-            {channel === "embed" && (
+              {field(`${channel}_api_key`, "API Key", "password")}
+              {field(`${channel}_model`, t("模型名称", "Model name"))}
+              {channel === "embed" && field("embed_dim", t("向量维度", "Dimensions"), "number")}
+            </div>
+            <div className="model-options">
               <label className="check">
                 <input
                   type="checkbox"
-                  checked={Boolean(value("embed_send_dimensions"))}
-                  disabled={!!busy || row("embed_send_dimensions")?.locked}
-                  onChange={(e) => change("embed_send_dimensions", e.target.checked)}
+                  checked={Boolean(value(`${channel}_allow_no_key`))}
+                  disabled={!!busy || row(`${channel}_allow_no_key`)?.locked}
+                  onChange={(e) => change(`${channel}_allow_no_key`, e.target.checked)}
                 />
-                {t("在请求中指定维度", "Send dimensions in requests")}
+                {t("连接本机服务，不使用 Key", "Use a local service without a key")}
               </label>
-            )}
-            <button className="secondary" disabled={!!busy} onClick={() => test(channel)}>
-              {busy === channel ? <LoaderCircle className="spin" /> : <FlaskConical />}
-              {t("测试连接", "Test connection")}
-            </button>
-            {results[channel] && (
-              <div
-                role="status"
-                className={
-                  results[channel].ok && results[channel].dim_matches !== false
-                    ? "test-result"
-                    : "error"
-                }
-              >
-                {results[channel].ok ? (
-                  <>
-                    <Check size={16} />
-                    {t("连接成功", "Connected")} · {results[channel].ms} ms
-                    {channel === "embed" && (
-                      <>
-                        {" "}
-                        · {results[channel].dim} {t("维", "dimensions")}
-                      </>
-                    )}
-                  </>
-                ) : (
-                  results[channel].error
+              <p className="hint">
+                {t(
+                  "免 Key 仅接受 localhost、127.0.0.1 或 ::1。Ollama 可用 http://127.0.0.1:11434/v1。",
+                  "Keyless access only accepts localhost, 127.0.0.1 or ::1. Ollama: http://127.0.0.1:11434/v1.",
                 )}
-                {results[channel].dim_matches === false && !!results[channel].dim && (
-                  <p>
-                    {t(
-                      "实测维度与配置不一致，请修改后重新测试。",
-                      "Measured dimensions differ. Update the value and test again.",
-                    )}{" "}
-                    <button
-                      className="text-button"
-                      onClick={() => change("embed_dim", results[channel].dim)}
-                    >
-                      {t("采用实测维度", "Use measured dimensions")}
-                    </button>
-                  </p>
-                )}
-              </div>
-            )}
+              </p>
+              {channel === "embed" && (
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(value("embed_send_dimensions"))}
+                    disabled={!!busy || row("embed_send_dimensions")?.locked}
+                    onChange={(e) => change("embed_send_dimensions", e.target.checked)}
+                  />
+                  {t("在请求中指定维度", "Send dimensions in requests")}
+                </label>
+              )}
+            </div>
+            <div className="model-test">
+              <button className="secondary" disabled={!!busy} onClick={() => test(channel)}>
+                {busy === channel ? <LoaderCircle className="spin" /> : <FlaskConical />}
+                {t("测试连接", "Test connection")}
+              </button>
+              {results[channel] && (
+                <div
+                  role="status"
+                  className={
+                    results[channel].ok && results[channel].dim_matches !== false
+                      ? "test-result"
+                      : "error"
+                  }
+                >
+                  {results[channel].ok ? (
+                    <>
+                      <Check size={16} />
+                      {t("连接成功", "Connected")} · {results[channel].ms} ms
+                      {channel === "embed" && (
+                        <>
+                          {" "}
+                          · {results[channel].dim} {t("维", "dimensions")}
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    results[channel].error
+                  )}
+                  {results[channel].dim_matches === false && !!results[channel].dim && (
+                    <p>
+                      {t(
+                        "实测维度与配置不一致，请修改后重新测试。",
+                        "Measured dimensions differ. Update the value and test again.",
+                      )}{" "}
+                      <button
+                        className="text-button"
+                        onClick={() => change("embed_dim", results[channel].dim)}
+                      >
+                        {t("采用实测维度", "Use measured dimensions")}
+                      </button>
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </section>
         ))}
       </div>
