@@ -1,5 +1,58 @@
 # Desktop experience validation
 
+## 2026-10-06: white and lake-blue confirmation (current)
+
+The user explicitly selected pure white, lake blue, rounded panels and refined
+controls after rejecting the grey-violet result. Shared UI and test revision:
+`7a20776e6fa49bb55cab4e35bf43753477c76fef`. Later documentation/image metadata
+commits do not change this application source. The older sections below are history.
+
+| Check | Current evidence |
+| --- | --- |
+| Shared frontend and browser | [Experience 37459945939](https://github.com/88lin/facetmark/actions/runs/37459945939): TypeScript/Vite, 14/14 Playwright, 1882 Python passed / 1 skipped, wheel/sdist, Docker and extension passed |
+| Full CI | [37459952441](https://github.com/88lin/facetmark/actions/runs/37459952441): all ten jobs passed |
+| Installed Windows preview | [37459946022](https://github.com/88lin/facetmark/actions/runs/37459946022): build, frozen service, installed WebView, import/search/return and lifecycle checks passed |
+
+[Visual artifact 11411617427](https://github.com/88lin/facetmark/actions/runs/37459945939/artifacts/11411617427)
+contains 34 actual screenshots, a 13.2-second H.264 recording, WEBM, font/scroll
+diagnostics and commit/hash provenance. Inspected scope: Chinese/English,
+light/dark, 1440/1280/1024/390 widths, collection, selected reader, focused reading,
+keyboard focus, import, models, tasks, long titles, loading, empty and failure states.
+Recordings exercise search, reading, summary, focus expansion/reversal and rapid
+selection. Tests preserve query, selected-row focus and list/reader scroll positions;
+the recorded article position was 253px within a 254px extent and was restored.
+
+One visual inspection batch found closed-navigation shadow leakage and uneven
+collection metadata positions. Both were corrected together and confirmed in
+the second capture batch. The independent review returned **ship** with both fixes
+**resolved**; this verdict only scores those listed fixes. Review used screenshots,
+source and an interaction storyboard, not direct playback or a live browser.
+The unavailable specialized Impeccable roles were replaced by fresh generic agents
+using its reviewer/documenter contracts. A single static detector pass returned `[]`.
+No review or automated check claims user acceptance of the aesthetic.
+
+First run `37456691191` passed browser/build checks but failed the historical landing
+page consistency test: the committed English help used `&amp;`, while its generator
+used `&`. Commit `85cc439` synchronized the generator; 137 targeted local checks
+and all subsequent cloud checks passed. Screenshot capture now waits for the reading
+drawer to settle, and disables CSS transitions in navigation evidence.
+
+[Installed evidence 11413073197](https://github.com/88lin/facetmark/actions/runs/37459946022/artifacts/11413073197)
+contains three inspected WebView screenshots and JSON diagnostics. At 1028×749,
+the installed app imported synthetic HTML, searched, showed the truthful unsaved-body
+state and returned to the collection with its query preserved. Same-version reinstall,
+uninstall data retention, parent-process cleanup, port collision, Unicode paths,
+authenticated identity and frozen-service isolation passed. The unsigned
+[Windows x64 installer](https://github.com/88lin/facetmark/actions/runs/37459946022/artifacts/11412588346)
+stays in Actions; it was not downloaded or run locally.
+
+Local small evidence: `.desktop-build/lake-blue-final` and `.desktop-build/lake-blue-windows`.
+Four landing screenshots use this final render with unchanged pixels and embedded origin.
+Only source editing, lightweight checks and small evidence retrieval occurred locally.
+Windows Server runners do not certify Windows 10/11 hardware, cross-version upgrades,
+ordinary non-administrator behavior or signing trust. Real model services and personal
+browser profiles were not used. No main merge, formal release or Pages deployment.
+
 ## 2026-10-06: structural rebuild after user rejection
 
 The user rejected the appearance below as too ordinary and resembling an admin

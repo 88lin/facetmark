@@ -1,12 +1,12 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-06T03:38:10.368Z",
+  "generatedAt": "2026-10-06T11:58:26.129Z",
   "title": "Design System: Facetmark collection and reader",
   "extensions": {
     "colorMeta": {
       "canvas": {
         "role": "neutral",
-        "displayName": "Porcelain",
+        "displayName": "Pure White",
         "tonalRamp": [
           "oklch(15.00% 0.00000 0.00)",
           "oklch(26.43% 0.00000 0.00)",
@@ -20,105 +20,133 @@
       },
       "desk": {
         "role": "neutral",
-        "displayName": "Violet-grey Desk",
+        "displayName": "Pale Blue Workspace",
         "tonalRamp": [
-          "oklch(15.00% 0.00410 301.42)",
-          "oklch(26.43% 0.00410 301.42)",
-          "oklch(37.86% 0.00410 301.42)",
-          "oklch(49.29% 0.00410 301.42)",
-          "oklch(60.71% 0.00410 301.42)",
-          "oklch(72.14% 0.00410 301.42)",
-          "oklch(83.57% 0.00410 301.42)",
-          "oklch(95.00% 0.00410 301.42)"
+          "oklch(15.00% 0.00920 232.36)",
+          "oklch(26.43% 0.00920 232.36)",
+          "oklch(37.86% 0.00920 232.36)",
+          "oklch(49.29% 0.00920 232.36)",
+          "oklch(60.71% 0.00920 232.36)",
+          "oklch(72.14% 0.00920 232.36)",
+          "oklch(83.57% 0.00920 232.36)",
+          "oklch(95.00% 0.00920 232.36)"
         ]
       },
       "inset": {
         "role": "neutral",
-        "displayName": "Inset Paper",
+        "displayName": "Cool Inset",
         "tonalRamp": [
-          "oklch(15.00% 0.00398 286.33)",
-          "oklch(26.43% 0.00398 286.33)",
-          "oklch(37.86% 0.00398 286.33)",
-          "oklch(49.29% 0.00398 286.33)",
-          "oklch(60.71% 0.00398 286.33)",
-          "oklch(72.14% 0.00398 286.33)",
-          "oklch(83.57% 0.00398 286.33)",
-          "oklch(95.00% 0.00398 286.33)"
+          "oklch(15.00% 0.00667 233.64)",
+          "oklch(26.43% 0.00667 233.64)",
+          "oklch(37.86% 0.00667 233.64)",
+          "oklch(49.29% 0.00667 233.64)",
+          "oklch(60.71% 0.00667 233.64)",
+          "oklch(72.14% 0.00667 233.64)",
+          "oklch(83.57% 0.00667 233.64)",
+          "oklch(95.00% 0.00667 233.64)"
         ]
       },
       "ink": {
         "role": "neutral",
-        "displayName": "Graphite",
+        "displayName": "Deep Blue Ink",
         "tonalRamp": [
-          "oklch(15.00% 0.02449 298.82)",
-          "oklch(26.43% 0.02449 298.82)",
-          "oklch(37.86% 0.02449 298.82)",
-          "oklch(49.29% 0.02449 298.82)",
-          "oklch(60.71% 0.02449 298.82)",
-          "oklch(72.14% 0.02449 298.82)",
-          "oklch(83.57% 0.02449 298.82)",
-          "oklch(95.00% 0.02449 298.82)"
+          "oklch(15.00% 0.04948 241.69)",
+          "oklch(26.43% 0.04948 241.69)",
+          "oklch(37.86% 0.04948 241.69)",
+          "oklch(49.29% 0.04948 241.69)",
+          "oklch(60.71% 0.04948 241.69)",
+          "oklch(72.14% 0.04948 241.69)",
+          "oklch(83.57% 0.04948 241.69)",
+          "oklch(95.00% 0.04948 241.69)"
         ]
       },
       "muted": {
         "role": "neutral",
-        "displayName": "Secondary Graphite",
+        "displayName": "Muted Blue Ink",
         "tonalRamp": [
-          "oklch(15.00% 0.02911 303.06)",
-          "oklch(26.43% 0.02911 303.06)",
-          "oklch(37.86% 0.02911 303.06)",
-          "oklch(49.29% 0.02911 303.06)",
-          "oklch(60.71% 0.02911 303.06)",
-          "oklch(72.14% 0.02911 303.06)",
-          "oklch(83.57% 0.02911 303.06)",
-          "oklch(95.00% 0.02911 303.06)"
+          "oklch(15.00% 0.04157 236.25)",
+          "oklch(26.43% 0.04157 236.25)",
+          "oklch(37.86% 0.04157 236.25)",
+          "oklch(49.29% 0.04157 236.25)",
+          "oklch(60.71% 0.04157 236.25)",
+          "oklch(72.14% 0.04157 236.25)",
+          "oklch(83.57% 0.04157 236.25)",
+          "oklch(95.00% 0.04157 236.25)"
         ]
       },
       "rule": {
         "role": "neutral",
-        "displayName": "Fine Rule",
+        "displayName": "Cool Rule",
         "tonalRamp": [
-          "oklch(15.00% 0.01406 304.13)",
-          "oklch(26.43% 0.01406 304.13)",
-          "oklch(37.86% 0.01406 304.13)",
-          "oklch(49.29% 0.01406 304.13)",
-          "oklch(60.71% 0.01406 304.13)",
-          "oklch(72.14% 0.01406 304.13)",
-          "oklch(83.57% 0.01406 304.13)",
-          "oklch(95.00% 0.01406 304.13)"
+          "oklch(15.00% 0.01523 228.97)",
+          "oklch(26.43% 0.01523 228.97)",
+          "oklch(37.86% 0.01523 228.97)",
+          "oklch(49.29% 0.01523 228.97)",
+          "oklch(60.71% 0.01523 228.97)",
+          "oklch(72.14% 0.01523 228.97)",
+          "oklch(83.57% 0.01523 228.97)",
+          "oklch(95.00% 0.01523 228.97)"
         ]
       },
       "accent": {
         "role": "primary",
-        "displayName": "Plum",
+        "displayName": "Lake Blue",
         "tonalRamp": [
-          "oklch(15.00% 0.15388 295.06)",
-          "oklch(26.43% 0.15388 295.06)",
-          "oklch(37.86% 0.15388 295.06)",
-          "oklch(49.29% 0.15388 295.06)",
-          "oklch(60.71% 0.15388 295.06)",
-          "oklch(72.14% 0.15388 295.06)",
-          "oklch(83.57% 0.15388 295.06)",
-          "oklch(95.00% 0.15388 295.06)"
+          "oklch(15.00% 0.09772 227.18)",
+          "oklch(26.43% 0.09772 227.18)",
+          "oklch(37.86% 0.09772 227.18)",
+          "oklch(49.29% 0.09772 227.18)",
+          "oklch(60.71% 0.09772 227.18)",
+          "oklch(72.14% 0.09772 227.18)",
+          "oklch(83.57% 0.09772 227.18)",
+          "oklch(95.00% 0.09772 227.18)"
         ]
       },
       "soft": {
         "role": "primary",
-        "displayName": "Faint Violet",
+        "displayName": "Lake Mist",
         "tonalRamp": [
-          "oklch(15.00% 0.02099 304.03)",
-          "oklch(26.43% 0.02099 304.03)",
-          "oklch(37.86% 0.02099 304.03)",
-          "oklch(49.29% 0.02099 304.03)",
-          "oklch(60.71% 0.02099 304.03)",
-          "oklch(72.14% 0.02099 304.03)",
-          "oklch(83.57% 0.02099 304.03)",
-          "oklch(95.00% 0.02099 304.03)"
+          "oklch(15.00% 0.02069 219.69)",
+          "oklch(26.43% 0.02069 219.69)",
+          "oklch(37.86% 0.02069 219.69)",
+          "oklch(49.29% 0.02069 219.69)",
+          "oklch(60.71% 0.02069 219.69)",
+          "oklch(72.14% 0.02069 219.69)",
+          "oklch(83.57% 0.02069 219.69)",
+          "oklch(95.00% 0.02069 219.69)"
+        ]
+      },
+      "selected": {
+        "role": "primary",
+        "displayName": "Selected Water",
+        "tonalRamp": [
+          "oklch(15.00% 0.02315 220.73)",
+          "oklch(26.43% 0.02315 220.73)",
+          "oklch(37.86% 0.02315 220.73)",
+          "oklch(49.29% 0.02315 220.73)",
+          "oklch(60.71% 0.02315 220.73)",
+          "oklch(72.14% 0.02315 220.73)",
+          "oklch(83.57% 0.02315 220.73)",
+          "oklch(95.00% 0.02315 220.73)"
+        ]
+      },
+      "selected-edge": {
+        "role": "primary",
+        "displayName": "Selected Edge",
+        "tonalRamp": [
+          "oklch(15.00% 0.06662 222.48)",
+          "oklch(26.43% 0.06662 222.48)",
+          "oklch(37.86% 0.06662 222.48)",
+          "oklch(49.29% 0.06662 222.48)",
+          "oklch(60.71% 0.06662 222.48)",
+          "oklch(72.14% 0.06662 222.48)",
+          "oklch(83.57% 0.06662 222.48)",
+          "oklch(95.00% 0.06662 222.48)"
         ]
       },
       "on-accent": {
         "role": "primary",
-        "displayName": "On Plum",
+        "displayName": "On Lake Blue",
         "tonalRamp": [
           "oklch(15.00% 0.00000 0.00)",
           "oklch(26.43% 0.00000 0.00)",
@@ -148,140 +176,168 @@
         "role": "neutral",
         "displayName": "Navigation Scrim",
         "tonalRamp": [
-          "oklch(15.00% 0.02074 284.79 / 0.333)",
-          "oklch(26.43% 0.02074 284.79 / 0.333)",
-          "oklch(37.86% 0.02074 284.79 / 0.333)",
-          "oklch(49.29% 0.02074 284.79 / 0.333)",
-          "oklch(60.71% 0.02074 284.79 / 0.333)",
-          "oklch(72.14% 0.02074 284.79 / 0.333)",
-          "oklch(83.57% 0.02074 284.79 / 0.333)",
-          "oklch(95.00% 0.02074 284.79 / 0.333)"
+          "oklch(15.00% 0.05125 236.65 / 0.333)",
+          "oklch(26.43% 0.05125 236.65 / 0.333)",
+          "oklch(37.86% 0.05125 236.65 / 0.333)",
+          "oklch(49.29% 0.05125 236.65 / 0.333)",
+          "oklch(60.71% 0.05125 236.65 / 0.333)",
+          "oklch(72.14% 0.05125 236.65 / 0.333)",
+          "oklch(83.57% 0.05125 236.65 / 0.333)",
+          "oklch(95.00% 0.05125 236.65 / 0.333)"
         ]
       },
       "canvas-dark": {
         "role": "neutral",
-        "displayName": "Porcelain — dark",
+        "displayName": "Pure White — dark",
         "tonalRamp": [
-          "oklch(15.00% 0.01874 298.87)",
-          "oklch(26.43% 0.01874 298.87)",
-          "oklch(37.86% 0.01874 298.87)",
-          "oklch(49.29% 0.01874 298.87)",
-          "oklch(60.71% 0.01874 298.87)",
-          "oklch(72.14% 0.01874 298.87)",
-          "oklch(83.57% 0.01874 298.87)",
-          "oklch(95.00% 0.01874 298.87)"
+          "oklch(15.00% 0.03711 238.93)",
+          "oklch(26.43% 0.03711 238.93)",
+          "oklch(37.86% 0.03711 238.93)",
+          "oklch(49.29% 0.03711 238.93)",
+          "oklch(60.71% 0.03711 238.93)",
+          "oklch(72.14% 0.03711 238.93)",
+          "oklch(83.57% 0.03711 238.93)",
+          "oklch(95.00% 0.03711 238.93)"
         ]
       },
       "desk-dark": {
         "role": "neutral",
-        "displayName": "Violet-grey Desk — dark",
+        "displayName": "Pale Blue Workspace — dark",
         "tonalRamp": [
-          "oklch(15.00% 0.01189 300.63)",
-          "oklch(26.43% 0.01189 300.63)",
-          "oklch(37.86% 0.01189 300.63)",
-          "oklch(49.29% 0.01189 300.63)",
-          "oklch(60.71% 0.01189 300.63)",
-          "oklch(72.14% 0.01189 300.63)",
-          "oklch(83.57% 0.01189 300.63)",
-          "oklch(95.00% 0.01189 300.63)"
+          "oklch(15.00% 0.02754 240.61)",
+          "oklch(26.43% 0.02754 240.61)",
+          "oklch(37.86% 0.02754 240.61)",
+          "oklch(49.29% 0.02754 240.61)",
+          "oklch(60.71% 0.02754 240.61)",
+          "oklch(72.14% 0.02754 240.61)",
+          "oklch(83.57% 0.02754 240.61)",
+          "oklch(95.00% 0.02754 240.61)"
         ]
       },
       "inset-dark": {
         "role": "neutral",
-        "displayName": "Inset Paper — dark",
+        "displayName": "Cool Inset — dark",
         "tonalRamp": [
-          "oklch(15.00% 0.01460 285.42)",
-          "oklch(26.43% 0.01460 285.42)",
-          "oklch(37.86% 0.01460 285.42)",
-          "oklch(49.29% 0.01460 285.42)",
-          "oklch(60.71% 0.01460 285.42)",
-          "oklch(72.14% 0.01460 285.42)",
-          "oklch(83.57% 0.01460 285.42)",
-          "oklch(95.00% 0.01460 285.42)"
+          "oklch(15.00% 0.03795 236.18)",
+          "oklch(26.43% 0.03795 236.18)",
+          "oklch(37.86% 0.03795 236.18)",
+          "oklch(49.29% 0.03795 236.18)",
+          "oklch(60.71% 0.03795 236.18)",
+          "oklch(72.14% 0.03795 236.18)",
+          "oklch(83.57% 0.03795 236.18)",
+          "oklch(95.00% 0.03795 236.18)"
         ]
       },
       "ink-dark": {
         "role": "neutral",
-        "displayName": "Graphite — dark",
+        "displayName": "Deep Blue Ink — dark",
         "tonalRamp": [
-          "oklch(15.00% 0.01110 303.11)",
-          "oklch(26.43% 0.01110 303.11)",
-          "oklch(37.86% 0.01110 303.11)",
-          "oklch(49.29% 0.01110 303.11)",
-          "oklch(60.71% 0.01110 303.11)",
-          "oklch(72.14% 0.01110 303.11)",
-          "oklch(83.57% 0.01110 303.11)",
-          "oklch(95.00% 0.01110 303.11)"
+          "oklch(15.00% 0.01446 224.50)",
+          "oklch(26.43% 0.01446 224.50)",
+          "oklch(37.86% 0.01446 224.50)",
+          "oklch(49.29% 0.01446 224.50)",
+          "oklch(60.71% 0.01446 224.50)",
+          "oklch(72.14% 0.01446 224.50)",
+          "oklch(83.57% 0.01446 224.50)",
+          "oklch(95.00% 0.01446 224.50)"
         ]
       },
       "muted-dark": {
         "role": "neutral",
-        "displayName": "Secondary Graphite — dark",
+        "displayName": "Muted Blue Ink — dark",
         "tonalRamp": [
-          "oklch(15.00% 0.03104 302.92)",
-          "oklch(26.43% 0.03104 302.92)",
-          "oklch(37.86% 0.03104 302.92)",
-          "oklch(49.29% 0.03104 302.92)",
-          "oklch(60.71% 0.03104 302.92)",
-          "oklch(72.14% 0.03104 302.92)",
-          "oklch(83.57% 0.03104 302.92)",
-          "oklch(95.00% 0.03104 302.92)"
+          "oklch(15.00% 0.03295 233.43)",
+          "oklch(26.43% 0.03295 233.43)",
+          "oklch(37.86% 0.03295 233.43)",
+          "oklch(49.29% 0.03295 233.43)",
+          "oklch(60.71% 0.03295 233.43)",
+          "oklch(72.14% 0.03295 233.43)",
+          "oklch(83.57% 0.03295 233.43)",
+          "oklch(95.00% 0.03295 233.43)"
         ]
       },
       "rule-dark": {
         "role": "neutral",
-        "displayName": "Fine Rule — dark",
+        "displayName": "Cool Rule — dark",
         "tonalRamp": [
-          "oklch(15.00% 0.03209 302.53)",
-          "oklch(26.43% 0.03209 302.53)",
-          "oklch(37.86% 0.03209 302.53)",
-          "oklch(49.29% 0.03209 302.53)",
-          "oklch(60.71% 0.03209 302.53)",
-          "oklch(72.14% 0.03209 302.53)",
-          "oklch(83.57% 0.03209 302.53)",
-          "oklch(95.00% 0.03209 302.53)"
+          "oklch(15.00% 0.04298 234.28)",
+          "oklch(26.43% 0.04298 234.28)",
+          "oklch(37.86% 0.04298 234.28)",
+          "oklch(49.29% 0.04298 234.28)",
+          "oklch(60.71% 0.04298 234.28)",
+          "oklch(72.14% 0.04298 234.28)",
+          "oklch(83.57% 0.04298 234.28)",
+          "oklch(95.00% 0.04298 234.28)"
         ]
       },
       "accent-dark": {
         "role": "primary",
-        "displayName": "Plum — dark",
+        "displayName": "Lake Blue — dark",
         "tonalRamp": [
-          "oklch(15.00% 0.10886 301.03)",
-          "oklch(26.43% 0.10886 301.03)",
-          "oklch(37.86% 0.10886 301.03)",
-          "oklch(49.29% 0.10886 301.03)",
-          "oklch(60.71% 0.10886 301.03)",
-          "oklch(72.14% 0.10886 301.03)",
-          "oklch(83.57% 0.10886 301.03)",
-          "oklch(95.00% 0.10886 301.03)"
+          "oklch(15.00% 0.09679 219.72)",
+          "oklch(26.43% 0.09679 219.72)",
+          "oklch(37.86% 0.09679 219.72)",
+          "oklch(49.29% 0.09679 219.72)",
+          "oklch(60.71% 0.09679 219.72)",
+          "oklch(72.14% 0.09679 219.72)",
+          "oklch(83.57% 0.09679 219.72)",
+          "oklch(95.00% 0.09679 219.72)"
         ]
       },
       "soft-dark": {
         "role": "primary",
-        "displayName": "Faint Violet — dark",
+        "displayName": "Lake Mist — dark",
         "tonalRamp": [
-          "oklch(15.00% 0.03667 304.98)",
-          "oklch(26.43% 0.03667 304.98)",
-          "oklch(37.86% 0.03667 304.98)",
-          "oklch(49.29% 0.03667 304.98)",
-          "oklch(60.71% 0.03667 304.98)",
-          "oklch(72.14% 0.03667 304.98)",
-          "oklch(83.57% 0.03667 304.98)",
-          "oklch(95.00% 0.03667 304.98)"
+          "oklch(15.00% 0.04730 234.31)",
+          "oklch(26.43% 0.04730 234.31)",
+          "oklch(37.86% 0.04730 234.31)",
+          "oklch(49.29% 0.04730 234.31)",
+          "oklch(60.71% 0.04730 234.31)",
+          "oklch(72.14% 0.04730 234.31)",
+          "oklch(83.57% 0.04730 234.31)",
+          "oklch(95.00% 0.04730 234.31)"
+        ]
+      },
+      "selected-dark": {
+        "role": "primary",
+        "displayName": "Selected Water — dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.05270 228.93)",
+          "oklch(26.43% 0.05270 228.93)",
+          "oklch(37.86% 0.05270 228.93)",
+          "oklch(49.29% 0.05270 228.93)",
+          "oklch(60.71% 0.05270 228.93)",
+          "oklch(72.14% 0.05270 228.93)",
+          "oklch(83.57% 0.05270 228.93)",
+          "oklch(95.00% 0.05270 228.93)"
+        ]
+      },
+      "selected-edge-dark": {
+        "role": "primary",
+        "displayName": "Selected Edge — dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.07544 227.73)",
+          "oklch(26.43% 0.07544 227.73)",
+          "oklch(37.86% 0.07544 227.73)",
+          "oklch(49.29% 0.07544 227.73)",
+          "oklch(60.71% 0.07544 227.73)",
+          "oklch(72.14% 0.07544 227.73)",
+          "oklch(83.57% 0.07544 227.73)",
+          "oklch(95.00% 0.07544 227.73)"
         ]
       },
       "on-accent-dark": {
         "role": "primary",
-        "displayName": "On Plum — dark",
+        "displayName": "On Lake Blue — dark",
         "tonalRamp": [
-          "oklch(15.00% 0.04935 298.68)",
-          "oklch(26.43% 0.04935 298.68)",
-          "oklch(37.86% 0.04935 298.68)",
-          "oklch(49.29% 0.04935 298.68)",
-          "oklch(60.71% 0.04935 298.68)",
-          "oklch(72.14% 0.04935 298.68)",
-          "oklch(83.57% 0.04935 298.68)",
-          "oklch(95.00% 0.04935 298.68)"
+          "oklch(15.00% 0.04659 234.70)",
+          "oklch(26.43% 0.04659 234.70)",
+          "oklch(37.86% 0.04659 234.70)",
+          "oklch(49.29% 0.04659 234.70)",
+          "oklch(60.71% 0.04659 234.70)",
+          "oklch(72.14% 0.04659 234.70)",
+          "oklch(83.57% 0.04659 234.70)",
+          "oklch(95.00% 0.04659 234.70)"
         ]
       },
       "danger-dark": {
@@ -302,14 +358,14 @@
         "role": "neutral",
         "displayName": "Navigation Scrim — dark",
         "tonalRamp": [
-          "oklch(15.00% 0.01521 284.32 / 0.600)",
-          "oklch(26.43% 0.01521 284.32 / 0.600)",
-          "oklch(37.86% 0.01521 284.32 / 0.600)",
-          "oklch(49.29% 0.01521 284.32 / 0.600)",
-          "oklch(60.71% 0.01521 284.32 / 0.600)",
-          "oklch(72.14% 0.01521 284.32 / 0.600)",
-          "oklch(83.57% 0.01521 284.32 / 0.600)",
-          "oklch(95.00% 0.01521 284.32 / 0.600)"
+          "oklch(15.00% 0.02948 239.11 / 0.600)",
+          "oklch(26.43% 0.02948 239.11 / 0.600)",
+          "oklch(37.86% 0.02948 239.11 / 0.600)",
+          "oklch(49.29% 0.02948 239.11 / 0.600)",
+          "oklch(60.71% 0.02948 239.11 / 0.600)",
+          "oklch(72.14% 0.02948 239.11 / 0.600)",
+          "oklch(83.57% 0.02948 239.11 / 0.600)",
+          "oklch(95.00% 0.02948 239.11 / 0.600)"
         ]
       }
     },
@@ -385,81 +441,91 @@
     },
     "shadows": [
       {
-        "name": "selected-entry",
-        "value": "0 4px 16px #20142e08",
-        "purpose": "Quiet lift for the porcelain selected index entry."
+        "name": "card",
+        "value": "0 3px 12px #244e6710",
+        "purpose": "White cards and active header navigation segment."
       },
       {
-        "name": "article-sheet",
-        "value": "0 8px 36px #20142e0c",
-        "purpose": "Separate the reading sheet from the desk."
+        "name": "card-dark",
+        "value": "0 3px 14px #00000020",
+        "purpose": "Dark-theme resting cards and active header segment."
       },
       {
-        "name": "navigation-drawer",
-        "value": "8px 0 40px #16102014",
-        "purpose": "Temporary navigation above the collection."
+        "name": "sheet",
+        "value": "0 12px 36px #244e6712",
+        "purpose": "Desktop reader and support surfaces."
+      },
+      {
+        "name": "sheet-dark",
+        "value": "0 12px 36px #00000028",
+        "purpose": "Dark-theme reader and support surfaces."
+      },
+      {
+        "name": "card-state",
+        "value": "inset 0 0 0 1px var(--selected-edge)",
+        "purpose": "Hover and selection replace resting card shadow."
+      },
+      {
+        "name": "navigation",
+        "value": "8px 0 40px #16374a24",
+        "purpose": "Open temporary navigation drawer only; the closed drawer has no shadow."
       },
       {
         "name": "search-help",
-        "value": "0 12px 36px #17132112",
-        "purpose": "Floating help with a fine border."
+        "value": "0 12px 36px #244e6718",
+        "purpose": "Floating search help."
       }
     ],
     "motion": [
       {
-        "name": "ease-standard",
+        "name": "css-ease",
         "value": "cubic-bezier(0.22, 1, 0.36, 1)",
-        "purpose": "CSS control and drawer easing."
+        "purpose": "CSS control, card, navigation and facet state changes."
       },
       {
-        "name": "control-transition",
+        "name": "controls",
         "value": "150ms",
-        "purpose": "CSS background/color/border changes."
+        "purpose": "Shared control transitions."
       },
       {
-        "name": "facet-chevron",
+        "name": "cards-and-segments",
         "value": "180ms",
-        "purpose": "CSS disclosure-chevron rotation."
+        "purpose": "Card background/shadow, header segment background/color and facet-chevron rotation."
       },
       {
-        "name": "navigation-translation",
+        "name": "navigation",
         "value": "220ms",
-        "purpose": "CSS temporary-navigation translation."
+        "purpose": "CSS drawer translation."
       },
       {
-        "name": "tab-indicator",
-        "value": "180ms; power3.out; overwrite:auto",
-        "purpose": "GSAP owns indicator x and width."
+        "name": "tab-marker",
+        "value": "180ms power3.out; overwrite: auto",
+        "purpose": "GSAP marker x and width; immediate with reduced motion."
       },
       {
-        "name": "focus-translation",
-        "value": "220ms; power3.out; overwrite:auto",
-        "purpose": "GSAP owns pane x/y continuity and clears transform on completion."
+        "name": "focus-pane",
+        "value": "220ms power3.out; overwrite: auto",
+        "purpose": "Interruptible GSAP x/y translation, cleared on completion."
       },
       {
-        "name": "narrow-reader",
-        "value": "220ms; [0.22, 1, 0.36, 1]",
-        "purpose": "Motion owns full-width reader x translation."
+        "name": "modal-reader",
+        "value": "220ms cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Motion drawer x; immediate with reduced motion."
       },
       {
-        "name": "reader-overlay-opacity",
+        "name": "reader-overlay",
         "value": "180ms",
-        "purpose": "Motion overlay transition; the current overlay background is transparent."
+        "purpose": "Motion opacity on transparent overlay."
       },
       {
-        "name": "progress-spring",
-        "value": "stiffness:180; damping:35; mass:0.25",
-        "purpose": "Motion progress scale from measured article scrolling."
+        "name": "progress",
+        "value": "spring: stiffness 180, damping 35, mass 0.25",
+        "purpose": "Motion scaleX from measured saved-body scroll; direct value with reduced motion."
       },
       {
-        "name": "busy-spinner",
+        "name": "busy",
         "value": "1.1s linear infinite",
-        "purpose": "CSS real busy-state icon rotation."
-      },
-      {
-        "name": "reduced-motion",
-        "value": "CSS none; GSAP/drawer duration:0; direct progress; scroll:auto",
-        "purpose": "No row stagger; immediate functional state changes."
+        "purpose": "CSS spinner; disabled by reduced motion."
       }
     ],
     "breakpoints": [
@@ -468,19 +534,15 @@
         "value": "719px"
       },
       {
-        "name": "narrow-reader-max",
+        "name": "modal-reader-max",
         "value": "1119px"
       },
       {
-        "name": "compact-desktop-min",
-        "value": "1120px"
+        "name": "compact-desktop",
+        "value": "1120px–1300px"
       },
       {
-        "name": "compact-desktop-max",
-        "value": "1300px"
-      },
-      {
-        "name": "wide-desktop-min",
+        "name": "wide-min",
         "value": "1600px"
       }
     ]
@@ -490,9 +552,9 @@
       "name": "Primary button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Plum form action for saving and explicitly starting work.",
+      "description": "Lake Blue form action for saving and explicitly starting work.",
       "html": "<button class=\"ds-primary\" type=\"button\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z\"/><polyline points=\"17 21 17 13 7 13 7 21\"/><polyline points=\"7 3 7 8 15 8\"/></svg>保存配置</button>",
-      "css": ".ds-primary{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:6px;font-size:13px;font-weight:550;line-height:1.5;min-height:36px;cursor:pointer;transition:background .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));}.ds-primary:focus-visible{outline:2px solid var(--accent, #7050b5);outline-offset:3px;}.ds-primary:disabled{cursor:not-allowed;opacity:.42;}@media(prefers-reduced-motion:reduce){.ds-primary{transition:none!important;animation:none!important;}}.ds-primary{padding:10px 16px;background:var(--accent, #7050b5);color:var(--on-accent, #fff);}.ds-primary:hover:not(:disabled){filter:brightness(.94);}"
+      "css": ".ds-primary{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:10px;font-size:13px;font-weight:550;line-height:1.5;min-height:36px;cursor:pointer;transition:background .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));}.ds-primary:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-primary:disabled{cursor:not-allowed;opacity:.42;}@media(prefers-reduced-motion:reduce){.ds-primary{transition:none!important;animation:none!important;}}.ds-primary{padding:10px 16px;background:var(--accent, #087293);color:var(--on-accent, #fff);}.ds-primary:hover:not(:disabled){filter:brightness(.94);}"
     },
     {
       "name": "Secondary button",
@@ -500,7 +562,7 @@
       "refersTo": "button-secondary",
       "description": "Outlined test, retry and subordinate action.",
       "html": "<button class=\"ds-secondary\" type=\"button\">Test connection</button>",
-      "css": ".ds-secondary{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:6px;font-size:13px;font-weight:550;line-height:1.5;min-height:36px;cursor:pointer;transition:background .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));}.ds-secondary:focus-visible{outline:2px solid var(--accent, #7050b5);outline-offset:3px;}.ds-secondary:disabled{cursor:not-allowed;opacity:.42;}@media(prefers-reduced-motion:reduce){.ds-secondary{transition:none!important;animation:none!important;}}.ds-secondary{padding:9px 14px;border:1px solid var(--rule, #e7e3ed);background:var(--canvas, #ffffff);color:var(--ink, #272330);}.ds-secondary:hover:not(:disabled){background:var(--inset, #f5f5f8);}"
+      "css": ".ds-secondary{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:10px;font-size:13px;font-weight:550;line-height:1.5;min-height:36px;cursor:pointer;transition:background .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));}.ds-secondary:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-secondary:disabled{cursor:not-allowed;opacity:.42;}@media(prefers-reduced-motion:reduce){.ds-secondary{transition:none!important;animation:none!important;}}.ds-secondary{padding:9px 14px;border:1px solid var(--rule, #dce8ee);background:var(--canvas, #ffffff);color:var(--ink, #193549);}.ds-secondary:hover:not(:disabled){background:var(--inset, #f3f8fb);}"
     },
     {
       "name": "Text action",
@@ -508,7 +570,7 @@
       "refersTo": "button-text",
       "description": "Small inline action used on support surfaces.",
       "html": "<button class=\"ds-text\" type=\"button\">Open setup guide<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 7h10v10M7 17 17 7\"/></svg></button>",
-      "css": ".ds-text{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;gap:7px;color:var(--accent, #7050b5);font-size:12px;padding:5px 0;border:0;background:none;cursor:pointer;}.ds-text:hover{text-decoration:underline;text-underline-offset:3px;}.ds-text:focus-visible{outline:2px solid var(--accent, #7050b5);outline-offset:3px;}.ds-text:disabled{cursor:not-allowed;opacity:.42;}"
+      "css": ".ds-text{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;gap:7px;color:var(--accent, #087293);font-size:12px;padding:5px 0;border:0;background:none;cursor:pointer;}.ds-text:hover{text-decoration:underline;text-underline-offset:3px;}.ds-text:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-text:disabled{cursor:not-allowed;opacity:.42;}"
     },
     {
       "name": "Icon button",
@@ -516,23 +578,23 @@
       "refersTo": "button-icon",
       "description": "Compact reader or utility action; pressed state marks a toggle.",
       "html": "<button class=\"ds-icon\" type=\"button\" aria-label=\"Expand reading\" aria-pressed=\"false\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m13-5v3a2 2 0 0 1-2 2h-3\"/></svg></button>",
-      "css": ".ds-icon{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:0;border-radius:6px;background:none;color:var(--ink, #272330);cursor:pointer;flex-shrink:0;transition:background .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));}.ds-icon:hover:not(:disabled){background:var(--inset, #f5f5f8);}.ds-icon[aria-pressed=\"true\"]{background:var(--soft, #eee8f7);color:var(--accent, #7050b5);}.ds-icon:focus-visible{outline:2px solid var(--accent, #7050b5);outline-offset:3px;}.ds-icon:disabled{cursor:not-allowed;opacity:.42;}@media(prefers-reduced-motion:reduce){.ds-icon{transition:none!important;animation:none!important;}}"
+      "css": ".ds-icon{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:0;border-radius:10px;background:none;color:var(--ink, #193549);cursor:pointer;flex-shrink:0;transition:background .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));}.ds-icon:hover:not(:disabled){background:var(--inset, #f3f8fb);}.ds-icon[aria-pressed=\"true\"]{background:var(--soft, #e0f2f8);color:var(--accent, #087293);}.ds-icon:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-icon:disabled{cursor:not-allowed;opacity:.42;}@media(prefers-reduced-motion:reduce){.ds-icon{transition:none!important;animation:none!important;}}"
     },
     {
       "name": "Search field",
       "kind": "input",
       "refersTo": "search-field",
-      "description": "Porcelain outlined search with a plum focus border and a quiet shortcut hint.",
+      "description": "Pure White outlined search with a lake-blue focus border and a quiet shortcut hint.",
       "html": "<div class=\"ds-search\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input aria-label=\"搜索书签\" placeholder=\"你想找回什么？\"/><kbd>Ctrl K</kbd></div>",
-      "css": ".ds-search{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:flex;align-items:center;gap:10px;max-width:520px;height:48px;padding:7px 15px;border:1px solid var(--rule, #e7e3ed);border-radius:10px;background:var(--canvas, #ffffff);color:var(--ink, #272330);transition:border-color .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1)),background .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));}.ds-search:focus-within{border-color:var(--accent, #7050b5);}.ds-search>svg{color:var(--accent, #7050b5);flex-shrink:0;}.ds-search input{font-family:inherit;font-size:15px;line-height:1.6;min-width:0;width:100%;background:transparent;border:0;outline:0;color:var(--ink, #272330);caret-color:var(--accent, #7050b5);}.ds-search input::placeholder{color:var(--muted, #6d6678);}.ds-search kbd{font-family:inherit;font-size:10px;white-space:nowrap;color:var(--muted, #6d6678);border:1px solid var(--rule, #e7e3ed);border-radius:4px;background:var(--canvas, #ffffff);padding:1px 4px;line-height:1.6;}@media(max-width:719px){.ds-search{height:45px;padding:5px 11px;}.ds-search input{font-size:14px;}.ds-search kbd{display:none;}}@media(prefers-reduced-motion:reduce){.ds-search{transition:none!important;animation:none!important;}}"
+      "css": ".ds-search{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:flex;align-items:center;gap:10px;max-width:520px;height:50px;padding:7px 15px;border:1px solid var(--rule, #dce8ee);border-radius:14px;background:var(--canvas, #ffffff);color:var(--ink, #193549);transition:border-color .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1)),background .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));}.ds-search:focus-within{border-color:var(--accent, #087293);}.ds-search>svg{color:var(--accent, #087293);flex-shrink:0;}.ds-search input{font-family:inherit;font-size:15px;line-height:1.6;min-width:0;width:100%;background:transparent;border:0;outline:0;color:var(--ink, #193549);caret-color:var(--accent, #087293);}.ds-search input::placeholder{color:var(--muted, #526d7e);}.ds-search kbd{font-family:inherit;font-size:10px;white-space:nowrap;color:var(--muted, #526d7e);border:1px solid var(--rule, #dce8ee);border-radius:7px;background:var(--canvas, #ffffff);padding:1px 4px;line-height:1.6;}@media(max-width:719px){.ds-search{height:45px;padding:5px 11px;}.ds-search input{font-size:14px;}.ds-search kbd{display:none;}}@media(prefers-reduced-motion:reduce){.ds-search{transition:none!important;animation:none!important;}}"
     },
     {
       "name": "Horizontal navigation",
       "kind": "nav",
       "refersTo": "header-navigation-active",
-      "description": "Main navigation in the horizontal header. Active text is graphite with a plum underline; narrow screens use the drawer.",
+      "description": "Rounded inset tray with a white, lake-blue active segment and subtle card shadow; drawer navigation serves mobile.",
       "html": "<nav class=\"ds-navigation\" aria-label=\"Main navigation\"><button class=\"ds-active\" type=\"button\">All bookmarks</button><button type=\"button\">Saving sessions</button></nav>",
-      "css": ".ds-navigation{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:flex;align-items:stretch;gap:28px;height:72px;background:var(--canvas, #ffffff);}.ds-navigation button{font-family:inherit;font-size:13px;line-height:1.6;position:relative;padding:0;border:0;background:none;color:var(--muted, #6d6678);cursor:pointer;}.ds-navigation .ds-active{color:var(--ink, #272330);font-weight:650;}.ds-navigation .ds-active::after{content:\"\";position:absolute;height:3px;border-radius:2px;background:var(--accent, #7050b5);bottom:13px;left:0;right:0;}.ds-navigation button:focus-visible{outline:2px solid var(--accent, #7050b5);outline-offset:3px;}"
+      "css": ".ds-navigation{font-family:\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",\"Noto Sans CJK SC\",sans-serif;display:flex;align-items:center;gap:4px;padding:4px;background:var(--inset,#f3f8fb);border-radius:13px;width:fit-content;}.ds-navigation button{font:inherit;font-size:13px;line-height:1.6;color:var(--muted,#526d7e);padding:8px 16px;border:0;border-radius:9px;background:none;cursor:pointer;transition:background .18s var(--ease,cubic-bezier(0.22,1,0.36,1)),color .18s var(--ease,cubic-bezier(0.22,1,0.36,1));}.ds-navigation .ds-active{color:var(--accent,#087293);background:var(--canvas,#ffffff);box-shadow:var(--card-shadow,0 3px 12px #244e6710);font-weight:650;}.ds-navigation button:not(.ds-active):hover{color:var(--accent,#087293);background:var(--soft,#e0f2f8);}.ds-navigation button:focus-visible{outline:2px solid var(--accent,#087293);outline-offset:3px;}@media(prefers-reduced-motion:reduce){.ds-navigation button{transition:none;}}"
     },
     {
       "name": "Filter chip",
@@ -540,15 +602,15 @@
       "refersTo": "filter-chip",
       "description": "Removable filter; its size matches the visible collection controls.",
       "html": "<button class=\"ds-chip\" type=\"button\" aria-label=\"移除设计筛选\">设计<svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m18 6-12 12M6 6l12 12\"/></svg></button>",
-      "css": ".ds-chip{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border:0;background:var(--soft, #eee8f7);color:var(--accent, #7050b5);border-radius:5px;font-size:12px;max-width:100%;overflow-wrap:anywhere;cursor:pointer;}.ds-chip:focus-visible{outline:2px solid var(--accent, #7050b5);outline-offset:3px;}"
+      "css": ".ds-chip{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border:0;background:var(--soft, #e0f2f8);color:var(--accent, #087293);border-radius:8px;font-size:12px;max-width:100%;overflow-wrap:anywhere;cursor:pointer;}.ds-chip:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}"
     },
     {
       "name": "Collection and selected index entries",
       "kind": "custom",
       "refersTo": "collection-entry",
-      "description": "Title/excerpt lead visually. The open collection has lower rules; selection produces a compact porcelain index entry with a plum title. The snippet shows both states.",
-      "html": "<div class=\"ds-entry-examples\"><button class=\"ds-row ds-browse\" type=\"button\" aria-pressed=\"false\"><span class=\"ds-copy\"><span class=\"ds-meta\"><span>example.com</span><time datetime=\"2026-10-06\">10月6日</time></span><span class=\"ds-title\">找到一条线索，接着读下去</span><span class=\"ds-summary\">从标题和摘录找回曾经保存的想法，再打开文章继续阅读。</span></span></button><button class=\"ds-row ds-selected\" type=\"button\" aria-pressed=\"true\"><span class=\"ds-copy\"><span class=\"ds-meta\"><span>example.com</span><time datetime=\"2026-10-06\">10月6日</time></span><span class=\"ds-title\">找到一条线索，接着读下去</span><span class=\"ds-summary\">从标题和摘录找回曾经保存的想法，再打开文章继续阅读。</span><span class=\"ds-folder\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 20H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5l2 2h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2z\"/></svg>设计<span class=\"ds-reading\">正在阅读</span></span></span></button></div>",
-      "css": ".ds-entry-examples{background:var(--desk, #f5f4f7);}.ds-row{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:flex;width:100%;text-align:left;padding:19px 20px;border:0;border-radius:10px;margin-bottom:4px;background:transparent;color:var(--ink, #272330);cursor:pointer;transition:background .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));}.ds-row:hover{background:color-mix(in srgb,var(--canvas, #ffffff) 65%,transparent);}.ds-row.ds-selected{background:var(--canvas, #ffffff);box-shadow:0 4px 16px #20142e08;}.ds-copy{min-width:0;display:flex;flex-direction:column;gap:7px;flex:1;}.ds-title{order:0;font-size:16px;line-height:1.55;font-weight:600;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}.ds-selected .ds-title{color:var(--accent, #7050b5);}.ds-summary{order:1;font-size:13px;line-height:1.7;color:var(--muted, #6d6678);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;}.ds-meta{order:2;margin-top:4px;display:flex;align-items:center;gap:8px;color:var(--muted, #6d6678);font-size:11px;line-height:18px;overflow:hidden;}.ds-meta>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.ds-meta time{margin-left:auto;flex-shrink:0;font-size:10px;font-variant-numeric:tabular-nums;}.ds-folder{order:3;display:flex;align-items:center;gap:5px;color:var(--muted, #6d6678);font-size:11px;line-height:1.5;}.ds-reading{margin-left:auto;color:var(--accent, #7050b5);font-size:10px;}.ds-browse{padding:23px 16px 24px;border-bottom:1px solid var(--rule, #e7e3ed);border-radius:0;min-height:122px;align-items:flex-start;}.ds-browse .ds-title{font-size:19px;}.ds-browse .ds-summary{font-size:14px;}.ds-browse .ds-meta{font-size:12px;margin-top:5px;}.ds-browse .ds-meta time{font-size:11px;}.ds-row:focus-visible{outline:2px solid var(--accent, #7050b5);outline-offset:3px;}.ds-row:focus-visible{outline-offset:-3px;}@media(max-width:719px){.ds-row,.ds-browse{padding:19px 5px;margin-bottom:0;min-height:0;border-bottom:1px solid var(--rule, #e7e3ed);border-radius:0;}.ds-row .ds-title{font-size:17px;}.ds-row .ds-summary{font-size:13px;}.ds-row .ds-meta{font-size:11px;}}@media(prefers-reduced-motion:reduce){.ds-row{transition:none!important;animation:none!important;}}"
+      "description": "White rounded browse cards fill each two-column grid row and align source metadata along their lower edge; the compact index shows blue selection. Mobile cards return to content height.",
+      "html": "<div class=\"ds-entry-examples\"><button class=\"ds-row ds-browse\" type=\"button\" aria-pressed=\"false\"><span class=\"ds-copy\"><span class=\"ds-meta\"><span><span class=\"ds-source-initial\" aria-hidden=\"true\">E</span>example.com</span><time datetime=\"2026-10-06\">10月6日</time></span><span class=\"ds-title\">找到一条线索，接着读下去</span><span class=\"ds-summary\">从标题和摘录找回曾经保存的想法，再打开文章继续阅读。</span></span></button><button class=\"ds-row ds-selected\" type=\"button\" aria-pressed=\"true\"><span class=\"ds-copy\"><span class=\"ds-meta\"><span><span class=\"ds-source-initial\" aria-hidden=\"true\">E</span>example.com</span><time datetime=\"2026-10-06\">10月6日</time></span><span class=\"ds-title\">找到一条线索，接着读下去</span><span class=\"ds-summary\">从标题和摘录找回曾经保存的想法，再打开文章继续阅读。</span><span class=\"ds-folder\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 20H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5l2 2h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2z\"/></svg>设计<span class=\"ds-reading\">正在阅读</span></span></span></button></div>",
+      "css": ".ds-entry-examples{background:var(--desk, #edf4f8);}.ds-row{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:flex;width:100%;text-align:left;padding:18px 20px;border:0;border-radius:16px;margin-bottom:10px;background:var(--canvas, #ffffff);box-shadow:var(--card-shadow,0 3px 12px #244e6710);color:var(--ink, #193549);cursor:pointer;transition:background .18s var(--ease, cubic-bezier(0.22, 1, 0.36, 1)),box-shadow .18s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));}.ds-row:hover{background:color-mix(in srgb,var(--canvas, #ffffff) 70%,var(--soft,#e0f2f8));box-shadow:inset 0 0 0 1px var(--selected-edge,#8dc7dc);}.ds-row.ds-selected{background:var(--selected,#ddf1f8);box-shadow:inset 0 0 0 1px var(--selected-edge,#8dc7dc);}.ds-copy{min-width:0;display:flex;flex-direction:column;gap:7px;flex:1;}.ds-title{order:0;font-size:16px;line-height:1.55;font-weight:600;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}.ds-selected .ds-title{color:var(--accent, #087293);}.ds-summary{order:1;font-size:13px;line-height:1.7;color:var(--muted, #526d7e);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;}.ds-meta{order:2;margin-top:4px;display:flex;align-items:center;gap:8px;color:var(--muted, #526d7e);font-size:11px;line-height:18px;overflow:hidden;}.ds-meta>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.ds-meta time{margin-left:auto;flex-shrink:0;font-size:10px;font-variant-numeric:tabular-nums;}.ds-folder{order:3;display:flex;align-items:center;gap:5px;color:var(--muted, #526d7e);font-size:11px;line-height:1.5;}.ds-reading{margin-left:auto;color:var(--accent, #087293);font-size:10px;}.ds-browse{padding:24px;border:0;border-radius:16px;min-height:166px;margin-bottom:0;align-items:flex-start;height:100%;align-self:stretch;}.ds-browse .ds-copy{min-height:118px;align-self:stretch;}.ds-browse .ds-title{font-size:18px;}.ds-browse .ds-summary{font-size:14px;}.ds-browse .ds-meta{font-size:12px;margin-top:auto;padding-top:12px;}.ds-browse .ds-meta time{font-size:11px;}.ds-row:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-row:focus-visible{outline-offset:-3px;}@media(max-width:719px){.ds-browse{height:auto;}.ds-browse .ds-copy{min-height:0;}.ds-row,.ds-browse{padding:20px;margin-bottom:12px;min-height:0;border:0;border-radius:16px;}.ds-row .ds-title{font-size:17px;}.ds-row .ds-summary{font-size:13px;}.ds-row .ds-meta{font-size:11px;}}@media(prefers-reduced-motion:reduce){.ds-row{transition:none!important;animation:none!important;}}.ds-meta>span{display:flex;align-items:center;}.ds-source-initial{display:inline-grid;place-items:center;width:23px;height:23px;flex-shrink:0;margin-right:6px;border:1px solid var(--rule,#dce8ee);border-radius:7px;background:var(--inset,#f3f8fb);color:var(--accent,#087293);font-size:11px;font-weight:650;}"
     },
     {
       "name": "Apply panel",
@@ -556,59 +618,57 @@
       "refersTo": "apply-panel",
       "description": "Scoped configuration panel inside a support page. Model channels themselves remain unboxed.",
       "html": "<section class=\"ds-apply\"><h3>应用向量配置</h3><p>向量空间发生变化时，先备份数据库，再应用配置并重新索引。</p></section>",
-      "css": ".ds-apply{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;background:var(--canvas, #ffffff);color:var(--ink, #272330);border:1px solid var(--rule, #e7e3ed);border-radius:12px;padding:24px;margin-top:28px;}.ds-apply h3{font-size:16px;font-weight:600;line-height:1.5;letter-spacing:0;margin:0 0 12px;}.ds-apply p{font-size:12px;color:var(--muted, #6d6678);max-width:75ch;margin:0 0 16px;}@media(max-width:719px){.ds-apply{padding:18px;}}"
+      "css": ".ds-apply{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;background:var(--canvas, #ffffff);color:var(--ink, #193549);border:1px solid var(--rule, #dce8ee);border-radius:12px;padding:24px;margin-top:28px;}.ds-apply h3{font-size:16px;font-weight:600;line-height:1.5;letter-spacing:0;margin:0 0 12px;}.ds-apply p{font-size:12px;color:var(--muted, #526d7e);max-width:75ch;margin:0 0 16px;}@media(max-width:719px){.ds-apply{padding:18px;}}"
     },
     {
       "name": "Reader tab and action strip",
       "kind": "custom",
       "refersTo": "preview-tabs",
-      "description": "Desktop tabs and actions share one strip. The original-page link belongs above the article title. This static snippet shows the active appearance; React and GSAP provide tab interaction in the app.",
+      "description": "Rounded reader segments with a lake-mist active background; desktop actions share the 60px strip. This static snippet shows the selected state; GSAP moves the marker in the app.",
       "html": "<div class=\"ds-reader-strip\"><div class=\"ds-tabs\" role=\"tablist\" aria-label=\"预览内容\"><button type=\"button\" role=\"tab\" aria-selected=\"true\">正文</button><button type=\"button\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">AI 摘要</button><button type=\"button\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">相关书签</button></div><div class=\"ds-reader-actions\"><button class=\"ds-reader-icon\" type=\"button\" aria-label=\"上一条收藏\" disabled><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m5 12 7-7 7 7M12 19V5\"/></svg></button><button class=\"ds-reader-icon\" type=\"button\" aria-label=\"下一条收藏\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m5 12 7 7 7-7M12 5v14\"/></svg></button><span class=\"ds-divider\"></span><button class=\"ds-reader-icon\" type=\"button\" aria-label=\"展开阅读\" aria-pressed=\"false\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m13-5v3a2 2 0 0 1-2 2h-3\"/></svg></button><button class=\"ds-reader-icon\" type=\"button\" aria-label=\"关闭预览\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M15 3v18m-5-6 3-3-3-3\"/></svg></button></div></div>",
-      "css": ".ds-reader-strip{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;position:relative;background:var(--canvas, #ffffff);color:var(--ink, #272330);}.ds-tabs{display:flex;position:relative;gap:25px;padding:0 26px;height:54px;align-items:stretch;border-bottom:1px solid var(--rule, #e7e3ed);}.ds-tabs button{font-family:inherit;font-size:13px;line-height:1.6;padding:0;border:0;background:none;color:var(--muted, #6d6678);position:relative;white-space:nowrap;cursor:pointer;}.ds-tabs button[aria-selected=\"true\"]{color:var(--accent, #7050b5);font-weight:600;}.ds-tabs button[aria-selected=\"true\"]::after{content:\"\";position:absolute;left:0;right:0;bottom:12px;height:2px;border-radius:1px;background:var(--accent, #7050b5);}.ds-reader-actions{position:absolute;right:17px;top:9px;height:36px;display:flex;align-items:center;gap:3px;}.ds-divider{height:14px;width:1px;background:var(--rule, #e7e3ed);margin:0 5px;}.ds-tabs button:focus-visible{outline:2px solid var(--accent, #7050b5);outline-offset:3px;}.ds-reader-icon{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:0;border-radius:6px;background:none;color:var(--ink, #272330);cursor:pointer;flex-shrink:0;transition:background .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));}.ds-reader-icon:hover:not(:disabled){background:var(--inset, #f5f5f8);}.ds-reader-icon[aria-pressed=\"true\"]{background:var(--soft, #eee8f7);color:var(--accent, #7050b5);}.ds-reader-icon:focus-visible{outline:2px solid var(--accent, #7050b5);outline-offset:3px;}.ds-reader-icon:disabled{cursor:not-allowed;opacity:.42;}@media(prefers-reduced-motion:reduce){.ds-reader-icon{transition:none!important;animation:none!important;}}"
+      "css": ".ds-reader-strip{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;position:relative;background:var(--canvas, #ffffff);color:var(--ink, #193549);}.ds-tabs{display:flex;position:relative;gap:4px;padding:0 18px;height:60px;align-items:center;border-bottom:1px solid var(--rule, #dce8ee);}.ds-tabs button{font-family:inherit;font-size:13px;line-height:1.6;height:34px;padding:0 12px;border:0;border-radius:9px;background:none;color:var(--muted, #526d7e);position:relative;white-space:nowrap;cursor:pointer;}.ds-tabs button[aria-selected=\"true\"]{color:var(--accent, #087293);font-weight:600;background:var(--soft,#e0f2f8);}.ds-tabs button:hover{color:var(--accent,#087293);}.ds-reader-actions{position:absolute;right:17px;top:12px;height:36px;display:flex;align-items:center;gap:4px;}.ds-divider{height:14px;width:1px;background:var(--rule, #dce8ee);margin:0 5px;}.ds-tabs button:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-reader-icon{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:0;border-radius:10px;background:var(--inset,#f3f8fb);color:var(--ink, #193549);cursor:pointer;flex-shrink:0;transition:background .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));}.ds-reader-icon:hover:not(:disabled){background:var(--soft,#e0f2f8);color:var(--accent,#087293);}.ds-reader-icon[aria-pressed=\"true\"]{color:var(--accent, #087293);}.ds-reader-icon:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-reader-icon:disabled{cursor:not-allowed;opacity:.42;}@media(prefers-reduced-motion:reduce){.ds-reader-icon{transition:none!important;animation:none!important;}}"
     }
   ],
   "narrative": {
     "northStar": "Shared collection and reader — Operate / Read",
-    "overview": "Facetmark puts saved content on a quiet violet-grey desk. A bounded collection gives titles and excerpts room to invite recognition; selecting an entry makes that collection a supporting index beside a porcelain reading sheet. Graphite text and restrained plum interactions retain Facetmark’s independent identity and layered mark.\n\nThe interface changes proportion with the task. Navigation lives in a horizontal header, filters open on demand, and focused reading removes competing chrome. The same components serve the desktop and Web interface in Chinese or English, using local font fallbacks and corresponding light/dark semantic roles.",
+    "overview": "Facetmark presents saved pages as a personal collection: white rounded cards on a pale blue workspace, deep blue ink, and lake-blue actions. A selected card becomes a clear blue anchor beside a generous white reader. The layered Facetmark mark remains the identity.\n\nNavigation and filters support the content; focus reading removes competing chrome. Local Chinese/English font fallbacks, semantic dark-theme equivalents, visible keyboard focus and reduced motion carry the same system across desktop and Web.",
     "keyCharacteristics": [
-      "Title and excerpt lead the collection; source and saved date support them.",
-      "An open two-column collection becomes a subordinate index beside the article.",
-      "Porcelain sheets sit on a violet-grey desk with fine rules and restrained soft depth.",
-      "Reader tabs and actions stay outside the article scroller; details are disclosed on demand.",
-      "Focus reading hides navigation, utilities, search and results; narrow reading has a text return control."
+      "White cards remain distinct from the pale blue workspace.",
+      "Lake-blue selection marks the active page without hiding the surrounding collection.",
+      "Titles and excerpts lead; source initials and saved dates support recognition.",
+      "Rounded controls, segmented selections and ambient shadows give surfaces clear boundaries.",
+      "Reading modes preserve context; narrow reading provides a visible return action."
     ],
     "rules": [
       {
-        "name": "Interaction Plum",
-        "body": "Use plum for actions, keyboard focus, active tabs and the selected index title. Keep unselected titles graphite and reserve the danger role for failure text and recovery context.",
+        "name": "Lake-blue Selection",
+        "body": "Keep ordinary collection cards white. Use the selected fill, inset edge and lake-blue title together for the active page; reserve danger color for failures.",
         "section": "colors"
       },
       {
         "name": "Reading Rhythm",
-        "body": "Give titles and excerpts room in the collection, then let article text set the reading pace. Wrap Chinese text, long titles and URLs without widening the workspace.",
+        "body": "Let titles and excerpts lead the collection, then let article text set the reading pace. Wrap Chinese text, long titles and URLs without widening the workspace.",
         "section": "typography"
       },
       {
-        "name": "Quiet Depth",
-        "body": "Use soft depth to separate the selected entry, article sheet and temporary navigation. Keep the unselected collection open and ruled, with no decorative floating effect.",
+        "name": "Bounded Depth",
+        "body": "Use ambient shadows for resting cards and reading surfaces. Hover and selection replace the card shadow with a thin inset edge; do not add a lift transform.",
         "section": "elevation"
       }
     ],
     "dos": [
-      "Do lead collection entries with a visible title and meaningful excerpt.",
-      "Do let selection change the collection into a supporting index beside the article.",
-      "Do keep reader tabs and actions outside the article scroller and disclose saved details on demand.",
+      "Do preserve white cards, pale blue workspace and the distinct blue selected card.",
+      "Do use the shared card, reader and control radii while retaining documented component exceptions.",
+      "Do keep source initials subordinate to titles and excerpts.",
       "Do preserve query, filters, pagination, collection position and originating-row focus when returning from reading.",
-      "Do make focus reading remove competing navigation and search chrome.",
+      "Do keep reader tabs and actions outside the article scroller and disclose saved details on demand.",
       "Do provide a visible Back to collection control in the full-width narrow reader.",
-      "Do bind both themes to semantic roles and retain local Chinese/English font fallbacks.",
-      "Do preserve visible focus, keyboard selection, reduced motion and distinct recovery states."
+      "Do bind both themes to semantic roles and preserve keyboard access, reduced motion and distinct recovery states."
     ],
     "donts": [
-      "Don't restore the rejected permanent three-column management shell.",
-      "Don't make operational status, filters or maintenance controls dominate the collection.",
-      "Don't reintroduce source avatars, a selection-edge stripe or source-first visual ordering into collection entries.",
-      "Don't replace the independent Facetmark identity with hand-drawn borders, glass or a candy-colored dashboard.",
+      "Don't restore the rejected grey-violet palette or permanent three-column management shell.",
+      "Don't turn white collection cards into transparent ruled rows, including on mobile.",
+      "Don't replace the independent Facetmark identity with hand-drawn borders, gradients or a candy-colored dashboard.",
       "Don't let GSAP, Motion and CSS animate the same property on the same element.",
       "Don't invent reading percentages, section headings or successful task states."
     ]
