@@ -139,11 +139,14 @@ function Workbench({
   const readerCache = useRef(new Map<number, Bookmark>());
   const focusTimeline = useRef<gsap.core.Timeline | null>(null);
   const focusFrame = useRef<number | null>(null);
+  const splitScroll = useRef(0);
   const { contextSafe } = useGSAP({ scope: workspace });
   const toggleFocus = contextSafe(() => {
     const pane = readerPane.current;
     if (!pane) return;
-    const before = pane.getBoundingClientRect().left;
+    const before = pane.getBoundingClientRect();
+    if (!focusReading)
+      splitScroll.current = pane.querySelector<HTMLElement>(".preview-scroll")?.scrollTop ?? 0;
     if (focusFrame.current !== null) cancelAnimationFrame(focusFrame.current);
     const next = !focusReading;
     setFocusReading(next);
@@ -152,15 +155,23 @@ function Workbench({
       contextSafe(() => {
         if (!readerPane.current) return;
         focusTimeline.current?.kill();
-        gsap.set(readerPane.current, { x: 0 });
-        const after = readerPane.current.getBoundingClientRect().left;
+        gsap.set(readerPane.current, { x: 0, y: 0 });
+        const after = readerPane.current.getBoundingClientRect();
+        if (!next)
+          readerPane.current
+            .querySelector<HTMLElement>(".preview-scroll")
+            ?.scrollTo({ top: splitScroll.current });
         if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
           gsap.set(readerPane.current, { clearProps: "transform" });
           return;
         }
         focusTimeline.current = gsap
           .timeline({ defaults: motionTiming })
-          .fromTo(readerPane.current, { x: before - after }, { x: 0, clearProps: "transform" });
+          .fromTo(
+            readerPane.current,
+            { x: before.left - after.left, y: before.top - after.top },
+            { x: 0, y: 0, clearProps: "transform" },
+          );
       }),
     );
   });
@@ -278,8 +289,14 @@ function Workbench({
       }
       if (event.key === "Escape" && selected !== null && !drawer && !event.defaultPrevented) {
         event.preventDefault();
-        if (focusReading) setFocusReading(false);
-        else closePreview();
+        if (focusReading) {
+          setFocusReading(false);
+          requestAnimationFrame(() =>
+            readerPane.current
+              ?.querySelector<HTMLElement>(".preview-scroll")
+              ?.scrollTo({ top: splitScroll.current }),
+          );
+        } else closePreview();
       }
     };
     window.addEventListener("keydown", handler);
@@ -336,8 +353,8 @@ function Workbench({
   const filterKey = JSON.stringify(filters);
   const hasSearchContext = Boolean(
     search.trim() ||
-      Object.values(filters).some((value) => value !== undefined) ||
-      (setup?.bookmarks || 0) > 0,
+    Object.values(filters).some((value) => value !== undefined) ||
+    (setup?.bookmarks || 0) > 0,
   );
   const searchTerms = [
     search,
@@ -347,11 +364,11 @@ function Workbench({
   ].join(" ");
   const semantic = Boolean(
     setup &&
-      !setup.demo &&
-      setup.channels.embed.configured &&
-      setup.has_vectors &&
-      setup.vector_compatible &&
-      !setup.pending_apply,
+    !setup.demo &&
+    setup.channels.embed.configured &&
+    setup.has_vectors &&
+    setup.vector_compatible &&
+    !setup.pending_apply,
   );
   useEffect(() => {
     if (!paired || view !== "library") return;
@@ -538,7 +555,7 @@ function Workbench({
   );
   return (
     <div className={`app-shell ${focusReading ? "is-reading-focused" : ""}`}>
-      <header className="app-header" inert={navOpen}>
+      <header className="app-header" inert={navOpen} aria-hidden={navOpen}>
         <button
           className="icon-button nav-trigger"
           aria-label={t("打开导航", "Open navigation")}
@@ -624,6 +641,7 @@ function Workbench({
       <aside
         ref={sidebar}
         inert={!navOpen}
+        aria-hidden={!navOpen}
         role={navOpen ? "dialog" : undefined}
         aria-modal={navOpen ? true : undefined}
         aria-label={t("导航", "Navigation")}
@@ -773,6 +791,7 @@ function Workbench({
       <main
         ref={workspace}
         inert={navOpen}
+        aria-hidden={navOpen}
         className={`main-workspace ${view === "library" ? "with-preview" : ""} ${selected !== null ? "has-selection" : "browse-mode"} ${focusReading && view === "library" ? "focus-mode" : ""}`}
       >
         {connectionError && (

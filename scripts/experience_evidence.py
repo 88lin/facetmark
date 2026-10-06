@@ -40,9 +40,8 @@ def main():
                 draw.text((x + 10, y + 6), record["file"], fill="#222222")
         sheet.save(target / f"contact-{offset // 6 + 1}.jpg", quality=88)
     recording = Path("frontend/recordings/facetmark-reading.webm")
-    styles = Path("frontend/screenshots/rendering-styles.json")
-    if styles.exists():
-        shutil.copy2(styles, target / styles.name)
+    for diagnostics in Path("frontend/screenshots").glob("*.json"):
+        shutil.copy2(diagnostics, target / diagnostics.name)
     if recording.exists():
         shutil.copy2(recording, target / recording.name)
     (target / "provenance.json").write_text(json.dumps({

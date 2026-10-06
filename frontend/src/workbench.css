@@ -333,6 +333,7 @@
 .result-row .row-chevron {
   display: none;
 }
+.browse-mode .workspace-toolbar,
 .browse-mode .results-column {
   max-width: 1160px;
   width: 100%;
@@ -344,6 +345,7 @@
   align-content: start;
   column-gap: 52px;
   row-gap: 0;
+  grid-auto-rows: max-content;
 }
 .browse-mode .result-row {
   padding: 23px 16px 24px;
@@ -351,6 +353,8 @@
   border-radius: 0;
   min-height: 122px;
   align-items: flex-start;
+  height: max-content;
+  align-self: stretch;
 }
 .browse-mode .result-title {
   font-size: 19px;
@@ -522,8 +526,19 @@
   border-top: 1px solid var(--rule);
 }
 .focus-mode .preview-pane {
-  inset: 88px 36px 24px;
+  inset: 16px 36px 24px;
   grid-area: auto;
+}
+.is-reading-focused .app-header {
+  height: 56px;
+  background: var(--desk);
+}
+.is-reading-focused .app-header .brand {
+  font-size: 18px;
+}
+.focus-mode .workspace-toolbar {
+  visibility: hidden;
+  pointer-events: none;
 }
 .is-reading-focused .header-navigation,
 .is-reading-focused .header-utilities {
@@ -546,8 +561,8 @@
 }
 .preview-drawer {
   width: 100%;
-  inset: 72px 0 0;
-  height: auto;
+  inset: 0;
+  height: 100dvh;
   background: var(--canvas);
   box-shadow: none;
   border: 0;
@@ -559,7 +574,26 @@
   width: min(820px, 100%);
 }
 .preview-drawer .preview-heading {
-  top: 12px;
+  position: relative;
+  inset: auto;
+  height: 52px;
+  padding: 0 26px;
+  flex-shrink: 0;
+  justify-content: space-between;
+}
+.reader-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.reader-back:hover {
+  color: var(--accent);
+}
+.preview-drawer .preview-tabs {
+  height: 48px;
 }
 .page-scroll {
   width: min(1050px, 100%);
@@ -680,6 +714,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: 28px;
     align-content: start;
+    grid-auto-rows: max-content;
   }
   .has-selection .result-list > :not(.result-row) {
     grid-column: 1 / -1;
@@ -803,6 +838,9 @@
   .preview-heading .icon-button {
     width: 28px;
     height: 32px;
+  }
+  .preview-drawer .preview-heading {
+    padding: 0 20px;
   }
   .reader-count,
   .toolbar-divider {

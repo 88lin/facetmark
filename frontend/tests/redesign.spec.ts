@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 
 test.beforeEach(async ({ page }) => {
   await mkdir("screenshots", { recursive: true });
@@ -57,27 +57,38 @@ test("reader tabs, expansion reversal and keyboard preserve query and scroll con
     .toBeGreaterThan(0);
   await page.getByRole("button", { name: "回到顶部" }).click();
   await expect.poll(() => page.locator(".preview-scroll").evaluate((el) => el.scrollTop)).toBe(0);
-  await page.locator(".preview-scroll").evaluate((el) => {
-    el.scrollTop = 280;
+  const readerBefore = await page.locator(".preview-scroll").evaluate((el) => {
+    el.scrollTop = Math.min(280, el.scrollHeight - el.clientHeight - 1);
+    return { top: el.scrollTop, extent: el.scrollHeight - el.clientHeight };
   });
+  expect(readerBefore.top).toBeGreaterThan(0);
   const before = await page.locator(".preview-tabs").boundingBox();
   await page.getByRole("tab", { name: "AI 摘要" }).click();
   await page.getByRole("tab", { name: "相关书签" }).click();
   await page.getByRole("tab", { name: "正文", exact: true }).click();
   expect((await page.locator(".preview-tabs").boundingBox())?.y).toBe(before?.y);
-  expect(await page.locator(".preview-scroll").evaluate((el) => el.scrollTop)).toBe(280);
+  expect(await page.locator(".preview-scroll").evaluate((el) => el.scrollTop)).toBe(
+    readerBefore.top,
+  );
   await page.locator(".focus-reading").click();
   await expect(page.locator(".main-workspace")).toHaveClass(/focus-mode/);
-  const toolbar = await page.locator(".workspace-toolbar").boundingBox();
+  const header = await page.locator(".app-header").boundingBox();
   await expect
     .poll(async () => (await page.locator(".preview-pane").boundingBox())?.y)
-    .toBe(toolbar!.y + toolbar!.height);
+    .toBe(header!.y + header!.height + 16);
   await page.locator(".focus-reading").click({ force: true });
   await page.locator(".focus-reading").click({ force: true });
   await page.keyboard.press("Escape");
   await expect(page.locator(".main-workspace")).not.toHaveClass(/focus-mode/);
   await expect(page.locator(".body-text")).toBeVisible();
   await expect(input).toHaveValue("tag:demo");
+  expect(await page.locator(".preview-scroll").evaluate((el) => el.scrollTop)).toBe(
+    readerBefore.top,
+  );
+  await writeFile(
+    "screenshots/scroll-context.json",
+    JSON.stringify({ readerBefore, readerRestored: true }, null, 2),
+  );
   await expect
     .poll(() => page.locator(".preview-pane").evaluate((el) => getComputedStyle(el).transform))
     .toBe("none");
@@ -115,7 +126,8 @@ test("narrow reader reverses, contains focus and supports reduced motion", async
   await page.locator(".result-row").first().click();
   await expect(page.locator(".body-text")).toBeVisible();
   await page.screenshot({ path: "screenshots/reader-zh-1024.png", animations: "disabled" });
-  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "返回收藏" }).click();
+  await expect(page.locator(".result-row").first()).toBeFocused();
   await page.locator(".result-row").nth(1).dispatchEvent("click");
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.locator(".preview-title h1")).toHaveText(
@@ -190,6 +202,16 @@ test("supporting views and small-window reader share the same system", async ({ 
   await expect(page.locator(".result-row").first()).toBeVisible();
   await expect(page.locator(".sidebar")).toHaveAttribute("inert", "");
   await expect(page.locator(".preview-pane")).toHaveCount(0);
+  const toolbar = await page.locator(".workspace-toolbar").boundingBox();
+  const collection = await page.locator(".results-column").boundingBox();
+  expect(toolbar!.x).toBe(collection!.x);
+  expect(toolbar!.width).toBe(collection!.width);
+  const rows = await page.locator(".result-row").all();
+  for (const row of rows.slice(0, 8)) {
+    const bounds = await row.boundingBox();
+    const meta = await row.locator(".result-meta").boundingBox();
+    expect(meta!.y + meta!.height).toBeLessThanOrEqual(bounds!.y + bounds!.height);
+  }
   await page.screenshot({ path: "screenshots/collection-zh-light.png", animations: "disabled" });
   await page.locator(".app-header").getByRole("button", { name: "导入书签", exact: true }).click();
   await expect(page.locator(".dropzone")).toBeVisible();
@@ -205,6 +227,8 @@ test("supporting views and small-window reader share the same system", async ({ 
   await page.locator(".result-row").first().click();
   await expect(page.locator(".body-text")).toBeVisible();
   await page.screenshot({ path: "screenshots/reader-zh-390.png", animations: "disabled" });
+  await page.getByRole("button", { name: "返回收藏" }).click();
+  await expect(page.locator(".result-row").first()).toBeFocused();
 });
 
 test("record the search-to-reading interaction on the actual shared frontend", async ({

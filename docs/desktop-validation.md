@@ -1,5 +1,14 @@
 # Desktop experience validation
 
+## 2026-10-06: structural rebuild after user rejection
+
+The user rejected the appearance below as too ordinary and resembling an admin
+tool. Its functional results remain historical evidence, not visual acceptance.
+A fresh independent review returned **rebuild**. Revision `33bee64` introduces
+top navigation, on-demand filters, a full collection index and a content-led
+reader. [First render run 37407299839](https://github.com/88lin/facetmark/actions/runs/37407299839)
+is pending. The previous screenshots are not evidence for this new composition.
+
 Updated 2026-10-05. Branch: `desktop/facetmark-experience`.
 This is an unsigned test-branch delivery. No main merge, production deployment or
 formal release is part of this work. All browsers, installers, large downloads

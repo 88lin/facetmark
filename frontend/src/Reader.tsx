@@ -1,6 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import {
   ArrowDown,
+  ArrowLeft,
   ArrowUp,
   ArrowUpRight,
   BookOpen,
@@ -247,6 +248,12 @@ export default function Reader({
   return (
     <>
       <header className="preview-heading">
+        {!canFocus && selected !== null && (
+          <button className="reader-back" onClick={onClose}>
+            <ArrowLeft size={17} />
+            <span>{t("返回收藏", "Back to collection")}</span>
+          </button>
+        )}
         <div className="reader-actions">
           {position >= 0 && (
             <span className="reader-count">
@@ -289,14 +296,16 @@ export default function Reader({
                   {focus ? <Minimize2 /> : <Maximize2 />}
                 </button>
               )}
-              <button
-                className="icon-button"
-                title={t("关闭预览", "Close preview")}
-                aria-label={t("关闭预览", "Close preview")}
-                onClick={onClose}
-              >
-                <PanelRightClose />
-              </button>
+              {canFocus && (
+                <button
+                  className="icon-button"
+                  title={t("关闭预览", "Close preview")}
+                  aria-label={t("关闭预览", "Close preview")}
+                  onClick={onClose}
+                >
+                  <PanelRightClose />
+                </button>
+              )}
             </>
           )}
         </div>
