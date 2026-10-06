@@ -63,12 +63,17 @@ with sync_playwright() as playwright:
     page.locator('.result-row').first.click()
     page.get_by_text('正文还未保存', exact=True).wait_for(timeout=15000)
     page.screenshot(path=str(output / 'installed-reader.png'))
-    page.get_by_role('button', name='关闭预览', exact=True).click()
+    narrow_reader = page.locator('.preview-drawer').is_visible()
+    return_label = '返回收藏' if narrow_reader else '关闭预览'
+    page.get_by_role('button', name=return_label, exact=True).click()
     assert page.get_by_role('textbox', name='搜索书签').input_value() == '合成示例'
+    page.screenshot(path=str(output / 'installed-collection.png'))
     (output / 'installed-reader.json').write_text(json.dumps({
         'commit': os.environ.get('GITHUB_SHA'), 'data': 'synthetic HTML import only',
         'import_rendered': True, 'keyword_search': True,
         'reader_missing_body_state': True, 'close_preserved_query': True,
+        'reader_return_label': return_label,
+        'viewport': page.evaluate('({ width: innerWidth, height: innerHeight })'),
         'real_provider_used': False,
     }, indent=2), encoding='utf-8')
     # Stop the CDP connection with Playwright; do not close the user's app.
