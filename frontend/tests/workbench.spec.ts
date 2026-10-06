@@ -149,7 +149,7 @@ test("mobile navigation traps focus and restores it on Escape", async ({ page })
   await expect(page.locator(".sidebar .language")).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(page.locator(".sidebar .brand")).toBeFocused();
-  await page.screenshot({ path: "screenshots/fix-mobile-navigation.png", fullPage: true });
+  await page.screenshot({ path: "screenshots/fix-mobile-navigation.png", fullPage: true, animations: "disabled" });
   await page.keyboard.press("Escape");
   await expect(trigger).toBeFocused();
   await expect(page.locator(".sidebar")).toHaveAttribute("inert", "");
@@ -181,7 +181,7 @@ test("draft status, filtered emptiness and contextual request recovery", async (
   await page.locator(".facet-nav button").first().click();
   await expect(page.getByRole("button", { name: "清除条件，查看全部" })).toBeVisible();
   await expect(page.getByText("收藏，从这里汇合")).toHaveCount(0);
-  await page.screenshot({ path: "screenshots/fix-filter-empty.png", fullPage: true });
+  await page.screenshot({ path: "screenshots/fix-filter-empty.png", fullPage: true, animations: "disabled" });
   await page.unroute("**/bookmarks?**");
   await page.getByRole("button", { name: "清除条件，查看全部" }).click();
   await page.route("**/bookmark/*/related", (route) =>
