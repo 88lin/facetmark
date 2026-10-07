@@ -1,16 +1,18 @@
 # UI and motion tools
 
-Updated on 2026-10-06 for the white and lake-blue rounded collection and reader. Impeccable owns
+Updated on 2026-10-07 for the white and lake-blue capsule refinement. Impeccable owns
 the visual system. Runtime dependencies are selected for specific interactions:
 `gsap` 3.13.0, `@gsap/react` 2.1.2 and `motion` 12.23.24.
 
-The latest restyle reuses these dependencies without additions. The GSAP tab
-indicator is now a rounded selection surface behind the tab text; its existing
-interruptible position/width tween remains. CSS supplies the rounded controls,
-card hover, lake-blue selection and navigation state. Core and React guidance
-were applied; no new timeline/plugin or media pipeline was needed. The two
-consolidated visual fixes remove the closed drawer's shadow and align collection
-metadata. Final captures, tests and installed preview all use `7a20776`.
+The latest refinement reuses these dependencies without additions. The GSAP tab
+indicator is a capsule selection behind icon-labeled tabs; its existing
+interruptible position/width tween remains. CSS supplies true pill actions,
+circular icon buttons, grouped utilities, content-sized cards, the refined reading
+hierarchy and responsive form controls. Model fields, options and tests use three
+shared grid rows on desktop. No new timeline/plugin or media pipeline was needed.
+Shared UI source, 35 cloud captures and passing browser tests use `1d00654`.
+Windows packaging is being retried after a Microsoft component download failure;
+older installed-preview results do not validate this revision.
 
 ## Rare UI
 

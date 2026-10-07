@@ -1,6 +1,41 @@
 # Desktop experience validation
 
-## 2026-10-06: white and lake-blue confirmation (current)
+## 2026-10-07: capsule controls and refined reading rhythm (current)
+
+The user found the previous delivery only slightly improved and explicitly required
+capsule buttons plus more complete visual refinement. Current application and test
+source: `1d006544740e2c2965530a503393ccf333674a05`.
+
+- [Experience 37466126567](https://github.com/88lin/facetmark/actions/runs/37466126567):
+  TypeScript/Vite, 14/14 Playwright, 1882 Python passed / 1 skipped, Python
+  distribution resources, Docker and extension passed.
+- [CI 37466133676](https://github.com/88lin/facetmark/actions/runs/37466133676): all ten jobs passed.
+- [Visual artifact 11414603412](https://github.com/88lin/facetmark/actions/runs/37466126567/artifacts/11414603412):
+  35 actual captures, a 13.68-second H.264 recording, WEBM, font/scroll diagnostics
+  and source provenance. All 35 capture hashes were verified locally.
+- Windows first attempt failed while downloading the Microsoft offline WebView2
+  component (`Peer disconnected`), after compilation. No installer was generated.
+  The failed job is being rerun on the same source; installed validation is pending.
+- A fresh independent full visual review returned **ship**, with no material UI
+  fixes listed, after opening all 12 required visual inputs and six contact sheets.
+  A generic independent agent followed the Impeccable finish-review contract because
+  the specialized role was unavailable. The current QUALITY BAR image and historical
+  seed's raw roll were not available; both direction files disclose that provenance
+  limit and identify the user's explicit pinned brief as authoritative.
+
+Inspected captures cover the collection, split/focused reader, mobile/tablet reader,
+Chinese/English, light/dark, import, models, tasks, keyboard focus and controlled
+loading/empty/long-title/failure states. The new 390px settings capture also covers
+the larger form controls. Review uses actual captures and the interaction storyboard,
+not direct local browser use. Local evidence: `.desktop-build/capsule-first`.
+The single Impeccable detector pass returned `[]`; it is not aesthetic acceptance.
+DESIGN.md and its sidecar reflect the actual source. Four landing images use this
+render with unchanged raster chunks and embedded origin; all four metadata scans pass.
+Neither the independent review nor the automated checks claims user acceptance.
+Source editing, lightweight checks and small evidence retrieval are the only local
+operations. No personal browser profile or external model service was used.
+
+## 2026-10-06: white and lake-blue confirmation (historical)
 
 The user explicitly selected pure white, lake blue, rounded panels and refined
 controls after rejecting the grey-violet result. Shared UI and test revision:
