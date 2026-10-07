@@ -13,8 +13,12 @@
 - [CI 37466133676](https://github.com/88lin/facetmark/actions/runs/37466133676)：十项检查通过。
 - 35 张截图、13.68 秒 MP4 及来源记录在 `.desktop-build/capsule-first`；
   visual artifact `11414603412`，全部截图哈希已核对。
-- Windows 首次构建在下载微软离线 WebView2 组件时出现 `Peer disconnected`；
-  尚未生成安装包，已重跑同一提交的失败任务，结果待核对。
+- [Windows 37466126767](https://github.com/88lin/facetmark/actions/runs/37466126767)
+  第二次尝试通过：同一源码完成离线安装、真实 WebView 导入／检索／阅读返回、
+  同版本重装、卸载保留数据、进程清理及冻结服务隔离检查。三张安装后截图已检查，
+  小型证据在 `.desktop-build/capsule-windows`，artifact `11478997809`；
+  未签名 x64 安装包 artifact `11479497637`，安装器 276793305 字节，未下载到本机。
+  首次尝试在下载微软 WebView2 组件时出现 `Peer disconnected`，重跑后已通过。
 - 新的独立完整视觉复审给出 **ship**：已检查 12 项必需视觉证据及覆盖 35 张截图的联系表，
   未列出实质界面修复项。使用通用独立审阅代理执行 Impeccable 契约，未提供 QUALITY BAR 图，
   历史 seed 原始记录亦不可用，方向文件已注明限制。结论不代表用户认可审美。

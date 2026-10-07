@@ -13,9 +13,15 @@ source: `1d006544740e2c2965530a503393ccf333674a05`.
 - [Visual artifact 11414603412](https://github.com/88lin/facetmark/actions/runs/37466126567/artifacts/11414603412):
   35 actual captures, a 13.68-second H.264 recording, WEBM, font/scroll diagnostics
   and source provenance. All 35 capture hashes were verified locally.
-- Windows first attempt failed while downloading the Microsoft offline WebView2
-  component (`Peer disconnected`), after compilation. No installer was generated.
-  The failed job is being rerun on the same source; installed validation is pending.
+- [Windows 37466126767](https://github.com/88lin/facetmark/actions/runs/37466126767),
+  attempt 2 on the same source: offline installation with the runtime absent and
+  installer networking blocked, installed WebView import/search/reader return,
+  same-version reinstall, uninstall data retention, parent-process cleanup and
+  frozen-service isolation passed. The first attempt had failed after compilation
+  while downloading Microsoft WebView2 (`Peer disconnected`); the retry resolved it.
+  [Unsigned x64 installer](https://github.com/88lin/facetmark/actions/runs/37466126767/artifacts/11479497637)
+  and [small installed evidence](https://github.com/88lin/facetmark/actions/runs/37466126767/artifacts/11478997809)
+  are available. The installer itself is 276793305 bytes and was not downloaded locally.
 - A fresh independent full visual review returned **ship**, with no material UI
   fixes listed, after opening all 12 required visual inputs and six contact sheets.
   A generic independent agent followed the Impeccable finish-review contract because
@@ -34,6 +40,11 @@ render with unchanged raster chunks and embedded origin; all four metadata scans
 Neither the independent review nor the automated checks claims user acceptance.
 Source editing, lightweight checks and small evidence retrieval are the only local
 operations. No personal browser profile or external model service was used.
+Three actual installed WebView screenshots at 1028×749 were inspected from
+`.desktop-build/capsule-windows`; its JSON identifies the same application commit.
+The tested reader shows the truthful missing-body state for imported synthetic HTML.
+Hosted Windows Server results do not certify Windows 10/11 hardware, cross-version
+upgrades, ordinary non-administrator behavior or signing trust.
 
 ## 2026-10-06: white and lake-blue confirmation (historical)
 

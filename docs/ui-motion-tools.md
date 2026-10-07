@@ -11,8 +11,9 @@ circular icon buttons, grouped utilities, content-sized cards, the refined readi
 hierarchy and responsive form controls. Model fields, options and tests use three
 shared grid rows on desktop. No new timeline/plugin or media pipeline was needed.
 Shared UI source, 35 cloud captures and passing browser tests use `1d00654`.
-Windows packaging is being retried after a Microsoft component download failure;
-older installed-preview results do not validate this revision.
+The same source also passed Windows packaging and installed/lifecycle checks on
+the second attempt of run `37466126767`, after a Microsoft component download
+interruption. The three installed WebView captures were inspected locally.
 
 ## Rare UI
 
