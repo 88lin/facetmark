@@ -1,7 +1,16 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Manrope";
+  src: url("./assets/Manrope-variable.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+}
+
 :root {
-  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  font-family:
+    "Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
   color-scheme: light;
   --canvas: #ffffff;
   --rail: #f0f6f9;

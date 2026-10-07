@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
-import { Check, Copy, ExternalLink, FlaskConical, LoaderCircle, Save } from "lucide-react";
+import {
+  Check,
+  Copy,
+  ExternalLink,
+  FlaskConical,
+  LoaderCircle,
+  MessageCircle,
+  Network,
+  Save,
+} from "lucide-react";
 import { api, getToken, post, type Probe, type Setting, type Setup } from "./api";
 import { useText } from "./locale";
 
@@ -139,6 +148,7 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
             <div className="model-fields">
               <header>
                 <h3>
+                  {channel === "chat" ? <MessageCircle size={20} /> : <Network size={20} />}
                   {channel === "chat"
                     ? t("聊天模型", "Chat model")
                     : t("向量模型", "Embedding model")}
@@ -154,34 +164,6 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
               {field(`${channel}_api_key`, "API Key", "password")}
               {field(`${channel}_model`, t("模型名称", "Model name"))}
               {channel === "embed" && field("embed_dim", t("向量维度", "Dimensions"), "number")}
-            </div>
-            <div className="model-options">
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={Boolean(value(`${channel}_allow_no_key`))}
-                  disabled={!!busy || row(`${channel}_allow_no_key`)?.locked}
-                  onChange={(e) => change(`${channel}_allow_no_key`, e.target.checked)}
-                />
-                {t("连接本机服务，不使用 Key", "Use a local service without a key")}
-              </label>
-              <p className="hint">
-                {t(
-                  "免 Key 仅接受 localhost、127.0.0.1 或 ::1。Ollama 可用 http://127.0.0.1:11434/v1。",
-                  "Keyless access only accepts localhost, 127.0.0.1 or ::1. Ollama: http://127.0.0.1:11434/v1.",
-                )}
-              </p>
-              {channel === "embed" && (
-                <label className="check">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(value("embed_send_dimensions"))}
-                    disabled={!!busy || row("embed_send_dimensions")?.locked}
-                    onChange={(e) => change("embed_send_dimensions", e.target.checked)}
-                  />
-                  {t("在请求中指定维度", "Send dimensions in requests")}
-                </label>
-              )}
             </div>
             <div className="model-test">
               <button className="secondary" disabled={!!busy} onClick={() => test(channel)}>
@@ -226,6 +208,34 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
                     </p>
                   )}
                 </div>
+              )}
+            </div>
+            <div className="model-options">
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={Boolean(value(`${channel}_allow_no_key`))}
+                  disabled={!!busy || row(`${channel}_allow_no_key`)?.locked}
+                  onChange={(e) => change(`${channel}_allow_no_key`, e.target.checked)}
+                />
+                {t("连接本机服务，不使用 Key", "Use a local service without a key")}
+              </label>
+              <p className="hint">
+                {t(
+                  "免 Key 仅接受 localhost、127.0.0.1 或 ::1。Ollama 可用 http://127.0.0.1:11434/v1。",
+                  "Keyless access only accepts localhost, 127.0.0.1 or ::1. Ollama: http://127.0.0.1:11434/v1.",
+                )}
+              </p>
+              {channel === "embed" && (
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(value("embed_send_dimensions"))}
+                    disabled={!!busy || row("embed_send_dimensions")?.locked}
+                    onChange={(e) => change("embed_send_dimensions", e.target.checked)}
+                  />
+                  {t("在请求中指定维度", "Send dimensions in requests")}
+                </label>
               )}
             </div>
           </section>

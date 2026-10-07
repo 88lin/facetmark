@@ -152,6 +152,16 @@ test("narrow reader reverses, contains focus and supports reduced motion", async
     .toBe("none");
   await page.getByRole("tab", { name: "AI 摘要" }).click();
   await page.getByRole("tab", { name: "正文", exact: true }).click();
+  const outline = page.getByRole("navigation", { name: "文章目录", exact: true });
+  await expect(outline).toBeVisible();
+  await outline.getByRole("button", { name: "从摘要回到原文", exact: true }).click();
+  await expect(
+    outline.getByRole("button", { name: "从摘要回到原文", exact: true }),
+  ).toHaveAttribute("aria-current", "location");
+  await expect
+    .poll(() => page.locator(".preview-scroll").evaluate((el) => el.scrollTop))
+    .toBeGreaterThan(0);
+  await page.getByRole("button", { name: "回到顶部", exact: true }).click();
   await page.screenshot({
     path: "screenshots/focus-reading-reduced-motion.png",
     animations: "disabled",
@@ -248,6 +258,29 @@ test("supporting views and small-window reader share the same system", async ({ 
   await page.getByRole("button", { name: "设置", exact: true }).click();
   await expect(page.locator("input[name=chat_model]")).toBeVisible();
   await page.screenshot({ path: "screenshots/settings-zh-390.png", animations: "disabled" });
+});
+
+test("folder shortcuts filter the real collection and return to all saved pages", async ({
+  page,
+}) => {
+  await page.goto("/app");
+  await expect(page.locator(".result-row")).toHaveCount(30);
+  const folders = page.getByRole("navigation", { name: "按文件夹浏览", exact: true });
+  const folder = folders.getByRole("button").nth(1);
+  const label = await folder.getAttribute("title");
+  expect(label).toBeTruthy();
+  await folder.click();
+  await expect(folder).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".filter-chips")).toContainText(label!);
+  await expect
+    .poll(async () => {
+      const values = await page.locator(".result-folder").allTextContents();
+      return values.length > 0 && values.every((value) => value.trim() === label);
+    })
+    .toBe(true);
+  await folders.getByRole("button", { name: "全部收藏", exact: true }).click();
+  await expect(page.locator(".filter-chips")).toHaveCount(0);
+  await expect(page.locator(".result-row")).toHaveCount(30);
 });
 
 test("record the search-to-reading interaction on the actual shared frontend", async ({

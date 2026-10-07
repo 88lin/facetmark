@@ -18,6 +18,7 @@ import { type Bookmark, post, safeUrl } from "./api";
 import { useText, type Language } from "./locale";
 import { SearchExplanation } from "./SearchTools";
 import { ScrollProgress } from "./components/ui/scroll-progress";
+import { ReaderOutline } from "./components/ui/reader-outline";
 import { useTabIndicator } from "./motion";
 
 export function Skeleton({ rows = false }: { rows?: boolean }) {
@@ -120,6 +121,8 @@ export default function Reader({
     if (scroller.current) scrollPositions.current[tab] = scroller.current.scrollTop;
     setTab(value);
   };
+  const outlineSections = useMemo(() => sections.slice(1), [sections]);
+  const showOutline = focus && tab === "body" && !pending && !error && outlineSections.length > 1;
   const visibleRecord = record || hit;
   const original = safeUrl(visibleRecord?.url || "");
   let content: ReactNode;
@@ -378,83 +381,92 @@ export default function Reader({
             <span className="tab-indicator" aria-hidden="true" />
           </div>
           <div className="preview-scroll" ref={scroller} aria-busy={pending}>
-            <article id="reader-start" className="reader-article">
-              <div className="preview-title">
-                <div className="article-source">
-                  {original ? (
-                    <a
-                      className="source-link"
-                      href={original}
-                      target="_blank"
-                      rel="noreferrer"
-                      title={t("打开原网页", "Open original")}
-                      onClick={() => {
-                        post("/open", { bookmark_id: selected, query: search }).catch(() => {});
-                      }}
-                    >
-                      {visibleRecord?.domain}
-                      <ArrowUpRight size={13} />
-                    </a>
-                  ) : (
-                    <span>{visibleRecord?.domain || t("正在读取来源…", "Loading source…")}</span>
-                  )}
-                  <span className="source-rule" />
-                  <span>
-                    {visibleRecord?.date_added
-                      ? new Date(visibleRecord.date_added * 1000).toLocaleDateString(
-                          language === "zh" ? "zh-CN" : "en",
-                          { year: "numeric", month: "short", day: "numeric" },
-                        )
-                      : ""}
-                  </span>
-                </div>
-                <h1>
-                  {visibleRecord?.title ||
-                    visibleRecord?.url ||
-                    t("正在读取收藏…", "Loading bookmark…")}
-                </h1>
-                <details className="article-details">
-                  <summary>
-                    {t("收藏信息与检索线索", "Saved details & search context")}
-                    <ChevronDown size={13} aria-hidden="true" />
-                  </summary>
-                  <div className="article-context">
-                    <span>
-                      <Folder size={13} />
-                      {visibleRecord?.folder || t("未分类", "Unfiled")}
-                    </span>
-                    {!!record?.tags?.length && (
-                      <div className="preview-tags">
-                        {record.tags.map((tag) => (
-                          <button key={tag} onClick={() => onTag(tag)}>
-                            <Tags size={11} />
-                            {tag}
-                          </button>
-                        ))}
-                      </div>
+            <div className={`reader-layout ${showOutline ? "with-outline" : ""}`}>
+              <article id="reader-start" className="reader-article">
+                <div className="preview-title">
+                  <div className="article-source">
+                    {original ? (
+                      <a
+                        className="source-link"
+                        href={original}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={t("打开原网页", "Open original")}
+                        onClick={() => {
+                          post("/open", { bookmark_id: selected, query: search }).catch(() => {});
+                        }}
+                      >
+                        {visibleRecord?.domain}
+                        <ArrowUpRight size={13} />
+                      </a>
+                    ) : (
+                      <span>{visibleRecord?.domain || t("正在读取来源…", "Loading source…")}</span>
                     )}
+                    <span className="source-rule" />
+                    <span>
+                      {visibleRecord?.date_added
+                        ? new Date(visibleRecord.date_added * 1000).toLocaleDateString(
+                            language === "zh" ? "zh-CN" : "en",
+                            { year: "numeric", month: "short", day: "numeric" },
+                          )
+                        : ""}
+                    </span>
                   </div>
-                  {search.trim() && <SearchExplanation hit={hit} />}
-                </details>
-              </div>
-              <div
-                className="reading"
-                role="tabpanel"
-                id="preview-tabpanel"
-                aria-labelledby={`preview-tab-${tab}`}
-                tabIndex={0}
-              >
-                {content}
-              </div>
-              {record?.privacy_skipped && (
-                <p className="notice">
-                  {t(
-                    "此书签已从云端处理和正文抓取中排除。",
-                    "This bookmark is excluded from model processing and fetching.",
-                  )}
-                </p>
+                  <h1>
+                    {visibleRecord?.title ||
+                      visibleRecord?.url ||
+                      t("正在读取收藏…", "Loading bookmark…")}
+                  </h1>
+                  <details className="article-details">
+                    <summary>
+                      {t("收藏信息与检索线索", "Saved details & search context")}
+                      <ChevronDown size={13} aria-hidden="true" />
+                    </summary>
+                    <div className="article-context">
+                      <span>
+                        <Folder size={13} />
+                        {visibleRecord?.folder || t("未分类", "Unfiled")}
+                      </span>
+                      {!!record?.tags?.length && (
+                        <div className="preview-tags">
+                          {record.tags.map((tag) => (
+                            <button key={tag} onClick={() => onTag(tag)}>
+                              <Tags size={11} />
+                              {tag}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {search.trim() && <SearchExplanation hit={hit} />}
+                  </details>
+                </div>
+                <div
+                  className="reading"
+                  role="tabpanel"
+                  id="preview-tabpanel"
+                  aria-labelledby={`preview-tab-${tab}`}
+                  tabIndex={0}
+                >
+                  {content}
+                </div>
+                {record?.privacy_skipped && (
+                  <p className="notice">
+                    {t(
+                      "此书签已从云端处理和正文抓取中排除。",
+                      "This bookmark is excluded from model processing and fetching.",
+                    )}
+                  </p>
+                )}
+              </article>
+              {showOutline && (
+                <ReaderOutline
+                  containerRef={scroller}
+                  sections={outlineSections}
+                  contentKey={`${selected}-${tab}`}
+                />
               )}
-            </article>
+            </div>
           </div>
           <ScrollProgress
             containerRef={scroller}

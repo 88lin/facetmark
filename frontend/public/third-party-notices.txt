@@ -1,9 +1,24 @@
-# Third-party UI components
+# Third-party UI components and fonts
+
+Facetmark uses cmdk 1.1.1 by Paco Coursey under the MIT license. The complete
+notice is distributed at `licenses/cmdk.txt` in the shared web application.
+
+Facetmark self-hosts the unmodified Manrope variable font from Google Fonts
+(`google/fonts/ofl/manrope/Manrope[wght].ttf`, blob
+`75274da58537d6123b14f2cd0c355ad4681fc2b3`). Copyright 2018 The Manrope Project
+Authors. The SIL Open Font License 1.1 ships at `licenses/Manrope-OFL.txt`.
 
 Facetmark uses an adapted ScrollProgress component from [Rare UI](https://rareui.com),
 source: https://github.com/swamimalode07/rare-ui/blob/main/components/ui/scroll-progress.tsx.
 The adaptation retains Motion for the scroll indicator, uses a native section picker,
 and is distributed only as part of the Facetmark application.
+
+Facetmark also uses ReaderOutline, adapted from the Rare UI RailToc component:
+https://github.com/swamimalode07/rare-ui/blob/b4de46efe4eb2613e22bb8134b482ed4e0c7736a/public/r/rail-toc.json.
+This adaptation retains its container-relative heading tracking and section
+navigation, replaces the animated paper plane with a quiet active-section rail,
+and is distributed only as part of the Facetmark application. The following
+copyright, attribution requirement, and license conditions cover both adaptations.
 
 +MIT + Commons Clause License Condition v1.0 + Attribution
 

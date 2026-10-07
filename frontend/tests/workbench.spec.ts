@@ -124,7 +124,7 @@ test("query suggestions and cited synthesis preserve the query", async ({ page }
   const input = page.getByRole("textbox", { name: "搜索书签" });
   await input.fill("dom");
   await page.locator(".query-help summary").click();
-  await page.getByRole("button", { name: "domain:", exact: true }).click();
+  await page.getByRole("option", { name: "domain:", exact: true }).click();
   await expect(input).toHaveValue("domain:");
   await input.fill("SQLite");
   await expect(page.locator(".result-row").first()).toContainText("SQLite");
@@ -134,6 +134,187 @@ test("query suggestions and cited synthesis preserve the query", async ({ page }
   await page.getByRole("button", { name: "查看来源 1" }).first().click();
   await expect(page.locator(".preview-title h1")).toContainText("SQLite");
   await expect(input).toHaveValue("SQLite");
+});
+
+test("query menu supports keyboard insertion, Escape and a readable narrow layout", async ({
+  page,
+}) => {
+  await mkdir("screenshots", { recursive: true });
+  await page.setViewportSize({ width: 1440, height: 960 });
+  const suggestions = [
+    { label: "Architecture Notes", insert: "folder:Architecture Notes", detail: "12 saved" },
+    { label: "Reading Queue", insert: "folder:Reading Queue", detail: "8 saved" },
+    {
+      label: "产品研究 / 知识整理与长文阅读体验 / 待继续阅读的参考资料",
+      insert: "folder:产品研究 / 知识整理与长文阅读体验 / 待继续阅读的参考资料",
+      detail: "用于验证长文件夹名称与真实建议说明的合成测试数据",
+    },
+    { label: "Reference Guides", insert: "folder:Reference Guides", detail: "6 saved" },
+    { label: "Product Research", insert: "folder:Product Research", detail: "4 saved" },
+    { label: "Writing Notes", insert: "folder:Writing Notes", detail: "3 saved" },
+  ];
+  const requests: { text: string; limit: number }[] = [];
+  await page.route("**/suggest/query", async (route) => {
+    requests.push(route.request().postDataJSON());
+    await route.fulfill({ json: { suggestions } });
+  });
+  await page.goto("/app");
+  const input = page.getByRole("textbox", { name: "搜索书签" });
+  const trigger = page.locator(".query-help summary");
+  const menu = page.locator(".query-suggestions-panel");
+  const list = page.getByRole("listbox", { name: "可插入的检索条件" });
+  await input.fill("SQLite folder:");
+  await trigger.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(list).toBeFocused();
+  await expect(list.getByRole("option")).toHaveCount(6);
+  expect(requests[0]).toEqual({ text: "folder:", limit: 6 });
+  await expect(
+    list.getByRole("option", { name: "Architecture Notes", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
+  const second = list.getByRole("option", { name: "Reading Queue", exact: true });
+  await expect(second).toHaveAccessibleDescription("8 saved");
+  await page.keyboard.press("ArrowDown");
+  await expect(second).toHaveAttribute("aria-selected", "true");
+  await page.screenshot({ path: "screenshots/query-menu-zh-1440.png", animations: "disabled" });
+  await page.keyboard.press("Enter");
+  await expect(input).toHaveValue('SQLite folder:"Reading Queue"');
+  await expect(input).toBeFocused();
+  await expect(menu).toHaveCount(0);
+
+  await trigger.press("Enter");
+  await expect(list).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  await expect(input).toHaveValue('SQLite folder:"Reading Queue"');
+
+  await page.setViewportSize({ width: 390, height: 960 });
+  await input.fill("SQLite folder:");
+  await trigger.click();
+  await expect(list.getByRole("option")).toHaveCount(6);
+  const box = await menu.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+  expect(await menu.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await page.screenshot({ path: "screenshots/query-menu-zh-390.png", animations: "disabled" });
+  await page.keyboard.press("Escape");
+  await expect(trigger).toBeFocused();
+});
+
+test("query suggestions expose request failures and recover through keyboard-ready retry", async ({
+  page,
+}) => {
+  let attempts = 0;
+  let release!: () => void;
+  const retryResponse = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/suggest/query", async (route) => {
+    attempts += 1;
+    if (attempts === 1) {
+      await route.fulfill({
+        status: 503,
+        json: { detail: "Synthetic suggestion service failure" },
+      });
+      return;
+    }
+    await retryResponse;
+    await route.fulfill({
+      json: {
+        suggestions: [{ label: "domain:", insert: "domain:", detail: "Filter saved sites" }],
+      },
+    });
+  });
+  await page.goto("/app");
+  const input = page.getByRole("textbox", { name: "搜索书签" });
+  await input.fill("dom");
+  await page.locator(".query-help summary").click();
+  const menu = page.locator(".query-suggestions-panel");
+  const list = menu.getByRole("listbox");
+  await expect(menu.getByRole("alert")).toContainText("暂时无法获取建议");
+  await expect(list.getByRole("option")).toHaveCount(0);
+  await expect(input).toHaveValue("dom");
+  await menu.getByRole("button", { name: "重试", exact: true }).click();
+  try {
+    await expect(menu.getByRole("status")).toHaveText("正在查找建议…");
+    await expect(list).toHaveAttribute("aria-busy", "true");
+    await expect(list).toBeFocused();
+  } finally {
+    release();
+  }
+  await expect(list.getByRole("option", { name: "domain:", exact: true })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(menu.getByRole("alert")).toHaveCount(0);
+  await expect(list).toHaveAttribute("aria-busy", "false");
+  expect(attempts).toBe(2);
+  await page.keyboard.press("Enter");
+  await expect(input).toHaveValue("domain:");
+  await expect(input).toBeFocused();
+});
+
+test("query suggestions distinguish an empty response from a failed request", async ({ page }) => {
+  await page.route("**/suggest/query", (route) => route.fulfill({ json: { suggestions: [] } }));
+  await page.goto("/app");
+  const input = page.getByRole("textbox", { name: "搜索书签" });
+  const trigger = page.locator(".query-help summary");
+  await input.fill("SQLite folder:missing");
+  await trigger.click();
+  const menu = page.locator(".query-suggestions-panel");
+  await expect(menu.getByRole("status")).toHaveText("没有匹配的建议，可以继续输入搜索。");
+  await expect(menu.getByRole("option")).toHaveCount(0);
+  await expect(menu.getByRole("alert")).toHaveCount(0);
+  await expect(menu.getByRole("button", { name: "重试", exact: true })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  await expect(input).toHaveValue("SQLite folder:missing");
+});
+
+test("folder suggestions preserve earlier terms and quote spaces without double quoting", async ({
+  page,
+}) => {
+  const cases = [
+    {
+      label: "Reading Notes",
+      insert: "-folder:Reading Notes",
+      expected: 'SQLite -folder:"Reading Notes"',
+    },
+    {
+      label: 'Reading "Later" Notes',
+      insert: '-folder:Reading "Later" Notes',
+      expected: 'SQLite -folder:"Reading \\"Later\\" Notes"',
+    },
+    {
+      label: "Already Quoted",
+      insert: '-folder:"Already Quoted"',
+      expected: 'SQLite -folder:"Already Quoted"',
+    },
+  ];
+  let current = cases[0];
+  await page.route("**/suggest/query", (route) =>
+    route.fulfill({
+      json: {
+        suggestions: [
+          { label: current.label, insert: current.insert, detail: "Synthetic saved folder" },
+        ],
+      },
+    }),
+  );
+  await page.goto("/app");
+  const input = page.getByRole("textbox", { name: "搜索书签" });
+  for (const example of cases) {
+    current = example;
+    await input.fill("SQLite -folder:Re");
+    await page.locator(".query-help summary").click();
+    await page.getByRole("option", { name: example.label, exact: true }).click();
+    await expect(input).toHaveValue(example.expected);
+    await expect(input).toBeFocused();
+    await expect(page.locator(".query-suggestions-panel")).toHaveCount(0);
+  }
 });
 
 test("mobile navigation traps focus and restores it on Escape", async ({ page }) => {
@@ -149,7 +330,11 @@ test("mobile navigation traps focus and restores it on Escape", async ({ page })
   await expect(page.locator(".sidebar .language")).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(page.locator(".sidebar .brand")).toBeFocused();
-  await page.screenshot({ path: "screenshots/fix-mobile-navigation.png", fullPage: true, animations: "disabled" });
+  await page.screenshot({
+    path: "screenshots/fix-mobile-navigation.png",
+    fullPage: true,
+    animations: "disabled",
+  });
   await page.keyboard.press("Escape");
   await expect(trigger).toBeFocused();
   await expect(page.locator(".sidebar")).toHaveAttribute("inert", "");
@@ -181,7 +366,11 @@ test("draft status, filtered emptiness and contextual request recovery", async (
   await page.locator(".facet-nav button").first().click();
   await expect(page.getByRole("button", { name: "清除条件，查看全部" })).toBeVisible();
   await expect(page.getByText("收藏，从这里汇合")).toHaveCount(0);
-  await page.screenshot({ path: "screenshots/fix-filter-empty.png", fullPage: true, animations: "disabled" });
+  await page.screenshot({
+    path: "screenshots/fix-filter-empty.png",
+    fullPage: true,
+    animations: "disabled",
+  });
   await page.unroute("**/bookmarks?**");
   await page.getByRole("button", { name: "清除条件，查看全部" }).click();
   await page.route("**/bookmark/*/related", (route) =>

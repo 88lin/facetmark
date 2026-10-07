@@ -872,59 +872,88 @@ function Workbench({
                   {setup?.bookmarks ?? "—"} {t("条收藏", "saved pages")}
                 </span>
               </div>
-              <div className="search-box">
-                <Search size={20} />
-                <input
-                  ref={searchInput}
-                  aria-label={t("搜索书签", "Search bookmarks")}
-                  placeholder={t("你想找回什么？", "What would you like to find again?")}
-                  value={input}
-                  onChange={(e) => changeQuery(e.target.value)}
-                  onCompositionStart={() => {
-                    composing.current = true;
-                    abortRef.current?.abort();
-                    requestId.current++;
-                  }}
-                  onCompositionEnd={(e) => {
-                    composing.current = false;
-                    changeQuery(e.currentTarget.value);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.nativeEvent.isComposing && !composing.current)
-                      changeQuery(input);
-                  }}
-                />
-                {input ? (
-                  <button
-                    className="icon-button"
-                    aria-label={t("清空搜索", "Clear search")}
-                    onClick={() => changeQuery("")}
-                  >
-                    <X size={16} />
-                  </button>
-                ) : (
-                  <kbd>Ctrl K</kbd>
-                )}
-              </div>
+              <div className="workspace-search">
+                <div className="search-box">
+                  <Search size={20} />
+                  <input
+                    ref={searchInput}
+                    aria-label={t("搜索书签", "Search bookmarks")}
+                    placeholder={t("你想找回什么？", "What would you like to find again?")}
+                    value={input}
+                    onChange={(e) => changeQuery(e.target.value)}
+                    onCompositionStart={() => {
+                      composing.current = true;
+                      abortRef.current?.abort();
+                      requestId.current++;
+                    }}
+                    onCompositionEnd={(e) => {
+                      composing.current = false;
+                      changeQuery(e.currentTarget.value);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.nativeEvent.isComposing && !composing.current)
+                        changeQuery(input);
+                    }}
+                  />
+                  {input ? (
+                    <button
+                      className="icon-button"
+                      aria-label={t("清空搜索", "Clear search")}
+                      onClick={() => changeQuery("")}
+                    >
+                      <X size={16} />
+                    </button>
+                  ) : (
+                    <kbd>Ctrl K</kbd>
+                  )}
+                </div>
 
-              <div className="query-tool">
-                {" "}
-                <QuerySuggestions
-                  text={search}
-                  onSelect={(value) => {
-                    changeQuery(value);
-                    searchInput.current?.focus();
-                  }}
-                />
+                <div className="query-tool">
+                  {" "}
+                  <QuerySuggestions
+                    text={search}
+                    onSelect={(value) => {
+                      changeQuery(value);
+                      searchInput.current?.focus();
+                    }}
+                  />
+                </div>
+                <button
+                  className="filter-trigger"
+                  onClick={() => setNavOpen(true)}
+                  aria-label={t("筛选收藏", "Filter collection")}
+                >
+                  <Settings2 size={17} />
+                  <span>{t("筛选", "Filters")}</span>
+                </button>
               </div>
-              <button
-                className="filter-trigger"
-                onClick={() => setNavOpen(true)}
-                aria-label={t("筛选收藏", "Filter collection")}
-              >
-                <Settings2 size={17} />
-                <span>{t("筛选", "Filters")}</span>
-              </button>
+              {selected === null && !!facets.folders?.length && (
+                <nav
+                  className="collection-folders"
+                  aria-label={t("按文件夹浏览", "Browse by folder")}
+                >
+                  <button
+                    className={filters.folder === undefined ? "active" : ""}
+                    aria-pressed={filters.folder === undefined}
+                    onClick={() => selectFilter("folder", undefined)}
+                  >
+                    <Layers3 size={15} />
+                    {t("全部收藏", "All saved pages")}
+                  </button>
+                  {facets.folders.slice(0, 8).map((folder) => (
+                    <button
+                      key={folder.value}
+                      className={filters.folder === folder.value ? "active" : ""}
+                      aria-pressed={filters.folder === folder.value}
+                      title={folder.value}
+                      onClick={() => selectFilter("folder", folder.value)}
+                    >
+                      <Folder size={15} />
+                      <span>{folder.value}</span>
+                    </button>
+                  ))}
+                </nav>
+              )}
             </header>
             <section className="results-column" inert={focusReading}>
               <header className="search-header">
@@ -1068,6 +1097,17 @@ function Workbench({
                       aria-pressed={selected === record.bookmark_id}
                     >
                       <span className="result-copy">
+                        <span className="result-source">
+                          <span className="site-letter" aria-hidden="true">
+                            {(record.domain || record.title || "F").slice(0, 1).toUpperCase()}
+                          </span>
+                          <span className="source-domain">{record.domain}</span>
+                          {selected === record.bookmark_id ? (
+                            <span className="reading-label">{t("正在阅读", "Reading")}</span>
+                          ) : (
+                            <ArrowRight className="result-open" size={16} aria-hidden="true" />
+                          )}
+                        </span>
                         <span className="result-title">{record.title || record.url}</span>
                         {(record.snippet || record.summary) &&
                           (record.snippet || record.summary) !== record.title && (
@@ -1076,23 +1116,12 @@ function Workbench({
                             </span>
                           )}
                         <span className="result-meta">
-                          <span>
-                            <span className="site-letter" aria-hidden="true">
-                              {(record.domain || record.title || "F").slice(0, 1).toUpperCase()}
-                            </span>
-                            {record.domain}
+                          <span className="result-folder">
+                            <Folder size={12} />
+                            <span>{record.folder || t("未分类", "Unfiled")}</span>
                           </span>
                           <SavedDate seconds={record.date_added} language={language} />
                         </span>
-                        {record.folder && (
-                          <span className="result-folder">
-                            <Folder size={11} />
-                            {record.folder}
-                            {selected === record.bookmark_id && (
-                              <span className="reading-label">{t("正在阅读", "Reading")}</span>
-                            )}
-                          </span>
-                        )}
                       </span>
                       <ChevronRight className="row-chevron" size={15} />
                     </button>

@@ -1,7 +1,17 @@
-import { useEffect, useState } from "react";
-import { LoaderCircle, SlidersHorizontal, Sparkles } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
+import { Command } from "cmdk";
+import {
+  CornerDownLeft,
+  Folder,
+  Globe2,
+  LoaderCircle,
+  SlidersHorizontal,
+  Sparkles,
+  Tags,
+} from "lucide-react";
 import { post, type Bookmark } from "./api";
 import { useText } from "./locale";
+import "./search-tools.css";
 
 type Suggestion = { label: string; insert: string; detail: string };
 type Answer = {
@@ -22,51 +32,188 @@ export function QuerySuggestions({
   const t = useText();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Suggestion[]>([]);
+  const [busy, setBusy] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [revision, setRevision] = useState(0);
+  const details = useRef<HTMLDetailsElement>(null);
+  const trigger = useRef<HTMLElement>(null);
+  const list = useRef<HTMLDivElement>(null);
+  const descriptionId = useId();
   const fragment = text.match(/(?:^|\s)(-?\w+:(?:"[^"]*"|[^\s]*)|[^\s]+)$/)?.[1] || "";
   useEffect(() => {
     if (!open) return;
     const abort = new AbortController();
     setItems([]);
+    setBusy(true);
+    setFailed(false);
     post<{ suggestions: Suggestion[] }>(
       "/suggest/query",
       { text: fragment, limit: 6 },
       abort.signal,
     )
-      .then((data) => setItems(data.suggestions))
-      .catch(() => {});
+      .then((data) => {
+        if (!abort.signal.aborted) setItems(data.suggestions.slice(0, 6));
+      })
+      .catch(() => {
+        if (!abort.signal.aborted) setFailed(true);
+      })
+      .finally(() => {
+        if (!abort.signal.aborted) setBusy(false);
+      });
     return () => abort.abort();
-  }, [open, fragment]);
+  }, [open, fragment, revision]);
+  useEffect(() => {
+    if (!open) return;
+    list.current?.focus({ preventScroll: true });
+    const dismiss = (event: PointerEvent) => {
+      if (event.target instanceof Node && !details.current?.contains(event.target)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", dismiss);
+    return () => document.removeEventListener("pointerdown", dismiss);
+  }, [open]);
+  const applySuggestion = (item: Suggestion) => {
+    const colon = item.insert.indexOf(":");
+    const value = item.insert.slice(colon + 1);
+    const insert =
+      colon >= 0 && /\s/.test(value) && !value.startsWith('"')
+        ? item.insert.slice(0, colon + 1) + JSON.stringify(value)
+        : item.insert;
+    setOpen(false);
+    onSelect(text.slice(0, text.length - fragment.length) + insert);
+  };
   return (
-    <details className="query-help" onToggle={(e) => setOpen(e.currentTarget.open)}>
-      <summary title={t("查询语法与建议", "Query syntax and suggestions")}>
+    <details
+      className="query-help query-suggestions"
+      ref={details}
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+      onBlur={(event) => {
+        if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget))
+          setOpen(false);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && open) {
+          event.preventDefault();
+          event.stopPropagation();
+          setOpen(false);
+          trigger.current?.focus();
+        } else if (
+          (event.key === "ArrowDown" || event.key === "ArrowUp") &&
+          event.target === trigger.current
+        ) {
+          event.preventDefault();
+          setOpen(true);
+          list.current?.focus({ preventScroll: true });
+        }
+      }}
+    >
+      <summary ref={trigger} title={t("查询语法与建议", "Query syntax and suggestions")}>
         <SlidersHorizontal size={14} />
         <span>{t("检索语法", "Search syntax")}</span>
       </summary>
-      <p>
-        {t(
-          "用 domain:、folder:、tag: 缩小范围，用 - 排除，用引号保留词组。",
-          "Use domain:, folder:, tag: to filter, - to exclude, and quotes for phrases.",
-        )}
-      </p>
-      <div>
-        {items.map((item) => (
-          <button
-            className="secondary"
-            key={item.insert}
-            onClick={() => {
-              const colon = item.insert.indexOf(":");
-              const value = item.insert.slice(colon + 1);
-              const insert =
-                colon >= 0 && /\s/.test(value) && !value.startsWith('"')
-                  ? item.insert.slice(0, colon + 1) + JSON.stringify(value)
-                  : item.insert;
-              onSelect(text.slice(0, text.length - fragment.length) + insert);
-            }}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      {open && (
+        <div className="query-suggestions-panel">
+          <header className="query-suggestions-heading">
+            <strong>{t("检索建议", "Search suggestions")}</strong>
+            {!busy && !failed && items.length > 0 && (
+              <span>{t(`${items.length} 条建议`, `${items.length} suggestions`)}</span>
+            )}
+          </header>
+          <p className="query-suggestions-intro" id={descriptionId}>
+            {t(
+              "用 domain:、folder:、tag: 缩小范围，用 - 排除，用引号保留词组。",
+              "Filter with domain:, folder: or tag:. Use - to exclude and quotes for phrases.",
+            )}
+          </p>
+          <Command shouldFilter={false} loop label={t("检索建议", "Search suggestions")}>
+            <Command.List
+              ref={list}
+              label={t("可插入的检索条件", "Suggested search filters")}
+              aria-describedby={descriptionId}
+              aria-busy={busy}
+            >
+              {items.map((item, index) => {
+                const field = item.insert.replace(/^-/, "").split(":")[0];
+                const Icon =
+                  field === "folder"
+                    ? Folder
+                    : field === "tag"
+                      ? Tags
+                      : ["domain", "site", "host"].includes(field)
+                        ? Globe2
+                        : SlidersHorizontal;
+                const detailId = `${descriptionId}-${index}`;
+                return (
+                  <Command.Item
+                    key={item.insert}
+                    value={item.insert}
+                    aria-label={item.label}
+                    aria-describedby={item.detail ? detailId : undefined}
+                    onSelect={() => applySuggestion(item)}
+                  >
+                    <span className="query-suggestion-icon" aria-hidden="true">
+                      <Icon size={16} />
+                    </span>
+                    <span className="query-suggestion-copy">
+                      <span className="query-suggestion-label">{item.label}</span>
+                      {item.detail && (
+                        <span className="query-suggestion-detail" id={detailId}>
+                          {item.detail}
+                        </span>
+                      )}
+                    </span>
+                    <CornerDownLeft
+                      className="query-suggestion-enter"
+                      size={14}
+                      aria-hidden="true"
+                    />
+                  </Command.Item>
+                );
+              })}
+            </Command.List>
+            {busy && (
+              <div className="query-suggestions-state" role="status">
+                <LoaderCircle size={16} className="spin" aria-hidden="true" />
+                <span>{t("正在查找建议…", "Finding suggestions…")}</span>
+              </div>
+            )}
+            {failed && (
+              <div className="query-suggestions-state query-suggestions-error" role="alert">
+                <span>{t("暂时无法获取建议。", "Suggestions could not be loaded.")}</span>
+                <button
+                  className="secondary"
+                  onClick={() => {
+                    list.current?.focus({ preventScroll: true });
+                    setRevision((value) => value + 1);
+                  }}
+                >
+                  {t("重试", "Retry")}
+                </button>
+              </div>
+            )}
+            {!busy && !failed && !items.length && (
+              <div className="query-suggestions-state" role="status">
+                {t(
+                  "没有匹配的建议，可以继续输入搜索。",
+                  "No matching suggestions. Keep typing to search.",
+                )}
+              </div>
+            )}
+          </Command>
+          <footer className="query-suggestions-footer" aria-hidden="true">
+            <span>
+              <kbd>↑</kbd>
+              <kbd>↓</kbd> {t("选择", "Navigate")}
+            </span>
+            <span>
+              <kbd>Enter</kbd> {t("插入", "Insert")}
+            </span>
+            <span>
+              <kbd>Esc</kbd> {t("关闭", "Close")}
+            </span>
+          </footer>
+        </div>
+      )}
     </details>
   );
 }
