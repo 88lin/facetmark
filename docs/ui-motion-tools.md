@@ -1,19 +1,28 @@
 # UI and motion tools
 
-Updated on 2026-10-07 for the white and lake-blue capsule refinement. Impeccable owns
+Updated on 2026-10-07 for the collection and focused-reading redesign. Impeccable owns
 the visual system. Runtime dependencies are selected for specific interactions:
 `gsap` 3.13.0, `@gsap/react` 2.1.2 and `motion` 12.23.24.
 
-The latest refinement reuses these dependencies without additions. The GSAP tab
-indicator is a capsule selection behind icon-labeled tabs; its existing
-interruptible position/width tween remains. CSS supplies true pill actions,
-circular icon buttons, grouped utilities, content-sized cards, the refined reading
-hierarchy and responsive form controls. Model fields, options and tests use three
-shared grid rows on desktop. No new timeline/plugin or media pipeline was needed.
-Shared UI source, 35 cloud captures and passing browser tests use `1d00654`.
-The same source also passed Windows packaging and installed/lifecycle checks on
-the second attempt of run `37466126767`, after a Microsoft component download
-interruption. The three installed WebView captures were inspected locally.
+The collection now uses a larger masthead, a separate search row, real folder
+shortcuts and source-first cards. The supporting index contracts when a page opens.
+The GSAP tab indicator remains a capsule selection behind icon-labeled tabs;
+its existing interruptible position/width tween is preserved. CSS provides pill
+actions, circular icon buttons, natural card heights and the stronger reading scale.
+Each model channel's test follows its own fields, before optional settings.
+
+`cmdk` 1.1.1 provides the query suggestion list's arrow-key selection and Enter
+activation, using the existing API and main search input. Suggestions include
+real descriptions, loading, retry and empty states. Filtering stays server-side
+(`shouldFilter={false}`); whitespace in inserted field values is quoted.
+The MIT license ships at `frontend/public/licenses/cmdk.txt`.
+
+Manrope is bundled as an unmodified variable font for Latin/interface text,
+followed by the existing local Chinese fallback stack. Its source is
+`google/fonts/ofl/manrope/Manrope[wght].ttf`, blob
+`75274da58537d6123b14f2cd0c355ad4681fc2b3`; SIL OFL 1.1 is distributed at
+`frontend/public/licenses/Manrope-OFL.txt`. Font loading needs no external service.
+Current validation evidence is recorded in `docs/desktop-validation.md`.
 
 ## Rare UI
 
@@ -33,6 +42,13 @@ in `frontend/src/components/ui/scroll-progress.tsx`: a quiet reading-position
 footer with a native chapter selector and back-to-top button. It reads actual
 scroll position and does not claim that the user has read the article. The
 upstream glass treatment, floating pill and staggered text are omitted.
+The wide focused reader also adapts **RailToc** in
+`frontend/src/components/ui/reader-outline.tsx`, from the fixed upstream registry
+revision `b4de46efe4eb2613e22bb8134b482ed4e0c7736a/public/r/rail-toc.json`.
+It tracks actual saved-text headings, scrolls only the article container and
+restores scroll tracking after keyboard paging. It appears only when more than
+one real heading is available. A sticky text rail replaces the original animated
+paper-plane treatment; narrower layouts retain the existing chapter selector.
 The configured `utils` alias is the future destination for the
 component registry's utility dependency, not an existing application import.
 Do not install the upstream Next.js demo application into this Vite project.

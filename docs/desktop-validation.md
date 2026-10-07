@@ -1,6 +1,56 @@
 # Desktop experience validation
 
-## 2026-10-07: capsule controls and refined reading rhythm (current)
+## 2026-10-07: collection and focused-reading redesign (current)
+
+The latest user feedback called for stronger frontend design and component craft.
+Application and test source: `0aa3e849ae06d6707fb1f52356eefe6bd774ff4a`.
+This revision adds a distinct collection masthead, separate search row, real folder
+shortcuts, three-column source-first cards, compact supporting index, bundled
+Manrope, keyboard-operable cmdk suggestions and a real-heading reading outline.
+
+- [Experience 37618229826](https://github.com/88lin/facetmark/actions/runs/37618229826):
+  TypeScript/Vite, 19/19 Playwright, 1882 Python passed / 1 skipped,
+  distribution resources, Docker and extension passed.
+- [CI 37618237956](https://github.com/88lin/facetmark/actions/runs/37618237956): all ten jobs passed.
+- [Visual artifact 11480239215](https://github.com/88lin/facetmark/actions/runs/37618229826/artifacts/11480239215):
+  37 actual captures, 14.08-second H.264 recording, WEBM, scroll/font diagnostics
+  and exact commit/run provenance. All 37 capture hashes match locally.
+- [Windows 37618229866](https://github.com/88lin/facetmark/actions/runs/37618229866):
+  offline installation with the runtime initially absent and installer networking
+  blocked, installed WebView import/search/reader return, same-version reinstall,
+  uninstall data retention, parent-process cleanup and frozen-service isolation passed.
+  [Unsigned x64 installer](https://github.com/88lin/facetmark/actions/runs/37618229866/artifacts/11481542111)
+  and [small installed evidence](https://github.com/88lin/facetmark/actions/runs/37618229866/artifacts/11481562146)
+  are available. The installer is 276845762 bytes and was not downloaded locally.
+  Three installed 1028×749 captures were inspected; diagnostics identify the same
+  source and the truthful missing-body state for synthetic HTML imports.
+- A fresh independent full finish review returned **ship** with no material fixes.
+  A generic independent agent followed the Impeccable reviewer contract because
+  the specialized role was unavailable. All required captures were valid. The
+  review used screenshots/source/storyboard; direct animation timing was covered
+  by cloud runtime checks rather than the reviewer's static inspection. No current
+  external QUALITY BAR or approved comp was supplied, so that comparative ceiling
+  is unverified. The user-pinned continuation did not claim a new concept election.
+
+Browser coverage includes query-menu keyboard selection and insertion, Escape and
+focus return, request failure/retry/loading, empty suggestions, whitespace/quote
+escaping, real folder shortcuts, outline jumps, search/IME races, pagination,
+reader selection, tab/scroll restoration, reversible focus, mobile modality,
+reduced motion and Chinese/English/light/dark at 1440/1280/1024/390 widths.
+The one static Impeccable detector pass returned `[]`.
+The local visual batch includes seven contact sheets plus full-size collection,
+split/focused/mobile readers, settings, query menus and the interaction storyboard.
+The documentation comparison inspected five matching source captures. Four landing
+images preserve identical PNG raster chunks with updated origin metadata.
+Local work is limited to source editing, lightweight checks and small evidence;
+all application runtime, packaging and installation checks run in Actions.
+No personal browser profile or external model service was used.
+Local evidence is `.desktop-build/collection-elevated` and
+`.desktop-build/collection-elevated-windows`. Review does not imply user aesthetic
+acceptance. Hosted Windows Server checks do not certify Windows 10/11 hardware,
+cross-version upgrades, ordinary non-administrator behavior or signing trust.
+
+## 2026-10-07: capsule controls and refined reading rhythm (historical)
 
 The user found the previous delivery only slightly improved and explicitly required
 capsule buttons plus more complete visual refinement. Current application and test

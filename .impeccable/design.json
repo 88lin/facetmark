@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-06T12:52:48.007Z",
+  "generatedAt": "2026-10-07T12:23:18.050Z",
   "title": "Design System: Facetmark collection and reader",
   "extensions": {
     "colorMeta": {
@@ -22,14 +22,14 @@
         "role": "neutral",
         "displayName": "Pale Blue Workspace",
         "tonalRamp": [
-          "oklch(15.00% 0.00668 233.64)",
-          "oklch(26.43% 0.00668 233.64)",
-          "oklch(37.86% 0.00668 233.64)",
-          "oklch(49.29% 0.00668 233.64)",
-          "oklch(60.71% 0.00668 233.64)",
-          "oklch(72.14% 0.00668 233.64)",
-          "oklch(83.57% 0.00668 233.64)",
-          "oklch(95.00% 0.00668 233.64)"
+          "oklch(15.00% 0.00503 228.82)",
+          "oklch(26.43% 0.00503 228.82)",
+          "oklch(37.86% 0.00503 228.82)",
+          "oklch(49.29% 0.00503 228.82)",
+          "oklch(60.71% 0.00503 228.82)",
+          "oklch(72.14% 0.00503 228.82)",
+          "oklch(83.57% 0.00503 228.82)",
+          "oklch(95.00% 0.00503 228.82)"
         ]
       },
       "inset": {
@@ -50,42 +50,42 @@
         "role": "neutral",
         "displayName": "Deep Blue Ink",
         "tonalRamp": [
-          "oklch(15.00% 0.04948 241.69)",
-          "oklch(26.43% 0.04948 241.69)",
-          "oklch(37.86% 0.04948 241.69)",
-          "oklch(49.29% 0.04948 241.69)",
-          "oklch(60.71% 0.04948 241.69)",
-          "oklch(72.14% 0.04948 241.69)",
-          "oklch(83.57% 0.04948 241.69)",
-          "oklch(95.00% 0.04948 241.69)"
+          "oklch(15.00% 0.03266 233.49)",
+          "oklch(26.43% 0.03266 233.49)",
+          "oklch(37.86% 0.03266 233.49)",
+          "oklch(49.29% 0.03266 233.49)",
+          "oklch(60.71% 0.03266 233.49)",
+          "oklch(72.14% 0.03266 233.49)",
+          "oklch(83.57% 0.03266 233.49)",
+          "oklch(95.00% 0.03266 233.49)"
         ]
       },
       "muted": {
         "role": "neutral",
         "displayName": "Muted Blue Ink",
         "tonalRamp": [
-          "oklch(15.00% 0.04157 236.25)",
-          "oklch(26.43% 0.04157 236.25)",
-          "oklch(37.86% 0.04157 236.25)",
-          "oklch(49.29% 0.04157 236.25)",
-          "oklch(60.71% 0.04157 236.25)",
-          "oklch(72.14% 0.04157 236.25)",
-          "oklch(83.57% 0.04157 236.25)",
-          "oklch(95.00% 0.04157 236.25)"
+          "oklch(15.00% 0.03247 235.44)",
+          "oklch(26.43% 0.03247 235.44)",
+          "oklch(37.86% 0.03247 235.44)",
+          "oklch(49.29% 0.03247 235.44)",
+          "oklch(60.71% 0.03247 235.44)",
+          "oklch(72.14% 0.03247 235.44)",
+          "oklch(83.57% 0.03247 235.44)",
+          "oklch(95.00% 0.03247 235.44)"
         ]
       },
       "rule": {
         "role": "neutral",
         "displayName": "Cool Rule",
         "tonalRamp": [
-          "oklch(15.00% 0.01523 228.97)",
-          "oklch(26.43% 0.01523 228.97)",
-          "oklch(37.86% 0.01523 228.97)",
-          "oklch(49.29% 0.01523 228.97)",
-          "oklch(60.71% 0.01523 228.97)",
-          "oklch(72.14% 0.01523 228.97)",
-          "oklch(83.57% 0.01523 228.97)",
-          "oklch(95.00% 0.01523 228.97)"
+          "oklch(15.00% 0.01263 236.63)",
+          "oklch(26.43% 0.01263 236.63)",
+          "oklch(37.86% 0.01263 236.63)",
+          "oklch(49.29% 0.01263 236.63)",
+          "oklch(60.71% 0.01263 236.63)",
+          "oklch(72.14% 0.01263 236.63)",
+          "oklch(83.57% 0.01263 236.63)",
+          "oklch(95.00% 0.01263 236.63)"
         ]
       },
       "accent": {
@@ -372,7 +372,7 @@
     "typographyMeta": {
       "collection-heading": {
         "displayName": "Collection Heading",
-        "purpose": "Library heading beside the search controls."
+        "purpose": "Browsing masthead above a separate search row."
       },
       "page-title": {
         "displayName": "Page Title",
@@ -392,7 +392,7 @@
       },
       "collection-title": {
         "displayName": "Collection Title",
-        "purpose": "Title in the unselected two-column collection."
+        "purpose": "Source-first card title in three/two/one-column browsing."
       },
       "index-title": {
         "displayName": "Index Title",
@@ -404,7 +404,7 @@
       },
       "index-summary": {
         "displayName": "Index Summary",
-        "purpose": "Excerpt in the supporting index."
+        "purpose": "Single-line excerpt in the supporting index."
       },
       "body": {
         "displayName": "Body",
@@ -412,7 +412,7 @@
       },
       "reading": {
         "displayName": "Reading",
-        "purpose": "Saved article prose, retained at 16px on narrow screens."
+        "purpose": "17px saved prose; desktop 1.9 and mobile 1.85 leading."
       },
       "button": {
         "displayName": "Button",
@@ -420,7 +420,7 @@
       },
       "search": {
         "displayName": "Search",
-        "purpose": "Desktop search input; reduced to 14px on mobile."
+        "purpose": "Browsing search input, 17px desktop and 15px mobile."
       },
       "tab": {
         "displayName": "Tab",
@@ -432,23 +432,35 @@
       },
       "caption": {
         "displayName": "Caption",
-        "purpose": "Index source metadata and disclosed article details."
+        "purpose": "Compact supporting information."
       },
       "diagnostic": {
         "displayName": "Diagnostic",
         "purpose": "Diagnostic output and preformatted records."
+      },
+      "workspace-heading": {
+        "displayName": "Workspace Heading",
+        "purpose": "Compact heading beside search with an article selected."
+      },
+      "index-search": {
+        "displayName": "Index Search",
+        "purpose": "Selected-state search input."
+      },
+      "outline": {
+        "displayName": "Outline",
+        "purpose": "Wrapping labels for actual article headings."
       }
     },
     "shadows": [
       {
         "name": "card",
         "value": "0 2px 8px #244e6709, 0 8px 24px #244e6706",
-        "purpose": "White cards and active utility toggles."
+        "purpose": "Empty collection and active utility toggles; ordinary cards are flat."
       },
       {
         "name": "card-dark",
         "value": "0 3px 14px #00000020",
-        "purpose": "Dark-theme resting cards and active utility toggles."
+        "purpose": "Dark empty collection and active utility toggles."
       },
       {
         "name": "sheet",
@@ -458,22 +470,17 @@
       {
         "name": "sheet-dark",
         "value": "0 12px 36px #00000028",
-        "purpose": "Dark-theme reader and support surfaces."
-      },
-      {
-        "name": "card-state",
-        "value": "inset 0 0 0 1px var(--selected-edge)",
-        "purpose": "Hover and selection replace resting card shadow."
+        "purpose": "Dark reader and support surfaces."
       },
       {
         "name": "navigation",
         "value": "8px 0 40px #16374a24",
-        "purpose": "Open temporary navigation drawer only; the closed drawer has no shadow."
+        "purpose": "Open drawer only; closed drawer has no shadow."
       },
       {
-        "name": "search-help",
-        "value": "0 12px 36px #244e6718",
-        "purpose": "Floating search help."
+        "name": "query-suggestions",
+        "value": "0 12px 36px color-mix(in srgb, var(--ink) 16%, transparent)",
+        "purpose": "Floating cmdk suggestions."
       }
     ],
     "motion": [
@@ -490,7 +497,7 @@
       {
         "name": "cards-and-segments",
         "value": "180ms",
-        "purpose": "Primary/secondary background, color and border; card background/shadow; header segment colors; facet and disclosure chevrons."
+        "purpose": "Primary/secondary colors and borders; card border; header/folder/disclosure states; open-arrow opacity/x."
       },
       {
         "name": "navigation",
@@ -526,6 +533,11 @@
         "name": "busy",
         "value": "1.1s linear infinite",
         "purpose": "CSS spinner; disabled by reduced motion."
+      },
+      {
+        "name": "suggestions-and-outline",
+        "value": "160ms cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Suggestion trigger/row states and chapter-link color/marker opacity."
       }
     ],
     "breakpoints": [
@@ -534,20 +546,28 @@
         "value": "719px"
       },
       {
+        "name": "compact-header",
+        "value": "720px–959px"
+      },
+      {
         "name": "modal-reader-max",
         "value": "1119px"
+      },
+      {
+        "name": "outline-min",
+        "value": "1120px"
       },
       {
         "name": "compact-desktop",
         "value": "1120px–1300px"
       },
       {
-        "name": "wide-min",
-        "value": "1600px"
+        "name": "three-column-min",
+        "value": "1360px"
       },
       {
-        "name": "compact-header",
-        "value": "720px–959px"
+        "name": "wide-min",
+        "value": "1600px"
       }
     ]
   },
@@ -558,7 +578,7 @@
       "refersTo": "button-primary",
       "description": "Lake Blue form action for saving and explicitly starting work.",
       "html": "<button class=\"ds-primary\" type=\"button\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z\"/><polyline points=\"17 21 17 13 7 13 7 21\"/><polyline points=\"7 3 7 8 15 8\"/></svg>保存配置</button>",
-      "css": ".ds-primary{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:var(--radius-pill,999px);font-size:13px;font-weight:600;line-height:1.5;min-height:var(--control-height,40px);cursor:pointer;transition:background .18s var(--ease,cubic-bezier(0.22,1,0.36,1)),color .18s var(--ease,cubic-bezier(0.22,1,0.36,1)),border-color .18s var(--ease,cubic-bezier(0.22,1,0.36,1));}.ds-primary:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-primary:disabled{cursor:not-allowed;opacity:.42;}@media(prefers-reduced-motion:reduce){.ds-primary{transition:none!important;animation:none!important;}}.ds-primary{padding:10px 20px;background:var(--accent, #087293);color:var(--on-accent, #fff);}.ds-primary:hover:not(:disabled){filter:brightness(.94);}@media(max-width:719px){.ds-primary{min-height:44px;}}"
+      "css": ".ds-primary{font-family:\"Manrope\",\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:var(--radius-pill,999px);font-size:13px;font-weight:600;line-height:1.5;min-height:var(--control-height,40px);cursor:pointer;transition:background .18s var(--ease,cubic-bezier(0.22,1,0.36,1)),color .18s var(--ease,cubic-bezier(0.22,1,0.36,1)),border-color .18s var(--ease,cubic-bezier(0.22,1,0.36,1));}.ds-primary:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-primary:disabled{cursor:not-allowed;opacity:.42;}@media(prefers-reduced-motion:reduce){.ds-primary{transition:none!important;animation:none!important;}}.ds-primary{padding:10px 20px;background:var(--accent, #087293);color:var(--on-accent, #fff);}.ds-primary:hover:not(:disabled){filter:brightness(.94);}@media(max-width:719px){.ds-primary{min-height:44px;}}"
     },
     {
       "name": "Secondary button",
@@ -566,7 +586,7 @@
       "refersTo": "button-secondary",
       "description": "Outlined test, retry and subordinate action.",
       "html": "<button class=\"ds-secondary\" type=\"button\">Test connection</button>",
-      "css": ".ds-secondary{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:var(--radius-pill,999px);font-size:13px;font-weight:600;line-height:1.5;min-height:var(--control-height,40px);cursor:pointer;transition:background .18s var(--ease,cubic-bezier(0.22,1,0.36,1)),color .18s var(--ease,cubic-bezier(0.22,1,0.36,1)),border-color .18s var(--ease,cubic-bezier(0.22,1,0.36,1));}.ds-secondary:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-secondary:disabled{cursor:not-allowed;opacity:.42;}@media(prefers-reduced-motion:reduce){.ds-secondary{transition:none!important;animation:none!important;}}.ds-secondary{padding:9px 18px;border:1px solid var(--rule, #dce8ee);background:var(--canvas, #ffffff);color:var(--ink, #193549);}.ds-secondary:hover:not(:disabled){background:var(--soft,#e0f2f8);border-color:var(--selected-edge,var(--accent,#087293));color:var(--accent,#087293);}@media(max-width:719px){.ds-secondary{min-height:44px;}}"
+      "css": ".ds-secondary{font-family:\"Manrope\",\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:var(--radius-pill,999px);font-size:13px;font-weight:600;line-height:1.5;min-height:var(--control-height,40px);cursor:pointer;transition:background .18s var(--ease,cubic-bezier(0.22,1,0.36,1)),color .18s var(--ease,cubic-bezier(0.22,1,0.36,1)),border-color .18s var(--ease,cubic-bezier(0.22,1,0.36,1));}.ds-secondary:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-secondary:disabled{cursor:not-allowed;opacity:.42;}@media(prefers-reduced-motion:reduce){.ds-secondary{transition:none!important;animation:none!important;}}.ds-secondary{padding:9px 18px;border:1px solid var(--rule, #e1eaf0);background:var(--canvas, #ffffff);color:var(--ink, #1c303b);}.ds-secondary:hover:not(:disabled){background:var(--soft,#e0f2f8);border-color:var(--selected-edge,var(--accent,#087293));color:var(--accent,#087293);}@media(max-width:719px){.ds-secondary{min-height:44px;}}"
     },
     {
       "name": "Text action",
@@ -574,7 +594,7 @@
       "refersTo": "button-text",
       "description": "Quiet text pill with lake-mist hover and a larger mobile target.",
       "html": "<button class=\"ds-text\" type=\"button\">Open setup guide<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 7h10v10M7 17 17 7\"/></svg></button>",
-      "css": ".ds-text{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;gap:7px;color:var(--accent, #087293);font-size:12px;min-height:32px;padding:5px 10px;border-radius:var(--radius-pill,999px);border:0;background:none;cursor:pointer;}.ds-text:hover:not(:disabled){background:var(--soft,#e0f2f8);}.ds-text:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-text:disabled{cursor:not-allowed;opacity:.42;}@media(max-width:719px){.ds-text{min-height:44px;}}"
+      "css": ".ds-text{font-family:\"Manrope\",\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;gap:7px;color:var(--accent, #087293);font-size:12px;min-height:32px;padding:5px 10px;border-radius:var(--radius-pill,999px);border:0;background:none;cursor:pointer;}.ds-text:hover:not(:disabled){background:var(--soft,#e0f2f8);}.ds-text:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-text:disabled{cursor:not-allowed;opacity:.42;}@media(max-width:719px){.ds-text{min-height:44px;}}"
     },
     {
       "name": "Icon button",
@@ -582,23 +602,23 @@
       "refersTo": "button-icon",
       "description": "Circular utility action; 36px desktop and 44px mobile, with semantic pressed state.",
       "html": "<button class=\"ds-icon\" type=\"button\" aria-label=\"Expand reading\" aria-pressed=\"false\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m13-5v3a2 2 0 0 1-2 2h-3\"/></svg></button>",
-      "css": ".ds-icon{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:0;border-radius:50%;background:none;color:var(--ink, #193549);cursor:pointer;flex-shrink:0;transition:background .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));}.ds-icon:hover:not(:disabled){background:var(--inset, #f3f8fb);}.ds-icon[aria-pressed=\"true\"]{background:var(--soft, #e0f2f8);color:var(--accent, #087293);}.ds-icon:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-icon:disabled{cursor:not-allowed;opacity:.42;}@media(prefers-reduced-motion:reduce){.ds-icon{transition:none!important;animation:none!important;}}@media(max-width:719px){.ds-icon{width:44px;height:44px;}}"
+      "css": ".ds-icon{font-family:\"Manrope\",\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:0;border-radius:50%;background:none;color:var(--ink, #1c303b);cursor:pointer;flex-shrink:0;transition:background .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));}.ds-icon:hover:not(:disabled){background:var(--inset, #f3f8fb);}.ds-icon[aria-pressed=\"true\"]{background:var(--soft, #e0f2f8);color:var(--accent, #087293);}.ds-icon:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-icon:disabled{cursor:not-allowed;opacity:.42;}@media(prefers-reduced-motion:reduce){.ds-icon{transition:none!important;animation:none!important;}}@media(max-width:719px){.ds-icon{width:44px;height:44px;}}"
     },
     {
       "name": "Search field",
       "kind": "input",
       "refersTo": "search-field",
-      "description": "White outlined search capsule with inset shortcut pill, lake-blue focus border and 48px mobile height.",
-      "html": "<div class=\"ds-search\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input aria-label=\"搜索书签\" placeholder=\"你想找回什么？\"/><kbd>Ctrl K</kbd></div>",
-      "css": ".ds-search{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:flex;align-items:center;gap:10px;max-width:520px;height:52px;padding:7px 18px;border:1px solid var(--rule, #dce8ee);border-radius:var(--radius-pill,999px);background:var(--canvas, #ffffff);color:var(--ink, #193549);transition:border-color .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1)),background .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));}.ds-search:focus-within{border-color:var(--accent, #087293);}.ds-search>svg{color:var(--accent, #087293);flex-shrink:0;}.ds-search input{font-family:inherit;font-size:15px;line-height:1.6;min-width:0;width:100%;background:transparent;border:0;outline:0;color:var(--ink, #193549);caret-color:var(--accent, #087293);}.ds-search input::placeholder{color:var(--muted, #526d7e);}.ds-search kbd{font-family:inherit;font-size:10px;white-space:nowrap;color:var(--muted, #526d7e);border:0;border-radius:var(--radius-pill,999px);background:var(--inset,#f3f8fb);padding:3px 8px;line-height:1.6;}@media(max-width:719px){.ds-search{height:48px;padding:5px 11px;}.ds-search input{font-size:14px;}.ds-search kbd{display:none;}}@media(prefers-reduced-motion:reduce){.ds-search{transition:none!important;animation:none!important;}}"
+      "description": "58px browsing search capsule and a standalone open query-suggestion menu; cmdk-selected styling is shown without a framework runtime.",
+      "html": "<div class=\"ds-search\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input aria-label=\"搜索书签\" placeholder=\"你想找回什么？\"/><kbd>Ctrl K</kbd></div><div class=\"ds-query-tool\"><details class=\"ds-query-help ds-query-suggestions\" open><summary aria-label=\"查询语法与建议\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 20H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5l2 2h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2z\"/></svg></summary><div class=\"ds-query-suggestions-panel\"><header class=\"ds-query-suggestions-heading\"><strong>检索建议</strong><span>1 条建议</span></header><p class=\"ds-query-suggestions-intro\">用 domain:、folder:、tag: 缩小范围，用 - 排除，用引号保留词组。</p><div cmdk-root=\"\"><div cmdk-list=\"\" role=\"listbox\" aria-label=\"可插入的检索条件\" tabindex=\"0\"><div cmdk-item=\"\" role=\"option\" aria-selected=\"true\" data-selected=\"true\"><span class=\"ds-query-suggestion-icon\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 20H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5l2 2h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2z\"/></svg></span><span class=\"ds-query-suggestion-copy\"><span class=\"ds-query-suggestion-label\">设计</span><span class=\"ds-query-suggestion-detail\">folder:设计</span></span><svg class=\"ds-query-suggestion-enter\" width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 10 4 15l5 5M4 15h12a4 4 0 0 0 4-4V4\"/></svg></div></div></div><footer class=\"ds-query-suggestions-footer\"><span><kbd>↑</kbd><kbd>↓</kbd> 选择</span><span><kbd>Enter</kbd> 插入</span><span><kbd>Esc</kbd> 关闭</span></footer></div></details></div>",
+      "css": ".ds-search{font-family:\"Manrope\",\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:flex;align-items:center;gap:10px;max-width:none;height:58px;padding:10px 22px;border:1px solid var(--rule, #e1eaf0);border-radius:var(--radius-pill,999px);background:var(--canvas, #ffffff);color:var(--ink, #1c303b);transition:border-color .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1)),background .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));}.ds-search:focus-within{border-color:var(--accent, #087293);}.ds-search>svg{color:var(--accent, #087293);flex-shrink:0;}.ds-search input{font-family:inherit;font-size:17px;line-height:1.6;min-width:0;width:100%;background:transparent;border:0;outline:0;color:var(--ink, #1c303b);caret-color:var(--accent, #087293);}.ds-search input::placeholder{color:var(--muted, #566b78);}.ds-search kbd{font-family:inherit;font-size:10px;white-space:nowrap;color:var(--muted, #566b78);border:0;border-radius:var(--radius-pill,999px);background:var(--inset,#f3f8fb);padding:3px 8px;line-height:1.6;}@media(max-width:719px){.ds-search{height:48px;padding:5px 11px;}.ds-search input{font-size:15px;}.ds-search kbd{display:none;}}@media(prefers-reduced-motion:reduce){.ds-search{transition:none!important;animation:none!important;}}\n.ds-query-tool:has(.ds-query-suggestions[open]) {\n  width: auto;\n}\n\n.ds-query-tool .ds-query-help.ds-query-suggestions,\n.ds-query-tool .ds-query-help.ds-query-suggestions[open] {\n  position: relative;\n  top: auto;\n  right: auto;\n  width: auto;\n  padding: 0;\n  border: 0;\n  border-radius: 0;\n  background: transparent;\n  box-shadow: none;\n}\n\n.ds-query-tool .ds-query-help.ds-query-suggestions > summary {\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  width: 40px;\n  min-width: 40px;\n  height: 40px;\n  min-height: 40px;\n  padding: 0;\n  border-radius: var(--radius-pill,999px);\n  list-style: none;\n  color: var(--muted,#566b78);\n  transition:\n    background 160ms var(--ease,cubic-bezier(0.22,1,0.36,1)),\n    color 160ms var(--ease,cubic-bezier(0.22,1,0.36,1));\n}\n\n.ds-query-tool .ds-query-help.ds-query-suggestions > summary::-webkit-details-marker {\n  display: none;\n}\n\n.ds-query-tool .ds-query-help.ds-query-suggestions > summary:hover,\n.ds-query-tool .ds-query-help.ds-query-suggestions[open] > summary {\n  background: var(--soft,#e0f2f8);\n  color: var(--accent,#087293);\n}\n\n.ds-query-tool .ds-query-help.ds-query-suggestions > summary:focus-visible {\n  outline: 2px solid var(--accent,#087293);\n  outline-offset: 3px;\n}\n\n.ds-query-tool .ds-query-suggestions > .ds-query-suggestions-panel {\n  position: absolute;\n  z-index: 12;\n  top: calc(100% + 10px);\n  right: 0;\n  display: block;\n  width: min(368px, calc(100vw - 36px));\n  overflow: hidden;\n  padding: 16px 8px 0;\n  border-radius: 14px;\n  color: var(--ink,#1c303b);\n  background: var(--canvas,#fff);\n  box-shadow: 0 12px 36px color-mix(in srgb, var(--ink,#1c303b) 16%, transparent);\n}\n\n.ds-query-suggestions .ds-query-suggestions-heading {\n  display: flex;\n  align-items: baseline;\n  justify-content: space-between;\n  gap: 12px;\n  padding: 0 8px;\n}\n\n.ds-query-suggestions-heading strong {\n  color: var(--ink,#1c303b);\n  font-size: 14px;\n  font-weight: 650;\n}\n\n.ds-query-suggestions-heading > span {\n  flex-shrink: 0;\n  color: var(--muted,#566b78);\n  font-size: 11px;\n  font-variant-numeric: tabular-nums;\n}\n\n.ds-query-suggestions .ds-query-suggestions-intro {\n  margin: 8px 8px 12px;\n  color: var(--muted,#566b78);\n  font-size: 12px;\n  line-height: 1.65;\n  overflow-wrap: anywhere;\n}\n\n.ds-query-suggestions [cmdk-root] {\n  min-width: 0;\n}\n\n.ds-query-suggestions [cmdk-list] {\n  max-height: min(348px, 48dvh);\n  overflow-y: auto;\n  overscroll-behavior: contain;\n  scroll-padding: 4px;\n  scrollbar-width: thin;\n  scrollbar-color: var(--selected-edge,#8dc7dc) transparent;\n  outline: none;\n}\n\n.ds-query-suggestions [cmdk-list]:focus-visible {\n  outline: 2px solid var(--accent,#087293);\n  outline-offset: -2px;\n  border-radius: 10px;\n}\n\n.ds-query-suggestions [cmdk-item] {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  min-height: 58px;\n  padding: 10px;\n  border-radius: 10px;\n  cursor: pointer;\n  user-select: none;\n  color: var(--ink,#1c303b);\n  transition:\n    background 160ms var(--ease,cubic-bezier(0.22,1,0.36,1)),\n    color 160ms var(--ease,cubic-bezier(0.22,1,0.36,1));\n}\n\n.ds-query-suggestions [cmdk-item][data-selected=\"true\"] {\n  color: var(--accent,#087293);\n  background: var(--soft,#e0f2f8);\n}\n\n.ds-query-suggestion-icon {\n  display: grid;\n  place-items: center;\n  flex: 0 0 30px;\n  height: 30px;\n  border-radius: 50%;\n  color: var(--accent,#087293);\n  background: var(--inset,#f3f8fb);\n}\n\n.ds-query-suggestion-copy {\n  display: flex;\n  flex: 1;\n  flex-direction: column;\n  gap: 3px;\n  min-width: 0;\n  overflow-wrap: anywhere;\n}\n\n.ds-query-suggestion-label {\n  font-size: 13px;\n  font-weight: 600;\n  line-height: 1.45;\n}\n\n.ds-query-suggestion-detail {\n  color: var(--muted,#566b78);\n  font-size: 11px;\n  line-height: 1.5;\n}\n\n.ds-query-suggestion-enter {\n  flex-shrink: 0;\n  opacity: 0;\n}\n\n.ds-query-suggestions [cmdk-item][data-selected=\"true\"] .ds-query-suggestion-enter {\n  opacity: 1;\n}\n\n.ds-query-suggestions .ds-query-suggestions-state {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: 10px;\n  min-height: 82px;\n  padding: 16px 10px;\n  color: var(--muted,#566b78);\n  font-size: 12px;\n  line-height: 1.6;\n}\n\n.ds-query-suggestions .ds-query-suggestions-error {\n  flex-wrap: wrap;\n  color: var(--danger,#ad3448);\n}\n\n.ds-query-suggestions .ds-query-suggestions-state .ds-secondary {\n  min-height: 32px;\n  padding: 5px 14px;\n  border-radius: var(--radius-pill,999px);\n  font-size: 12px;\n}\n\n.ds-query-suggestions .ds-query-suggestions-footer {\n  display: flex;\n  align-items: center;\n  flex-wrap: wrap;\n  gap: 8px 14px;\n  margin: 8px -8px 0;\n  padding: 11px 16px;\n  border-top: 1px solid var(--rule,#e1eaf0);\n  color: var(--muted,#566b78);\n  font-size: 10px;\n}\n\n.ds-query-suggestions-footer > span {\n  display: inline-flex;\n  align-items: center;\n  gap: 4px;\n}\n\n.ds-query-suggestions .ds-query-suggestions-footer kbd {\n  padding: 1px 4px;\n  border: 1px solid var(--rule,#e1eaf0);\n  border-radius: 4px;\n  background: var(--inset,#f3f8fb);\n  color: var(--muted,#566b78);\n  font-family: inherit;\n  font-size: 10px;\n  line-height: 1.5;\n}\n\n@media (max-width: 719px) {\n  .ds-query-tool .ds-query-help.ds-query-suggestions > summary {\n    width: 44px;\n    min-width: 44px;\n    height: 44px;\n    min-height: 44px;\n  }\n\n  .ds-query-tool .ds-query-suggestions > .ds-query-suggestions-panel {\n    right: -76px;\n  }\n}\n\n@media (prefers-reduced-motion: reduce) {\n  .ds-query-tool .ds-query-help.ds-query-suggestions > summary,\n  .ds-query-suggestions [cmdk-item] {\n    transition: none;\n  }\n}\n\n.ds-query-tool{font-family:\"Manrope\",\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",\"Noto Sans CJK SC\",sans-serif;position:relative;}.ds-query-suggestions-panel{position:relative!important;top:auto!important;right:auto!important;}"
     },
     {
       "name": "Horizontal navigation",
       "kind": "nav",
       "refersTo": "header-navigation-active",
-      "description": "Pill navigation tray with an icon-labeled lake-blue active capsule; compact header and drawer variants preserve access.",
-      "html": "<nav class=\"ds-navigation\" aria-label=\"Main navigation\"><button class=\"ds-active\" type=\"button\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z\"/></svg>All bookmarks</button><button type=\"button\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 6v6l4 2\"/></svg>Saving sessions</button></nav>",
-      "css": ".ds-navigation{font-family:\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",\"Noto Sans CJK SC\",sans-serif;display:flex;align-items:center;gap:4px;padding:4px;background:var(--inset,#f3f8fb);border-radius:var(--radius-pill,999px);width:fit-content;}.ds-navigation button{font:inherit;font-size:13px;line-height:1.6;color:var(--muted,#526d7e);display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:8px 17px;border:0;border-radius:var(--radius-pill,999px);background:none;cursor:pointer;transition:background .18s var(--ease,cubic-bezier(0.22,1,0.36,1)),color .18s var(--ease,cubic-bezier(0.22,1,0.36,1));}.ds-navigation .ds-active{color:var(--on-accent,#fff);background:var(--accent,#087293);font-weight:600;}.ds-navigation button:not(.ds-active):hover{color:var(--accent,#087293);background:var(--soft,#e0f2f8);}.ds-navigation button:focus-visible{outline:2px solid var(--accent,#087293);outline-offset:3px;}@media(prefers-reduced-motion:reduce){.ds-navigation button{transition:none;}}@media(max-width:1119px){.ds-navigation button{padding:8px 12px;}}@media(min-width:720px) and (max-width:959px){.ds-navigation button{padding:8px 10px;font-size:12px;}}"
+      "description": "Soft active header navigation and a separate row of shortcuts from real folder data.",
+      "html": "<nav class=\"ds-navigation\" aria-label=\"Main navigation\"><button class=\"ds-active\" type=\"button\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z\"/></svg>All bookmarks</button><button type=\"button\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 6v6l4 2\"/></svg>Saving sessions</button></nav><nav class=\"ds-folders\" aria-label=\"按文件夹浏览\"><button class=\"ds-folder-active\" aria-pressed=\"true\" type=\"button\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m12 3 10 5-10 5L2 8l10-5zM2 12l10 5 10-5M2 16l10 5 10-5\"/></svg>全部收藏</button><button aria-pressed=\"false\" type=\"button\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 20H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5l2 2h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2z\"/></svg><span>设计</span></button></nav>",
+      "css": ".ds-navigation{font-family:\"Manrope\",\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",\"Noto Sans CJK SC\",sans-serif;display:flex;align-items:center;gap:4px;padding:4px;background:var(--inset,#f3f8fb);border-radius:var(--radius-pill,999px);width:fit-content;}.ds-navigation button{font:inherit;font-size:13px;line-height:1.6;color:var(--muted,#566b78);display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:8px 17px;border:0;border-radius:var(--radius-pill,999px);background:none;cursor:pointer;transition:background .18s var(--ease,cubic-bezier(0.22,1,0.36,1)),color .18s var(--ease,cubic-bezier(0.22,1,0.36,1));}.ds-navigation .ds-active{color:var(--accent,#087293);background:var(--soft,#e0f2f8);font-weight:700;}.ds-navigation button:not(.ds-active):hover{color:var(--accent,#087293);background:var(--soft,#e0f2f8);}.ds-navigation button:focus-visible{outline:2px solid var(--accent,#087293);outline-offset:3px;}@media(prefers-reduced-motion:reduce){.ds-navigation button{transition:none;}}@media(max-width:1119px){.ds-navigation button{padding:8px 12px;}}@media(min-width:720px) and (max-width:959px){.ds-navigation button{padding:8px 10px;font-size:12px;}}.ds-folders{font-family:\"Manrope\",\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",\"Noto Sans CJK SC\",sans-serif;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 0 4px;min-width:0;}.ds-folders button{font:inherit;display:inline-flex;align-items:center;gap:7px;flex-shrink:0;min-height:38px;padding:8px 14px;border:1px solid transparent;border-radius:var(--radius-pill,999px);font-size:13px;color:var(--muted,#566b78);background:transparent;cursor:pointer;transition:background 180ms var(--ease,cubic-bezier(0.22,1,0.36,1)),color 180ms var(--ease,cubic-bezier(0.22,1,0.36,1));}.ds-folders button>span{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.ds-folders .ds-folder-active{background:var(--canvas,#fff);border-color:var(--selected-edge,#8dc7dc);color:var(--accent,#087293);font-weight:600;}.ds-folders button:hover{background:var(--soft,#e0f2f8);color:var(--accent,#087293);}.ds-folders button:focus-visible{outline:2px solid var(--accent,#087293);outline-offset:3px;}@media(max-width:719px){.ds-folders button{min-height:44px;padding:8px 12px;}}@media(prefers-reduced-motion:reduce){.ds-folders button{transition:none;}}"
     },
     {
       "name": "Filter chip",
@@ -606,75 +626,61 @@
       "refersTo": "filter-chip",
       "description": "Removable filter; its size matches the visible collection controls.",
       "html": "<button class=\"ds-chip\" type=\"button\" aria-label=\"移除设计筛选\">设计<svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m18 6-12 12M6 6l12 12\"/></svg></button>",
-      "css": ".ds-chip{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:5px 12px;border:0;background:var(--soft, #e0f2f8);color:var(--accent, #087293);border-radius:var(--radius-pill,999px);font-size:12px;max-width:100%;overflow-wrap:anywhere;cursor:pointer;}.ds-chip:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}@media(max-width:719px){.ds-chip{min-height:44px;}}"
+      "css": ".ds-chip{font-family:\"Manrope\",\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:5px 12px;border:0;background:var(--soft, #e0f2f8);color:var(--accent, #087293);border-radius:var(--radius-pill,999px);font-size:12px;max-width:100%;overflow-wrap:anywhere;cursor:pointer;}.ds-chip:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}@media(max-width:719px){.ds-chip{min-height:44px;}}"
     },
     {
       "name": "Collection and selected index entries",
-      "kind": "custom",
+      "kind": "card",
       "refersTo": "collection-entry",
-      "description": "Content-sized white browse cards align metadata without empty minimum-height shelves; compact selection is blue and mobile cards remain rounded.",
-      "html": "<div class=\"ds-entry-examples\"><button class=\"ds-row ds-browse\" type=\"button\" aria-pressed=\"false\"><span class=\"ds-copy\"><span class=\"ds-title\">找到一条线索，接着读下去</span><span class=\"ds-summary\">从标题和摘录找回曾经保存的想法，再打开文章继续阅读。</span><span class=\"ds-meta\"><span><span class=\"ds-source-initial\" aria-hidden=\"true\">E</span>example.com</span><time datetime=\"2026-10-06\">10月6日</time></span></span></button><button class=\"ds-row ds-selected\" type=\"button\" aria-pressed=\"true\"><span class=\"ds-copy\"><span class=\"ds-title\">找到一条线索，接着读下去</span><span class=\"ds-summary\">从标题和摘录找回曾经保存的想法，再打开文章继续阅读。</span><span class=\"ds-meta\"><span><span class=\"ds-source-initial\" aria-hidden=\"true\">E</span>example.com</span><time datetime=\"2026-10-06\">10月6日</time></span><span class=\"ds-folder\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 20H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5l2 2h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2z\"/></svg>设计<span class=\"ds-reading\">正在阅读</span></span></span></button></div>",
-      "css": ".ds-entry-examples{background:var(--desk, #f1f6f9);}.ds-row{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:flex;width:100%;text-align:left;padding:20px;border:0;border-radius:16px;margin-bottom:10px;background:var(--canvas, #ffffff);box-shadow:var(--card-shadow,0 2px 8px #244e6709, 0 8px 24px #244e6706);color:var(--ink, #193549);cursor:pointer;transition:background .18s var(--ease, cubic-bezier(0.22, 1, 0.36, 1)),box-shadow .18s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));}.ds-row:hover{background:color-mix(in srgb,var(--canvas, #ffffff) 86%,var(--soft,#e0f2f8));box-shadow:inset 0 0 0 1px var(--selected-edge,#8dc7dc);}.ds-row.ds-selected{background:var(--selected,#ddf1f8);box-shadow:inset 0 0 0 1px var(--selected-edge,#8dc7dc);}.ds-copy{min-width:0;display:flex;flex-direction:column;gap:9px;flex:1;}.ds-title{order:0;font-size:16px;line-height:1.55;font-weight:600;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}.ds-selected .ds-title{color:var(--accent, #087293);}.ds-summary{order:1;font-size:13px;line-height:1.7;color:var(--muted, #526d7e);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;}.ds-meta{order:2;margin-top:4px;display:flex;align-items:center;gap:8px;color:var(--muted, #526d7e);font-size:12px;line-height:20px;overflow:hidden;}.ds-meta>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.ds-meta time{margin-left:auto;flex-shrink:0;font-size:11px;font-variant-numeric:tabular-nums;}.ds-folder{order:3;display:flex;align-items:center;gap:5px;color:var(--muted, #526d7e);font-size:11px;line-height:1.5;}.ds-reading{margin-left:auto;color:var(--accent, #087293);font-size:11px;}.ds-browse{padding:24px;border:0;border-radius:16px;min-height:0;margin-bottom:0;align-items:flex-start;height:100%;align-self:stretch;}.ds-browse .ds-copy{min-height:0;align-self:stretch;}.ds-browse .ds-title{font-size:18px;}.ds-browse .ds-summary{font-size:14px;}.ds-browse .ds-meta{font-size:12px;margin-top:auto;padding-top:9px;}.ds-browse .ds-meta time{font-size:11px;}.ds-row:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-row:focus-visible{outline-offset:-3px;}@media(max-width:719px){.ds-browse{height:auto;}.ds-browse .ds-copy{min-height:0;}.ds-row,.ds-browse{padding:20px;margin-bottom:12px;min-height:0;border:0;border-radius:16px;}.ds-row .ds-title{font-size:17px;}.ds-row .ds-summary{font-size:13px;}.ds-row .ds-meta{font-size:11px;}}@media(prefers-reduced-motion:reduce){.ds-row{transition:none!important;animation:none!important;}}.ds-meta>span{display:flex;align-items:center;}.ds-source-initial{display:inline-grid;place-items:center;width:25px;height:25px;flex-shrink:0;margin-right:6px;border:1px solid var(--rule,#dce8ee);border-radius:50%;background:var(--inset,#f3f8fb);color:var(--accent,#087293);font-size:11px;font-weight:650;}"
+      "description": "Source-first flat browse card and compact selected index row; open cards follow their own natural content height.",
+      "html": "<div class=\"ds-card-examples\"><button class=\"ds-card ds-browse\" type=\"button\" aria-pressed=\"false\"><span class=\"ds-copy\"><span class=\"ds-source\"><span class=\"ds-initial\" aria-hidden=\"true\">E</span><span class=\"ds-domain\">example.com</span><svg class=\"ds-open\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14m-6-6 6 6-6 6\"/></svg></span><span class=\"ds-card-title\">找到一条线索，接着读下去</span><span class=\"ds-card-summary\">从保存的页面里找回一个想法，再打开文章继续阅读。</span><span class=\"ds-card-meta\"><span class=\"ds-card-folder\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 20H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5l2 2h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2z\"/></svg><span>设计</span></span><time datetime=\"2026-10-07\">10月7日</time></span></span></button><button class=\"ds-card ds-index ds-selected\" type=\"button\" aria-pressed=\"true\"><span class=\"ds-copy\"><span class=\"ds-source\"><span class=\"ds-initial\" aria-hidden=\"true\">E</span><span class=\"ds-domain\">example.com</span><span class=\"ds-reading\">正在阅读</span></span><span class=\"ds-card-title\">找到一条线索，接着读下去</span><span class=\"ds-card-summary\">从保存的页面里找回一个想法，再打开文章继续阅读。</span><span class=\"ds-card-meta\"><span class=\"ds-card-folder\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 20H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5l2 2h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2z\"/></svg><span>设计</span></span><time datetime=\"2026-10-07\">10月7日</time></span></span></button></div>",
+      "css": ".ds-card-examples{background:var(--desk,#f5f9fb);}.ds-card{font-family:\"Manrope\",\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",\"Noto Sans CJK SC\",sans-serif;font-size:14px;line-height:1.6;color:var(--ink,#1c303b);display:flex;width:100%;text-align:left;padding:22px;border:1px solid var(--rule,#e1eaf0);border-radius:16px;margin-bottom:0;background:var(--canvas,#fff);box-shadow:none;min-height:0;height:auto;align-self:start;cursor:pointer;transition:background 180ms var(--ease,cubic-bezier(0.22,1,0.36,1)),border-color 180ms var(--ease,cubic-bezier(0.22,1,0.36,1));}.ds-card:hover{background:var(--canvas,#fff);border-color:var(--selected-edge,#8dc7dc);}.ds-copy{display:flex;flex-direction:column;flex:1;min-width:0;gap:8px;}.ds-source{display:flex;align-items:center;gap:8px;min-width:0;margin-bottom:4px;font-size:12px;color:var(--muted,#566b78);}.ds-domain{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}.ds-initial{display:grid;place-items:center;width:30px;height:30px;flex-shrink:0;border:0;border-radius:10px;background:var(--soft,#e0f2f8);color:var(--accent,#087293);font-size:13px;font-weight:700;}.ds-open{margin-left:auto;opacity:0;transform:translateX(-4px);transition:opacity 180ms var(--ease,cubic-bezier(0.22,1,0.36,1)),transform 180ms var(--ease,cubic-bezier(0.22,1,0.36,1));}.ds-card:hover .ds-open,.ds-card:focus-visible .ds-open{opacity:1;transform:none;}.ds-card-title{font-size:19px;line-height:1.5;font-weight:650;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}.ds-card-summary{font-size:14px;line-height:1.75;color:var(--muted,#566b78);overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}.ds-card-meta{display:flex;align-items:center;gap:12px;margin-top:8px;padding-top:12px;border-top:1px solid var(--rule,#e1eaf0);color:var(--muted,#566b78);font-size:12px;line-height:20px;}.ds-card-meta time{font-size:11px;font-variant-numeric:tabular-nums;margin-left:auto;flex-shrink:0;}.ds-card-folder{display:inline-flex;align-items:center;gap:6px;min-width:0;}.ds-card-folder>span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}.ds-card-folder svg{flex-shrink:0;}.ds-reading{margin-left:auto;white-space:nowrap;font-size:11px;color:var(--accent,#087293);}.ds-card.ds-index{padding:16px 14px;margin-bottom:6px;background:transparent;border-color:transparent;border-radius:12px;}.ds-card.ds-index:hover{background:var(--canvas,#fff);}.ds-card.ds-index.ds-selected{background:var(--selected,#ddf1f8);border-color:var(--selected-edge,#8dc7dc);}.ds-index .ds-copy{gap:6px;}.ds-index .ds-source{margin-bottom:2px;font-size:11px;}.ds-index .ds-initial{width:22px;height:22px;font-size:11px;border-radius:7px;}.ds-index .ds-card-title{font-size:15px;line-height:1.6;}.ds-selected .ds-card-title{color:var(--accent,#087293);}.ds-index .ds-card-summary{font-size:12px;line-height:1.7;-webkit-line-clamp:1;}.ds-index .ds-card-meta{margin-top:2px;padding-top:0;border:0;font-size:11px;}.ds-card:focus-visible{outline:2px solid var(--accent,#087293);outline-offset:-3px;}@media(max-width:719px){.ds-card.ds-browse{padding:20px;margin-bottom:12px;}.ds-browse .ds-card-title{font-size:18px;}.ds-browse .ds-card-summary{font-size:14px;}.ds-browse .ds-card-meta{font-size:11px;}}@media(prefers-reduced-motion:reduce){.ds-card,.ds-open{transition:none;}}"
     },
     {
       "name": "Aligned model channels",
       "kind": "custom",
       "refersTo": "model-channels",
-      "description": "Two unboxed channels share fields/options/test rows through CSS subgrid on desktop; below 1120px they stack naturally.",
-      "html": "<div class=\"ds-model-columns\"><section class=\"ds-model\"><div class=\"ds-model-fields\"><header><h3>聊天模型</h3><span>未配置</span></header><label class=\"ds-field\"><span>服务地址</span><input aria-label=\"聊天模型 服务地址\" placeholder=\"请输入配置\"/></label><label class=\"ds-field\"><span>API Key</span><input aria-label=\"聊天模型 API Key\" placeholder=\"留空保留已保存的密钥\" type=\"password\"/></label><label class=\"ds-field\"><span>模型名称</span><input aria-label=\"聊天模型 模型名称\" placeholder=\"请输入配置\"/></label></div><div class=\"ds-model-options\"><label class=\"ds-check\"><input type=\"checkbox\"/>连接本机服务，不使用 Key</label><p>免 Key 仅接受本机服务地址。</p></div><div class=\"ds-model-test\"><button class=\"ds-test\" type=\"button\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 3h6M10 3v7L5 19a1 1 0 0 0 1 2h12a1 1 0 0 0 1-2l-5-9V3M8 15h8\"/></svg>测试连接</button></div></section><section class=\"ds-model\"><div class=\"ds-model-fields\"><header><h3>向量模型</h3><span>未配置</span></header><label class=\"ds-field\"><span>服务地址</span><input aria-label=\"向量模型 服务地址\" placeholder=\"请输入配置\"/></label><label class=\"ds-field\"><span>API Key</span><input aria-label=\"向量模型 API Key\" placeholder=\"留空保留已保存的密钥\" type=\"password\"/></label><label class=\"ds-field\"><span>模型名称</span><input aria-label=\"向量模型 模型名称\" placeholder=\"请输入配置\"/></label><label class=\"ds-field\"><span>向量维度</span><input aria-label=\"向量模型 向量维度\" placeholder=\"请输入配置\"/></label></div><div class=\"ds-model-options\"><label class=\"ds-check\"><input type=\"checkbox\"/>连接本机服务，不使用 Key</label><p>免 Key 仅接受本机服务地址。</p><label class=\"ds-check\"><input type=\"checkbox\"/>在请求中指定维度</label></div><div class=\"ds-model-test\"><button class=\"ds-test\" type=\"button\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 3h6M10 3v7L5 19a1 1 0 0 0 1 2h12a1 1 0 0 0 1-2l-5-9V3M8 15h8\"/></svg>测试连接</button></div></section></div>",
-      "css": ".ds-model-columns{font-family:\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",\"Noto Sans CJK SC\",sans-serif;font-size:14px;line-height:1.6;color:var(--ink,#193549);display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto auto;column-gap:40px;row-gap:0;}.ds-model{display:grid;grid-row:span 3;grid-template-rows:subgrid;padding:24px 0;border-top:1px solid var(--rule,#dce8ee);}.ds-model header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:26px;}.ds-model h3{margin:0;font-size:18px;font-weight:600;line-height:1.5;}.ds-model header>span{padding:4px 10px;border-radius:var(--radius-pill,999px);background:var(--inset,#f3f8fb);font-size:12px;color:var(--muted,#526d7e);text-align:center;}.ds-field{display:flex;flex-direction:column;gap:9px;margin-bottom:20px;font-size:13px;}.ds-field input{font:inherit;line-height:1.5;width:100%;padding:12px 14px;min-height:46px;border:1px solid var(--rule,#dce8ee);border-radius:10px;background:var(--inset,#f3f8fb);color:var(--ink,#193549);}.ds-field input::placeholder{font-size:12px;color:var(--muted,#526d7e);}.ds-field input:focus-visible{outline:2px solid var(--accent,#087293);outline-offset:2px;border-color:var(--accent,#087293);background:var(--canvas,#fff);}.ds-model-options{margin-top:4px;}.ds-check{display:flex;align-items:flex-start;gap:10px;font-size:13px;margin:10px 0;padding:8px 0;min-height:40px;line-height:1.7;cursor:pointer;}.ds-check input{accent-color:var(--accent,#087293);width:17px;height:17px;flex-shrink:0;margin:3px 0 0;cursor:pointer;}.ds-model-options p{font-size:12px;line-height:1.7;color:var(--muted,#526d7e);margin:0 0 16px;}.ds-model-test{margin-top:16px;padding-top:20px;border-top:1px solid var(--rule,#dce8ee);}.ds-test{font:inherit;font-size:13px;font-weight:600;line-height:1.5;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--control-height,40px);padding:9px 18px;border:1px solid var(--rule,#dce8ee);border-radius:var(--radius-pill,999px);background:var(--canvas,#fff);color:var(--ink,#193549);cursor:pointer;transition:background .18s var(--ease,cubic-bezier(0.22,1,0.36,1)),color .18s var(--ease,cubic-bezier(0.22,1,0.36,1)),border-color .18s var(--ease,cubic-bezier(0.22,1,0.36,1));}.ds-test:hover:not(:disabled){background:var(--soft,#e0f2f8);border-color:var(--selected-edge,#8dc7dc);color:var(--accent,#087293);}.ds-test:focus-visible,.ds-check input:focus-visible{outline:2px solid var(--accent,#087293);outline-offset:3px;}.ds-test:disabled{opacity:.42;cursor:not-allowed;}@media(max-width:1119px){.ds-model-columns{grid-template-columns:1fr;grid-template-rows:none;gap:16px;}.ds-model{display:block;grid-row:auto;padding:22px 0;}}@media(max-width:719px){.ds-model{padding:20px 0;}.ds-check,.ds-test{min-height:44px;}}@media(prefers-reduced-motion:reduce){.ds-test{transition:none;}}"
+      "description": "Two unboxed channels with fields, each connection test/result immediately below, then options. Forms follow their own content height.",
+      "html": "<div class=\"ds-model-columns\"><section class=\"ds-model\"><div class=\"ds-model-fields\"><header><h3><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z\"/></svg>聊天模型</h3><span>未配置</span></header><label class=\"ds-field\"><span>服务地址</span><input aria-label=\"聊天模型 服务地址\" placeholder=\"请输入配置\"/></label><label class=\"ds-field\"><span>API Key</span><input aria-label=\"聊天模型 API Key\" placeholder=\"留空保留已保存的密钥\" type=\"password\"/></label><label class=\"ds-field\"><span>模型名称</span><input aria-label=\"聊天模型 模型名称\" placeholder=\"请输入配置\"/></label></div><div class=\"ds-model-test\"><button class=\"ds-test\" type=\"button\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 3h6M10 3v7L5 19a1 1 0 0 0 1 2h12a1 1 0 0 0 1-2l-5-9V3M8 15h8\"/></svg>测试连接</button></div><div class=\"ds-model-options\"><label class=\"ds-check\"><input type=\"checkbox\"/>连接本机服务，不使用 Key</label><p>免 Key 仅接受本机服务地址。</p></div></section><section class=\"ds-model\"><div class=\"ds-model-fields\"><header><h3><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"9\" y=\"3\" width=\"6\" height=\"6\" rx=\"1\"/><rect x=\"3\" y=\"15\" width=\"6\" height=\"6\" rx=\"1\"/><rect x=\"15\" y=\"15\" width=\"6\" height=\"6\" rx=\"1\"/><path d=\"M12 9v3M6 15v-3h12v3\"/></svg>向量模型</h3><span>未配置</span></header><label class=\"ds-field\"><span>服务地址</span><input aria-label=\"向量模型 服务地址\" placeholder=\"请输入配置\"/></label><label class=\"ds-field\"><span>API Key</span><input aria-label=\"向量模型 API Key\" placeholder=\"留空保留已保存的密钥\" type=\"password\"/></label><label class=\"ds-field\"><span>模型名称</span><input aria-label=\"向量模型 模型名称\" placeholder=\"请输入配置\"/></label><label class=\"ds-field\"><span>向量维度</span><input aria-label=\"向量模型 向量维度\" placeholder=\"请输入配置\"/></label></div><div class=\"ds-model-test\"><button class=\"ds-test\" type=\"button\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 3h6M10 3v7L5 19a1 1 0 0 0 1 2h12a1 1 0 0 0 1-2l-5-9V3M8 15h8\"/></svg>测试连接</button></div><div class=\"ds-model-options\"><label class=\"ds-check\"><input type=\"checkbox\"/>连接本机服务，不使用 Key</label><p>免 Key 仅接受本机服务地址。</p><label class=\"ds-check\"><input type=\"checkbox\"/>在请求中指定维度</label></div></section></div>",
+      "css": ".ds-model-columns{font-family:\"Manrope\",\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",\"Noto Sans CJK SC\",sans-serif;font-size:14px;line-height:1.6;color:var(--ink,#1c303b);display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto;column-gap:40px;row-gap:0;}.ds-model{display:block;padding:24px 0;border-top:1px solid var(--rule,#e1eaf0);}.ds-model header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:20px;}.ds-model h3{margin:0;font-size:18px;font-weight:600;line-height:1.5;}.ds-model header>span{padding:4px 10px;border-radius:var(--radius-pill,999px);background:var(--inset,#f3f8fb);font-size:12px;color:var(--muted,#566b78);text-align:center;}.ds-field{display:flex;flex-direction:column;gap:9px;margin-bottom:16px;font-size:13px;}.ds-field input{font:inherit;line-height:1.5;width:100%;padding:12px 14px;min-height:46px;border:1px solid var(--rule,#e1eaf0);border-radius:10px;background:var(--inset,#f3f8fb);color:var(--ink,#1c303b);}.ds-field input::placeholder{font-size:12px;color:var(--muted,#566b78);}.ds-field input:focus-visible{outline:2px solid var(--accent,#087293);outline-offset:2px;border-color:var(--accent,#087293);background:var(--canvas,#fff);}.ds-model-options{margin-top:22px;padding-top:12px;border-top:1px solid var(--rule,#e1eaf0);}.ds-check{display:flex;align-items:flex-start;gap:10px;font-size:13px;margin:10px 0;padding:8px 0;min-height:40px;line-height:1.7;cursor:pointer;}.ds-check input{accent-color:var(--accent,#087293);width:17px;height:17px;flex-shrink:0;margin:3px 0 0;cursor:pointer;}.ds-model-options p{font-size:12px;line-height:1.7;color:var(--muted,#566b78);margin:0 0 16px;}.ds-model-test{margin-top:12px;padding-top:0;border:0;}.ds-test{font:inherit;font-size:13px;font-weight:600;line-height:1.5;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--control-height,40px);padding:9px 18px;border:1px solid var(--rule,#e1eaf0);border-radius:var(--radius-pill,999px);background:var(--canvas,#fff);color:var(--ink,#1c303b);cursor:pointer;transition:background .18s var(--ease,cubic-bezier(0.22,1,0.36,1)),color .18s var(--ease,cubic-bezier(0.22,1,0.36,1)),border-color .18s var(--ease,cubic-bezier(0.22,1,0.36,1));}.ds-test:hover:not(:disabled){background:var(--soft,#e0f2f8);border-color:var(--selected-edge,#8dc7dc);color:var(--accent,#087293);}.ds-test:focus-visible,.ds-check input:focus-visible{outline:2px solid var(--accent,#087293);outline-offset:3px;}.ds-test:disabled{opacity:.42;cursor:not-allowed;}@media(max-width:1119px){.ds-model-columns{grid-template-columns:1fr;grid-template-rows:none;gap:16px;}.ds-model{display:block;grid-row:auto;padding:22px 0;}}@media(max-width:719px){.ds-model{padding:20px 0;}.ds-check,.ds-test{min-height:44px;}}@media(prefers-reduced-motion:reduce){.ds-test{transition:none;}}.ds-model h3{display:flex;align-items:center;gap:10px;}.ds-model h3 svg{color:var(--accent,#087293);}"
     },
     {
       "name": "Reader tab and action strip",
       "kind": "custom",
       "refersTo": "preview-tabs",
-      "description": "Desktop 64px reader strip with 36px icon-labeled pills and a labeled Focus action; mobile modal uses a 56px strip with 44px pills.",
-      "html": "<div class=\"ds-reader-strip\"><div class=\"ds-tabs\" role=\"tablist\" aria-label=\"预览内容\"><button type=\"button\" role=\"tab\" aria-selected=\"true\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z\"/><path d=\"M14 2v6h6M8 13h8M8 17h8\"/></svg>正文</button><button type=\"button\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m12 3 2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2z\"/></svg>AI 摘要</button><button type=\"button\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 7v14M3 3h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5v16h-5a4 4 0 0 0-4 2 4 4 0 0 0-4-2H3z\"/></svg>相关书签</button></div><div class=\"ds-reader-actions\"><button class=\"ds-reader-icon\" type=\"button\" aria-label=\"上一条收藏\" disabled><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m5 12 7-7 7 7M12 19V5\"/></svg></button><button class=\"ds-reader-icon\" type=\"button\" aria-label=\"下一条收藏\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m5 12 7 7 7-7M12 5v14\"/></svg></button><span class=\"ds-divider\"></span><button class=\"ds-reader-icon ds-focus\" type=\"button\" aria-label=\"展开阅读\" aria-pressed=\"false\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m13-5v3a2 2 0 0 1-2 2h-3\"/></svg><span>专注阅读</span></button><button class=\"ds-reader-icon\" type=\"button\" aria-label=\"关闭预览\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M15 3v18m-5-6 3-3-3-3\"/></svg></button></div></div>",
-      "css": ".ds-reader-strip{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;position:relative;background:var(--canvas, #ffffff);color:var(--ink, #193549);}.ds-tabs{display:flex;position:relative;gap:4px;padding:0 18px;height:64px;align-items:center;border-bottom:1px solid var(--rule, #dce8ee);}.ds-tabs button{font-family:inherit;font-size:13px;line-height:1.6;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 13px;border:0;border-radius:var(--radius-pill,999px);background:none;color:var(--muted, #526d7e);position:relative;white-space:nowrap;cursor:pointer;}.ds-tabs button[aria-selected=\"true\"]{color:var(--accent, #087293);font-weight:600;background:var(--soft,#e0f2f8);}.ds-tabs button:hover{color:var(--accent,#087293);}.ds-reader-actions{position:absolute;right:18px;top:14px;height:36px;display:flex;align-items:center;gap:4px;}.ds-divider{height:14px;width:1px;background:var(--rule, #dce8ee);margin:0 5px;}.ds-tabs button:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-reader-icon{font-family:\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:0;border-radius:50%;background:var(--inset,#f3f8fb);color:var(--ink, #193549);cursor:pointer;flex-shrink:0;transition:background .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));}.ds-reader-icon:hover:not(:disabled){background:var(--soft,#e0f2f8);color:var(--accent,#087293);}.ds-reader-icon[aria-pressed=\"true\"]{color:var(--accent, #087293);}.ds-reader-icon:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-reader-icon:disabled{cursor:not-allowed;opacity:.42;}@media(prefers-reduced-motion:reduce){.ds-reader-icon{transition:none!important;animation:none!important;}}.ds-reader-icon.ds-focus{width:auto;padding:0 12px;gap:6px;border-radius:var(--radius-pill,999px);font-size:12px;}.ds-reader-icon.ds-focus[aria-pressed=\"true\"]{background:var(--soft,#e0f2f8);color:var(--accent,#087293);}@media(max-width:719px){.ds-tabs{height:56px;padding:0 20px;}.ds-tabs button{height:44px;font-size:12px;}.ds-reader-icon{width:44px;height:44px;}.ds-reader-actions{position:relative;right:auto;top:auto;justify-content:flex-end;height:60px;padding:0 20px;}.ds-reader-icon.ds-focus{display:none;}}"
+      "description": "Reader controls use a 56px strip; the separate focused-outline example shows wrapping labels and a current-section marker.",
+      "html": "<div class=\"ds-reader-strip\"><div class=\"ds-tabs\" role=\"tablist\" aria-label=\"预览内容\"><button type=\"button\" role=\"tab\" aria-selected=\"true\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z\"/><path d=\"M14 2v6h6M8 13h8M8 17h8\"/></svg>正文</button><button type=\"button\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m12 3 2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2z\"/></svg>AI 摘要</button><button type=\"button\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 7v14M3 3h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5v16h-5a4 4 0 0 0-4 2 4 4 0 0 0-4-2H3z\"/></svg>相关书签</button></div><div class=\"ds-reader-actions\"><button class=\"ds-back\" type=\"button\">返回收藏</button><button class=\"ds-reader-icon\" type=\"button\" aria-label=\"上一条收藏\" disabled><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m5 12 7-7 7 7M12 19V5\"/></svg></button><button class=\"ds-reader-icon\" type=\"button\" aria-label=\"下一条收藏\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m5 12 7 7 7-7M12 5v14\"/></svg></button><span class=\"ds-divider\"></span><button class=\"ds-reader-icon ds-focus\" type=\"button\" aria-label=\"展开阅读\" aria-pressed=\"false\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m13-5v3a2 2 0 0 1-2 2h-3\"/></svg><span>专注阅读</span></button><button class=\"ds-reader-icon ds-close\" type=\"button\" aria-label=\"关闭预览\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M15 3v18m-5-6 3-3-3-3\"/></svg></button></div></div><nav class=\"ds-reader-outline\" aria-label=\"文章目录\"><p class=\"ds-reader-outline-title\">文章目录</p><ul class=\"ds-reader-outline-list\"><li class=\"ds-reader-outline-item\"><button class=\"ds-reader-outline-link\" type=\"button\" aria-current=\"location\">从收藏回到阅读</button></li><li class=\"ds-reader-outline-item\"><button class=\"ds-reader-outline-link\" type=\"button\">让上下文保留在身边</button></li></ul></nav>",
+      "css": ".ds-reader-strip{font-family:\"Manrope\",\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;position:relative;background:var(--canvas, #ffffff);color:var(--ink, #1c303b);}.ds-tabs{display:flex;position:relative;gap:4px;padding:0 18px;height:56px;align-items:center;border-bottom:1px solid var(--rule, #e1eaf0);}.ds-tabs button{font-family:inherit;font-size:13px;line-height:1.6;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 13px;border:0;border-radius:var(--radius-pill,999px);background:none;color:var(--muted, #566b78);position:relative;white-space:nowrap;cursor:pointer;}.ds-tabs button[aria-selected=\"true\"]{color:var(--accent, #087293);font-weight:600;background:var(--soft,#e0f2f8);}.ds-tabs button:hover{color:var(--accent,#087293);}.ds-reader-actions{position:absolute;right:18px;top:10px;height:36px;display:flex;align-items:center;gap:4px;}.ds-divider{height:14px;width:1px;background:var(--rule, #e1eaf0);margin:0 5px;}.ds-tabs button:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-reader-icon{font-family:\"Manrope\",\"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif;font-size:14px;line-height:1.6;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:0;border-radius:50%;background:var(--inset,#f3f8fb);color:var(--ink, #1c303b);cursor:pointer;flex-shrink:0;transition:background .15s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));}.ds-reader-icon:hover:not(:disabled){background:var(--soft,#e0f2f8);color:var(--accent,#087293);}.ds-reader-icon[aria-pressed=\"true\"]{color:var(--accent, #087293);}.ds-reader-icon:focus-visible{outline:2px solid var(--accent, #087293);outline-offset:3px;}.ds-reader-icon:disabled{cursor:not-allowed;opacity:.42;}@media(prefers-reduced-motion:reduce){.ds-reader-icon{transition:none!important;animation:none!important;}}.ds-reader-icon.ds-focus{width:auto;padding:0 12px;gap:6px;border-radius:var(--radius-pill,999px);font-size:12px;}.ds-reader-icon.ds-focus[aria-pressed=\"true\"]{background:var(--soft,#e0f2f8);color:var(--accent,#087293);}@media(max-width:719px){.ds-tabs{height:56px;padding:0 20px;}.ds-tabs button{height:44px;font-size:12px;}.ds-reader-icon{width:44px;height:44px;}.ds-reader-actions{position:relative;right:auto;top:auto;justify-content:flex-end;height:60px;padding:0 20px;}.ds-reader-icon.ds-focus{display:none;}}.ds-back{display:none;font:inherit;border:0;background:none;color:var(--muted,#566b78);cursor:pointer;}.ds-back:hover{background:var(--inset,#f3f8fb);color:var(--accent,#087293);}.ds-back:focus-visible{outline:2px solid var(--accent,#087293);outline-offset:3px;}@media(max-width:719px){.ds-reader-strip{display:flex;flex-direction:column;}.ds-reader-actions{order:-1;}.ds-back{display:inline-flex;align-items:center;min-height:44px;padding:6px 12px;margin-left:-12px;margin-right:auto;border-radius:var(--radius-pill,999px);font-size:13px;}.ds-reader-icon.ds-close{display:none;}}\n.ds-reader-outline {\n  position: sticky;\n  top: 28px;\n  align-self: start;\n  box-sizing: border-box;\n  width: 170px;\n  min-width: 0;\n  max-height: var(--reader-outline-available-height, calc(100dvh - 240px));\n  padding: 3px 7px 7px 3px;\n  overflow: auto;\n  overscroll-behavior: contain;\n  scrollbar-width: thin;\n  scrollbar-color: var(--rule,#e1eaf0) transparent;\n  color: var(--muted,#566b78);\n  font-size: 12px;\n  line-height: 1.6;\n}\n\n.ds-reader-outline-title {\n  margin: 0 0 12px 16px;\n  color: var(--ink,#1c303b);\n  font-size: 12px;\n  line-height: 1.5;\n  font-weight: 600;\n}\n\n.ds-reader-outline-list {\n  position: relative;\n  list-style: none;\n  margin: 0;\n  padding: 0;\n}\n\n.ds-reader-outline-list::before {\n  position: absolute;\n  top: 8px;\n  bottom: 8px;\n  left: 0;\n  width: 1px;\n  background: var(--rule,#e1eaf0);\n  content: \"\";\n}\n\n.ds-reader-outline-item {\n  margin: 0;\n  padding: 0;\n}\n\n.ds-reader-outline-link {\n  position: relative;\n  display: block;\n  width: 100%;\n  min-height: 36px;\n  margin: 0;\n  padding: 8px 4px 8px 16px;\n  border: 0;\n  border-radius: 4px;\n  background: transparent;\n  color: var(--muted,#566b78);\n  font-family: inherit;\n  font-size: 12px;\n  font-weight: 500;\n  line-height: 1.65;\n  text-align: start;\n  white-space: normal;\n  overflow-wrap: anywhere;\n  cursor: pointer;\n  transition: color 160ms var(--ease,cubic-bezier(0.22,1,0.36,1));\n}\n\n.ds-reader-outline-link::before {\n  position: absolute;\n  top: calc(50% - 8px);\n  left: 0;\n  width: 2px;\n  height: 16px;\n  border-radius: 1px;\n  background: currentColor;\n  opacity: 0;\n  content: \"\";\n  transition: opacity 160ms var(--ease,cubic-bezier(0.22,1,0.36,1));\n}\n\n.ds-reader-outline-link:hover,\n.ds-reader-outline-link[aria-current=\"location\"] {\n  color: var(--accent,#087293);\n}\n\n.ds-reader-outline-link[aria-current=\"location\"]::before {\n  opacity: 1;\n}\n\n.ds-reader-outline-link:focus-visible {\n  outline: 2px solid var(--accent,#087293);\n  outline-offset: 1px;\n}\n\n@media (prefers-reduced-motion: reduce) {\n  .ds-reader-outline-link,\n  .ds-reader-outline-link::before {\n    transition: none;\n  }\n}\n\n.ds-reader-outline{font-family:\"Manrope\",\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",\"Noto Sans CJK SC\",sans-serif;}"
     }
   ],
   "narrative": {
     "northStar": "Shared collection and reader — Operate / Read",
-    "overview": "Facetmark presents saved pages as a personal collection: white rounded cards on a pale blue workspace, deep blue ink, and lake-blue actions. A selected card becomes a clear blue anchor beside a generous white reader. The layered Facetmark mark remains the identity.\n\nNavigation and filters support the content; focus reading removes competing chrome. Local Chinese/English font fallbacks, semantic dark-theme equivalents, visible keyboard focus and reduced motion carry the same system across desktop and Web.",
+    "overview": "Facetmark makes saved writing inviting to rediscover. A clear collection masthead, generous pill search and recognizable sources lead into white cards on a pale blue workspace. Selecting a page makes its article the primary surface, with a compact index retaining the route back. The layered Facetmark mark and lake-blue interaction accents remain the identity.\n\nThe interface changes proportion with the task. Real folder shortcuts and contextual search suggestions support browsing; focused reading reveals a quiet rail of actual article headings. Bundled Manrope, local Chinese fallbacks, corresponding dark-theme roles, keyboard access and reduced motion carry the same system across desktop and Web.",
     "keyCharacteristics": [
-      "White cards remain distinct from the pale blue workspace.",
-      "Lake-blue selection marks the active page without hiding the surrounding collection.",
-      "Titles and excerpts lead; source initials and saved dates support recognition.",
-      "True pill controls, circular icon actions and restrained ambient shadows give surfaces clear boundaries.",
-      "Reading modes preserve context; narrow reading provides a visible return action."
+      "A large collection masthead and separate search row establish the reading hierarchy.",
+      "Source-first white cards use natural heights; selection creates a compact supporting index.",
+      "Lake-blue selection, true pill controls and circular icon actions clarify state and priority.",
+      "The bounded reader reveals its chapter rail only in focused body reading.",
+      "Search, filters, collection position and return focus survive entering and leaving reading."
     ],
-    "rules": [
-      {
-        "name": "Lake-blue Selection",
-        "body": "Keep ordinary collection cards white. Use the selected fill, inset edge and lake-blue title together for the active page; reserve danger color for failures.",
-        "section": "colors"
-      },
-      {
-        "name": "Reading Rhythm",
-        "body": "Let titles and excerpts lead the collection, then let article text set the reading pace. Wrap Chinese text, long titles and URLs without widening the workspace.",
-        "section": "typography"
-      },
-      {
-        "name": "Bounded Depth",
-        "body": "Use ambient shadows for resting cards and reading surfaces. Hover and selection replace the card shadow with a thin inset edge; do not add a lift transform.",
-        "section": "elevation"
-      }
-    ],
+    "rules": [],
     "dos": [
-      "Do preserve white cards, pale blue workspace and the distinct blue selected card.",
-      "Do use true pill controls and circular icon actions while preserving rounded cards, readers and form-field exceptions.",
-      "Do keep source initials subordinate to titles and excerpts.",
-      "Do preserve query, filters, pagination, collection position and originating-row focus when returning from reading.",
-      "Do keep reader tabs and actions outside the article scroller and disclose saved details on demand.",
+      "Do lead browsing with the masthead, generous search and shortcuts from real folder data.",
+      "Do preserve source-first card order and natural heights without compulsory excerpt space.",
+      "Do use true pill controls and circular icon actions while retaining card, reader and field exceptions.",
+      "Do keep the index subordinate and preserve query, filters, pagination, collection position and return focus.",
+      "Do keep controls outside the article scroller and show the focus rail only for real headings.",
+      "Do place each model test after essential fields, with options below.",
       "Do provide a visible Back to collection control in the full-width narrow reader.",
-      "Do bind both themes to semantic roles and preserve keyboard access, reduced motion and distinct recovery states."
+      "Do preserve semantic themes, keyboard access, reduced motion and distinct recovery states."
     ],
     "donts": [
       "Don't restore the rejected grey-violet palette or permanent three-column management shell.",
-      "Don't turn white collection cards into transparent ruled rows or impose fixed empty excerpt shelves, including on mobile.",
-      "Don't replace the independent Facetmark identity with hand-drawn borders, gradients or a candy-colored dashboard.",
+      "Don't force cards into equal heights or fill missing excerpts with decorative content.",
+      "Don't apply the open collection's card treatment to every supporting index row.",
+      "Don't replace Facetmark identity with hand-drawn borders, gradients or a candy-colored dashboard.",
       "Don't let GSAP, Motion and CSS animate the same property on the same element.",
-      "Don't invent reading percentages, section headings or successful task states."
+      "Don't invent folder categories, headings, reading percentages or successful task states."
     ]
   }
 }
