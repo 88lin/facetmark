@@ -267,7 +267,7 @@ test("export downloads honor search-page, selected and category scopes", async (
   await page.getByRole("button", { name: "导出", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "导出收藏", exact: true });
   await expect(dialog.getByRole("combobox", { name: "导出范围", exact: true })).toHaveValue("page");
-  await expect(dialog.locator('option[value="filtered"]')).toBeDisabled();
+  await expect(dialog.locator('option[value="filtered"]')).toHaveJSProperty("disabled", true);
   const wholePage = await download(page, dialog);
   expect(wholePage.filename).toMatch(/^facetmark-.*\.json$/);
   expect([...wholePage.request.ids].sort()).toEqual([first.bookmark_id, second.bookmark_id, outside.bookmark_id].sort());
