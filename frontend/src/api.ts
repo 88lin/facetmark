@@ -13,6 +13,8 @@ export type Bookmark = {
   intent_queries?: string[];
   privacy_skipped?: boolean;
   indexed?: { summary_basis: string; enriched_by: string; error: string };
+  source?: string;
+  managed_externally?: boolean;
   facets?: string[];
 };
 export type Page = {
@@ -35,8 +37,11 @@ export type Job = {
   log?: string[];
   cancel_requested?: boolean;
   elapsed?: number;
+  params?: { mode?: "index" | "fetch" | "summarize"; bookmark_ids?: number[] };
+  items?: { done: number; total: number };
 };
 export type Setup = {
+  library_revision?: string;
   bookmarks: number;
   demo: boolean;
   pending_apply: boolean;
@@ -89,12 +94,37 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   if (!response.ok)
     throw new ApiError(
       response.status,
-      typeof data.detail === "string" ? data.detail : `HTTP ${response.status}`,
+      typeof data.detail === "string"
+        ? data.detail
+        : Array.isArray(data.detail)
+          ? data.detail.map((item: { msg?: string }) => item.msg || "Invalid value").join("; ")
+          : `HTTP ${response.status}`,
     );
   return data as T;
 }
 export const post = <T>(path: string, body: unknown, signal?: AbortSignal) =>
   api<T>(path, { method: "POST", body: JSON.stringify(body), signal });
+
+export async function downloadExport(body: unknown) {
+  const response = await fetch("/admin/library/export", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const data = await response.json();
+    throw new ApiError(response.status, typeof data.detail === "string" ? data.detail : `HTTP ${response.status}`);
+  }
+  const blob = await response.blob();
+  const address = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = address;
+  anchor.download = response.headers.get("content-disposition")?.match(/filename="?([^";]+)"?/)?.[1] || "facetmark-export.json";
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(address), 1000);
+}
 export const query = (values: Record<string, string | number | undefined>) =>
   new URLSearchParams(
     Object.entries(values)

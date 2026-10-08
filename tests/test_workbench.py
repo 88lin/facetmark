@@ -49,6 +49,34 @@ def test_legacy_environment_outranks_channel_file_without_crossing_keys(monkeypa
     )
 
 
+def test_library_revision_tracks_committed_job_writes_and_stays_stable_on_reads(client):
+    from facetmark.db import open_db
+
+    before = client.get("/admin/setup-status").json()["library_revision"]
+    assert client.get("/admin/setup-status").json()["library_revision"] == before
+    created = client.post("/admin/library/bookmarks", json={
+        "url": "https://revision.example/saved", "title": "Before fetching",
+    })
+    assert created.status_code == 200, created.text
+    bid = created.json()["bookmark_id"]
+    saved = client.get("/admin/setup-status").json()["library_revision"]
+    assert saved != before
+    # Jobs own a separate connection, so conn.total_changes alone misses them.
+    other = open_db(client.app.state.fm.settings.db_path)
+    try:
+        baseline = client.get("/admin/setup-status").json()["library_revision"]
+        other.execute("BEGIN")
+        other.execute("INSERT INTO content(bookmark_id, body_text) VALUES(?, ?)",
+                      (bid, "Text fetched by a background job"))
+        assert client.get("/admin/setup-status").json()["library_revision"] == baseline
+        other.commit()
+        updated = client.get("/admin/setup-status").json()["library_revision"]
+        assert updated != baseline
+        assert client.get("/admin/setup-status").json()["library_revision"] == updated
+    finally:
+        other.close()
+
+
 def test_channel_override_does_not_inherit_lower_source_key(monkeypatch):
     write_config({"chat_base_url": "https://a.example/v1", "chat_api_key": "a-secret"})
     monkeypatch.setenv("FACETMARK_CHAT_BASE_URL", "https://b.example/v1")

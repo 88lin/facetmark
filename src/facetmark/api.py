@@ -84,6 +84,7 @@ class AppState:
         self.settings.ensure_dirs()
         self.conn: sqlite3.Connection = open_db(self.settings.db_path, same_thread=False)
         refresh_privacy(self.conn, self.settings)
+        self.conn.commit()
         self.pending_settings: dict[str, Any] = {}
         self.lock = asyncio.Lock()
         #: At most one index run, on its own connection. See `facetmark.admin`.
@@ -266,9 +267,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         app.state.fm = AppState(settings)
+        from . import library_sync
+
+        sync_task = asyncio.create_task(library_sync.poll(app.state.fm))
         try:
             yield
         finally:
+            sync_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await sync_task
             await app.state.fm.jobs.shutdown()
             if app.state.fm._provider is not None:
                 await app.state.fm._provider.aclose()
@@ -323,7 +330,10 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
     # Import, index and settings. Token-gated like everything else, plus a hard
     # loopback check and an off switch. See `facetmark.admin`.
     admin.register(app, auth)
-    from . import workbench
+    from . import library, library_sync, workbench
+
+    library.register(app, auth)
+    library_sync.register(app, auth)
     workbench.register(app, auth)
 
     # ---------------- web UI ----------------
@@ -492,6 +502,8 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
     @app.post("/bookmark", dependencies=auth)
     async def save(req: SaveRequest, state: AppState = Depends(get_state)) -> dict:
         async with state.lock:
+            if state.jobs.running:
+                raise HTTPException(409, "Wait for the running task before changing bookmarks")
             return service.save_bookmark(
                 state.conn, req.url, title=req.title, folder=req.folder,
                 tags=req.tags, date_added=req.date_added, settings=state.settings,
@@ -527,6 +539,8 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
         req: CompleteRequest, state: AppState = Depends(get_state)
     ) -> dict:
         async with state.lock:
+            if state.jobs.running:
+                raise HTTPException(409, "Wait for the running task before updating page text")
             out = fetchstore.complete_browser_item(
                 state.conn, req.bookmark_id, body=req.body, title=req.title,
                 final_url=req.final_url, error=req.error,

@@ -152,6 +152,13 @@ def bookmark_record(
     st = settings or get_settings()
 
     state = healthmod.state_of(conn, bookmark_id, settings=st)
+    managed_externally = row["source"] == "karakeep"
+    if not managed_externally and conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='karakeep_doc'"
+    ).fetchone():
+        managed_externally = conn.execute(
+            "SELECT 1 FROM karakeep_doc WHERE bookmark_id=? LIMIT 1", (bookmark_id,)
+        ).fetchone() is not None
     sessions = [
         {"session_id": r["session_id"], "started_at": r["started_at"],
          "size": r["size"], "label": r["label"] or ""}
@@ -172,6 +179,8 @@ def bookmark_record(
 
     rec: dict[str, Any] = {
         "bookmark_id": row["id"],
+        "source": row["source"] or "",
+        "managed_externally": managed_externally,
         "url": row["url"],
         "title": row["title"],
         "folder": row["folder"],
@@ -878,6 +887,50 @@ class ExportRefused(ValueError):
     """An export query that names something an enumeration cannot answer."""
 
 
+def export_reading_data(conn: sqlite3.Connection, ids: Sequence[int]) -> dict[int, dict]:
+    """Portable reading copies, shared by CLI and UI full JSON exports.
+
+    This is an explicit local export, so privacy-excluded pages stay included
+    when selected. Those rules prevent network/model calls, not the owner's
+    access to saved text. No keys, browser state, vectors or history are read.
+    Import still restores bookmark metadata only, leaving model data to rebuild.
+    """
+    out: dict[int, dict] = {}
+    for batch in dbmod.in_chunks(ids):
+        marks = ",".join("?" * len(batch))
+        for row in conn.execute(
+            "SELECT b.id, b.source, e.summary, e.topics, e.entities, e.key_points, e.utility,"
+            " e.content_type, e.basis, e.model, e.source_hash, e.created_at,"
+            " c.bookmark_id AS content_id, c.body_text, c.body_hash, c.char_count, c.lang,"
+            " c.extractor, c.fetch_channel, c.http_status, c.final_url, c.fetched_at"
+            " FROM bookmark b LEFT JOIN enrichment e ON e.bookmark_id=b.id"
+            " LEFT JOIN content c ON c.bookmark_id=b.id"
+            f" WHERE b.id IN ({marks})", batch,
+        ):
+            reading: dict = {"derived": {
+                "source": row["source"] or "",
+                "summary": row["summary"] or "",
+                "topics": _jlist(row["topics"]),
+                "entities": _jlist(row["entities"]),
+                "key_points": _jlist(row["key_points"]),
+                "utility": row["utility"] or "",
+                "content_type": row["content_type"] or "",
+                "basis": row["basis"] or "",
+                "model": row["model"] or "",
+                "source_hash": row["source_hash"] or "",
+                "created_at": row["created_at"],
+                "chars": int(row["char_count"] or 0),
+                "lang": row["lang"] or "",
+            }}
+            if row["content_id"] is not None:
+                reading["content"] = {key: row[key] for key in (
+                    "body_text", "body_hash", "char_count", "lang", "extractor",
+                    "fetch_channel", "http_status", "final_url", "fetched_at",
+                )}
+            out[row["id"]] = reading
+    return out
+
+
 def export_bookmarks(
     conn: sqlite3.Connection,
     query: str = "",
@@ -899,8 +952,8 @@ def export_bookmarks(
     What is written is the source of truth: the URL, the title, the folder, the
     save date and the tags. Everything else -- summary, topics, vectors,
     sessions -- is derived and fingerprinted, and ``facetmark index`` rebuilds
-    it. ``full=True`` adds the derived fields for reading; the importer ignores
-    them.
+    it. ``full=True`` adds saved page text and derived fields for reading; the
+    importer ignores them.
 
     Ordered by id, which is import order: deterministic, and two exports of an
     unchanged library diff to nothing.
@@ -935,19 +988,7 @@ def export_bookmarks(
         ):
             rows[int(r["id"])] = dict(r)
 
-    extra: dict[int, dict] = {}
-    if full and ids:
-        for batch in dbmod.in_chunks(ids):
-            marks = ",".join("?" * len(batch))
-            for r in conn.execute(
-                "SELECT e.bookmark_id, e.summary, e.topics, e.entities, e.utility,"
-                " e.content_type, c.char_count, c.lang"
-                " FROM bookmark b"
-                " LEFT JOIN enrichment e ON e.bookmark_id = b.id"
-                " LEFT JOIN content c ON c.bookmark_id = b.id"
-                f" WHERE b.id IN ({marks})", batch
-            ):
-                extra[int(r["bookmark_id"] or 0)] = dict(r)
+    extra = export_reading_data(conn, ids) if full else {}
 
     out: list[dict] = []
     for i in ids:
@@ -965,17 +1006,7 @@ def export_bookmarks(
         if row["date_modified"]:
             rec["date_modified"] = row["date_modified"]
         if full:
-            e = extra.get(i) or {}
-            rec["derived"] = {
-                "source": row["source"] or "",
-                "summary": e.get("summary") or "",
-                "topics": _jlist(e.get("topics")),
-                "entities": _jlist(e.get("entities")),
-                "utility": e.get("utility") or "",
-                "content_type": e.get("content_type") or "",
-                "chars": int(e.get("char_count") or 0),
-                "lang": e.get("lang") or "",
-            }
+            rec.update(extra[i])
         out.append(rec)
 
     return {

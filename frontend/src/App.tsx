@@ -42,6 +42,8 @@ import { Locale, useText, type Language } from "./locale";
 import SetupFlow, { Importer } from "./Setup";
 import { ExtensionSettings, Models, UpdateSettings } from "./Settings";
 import { Tasks } from "./Tasks";
+import { LibraryDialog, LibraryToolbar, type LibraryAction } from "./LibraryTools";
+import { SyncSettings } from "./SyncSettings";
 import { QuerySuggestions, SearchAnswer } from "./SearchTools";
 import Reader, { Skeleton } from "./Reader";
 import { gsap } from "gsap";
@@ -128,6 +130,11 @@ function Workbench({
   const [error, setError] = useState("");
   const [connectionError, setConnectionError] = useState("");
   const [selected, setSelected] = useState<number | null>(null);
+  const [libraryAction, setLibraryAction] = useState<LibraryAction | null>(null);
+  const [batchMode, setBatchMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [libraryNotice, setLibraryNotice] = useState("");
+  const libraryRevision = useRef<string | undefined>(undefined);
   const [preview, setPreview] = useState<Bookmark | null>(null);
   const [previewError, setPreviewError] = useState("");
   const [related, setRelated] = useState<Bookmark[]>([]);
@@ -213,6 +220,13 @@ function Workbench({
       else searchInput.current?.focus();
     });
   }, []);
+  const invalidateLibrary = useCallback(() => {
+    readerCache.current.clear();
+    setRequestRevision((value) => value + 1);
+    setPreviewRevision((value) => value + 1);
+    setSessionsRevision((value) => value + 1);
+    setDepth(undefined);
+  }, []);
   const refresh = useCallback(async () => {
     try {
       const data = await api<Record<string, Facet[]>>("/bookmarks/facets");
@@ -225,6 +239,10 @@ function Workbench({
         ]);
         setSetup(status);
         setJob(task);
+        if (task.state !== "running" && status.library_revision !== libraryRevision.current) {
+          if (libraryRevision.current !== undefined) invalidateLibrary();
+          libraryRevision.current = status.library_revision;
+        }
         setAdminAvailable(true);
         if (firstRefresh.current) {
           firstRefresh.current = false;
@@ -237,7 +255,21 @@ function Workbench({
     } catch (e) {
       setConnectionError(String(e));
     }
-  }, []);
+  }, [invalidateLibrary]);
+  async function libraryChanged(deleted?: number[]) {
+    if (selected !== null && deleted?.includes(selected)) closePreview();
+    setSelectedIds([]);
+    setBatchMode(false);
+    setOffset(0);
+    invalidateLibrary();
+    await refresh();
+    setLibraryNotice(t("收藏已更新", "Collection updated"));
+  }
+  useEffect(() => {
+    if (!libraryNotice) return;
+    const timer = setTimeout(() => setLibraryNotice(""), 5000);
+    return () => clearTimeout(timer);
+  }, [libraryNotice]);
   const boot = useCallback(async () => {
     try {
       const data = await api<{ paired: boolean; token: string }>("/app/boot");
@@ -279,7 +311,7 @@ function Workbench({
   }, []);
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      if (event.isComposing) return;
+      if (event.isComposing || libraryAction) return;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setFocusReading(false);
@@ -301,7 +333,7 @@ function Workbench({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [selected, drawer, closePreview, focusReading]);
+  }, [selected, drawer, closePreview, focusReading, libraryAction]);
   useEffect(() => {
     if (!navOpen) return;
     const previous = document.activeElement as HTMLElement | null;
@@ -351,6 +383,10 @@ function Workbench({
     }
   }
   const filterKey = JSON.stringify(filters);
+  useEffect(() => {
+    setSelectedIds([]);
+    setBatchMode(false);
+  }, [search, filterKey]);
   const hasSearchContext = Boolean(
     search.trim() ||
       Object.values(filters).some((value) => value !== undefined) ||
@@ -377,6 +413,10 @@ function Workbench({
     abortRef.current = abort;
     const update = (data: Page) => {
       if (id === requestId.current && !abort.signal.aborted) {
+        if (!search.trim() && offset > 0 && offset >= data.total) {
+          setOffset(Math.max(0, Math.ceil(data.total / 30) - 1) * 30);
+          return;
+        }
         setPage(data);
         if (data.depth) setDepth(data.depth);
         setLoading(false);
@@ -446,6 +486,11 @@ function Workbench({
         }
       })
       .catch((e) => {
+        if (!abort.signal.aborted && e instanceof ApiError && e.status === 404) {
+          closePreview();
+          setLibraryNotice(t("这条收藏已被移除", "This bookmark was removed"));
+          return;
+        }
         if (!abort.signal.aborted) setPreviewError(String(e));
       });
     api<Bookmark[]>(`/bookmark/${selected}/related`, { signal: abort.signal })
@@ -532,6 +577,8 @@ function Workbench({
       onClose={closePreview}
       onRetry={() => setPreviewRevision((v) => v + 1)}
       onSelect={(id) => select(id)}
+      onAction={adminAvailable ? setLibraryAction : undefined}
+      running={job.state === "running"}
       onQuery={(q) => {
         changeQuery(q);
         if (drawer) closePreview();
@@ -998,6 +1045,20 @@ function Workbench({
                   </div>
                 )}
               </header>
+              {adminAvailable && selected === null && (
+                <LibraryToolbar
+                  batch={batchMode}
+                  ids={selectedIds}
+                  pageIds={items.map((item) => item.bookmark_id)}
+                  disabled={job.state === "running"}
+                  onBatch={(value) => {
+                    setBatchMode(value);
+                    setSelectedIds([]);
+                  }}
+                  onIds={setSelectedIds}
+                  onAction={setLibraryAction}
+                />
+              )}
               {error && (
                 <div className="error search-error" role="alert">
                   <strong>
@@ -1077,9 +1138,14 @@ function Workbench({
                   items.map((record, index) => (
                     <button
                       data-bookmark-id={record.bookmark_id}
-                      className={`result-row ${selected === record.bookmark_id ? "selected" : ""}`}
+                      className={`result-row ${selected === record.bookmark_id ? "selected" : ""} ${batchMode && selectedIds.includes(record.bookmark_id) ? "batch-selected" : ""}`}
                       key={record.bookmark_id}
-                      onClick={(e) => select(record.bookmark_id, e.currentTarget)}
+                      onClick={(e) => {
+                        if (batchMode) setSelectedIds((ids) => ids.includes(record.bookmark_id)
+                          ? ids.filter((id) => id !== record.bookmark_id)
+                          : [...ids, record.bookmark_id].slice(0, 1000));
+                        else select(record.bookmark_id, e.currentTarget);
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === "ArrowDown" || e.key === "ArrowUp") {
                           e.preventDefault();
@@ -1089,15 +1155,16 @@ function Workbench({
                               index + (e.key === "ArrowDown" ? 1 : -1)
                             ];
                           if (next && button) {
-                            select(next.bookmark_id, button);
+                            if (!batchMode) select(next.bookmark_id, button);
                             button.focus();
                           }
                         }
                       }}
-                      aria-pressed={selected === record.bookmark_id}
+                      aria-pressed={batchMode ? selectedIds.includes(record.bookmark_id) : selected === record.bookmark_id}
                     >
                       <span className="result-copy">
                         <span className="result-source">
+                          {batchMode && <span className="batch-check" aria-hidden="true">{selectedIds.includes(record.bookmark_id) && <Check size={13}/>}</span>}
                           <span className="site-letter" aria-hidden="true">
                             {(record.domain || record.title || "F").slice(0, 1).toUpperCase()}
                           </span>
@@ -1163,7 +1230,7 @@ function Workbench({
               <Dialog.Root
                 open={selected !== null}
                 onOpenChange={(open) => {
-                  if (!open) closePreview();
+                  if (!open && !libraryAction) closePreview();
                 }}
               >
                 <Dialog.Portal forceMount>
@@ -1244,6 +1311,7 @@ function Workbench({
                   </span>
                 </header>
                 <Models setup={setup} refresh={refresh} />
+                <SyncSettings onChanged={libraryChanged} />
                 <ExtensionSettings />
                 <UpdateSettings />
                 <p className="credits">
@@ -1258,7 +1326,7 @@ function Workbench({
                 <header className="page-heading">
                   <h1>{t("任务与诊断", "Tasks and diagnostics")}</h1>
                 </header>
-                <Tasks job={job} setup={setup} refresh={refresh} />
+                <Tasks job={job} setup={setup} refresh={refresh} onProcess={(mode) => setLibraryAction({ kind: "process", mode })} />
                 <HealthTools />
               </>
             ) : (
@@ -1350,6 +1418,21 @@ function Workbench({
           </div>
         )}
       </main>
+      {libraryNotice && <div className="library-toast" role="status"><Check size={16}/>{libraryNotice}</div>}
+      {libraryAction && <LibraryDialog
+        key={`${libraryAction.kind}-${libraryAction.kind === "edit" ? libraryAction.record.bookmark_id : ""}`}
+        action={libraryAction}
+        onClose={() => setLibraryAction(null)}
+        onChanged={libraryChanged}
+        onJobStarted={async () => { await refresh(); setFocusReading(false); openView("tasks"); }}
+        facets={facets}
+        setup={setup}
+        running={job.state === "running"}
+        pageIds={items.map((item) => item.bookmark_id)}
+        selectedIds={selectedIds}
+        filters={filters}
+        searching={Boolean(search.trim())}
+      />}
     </div>
   );
 }

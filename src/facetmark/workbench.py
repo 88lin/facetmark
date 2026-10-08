@@ -184,6 +184,8 @@ def register(app: FastAPI, auth: list) -> None:
         if len(raw) > admin.MAX_UPLOAD_BYTES:
             raise HTTPException(413, "Source exceeds 64 MB; export a smaller library")
         async with state.lock:
+            if state.jobs.running:
+                raise HTTPException(409, "Stop the processing job before importing bookmarks")
             return service.import_content(
                 state.conn, decode_bookmark_bytes(raw), settings=state.settings
             )
@@ -200,6 +202,10 @@ def register(app: FastAPI, auth: list) -> None:
         stats = service.library_stats(state.conn)
         return {
             "bookmarks": stats["bookmarks"],
+            # total_changes sees this connection; data_version also sees jobs
+            # and CLI writes committed through a different connection.
+            "library_revision": f"{state.conn.total_changes}:"
+                                f"{state.conn.execute('PRAGMA data_version').fetchone()[0]}",
             "stats": stats,
             "demo": candidate.use_mock_provider,
             "pending_apply": bool(state.pending_settings),

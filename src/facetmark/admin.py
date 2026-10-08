@@ -31,15 +31,18 @@ import uuid
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, get_args, get_origin
+from typing import Annotated, Any, Literal, get_args, get_origin
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from . import service
 from .config import Settings, split_list
 from .configfile import config_path, external_setting_keys, read_config, update_config
 from .db import open_db
+from .enrich import enrich_all
+from .enrich import targets as enrichment_targets
+from .fetch import store as fetchstore
 from .importers import decode_bookmark_bytes
 from .privacy import refresh_privacy
 from .providers import (
@@ -132,7 +135,7 @@ class Stage:
 
 @dataclass
 class IndexJob:
-    """One run of :func:`service.index_all`, observable while it runs."""
+    """One processing run, observable while it runs and after a restart."""
 
     id: str
     fetch: bool
@@ -140,6 +143,10 @@ class IndexJob:
     force: bool
     started_at: float
     planned: tuple[str, ...]
+    mode: str = "index"
+    bookmark_ids: tuple[int, ...] | None = None
+    items_done: int = 0
+    items_total: int = 0
     state: str = "running"  # running | done | failed | cancelled
     stages: list[Stage] = field(default_factory=list)
     log: deque[str] = field(default_factory=lambda: deque(maxlen=200))
@@ -165,7 +172,10 @@ class IndexJob:
             "error": self.error,
             "cancel_requested": self.cancel_requested,
             "log": list(self.log),
-            "params": {"fetch": self.fetch, "limit": self.limit, "force": self.force},
+            "params": {"fetch": self.fetch, "limit": self.limit, "force": self.force,
+                       "mode": self.mode,
+                       "bookmark_ids": list(self.bookmark_ids) if self.bookmark_ids is not None else None},
+            "items": {"done": self.items_done, "total": self.items_total},
         }
 
 
@@ -198,6 +208,7 @@ class JobRunner:
                 self.previous = json.loads(self.path.read_text(encoding='utf-8'))
                 if self.previous.get('state') == 'running':
                     self.previous['state'] = 'interrupted'
+                    self.previous['current'] = None
             except (OSError, ValueError, AttributeError):
                 self.previous = None
 
@@ -220,19 +231,28 @@ class JobRunner:
     def running(self) -> bool:
         return self.job is not None and self.job.state == "running"
 
-    def start(self, settings: Settings, *, fetch: bool, limit: int | None, force: bool) -> IndexJob:
+    def start(self, settings: Settings, *, fetch: bool, limit: int | None, force: bool,
+              mode: str = "index", bookmark_ids: list[int] | None = None) -> IndexJob:
         if self.running:
             raise RuntimeError("an index job is already running")
-        planned = INDEX_STAGES if fetch else INDEX_STAGES[1:]
+        if mode not in {"index", "fetch", "summarize"}:
+            raise ValueError("unknown processing mode")
+        if mode == "index" and bookmark_ids is not None:
+            raise ValueError("selected indexing is not supported")
+        planned = (("fetch",) if mode == "fetch" else ("enrich",) if mode == "summarize"
+                   else INDEX_STAGES if fetch else INDEX_STAGES[1:])
         job = IndexJob(
             id=uuid.uuid4().hex[:12],
-            fetch=fetch,
+            fetch=fetch if mode == "index" else mode == "fetch",
             limit=limit,
             force=force,
             started_at=time.monotonic(),
             planned=planned,
+            mode=mode,
+            bookmark_ids=tuple(bookmark_ids) if bookmark_ids is not None else None,
         )
-        job.log.append(f"started: fetch={fetch} limit={limit} force={force}")
+        scope = f"{len(bookmark_ids)} selected" if bookmark_ids is not None else "library"
+        job.log.append(f"started: mode={mode} scope={scope} fetch={job.fetch} limit={limit} force={force}")
         self.job = job
         self.persist()
         self._task = asyncio.create_task(self._run(job, settings.model_copy(deep=True)))
@@ -275,16 +295,17 @@ class JobRunner:
 
         try:
             conn = open_db(settings.db_path, same_thread=False)
-            provider = get_provider(settings)
-            report = await service.index_all(
-                conn,
-                provider=provider,
-                settings=settings,
-                fetch=job.fetch,
-                limit=job.limit,
-                force=job.force,
-                progress=progress,
-            )
+            if job.mode == "fetch":
+                report = await self._fetch(conn, job, settings, progress)
+            elif job.mode == "summarize":
+                provider = get_chat_provider(settings)
+                report = await self._summarize(conn, job, settings, provider, progress)
+            else:
+                provider = get_provider(settings)
+                report = await service.index_all(
+                    conn, provider=provider, settings=settings, fetch=job.fetch,
+                    limit=job.limit, force=job.force, progress=progress,
+                )
             partial = any(isinstance(value, dict) and value.get('failed', 0)
                           for value in report.steps.values())
             job.state = "partial" if partial else "done"
@@ -311,6 +332,87 @@ class JobRunner:
             with contextlib.suppress(Exception):
                 conn.close()
 
+    async def _fetch(self, conn, job: IndexJob, settings: Settings, progress):
+        # Reuse the production selector and fetcher, including privacy flags,
+        # robots policy and browser handoff rules.
+        targets = fetchstore.pending_targets(
+            conn, ids=job.bookmark_ids, limit=job.limit, refetch=job.force,
+        )
+        selected = [bid for bid, _url, _title in targets]
+        job.items_total = len(selected)
+        self.persist()
+        before = {
+            bid: conn.execute("SELECT body_hash FROM content WHERE bookmark_id=?", (bid,)).fetchone()
+            for bid in selected
+        }
+        waiting: dict[str, deque[int]] = {}
+        for bid, url, _title in targets:
+            waiting.setdefault(url, deque()).append(bid)
+
+        def finished(result):
+            ids = waiting.get(result.url)
+            if not ids:
+                return
+            bid = ids.popleft()
+            prior = before[bid]["body_hash"] if before[bid] else None
+            current = conn.execute(
+                "SELECT body_hash FROM content WHERE bookmark_id=?", (bid,),
+            ).fetchone()
+            if current and current["body_hash"] and current["body_hash"] != prior:
+                from .library import retire_derived
+
+                retire_derived(conn, bid)
+            # store_body rebuilds body-only FTS rows even when the hash is
+            # unchanged. Restore the still-current summary and personal tags.
+            service.sync_fts_tag_refresh(conn, bid)
+            conn.commit()
+            job.items_done += 1
+            self.persist()
+
+        result = await fetchstore.crawl(
+            conn, ids=selected, refetch=job.force, settings=settings, progress=finished,
+        )
+        value = {**result.as_dict(), "failed": result.attempted - result.stored}
+        progress("fetch", value)
+        return service.IndexReport(steps={"fetch": value})
+
+    async def _summarize(self, conn, job: IndexJob, settings: Settings, provider, progress):
+        todo = enrichment_targets(
+            conn, ids=job.bookmark_ids, limit=job.limit, force=job.force,
+        )
+        selected = [target.bookmark_id for target in todo]
+        job.items_total = len(selected)
+        self.persist()
+
+        def finished(target, enrichment, _error):
+            if enrichment is not None:
+                # New summary text changes the content-vector input. Candidate
+                # intent vectors were already retired by store_enrichment.
+                exists = conn.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='vec_content'",
+                ).fetchone()
+                if exists:
+                    conn.execute("DELETE FROM vec_content WHERE bookmark_id=?", (target.bookmark_id,))
+                conn.execute("DELETE FROM vec_content_meta WHERE bookmark_id=?", (target.bookmark_id,))
+                conn.execute("DELETE FROM edge WHERE kind='semantic' AND (src=? OR dst=?)",
+                             (target.bookmark_id, target.bookmark_id))
+                service.sync_fts_tag_refresh(conn, target.bookmark_id)
+                conn.commit()
+            job.items_done += 1
+            self.persist()
+
+        result = await enrich_all(
+            conn, provider=provider, settings=settings, ids=selected,
+            force=job.force, progress=finished,
+        )
+        # enrich_all's unchanged count covers the whole library. Never claim
+        # those unrelated pages were part of a selected reading action.
+        value = {"considered": result.considered, "enriched": result.enriched,
+                 "failed": result.failed, "queries": result.queries_generated,
+                 "usage": result.usage}
+        progress("enrich", value)
+        return service.IndexReport(steps={"enrich": value})
+
 
 # ---------------------------------------------------------------------------
 # request models
@@ -318,12 +420,23 @@ class JobRunner:
 
 
 class IndexRequest(BaseModel):
+    mode: Literal["index", "fetch", "summarize"] = "index"
+    bookmark_ids: list[Annotated[int, Field(strict=True, gt=0, le=2**63 - 1)]] | None = Field(
+        default=None, min_length=1, max_length=200,
+    )
     fetch: bool = True
     """Crawl page bodies first. Off is the fast path for a re-index."""
     limit: int | None = Field(default=None, ge=1)
     force: bool = False
     confirmed: bool = False
     """Consent to send indexable titles, URLs and extracted text to configured models."""
+
+    @field_validator("bookmark_ids")
+    @classmethod
+    def unique_ids(cls, value):
+        if value is not None and len(value) != len(set(value)):
+            raise ValueError("bookmark_ids must be unique")
+        return value
 
 
 class SettingsPatch(BaseModel):
@@ -376,6 +489,19 @@ def safe_error(exc: Exception, settings: Settings) -> str:
         if secret:
             text = text.replace(secret, '[redacted]')
     return text[:400]
+
+
+def get_chat_provider(settings: Settings):
+    """Construct only the channel the reading action is allowed to use.
+
+    get_provider also validates/constructs the embedding side, including a
+    local encoder. Reading summaries must work with chat configured alone.
+    """
+    if settings.use_mock_provider:
+        return MockProvider(settings)
+    if not settings.channel_ready("chat"):
+        raise ProviderError("Chat model is not configured. Configure and test it in Settings.")
+    return OpenAICompatibleProvider(settings.channel_settings("chat"))
 
 
 def draft_settings(settings: Settings, changes: dict) -> Settings:
@@ -488,7 +614,7 @@ async def probe(settings: Settings, channel: str | None = None) -> dict:
     broken.
     """
     try:
-        provider = get_provider(settings)
+        provider = get_chat_provider(settings) if channel == "chat" else get_provider(settings)
     except Exception as exc:
         error = safe_error(exc, settings)
         return {
@@ -615,42 +741,62 @@ def register(app: FastAPI, auth: list) -> None:
         content = decode_bookmark_bytes(raw)
         state = _state(request)
         async with state.lock:
+            if state.jobs.running:
+                raise HTTPException(409, "Stop the processing job before importing bookmarks")
             stats = service.import_content(state.conn, content, settings=state.settings)
         stats["filename"] = request.headers.get("x-filename", "")
         stats["bytes"] = len(raw)
         return stats
 
     @app.post("/admin/index", dependencies=deps)
+    @app.post("/admin/jobs/start", dependencies=deps)
     async def admin_index(body: IndexRequest, request: Request) -> dict:
         state = _state(request)
-        if state.pending_settings:
-            raise HTTPException(409, 'Apply the saved embedding settings before indexing')
-        if not state.settings.use_mock_provider:
-            if not all(state.settings.channel_ready(c) for c in ('chat', 'embed')):
-                raise HTTPException(409, 'Configure chat and embedding models before indexing')
-            if not body.confirmed:
-                raise HTTPException(400, 'Confirm sending titles, URLs and extracted text to the configured models')
-            if not all(state.probe_results.get(c, {}).get('fingerprint') == probe_fingerprint(state.settings, c)
-                       for c in ('chat', 'embed')):
-                raise HTTPException(409, 'Test both saved model connections before indexing')
-        from .workbench import validate_space
-        validate_space(state.conn, state.settings)
-        try:
+        async with state.lock:
+            if state.jobs.running:
+                raise HTTPException(409, "an index job is already running")
+            if body.mode == "index" and body.bookmark_ids is not None:
+                raise HTTPException(400, "Selected indexing is not supported; fetch or summarize the selection")
+            if body.bookmark_ids is not None:
+                placeholders = ",".join("?" for _ in body.bookmark_ids)
+                found = {r[0] for r in state.conn.execute(
+                    f"SELECT id FROM bookmark WHERE id IN ({placeholders})", body.bookmark_ids,
+                )}
+                if len(found) != len(body.bookmark_ids):
+                    raise HTTPException(404, "One or more selected bookmarks no longer exist")
+            if body.mode == "index" and state.pending_settings:
+                raise HTTPException(409, 'Apply the saved embedding settings before indexing')
+            channels = ("chat", "embed") if body.mode == "index" else ("chat",) if body.mode == "summarize" else ()
+            if channels and not state.settings.use_mock_provider:
+                if not all(state.settings.channel_ready(c) for c in channels):
+                    detail = ('Configure chat and embedding models before indexing'
+                              if body.mode == "index" else 'Configure a chat model before summarizing')
+                    raise HTTPException(409, detail)
+                if not body.confirmed:
+                    raise HTTPException(400, 'Confirm sending titles, URLs and extracted text to the configured models')
+                if not all(state.probe_results.get(c, {}).get('fingerprint') == probe_fingerprint(state.settings, c)
+                           for c in channels):
+                    detail = ('Test both saved model connections before indexing'
+                              if body.mode == "index" else 'Test the saved chat connection before summarizing')
+                    raise HTTPException(409, detail)
+            if body.mode == "index":
+                from .workbench import validate_space
+
+                validate_space(state.conn, state.settings)
             job = state.jobs.start(
-                state.settings, fetch=body.fetch, limit=body.limit, force=body.force
+                state.settings, fetch=body.fetch, limit=body.limit, force=body.force,
+                mode=body.mode, bookmark_ids=body.bookmark_ids,
             )
-        except RuntimeError:
-            # 409 rather than 400: the request is well-formed, the resource is
-            # busy, and the body tells the UI what it is busy with.
-            raise HTTPException(409, "an index job is already running") from None
         return job.as_dict()
 
     @app.get("/admin/job", dependencies=deps)
+    @app.get("/admin/jobs/current", dependencies=deps)
     async def admin_job(request: Request) -> dict:
         runner = _state(request).jobs
         return runner.job.as_dict() if runner.job else (runner.previous or {"state": "idle", "planned": list(INDEX_STAGES)})
 
     @app.post("/admin/job/cancel", dependencies=deps)
+    @app.post("/admin/jobs/cancel", dependencies=deps)
     async def admin_job_cancel(request: Request) -> dict:
         runner = _state(request).jobs
         cancelled = runner.cancel()

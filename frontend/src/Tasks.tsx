@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Circle, LoaderCircle, Pause, Play, RefreshCw } from "lucide-react";
+import { Check, Circle, Download, LoaderCircle, Pause, Play, RefreshCw, Sparkles } from "lucide-react";
 import { post, type Job, type Setup } from "./api";
 import { useText } from "./locale";
 
@@ -7,16 +7,26 @@ export function Tasks({
   job,
   setup,
   refresh,
+  onProcess,
 }: {
   job: Job;
   setup: Setup | null;
   refresh: () => Promise<void>;
+  onProcess: (mode: "fetch" | "summarize") => void;
 }) {
   const t = useText();
   const [consent, setConsent] = useState(false);
   const [fetchPages, setFetchPages] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const mode = job.params?.mode || "index";
+  const running = job.state === "running";
+  const taskName =
+    mode === "fetch"
+      ? t("正文抓取", "Page fetch")
+      : mode === "summarize"
+        ? t("摘要生成", "Summary generation")
+        : t("完整索引", "Full indexing");
   const names: Record<string, string> = {
     fetch: t("读取网页正文", "Fetch page text"),
     enrich: t("生成摘要与意图", "Generate summaries and intents"),
@@ -28,10 +38,10 @@ export function Tasks({
   };
   const states: Record<string, string> = {
     idle: t("尚未开始", "Not started"),
-    running: t("正在建立索引", "Indexing your library"),
-    done: t("索引任务已完成", "Indexing completed"),
-    partial: t("索引部分完成", "Indexing partially completed"),
-    failed: t("索引未完成", "Indexing failed"),
+    running: t(`${taskName}进行中`, `${taskName} in progress`),
+    done: t(`${taskName}已完成`, `${taskName} completed`),
+    partial: t(`${taskName}部分完成`, `${taskName} partially completed`),
+    failed: t(`${taskName}未完成`, `${taskName} failed`),
     cancelled: t("任务已取消", "Task cancelled"),
     interrupted: t("上次任务被中断", "Previous task was interrupted"),
   };
@@ -64,6 +74,32 @@ export function Tasks({
           )}
         </p>
       </div>
+      <div className="task-shortcuts" aria-label={t("处理操作", "Processing actions")}>
+        <button className="secondary" disabled={busy || running} onClick={() => onProcess("fetch")}>
+          <Download />
+          {t("抓取网页正文", "Fetch page text")}
+        </button>
+        <button className="secondary" disabled={busy || running} onClick={() => onProcess("summarize")}>
+          <Sparkles />
+          {t("生成阅读摘要", "Generate summaries")}
+        </button>
+      </div>
+      <p className="hint">
+        {t(
+          "抓取正文会访问原网站，无需配置模型。生成摘要只使用聊天模型。",
+          "Fetching visits the original websites and needs no model. Summaries use only the chat model.",
+        )}
+      </p>
+      {job.state !== "idle" && (
+        <p className="hint">
+          {job.params?.bookmark_ids
+            ? t(
+                `范围：${job.params.bookmark_ids.length} 条所选书签`,
+                `Scope: ${job.params.bookmark_ids.length} selected bookmarks`,
+              )
+            : t("范围：书签库中符合条件的书签", "Scope: eligible bookmarks in your library")}
+        </p>
+      )}
       {["interrupted", "failed", "cancelled", "partial"].includes(job.state) && (
         <p className="notice">
           {t(
@@ -87,7 +123,24 @@ export function Tasks({
           </li>
         ))}
       </ol>
-      {job.state === "running" ? (
+      {mode !== "index" && job.items && (
+        <div className="task-progress">
+          <p role="status">
+            {t(
+              `已处理 ${job.items.done} / ${job.items.total} 条待处理书签`,
+              `Processed ${job.items.done} of ${job.items.total} pending bookmarks`,
+            )}
+          </p>
+          {job.items.total > 0 && (
+            <progress
+              value={job.items.done}
+              max={job.items.total}
+              aria-label={t("书签处理进度", "Bookmark processing progress")}
+            />
+          )}
+        </div>
+      )}
+      {running ? (
         <div>
           <p role="status">
             {job.cancel_requested
@@ -111,7 +164,7 @@ export function Tasks({
         </div>
       ) : (
         <div className="index-consent">
-          <h3>{t("开始前，确认处理范围", "Confirm what will be processed")}</h3>
+          <h3>{t("建立完整索引", "Build the full index")}</h3>
           <p>
             {t(
               "索引会将非隐私排除书签的标题、网址、已提取正文和生成的检索意图发送至你配置的聊天与向量服务。使用云端服务时，这些内容会离开本机。",
@@ -158,7 +211,7 @@ export function Tasks({
         </p>
       )}
       <details className="advanced">
-        <summary>{t("任务日志与索引诊断", "Task log and index diagnostics")}</summary>
+        <summary>{t("任务日志与资料库诊断", "Task log and library diagnostics")}</summary>
         <pre>{job.log?.join("\n") || t("暂无日志", "No log yet")}</pre>
         <pre>{JSON.stringify(setup?.stats, null, 2)}</pre>
       </details>

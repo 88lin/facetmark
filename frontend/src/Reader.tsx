@@ -11,8 +11,10 @@ import {
   Maximize2,
   Minimize2,
   PanelRightClose,
+  Pencil,
   Sparkles,
   Tags,
+  Trash2,
 } from "lucide-react";
 import { type Bookmark, post, safeUrl } from "./api";
 import { useText, type Language } from "./locale";
@@ -20,6 +22,7 @@ import { SearchExplanation } from "./SearchTools";
 import { ScrollProgress } from "./components/ui/scroll-progress";
 import { ReaderOutline } from "./components/ui/reader-outline";
 import { useTabIndicator } from "./motion";
+import { type LibraryAction } from "./LibraryTools";
 
 export function Skeleton({ rows = false }: { rows?: boolean }) {
   return (
@@ -60,6 +63,8 @@ export default function Reader({
   total,
   onPrevious,
   onNext,
+  onAction,
+  running,
 }: {
   record: Bookmark | null;
   selected: number | null;
@@ -85,6 +90,8 @@ export default function Reader({
   total: number;
   onPrevious?: () => void;
   onNext?: () => void;
+  onAction?: (action: LibraryAction) => void;
+  running: boolean;
 }) {
   const t = useText();
   const scroller = useRef<HTMLDivElement>(null);
@@ -124,6 +131,8 @@ export default function Reader({
   const outlineSections = useMemo(() => sections.slice(1), [sections]);
   const showOutline = focus && tab === "body" && !pending && !error && outlineSections.length > 1;
   const visibleRecord = record || hit;
+  const managed = Boolean(record?.managed_externally || record?.source === "karakeep");
+  const canProcess = Boolean(record && !record.privacy_skipped && onAction);
   const original = safeUrl(visibleRecord?.url || "");
   let content: ReactNode;
   if (pending)
@@ -166,10 +175,11 @@ export default function Reader({
         <h3>{t("正文还未保存", "Page text is not saved yet")}</h3>
         <p>
           {t(
-            "仍可用标题和网址搜索。可在任务中提取正文，或直接打开原网页。",
-            "Search still works on titles and URLs. Fetch text from Tasks, or open the original page.",
+            "仍可用标题和网址搜索。提取正文后，就能在这里接着读。",
+            "Search still works on titles and URLs. Fetch the page to keep reading here.",
           )}
         </p>
+        {canProcess && <button className="secondary" disabled={running} onClick={() => onAction?.({ kind: "process", mode: "fetch", ids: [selected!] })}><FileText size={15}/>{t("提取这篇正文", "Fetch this page")}</button>}
       </div>
     );
   else if (tab === "summary")
@@ -185,10 +195,11 @@ export default function Reader({
           {record?.indexed?.enriched_by
             ? record.summary
             : t(
-                "尚未生成 AI 摘要。配置模型后，在任务中开始索引。",
-                "No AI summary yet. Configure models and start indexing from Tasks.",
+                "尚未生成 AI 摘要。连接聊天模型后，可以单独处理这篇收藏。",
+                "No AI summary yet. Connect a chat model to summarize this bookmark.",
               )}
         </p>
+        {!record?.indexed?.enriched_by && canProcess && <button className="secondary" disabled={running} onClick={() => onAction?.({ kind: "process", mode: "summarize", ids: [selected!] })}><Sparkles size={15}/>{t("生成这篇摘要", "Summarize this page")}</button>}
         {!!record?.key_points?.length && (
           <ul>
             {record.key_points.map((p) => (
@@ -417,6 +428,7 @@ export default function Reader({
                       visibleRecord?.url ||
                       t("正在读取收藏…", "Loading bookmark…")}
                   </h1>
+                  <div className="article-options">
                   <details className="article-details">
                     <summary>
                       {t("收藏信息与检索线索", "Saved details & search context")}
@@ -439,7 +451,17 @@ export default function Reader({
                       )}
                     </div>
                     {search.trim() && <SearchExplanation hit={hit} />}
+                    {record && onAction && <div className="reader-manage-actions">
+                      {canProcess && <>
+                        <button className="secondary" disabled={running} onClick={() => onAction({ kind: "process", mode: "fetch", ids: [record.bookmark_id] })}><FileText size={14}/>{t("提取正文", "Fetch text")}</button>
+                        <button className="secondary" disabled={running} onClick={() => onAction({ kind: "process", mode: "summarize", ids: [record.bookmark_id] })}><Sparkles size={14}/>{t("生成摘要", "Summarize")}</button>
+                      </>}
+                      {!managed && <button className="text-button delete-bookmark" disabled={running} onClick={() => onAction({ kind: "delete", ids: [record.bookmark_id] })}><Trash2 size={14}/>{t("删除收藏", "Delete bookmark")}</button>}
+                      {managed && <p className="hint">{t("这条收藏由 Karakeep 管理，请在来源端编辑或删除。", "This bookmark is managed by Karakeep. Edit or delete it there.")}</p>}
+                    </div>}
                   </details>
+                  {record && onAction && !managed && <button className="secondary reader-edit" disabled={running} onClick={() => onAction({ kind: "edit", record })}><Pencil size={14}/>{t("编辑", "Edit")}</button>}
+                  </div>
                 </div>
                 <div
                   className="reading"
