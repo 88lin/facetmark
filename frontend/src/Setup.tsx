@@ -141,11 +141,13 @@ export default function SetupFlow({
   job,
   refresh,
   onDone,
+  onProcess,
 }: {
   setup: Setup | null;
   job: Job;
   refresh: () => Promise<void>;
   onDone: () => void;
+  onProcess: (mode: "fetch" | "summarize") => void;
 }) {
   const t = useText();
   const [step, setStep] = useState(0);
@@ -186,7 +188,7 @@ export default function SetupFlow({
       ) : step === 1 ? (
         <Models setup={setup} refresh={refresh} />
       ) : step === 2 ? (
-        <Tasks setup={setup} job={job} refresh={refresh} />
+        <Tasks setup={setup} job={job} refresh={refresh} onProcess={onProcess} />
       ) : (
         <section className="ready">
           <Check size={32} />

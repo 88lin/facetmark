@@ -484,3 +484,25 @@ test("failed saves retain the draft and allow a successful retry", async ({ page
   await save(dialog);
   expect((await library.read(record.bookmark_id)).title).toBe(`${record.title} retry`);
 });
+
+test("opening during a running task refreshes the cached reader when that task completes", async ({ page, library }) => {
+  const record = await library.create({ title: marker() });
+  let completed = false;
+  await page.route("**/admin/setup-status", async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({ json: { ...await response.json(), library_revision: completed ? "task-after" : "task-before" } });
+  });
+  await page.route("**/admin/job", (route) => route.fulfill({ json: {
+    state: completed ? "done" : "running", params: { mode: "fetch" }, planned: ["fetch"], done: completed ? ["fetch"] : [],
+  } }));
+  await page.route(`**/bookmark/${record.bookmark_id}?body=true`, async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({ json: { ...await response.json(), body_text: completed ? "New saved text from the completed reading task." : "Old text shown while the reading task is running." } });
+  });
+  await page.goto("/app");
+  await search(page, record.title, 1);
+  await row(page, record.bookmark_id).click();
+  await expect(page.locator(".reading")).toContainText("Old text shown while");
+  completed = true;
+  await expect(page.locator(".reading")).toContainText("New saved text from", { timeout: 10000 });
+});

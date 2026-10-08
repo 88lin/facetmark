@@ -239,8 +239,10 @@ function Workbench({
         ]);
         setSetup(status);
         setJob(task);
-        if (task.state !== "running" && status.library_revision !== libraryRevision.current) {
-          if (libraryRevision.current !== undefined) invalidateLibrary();
+        if (libraryRevision.current === undefined) {
+          libraryRevision.current = status.library_revision;
+        } else if (task.state !== "running" && status.library_revision !== libraryRevision.current) {
+          invalidateLibrary();
           libraryRevision.current = status.library_revision;
         }
         setAdminAvailable(true);
@@ -1286,6 +1288,7 @@ function Workbench({
                 setup={setup}
                 job={job}
                 refresh={refresh}
+                onProcess={(mode) => setLibraryAction({ kind: "process", mode })}
                 onDone={() => {
                   remember("fm-setup-skipped", "1");
                   openView("library");
