@@ -52,5 +52,15 @@ chat-only summaries. Shared-folder synchronization lives in Settings with a
 change-count table, side-by-side versions, explicit conflict choices and a final
 apply confirmation. Disabled, pending and stale-preview states remain actionable.
 This is an extension of the accepted system, with no replacement visual world.
-Current-source cloud screenshots and review are required for the new surfaces;
-the preceding evidence applies to the earlier collection design only.
+EVIDENCE: Application source `33ff0df5340b31061434deb7e341c612e22feae1` is unchanged
+in test-only `f757f33e00a0a3582e4b656865bddd51d3d4f445`. Experience `37774845284`
+passed 31 browser tests, 1996 Python / 1 skipped, builds and distributions. Its
+42-capture artifact `11549727814` has verified hashes and a 13.64-second recording.
+The extension review found one material tag-placeholder contrast issue; its
+correction measures 5.21:1 at desktop and 390px, with guidance fully visible.
+The independent generic reviewer following the Impeccable contract returned ship
+for that fix, with no introduced regressions observed. No external QUALITY BAR or
+approved comp was provided; this is not user aesthetic acceptance. DESIGN.md retains
+its existing tokens and sidecar with scoped extension prose. Four shipping
+screenshots preserve source raster chunks and carry current origin metadata.
+The preceding evidence applies to the earlier collection design only.

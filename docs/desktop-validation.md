@@ -1,6 +1,97 @@
 # Desktop experience validation
 
-## 2026-10-07: collection and focused-reading redesign (current)
+## 2026-10-08: collection management, reading tasks and shared-folder sync (current)
+
+Application source: `33ff0df5340b31061434deb7e341c612e22feae1`.
+Final browser/test source: `f757f33e00a0a3582e4b656865bddd51d3d4f445`.
+The latter changes only a native-option test assertion; `frontend/src`, `src`,
+`desktop` and `pyproject.toml` are identical. Subsequent documentation and image
+metadata changes do not change the tested application.
+
+The existing white/lake-blue collection and focused reader now support bookmark
+creation/editing/deletion, bulk organization, exact-name folder/tag operations,
+scoped JSON/HTML export, independent text-fetch/summary tasks and shared-folder
+metadata synchronization. Task completion refreshes both the list and cached
+reader, including when the application opens during an already-running task.
+
+- [Experience 37774845284](https://github.com/88lin/facetmark/actions/runs/37774845284):
+  all three jobs passed. TypeScript/Vite, **31/31 Playwright**, **1996 Python passed /
+  1 skipped**, Ruff, wheel/sdist resources, Docker and extension checks passed.
+- [CI 37774856968](https://github.com/88lin/facetmark/actions/runs/37774856968):
+  **all ten jobs passed**, including Linux/Windows × Python 3.10/3.12, browser,
+  web UI, extension, Karakeep contract, wheel and Docker. The real MCP stdio
+  check passed **22/22**.
+- [Visual artifact 11549727814](https://github.com/88lin/facetmark/actions/runs/37774845284/artifacts/11549727814):
+  **42 actual captures**, a **13.64-second H.264 recording**, WEBM, font/scroll
+  diagnostics and source/run provenance. All 42 screenshot SHA-256 hashes were
+  verified locally. Evidence: `.desktop-build/library-verified`.
+- [Windows 37773749998](https://github.com/88lin/facetmark/actions/runs/37773749998):
+  passed on application source `33ff0df`. The offline installer, isolated frozen
+  service, installed WebView import/search/reader return, same-version reinstall,
+  uninstall data retention and parent-process cleanup all passed. Installation began
+  with the runtime absent and installer networking blocked. Three installed
+  1028×749 screenshots were inspected; the reader correctly reports missing body
+  text for the synthetic HTML import. Diagnostics identify the same commit.
+  [Unsigned x64 installer](https://github.com/88lin/facetmark/actions/runs/37773749998/artifacts/11548884372)
+  and [small installed evidence](https://github.com/88lin/facetmark/actions/runs/37773749998/artifacts/11549224103)
+  are available. The installer itself is **276907454 bytes** and was not downloaded.
+  Local small evidence: `.desktop-build/library-windows`. No Windows rebuild was
+  needed for the later test-only assertion change.
+
+Final CI Python matrix counts (each job passed; skips vary by platform/runtime):
+
+| Platform | Python | Passed | Skipped |
+| --- | --- | ---: | ---: |
+| Linux | 3.10 | 1995 | 2 |
+| Linux | 3.12 | 1996 | 1 |
+| Windows | 3.10 | 1965 | 32 |
+| Windows | 3.12 | 1966 | 31 |
+
+The 12 added browser tests cover literal folder/tag persistence, deletion consent
+and cancellation, keyboard bulk selection, scoped downloads and exported body
+text, taxonomy merges/removal, fetch versus summary prerequisites, send consent,
+mobile modal focus/return, failed-save draft retention, task-completion refresh,
+sync preview/apply/persistence, stale-preview rejection, concurrent versions,
+duplicate-URL deletion, synchronization disabling and load-failure retry. Existing
+search, reading, import, model and responsive regressions remain in the 31-test run.
+Synchronization uses temporary synthetic libraries/folders; actual cloud-drive
+transport and external model providers were not exercised.
+
+A fresh independent review of the extension's desktop/mobile evidence found one
+material issue: the tag placeholder had insufficient contrast. The corrected
+`var(--muted)` placeholder measures **5.21:1** in both final-source captures; the
+shortened hint and wrapping guidance remain visible at 390px. The reviewer returned
+**ship** for this fix with no observed introduced regressions. A generic independent
+agent followed the Impeccable contract because the specialized role was unavailable.
+The verdict covers the scored fix, not user aesthetic acceptance, installation or
+frame-by-frame video quality. No external QUALITY BAR or approved comp was supplied.
+The successful-run collection, mobile editing and desktop conflict captures were
+also inspected; application source matches the reviewed correction.
+
+DESIGN.md preserves the existing tokens and sidecar, with scoped prose for destructive
+actions, pill fields in management dialogs and contextual actions inside the reader.
+The four landing workbench screenshots were refreshed from this successful run;
+all retain identical source raster chunks with embedded origin metadata.
+
+The [management guide](library-management.md) records operating limits: sync exchanges
+only bookmark metadata through an existing shared folder; summaries require explicit
+chat consent; JSON export can include reading data, but reimport restores metadata
+only. Karakeep-linked records are protected. Management APIs require pairing, enabled
+administration and a loopback caller. Automatic sync can propagate conflict-free
+deletions after initial approval; incoming changes receive a local database backup.
+Ordinary CRUD has no recycle bin, and there is no one-click restore or history
+compaction. Capacity and recovery procedures are documented in the guide.
+
+Local work remained limited to source editing, lightweight checks and small evidence.
+Builds, browsers, packaging and installation run in Actions. No personal browser
+profile was used, and the installer was not downloaded or run locally. The unsigned
+preview uses manual updates. Hosted Windows Server does not certify Windows 10/11
+hardware, ordinary non-administrator behavior, cross-version upgrades, physical
+whole-machine disconnection or signing trust. Artifacts expire after 14 days.
+The existing draft PR #44 remains the delivery target; no merge, release or Pages
+deployment is included. Earlier sections below are historical.
+
+## 2026-10-07: collection and focused-reading redesign (historical)
 
 The latest user feedback called for stronger frontend design and component craft.
 Application and test source: `0aa3e849ae06d6707fb1f52356eefe6bd774ff4a`.

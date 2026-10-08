@@ -318,9 +318,9 @@ Frontmatter is normative. Base names map to runtime custom properties; each `-da
 - **Deep Blue Ink / Muted Blue Ink** (`ink`, `muted`): titles/prose and subordinate excerpts, metadata and controls.
 - **Cool Rule / Navigation Scrim** (`rule`, `overlay`): fine borders/seams and temporary navigation backdrop. The full-width reader overlay is transparent.
 
-Error Red (`danger`) accompanies explicit failures and recovery. Dark mode retains hierarchy with pale blue accents over deeper surfaces.
+Error Red (`danger`) accompanies explicit failures, recovery and destructive-action warnings. Dark mode retains hierarchy with pale blue accents over deeper surfaces.
 
-**The Lake-blue Selection Rule.** Use white bordered cards in the open collection, then a quiet supporting index with a blue selected entry. Pair selected fill, border and title color; reserve danger color for failures.
+**The Lake-blue Selection Rule.** Use white bordered cards in the open collection, then a quiet supporting index with a blue selected entry. Pair selected fill, border and title color; reserve danger color for failures and destructive actions.
 
 ## Typography
 
@@ -379,6 +379,10 @@ Open cards/import targets use (16px) corners, compact index entries (12px), read
 
 Fields, notices, diagnostics and session rows retain (10px); brand tile (11px); apply/consent/stage panels (12px). Query popup corners are (14px), suggestion rows (10px), category icons circular (30px), and keyboard hints (4px). Chapter links use (4px) corners and a current marker (2px by 16px). The modal reader remains a square full-viewport exception.
 
+Collection-management dialogs extend this system with pill-shaped inputs and selects,
+20px dialog corners, the existing semantic colors and an explicit muted placeholder.
+These scoped form shapes do not replace the incumbent model-setting field tokens.
+
 Lucide SVGs provide stroke icons and the layered brand mark. Source initials identify pages. The open arrow appears on hover/keyboard focus; selected entries show Reading in its place. No selection-edge stripe or decorative imagery is introduced.
 
 ## Components
@@ -427,7 +431,7 @@ GSAP owns tab-marker x/width (180ms, `power3.out`, overwrite `auto`) and interru
 - Do preserve source-first card order and natural heights without compulsory excerpt space.
 - Do use true pill controls and circular icon actions while retaining card, reader and field exceptions.
 - Do keep the index subordinate and preserve query, filters, pagination, collection position and return focus.
-- Do keep controls outside the article scroller and show the focus rail only for real headings.
+- Do keep persistent reader navigation and progress controls outside the article scroller and show the focus rail only for real headings. Contextual bookmark editing and processing actions follow the article information inside the scroller.
 - Do place each model test after essential fields, with options below.
 - Do provide a visible Back to collection control in the full-width narrow reader.
 - Do preserve semantic themes, keyboard access, reduced motion and distinct recovery states.
