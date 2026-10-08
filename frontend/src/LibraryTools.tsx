@@ -41,6 +41,7 @@ export function LibraryToolbar({ batch, ids, pageIds, disabled, onBatch, onIds, 
 function TagEditor({ tags, onChange }: { tags: string[]; onChange: (tags: string[]) => void }) {
   const t = useText();
   const [draft, setDraft] = useState("");
+  const hintId = useId();
   const append = () => {
     const value = draft.trim();
     if (value && !tags.includes(value) && tags.length < 100) onChange([...tags, value]);
@@ -48,9 +49,10 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (tags: string
   };
   return <div className="tag-editor">
     <div className="tag-entry">
-      <input aria-label={t("输入标签", "Enter a tag")} value={draft} maxLength={128} placeholder={t("输入后按 Enter，可包含空格或逗号", "Press Enter to add; spaces and commas allowed")} onChange={e => setDraft(e.target.value)} onBlur={append} onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); append(); } }}/>
+      <input aria-label={t("输入标签", "Enter a tag")} aria-describedby={hintId} value={draft} maxLength={128} placeholder={t("输入标签后按 Enter", "Add a tag, then Enter")} onChange={e => setDraft(e.target.value)} onBlur={append} onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); append(); } }}/>
       <button type="button" className="icon-button" aria-label={t("添加标签", "Add tag")} onClick={append}><Plus size={16}/></button>
     </div>
+    <p id={hintId} className="hint tag-hint">{t("标签可包含空格或逗号。", "Tags can include spaces or commas.")}</p>
     {!!tags.length && <div className="editing-tags">{tags.map(tag => <button type="button" key={tag} onClick={() => onChange(tags.filter(value => value !== tag))} aria-label={t(`移除标签 ${tag}`, `Remove tag ${tag}`)}><Tag size={12}/>{tag}<X size={12}/></button>)}</div>}
   </div>;
 }

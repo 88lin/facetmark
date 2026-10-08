@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext } from "@playwright/test";
+import { expect, test as base, type APIRequestContext } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -9,6 +9,51 @@ type Commit = {
   format: string; version: number; id: string; device: string; parents: string[];
   changes: Record<string, RecordValue | null>;
 };
+type SyncEnvironment = {
+  shared: string;
+  headers: Record<string, string>;
+  remember: (id: number) => void;
+};
+
+// Teardown has its own budget and request context: a timed-out browser action
+// must not leave synthetic records or enabled sync in the shared test server.
+const test = base.extend<{ syncEnvironment: SyncEnvironment }>({
+  syncEnvironment: [async ({ playwright, baseURL }, use) => {
+    const shared = await mkdtemp(join(tmpdir(), "facetmark-ui-sync-"));
+    const cleanupRequest = await playwright.request.newContext({ baseURL, timeout: 5000 });
+    const ids = new Set<number>();
+    const headers = await authenticated(cleanupRequest);
+    try {
+      await use({ shared, headers, remember: (id) => { ids.add(id); } });
+    } finally {
+      const failures: unknown[] = [];
+      const attempt = async (work: () => Promise<void>) => {
+        try { await work(); } catch (error) { failures.push(error); }
+      };
+      await attempt(async () => {
+        const response = await cleanupRequest.post("/admin/library/sync/config", {
+          headers, data: { folder: "", enabled: false, auto_sync: false, poll_seconds: 60 },
+        });
+        expect(response.ok()).toBeTruthy();
+      });
+      for (const id of ids) {
+        await attempt(async () => {
+          const response = await cleanupRequest.delete(`/admin/library/bookmarks/${id}`, { headers });
+          expect([200, 404]).toContain(response.status());
+        });
+      }
+      await attempt(async () => {
+        const resolved = resolve(shared);
+        if (!resolved.startsWith(resolve(tmpdir()) + sep) || !resolved.includes("facetmark-ui-sync-")) {
+          throw new Error("Refusing cleanup outside the test-created temporary shared folder");
+        }
+        await rm(resolved, { recursive: true, force: true });
+      });
+      await attempt(async () => { await cleanupRequest.dispose(); });
+      if (failures.length) throw new AggregateError(failures, "Failed to clean up the synthetic sync environment");
+    }
+  }, { timeout: 30000 }],
+});
 
 async function authenticated(request: APIRequestContext) {
   const boot = await request.get("/app/boot");
@@ -27,20 +72,18 @@ test.beforeAll(async () => {
   await mkdir("screenshots", { recursive: true });
 });
 
-test("shared-folder sync reviews actual changes, rejects a stale preview and resolves concurrent versions", async ({ page, request }) => {
+test("shared-folder sync reviews actual changes, rejects a stale preview and resolves concurrent versions", async ({ page, request, syncEnvironment }) => {
   test.setTimeout(60000);
-  const shared = await mkdtemp(join(tmpdir(), "facetmark-ui-sync-"));
-  const headers = await authenticated(request);
-  let bookmarkId: number | undefined;
-  let duplicateId: number | undefined;
-  try {
+  const { shared, headers, remember } = syncEnvironment;
+  await test.step("Review, apply and persist shared-folder sync", async () => {
     const saved = await request.post("/admin/library/bookmarks", {
       headers,
       data: { url: `https://sync-ui.example/${randomUUID()}`, title: "SYNC initial title", folder: "同步测试", tags: ["local"] },
     });
     expect(saved.ok()).toBeTruthy();
     const bookmark = await saved.json();
-    bookmarkId = bookmark.bookmark_id;
+    const bookmarkId: number = bookmark.bookmark_id;
+    remember(bookmarkId);
 
     await page.goto("/app");
     await page.getByRole("button", { name: "设置", exact: true }).click();
@@ -137,7 +180,8 @@ test("shared-folder sync reviews actual changes, rejects a stale preview and res
     });
     expect(duplicateResponse.ok()).toBeTruthy();
     const duplicate = await duplicateResponse.json();
-    duplicateId = duplicate.bookmark_id;
+    const duplicateId: number = duplicate.bookmark_id;
+    remember(duplicateId);
     await sync.getByRole("button", { name: "预览同步变更", exact: true }).click();
     await sync.getByLabel("我已核对以上变更，并确认应用", { exact: true }).check();
     await sync.getByRole("button", { name: "应用本次同步", exact: true }).click();
@@ -178,21 +222,11 @@ test("shared-folder sync reviews actual changes, rejects a stale preview and res
     const status = await (await request.get("/admin/library/sync/status", { headers })).json();
     expect(status).toMatchObject({ enabled: false, auto_sync: false, poll_seconds: 30, needs_review: false });
     await page.reload();
+    await page.getByRole("button", { name: "打开导航", exact: true }).click();
     await page.getByRole("button", { name: "设置", exact: true }).click();
     await expect(page.locator(".sync-settings .sync-state")).toHaveText("未启用");
     await expect(page.getByLabel("共享文件夹完整路径")).toHaveValue(shared);
-  } finally {
-    await request.post("/admin/library/sync/config", {
-      headers, data: { folder: "", enabled: false, auto_sync: false, poll_seconds: 60 },
-    });
-    if (bookmarkId !== undefined) await request.delete(`/admin/library/bookmarks/${bookmarkId}`, { headers });
-    if (duplicateId !== undefined) await request.delete(`/admin/library/bookmarks/${duplicateId}`, { headers });
-    const resolved = resolve(shared);
-    if (!resolved.startsWith(resolve(tmpdir()) + sep) || !resolved.includes("facetmark-ui-sync-")) {
-      throw new Error("Refusing cleanup outside the test-created temporary shared folder");
-    }
-    await rm(resolved, { recursive: true, force: true });
-  }
+  });
 });
 
 test("sync settings distinguish loading failure and recover through retry", async ({ page }) => {

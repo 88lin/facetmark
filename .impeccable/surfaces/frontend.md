@@ -39,3 +39,18 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 VERIFY: Use only the synthetic corpus and cloud build/browser/packaging workflow. Associate captures and test results with the exact source revision. Check the collection hierarchy, natural card heights, real folder shortcuts, command search, normal and focused reading, outline click and keyboard tracking, return-context preservation, model-test ordering, narrow layouts, both themes and edge states in one batched inspection. Consolidate corrections before a bounded confirmation pass. Do not use personal browser data or a local application runtime. This contract records the required checks, not completed test results.
 
 EVIDENCE: Source 0aa3e849ae06d6707fb1f52356eefe6bd774ff4a passed cloud Experience 37618229826 (19 browser tests, 1882 Python / 1 skipped, build and distribution), CI 37618237956 and Windows installation 37618229866. The source-matched 37-capture batch and installed screenshots were inspected. A fresh generic independent reviewer following the Impeccable contract returned ship with no material fixes; no external QUALITY BAR or comp was supplied, so that comparative ceiling remains unverified. DESIGN.md and its sidecar were matched to actual renders. Four shipping workbench screenshots carry source metadata with unchanged raster chunks. These checks do not imply user aesthetic acceptance.
+
+## Collection management extension, 2026-10-08
+
+Preserve the white/lake-blue system and collection-first composition. Add a compact
+collection toolbar with creation, selection, organization and export. Protected
+editing and destructive actions use Radix dialogs with named inputs, visible
+errors, explicit deletion consent and focus restoration to the collection or
+reader. Forms retain capsule controls; mobile targets are at least 44px. Reading
+actions stay near their content, and the tasks page distinguishes fetching from
+chat-only summaries. Shared-folder synchronization lives in Settings with a
+change-count table, side-by-side versions, explicit conflict choices and a final
+apply confirmation. Disabled, pending and stale-preview states remain actionable.
+This is an extension of the accepted system, with no replacement visual world.
+Current-source cloud screenshots and review are required for the new surfaces;
+the preceding evidence applies to the earlier collection design only.

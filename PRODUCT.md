@@ -29,6 +29,12 @@ works without AI. Mock providers are restricted to explicit demo/test operation.
 ## Capabilities and Constraints
 
 Import → configure two channels → test independently → confirm indexing → search.
+The collection also supports manual create/edit, tags and folder organization,
+confirmed deletion and bulk actions, JSON/HTML export, and independent page-fetch
+or chat-only summary tasks. JSON keeps saved reading data; reimport restores
+bookmark metadata. Shared-folder sync exchanges metadata through a user-owned
+folder with preview, conflict selection and local backup before incoming changes.
+Automatic sync requires an initial reviewed apply and pauses for conflicts.
 Cloud processing requires consent describing the titles, URLs and extracted
 content sent to the configured services. Vector-space changes require backup
 and explicit rebuild. Tasks survive navigation and report interruptions.

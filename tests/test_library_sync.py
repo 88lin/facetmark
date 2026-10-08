@@ -530,7 +530,12 @@ async def test_idle_automatic_poll_preserves_a_manual_preview_and_does_not_write
 
 def test_embedded_url_credentials_are_excluded_before_publishing(peers):
     a, _, shared = peers
-    add(a, url="https://synthetic-user:NEVER_SHARE_THIS@example.test/private")
+    bid = add(a, url="https://example.test/private")
+    # New edits reject userinfo. Simulate a legacy imported URL so the sync
+    # boundary still protects databases created before that validation existed.
+    with a.conn:
+        a.conn.execute("UPDATE bookmark SET url=? WHERE id=?",
+                       ("https://synthetic-user:NEVER_SHARE_THIS@example.test/private", bid))
     preview = a.preview()
     assert preview["excluded_unsupported"] == 1
     assert not preview["changes"] and not preview["conflicts"]

@@ -172,7 +172,7 @@ test("create and edit preserve literal folder names and tags after reload", asyn
   await expect(row(page, record.bookmark_id)).toContainText(updated.title);
   await row(page, record.bookmark_id).click();
   await page.locator(".article-details > summary").click();
-  for (const tag of updated.tags) await expect(page.locator(".preview-tags").getByRole("button", { name: tag, exact: true })).toBeVisible();
+  for (const tag of updated.tags) await expect(page.locator(".preview-tags").getByRole("button", { name: `# ${tag}`, exact: true })).toBeVisible();
 });
 
 test("delete requires fresh consent and cancellation leaves the bookmark intact", async ({ page, request, library }) => {
@@ -266,7 +266,7 @@ test("export downloads honor search-page, selected and category scopes", async (
   await search(page, token, 3);
   await page.getByRole("button", { name: "导出", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "导出收藏", exact: true });
-  await expect(dialog.getByLabel("导出范围", { exact: true })).toHaveValue("page");
+  await expect(dialog.getByRole("combobox", { name: "导出范围", exact: true })).toHaveValue("page");
   await expect(dialog.locator('option[value="filtered"]')).toBeDisabled();
   const wholePage = await download(page, dialog);
   expect(wholePage.filename).toMatch(/^facetmark-.*\.json$/);
@@ -279,8 +279,8 @@ test("export downloads honor search-page, selected and category scopes", async (
   await page.getByRole("button", { name: "批量管理", exact: true }).click();
   await row(page, first.bookmark_id).click();
   await page.getByRole("button", { name: "导出所选", exact: true }).click();
-  await expect(dialog.getByLabel("导出范围", { exact: true })).toHaveValue("selected");
-  await dialog.getByLabel("文件格式", { exact: true }).selectOption("html");
+  await expect(dialog.getByRole("combobox", { name: "导出范围", exact: true })).toHaveValue("selected");
+  await dialog.getByRole("combobox", { name: "文件格式", exact: true }).selectOption("html");
   const selected = await download(page, dialog);
   expect(selected.filename).toMatch(/^facetmark-.*\.html$/);
   expect(selected.request.ids).toEqual([first.bookmark_id]);
@@ -296,7 +296,7 @@ test("export downloads honor search-page, selected and category scopes", async (
   await page.locator(".facet-nav").getByTitle(folder, { exact: true }).click();
   await expect(page.locator(".result-row")).toHaveCount(2);
   await page.getByRole("button", { name: "导出", exact: true }).click();
-  await dialog.getByLabel("导出范围", { exact: true }).selectOption("filtered");
+  await dialog.getByRole("combobox", { name: "导出范围", exact: true }).selectOption("filtered");
   const filtered = await download(page, dialog);
   expect(filtered.request).toMatchObject({ filters: { folder } });
   expect(filtered.request.ids).toBeUndefined();
@@ -329,8 +329,8 @@ test("taxonomy merges exact names and removes labels without deleting bookmarks"
 
   for (const action of ["rename", "delete"]) {
     await page.getByRole("button", { name: "整理分类", exact: true }).click();
-    await dialog.getByLabel("整理对象", { exact: true }).selectOption("tag");
-    await dialog.getByLabel("操作", { exact: true }).selectOption(action);
+    await dialog.getByRole("combobox", { name: "整理对象", exact: true }).selectOption("tag");
+    await dialog.getByRole("combobox", { name: "操作", exact: true }).selectOption(action);
     await dialog.getByLabel("当前名称", { exact: true }).fill(action === "rename" ? oldTag : targetTag);
     if (action === "rename") await dialog.getByLabel("新名称", { exact: true }).fill(targetTag);
     await dialog.getByLabel("我确认应用到使用该分类的全部收藏", { exact: true }).check();

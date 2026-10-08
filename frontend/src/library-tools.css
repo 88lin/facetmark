@@ -23,6 +23,8 @@
 .library-dialog .danger-action{background:var(--danger);color:var(--canvas)}
 .library-dialog .deletion-note{display:flex;align-items:flex-start;gap:10px;color:var(--danger);font-size:14px;line-height:1.8}
 .tag-entry{display:flex;align-items:center;gap:8px}.tag-entry .icon-button{flex-shrink:0}
+.tag-entry input::placeholder{color:var(--muted);opacity:1}
+.library-dialog .tag-hint{margin:8px 0 0}
 .editing-tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.editing-tags button{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;background:var(--soft);color:var(--accent);border-radius:var(--radius-pill);max-width:100%;overflow-wrap:anywhere;font-size:12px}
 .reader-manage-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 2px}.reader-manage-actions button{display:inline-flex;align-items:center;gap:6px;border-radius:var(--radius-pill);font-size:12px;padding:7px 11px;background:var(--inset);color:var(--accent);min-height:36px}
 .task-shortcuts{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 24px}.task-shortcuts button{min-height:40px}
