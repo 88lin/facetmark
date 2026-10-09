@@ -81,8 +81,14 @@ def main():
                 "把配置、测试和执行分开表达。进度没有精确数据时，显示正在完成的工作，而不是编造数字。",
             ),
         ]
-        for index in range(72):
+        # Match a daily-use library rather than hiding navigation/density problems
+        # behind five folders and a few dozen uniformly short records.
+        for index in range(1892):
             title, host, folder, text = titles[index % len(titles)]
+            if index >= 72:
+                folder = f"专题资料 {index % 240:03} / {folder}"
+                if index % 37 == 0:
+                    folder += " / 需要长期保存与反复查阅的项目研究和学习笔记"
             suffix = f" · {index // len(titles) + 1}" if index >= len(titles) else ""
             record = service.save_bookmark(
                 conn,
@@ -107,7 +113,8 @@ def main():
                 + "A useful collection connects a question to its source. Keep the result list in place while inspecting the evidence, then return with the same question in mind.\n\n"
                 + "这是为界面验证编写的合成示例，不含真实书签。This is synthetic content for interface verification."
             )
-            store_body(conn, record["bookmark_id"], body=body)
+            if index < 72 or index % 3 != 0:
+                store_body(conn, record["bookmark_id"], body=body)
         asyncio.run(service.index_all(conn, settings=settings, fetch=False))
         conn.close()
         uvicorn.run(

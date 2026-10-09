@@ -16,8 +16,8 @@ export type LibraryAction =
   | { kind: "export" }
   | { kind: "process"; mode: "fetch" | "summarize"; ids?: number[] };
 
-export function LibraryToolbar({ batch, ids, pageIds, disabled, onBatch, onIds, onAction }: {
-  batch: boolean; ids: number[]; pageIds: number[]; disabled: boolean;
+export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch, onIds, onAction }: {
+  batch: boolean; ids: number[]; pageIds: number[]; disabled: boolean; pending: boolean;
   onBatch: (value: boolean) => void; onIds: (ids: number[]) => void;
   onAction: (action: LibraryAction) => void;
 }) {
@@ -25,15 +25,15 @@ export function LibraryToolbar({ batch, ids, pageIds, disabled, onBatch, onIds, 
   return <div className={`library-tools ${batch ? "selecting" : ""}`}>
     {batch ? <>
       <span className="selection-total" role="status">{t(`已选择 ${ids.length} 条`, `${ids.length} selected`)}</span>
-      <button className="text-button" disabled={!pageIds.length} onClick={() => onIds([...new Set([...ids, ...pageIds])].slice(0, 1000))}>{t("选择本页", "Select this page")}</button>
-      <button className="secondary" disabled={!ids.length || disabled} onClick={() => onAction({ kind: "bulk", ids })}><ListChecks size={15}/>{t("批量操作", "Actions")}</button>
-      <button className="secondary" disabled={!ids.length} onClick={() => onAction({ kind: "export" })}><Download size={15}/>{t("导出所选", "Export selected")}</button>
+      <button className="text-button" disabled={!pageIds.length || pending} onClick={() => onIds([...new Set([...ids, ...pageIds])].slice(0, 1000))}>{t("选择本页", "Select this page")}</button>
+      <button className="secondary" disabled={!ids.length || disabled || pending} onClick={() => onAction({ kind: "bulk", ids })}><ListChecks size={15}/>{t("批量操作", "Actions")}</button>
+      <button className="secondary" disabled={!ids.length || pending} onClick={() => onAction({ kind: "export" })}><Download size={15}/>{t("导出所选", "Export selected")}</button>
       <button className="text-button" onClick={() => onBatch(false)}>{t("完成选择", "Done")}</button>
     </> : <>
-      <button className="primary" disabled={disabled} onClick={() => onAction({ kind: "create" })}><Plus size={15}/>{t("新增收藏", "Add bookmark")}</button>
-      <button className="secondary" disabled={!pageIds.length || disabled} onClick={() => onBatch(true)}><ListChecks size={15}/>{t("批量管理", "Select")}</button>
-      <button className="secondary" disabled={disabled} onClick={() => onAction({ kind: "taxonomy" })}><Folder size={15}/>{t("整理分类", "Organize")}</button>
-      <button className="secondary" onClick={() => onAction({ kind: "export" })}><Download size={15}/>{t("导出", "Export")}</button>
+      <button className="primary" aria-label={t("新增收藏", "Add bookmark")} disabled={disabled} onClick={() => onAction({ kind: "create" })}><Plus size={15}/><span className="action-full">{t("新增收藏", "Add bookmark")}</span><span className="action-short" aria-hidden="true">{t("新增", "Add")}</span></button>
+      <button className="secondary" aria-label={t("批量管理", "Select")} disabled={!pageIds.length || disabled || pending} onClick={() => onBatch(true)}><ListChecks size={15}/><span className="action-full">{t("批量管理", "Select")}</span><span className="action-short" aria-hidden="true">{t("批量", "Select")}</span></button>
+      <button className="secondary" aria-label={t("整理分类", "Organize")} disabled={disabled} onClick={() => onAction({ kind: "taxonomy" })}><Folder size={15}/><span className="action-full">{t("整理分类", "Organize")}</span><span className="action-short" aria-hidden="true">{t("整理", "Organize")}</span></button>
+      <button className="secondary" disabled={pending} onClick={() => onAction({ kind: "export" })}><Download size={15}/>{t("导出", "Export")}</button>
     </>}
   </div>;
 }

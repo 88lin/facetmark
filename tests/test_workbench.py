@@ -77,6 +77,39 @@ def test_library_revision_tracks_committed_job_writes_and_stays_stable_on_reads(
         other.close()
 
 
+@pytest.mark.parametrize("group", ["folders", "tags", "domains"])
+def test_facet_directory_reaches_values_beyond_overview_limit(client, group):
+    state = client.app.state.fm
+    for index in range(207):
+        service.save_bookmark(state.conn, f"https://site-{index:03}.example/item",
+                              title=f"Page {index}", folder=f"Folder {index:03}",
+                              tags=[f"Tag {index:03}"], settings=state.settings)
+    assert len(client.get("/bookmarks/facets").json()[group]) == 200
+    first = client.get(f"/bookmarks/facets/{group}?limit=200").json()
+    last = client.get(f"/bookmarks/facets/{group}?limit=200&offset=200").json()
+    assert first["total"] == last["total"] == 207
+    assert len(first["items"]) == 200 and first["has_more"]
+    assert len(last["items"]) == 7 and not last["has_more"]
+    assert len({item["value"] for item in first["items"] + last["items"]}) == 207
+    match = client.get(f"/bookmarks/facets/{group}", params={"q": "206"}).json()
+    assert match["items"] == [last["items"][-1]]
+
+
+def test_facet_directory_search_is_literal_and_requires_auth(client):
+    state = client.app.state.fm
+    for index, value in enumerate(['研发 50%_ "one"', '研发 500xx "one"']):
+        service.save_bookmark(state.conn, f"https://facets.example/{index}",
+                              folder=value, tags=[value], settings=state.settings)
+    for group in ["folders", "tags"]:
+        result = client.get(f"/bookmarks/facets/{group}", params={"q": '%_ "ONE"'}).json()
+        assert result["items"] == [{"value": '研发 50%_ "one"', "count": 1}]
+    assert client.get("/bookmarks/facets/unknown").status_code == 422
+    assert client.get("/bookmarks/facets/folders?limit=201").status_code == 422
+    assert client.get("/bookmarks/facets/folders?offset=-1").status_code == 422
+    client.headers.pop("Authorization")
+    assert client.get("/bookmarks/facets/folders").status_code == 401
+
+
 def test_channel_override_does_not_inherit_lower_source_key(monkeypatch):
     write_config({"chat_base_url": "https://a.example/v1", "chat_api_key": "a-secret"})
     monkeypatch.setenv("FACETMARK_CHAT_BASE_URL", "https://b.example/v1")

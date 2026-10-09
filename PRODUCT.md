@@ -47,10 +47,14 @@ main merge or production release. Existing CLI and integration contracts remain.
 Independent Facetmark identity. The user explicitly chose pure white and lake blue
 with clear rounded panels and refined controls on 2026-10-06, superseding the
 rejected flat grey-violet treatment. Keep the recognizable layered brand mark.
-The user rejected the permanent three-column management layout on 2026-10-06:
-collection content and reading must lead, with navigation and filters secondary.
-GithubStarsManager is engineering background only,
-not a visual reference. No hand-drawn borders or candy-colored dashboards.
+The user rejected the permanent three-column management layout on 2026-10-06.
+On 2026-10-09 they rejected the oversized collection masthead and mouse-inaccessible
+horizontal categories, and explicitly supplied GithubStarsManager as an interface
+reference. This supersedes the earlier engineering-only reference restriction.
+Use compact controls and searchable, vertically scrollable categories for large
+libraries. Categories sit beside browsing and yield to the reader when a page opens;
+do not permanently divide reading into three columns. No hand-drawn borders or
+candy-colored dashboards.
 
 ## Evidence on Hand
 

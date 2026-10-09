@@ -1,6 +1,6 @@
 ---
 name: Facetmark collection and reader
-description: A white and lake-blue reading collection with a generous masthead, source-first cards, pill controls and a focused
+description: A white and lake-blue collection with compact controls, a searchable category directory, source-first cards and a focused
   article rail.
 colors:
   canvas: '#ffffff'
@@ -32,7 +32,7 @@ colors:
 typography:
   collection-heading:
     fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 38px
+    fontSize: 22px
     lineHeight: 1.35
     fontWeight: 650
     letterSpacing: -0.035em
@@ -62,7 +62,7 @@ typography:
     letterSpacing: -0.02em
   collection-title:
     fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 19px
+    fontSize: 16px
     lineHeight: 1.5
     fontWeight: 650
   index-title:
@@ -72,8 +72,8 @@ typography:
     fontWeight: 650
   collection-summary:
     fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 14px
-    lineHeight: 1.75
+    fontSize: 13px
+    lineHeight: 1.6
   index-summary:
     fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
     fontSize: 12px
@@ -93,7 +93,7 @@ typography:
     fontWeight: 600
   search:
     fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 17px
+    fontSize: 14px
     lineHeight: 1.6
   tab:
     fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
@@ -113,7 +113,7 @@ typography:
     lineHeight: 1.6
   workspace-heading:
     fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 24px
+    fontSize: 22px
     fontWeight: 650
     lineHeight: 1.35
     letterSpacing: -0.025em
@@ -144,7 +144,7 @@ spacing:
   small: 12px
   medium: 16px
   content: 20px
-  card-padding: 22px
+  card-padding: 14px
   section: 24px
   gutter: 28px
   large: 32px
@@ -188,8 +188,8 @@ components:
     textColor: '{colors.ink}'
     typography: '{typography.search}'
     rounded: '{rounded.pill}'
-    padding: 10px 22px
-    height: 58px
+    padding: 6px 14px
+    height: 40px
   header-navigation-active:
     textColor: '{colors.accent}'
     typography: '{typography.tab}'
@@ -206,9 +206,9 @@ components:
   collection-entry:
     textColor: '{colors.ink}'
     typography: '{typography.collection-title}'
-    padding: 22px
+    padding: 14px
     backgroundColor: '{colors.canvas}'
-    rounded: '{rounded.entry}'
+    rounded: '{rounded.panel}'
   result-selected:
     backgroundColor: '{colors.selected}'
     textColor: '{colors.ink}'
@@ -252,14 +252,14 @@ components:
     typography: '{typography.index-search}'
     rounded: '{rounded.pill}'
     padding: 7px 18px
-    height: 52px
-  folder-shortcut-active:
-    backgroundColor: '{colors.canvas}'
+    height: 40px
+  category-option-active:
+    backgroundColor: '{colors.selected}'
     textColor: '{colors.accent}'
-    typography: '{typography.tab}'
-    rounded: '{rounded.pill}'
-    padding: 8px 14px
-    height: 38px
+    typography: '{typography.label}'
+    rounded: 8px
+    padding: 8px 10px
+    height: 36px
   query-suggestion-active:
     backgroundColor: '{colors.soft}'
     textColor: '{colors.accent}'
@@ -285,19 +285,21 @@ components:
 
 **Creative North Star: "Shared collection and reader — Operate / Read"**
 
-Facetmark makes saved writing inviting to rediscover. A clear collection masthead, generous pill search and recognizable sources lead into white cards on a pale blue workspace. Selecting a page makes its article the primary surface, with a compact index retaining the route back. The layered Facetmark mark and lake-blue interaction accents remain the identity.
+Facetmark keeps saved writing easy to find and comfortable to read. A compact title/count and pill search share the desktop toolbar. A searchable vertical category directory sits beside the actual bookmarks. Source-first white cards or a denser list use the available width, while the layered Facetmark mark and lake-blue interactions retain the identity.
 
-The interface changes proportion with the task. Real folder shortcuts and contextual search suggestions support browsing; focused reading reveals a quiet rail of actual article headings. Bundled Manrope, local Chinese fallbacks, corresponding dark-theme roles, keyboard access and reduced motion carry the same system across desktop and Web.
+Selecting a bookmark replaces the category directory with a compact supporting index and makes the article the primary surface. The reader keeps its bounded text measure, quiet chapter rail and return context. Bundled Manrope, local Chinese fallbacks, dark-theme roles, keyboard access and reduced motion carry the system across desktop and Web.
 
 **Key Characteristics:**
 
-- A large collection masthead and separate search row establish the reading hierarchy.
-- Source-first white cards use natural heights; selection creates a compact supporting index.
-- Lake-blue selection, true pill controls and circular icon actions clarify state and priority.
-- The bounded reader reveals its chapter rail only in focused body reading.
-- Search, filters, collection position and return focus survive entering and leaving reading.
+- A compact toolbar leaves the majority of a short desktop window available for bookmarks.
+- Complete folders, tags and sites are searchable and vertically scrollable with a mouse; loading more is explicit.
+- Source-first cards and a persistent list alternative support different browsing densities.
+- Lake-blue selection, pill controls and circular icon actions clarify state and priority.
+- The bounded reader retains query, filters, page, collection position and return focus.
+- Changing search/category clears the old reading context and prevents selection or export of stale results.
 
-This system records source inspection at `0aa3e849ae06d6707fb1f52356eefe6bd774ff4a`. `frontend/src/main.tsx` imports `styles.css` before `workbench.css`; component styles in `search-tools.css` and `components/ui/reader-outline.css` supply the suggestion menu and chapter rail. This authorized redesign supersedes prior composition rules. Evidence for this source includes cloud run `37618229826`, with five native consistency checks covering collection, reading, settings and mobile suggestions, plus successful Windows run `37618229866`, with three installed-window captures at (1028 × 749) including the explicit unavailable-body state. A fresh independent review returned `ship` with no material fixes. It used a generic reviewer substitution and lacked a QUALITY BAR/comp, limiting the review ceiling; the verdict does not establish user aesthetic acceptance.
+The previous large-masthead layout and its historical `ship` verdict were rejected by the user. This contract supersedes those layout rules. The user-supplied interface reference is [GithubStarsManager](https://github.com/AmintaCCCP/GithubStarsManager), inspected at `6d1dd80700b0ee717f79a5da7d0137f32afc91b7`; only its compact controls and accessible category organization inform this revision. No reference code or screenshots ship in Facetmark. Current runtime evidence is pending the cloud validation pass; earlier captures do not verify this layout.
+
 
 ## Colors
 
@@ -326,37 +328,39 @@ Error Red (`danger`) accompanies explicit failures, recovery and destructive-act
 
 Manrope is bundled at `frontend/src/assets/Manrope-variable.ttf` for offline Latin typography, with normal weights (200–800) and `font-display: swap`. The frontmatter stack includes local Segoe UI and Chinese fallbacks. Diagnostic output alone uses monospace; platform font rendering is not guaranteed by declarations alone.
 
-- **Headings:** collection-heading is the browsing masthead; workspace-heading introduces selected reading; page-title serves support pages. Article-title enlarges to article-title-focus. Chinese base headings remove tracking; more specific collection/article rules retain their declared tracking.
+- **Headings:** collection-heading is the compact current collection/category heading; workspace-heading introduces selected reading; page-title serves support pages. Article-title enlarges to article-title-focus. Chinese base headings remove tracking; more specific collection/article rules retain their declared tracking.
 - **Cards/index:** visual and DOM order is source, title, optional excerpt, then folder/date metadata. Open titles/excerpts clamp to two lines; the compact index keeps a two-line title and one-line excerpt.
 - **Reading:** paragraphs use lower space (1.25em); explicit section headings use margins (34px above, 12px below). Counts, dates, pagination and percentages use tabular numerals.
-- **Responsive type:** standard article title is (32px) at 1120–1300px. Browsing masthead remains (38px) on tablet and becomes (30px) on mobile. At most 719px: compact workspace/support headings (26px), article title (27px), open-card title (18px), excerpt (14px), search (15px), tabs (12px), prose (17px / 1.85). More-specific selected-index title/excerpt remain (15px / 12px).
+- **Responsive type:** the collection heading remains (22px) across breakpoints, card title (16px) and excerpt (13px). Search is (14px) on desktop and (15px) on mobile. List view uses (15px) titles and (12px) single-line excerpts, with source and metadata in a second desktop column; mobile uses a single column without an excerpt. Standard article title is (32px) at 1120–1300px. At most 719px: article title (27px), tabs (12px), prose (17px / 1.85). Selected-index title/excerpt remain (15px / 12px).
 
 **The Reading Rhythm Rule.** Let a recognizable source introduce each saved page, then use title and excerpt to invite reading. Give the article a bounded measure and wrap Chinese text, long titles and URLs.
 
 ## Layout
 
-The dynamic-viewport shell (`100dvh`, minimum height 400px) places a white header (68px) above a centered workspace (maximum 1480px, sides 36px, bottom 24px). Identity/navigation sit left; utilities/import sit right. Temporary navigation is (300px) wide, closed/inert with no shadow until opened, and never consumes a permanent column.
+The dynamic-viewport shell (`100dvh`, minimum height 400px) places a white header (56px) above a full-width workspace (sides 24px, bottom 12px). Identity/navigation sit left; utilities/import sit right. Temporary navigation is (300px) wide, closed/inert with no shadow until opened.
 
-Browsing toolbar/results share a maximum width (1240px). Masthead/count, search row and real folder shortcuts form a one-column toolbar with gap (18px) and padding (32px 4px 22px). Search is (58px) high with padding (10px 22px). Folder shortcuts scroll horizontally and are omitted without folder data.
+The desktop toolbar is (60px) high. Current title and result count share its left side; the (40px) pill search and filter controls share the right. A compact action row above the results contains creation, selection, organization, export and the card/list switch. Filter chips appear only when active. There is no duplicate collection/result masthead or horizontal folder strip.
 
-Open cards form three columns from (1360px), two at intermediate widths, and one at most (719px), with desktop gaps (20px horizontal, 16px vertical). Cards use padding (22px), natural height, start alignment and no imposed minimum content height. Each card follows its own content rather than stretching to its neighbor. The independently scrolling list uses padding (3px 4px 12px) above a pagination footer (52px).
+From (960px), an independently scrolling category directory (208px) sits left of the results with a (20px) gutter. Folders, tags and sites have explicit type controls, a search input, counts and a visible Load more action in pages of 50. Search applies to the entire directory, including entries beyond the former 200-item ceiling. Long names wrap and retain a native title. The directory has a visible native vertical scrollbar, mouse-wheel scrolling and keyboard-focusable buttons. Below (960px), the same directory is in the filter drawer.
 
-Selection contracts the desktop index to (312px), beside a gutter (24px) and flexible reader. Index entries use padding (16px 14px), bottom spacing (6px), panel corners and transparent default fill/border; selection restores a blue fill/edge. The compact toolbar is (88px), search/control-group basis (680px), and search height (52px). The collection stays mounted and no empty reader column is reserved.
+Cards use `repeat(auto-fill, minmax(270px, 1fr))`, (12px) gaps, padding (14px), corners (12px) and content-driven row height. A row aligns its cards without a fixed minimum height or compulsory excerpt. The independently scrolling result list uses padding (3px 4px 8px) above a pagination footer (40px). List view replaces the card grid with ruled rows and persists across reloads.
+
+Selection hides the category directory and contracts the desktop index to (312px), beside a gutter (24px) and flexible reader. Index entries use padding (16px 14px), lower spacing (6px), panel corners and transparent default fill/border; selection restores a blue fill/edge. The toolbar remains (60px), search/control-group basis (680px), search height (40px). No empty reader column is reserved. Opening/returning preserve the real list scroll; choosing a different category/query resets scroll and pagination and closes the old reader.
 
 Reader tabs/actions share a strip (56px). Article width is capped at (780px), including gutters; title padding is (40px 46px 0), body padding (24px 46px 44px), and position footer height (48px). Source lower space is (16px); title lower margin is (14px). Controls remain outside the article scroller.
 
-Focus hides competing chrome, reduces header height to (56px), and places the same pane at workspace insets (16px top, 36px sides, 24px bottom). Title top space becomes (35px); hidden results are inert. Focused body reading with more than one real heading shows the outline at widths at least (1120px): grid `minmax(0, 780px) 170px`, gap (32px), maximum width (1080px), horizontal padding (28px), and article gutters (24px). The outline begins at margin-top (40px) and sticks (28px) below the scroller top.
+Focus hides competing chrome, retains the (56px) header, and places the same pane at workspace insets (16px top, 36px sides, 24px bottom). Title top space becomes (35px); hidden results are inert. Focused body reading with more than one real heading shows the outline at widths at least (1120px): grid `minmax(0, 780px) 170px`, gap (32px), maximum width (1080px), horizontal padding (28px), and article gutters (24px). The outline begins at margin-top (40px) and sticks (28px) below the scroller top.
 
 Support pages use maximum width (1050px), top margin (28px), padding (32px 40px 40px), and heading spacing (24px). Desktop model channels are two unboxed ruled columns with gap (40px), each following its own form height. Essential fields lead directly into test action/result, then options. No subgrid or blank row aligns a shorter form's test to the longer form.
 
 | Viewport | Source-defined exceptions |
 | --- | --- |
-| At least 1600px | Index (328px), reader gutter (56px). |
-| 1360–1599px | Three-column browsing; standard index (312px), reader gutter (46px). |
+| At least 1600px | Index (328px), reader gutter (56px); collection grid uses all available width. |
 | 1120–1300px | Index (292px), reader gutter (36px), workspace sides (28px), selected gap (22px), search-group basis (620px); reader count hides. |
-| 720–1119px | Workspace sides (28px); selected toolbar (100px), while browsing keeps its content-sized toolbar. Browse gaps (18px horizontal / 16px vertical); selected collection behind modal uses (18px) gaps. Full-width reader has return/actions row (60px), tabs (56px), no sheet shadow. Support padding (32px); model columns stack with gap (16px). |
-| 720–959px | Header sides (20px); import is an icon-only (42px) circle; navigation labels (12px). |
-| At most 719px | Header (60px), workspace sides (18px), navigation/utilities in drawer. Toolbar padding (22px 0 18px), gap (16px); search row columns `minmax(0, 1fr) 44px 68px`, search height (48px). Browse cards use padding (20px), spacing (12px). Selected-index rules retain compact padding/corners/type. Article gutter (24px), body top space (20px), footer (52px). Support margin-top (16px), padding (24px 20px); form actions stack. |
+| 960–1119px | Category directory remains visible; workspace sides (20px). Reading opens the full-width modal. |
+| 720–959px | Category directory is in the filter drawer; workspace sides (20px), header sides (20px), import is an icon-only (42px) circle. |
+| 720–1119px | Browse horizontal gaps (18px); selected collection behind modal has (18px) gaps. Full-width reader return/actions row (60px), tabs (56px), no sheet shadow. Support padding (32px); model columns stack with gap (16px). |
+| At most 719px | Header (56px), workspace sides (12px), bottom (8px), navigation/utilities in drawer. Toolbar padding (12px 0), gap (10px), title then search; search controls `minmax(0, 1fr) 44px 68px`, search height (44px). One card column, padding (14px), corners (12px). Article gutter (24px), body top space (20px), reader footer (52px). Support margin-top (16px), padding (24px 20px); form actions stack. |
 
 The square-edged modal reader fills the viewport. Its tab strip remains (56px) on mobile; tablet pills are (36px), mobile pills (44px). Mobile search hides the shortcut hint. Import retains padding (48px 24px). Main mobile controls reach at least (44px); article tags and suggestion-menu retry retain compact exceptions.
 
@@ -389,15 +393,17 @@ Lucide SVGs provide stroke icons and the layered brand mark. Source initials ide
 
 ### Buttons, navigation and fields
 
-Primary/secondary pills use minimum height (40px), weight (600), gap (8px), icons (16px) and frontmatter padding. Import/Filters use minimum height (42px); general icon circles (36px), pagination (38px). Primary/import hover uses `brightness(0.94)`; secondary uses Lake Mist, blue text and Selected Edge. Text pills use Lake Mist hover and minimum height (32px). Disabled buttons use opacity (0.42).
+Primary/secondary form pills use minimum height (40px); collection-toolbar pills use (36px) with (6px 12px) padding and (12px) labels. All main mobile actions remain at least (44px). Form pills use weight (600), gap (8px), icons (16px) and frontmatter padding. Import/Filters use minimum height (42px); general icon circles (36px), pagination (38px). Primary/import hover uses `brightness(0.94)`; secondary uses Lake Mist, blue text and Selected Edge. Text pills use Lake Mist hover and minimum height (32px). Disabled buttons use opacity (0.42).
 
 Header navigation has tray padding/gap (4px), segment padding (8px 17px), minimum height (36px). Active navigation uses Lake Mist, blue text and weight (700), with no underline/shadow. The utility group is transparent with white raised active toggles. Filters open temporary modal navigation at every width with keyboard handling and return focus.
 
 Model inputs are at least (46px) high, with label gap (9px), model-field spacing (16px), shared-field spacing elsewhere (20px). Cool Inset becomes white on focus with an accent border/outline; disabled type is muted. Reader Focus is a labeled pill with Lake Mist pressed state. Main mobile actions, navigation/filter/folder targets, return, checkbox labels, setup steps and section selector are at least (44px); icon, pagination and search clear are (44px) circles.
 
-### Search and real folder shortcuts
+### Search and complete category navigation
 
-Ctrl/Cmd+K accesses persistent search. Browsing uses search-field; selected reading uses search-field-index. Before selection, All saved pages and up to eight returned folders provide shortcuts with (8px) gaps and labels capped at (180px). Active folder pills have white fill, Selected Edge and blue text. Removable filter chips and disclosed hashtag tags remain separate patterns.
+Ctrl/Cmd+K accesses persistent search. Browsing and selected reading both use a (40px) desktop search capsule. Category selection uses the searchable vertical directory described above, with selected blue fill and explicit counts. All folders clears the folder dimension while preserving other active dimensions, which remain visible as removable filter chips.
+
+Query/category/page changes associate results with their exact context. During a new request or its failure, rows from the old context are not exposed for selection, bulk actions or scoped export. Repeating the active category preserves its in-flight request; repeated Enter and IME completion start a replacement search when needed. Category loading, no-match and failure/retry states are separate. Query changes reset list/page/reader; opening and returning from the same result preserve them.
 
 The query trigger is a (40px) circle, (44px) on mobile. Its cmdk-powered popup opens below at offset (10px), width `min(368px, calc(100vw - 36px))`, padding (16px 8px 0), and popup corners. Suggestion rows have minimum height (58px), padding (10px), category icon, label/detail and selected Enter cue. Lake Mist identifies selection. The list scrolls within `min(348px, 48dvh)`; mobile popup right offset is (-76px).
 
@@ -405,7 +411,7 @@ The menu uses at most six returned suggestions, preserves syntax and quotes mult
 
 ### Collection and reader
 
-Cards begin with source badge/domain, then title, optional excerpt and a fine-rule folder/date footer. Content gap is (8px); footer margin-top (8px), padding-top (12px). Open arrows transition from x (-4px)/opacity (0) to visible on hover/focus. Selection exposes `aria-pressed` and Reading. Index content gap is (6px), with smaller typography and no footer rule. ArrowUp/ArrowDown selects adjacent entries; opening/returning preserve query, filters, page, position and originating focus.
+Cards begin with a (24px) source badge/domain, then title, optional excerpt and quiet folder/date metadata. Content gap is (6px); metadata margin-top (4px), with no extra footer rule or padding. Open arrows transition from x (-4px)/opacity (0) to visible on hover/focus. Selection exposes `aria-pressed` and Reading. Index content gap is (6px), with smaller typography and no footer rule. ArrowUp/ArrowDown selects adjacent entries; opening/returning preserve query, filters, page, position and originating focus.
 
 Reader tab pills are (36px) with padding (0 13px), gap (4px), and a moving marker at top (10px). Mobile pills/marker are (44px), marker top (6px). One active tab stop, arrow/Home/End navigation and linked panels preserve keyboard access. Previous/next, Focus and close share the desktop strip; narrow reading exposes Back to collection.
 
@@ -427,8 +433,8 @@ GSAP owns tab-marker x/width (180ms, `power3.out`, overwrite `auto`) and interru
 
 ### Do:
 
-- Do lead browsing with the masthead, generous search and shortcuts from real folder data.
-- Do preserve source-first card order and natural heights without compulsory excerpt space.
+- Do prioritize visible bookmarks with a compact toolbar and complete, mouse-accessible category directory.
+- Do preserve source-first card order and content-driven row heights without compulsory excerpt space.
 - Do use true pill controls and circular icon actions while retaining card, reader and field exceptions.
 - Do keep the index subordinate and preserve query, filters, pagination, collection position and return focus.
 - Do keep persistent reader navigation and progress controls outside the article scroller and show the focus rail only for real headings. Contextual bookmark editing and processing actions follow the article information inside the scroller.
@@ -439,7 +445,7 @@ GSAP owns tab-marker x/width (180ms, `power3.out`, overwrite `auto`) and interru
 ### Don't:
 
 - Don't restore the rejected grey-violet palette or permanent three-column management shell.
-- Don't force cards into equal heights or fill missing excerpts with decorative content.
+- Don't impose fixed card heights, hide category access in horizontal gestures, or fill missing excerpts with decorative content.
 - Don't apply the open collection's card treatment to every supporting index row.
 - Don't replace Facetmark identity with hand-drawn borders, gradients or a candy-colored dashboard.
 - Don't let GSAP, Motion and CSS animate the same property on the same element.

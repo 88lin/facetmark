@@ -103,7 +103,7 @@ test("reader tabs, expansion reversal and keyboard preserve query and scroll con
   // Keep a real, visible selection in a scrolled index so focus restoration
   // does not need to bring an offscreen row back into view.
   const list = page.locator(".result-list");
-  const selectedRow = page.locator(".result-row").nth(8);
+  const selectedRow = page.locator(".result-row").nth(24);
   await selectedRow.scrollIntoViewIfNeeded();
   const browsePosition = await list.evaluate((el) => el.scrollTop);
   await selectedRow.click();
@@ -260,13 +260,13 @@ test("supporting views and small-window reader share the same system", async ({ 
   await page.screenshot({ path: "screenshots/settings-zh-390.png", animations: "disabled" });
 });
 
-test("folder shortcuts filter the real collection and return to all saved pages", async ({
+test("folder directory filters the real collection and returns to all folders", async ({
   page,
 }) => {
   await page.goto("/app");
   await expect(page.locator(".result-row")).toHaveCount(30);
   const folders = page.getByRole("navigation", { name: "按文件夹浏览", exact: true });
-  const folder = folders.getByRole("button").nth(1);
+  const folder = folders.locator("button[title]").first();
   const label = await folder.getAttribute("title");
   expect(label).toBeTruthy();
   await folder.click();
@@ -278,7 +278,7 @@ test("folder shortcuts filter the real collection and return to all saved pages"
       return values.length > 0 && values.every((value) => value.trim() === label);
     })
     .toBe(true);
-  await folders.getByRole("button", { name: "全部收藏", exact: true }).click();
+  await folders.getByRole("button", { name: "全部文件夹", exact: true }).click();
   await expect(page.locator(".filter-chips")).toHaveCount(0);
   await expect(page.locator(".result-row")).toHaveCount(30);
 });

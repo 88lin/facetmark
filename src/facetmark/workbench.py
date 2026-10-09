@@ -9,6 +9,7 @@ import json
 import sqlite3
 import time
 import uuid
+from typing import Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from pydantic import BaseModel
@@ -55,6 +56,30 @@ def browse(conn, *, limit=40, offset=0, folder=None, tag=None, domain=None, sess
         "offset": offset,
         "has_more": offset + len(items) < total,
     }
+
+
+def browse_facets(conn, group, *, q="", limit=50, offset=0):
+    """Browse the complete taxonomy; the overview's top 200 is not a directory."""
+    if group == "tags":
+        grouped = (
+            "SELECT j.value AS value,count(DISTINCT b.id) AS count "
+            "FROM bookmark b,json_each(b.tags) j WHERE j.value!='' GROUP BY j.value"
+        )
+    else:
+        column = {"folders": "folder", "domains": "domain"}[group]
+        grouped = (
+            f"SELECT {column} AS value,count(*) AS count FROM bookmark "
+            f"WHERE {column}!='' GROUP BY {column}"
+        )
+    # instr treats %, _ and quotes as literal input, not LIKE wildcards.
+    source = f" FROM ({grouped}) WHERE instr(lower(value),lower(?))>0"
+    total = conn.execute("SELECT count(*)" + source, (q,)).fetchone()[0]
+    items = [dict(row) for row in conn.execute(
+        "SELECT value,count" + source + " ORDER BY value COLLATE NOCASE,value LIMIT ? OFFSET ?",
+        (q, limit, offset),
+    )]
+    return {"items": items, "total": total, "offset": offset, "limit": limit,
+            "has_more": offset + len(items) < total}
 
 
 class SourceRequest(BaseModel):
@@ -137,6 +162,16 @@ def register(app: FastAPI, auth: list) -> None:
             )
         ]
         return result
+
+    @app.get("/bookmarks/facets/{group}", dependencies=auth)
+    async def facet_directory(
+        request: Request,
+        group: Literal["folders", "tags", "domains"],
+        q: str = Query("", max_length=512),
+        limit: int = Query(50, ge=1, le=200),
+        offset: int = Query(0, ge=0),
+    ):
+        return browse_facets(request.app.state.fm.conn, group, q=q, limit=limit, offset=offset)
 
     def sources(state):
         return [

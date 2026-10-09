@@ -11,9 +11,10 @@ import {
   ExternalLink,
   FileText,
   Folder,
-  Globe2,
   Import,
   Layers3,
+  LayoutGrid,
+  List,
   LoaderCircle,
   Menu,
   Moon,
@@ -22,7 +23,6 @@ import {
   Settings2,
   Sparkles,
   Sun,
-  Tags,
   WifiOff,
   X,
 } from "lucide-react";
@@ -44,6 +44,7 @@ import { ExtensionSettings, Models, UpdateSettings } from "./Settings";
 import { Tasks } from "./Tasks";
 import { LibraryDialog, LibraryToolbar, type LibraryAction } from "./LibraryTools";
 import { SyncSettings } from "./SyncSettings";
+import { FacetBrowser } from "./FacetBrowser";
 import { QuerySuggestions, SearchAnswer } from "./SearchTools";
 import Reader, { Skeleton } from "./Reader";
 import { gsap } from "gsap";
@@ -125,7 +126,9 @@ function Workbench({
   const [search, setSearch] = useState("");
   const [offset, setOffset] = useState(0);
   const [depth, setDepth] = useState<number>();
-  const [page, setPage] = useState<Page | null>(null);
+  const [loadedPage, setPage] = useState<Page | null>(null);
+  const [loadedContext, setLoadedContext] = useState("");
+  const [collectionLayout, setCollectionLayout] = useState(() => remember("fm-collection-layout") === "list" ? "list" : "grid");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [connectionError, setConnectionError] = useState("");
@@ -262,7 +265,6 @@ function Workbench({
     if (selected !== null && deleted?.includes(selected)) closePreview();
     setSelectedIds([]);
     setBatchMode(false);
-    setOffset(0);
     invalidateLibrary();
     await refresh();
     setLibraryNotice(t("收藏已更新", "Collection updated"));
@@ -372,19 +374,25 @@ function Workbench({
       previous?.focus();
     };
   }, [navOpen]);
-  function changeQuery(value: string) {
-    browseScroll.current = 0;
-    setFocusReading(false);
+  function changeQuery(value: string, force = false) {
     setInput(value);
+    if (composing.current) return;
+    if (value === search && offset === 0 && !force) return;
+    browseScroll.current = 0;
+    list.current?.scrollTo({ top: 0 });
+    setSelected(null);
+    setFocusReading(false);
     abortRef.current?.abort();
     requestId.current++;
-    if (!composing.current) {
-      setSearch(value);
-      setOffset(0);
-      setDepth(undefined);
-    }
+    setSearch(value);
+    setOffset(0);
+    setDepth(undefined);
+    if (force) setRequestRevision(value => value + 1);
   }
   const filterKey = JSON.stringify(filters);
+  const resultContext = JSON.stringify([search, offset, filterKey]);
+  const page = loadedContext === resultContext ? loadedPage : null;
+  const scopePending = loading || !page || Boolean(error);
   useEffect(() => {
     setSelectedIds([]);
     setBatchMode(false);
@@ -420,6 +428,7 @@ function Workbench({
           return;
         }
         setPage(data);
+        setLoadedContext(resultContext);
         if (data.depth) setDepth(data.depth);
         setLoading(false);
       }
@@ -527,17 +536,26 @@ function Workbench({
   }, [view, paired, sessionsRevision]);
   const items = page?.items || page?.hits || [];
   function selectFilter(key: keyof Filters, value: string | number | undefined) {
-    browseScroll.current = 0;
+    setView("library");
+    setNavOpen(false);
+    setSelected(null);
     setFocusReading(false);
+    // Re-selecting a category must not abort the request already loading it.
+    if (filters[key] === value && offset === 0) return;
+    browseScroll.current = 0;
+    list.current?.scrollTo({ top: 0 });
     abortRef.current?.abort();
     requestId.current++;
     setFilters((old) => ({ ...old, [key]: value }));
     setOffset(0);
     setDepth(undefined);
-    setView("library");
-    setNavOpen(false);
   }
   function paginate(next: number) {
+    if (next === offset) return;
+    abortRef.current?.abort();
+    requestId.current++;
+    setSelected(null);
+    setFocusReading(false);
     browseScroll.current = 0;
     setOffset(next);
     list.current?.scrollTo({ top: 0 });
@@ -742,40 +760,7 @@ function Workbench({
           </button>
         </nav>
         <div className="facet-nav">
-          {[
-            ["folders", "folder", t("文件夹", "Folders"), Folder],
-            ["tags", "tag", t("标签", "Tags"), Tags],
-            ["domains", "domain", t("站点", "Sites"), Globe2],
-          ].map(([group, field, label, Icon]) => {
-            const Glyph = Icon as typeof Folder;
-            return (
-              <details open={group === "folders"} key={String(group)}>
-                <summary>
-                  <Glyph size={15} />
-                  {String(label)}
-                  <ChevronRight size={14} />
-                </summary>
-                {facets[String(group)]?.length ? (
-                  facets[String(group)].map((facet) => (
-                    <button
-                      key={facet.value}
-                      title={facet.value}
-                      className={filters[field as keyof Filters] === facet.value ? "active" : ""}
-                      onClick={() => selectFilter(field as keyof Filters, facet.value)}
-                    >
-                      <span>
-                        {field === "folder" && <Folder size={13} />}
-                        {facet.value}
-                      </span>
-                      <small>{facet.count}</small>
-                    </button>
-                  ))
-                ) : (
-                  <p className="hint">{t("导入后显示", "Available after import")}</p>
-                )}
-              </details>
-            );
-          })}
+          <FacetBrowser filters={filters} enabled={paired && navOpen} revision={requestRevision} onSelect={selectFilter} />
         </div>
         <div className="sidebar-bottom">
           {adminAvailable && (
@@ -847,7 +832,7 @@ function Workbench({
         ref={workspace}
         inert={navOpen}
         aria-hidden={navOpen}
-        className={`main-workspace ${view === "library" ? "with-preview" : ""} ${selected !== null ? "has-selection" : "browse-mode"} ${focusReading && view === "library" ? "focus-mode" : ""}`}
+        className={`main-workspace ${view === "library" ? "with-preview" : ""} ${selected !== null ? "has-selection" : "browse-mode"} ${collectionLayout === "list" ? "list-mode" : ""} ${focusReading && view === "library" ? "focus-mode" : ""}`}
       >
         {connectionError && (
           <div className="connection-error" role="alert">
@@ -915,10 +900,12 @@ function Workbench({
             <header className="workspace-toolbar">
               <div className="toolbar-location">
                 <h1>
-                  {search ? t("搜索收藏", "Find a saved page") : t("我的收藏", "Your collection")}
+                  {search.trim() ? t("搜索结果", "Search results") :
+                    filters.folder !== undefined ? filters.folder || t("未分类", "Unfiled") :
+                    filters.tag || filters.domain || (filters.session !== undefined ? t("浏览批次", "Saving session") : t("我的收藏", "Your collection"))}
                 </h1>
                 <span>
-                  {setup?.bookmarks ?? "—"} {t("条收藏", "saved pages")}
+                  <span className="result-count" aria-live="polite">{loading || !page ? "…" : page.total}{page?.depth_capped ? "+" : ""}</span> {t("条收藏", "saved pages")}
                 </span>
               </div>
               <div className="workspace-search">
@@ -937,11 +924,11 @@ function Workbench({
                     }}
                     onCompositionEnd={(e) => {
                       composing.current = false;
-                      changeQuery(e.currentTarget.value);
+                      changeQuery(e.currentTarget.value, true);
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.nativeEvent.isComposing && !composing.current)
-                        changeQuery(input);
+                        changeQuery(input, true);
                     }}
                   />
                   {input ? (
@@ -976,45 +963,18 @@ function Workbench({
                   <span>{t("筛选", "Filters")}</span>
                 </button>
               </div>
-              {selected === null && !!facets.folders?.length && (
-                <nav
-                  className="collection-folders"
-                  aria-label={t("按文件夹浏览", "Browse by folder")}
-                >
-                  <button
-                    className={filters.folder === undefined ? "active" : ""}
-                    aria-pressed={filters.folder === undefined}
-                    onClick={() => selectFilter("folder", undefined)}
-                  >
-                    <Layers3 size={15} />
-                    {t("全部收藏", "All saved pages")}
-                  </button>
-                  {facets.folders.slice(0, 8).map((folder) => (
-                    <button
-                      key={folder.value}
-                      className={filters.folder === folder.value ? "active" : ""}
-                      aria-pressed={filters.folder === folder.value}
-                      title={folder.value}
-                      onClick={() => selectFilter("folder", folder.value)}
-                    >
-                      <Folder size={15} />
-                      <span>{folder.value}</span>
-                    </button>
-                  ))}
-                </nav>
-              )}
             </header>
+            <aside className="collection-sidebar" hidden={selected !== null}>
+              <FacetBrowser filters={filters} enabled={selected === null && !navOpen} revision={requestRevision} onSelect={selectFilter} />
+            </aside>
             <section className="results-column" inert={focusReading}>
               <header className="search-header">
-                <div className="workspace-heading">
-                  <h1>
-                    {search ? t("搜索结果", "Search results") : t("全部书签", "All bookmarks")}
-                  </h1>
-                  <span className="result-count" aria-live="polite">
-                    {loading ? <LoaderCircle size={13} className="spin" /> : (page?.total ?? "—")}
-                    {page?.depth_capped ? "+" : ""}
-                  </span>
-                </div>
+                {adminAvailable && selected === null && <LibraryToolbar
+                  batch={batchMode} ids={selectedIds} pageIds={items.map(item => item.bookmark_id)}
+                  disabled={job.state === "running"} pending={scopePending}
+                  onBatch={value => { setBatchMode(value); setSelectedIds([]); }}
+                  onIds={setSelectedIds} onAction={setLibraryAction}
+                />}
                 <div className="search-controls">
                   <div className="search-meta">
                     <span>
@@ -1024,11 +984,12 @@ function Workbench({
                           : t("关键词检索", "Keyword search")
                         : t("按收藏时间排列", "Recently saved first")}
                     </span>
-                    <span className="list-key-hint">
-                      <kbd>↑</kbd>
-                      <kbd>↓</kbd>
-                      {t("选择", "Navigate")}
-                    </span>
+                    {selected === null && <div className="collection-view-switch" role="group" aria-label={t("收藏显示方式", "Collection layout")}>
+                      {[{ value: "grid", label: t("卡片视图", "Card view"), Icon: LayoutGrid },
+                        { value: "list", label: t("列表视图", "List view"), Icon: List }].map(({ value, label, Icon }) =>
+                        <button key={value} type="button" aria-label={label} title={label} aria-pressed={collectionLayout === value}
+                          onClick={() => { setCollectionLayout(value); remember("fm-collection-layout", value); }}><Icon size={16} /></button>)}
+                    </div>}
                   </div>
                 </div>
                 {Object.entries(filters).some(([, v]) => v !== undefined) && (
@@ -1047,20 +1008,6 @@ function Workbench({
                   </div>
                 )}
               </header>
-              {adminAvailable && selected === null && (
-                <LibraryToolbar
-                  batch={batchMode}
-                  ids={selectedIds}
-                  pageIds={items.map((item) => item.bookmark_id)}
-                  disabled={job.state === "running"}
-                  onBatch={(value) => {
-                    setBatchMode(value);
-                    setSelectedIds([]);
-                  }}
-                  onIds={setSelectedIds}
-                  onAction={setLibraryAction}
-                />
-              )}
               {error && (
                 <div className="error search-error" role="alert">
                   <strong>
@@ -1142,6 +1089,7 @@ function Workbench({
                       data-bookmark-id={record.bookmark_id}
                       className={`result-row ${selected === record.bookmark_id ? "selected" : ""} ${batchMode && selectedIds.includes(record.bookmark_id) ? "batch-selected" : ""}`}
                       key={record.bookmark_id}
+                      disabled={scopePending}
                       onClick={(e) => {
                         if (batchMode) setSelectedIds((ids) => ids.includes(record.bookmark_id)
                           ? ids.filter((id) => id !== record.bookmark_id)
@@ -1177,7 +1125,7 @@ function Workbench({
                             <ArrowRight className="result-open" size={16} aria-hidden="true" />
                           )}
                         </span>
-                        <span className="result-title">{record.title || record.url}</span>
+                        <span className="result-title" title={record.title || record.url}>{record.title || record.url}</span>
                         {(record.snippet || record.summary) &&
                           (record.snippet || record.summary) !== record.title && (
                             <span className="result-summary">

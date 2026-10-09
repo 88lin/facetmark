@@ -363,7 +363,7 @@ test("draft status, filtered emptiness and contextual request recovery", async (
     route.fulfill({ json: { items: [], total: 0, offset: 0, limit: 30, has_more: false } }),
   );
   await page.getByRole("button", { name: "筛选收藏", exact: true }).click();
-  await page.locator(".facet-nav button").first().click();
+  await page.locator(".facet-nav .facet-option[title]").first().click();
   await expect(page.getByRole("button", { name: "清除条件，查看全部" })).toBeVisible();
   await expect(page.getByText("收藏，从这里汇合")).toHaveCount(0);
   await page.screenshot({
