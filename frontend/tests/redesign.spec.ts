@@ -221,8 +221,11 @@ test("supporting views and small-window reader share the same system", async ({ 
   await expect(page.locator(".preview-pane")).toHaveCount(0);
   const toolbar = await page.locator(".workspace-toolbar").boundingBox();
   const collection = await page.locator(".results-column").boundingBox();
-  expect(toolbar!.x).toBe(collection!.x);
-  expect(toolbar!.width).toBe(collection!.width);
+  const categories = await page.locator(".collection-sidebar").boundingBox();
+  expect(toolbar!.x).toBe(categories!.x);
+  expect(categories!.y).toBe(collection!.y);
+  expect(categories!.x + categories!.width).toBeLessThan(collection!.x);
+  expect(toolbar!.x + toolbar!.width).toBe(collection!.x + collection!.width);
   const rows = await page.locator(".result-row").all();
   for (const row of rows.slice(0, 8)) {
     const bounds = await row.boundingBox();
