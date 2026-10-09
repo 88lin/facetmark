@@ -67,7 +67,7 @@ export function FacetBrowser({ filters, enabled = true, revision, onSelect }: {
   return <section className="facet-browser" aria-label={t("分类与筛选", "Categories and filters")}>
     <div className="facet-browser-heading">
       <h2>{t("分类", "Categories")}</h2>
-      <span>{t("按名称排列", "A–Z")}</span>
+      <span>{text ? t("精确匹配优先", "Exact first") : t("按名称排列", "A–Z")}</span>
     </div>
     <div className="facet-types" role="group" aria-label={t("分类类型", "Category type")}>
       {groups.map(({ key, label, Icon }) => <button key={key} type="button"

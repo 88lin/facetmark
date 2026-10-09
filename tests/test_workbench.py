@@ -95,6 +95,25 @@ def test_facet_directory_reaches_values_beyond_overview_limit(client, group):
     assert match["items"] == [last["items"][-1]]
 
 
+@pytest.mark.parametrize("group", ["folders", "tags", "domains"])
+def test_exact_category_search_precedes_more_than_one_page_of_partial_matches(client, group):
+    state = client.app.state.fm
+    target = "knowledge.example" if group == "domains" else "知识管理"
+    prefix = f"{target}more" if group == "domains" else f"{target} / 入门"
+    names = [f"a{index:03}-{target}" if group == "domains" else f"A {index:03} / {target}"
+             for index in range(60)] + [prefix, target]
+    for index, name in enumerate(names):
+        url = f"https://{name}/entry" if group == "domains" else f"https://ranking.example/{index}"
+        service.save_bookmark(state.conn, url, folder=name, tags=[name], settings=state.settings)
+    first = client.get(f"/bookmarks/facets/{group}", params={"q": target.upper()}).json()
+    assert first["total"] == 62 and first["has_more"]
+    assert [item["value"] for item in first["items"][:2]] == [target, prefix]
+    second = client.get(f"/bookmarks/facets/{group}",
+                        params={"q": target.upper(), "offset": 50}).json()
+    assert not second["has_more"]
+    assert len({item["value"] for item in first["items"] + second["items"]}) == 62
+
+
 def test_facet_directory_search_is_literal_and_requires_auth(client):
     state = client.app.state.fm
     for index, value in enumerate(['研发 50%_ "one"', '研发 500xx "one"']):

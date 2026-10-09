@@ -15,7 +15,7 @@ test("a large collection leaves useful browsing space in short desktop and mobil
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   const measurements = [];
-  for (const viewport of [{ width: 1366, height: 768 }, { width: 1280, height: 600 }, { width: 1024, height: 749 }, { width: 390, height: 844 }]) {
+  for (const viewport of [{ width: 1440, height: 960 }, { width: 1366, height: 768 }, { width: 1280, height: 600 }, { width: 1024, height: 749 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
     await page.goto("/app");
     await expect(page.locator(".result-row")).toHaveCount(30);
@@ -26,7 +26,8 @@ test("a large collection leaves useful browsing space in short desktop and mobil
         const box = row.getBoundingClientRect();
         return box.top >= bounds.top && box.bottom <= bounds.bottom;
       }).length;
-      return { top: bounds.top, height: bounds.height, viewport: innerHeight, fullyVisible,
+      return { top: bounds.top, firstCardTop: el.querySelector(".result-row")!.getBoundingClientRect().top,
+        height: bounds.height, viewport: innerHeight, fullyVisible,
         overflow: document.documentElement.scrollWidth > innerWidth + 1 };
     });
     expect(size.overflow).toBe(false);
@@ -39,7 +40,9 @@ test("a large collection leaves useful browsing space in short desktop and mobil
       expect(directory!.x + directory!.width).toBeLessThan(results!.x);
       expect(directory!.height).toBeGreaterThan(viewport.height * .65);
     }
-    measurements.push({ ...viewport, ...size });
+    measurements.push({ width: viewport.width, viewportHeight: viewport.height,
+      listTop: size.top, firstCardTop: size.firstCardTop, listHeight: size.height,
+      fullyVisible: size.fullyVisible, horizontalOverflow: size.overflow });
     await page.screenshot({ path: `screenshots/collection-${viewport.width}x${viewport.height}.png`, animations: "disabled" });
   }
   expect(errors).toEqual([]);

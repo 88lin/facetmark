@@ -74,9 +74,14 @@ def browse_facets(conn, group, *, q="", limit=50, offset=0):
     # instr treats %, _ and quotes as literal input, not LIKE wildcards.
     source = f" FROM ({grouped}) WHERE instr(lower(value),lower(?))>0"
     total = conn.execute("SELECT count(*)" + source, (q,)).fetchone()[0]
+    # A full name must remain reachable on the first page even when hundreds
+    # of parent paths contain the same text. Ties retain stable name ordering.
     items = [dict(row) for row in conn.execute(
-        "SELECT value,count" + source + " ORDER BY value COLLATE NOCASE,value LIMIT ? OFFSET ?",
-        (q, limit, offset),
+        "SELECT value,count" + source + " ORDER BY CASE "
+        "WHEN lower(value)=lower(?) THEN 0 "
+        "WHEN instr(lower(value),lower(?))=1 THEN 1 ELSE 2 END,"
+        "value COLLATE NOCASE,value LIMIT ? OFFSET ?",
+        (q, q, q, limit, offset),
     )]
     return {"items": items, "total": total, "offset": offset, "limit": limit,
             "has_more": offset + len(items) < total}
