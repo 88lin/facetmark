@@ -224,17 +224,26 @@ async def enrich_all(
                 except (ProviderError, EnrichmentInvalid) as second:
                     return t, None, f"{t.url}: {first} | retry@{shorter}: {second}", False
 
-    for coro in asyncio.as_completed([one(t) for t in todo]):
-        t, enr, err, shortened = await coro
-        if enr is None:
-            rep.failed += 1
-            rep.errors.append(err)
-        else:
-            rep.queries_generated += store_enrichment(conn, t, enr, model=s.chat_model)
-            rep.enriched += 1
-            rep.rescued_by_shorter_body += int(shortened)
-        if progress is not None:
-            progress(t, enr, err)
+    tasks = [asyncio.create_task(one(t)) for t in todo]
+    try:
+        for coro in asyncio.as_completed(tasks):
+            t, enr, err, shortened = await coro
+            if enr is None:
+                rep.failed += 1
+                rep.errors.append(err)
+            else:
+                rep.queries_generated += store_enrichment(conn, t, enr, model=s.chat_model)
+                rep.enriched += 1
+                rep.rescued_by_shorter_body += int(shortened)
+            if progress is not None:
+                progress(t, enr, err)
+    finally:
+        # The owner closes the database/provider as soon as this unwinds.
+        # as_completed does not cancel its children when its caller is stopped.
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
     conn.commit()
     rep.usage = prov.usage.as_dict()
     return rep

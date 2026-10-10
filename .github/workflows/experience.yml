@@ -1,0 +1,117 @@
+name: experience-validation
+on:
+  push:
+    branches: ['desktop/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: experience-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: pip install -e '.[dev]' build
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Build the shared React workbench
+        id: frontend
+        working-directory: frontend
+        run: npm run build
+      - name: Backend lint and regression
+        run: |
+          ruff check src tests scripts
+          pytest -q
+      - name: Browser for cloud validation
+        if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
+        working-directory: frontend
+        run: |
+          npx playwright install --with-deps chromium
+          sudo apt-get install -y fonts-noto-cjk ffmpeg
+      - name: Format frontend review sources
+        working-directory: frontend
+        run: npx --yes prettier@3.6.2 --write src tests
+      - name: Behavior and render matrix
+        if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
+        working-directory: frontend
+        run: npm test
+      - name: Prepare small visual evidence with source provenance
+        if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
+        run: |
+          pip install pillow
+          python scripts/experience_evidence.py
+          if test -f frontend/recordings/facetmark-reading.webm; then
+            ffmpeg -y -i frontend/recordings/facetmark-reading.webm -vf scale=1280:-2 -c:v libx264 -crf 25 -pix_fmt yuv420p -movflags +faststart frontend/visual-evidence/facetmark-reading.mp4
+            ffmpeg -y -i frontend/recordings/facetmark-reading.webm -vf 'fps=1,scale=480:-2,tile=3x4' -frames:v 1 frontend/visual-evidence/interaction-storyboard.jpg
+          fi
+      - name: Upload small visual evidence separately
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: facetmark-visual-evidence
+          path: frontend/visual-evidence/
+          retention-days: 14
+      - name: Build Python distributions containing the workbench
+        if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
+        run: python -m build
+      - name: Verify wheel resources
+        if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
+        run: python scripts/check_web_bundle.py
+      - name: Upload review evidence and shared Web build
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: facetmark-experience-review
+          path: |
+            frontend/screenshots/
+            frontend/playwright-report/
+            frontend/test-results/
+            frontend/package-lock.json
+            frontend/src/
+            frontend/tests/
+            src/facetmark/web/dist/
+            dist/*.whl
+            dist/*.tar.gz
+          retention-days: 14
+  extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - working-directory: extension
+        run: |
+          npm ci
+          npx tsc --noEmit
+          npm test
+          npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: facetmark-extension-preview
+          path: extension/dist/
+          retention-days: 14
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t facetmark:experience .
+      - name: Verify shared UI in isolated container
+        run: |
+          docker run -d --name facetmark-check --read-only --tmpfs /tmp -v fmtest:/data -p 127.0.0.1:8792:8787 facetmark:experience
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8792/health && break; sleep 1; done
+          curl -fsS http://127.0.0.1:8792/app | grep 'id="root"'
+          test "$(docker exec facetmark-check id -u)" = '65532'
+      - if: failure()
+        run: docker logs facetmark-check

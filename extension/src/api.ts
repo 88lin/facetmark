@@ -46,6 +46,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const s = await loadSettings();
   const headers = new Headers(init.headers ?? {});
   headers.set("Content-Type", "application/json");
+  headers.set("X-Facetmark-Client", "extension");
   if (s.token) headers.set("Authorization", `Bearer ${s.token}`);
   let res: Response;
   try {

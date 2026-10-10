@@ -349,6 +349,7 @@ def policy_from_settings(settings: Settings | None = None) -> FetchPolicy:
         respect_robots=s.respect_robots,
         robots_on_error=s.robots_on_error,
         max_crawl_delay_s=s.robots_max_crawl_delay,
+        excluded_domains=s.privacy_excluded_domains,
     )
 
 

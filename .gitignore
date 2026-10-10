@@ -12,8 +12,20 @@ htmlcov/
 
 # node
 node_modules/
+frontend/playwright-report/
+frontend/test-results/
+frontend/screenshots/
+frontend/recordings/
+frontend/visual-evidence/
+.impeccable/review/
 extension/dist/
 extension/*.zip
+desktop/src-tauri/target/
+desktop/src-tauri/binaries/
+desktop/src-tauri/icons/
+.desktop-build/
+!desktop/splash/*.html
+!frontend/index.html
 
 # local data - never commit a bookmark library or an index
 data/
@@ -46,3 +58,5 @@ pairing-token.txt
 # landing page (GitHub Pages)
 !docs/landing/*.html
 !docs/landing/*.css
+!desktop/splash/*.html
+!frontend/index.html

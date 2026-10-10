@@ -45,7 +45,7 @@ from .fetch import store as fetchstore
 from .privacy import refresh_privacy
 from .providers import get_provider
 from .search.pipeline import ALL_CONFIGS, default_config
-from .web import INDEX_HTML, STATIC_DIR
+from .web import BUNDLE_DIR, INDEX_HTML, STATIC_DIR
 
 #: Chrome extension pages and service workers send this scheme.
 _EXT_ORIGIN_PREFIXES = ("chrome-extension://", "moz-extension://", "safari-web-extension://")
@@ -84,13 +84,16 @@ class AppState:
         self.settings.ensure_dirs()
         self.conn: sqlite3.Connection = open_db(self.settings.db_path, same_thread=False)
         refresh_privacy(self.conn, self.settings)
+        self.conn.commit()
         self.pending_settings: dict[str, Any] = {}
         self.lock = asyncio.Lock()
         #: At most one index run, on its own connection. See `facetmark.admin`.
-        self.jobs = admin.JobRunner()
+        self.jobs = admin.JobRunner(self.settings.data_dir)
+        self.probe_results: dict[str, dict] = {}
         self.token = service.pairing_token(self.settings)
         self.started_at = int(time.time())
         self._provider = None
+        self.extension_seen_at: int | None = None
 
     @property
     def provider(self):
@@ -117,6 +120,8 @@ def require_token(request: Request) -> None:
         supplied = request.headers.get("x-facetmark-token", "").strip()
     if supplied != state.token:
         raise HTTPException(status_code=401, detail="bad or missing pairing token")
+    if request.headers.get('x-facetmark-client') == 'extension':
+        state.extension_seen_at = int(time.time())
 
 
 def _pairing_gate(request: Request) -> str:
@@ -262,9 +267,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         app.state.fm = AppState(settings)
+        from . import library_sync
+
+        sync_task = asyncio.create_task(library_sync.poll(app.state.fm))
         try:
             yield
         finally:
+            sync_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await sync_task
+            await app.state.fm.jobs.shutdown()
+            if app.state.fm._provider is not None:
+                await app.state.fm._provider.aclose()
             app.state.fm.close()
 
     app = FastAPI(
@@ -282,7 +296,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_origin_regex=r"^(chrome|moz|safari-web)-extension://.*$",
         allow_credentials=False,
         allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["authorization", "content-type", "x-facetmark-token"],
+        allow_headers=["authorization", "content-type", "x-facetmark-token", "x-facetmark-client"],
     )
 
     _register(app)
@@ -316,6 +330,11 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
     # Import, index and settings. Token-gated like everything else, plus a hard
     # loopback check and an off switch. See `facetmark.admin`.
     admin.register(app, auth)
+    from . import library, library_sync, workbench
+
+    library.register(app, auth)
+    library_sync.register(app, auth)
+    workbench.register(app, auth)
 
     # ---------------- web UI ----------------
     # Three unauthenticated routes. Two serve bytes off disk; the third is the
@@ -334,7 +353,8 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
         """
         if not INDEX_HTML.is_file():  # pragma: no cover - a broken install
             raise HTTPException(503, "web assets missing from this installation")
-        return FileResponse(INDEX_HTML, media_type="text/html; charset=utf-8")
+        return FileResponse(BUNDLE_DIR / 'index.html' if (BUNDLE_DIR / 'index.html').is_file() else INDEX_HTML,
+                            media_type="text/html; charset=utf-8")
 
     @app.get("/app/boot", include_in_schema=False)
     async def web_boot(request: Request, state: AppState = Depends(get_state)) -> JSONResponse:
@@ -353,7 +373,7 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
     # start the service the extension depends on.
     app.mount(
         "/app/static",
-        StaticFiles(directory=STATIC_DIR, check_dir=False),
+        StaticFiles(directory=BUNDLE_DIR / 'static' if BUNDLE_DIR.is_dir() else STATIC_DIR, check_dir=False),
         name="facetmark-web",
     )
 
@@ -375,6 +395,8 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
 
     @app.post("/search", dependencies=auth)
     async def full_search(req: SearchRequest, state: AppState = Depends(get_state)) -> dict:
+        if state.settings.channel_ready('embed') or state.settings.use_mock_provider:
+            workbench.validate_space(state.conn, state.settings)
         # "full" is the name of *whatever this deployment ships*, and that
         # depends on whether it has real embeddings -- so it resolves through
         # default_config rather than through the table.
@@ -480,6 +502,8 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
     @app.post("/bookmark", dependencies=auth)
     async def save(req: SaveRequest, state: AppState = Depends(get_state)) -> dict:
         async with state.lock:
+            if state.jobs.running:
+                raise HTTPException(409, "Wait for the running task before changing bookmarks")
             return service.save_bookmark(
                 state.conn, req.url, title=req.title, folder=req.folder,
                 tags=req.tags, date_added=req.date_added, settings=state.settings,
@@ -515,6 +539,8 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
         req: CompleteRequest, state: AppState = Depends(get_state)
     ) -> dict:
         async with state.lock:
+            if state.jobs.running:
+                raise HTTPException(409, "Wait for the running task before updating page text")
             out = fetchstore.complete_browser_item(
                 state.conn, req.bookmark_id, body=req.body, title=req.title,
                 final_url=req.final_url, error=req.error,

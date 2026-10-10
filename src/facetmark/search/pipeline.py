@@ -632,7 +632,7 @@ def default_config(settings=None, provider: Provider | None = None) -> Config:
     if isinstance(provider, MockProvider):
         return FUSED
     if settings is not None and (
-        getattr(settings, "use_mock_provider", False) or not getattr(settings, "api_key", "")
+        getattr(settings, "use_mock_provider", False) or not settings.channel_ready('embed')
     ):
         return FUSED
     return FULL
