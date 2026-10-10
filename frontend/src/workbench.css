@@ -741,6 +741,8 @@
   .search-header .library-tools { gap: 4px; }
   .search-header .library-tools .primary,
   .search-header .library-tools .secondary { min-height: 44px; padding: 8px 6px; gap: 4px; }
+  .search-header .library-tools:not(.selecting) .secondary { min-width: 44px; }
+  .search-header .library-tools:not(.selecting) .secondary > svg { display: none; }
   .library-tools .action-full { display: none; }
   .library-tools .action-short { display: inline; }
   .collection-view-switch { padding: 0; border: 0; gap: 0; }
