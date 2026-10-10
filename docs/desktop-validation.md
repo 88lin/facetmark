@@ -1,6 +1,114 @@
 # Desktop experience validation
 
-## 2026-10-08: collection management, reading tasks and shared-folder sync (current)
+## 2026-10-10: large-collection usability correction
+
+The user rejected the previous collection layout: oversized upper controls left
+only about half the window for bookmarks, and horizontal categories were
+inconvenient with a mouse. Its historical review verdict is not current acceptance.
+
+Current application and browser-test source: `09ab0332c5f9ec40627afc7f48f3da2ce0b8b36b`.
+The correction adds compact upper controls, a complete searchable vertical
+folder/tag/site directory, explicit category pagination and persistent card/list
+choice. Search reaches the whole category directory, with exact matches before
+prefixes and substrings, stable ordering and pages of 50. It fixes repeated-category/
+query cancellation, real scroll/page/reader reset on scope changes and stale-result
+selection/export during loading or failure. Repeated Enter and IME completion
+settle correctly; opening and returning from the same result retain browsing context.
+
+All final runs completed on 2026-10-09 against the source above:
+
+- [Experience 37927920369](https://github.com/88lin/facetmark/actions/runs/37927920369):
+  all three jobs passed, including **37/37 Playwright**, **2003 Python passed /
+  1 skipped**, Ruff, TypeScript/Vite, wheel/sdist resources, Docker and extension.
+- [CI 37927928123](https://github.com/88lin/facetmark/actions/runs/37927928123):
+  **all ten jobs passed** across Linux/Windows × Python 3.10/3.12, browser,
+  web UI, extension, Karakeep contract, wheel and Docker. The real MCP stdio
+  check passed **22/22**.
+- [Visual artifact 11615446805](https://github.com/88lin/facetmark/actions/runs/37927920369/artifacts/11615446805):
+  **51 actual captures**, a **14.24-second H.264 recording**, WEBM, font/scroll
+  diagnostics and exact source/run provenance. All 51 capture hashes were verified.
+  Local evidence: `.desktop-build/collection-verified`. The four landing screenshots
+  retain the source raster chunks and carry embedded origin metadata.
+- [Windows 37927920467](https://github.com/88lin/facetmark/actions/runs/37927920467):
+  all checks passed. Installation began with WebView2 absent and installer networking
+  blocked. The installed WebView imported synthetic HTML, searched, displayed the
+  correct missing-body reader state and preserved the query on return. Same-version
+  reinstall, uninstall data retention, parent-process cleanup and isolated frozen
+  service checks also passed. Three installed 1028×749 screenshots were inspected;
+  diagnostics identify `09ab033`.
+  [Unsigned x64 installer](https://github.com/88lin/facetmark/actions/runs/37927920467/artifacts/11615112516)
+  and [small installed evidence](https://github.com/88lin/facetmark/actions/runs/37927920467/artifacts/11614867739)
+  are available. The installer itself is **279209682 bytes** and was not downloaded.
+  Valid local installed evidence is `.desktop-build/collection-windows-37927920467`;
+  the older `.desktop-build/collection-windows` directory is mixed/stale and excluded.
+
+Final CI Python matrix (all jobs passed; skips vary by platform/runtime):
+
+| Platform | Python | Passed | Skipped |
+| --- | --- | ---: | ---: |
+| Linux | 3.10 | 2002 | 2 |
+| Linux | 3.12 | 2003 | 1 |
+| Windows | 3.10 | 1972 | 32 |
+| Windows | 3.12 | 1973 | 31 |
+
+The synthetic corpus contains **1892 bookmarks and 295 folders**, including long
+names, and saved pages with and without body text. The six added browser scenarios
+cover compact short-window layouts, complete category access by mouse and keyboard,
+search beyond the former 200-category limit, card/list persistence, slow/repeated
+queries, failed scopes, export safety and reading return context. Existing management,
+sync, model, import, reading and theme/language tests remain in the 37-test suite.
+
+Measured card view from `collection-density.json`; counts exclude partly visible cards:
+
+| Viewport | List top | First card top | List height | Height share | Fully visible cards |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1440×960 | 160px | 163px | 748px | 77.9% | 16 |
+| 1366×768 | 160px | 163px | 556px | 72.4% | 9 |
+| 1280×600 | 160px | 163px | 388px | 64.7% | 6 |
+| 1024×749 | 160px | 163px | 537px | 71.7% | 6 |
+| 390×844 | 215.7px | 218.7px | 580.3px | 68.8% | 3 |
+
+No tested viewport has horizontal document overflow. Desktop and mobile card/list,
+category search/drawer, reader and language/theme captures were inspected. Measurements
+describe this synthetic corpus and viewport set, not every title length or real library.
+
+The first browser pass on `c4d5886` passed 34/37: exact category names were buried
+after 50 substring matches. `09ab033` fixes relevance ordering and passes the same
+assertions. That superseded run and `.desktop-build/collection-first-review` are not
+final evidence. Local targeted backend verification passed 25 workbench tests and Ruff.
+After the screenshot refresh, both lightweight landing image-reference checks passed.
+
+The fresh independent rejection review identified six material issues: upper-space
+budget, complete category access, repeated-request correctness, scope scroll/reader
+reset, stale-result action safety, and realistic data/current documentation. The
+final scored confirmation marked **all six resolved**, with **remaining clear** and
+`disposition: ship`, limited to those six corrections. No material regressions from
+the fix batch were observed. The reviewer directly inspected 12 original screenshots
+(short desktop/mobile, category/list, keyboard, reader, dark, loading and failure),
+provenance, density/scroll records, related source/tests, the Experience log and
+Windows reader/lifecycle JSON. It did not run the application or tests itself.
+
+The specialized review role was unavailable; the original confirmation and its
+replacement initially failed on model rate limits. A general independent replacement
+reviewer completed this confirmation after recovery. The verdict does not constitute
+user aesthetic acceptance. No approved pixel comp or external QUALITY BAR was
+supplied; GithubStarsManager is an interface reference only.
+
+DESIGN.md, the surface contract, management instructions and screenshot provenance
+track the corrected interface and final evidence. Documentation/image-only commits
+after `09ab033` do not alter the tested application or test source.
+
+Builds, browsers, packaging and installation ran in Actions. Local work was source
+editing, lightweight checks and small evidence retrieval; no personal profile,
+real bookmarks or local installer execution was used. Actual cloud-drive transport,
+external model services and Windows 10/11 hardware remain outside verification.
+The unsigned preview uses manual updates; hosted Windows Server checks do not
+certify signing trust, ordinary non-administrator behavior, cross-version upgrades
+or physical whole-machine disconnection. Artifacts expire after 14 days. The
+[existing PR #44](https://github.com/88lin/facetmark/pull/44) stays a draft, without
+main merge, release or Pages deployment. Earlier sections are historical.
+
+## 2026-10-08: collection management, reading tasks and shared-folder sync (historical)
 
 Application source: `33ff0df5340b31061434deb7e341c612e22feae1`.
 Final browser/test source: `f757f33e00a0a3582e4b656865bddd51d3d4f445`.

@@ -298,7 +298,9 @@ Selecting a bookmark replaces the category directory with a compact supporting i
 - The bounded reader retains query, filters, page, collection position and return focus.
 - Changing search/category clears the old reading context and prevents selection or export of stale results.
 
-The previous large-masthead layout and its historical `ship` verdict were rejected by the user. This contract supersedes those layout rules. The user-supplied interface reference is [GithubStarsManager](https://github.com/AmintaCCCP/GithubStarsManager), inspected at `6d1dd80700b0ee717f79a5da7d0137f32afc91b7`; only its compact controls and accessible category organization inform this revision. No reference code or screenshots ship in Facetmark. Current runtime evidence is pending the cloud validation pass; earlier captures do not verify this layout.
+The previous large-masthead layout and its historical `ship` verdict were rejected by the user. This contract supersedes those layout rules. The user-supplied interface reference is [GithubStarsManager](https://github.com/AmintaCCCP/GithubStarsManager), inspected at `6d1dd80700b0ee717f79a5da7d0137f32afc91b7`; only its compact controls and accessible category organization inform this revision. It is an interface reference, not an approved pixel comp. No reference code or screenshots ship in Facetmark.
+
+This documentation was confirmed on 2026-10-10 against source `09ab0332c5f9ec40627afc7f48f3da2ce0b8b36b` and the synthetic-only cloud evidence captured on 2026-10-09. `.desktop-build/collection-verified/provenance.json` records 51 captures and the 14.24-second reading recording from [Experience 37927920369](https://github.com/88lin/facetmark/actions/runs/37927920369). The current desktop collection, mobile collection and exact-category-search captures match the compact toolbar, source-first cards and vertical directory described here. Cloud validation has passed. The final independent confirmation returned `disposition: ship`, with all six requested fixes resolved and no material regression identified in that scope. The original reviewer and an earlier replacement were rate-limited; a general independent substitute completed the confirmation because the dedicated role was unavailable. This verdict covers those six fixes and does not imply the user's visual approval. Earlier captures do not verify this revision.
 
 
 ## Colors
@@ -345,6 +347,16 @@ From (960px), an independently scrolling category directory (208px) sits left of
 
 Cards use `repeat(auto-fill, minmax(270px, 1fr))`, (12px) gaps, padding (14px), corners (12px) and content-driven row height. A row aligns its cards without a fixed minimum height or compulsory excerpt. The independently scrolling result list uses padding (3px 4px 8px) above a pagination footer (40px). List view replaces the card grid with ruled rows and persists across reloads.
 
+The final synthetic collection contains 1892 bookmarks and 295 folders. `collection-density.json` in the evidence directory records the following initial unfiltered view; the percentages describe available result-list height, while the last column counts complete cards. All five captures have no horizontal document overflow.
+
+| Viewport | First card top | Result-list height | Viewport share | Complete cards |
+| --- | --- | --- | --- | --- |
+| 1440 × 960 | 163px | 748px | 77.9% | 16 |
+| 1366 × 768 | 163px | 556px | 72.4% | 9 |
+| 1280 × 600 | 163px | 388px | 64.7% | 6 |
+| 1024 × 749 | 163px | 537px | 71.7% | 6 |
+| 390 × 844 | 218.6875px | 580.3125px | 68.8% | 3 |
+
 Selection hides the category directory and contracts the desktop index to (312px), beside a gutter (24px) and flexible reader. Index entries use padding (16px 14px), lower spacing (6px), panel corners and transparent default fill/border; selection restores a blue fill/edge. The toolbar remains (60px), search/control-group basis (680px), search height (40px). No empty reader column is reserved. Opening/returning preserve the real list scroll; choosing a different category/query resets scroll and pagination and closes the old reader.
 
 Reader tabs/actions share a strip (56px). Article width is capped at (780px), including gutters; title padding is (40px 46px 0), body padding (24px 46px 44px), and position footer height (48px). Source lower space is (16px); title lower margin is (14px). Controls remain outside the article scroller.
@@ -379,7 +391,7 @@ Focus uses a blue outline (2px, offset 3px); result cards use inset offset (-3px
 
 ## Shapes
 
-Open cards/import targets use (16px) corners, compact index entries (12px), reader/support surfaces (20px). Buttons, search, navigation, reader tabs, folder/filter controls and article tags have true pill ends (999px); icon-only actions are circular (50%). Source badges are rounded tiles: (30px) with (10px) corners in cards, (22px) with (7px) corners in the index.
+Open cards and compact index entries use (12px) corners, import targets (16px), reader/support surfaces (20px). Buttons, search, header navigation, reader tabs, category-type controls, filter chips and article tags have true pill ends (999px); category options use (8px) corners, and icon-only actions are circular (50%). Source badges are rounded tiles: (24px) with (8px) corners in cards, (22px) with (7px) corners in the index.
 
 Fields, notices, diagnostics and session rows retain (10px); brand tile (11px); apply/consent/stage panels (12px). Query popup corners are (14px), suggestion rows (10px), category icons circular (30px), and keyboard hints (4px). Chapter links use (4px) corners and a current marker (2px by 16px). The modal reader remains a square full-viewport exception.
 
