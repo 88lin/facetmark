@@ -9,8 +9,14 @@
 }
 
 :root {
-  font-family:
-    "Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-ui: "Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe UI", sans-serif;
+  --type-body: 1rem;
+  --type-ui: 0.875rem;
+  --type-meta: 0.8125rem;
+  --type-caption: 0.75rem;
+  --type-card-title: 1.125rem;
+  --secondary-ink: #405767;
+  font-family: var(--font-ui);
   color-scheme: light;
   --canvas: #ffffff;
   --rail: #f0f6f9;
@@ -28,15 +34,16 @@
   --control-height: 40px;
   --reader-gutter: 48px;
   --index-width: 424px;
-  font-size: 14px;
+  font-size: 100%;
   line-height: 1.6;
   color: var(--ink);
   background: var(--canvas);
-  font-synthesis: none;
+  font-synthesis: weight;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
 :root[data-theme="dark"] {
+  --secondary-ink: #c6d8e1;
   color-scheme: dark;
   --canvas: #1b303e;
   --rail: #152631;
@@ -740,7 +747,7 @@ kbd {
   justify-content: center;
   gap: 8px;
   border-radius: var(--radius-pill);
-  font-size: 13px;
+  font-size: var(--type-ui);
   font-weight: 600;
   line-height: 1.5;
   transition:
@@ -777,7 +784,8 @@ kbd {
   align-items: center;
   gap: 7px;
   color: var(--accent);
-  font-size: 12px;
+  font-size: var(--type-ui);
+  font-weight: 600;
   min-height: 32px;
   padding: 5px 10px;
   border-radius: var(--radius-pill);
@@ -1026,7 +1034,7 @@ kbd {
 }
 .reading-empty {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--type-body);
   padding: 20px 0 40px;
 }
 .reading-empty > svg {
@@ -1034,7 +1042,7 @@ kbd {
 }
 .reading-empty h3 {
   color: var(--ink);
-  font-size: 16px;
+  font-size: 1.25rem;
   margin-top: 0;
 }
 .suggested-query,
@@ -1047,7 +1055,7 @@ kbd {
   gap: 12px;
   border-bottom: 1px solid var(--rule);
   padding: 15px 0;
-  font-size: 13px;
+  font-size: 0.9375rem;
 }
 .related-item {
   align-items: flex-start;
@@ -1066,7 +1074,7 @@ kbd {
   color: var(--accent);
 }
 .related-item small {
-  font-size: 11px;
+  font-size: var(--type-meta);
 }
 .reader-article > .notice {
   margin: 0 var(--reader-gutter) 24px;
@@ -1279,7 +1287,8 @@ kbd {
   flex-direction: column;
   gap: 9px;
   margin-bottom: 20px;
-  font-size: 13px;
+  font-size: var(--type-ui);
+  font-weight: 600;
 }
 .field > span {
   display: flex;
@@ -1295,7 +1304,8 @@ kbd {
   border: 1px solid var(--rule);
   border-radius: 10px;
   color: var(--ink);
-  font-size: 13px;
+  font-size: var(--type-body);
+  font-weight: 400;
   line-height: 1.5;
 }
 .field input:focus-visible {
@@ -1309,7 +1319,7 @@ kbd {
 }
 .field input::placeholder {
   color: var(--muted);
-  font-size: 12px;
+  font-size: inherit;
 }
 .field .text-button {
   font-size: 12px;

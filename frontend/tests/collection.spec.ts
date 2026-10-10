@@ -95,6 +95,105 @@ test("a mouse can scroll and page the category directory, then search beyond the
   expect((await page.locator(".result-folder").allTextContents()).every(value => value.trim() === "知识管理")).toBe(true);
 });
 
+test("a large library can jump to its last page without stepping through every page", async ({ page }) => {
+  await page.goto("/app");
+  await expect(page.locator(".result-row")).toHaveCount(30);
+  const jump = page.getByRole("spinbutton", { name: "跳转页码" });
+  await jump.fill("64");
+  await page.getByRole("button", { name: "跳转", exact: true }).click();
+  await expect(page.locator(".results-footer")).toContainText("1891–1892");
+  await expect(page.locator(".result-row")).toHaveCount(2);
+  await expect(page.getByRole("button", { name: "下一页", exact: true })).toBeDisabled();
+  await expect(jump).toHaveValue("64");
+  await jump.fill("65");
+  await jump.press("Enter");
+  expect(await jump.evaluate((el: HTMLInputElement) => el.validity.rangeOverflow)).toBe(true);
+  await expect(page.locator(".results-footer")).toContainText("1891–1892");
+  await jump.fill("1");
+  await jump.press("Enter");
+  await expect(page.locator(".result-row")).toHaveCount(30);
+  await expect(page.locator(".results-footer")).toContainText("1–30");
+  await page.screenshot({ path: "screenshots/collection-page-jump.png", animations: "disabled" });
+});
+
+test("deselecting this page preserves selections from other pages", async ({ page }) => {
+  await page.goto("/app");
+  await expect(page.locator(".result-row")).toHaveCount(30);
+  await page.getByRole("button", { name: "批量管理", exact: true }).click();
+  await page.getByRole("button", { name: "选择本页", exact: true }).click();
+  await expect(page.locator(".selection-total")).toHaveText("已选择 30 条");
+  await page.getByRole("button", { name: "下一页", exact: true }).click();
+  await expect(page.locator(".results-footer")).toContainText("31–60");
+  await page.getByRole("button", { name: "选择本页", exact: true }).click();
+  await expect(page.locator(".selection-total")).toHaveText("已选择 60 条");
+  await page.getByRole("button", { name: "取消本页选择", exact: true }).click();
+  await expect(page.locator(".selection-total")).toHaveText("已选择 30 条");
+  await expect(page.locator(".result-row[aria-pressed=true]")).toHaveCount(0);
+  await page.getByRole("button", { name: "上一页", exact: true }).click();
+  await expect(page.locator(".result-row[aria-pressed=true]")).toHaveCount(30);
+  await page.getByRole("button", { name: "取消本页选择", exact: true }).click();
+  await expect(page.locator(".selection-total")).toHaveText("已选择 0 条");
+  await expect(page.getByRole("button", { name: "批量操作", exact: true })).toBeDisabled();
+});
+
+test("filter labels explain unfiled and clearing filters keeps the keyword query", async ({ page }) => {
+  await page.goto("/app");
+  await expect(page.locator(".result-row")).toHaveCount(30);
+  const rail = page.locator(".collection-sidebar");
+  await rail.getByRole("textbox", { name: "查找分类" }).fill("开发工具");
+  await rail.getByTitle("开发工具", { exact: true }).click();
+  const search = page.getByRole("textbox", { name: "搜索书签", exact: true });
+  await search.fill("SQLite");
+  await expect(page.locator(".result-title").first()).toContainText("SQLite");
+  await expect(page.getByRole("button", { name: "移除文件夹筛选：开发工具", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "清除筛选", exact: true }).click();
+  await expect(page.locator(".filter-chips")).toHaveCount(0);
+  await expect(search).toHaveValue("SQLite");
+  await expect(page.locator(".result-title").first()).toContainText("SQLite");
+  await rail.getByRole("textbox", { name: "查找分类" }).fill("");
+  await rail.getByRole("button", { name: "未分类", exact: true }).click();
+  const remove = page.getByRole("button", { name: "移除文件夹筛选：未分类", exact: true });
+  await expect(remove).toBeVisible();
+  await expect(page.locator(".filter-value")).toHaveText("未分类");
+  await remove.click();
+  await expect(search).toHaveValue("SQLite");
+  await expect(page.locator(".result-title").first()).toContainText("SQLite");
+});
+
+test("collection typography stays readable across views and larger user text settings", async ({ page }) => {
+  await page.goto("/app");
+  await expect(page.locator(".result-row")).toHaveCount(30);
+  const typography = await page.evaluate(() => {
+    const size = (selector: string) => parseFloat(getComputedStyle(document.querySelector(selector)!).fontSize);
+    return { title: size(".result-title"), summary: size(".result-summary"), source: size(".result-source"),
+      category: size(".collection-sidebar .facet-option"), action: size(".library-tools .primary"),
+      search: size(".search-box input"), weight: getComputedStyle(document.querySelector(".result-title")!).fontWeight,
+      tracking: getComputedStyle(document.querySelector(".toolbar-location h1")!).letterSpacing };
+  });
+  expect(typography.title).toBeGreaterThanOrEqual(18);
+  expect(typography.summary).toBeGreaterThanOrEqual(14);
+  expect(typography.source).toBeGreaterThanOrEqual(12);
+  expect(typography.category).toBeGreaterThanOrEqual(14);
+  expect(typography.action).toBeGreaterThanOrEqual(14);
+  expect(typography.search).toBeGreaterThanOrEqual(16);
+  expect(Number(typography.weight)).toBeGreaterThanOrEqual(700);
+  expect(["normal", "0px"]).toContain(typography.tracking);
+  await page.getByRole("button", { name: "列表视图", exact: true }).click();
+  expect(await page.locator(".result-title").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(18);
+  await page.evaluate(() => { document.documentElement.style.fontSize = "125%"; });
+  expect(await page.locator(".result-title").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(22.5);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)).toBe(false);
+  await page.screenshot({ path: "screenshots/collection-text-125.png", animations: "disabled" });
+  await page.evaluate(() => { document.documentElement.style.fontSize = ""; });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.locator(".result-title").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(18);
+  await page.screenshot({ path: "screenshots/collection-readable-mobile-list.png", animations: "disabled" });
+  await page.getByRole("button", { name: "筛选收藏", exact: true }).click();
+  const option = page.locator(".sidebar .facet-option").first();
+  expect(await option.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(14);
+  await writeFile("screenshots/collection-typography.json", JSON.stringify(typography, null, 2));
+});
+
 test("repeating the active category during a slow request does not leave loading stuck", async ({ page }) => {
   await page.goto("/app");
   await expect(page.locator(".result-row")).toHaveCount(30);

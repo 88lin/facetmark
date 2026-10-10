@@ -56,6 +56,13 @@ libraries. Categories sit beside browsing and yield to the reader when a page op
 do not permanently divide reading into three columns. No hand-drawn borders or
 candy-colored dashboards.
 
+On 2026-10-10 the user rejected the resulting type as too small and thin and asked
+for further visual and functional refinement without more preference questions.
+Keep the useful browsing area while improving text size, weight and hierarchy.
+Card/list switching must not shrink titles; category names and routine controls
+must be comfortably readable. Carry the user's current category into collection
+actions, make active filters explicit, and support efficient navigation in large libraries.
+
 ## Evidence on Hand
 
 Synthetic demo corpus in the repository. CI captures must identify demo data.

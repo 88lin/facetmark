@@ -22,13 +22,17 @@ export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch
   onAction: (action: LibraryAction) => void;
 }) {
   const t = useText();
+  const pageSelected = pageIds.length > 0 && pageIds.every(id => ids.includes(id));
   return <div className={`library-tools ${batch ? "selecting" : ""}`}>
     {batch ? <>
       <span className="selection-total" role="status">{t(`已选择 ${ids.length} 条`, `${ids.length} selected`)}</span>
-      <button className="text-button" disabled={!pageIds.length || pending} onClick={() => onIds([...new Set([...ids, ...pageIds])].slice(0, 1000))}>{t("选择本页", "Select this page")}</button>
+      <button className="text-button" aria-pressed={pageSelected} disabled={!pageIds.length || pending}
+        onClick={() => onIds(pageSelected ? ids.filter(id => !pageIds.includes(id)) : [...new Set([...ids, ...pageIds])].slice(0, 1000))}>
+        {pageSelected ? t("取消本页选择", "Deselect this page") : t("选择本页", "Select this page")}</button>
       <button className="secondary" disabled={!ids.length || disabled || pending} onClick={() => onAction({ kind: "bulk", ids })}><ListChecks size={15}/>{t("批量操作", "Actions")}</button>
       <button className="secondary" disabled={!ids.length || pending} onClick={() => onAction({ kind: "export" })}><Download size={15}/>{t("导出所选", "Export selected")}</button>
       <button className="text-button" onClick={() => onBatch(false)}>{t("完成选择", "Done")}</button>
+      {ids.length >= 1000 && <span className="selection-limit" role="status">{t("一次最多选择 1000 条", "Select up to 1,000 at a time")}</span>}
     </> : <>
       <button className="primary" aria-label={t("新增收藏", "Add bookmark")} disabled={disabled} onClick={() => onAction({ kind: "create" })}><Plus size={15}/><span className="action-full">{t("新增收藏", "Add bookmark")}</span><span className="action-short" aria-hidden="true">{t("新增", "Add")}</span></button>
       <button className="secondary" aria-label={t("批量管理", "Select")} disabled={!pageIds.length || disabled || pending} onClick={() => onBatch(true)}><ListChecks size={15}/><span className="action-full">{t("批量管理", "Select")}</span><span className="action-short" aria-hidden="true">{t("批量", "Select")}</span></button>
@@ -67,15 +71,16 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
   const source = action.kind === "edit" ? action.record : null;
   const [url, setUrl] = useState(source?.url || "");
   const [title, setTitle] = useState(source?.title || "");
-  const [folder, setFolder] = useState(source?.folder || "");
-  const [tags, setTags] = useState<string[]>(source?.tags || []);
+  const [folder, setFolder] = useState(source?.folder ?? filters.folder ?? "");
+  const [tags, setTags] = useState<string[]>(source?.tags || (action.kind === "create" && filters.tag ? [filters.tag] : []));
   const [operation, setOperation] = useState("move");
-  const [taxonomy, setTaxonomy] = useState("folder");
+  const [taxonomy, setTaxonomy] = useState(filters.folder === undefined && filters.tag !== undefined ? "tag" : "folder");
   const [taxonomyAction, setTaxonomyAction] = useState("rename");
-  const [name, setName] = useState("");
+  const [name, setName] = useState(filters.folder ?? filters.tag ?? "");
   const [newName, setNewName] = useState("");
   const [format, setFormat] = useState("json");
-  const [scope, setScope] = useState(selectedIds.length ? "selected" : searching ? "page" : "all");
+  const [scope, setScope] = useState(selectedIds.length ? "selected" : searching ? "page" :
+    Object.values(filters).some(value => value !== undefined) ? "filtered" : "all");
   const [confirmed, setConfirmed] = useState(false);
   const [force, setForce] = useState(false);
   const [busy, setBusy] = useState(false);

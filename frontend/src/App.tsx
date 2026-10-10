@@ -125,6 +125,7 @@ function Workbench({
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
   const [offset, setOffset] = useState(0);
+  const [pageInput, setPageInput] = useState("1");
   const [depth, setDepth] = useState<number>();
   const [loadedPage, setPage] = useState<Page | null>(null);
   const [loadedContext, setLoadedContext] = useState("");
@@ -393,6 +394,13 @@ function Workbench({
   const resultContext = JSON.stringify([search, offset, filterKey]);
   const page = loadedContext === resultContext ? loadedPage : null;
   const scopePending = loading || !page || Boolean(error);
+  const activeFilters = Object.entries(filters).filter(([, value]) => value !== undefined);
+  const pageSize = page?.limit || 30;
+  const currentPage = Math.floor(offset / pageSize) + 1;
+  const sameLoadedScope = loadedContext === JSON.stringify([search, loadedPage?.offset, filterKey]);
+  const paginationPage = page || (sameLoadedScope ? loadedPage : null);
+  const pageCount = Math.max(1, Math.ceil((paginationPage?.total || 0) / pageSize));
+  useEffect(() => setPageInput(String(currentPage)), [currentPage, filterKey, search]);
   useEffect(() => {
     setSelectedIds([]);
     setBatchMode(false);
@@ -559,6 +567,22 @@ function Workbench({
     browseScroll.current = 0;
     setOffset(next);
     list.current?.scrollTo({ top: 0 });
+  }
+  function clearFilters() {
+    if (!activeFilters.length) return;
+    abortRef.current?.abort();
+    requestId.current++;
+    setSelected(null);
+    setFocusReading(false);
+    setFilters({});
+    setOffset(0);
+    setDepth(undefined);
+    browseScroll.current = 0;
+    list.current?.scrollTo({ top: 0 });
+  }
+  function filterName(key: string) {
+    return key === "folder" ? t("文件夹", "Folder") : key === "tag" ? t("标签", "Tag") :
+      key === "domain" ? t("站点", "Site") : t("批次", "Session");
   }
   const select = (id: number, button?: HTMLButtonElement) => {
     if (selected === null) browseScroll.current = list.current?.scrollTop ?? 0;
@@ -958,9 +982,14 @@ function Workbench({
                   className="filter-trigger"
                   onClick={() => setNavOpen(true)}
                   aria-label={t("筛选收藏", "Filter collection")}
+                  aria-describedby={activeFilters.length ? "active-filter-count" : undefined}
                 >
                   <Settings2 size={17} />
                   <span>{t("筛选", "Filters")}</span>
+                  {activeFilters.length > 0 && <>
+                    <span className="filter-indicator" aria-hidden="true">{activeFilters.length}</span>
+                    <span id="active-filter-count" className="sr-only">{t(`已启用 ${activeFilters.length} 项筛选`, `${activeFilters.length} active filters`)}</span>
+                  </>}
                 </button>
               </div>
             </header>
@@ -992,19 +1021,21 @@ function Workbench({
                     </div>}
                   </div>
                 </div>
-                {Object.entries(filters).some(([, v]) => v !== undefined) && (
-                  <div className="filter-chips">
-                    {Object.entries(filters)
-                      .filter(([, value]) => value !== undefined)
-                      .map(([key, value]) => (
+                {activeFilters.length > 0 && (
+                  <div className="filter-chips" aria-label={t("当前筛选", "Active filters")}>
+                    {activeFilters.map(([key, value]) => (
                         <button
                           key={key}
+                          title={`${filterName(key)}: ${value === "" ? t("未分类", "Unfiled") : value}`}
+                          aria-label={t(`移除${filterName(key)}筛选：${value === "" ? "未分类" : value}`, `Remove ${filterName(key)} filter: ${value === "" ? "Unfiled" : value}`)}
                           onClick={() => selectFilter(key as keyof Filters, undefined)}
                         >
-                          {key === "session" ? t("批次", "Session") : ""} {value}
-                          <X size={12} />
+                          <span className="filter-kind">{filterName(key)}</span>
+                          <span className="filter-value">{value === "" ? t("未分类", "Unfiled") : value}</span>
+                          <X size={14} aria-hidden="true" />
                         </button>
                       ))}
+                    <button className="clear-filters" onClick={clearFilters}>{t("清除筛选", "Clear filters")}</button>
                   </div>
                 )}
               </header>
@@ -1152,6 +1183,19 @@ function Workbench({
                     : t("你的收藏，只在你的书库", "Your collection, in your library")}
                 </span>
                 <div>
+                  {selected === null && pageCount > 1 && !paginationPage?.depth_capped && <form className="page-jump"
+                    onSubmit={event => {
+                      event.preventDefault();
+                      const target = Number(pageInput);
+                      if (!scopePending && Number.isInteger(target) && target >= 1 && target <= pageCount)
+                        paginate((target - 1) * pageSize);
+                    }}>
+                    <input type="number" min={1} max={pageCount} required inputMode="numeric"
+                      aria-label={t("跳转页码", "Page to jump to")} value={pageInput} disabled={scopePending}
+                      onChange={event => setPageInput(event.target.value)} />
+                    <span aria-label={t(`共 ${pageCount} 页`, `${pageCount} pages`)}>/ {pageCount}</span>
+                    <button type="submit" disabled={scopePending}>{t("跳转", "Go")}</button>
+                  </form>}
                   <button
                     className="icon-button"
                     disabled={!page?.offset || loading}

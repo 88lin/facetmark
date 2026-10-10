@@ -297,11 +297,52 @@ test("export downloads honor search-page, selected and category scopes", async (
   await page.locator(".facet-nav").getByTitle(folder, { exact: true }).click();
   await expect(page.locator(".result-row")).toHaveCount(2);
   await page.getByRole("button", { name: "导出", exact: true }).click();
-  await dialog.getByRole("combobox", { name: "导出范围", exact: true }).selectOption("filtered");
+  await expect(dialog.getByRole("combobox", { name: "导出范围", exact: true })).toHaveValue("filtered");
   const filtered = await download(page, dialog);
   expect(filtered.request).toMatchObject({ filters: { folder } });
   expect(filtered.request.ids).toBeUndefined();
   expect(JSON.parse(filtered.content).bookmarks.map((bookmark: Bookmark) => bookmark.url).sort()).toEqual([first.url, second.url].sort());
+});
+
+test("creation, organization and export start in the category the user is browsing", async ({ page, library }) => {
+  const token = marker();
+  const folder = `${token}/需要整理的研究资料`;
+  const tag = `${token} 阅读计划`;
+  const first = await library.create({ folder, tags: [tag] });
+  const outside = await library.create({ folder: `${token}/其他资料`, tags: [tag] });
+  await page.goto("/app");
+  const rail = page.locator(".collection-sidebar");
+  await rail.getByRole("textbox", { name: "查找分类" }).fill(folder);
+  await rail.getByTitle(folder, { exact: true }).click();
+  await expect(page.locator(".result-row")).toHaveCount(1);
+  await page.getByRole("button", { name: "整理分类", exact: true }).click();
+  let dialog = page.getByRole("dialog");
+  await expect(dialog.getByLabel("当前名称", { exact: true })).toHaveValue(folder);
+  await dialog.getByRole("button", { name: "取消", exact: true }).click();
+  await rail.getByRole("button", { name: "标签", exact: true }).click();
+  await rail.getByRole("textbox", { name: "查找分类" }).fill(tag);
+  await rail.getByTitle(tag, { exact: true }).click();
+  await page.getByRole("button", { name: "新增收藏", exact: true }).click();
+  dialog = page.getByRole("dialog");
+  await expect(dialog.getByLabel("收藏文件夹", { exact: true })).toHaveValue(folder);
+  await expect(dialog.getByRole("button", { name: `移除标签 ${tag}`, exact: true })).toBeVisible();
+  await dialog.getByLabel("收藏网址", { exact: true }).fill(`https://library-ui.example/${token}/context`);
+  await dialog.getByLabel("收藏标题", { exact: true }).fill("在当前分类里保存一条新收藏");
+  await page.screenshot({ path: "screenshots/library-context-create.png", animations: "disabled" });
+  const response = page.waitForResponse(res => new URL(res.url()).pathname === "/admin/library/bookmarks" && res.request().method() === "POST");
+  await save(dialog);
+  const created = await (await response).json() as Bookmark;
+  library.remember(created.bookmark_id);
+  expect(await library.read(created.bookmark_id)).toMatchObject({ folder, tags: [tag] });
+  await expect(page.locator(".result-row")).toHaveCount(2);
+  await page.getByRole("button", { name: "导出", exact: true }).click();
+  dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("combobox", { name: "导出范围", exact: true })).toHaveValue("filtered");
+  const exported = await download(page, dialog);
+  expect(exported.request).toMatchObject({ filters: { folder, tag } });
+  expect(JSON.parse(exported.content).bookmarks.map((bookmark: Bookmark) => bookmark.url).sort())
+    .toEqual([first.url, created.url].sort());
+  expect(exported.content).not.toContain(outside.url);
 });
 
 test("taxonomy merges exact names and removes labels without deleting bookmarks", async ({ page, library }) => {

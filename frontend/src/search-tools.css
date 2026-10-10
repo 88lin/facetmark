@@ -72,21 +72,21 @@
 
 .query-suggestions-heading strong {
   color: var(--ink);
-  font-size: 14px;
-  font-weight: 650;
+  font-size: var(--type-body);
+  font-weight: 700;
 }
 
 .query-suggestions-heading > span {
   flex-shrink: 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--type-caption);
   font-variant-numeric: tabular-nums;
 }
 
 .query-suggestions .query-suggestions-intro {
   margin: 8px 8px 12px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--type-meta);
   line-height: 1.65;
   overflow-wrap: anywhere;
 }
@@ -151,14 +151,14 @@
 }
 
 .query-suggestion-label {
-  font-size: 13px;
+  font-size: var(--type-ui);
   font-weight: 600;
   line-height: 1.45;
 }
 
 .query-suggestion-detail {
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--type-caption);
   line-height: 1.5;
 }
 
@@ -179,7 +179,7 @@
   min-height: 82px;
   padding: 16px 10px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--type-ui);
   line-height: 1.6;
 }
 
@@ -192,7 +192,7 @@
   min-height: 32px;
   padding: 5px 14px;
   border-radius: var(--radius-pill);
-  font-size: 12px;
+  font-size: var(--type-ui);
 }
 
 .query-suggestions .query-suggestions-footer {
@@ -204,7 +204,7 @@
   padding: 11px 16px;
   border-top: 1px solid var(--rule);
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-caption);
 }
 
 .query-suggestions-footer > span {
@@ -220,7 +220,7 @@
   background: var(--inset);
   color: var(--muted);
   font-family: inherit;
-  font-size: 10px;
+  font-size: var(--type-caption);
   line-height: 1.5;
 }
 
