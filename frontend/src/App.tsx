@@ -1018,6 +1018,13 @@ function Workbench({
                         { value: "list", label: t("列表视图", "List view"), Icon: List }].map(({ value, label, Icon }) =>
                         <button key={value} type="button" aria-label={label} title={label} aria-pressed={collectionLayout === value}
                           onClick={() => { setCollectionLayout(value); remember("fm-collection-layout", value); }}><Icon size={16} /></button>)}
+                      <button className="collection-view-toggle" type="button"
+                        aria-label={collectionLayout === "grid" ? t("列表视图", "List view") : t("卡片视图", "Card view")}
+                        title={collectionLayout === "grid" ? t("列表视图", "List view") : t("卡片视图", "Card view")}
+                        onClick={() => {
+                          const value = collectionLayout === "grid" ? "list" : "grid";
+                          setCollectionLayout(value); remember("fm-collection-layout", value);
+                        }}>{collectionLayout === "grid" ? <List size={16} /> : <LayoutGrid size={16} />}</button>
                     </div>}
                   </div>
                 </div>

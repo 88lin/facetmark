@@ -679,6 +679,7 @@
   color: var(--accent);
   background: var(--soft);
 }
+.collection-view-switch .collection-view-toggle { display: none; }
 .facet-browser {
   display: flex;
   flex-direction: column;
@@ -690,8 +691,9 @@
 .facet-browser-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 26px; }
 .facet-browser-heading h2 { font-size: 1rem; margin: 0; font-weight: 700; }
 .facet-browser-heading > span { font-size: var(--type-caption); color: var(--muted); }
-.facet-types { display: flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--inset); }
-.facet-types button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 38px; padding: 4px 5px; font-size: var(--type-ui); font-weight: 600; border-radius: 999px; color: var(--secondary-ink); }
+.facet-types { display: flex; flex-wrap: wrap; padding: 3px; gap: 2px; border-radius: 999px; background: var(--inset); }
+.facet-types button { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 38px; padding: 4px 5px; font-size: var(--type-ui); font-weight: 600; border-radius: 999px; color: var(--secondary-ink); white-space: nowrap; }
+.facet-types button > svg { flex-shrink: 0; }
 .facet-types button[aria-pressed="true"] { background: var(--canvas); color: var(--accent); font-weight: 700; }
 .facet-search { display: flex; gap: 8px; align-items: center; min-height: 40px; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--canvas); color: var(--muted); }
 .facet-search:focus-within { border-color: var(--accent); }
@@ -738,11 +740,14 @@
 @media (max-width: 719px) {
   .search-header .library-tools { gap: 4px; }
   .search-header .library-tools .primary,
-  .search-header .library-tools .secondary { min-height: 44px; padding: 8px; gap: 4px; }
+  .search-header .library-tools .secondary { min-height: 44px; padding: 8px 6px; gap: 4px; }
   .library-tools .action-full { display: none; }
   .library-tools .action-short { display: inline; }
   .collection-view-switch { padding: 0; border: 0; gap: 0; }
   .collection-view-switch button { width: 44px; height: 44px; }
+  .collection-view-switch button:not(.collection-view-toggle) { display: none; }
+  .collection-view-switch .collection-view-toggle { display: grid; color: var(--accent); background: var(--soft); }
+  .search-header { column-gap: 6px; }
   .search-header .search-controls { margin-left: auto; }
   .facet-types button, .facet-browser .facet-option, .facet-browser .facet-load-more { min-height: 44px; }
   .facet-search { min-height: 44px; }

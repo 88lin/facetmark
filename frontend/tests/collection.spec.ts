@@ -31,7 +31,7 @@ test("a large collection leaves useful browsing space in short desktop and mobil
         overflow: document.documentElement.scrollWidth > innerWidth + 1 };
     });
     expect(size.overflow).toBe(false);
-    expect(size.top).toBeLessThanOrEqual(viewport.width < 720 ? 280 : 180);
+    expect(size.top).toBeLessThanOrEqual(viewport.width < 720 ? 230 : 180);
     expect(size.height / size.viewport).toBeGreaterThanOrEqual(viewport.width < 720 ? .58 : .63);
     expect(size.fullyVisible).toBeGreaterThanOrEqual(viewport.width < 720 ? 2 : viewport.width < 1120 ? 4 : 6);
     if (viewport.width >= 960) {
@@ -47,6 +47,15 @@ test("a large collection leaves useful browsing space in short desktop and mobil
   }
   expect(errors).toEqual([]);
   await writeFile("screenshots/collection-density.json", JSON.stringify({ data: "1892 synthetic bookmarks, over 240 folders", measurements }, null, 2));
+  await page.evaluate(() => localStorage.setItem("fm-language", "en"));
+  // Override this test's default language before checking expanded English actions.
+  await page.addInitScript(() => localStorage.setItem("fm-language", "en"));
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Add bookmark", exact: true })).toBeVisible();
+  await expect(page.locator(".result-row")).toHaveCount(30);
+  expect((await page.locator(".result-list").boundingBox())!.y).toBeLessThanOrEqual(230);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)).toBe(false);
+  await page.screenshot({ path: "screenshots/collection-en-mobile.png", animations: "disabled" });
 });
 
 test("a mouse can scroll and page the category directory, then search beyond the old 200-item ceiling", async ({ page, request }) => {
@@ -178,11 +187,15 @@ test("collection typography stays readable across views and larger user text set
   expect(typography.search).toBeGreaterThanOrEqual(16);
   expect(Number(typography.weight)).toBeGreaterThanOrEqual(700);
   expect(["normal", "0px"]).toContain(typography.tracking);
+  const categoryLabelsStayOnOneLine = () => page.locator(".collection-sidebar .facet-types button span").evaluateAll(labels =>
+    labels.every(label => label.getBoundingClientRect().height <= parseFloat(getComputedStyle(label).lineHeight) + 1));
+  expect(await categoryLabelsStayOnOneLine()).toBe(true);
   await page.getByRole("button", { name: "列表视图", exact: true }).click();
   expect(await page.locator(".result-title").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(18);
   await page.evaluate(() => { document.documentElement.style.fontSize = "125%"; });
   expect(await page.locator(".result-title").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(22.5);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)).toBe(false);
+  expect(await categoryLabelsStayOnOneLine()).toBe(true);
   await page.screenshot({ path: "screenshots/collection-text-125.png", animations: "disabled" });
   await page.evaluate(() => { document.documentElement.style.fontSize = ""; });
   await page.setViewportSize({ width: 390, height: 844 });
