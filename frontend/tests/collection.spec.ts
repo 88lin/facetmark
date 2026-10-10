@@ -4,7 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.addInitScript(() => {
-    localStorage.setItem("fm-language", "zh");
+    if (!localStorage.getItem("fm-language")) localStorage.setItem("fm-language", "zh");
     if (!localStorage.getItem("fm-collection-layout")) localStorage.setItem("fm-collection-layout", "grid");
   });
   await page.route("**/*", route => new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort());
