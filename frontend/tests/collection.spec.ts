@@ -137,9 +137,9 @@ test("deselecting this page preserves selections from other pages", async ({ pag
   await expect(page.locator(".selection-total")).toHaveText("已选择 60 条");
   await page.getByRole("button", { name: "取消本页选择", exact: true }).click();
   await expect(page.locator(".selection-total")).toHaveText("已选择 30 条");
-  await expect(page.locator(".result-row[aria-pressed=true]")).toHaveCount(0);
+  await expect(page.locator(".bookmark-check:checked")).toHaveCount(0);
   await page.getByRole("button", { name: "上一页", exact: true }).click();
-  await expect(page.locator(".result-row[aria-pressed=true]")).toHaveCount(30);
+  await expect(page.locator(".bookmark-check:checked")).toHaveCount(30);
   await page.getByRole("button", { name: "取消本页选择", exact: true }).click();
   await expect(page.locator(".selection-total")).toHaveText("已选择 0 条");
   await expect(page.getByRole("button", { name: "批量操作", exact: true })).toBeDisabled();
@@ -242,7 +242,7 @@ test("repeated Enter and unchanged IME completion always settle the current sear
   await page.goto("/app");
   await expect(page.locator(".result-row")).toHaveCount(30);
   let calls = 0;
-  await page.route("**/quick?**", async route => {
+  await page.route("**/bookmarks?**", async route => {
     calls++;
     const response = await route.fetch();
     await new Promise(resolve => setTimeout(resolve, 450));
@@ -270,7 +270,7 @@ test("changing a category closes the old reader and fails closed until the new s
   await expect(page.locator(".result-row")).toHaveCount(30);
   await page.getByRole("button", { name: "下一页", exact: true }).click();
   await expect(page.locator(".results-footer")).toContainText("31–60");
-  await page.locator(".result-row").first().click();
+  await page.locator(".result-row").first().locator(".bookmark-preview").click();
   await expect(page.locator(".body-text")).toBeVisible();
   await page.getByRole("button", { name: "筛选收藏", exact: true }).click();
   const menu = page.locator(".sidebar");

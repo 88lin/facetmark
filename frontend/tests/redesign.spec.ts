@@ -49,7 +49,7 @@ test("reader tabs, expansion reversal and keyboard preserve query and scroll con
   const input = page.getByRole("textbox", { name: "搜索书签" });
   await input.fill("tag:demo");
   await expect(page.locator(".result-row")).toHaveCount(30);
-  await page.locator(".result-row").first().click();
+  await page.locator(".result-row").first().locator(".bookmark-preview").click();
   await expect(page.locator(".body-text")).toBeVisible();
   await page.getByLabel("跳转到章节").selectOption({ label: "从摘要回到原文" });
   await expect
@@ -97,7 +97,7 @@ test("reader tabs, expansion reversal and keyboard preserve query and scroll con
     .poll(() => page.locator(".preview-pane").evaluate((el) => getComputedStyle(el).transform))
     .toBe("none");
   await page.keyboard.press("Escape");
-  await expect(page.locator(".result-row").first()).toBeFocused();
+  await expect(page.locator(".result-row").first().locator(".bookmark-preview")).toBeFocused();
   await expect(input).toHaveValue("tag:demo");
 
   // Keep a real, visible selection in a scrolled index so focus restoration
@@ -127,25 +127,25 @@ test("reader tabs, expansion reversal and keyboard preserve query and scroll con
 test("narrow reader reverses, contains focus and supports reduced motion", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 860 });
   await page.goto("/app");
-  await page.locator(".result-row").first().click();
+  await page.locator(".result-row").first().locator(".bookmark-preview").click();
   await expect(page.locator(".body-text")).toBeVisible();
   await expect
     .poll(() => page.locator(".preview-drawer").evaluate((el) => getComputedStyle(el).transform))
     .toBe("none");
   await page.screenshot({ path: "screenshots/reader-zh-1024.png", animations: "disabled" });
   await page.getByRole("button", { name: "返回收藏" }).click();
-  await expect(page.locator(".result-row").first()).toBeFocused();
-  await page.locator(".result-row").nth(1).dispatchEvent("click");
+  await expect(page.locator(".result-row").first().locator(".bookmark-preview")).toBeFocused();
+  await page.locator(".result-row").nth(1).locator(".bookmark-preview").dispatchEvent("click");
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.locator(".preview-title h1")).toHaveText(
     await page.locator(".result-title").nth(1).innerText(),
   );
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.locator(".result-row").nth(1)).toBeFocused();
+  await expect(page.locator(".result-row").nth(1).locator(".bookmark-preview")).toBeFocused();
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 960 });
-  await page.locator(".result-row").first().click();
+  await page.locator(".result-row").first().locator(".bookmark-preview").click();
   await page.locator(".focus-reading").click();
   await expect
     .poll(() => page.locator(".preview-pane").evaluate((el) => getComputedStyle(el).transform))
@@ -193,14 +193,14 @@ test("loading, empty, failure and long-title states have real rendered evidence"
     data.title = title;
     await route.fulfill({ json: data });
   });
-  await page.locator(".result-row").first().click();
+  await page.locator(".result-row").first().locator(".bookmark-preview").click();
   await expect(page.locator(".preview-title h1")).toHaveText(title);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: "screenshots/state-long-title.png", animations: "disabled" });
   await page.getByRole("textbox", { name: "搜索书签" }).fill("zzfacetmarknonexistent987654321");
   await expect(page.getByText("换一点线索试试")).toBeVisible();
   await page.screenshot({ path: "screenshots/state-empty.png", animations: "disabled" });
-  await page.route("**/quick?**", (route) =>
+  await page.route("**/bookmarks?**", (route) =>
     route.fulfill({
       status: 503,
       json: { detail: "Synthetic failure: search temporarily unavailable" },
@@ -209,7 +209,7 @@ test("loading, empty, failure and long-title states have real rendered evidence"
   await page.getByRole("textbox", { name: "搜索书签" }).fill("controlled failure");
   await expect(page.locator(".search-error")).toBeVisible();
   await page.screenshot({ path: "screenshots/state-failure.png", animations: "disabled" });
-  await page.unroute("**/quick?**");
+  await page.unroute("**/bookmarks?**");
   await page.getByRole("button", { name: "重试", exact: true }).click();
   await expect(page.locator(".search-error")).toHaveCount(0);
 });
@@ -233,7 +233,7 @@ test("supporting views and small-window reader share the same system", async ({ 
     expect(meta!.y + meta!.height).toBeLessThanOrEqual(bounds!.y + bounds!.height);
   }
   await page.screenshot({ path: "screenshots/collection-zh-light.png", animations: "disabled" });
-  await page.locator(".result-row").first().focus();
+  await page.locator(".result-row").first().locator(".bookmark-preview").focus();
   await page.screenshot({
     path: "screenshots/collection-keyboard-focus.png",
     animations: "disabled",
@@ -249,14 +249,14 @@ test("supporting views and small-window reader share the same system", async ({ 
   await page.screenshot({ path: "screenshots/tasks-zh-light.png", animations: "disabled" });
   await page.getByRole("button", { name: "全部书签", exact: false }).click();
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.locator(".result-row").first().click();
+  await page.locator(".result-row").first().locator(".bookmark-preview").click();
   await expect(page.locator(".body-text")).toBeVisible();
   await expect
     .poll(() => page.locator(".preview-drawer").evaluate((el) => getComputedStyle(el).transform))
     .toBe("none");
   await page.screenshot({ path: "screenshots/reader-zh-390.png", animations: "disabled" });
   await page.getByRole("button", { name: "返回收藏" }).click();
-  await expect(page.locator(".result-row").first()).toBeFocused();
+  await expect(page.locator(".result-row").first().locator(".bookmark-preview")).toBeFocused();
   await page.getByRole("button", { name: "打开导航", exact: true }).click();
   await page.getByRole("button", { name: "设置", exact: true }).click();
   await expect(page.locator("input[name=chat_model]")).toBeVisible();
@@ -307,7 +307,7 @@ test("record the search-to-reading interaction on the actual shared frontend", a
     .getByRole("textbox", { name: "搜索书签" })
     .pressSequentially("tag:demo", { delay: 95 });
   await page.waitForTimeout(500);
-  await page.locator(".result-row").first().click();
+  await page.locator(".result-row").first().locator(".bookmark-preview").click();
   await expect(page.locator(".body-text")).toBeVisible();
   await page.waitForTimeout(1200);
   await page.locator(".preview-scroll").hover();
@@ -321,14 +321,14 @@ test("record the search-to-reading interaction on the actual shared frontend", a
   await page.waitForTimeout(1100);
   await page.locator(".focus-reading").click();
   await page.waitForTimeout(650);
-  await page.locator(".result-row").nth(1).click();
+  await page.locator(".result-row").nth(1).locator(".bookmark-preview").click();
   await page.waitForTimeout(180);
-  await page.locator(".result-row").nth(2).click();
+  await page.locator(".result-row").nth(2).locator(".bookmark-preview").click();
   await page.waitForTimeout(180);
-  await page.locator(".result-row").first().click();
+  await page.locator(".result-row").first().locator(".bookmark-preview").click();
   await page.waitForTimeout(900);
   await page.keyboard.press("Escape");
-  await expect(page.locator(".result-row").first()).toBeFocused();
+  await expect(page.locator(".result-row").first().locator(".bookmark-preview")).toBeFocused();
   await expect(page.getByRole("textbox", { name: "搜索书签" })).toHaveValue("tag:demo");
   await page.waitForTimeout(700);
   expect(errors).toEqual([]);

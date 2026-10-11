@@ -311,6 +311,7 @@ def pending_targets(
     limit: int | None = None,
     refetch: bool = False,
     ids: Sequence[int] | None = None,
+    after_id: int = 0,
 ) -> list[tuple[int, str, str]]:
     """Bookmarks that channel A should try, as ``(id, url, title)``.
 
@@ -318,8 +319,8 @@ def pending_targets(
     a domain on the exclusion list should never see a request from us at all,
     which means no fetch either -- not merely no LLM call.
     """
-    where = ["b.indexable=1", "b.privacy_skipped=0"]
-    params: list[object] = []
+    where = ["b.indexable=1", "b.privacy_skipped=0", "b.id>?"]
+    params: list[object] = [after_id]
     if ids is not None:
         if not ids:
             return []
@@ -380,6 +381,22 @@ async def crawl(
     progress=None,
 ) -> CrawlReport:
     """Run channel A over the pending set and persist everything it learns."""
+    if ids is None:
+        report = CrawlReport(by_verdict={})
+        after = 0
+        while limit is None or report.attempted < limit:
+            width = min(64, limit - report.attempted) if limit is not None else 64
+            batch = pending_targets(conn, limit=width, refetch=refetch, after_id=after)
+            if not batch:
+                break
+            after = batch[-1][0]
+            result = await crawl(conn, ids=[row[0] for row in batch], refetch=refetch,
+                                 settings=settings, policy=policy, client=client, progress=progress)
+            for key in ("attempted", "stored", "changed", "queued"):
+                setattr(report, key, getattr(report, key) + getattr(result, key))
+            for key, count in (result.by_verdict or {}).items():
+                report.by_verdict[key] = report.by_verdict.get(key, 0) + count
+        return report
     targets = pending_targets(conn, limit=limit, refetch=refetch, ids=ids)
     if not targets:
         return CrawlReport(by_verdict={})
@@ -403,14 +420,21 @@ async def crawl(
         waiting[url].append(bid)
 
     def persist(res: FetchResult) -> None:
-        queued_ids = waiting.get(res.url)
-        if queued_ids:
-            out = save_result(conn, queued_ids.popleft(), res)
-            rep.stored += int(out.stored)
-            rep.changed += int(out.changed)
-            rep.queued += int(out.queued_for_browser)
-        if progress is not None:
-            progress(res)
+        conn.execute("SAVEPOINT fetch_item")
+        try:
+            queued_ids = waiting.get(res.url)
+            if queued_ids:
+                out = save_result(conn, queued_ids.popleft(), res)
+                rep.stored += int(out.stored)
+                rep.changed += int(out.changed)
+                rep.queued += int(out.queued_for_browser)
+            if progress is not None:
+                progress(res)
+        except BaseException:
+            conn.execute("ROLLBACK TO fetch_item")
+            conn.execute("RELEASE fetch_item")
+            raise
+        conn.execute("RELEASE fetch_item")
 
     batch: BatchResult = await fetch_many(
         [t[1] for t in targets], policy=pol, client=client, on_result=persist

@@ -26,6 +26,7 @@ import asyncio
 import contextlib
 import hashlib
 import json
+import re
 import time
 import uuid
 from collections import deque
@@ -37,6 +38,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
 
 from . import service
+from .collection import CollectionScope
 from .config import Settings, split_list
 from .configfile import config_path, external_setting_keys, read_config, update_config
 from .db import open_db
@@ -50,6 +52,7 @@ from .providers import (
     OpenAICompatibleProvider,
     ProviderError,
     SplitProvider,
+    get_embed_provider,
     get_provider,
 )
 
@@ -78,6 +81,7 @@ WRITABLE = (
     "api_key",
     "base_url",
     "chat_base_url", "chat_api_key", "chat_allow_no_key",
+    "chat_backend", "chat_agent", "chat_agent_model", "chat_agent_timeout",
     "embed_base_url", "embed_api_key", "embed_allow_no_key",
     "chat_model",
     "chat_extra_body",
@@ -121,6 +125,10 @@ class _Cancelled(Exception):
     """Raised inside the progress callback to unwind a running index."""
 
 
+class _Paused(Exception):
+    """The durable snapshot remains available for resuming."""
+
+
 # ---------------------------------------------------------------------------
 # job state
 # ---------------------------------------------------------------------------
@@ -147,6 +155,10 @@ class IndexJob:
     bookmark_ids: tuple[int, ...] | None = None
     items_done: int = 0
     items_total: int = 0
+    items_failed: int = 0
+    scope: dict | None = None
+    pause_requested: bool = False
+    snapshot_ready: bool = False
     state: str = "running"  # running | done | failed | cancelled
     stages: list[Stage] = field(default_factory=list)
     log: deque[str] = field(default_factory=lambda: deque(maxlen=200))
@@ -171,11 +183,15 @@ class IndexJob:
             "elapsed": round((self.finished_at or time.monotonic()) - self.started_at, 2),
             "error": self.error,
             "cancel_requested": self.cancel_requested,
+            "pause_requested": self.pause_requested,
+            "snapshot_ready": self.snapshot_ready,
+            "resumable": self.mode != "index" and self.state in {"paused", "interrupted", "cancelled", "failed"},
             "log": list(self.log),
             "params": {"fetch": self.fetch, "limit": self.limit, "force": self.force,
                        "mode": self.mode,
+                       "scope": self.scope,
                        "bookmark_ids": list(self.bookmark_ids) if self.bookmark_ids is not None else None},
-            "items": {"done": self.items_done, "total": self.items_total},
+            "items": {"done": self.items_done, "total": self.items_total, "failed": self.items_failed},
         }
 
 
@@ -209,6 +225,7 @@ class JobRunner:
                 if self.previous.get('state') == 'running':
                     self.previous['state'] = 'interrupted'
                     self.previous['current'] = None
+                    self.previous['resumable'] = self.previous.get('params', {}).get('mode') in {'fetch', 'summarize'}
             except (OSError, ValueError, AttributeError):
                 self.previous = None
 
@@ -220,6 +237,42 @@ class JobRunner:
             with contextlib.suppress(OSError):
                 tmp.chmod(0o600)
             tmp.replace(self.path)
+            history = self.path.parent / "jobs"
+            history.mkdir(exist_ok=True)
+            target = history / f"{self.job.id}.json"
+            tmp = target.with_suffix(".tmp")
+            tmp.write_text(json.dumps(self.job.as_dict()), encoding="utf-8")
+            with contextlib.suppress(OSError):
+                tmp.chmod(0o600)
+            tmp.replace(target)
+
+    def saved(self, job_id: str) -> dict | None:
+        if not re.fullmatch(r"[0-9a-f]{12}", job_id):
+            return None
+        current = self.job.as_dict() if self.job else self.previous
+        if current and current.get("id") == job_id:
+            return current
+        if self.path:
+            try:
+                saved = json.loads((self.path.parent / "jobs" / f"{job_id}.json").read_text(encoding="utf-8"))
+                if saved.get("state") == "running":
+                    saved.update(state="interrupted", resumable=saved.get("params", {}).get("mode") != "index")
+                return saved
+            except (OSError, ValueError, AttributeError):
+                pass
+        return None
+
+    def resumable_jobs(self) -> list[dict]:
+        if not self.path:
+            return []
+        paths = sorted((self.path.parent / "jobs").glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+        result = []
+        for path in paths:
+            if (row := self.saved(path.stem)) and row.get("resumable"):
+                result.append(row)
+                if len(result) == 50:
+                    break
+        return result
 
     async def shutdown(self) -> None:
         if self._task and not self._task.done():
@@ -232,7 +285,9 @@ class JobRunner:
         return self.job is not None and self.job.state == "running"
 
     def start(self, settings: Settings, *, fetch: bool, limit: int | None, force: bool,
-              mode: str = "index", bookmark_ids: list[int] | None = None) -> IndexJob:
+              mode: str = "index", bookmark_ids: list[int] | None = None,
+              scope: dict | None = None, resume_id: str | None = None,
+              snapshot_ready: bool = False) -> IndexJob:
         if self.running:
             raise RuntimeError("an index job is already running")
         if mode not in {"index", "fetch", "summarize"}:
@@ -242,7 +297,7 @@ class JobRunner:
         planned = (("fetch",) if mode == "fetch" else ("enrich",) if mode == "summarize"
                    else INDEX_STAGES if fetch else INDEX_STAGES[1:])
         job = IndexJob(
-            id=uuid.uuid4().hex[:12],
+            id=resume_id or uuid.uuid4().hex[:12],
             fetch=fetch if mode == "index" else mode == "fetch",
             limit=limit,
             force=force,
@@ -250,6 +305,8 @@ class JobRunner:
             planned=planned,
             mode=mode,
             bookmark_ids=tuple(bookmark_ids) if bookmark_ids is not None else None,
+            scope=scope,
+            snapshot_ready=snapshot_ready,
         )
         scope = f"{len(bookmark_ids)} selected" if bookmark_ids is not None else "library"
         job.log.append(f"started: mode={mode} scope={scope} fetch={job.fetch} limit={limit} force={force}")
@@ -257,6 +314,13 @@ class JobRunner:
         self.persist()
         self._task = asyncio.create_task(self._run(job, settings.model_copy(deep=True)))
         return job
+
+    def pause(self) -> bool:
+        if not self.running or self.job.mode == "index":
+            return False
+        self.job.pause_requested = True
+        self.persist()
+        return True
 
     def cancel(self) -> bool:
         """Ask the running job to stop at the next stage boundary.
@@ -292,6 +356,8 @@ class JobRunner:
             last = now
             if job.cancel_requested:
                 raise _Cancelled
+            if job.pause_requested:
+                raise _Paused
 
         try:
             conn = open_db(settings.db_path, same_thread=False)
@@ -315,6 +381,12 @@ class JobRunner:
             job.log.append("cancelled")
             with contextlib.suppress(Exception):
                 conn.commit()
+        except _Paused:
+            job.state = "paused"
+            job.pause_requested = False
+            job.log.append("paused; completed items and remaining scope are saved")
+            with contextlib.suppress(Exception):
+                conn.commit()
         except asyncio.CancelledError:  # pragma: no cover - process shutdown
             job.state = "interrupted"
             job.log.append("interrupted by shutdown; completed items can be reused")
@@ -324,6 +396,10 @@ class JobRunner:
             job.error = safe_error(exc, settings)
             job.log.append(job.error)
         finally:
+            if conn is not None and job.mode != "index":
+                from .processing import update_counts
+                with contextlib.suppress(Exception):
+                    update_counts(conn, job)
             job.finished_at = time.monotonic()
             self.persist()
             if provider is not None:
@@ -333,14 +409,34 @@ class JobRunner:
                 conn.close()
 
     async def _fetch(self, conn, job: IndexJob, settings: Settings, progress):
+        from . import processing
+
+        processing.snapshot(conn, job)
+        self.persist()
+        totals = {"attempted": 0, "stored": 0, "changed": 0, "queued_for_browser": 0}
+        while batch := processing.pending_batch(conn, job):
+            if job.cancel_requested:
+                raise _Cancelled
+            if job.pause_requested:
+                raise _Paused
+            value = await self._fetch_batch(conn, job, settings, batch)
+            for key in totals:
+                totals[key] += value.get(key, 0)
+        value = {**totals, "failed": job.items_failed}
+        progress("fetch", value)
+        return service.IndexReport(steps={"fetch": value})
+
+    async def _fetch_batch(self, conn, job, settings, batch):
+        from . import processing
+
         # Reuse the production selector and fetcher, including privacy flags,
         # robots policy and browser handoff rules.
         targets = fetchstore.pending_targets(
-            conn, ids=job.bookmark_ids, limit=job.limit, refetch=job.force,
+            conn, ids=batch, refetch=job.force,
         )
         selected = [bid for bid, _url, _title in targets]
-        job.items_total = len(selected)
-        self.persist()
+        for bid in set(batch) - set(selected):
+            processing.finished(conn, job, bid)
         before = {
             bid: conn.execute("SELECT body_hash FROM content WHERE bookmark_id=?", (bid,)).fetchone()
             for bid in selected
@@ -365,23 +461,18 @@ class JobRunner:
             # store_body rebuilds body-only FTS rows even when the hash is
             # unchanged. Restore the still-current summary and personal tags.
             service.sync_fts_tag_refresh(conn, bid)
-            conn.commit()
-            job.items_done += 1
-            self.persist()
+            error = None if result.verdict.value == "ok" and result.body else result.verdict.value
+            processing.finished(conn, job, bid, error)
 
         result = await fetchstore.crawl(
             conn, ids=selected, refetch=job.force, settings=settings, progress=finished,
         )
-        value = {**result.as_dict(), "failed": result.attempted - result.stored}
-        progress("fetch", value)
-        return service.IndexReport(steps={"fetch": value})
+        return result.as_dict()
 
     async def _summarize(self, conn, job: IndexJob, settings: Settings, provider, progress):
-        todo = enrichment_targets(
-            conn, ids=job.bookmark_ids, limit=job.limit, force=job.force,
-        )
-        selected = [target.bookmark_id for target in todo]
-        job.items_total = len(selected)
+        from . import processing
+
+        processing.snapshot(conn, job)
         self.persist()
 
         def finished(target, enrichment, _error):
@@ -397,19 +488,35 @@ class JobRunner:
                 conn.execute("DELETE FROM edge WHERE kind='semantic' AND (src=? OR dst=?)",
                              (target.bookmark_id, target.bookmark_id))
                 service.sync_fts_tag_refresh(conn, target.bookmark_id)
-                conn.commit()
-            job.items_done += 1
+            processing.finished(conn, job, target.bookmark_id, _error or None)
+        def after_commit():
             self.persist()
 
-        result = await enrich_all(
-            conn, provider=provider, settings=settings, ids=selected,
-            force=job.force, progress=finished,
-        )
-        # enrich_all's unchanged count covers the whole library. Never claim
-        # those unrelated pages were part of a selected reading action.
-        value = {"considered": result.considered, "enriched": result.enriched,
-                 "failed": result.failed, "queries": result.queries_generated,
-                 "usage": result.usage}
+        queries = 0
+        width = min(64, 2 if settings.chat_backend == "agent" else max(1, settings.enrich_concurrency))
+        while batch := processing.pending_batch(conn, job, size=width):
+            if job.cancel_requested:
+                raise _Cancelled
+            if job.pause_requested:
+                raise _Paused
+            # Only this small batch may load body text or create provider work.
+            todo = enrichment_targets(conn, ids=batch, force=job.force, body_chars=0)
+            eligible = {target.bookmark_id for target in todo}
+            for bid in batch:
+                if bid not in eligible:
+                    processing.finished(conn, job, bid)
+            if eligible:
+                result = await enrich_all(conn, provider=provider, settings=settings,
+                    ids=list(eligible), force=job.force, progress=finished, after_commit=after_commit)
+                queries += result.queries_generated
+            self.persist()
+            if job.pause_requested:
+                raise _Paused
+            if job.cancel_requested:
+                raise _Cancelled
+            await asyncio.sleep(0)
+        value = {"considered": job.items_total, "enriched": job.items_done - job.items_failed,
+                 "failed": job.items_failed, "queries": queries, "usage": provider.usage.as_dict()}
         progress("enrich", value)
         return service.IndexReport(steps={"enrich": value})
 
@@ -422,8 +529,11 @@ class JobRunner:
 class IndexRequest(BaseModel):
     mode: Literal["index", "fetch", "summarize"] = "index"
     bookmark_ids: list[Annotated[int, Field(strict=True, gt=0, le=2**63 - 1)]] | None = Field(
-        default=None, min_length=1, max_length=200,
+        default=None, min_length=1, max_length=10000,
     )
+    scope: CollectionScope | None = None
+    resume_id: str | None = None
+    preview_revision: str | None = None
     fetch: bool = True
     """Crawl page bodies first. Off is the fast path for a re-index."""
     limit: int | None = Field(default=None, ge=1)
@@ -456,6 +566,11 @@ class ProbeRequest(BaseModel):
     base_url: str | None = None
     chat_model: str | None = None
     chat_extra_body: str | None = None
+    chat_model_fallbacks: str | None = None
+    chat_backend: str | None = None
+    chat_agent: str | None = None
+    chat_agent_model: str | None = None
+    chat_agent_timeout: float | None = None
     embed_model: str | None = None
     chat_base_url: str | None = None
     chat_api_key: str | None = None
@@ -468,6 +583,30 @@ class ProbeRequest(BaseModel):
     embed_backend: str | None = None
     local_embed_path: str | None = None
     channel: str | None = None
+
+
+def load_probes(data_dir: Path) -> dict:
+    try:
+        value = json.loads((data_dir / "model-probes.json").read_text(encoding="utf-8"))
+        return {key: row for key, row in value.items()
+                if key in {"chat", "embed"} and isinstance(row, dict)
+                and isinstance(row.get("fingerprint"), str)}
+    except (OSError, ValueError, AttributeError):
+        return {}
+
+
+def library_revision(conn) -> str:
+    return f"{conn.total_changes}:{conn.execute('PRAGMA data_version').fetchone()[0]}"
+
+
+def persist_probes(data_dir: Path, results: dict) -> None:
+    path = data_dir / "model-probes.json"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(results), encoding="utf-8")
+    with contextlib.suppress(OSError):
+        tmp.chmod(0o600)
+    tmp.replace(path)
 
 
 # ---------------------------------------------------------------------------
@@ -499,6 +638,9 @@ def get_chat_provider(settings: Settings):
     """
     if settings.use_mock_provider:
         return MockProvider(settings)
+    if settings.chat_backend == "agent":
+        from .local_agents import LocalAgentProvider
+        return LocalAgentProvider(settings)
     if not settings.channel_ready("chat"):
         raise ProviderError("Chat model is not configured. Configure and test it in Settings.")
     return OpenAICompatibleProvider(settings.channel_settings("chat"))
@@ -535,7 +677,8 @@ def probe_fingerprint(settings: Settings, channel: str) -> str:
     names = ([f'{channel}_base_url', f'{channel}_api_key', f'{channel}_allow_no_key',
               f'{channel}_model', 'use_mock_provider'] +
              (['embed_dim', 'embed_backend', 'local_embed_path', 'embed_send_dimensions']
-              if channel == 'embed' else ['chat_extra_body', 'chat_model_fallbacks']))
+              if channel == 'embed' else ['chat_extra_body', 'chat_model_fallbacks',
+                  'chat_backend', 'chat_agent', 'chat_agent_model', 'chat_agent_timeout']))
     return hashlib.sha256(json.dumps({k: getattr(settings, k) for k in names},
                                     sort_keys=True, default=str).encode()).hexdigest()
 
@@ -614,7 +757,8 @@ async def probe(settings: Settings, channel: str | None = None) -> dict:
     broken.
     """
     try:
-        provider = get_chat_provider(settings) if channel == "chat" else get_provider(settings)
+        provider = (get_chat_provider(settings) if channel == "chat" else
+                    get_embed_provider(settings) if channel == "embed" else get_provider(settings))
     except Exception as exc:
         error = safe_error(exc, settings)
         return {
@@ -750,17 +894,33 @@ def register(app: FastAPI, auth: list) -> None:
 
     @app.post("/admin/index", dependencies=deps)
     @app.post("/admin/jobs/start", dependencies=deps)
+    @app.post("/admin/jobs/resume", dependencies=deps)
     async def admin_index(body: IndexRequest, request: Request) -> dict:
         state = _state(request)
         async with state.lock:
             if state.jobs.running:
                 raise HTTPException(409, "an index job is already running")
-            if body.mode == "index" and body.bookmark_ids is not None:
+            if body.preview_revision is not None and body.preview_revision != library_revision(state.conn):
+                raise HTTPException(409, "The library changed after preview. Close and reopen this action to review its scope.")
+            snapshot_ready = False
+            if body.resume_id:
+                previous = state.jobs.saved(body.resume_id)
+                if not previous or previous.get("id") != body.resume_id or not previous.get("resumable"):
+                    raise HTTPException(409, "This job is no longer resumable")
+                body = IndexRequest(**previous["params"], confirmed=body.confirmed, resume_id=body.resume_id)
+                snapshot_ready = previous.get("snapshot_ready", False)
+            if body.mode == "index" and (body.bookmark_ids is not None or body.scope is not None):
                 raise HTTPException(400, "Selected indexing is not supported; fetch or summarize the selection")
-            if body.bookmark_ids is not None:
-                placeholders = ",".join("?" for _ in body.bookmark_ids)
+            if body.scope is not None:
+                from .collection import predicate
+                try:
+                    predicate(body.scope)
+                except ValueError as exc:
+                    raise HTTPException(422, str(exc)) from None
+            if body.bookmark_ids is not None and not body.resume_id:
                 found = {r[0] for r in state.conn.execute(
-                    f"SELECT id FROM bookmark WHERE id IN ({placeholders})", body.bookmark_ids,
+                    "SELECT id FROM bookmark WHERE id IN(SELECT value FROM json_each(?))",
+                    (json.dumps(body.bookmark_ids),),
                 )}
                 if len(found) != len(body.bookmark_ids):
                     raise HTTPException(404, "One or more selected bookmarks no longer exist")
@@ -786,14 +946,42 @@ def register(app: FastAPI, auth: list) -> None:
             job = state.jobs.start(
                 state.settings, fetch=body.fetch, limit=body.limit, force=body.force,
                 mode=body.mode, bookmark_ids=body.bookmark_ids,
+                scope=body.scope.model_dump() if body.scope is not None else None,
+                resume_id=body.resume_id, snapshot_ready=snapshot_ready,
             )
         return job.as_dict()
+
+    @app.post("/admin/jobs/preview", dependencies=deps)
+    async def admin_job_preview(body: IndexRequest, request: Request) -> dict:
+        from .processing import preview
+
+        if body.mode == "index":
+            raise HTTPException(400, "Preview supports fetch and summarize")
+        state = _state(request)
+        async with state.lock:
+            try:
+                count = preview(state.conn, scope=body.scope, ids=body.bookmark_ids,
+                                mode=body.mode, force=body.force, limit=body.limit)
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from None
+        return {"total": count, "revision": library_revision(state.conn)}
+
+    @app.post("/admin/jobs/pause", dependencies=deps)
+    async def admin_job_pause(request: Request) -> dict:
+        runner = _state(request).jobs
+        if not runner.pause():
+            raise HTTPException(409, "No pausable task is running")
+        return runner.job.as_dict()
 
     @app.get("/admin/job", dependencies=deps)
     @app.get("/admin/jobs/current", dependencies=deps)
     async def admin_job(request: Request) -> dict:
         runner = _state(request).jobs
         return runner.job.as_dict() if runner.job else (runner.previous or {"state": "idle", "planned": list(INDEX_STAGES)})
+
+    @app.get("/admin/jobs", dependencies=deps)
+    async def admin_saved_jobs(request: Request) -> dict:
+        return {"items": _state(request).jobs.resumable_jobs()}
 
     @app.post("/admin/job/cancel", dependencies=deps)
     @app.post("/admin/jobs/cancel", dependencies=deps)
@@ -907,4 +1095,10 @@ def register(app: FastAPI, auth: list) -> None:
                                                 'result': result[channel]}
             else:
                 state.probe_results.pop(channel, None)
+        persist_probes(state.settings.data_dir, state.probe_results)
         return result
+
+    @app.get("/admin/agents", dependencies=deps)
+    async def local_agents():
+        from .local_agents import available_agents
+        return {"agents": available_agents()}

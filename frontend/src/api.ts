@@ -5,6 +5,9 @@ export type Bookmark = {
   domain: string;
   folder: string;
   summary?: string;
+  summary_basis?: string;
+  summary_status?: "pending" | "done" | "failed";
+  summary_error?: string;
   snippet?: string;
   tags?: string[];
   date_added?: number;
@@ -18,6 +21,7 @@ export type Bookmark = {
   facets?: string[];
 };
 export type Page = {
+  summary_counts?: { total: number; pending: number; done: number; failed: number };
   items?: Bookmark[];
   hits?: Bookmark[];
   total: number;
@@ -29,6 +33,9 @@ export type Page = {
   degraded_from?: string;
 };
 export type Job = {
+  id?: string;
+  resumable?: boolean;
+  pause_requested?: boolean;
   state: string;
   current?: string;
   done?: string[];
@@ -38,7 +45,11 @@ export type Job = {
   cancel_requested?: boolean;
   elapsed?: number;
   params?: { mode?: "index" | "fetch" | "summarize"; bookmark_ids?: number[] };
-  items?: { done: number; total: number };
+  items?: { done: number; total: number; failed?: number };
+};
+export type CollectionScope = {
+  folder?: string; tag?: string; domain?: string; session?: number;
+  q?: string; status?: "all" | "pending" | "done" | "failed"; exclude_ids?: number[];
 };
 export type Setup = {
   library_revision?: string;

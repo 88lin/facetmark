@@ -208,6 +208,7 @@ class OpenAICompatibleProvider(Provider):
         #: Index into ``settings.chat_model_chain()`` that ``chat_json`` starts
         #: from. Only ever moves forward; see ``chat_json``.
         self._chat_at = 0
+        self._json_mode = True
         self.chat_calls: Counter[str] = Counter()
         self.chat_failures: Counter[str] = Counter()
         self._own = client is None
@@ -254,13 +255,26 @@ class OpenAICompatibleProvider(Provider):
         )
 
     async def _chat_once(self, model: str, system: str, user: str) -> dict:
-        data = await self._post("/chat/completions", {
+        payload = {
             **json.loads(self.settings.chat_extra_body or "{}"),
             "model": model,
             "messages": [{"role": "system", "content": system},
                          {"role": "user", "content": user}],
-            "response_format": {"type": "json_object"},
-        })
+        }
+        if self._json_mode:
+            payload["response_format"] = {"type": "json_object"}
+        try:
+            data = await self._post("/chat/completions", payload)
+        except ProviderError as exc:
+            # Several compatible services support chat but reject JSON mode.
+            # Retry only that explicit parameter rejection, never auth/rate errors.
+            error = str(exc).lower()
+            if self._json_mode and any(f"http {code}" in error for code in (400, 422)) and "response_format" in error:
+                self._json_mode = False
+                payload.pop("response_format")
+                data = await self._post("/chat/completions", payload)
+            else:
+                raise
         u = data.get("usage") or {}
         self.usage.calls += 1
         self.usage.prompt_tokens += int(u.get("prompt_tokens") or 0)
@@ -564,6 +578,16 @@ def parse_json_object(text: str) -> dict:
     raise ProviderError(f"model did not return a JSON object: {text[:200]!r}")
 
 
+def get_embed_provider(settings: Settings) -> Provider:
+    if settings.embed_backend == 'local':
+        return LocalEmbeddingProvider(settings)
+    if settings.use_mock_provider:
+        return MockProvider(settings)
+    if settings.channel_ready('embed'):
+        return OpenAICompatibleProvider(settings.channel_settings('embed'))
+    return UnconfiguredProvider(settings, 'embedding')
+
+
 def get_provider(settings: Settings | None = None, **kw) -> Provider:
     s = settings or get_settings()
     # Validate local configuration before allocating any HTTP resources.
@@ -573,12 +597,16 @@ def get_provider(settings: Settings | None = None, **kw) -> Provider:
         return SplitProvider(base, local, settings=s) if local is not None else base
     chat = s.channel_settings('chat')
     embed = s.channel_settings('embed')
-    chat_provider = (OpenAICompatibleProvider(chat, **kw) if s.channel_ready('chat')
-                     else UnconfiguredProvider(s, 'chat'))
+    if s.chat_backend == 'agent':
+        from .local_agents import LocalAgentProvider
+        chat_provider = LocalAgentProvider(s) if s.channel_ready('chat') else UnconfiguredProvider(s, 'chat')
+    else:
+        chat_provider = (OpenAICompatibleProvider(chat, **kw) if s.channel_ready('chat')
+                         else UnconfiguredProvider(s, 'chat'))
     if local is not None:
         embedding = local
     elif s.channel_ready('embed'):
-        if (chat.base_url, chat.api_key, chat.endpoint_allow_no_key) == (embed.base_url, embed.api_key, embed.endpoint_allow_no_key) and s.channel_ready('chat'):
+        if s.chat_backend == 'endpoint' and (chat.base_url, chat.api_key, chat.endpoint_allow_no_key) == (embed.base_url, embed.api_key, embed.endpoint_allow_no_key) and s.channel_ready('chat'):
             return chat_provider
         embedding = OpenAICompatibleProvider(embed, **kw)
     else:

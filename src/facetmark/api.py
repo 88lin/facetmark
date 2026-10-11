@@ -89,7 +89,7 @@ class AppState:
         self.lock = asyncio.Lock()
         #: At most one index run, on its own connection. See `facetmark.admin`.
         self.jobs = admin.JobRunner(self.settings.data_dir)
-        self.probe_results: dict[str, dict] = {}
+        self.probe_results: dict[str, dict] = admin.load_probes(self.settings.data_dir)
         self.token = service.pairing_token(self.settings)
         self.started_at = int(time.time())
         self._provider = None

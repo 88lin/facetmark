@@ -15,46 +15,55 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from . import admin, service
+from .collection import CollectionScope, predicate
 from .db import SchemaMismatch, vec_tables_exist
 from .importers import decode_bookmark_bytes
 from .importers.discovery import discover_bookmark_files
 from .modelspace import space_id, validate_space
 
 
-def browse(conn, *, limit=40, offset=0, folder=None, tag=None, domain=None, session=None):
-    clauses, params = [], []
-    for name, value in [("folder", folder), ("domain", domain)]:
-        if value is not None:
-            clauses.append(f"b.{name} = ?")
-            params.append(value)
-    if tag is not None:
-        clauses.append("EXISTS (SELECT 1 FROM json_each(b.tags) WHERE value = ?)")
-        params.append(tag)
-    if session is not None:
-        clauses.append(
-            "EXISTS (SELECT 1 FROM bookmark_session bs WHERE bs.bookmark_id=b.id AND bs.session_id=?)"
-        )
-        params.append(session)
-    where = " WHERE " + " AND ".join(clauses) if clauses else ""
+def browse(conn, *, limit=40, offset=0, folder=None, tag=None, domain=None, session=None,
+           q="", status="all", sort="newest"):
+    scope = CollectionScope(folder=folder, tag=tag, domain=domain, session=session, q=q, status=status)
+    condition, params = predicate(scope)
+    where = " WHERE " + condition
     total = conn.execute("SELECT count(*) FROM bookmark b" + where, params).fetchone()[0]
+    orders = {"newest": "COALESCE(b.date_added,b.created_at) DESC,b.id DESC",
+              "oldest": "COALESCE(b.date_added,b.created_at),b.id",
+              "title": "b.title COLLATE NOCASE,b.id", "domain": "b.domain,b.title COLLATE NOCASE,b.id"}
+    order = orders[sort]
     rows = conn.execute(
         "SELECT b.id AS bookmark_id, b.url, b.title, b.folder, b.tags, b.domain, b.date_added, "
-        "substr(COALESCE(e.summary,c.body_text,''),1,400) AS summary, "
-        "b.privacy_skipped, e.basis AS summary_basis FROM bookmark b "
-        "LEFT JOIN enrichment e ON e.bookmark_id=b.id LEFT JOIN content c ON c.bookmark_id=b.id"
+        "COALESCE(e.summary,'') AS summary, substr(COALESCE(c.body_text,''),1,400) AS snippet, "
+        "b.privacy_skipped, e.basis AS summary_basis, ef.error AS summary_error, "
+        "CASE WHEN ef.bookmark_id IS NOT NULL THEN 'failed' "
+        "WHEN COALESCE(e.summary,'')!='' THEN 'done' ELSE 'pending' END AS summary_status "
+        "FROM bookmark b LEFT JOIN enrichment e ON e.bookmark_id=b.id "
+        "LEFT JOIN content c ON c.bookmark_id=b.id LEFT JOIN enrichment_failure ef ON ef.bookmark_id=b.id"
         + where
-        + " ORDER BY COALESCE(b.date_added,b.created_at) DESC,b.id DESC LIMIT ? OFFSET ?",
+        + f" ORDER BY {order} LIMIT ? OFFSET ?",
         [*params, limit, offset],
     ).fetchall()
     items = [dict(r) for r in rows]
     for item in items:
         item["tags"] = json.loads(item["tags"])
+    count_where, count_params = predicate(scope, include_status=False)
+    counts = conn.execute(
+        "SELECT count(*) AS total, "
+        "sum(CASE WHEN COALESCE(e.summary,'')!='' AND ef.bookmark_id IS NULL THEN 1 ELSE 0 END) AS done, "
+        "sum(CASE WHEN ef.bookmark_id IS NOT NULL THEN 1 ELSE 0 END) AS failed "
+        "FROM bookmark b LEFT JOIN enrichment e ON e.bookmark_id=b.id "
+        "LEFT JOIN enrichment_failure ef ON ef.bookmark_id=b.id WHERE " + count_where, count_params,
+    ).fetchone()
+    counts = {key: int(counts[key] or 0) for key in ("total", "done", "failed")}
+    counts["pending"] = counts["total"] - counts["done"] - counts["failed"]
     return {
         "items": items,
         "total": total,
         "limit": limit,
         "offset": offset,
         "has_more": offset + len(items) < total,
+        "summary_counts": counts,
     }
 
 
@@ -135,7 +144,14 @@ def register(app: FastAPI, auth: list) -> None:
         tag: str | None = None,
         domain: str | None = None,
         session: int | None = None,
+        q: str = Query("", max_length=4096),
+        status: Literal["all", "pending", "done", "failed"] = "all",
+        sort: Literal["newest", "oldest", "title", "domain"] = "newest",
     ):
+        try:
+            predicate(CollectionScope(folder=folder, tag=tag, domain=domain, session=session, q=q, status=status))
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
         return browse(
             request.app.state.fm.conn,
             limit=limit,
@@ -144,6 +160,7 @@ def register(app: FastAPI, auth: list) -> None:
             tag=tag,
             domain=domain,
             session=session,
+            q=q, status=status, sort=sort,
         )
 
     @app.get("/bookmarks/facets", dependencies=auth)

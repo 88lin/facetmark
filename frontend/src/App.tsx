@@ -42,6 +42,9 @@ import { Locale, useText, type Language } from "./locale";
 import SetupFlow, { Importer } from "./Setup";
 import { ExtensionSettings, Models, UpdateSettings } from "./Settings";
 import { Tasks } from "./Tasks";
+import { BookmarkCard } from "./BookmarkCard";
+import { CollectionTools } from "./CollectionTools";
+import type { CollectionScope } from "./api";
 import { LibraryDialog, LibraryToolbar, type LibraryAction } from "./LibraryTools";
 import { SyncSettings } from "./SyncSettings";
 import { FacetBrowser } from "./FacetBrowser";
@@ -136,6 +139,12 @@ function Workbench({
   const [selected, setSelected] = useState<number | null>(null);
   const [libraryAction, setLibraryAction] = useState<LibraryAction | null>(null);
   const [batchMode, setBatchMode] = useState(false);
+  const [summaryStatus, setSummaryStatus] = useState<CollectionScope["status"]>("all");
+  const [collectionSort, setCollectionSort] = useState("newest");
+  const [summaryDisplay, setSummaryDisplay] = useState<"summary" | "original">("summary");
+  const [allMatching, setAllMatching] = useState(false);
+  const [excludedIds, setExcludedIds] = useState<number[]>([]);
+  const collectionScope: CollectionScope = { ...filters, q: search, status: summaryStatus, exclude_ids: excludedIds };
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [libraryNotice, setLibraryNotice] = useState("");
   const libraryRevision = useRef<string | undefined>(undefined);
@@ -245,7 +254,7 @@ function Workbench({
         setJob(task);
         if (libraryRevision.current === undefined) {
           libraryRevision.current = status.library_revision;
-        } else if (task.state !== "running" && status.library_revision !== libraryRevision.current) {
+        } else if (status.library_revision !== libraryRevision.current) {
           invalidateLibrary();
           libraryRevision.current = status.library_revision;
         }
@@ -391,20 +400,22 @@ function Workbench({
     if (force) setRequestRevision(value => value + 1);
   }
   const filterKey = JSON.stringify(filters);
-  const resultContext = JSON.stringify([search, offset, filterKey]);
+  const resultContext = JSON.stringify([search, offset, filterKey, summaryStatus, collectionSort]);
   const page = loadedContext === resultContext ? loadedPage : null;
   const scopePending = loading || !page || Boolean(error);
   const activeFilters = Object.entries(filters).filter(([, value]) => value !== undefined);
   const pageSize = page?.limit || 30;
   const currentPage = Math.floor(offset / pageSize) + 1;
-  const sameLoadedScope = loadedContext === JSON.stringify([search, loadedPage?.offset, filterKey]);
+  const sameLoadedScope = loadedContext === JSON.stringify([search, loadedPage?.offset, filterKey, summaryStatus, collectionSort]);
   const paginationPage = page || (sameLoadedScope ? loadedPage : null);
   const pageCount = Math.max(1, Math.ceil((paginationPage?.total || 0) / pageSize));
   useEffect(() => setPageInput(String(currentPage)), [currentPage, filterKey, search]);
   useEffect(() => {
     setSelectedIds([]);
     setBatchMode(false);
-  }, [search, filterKey]);
+    setAllMatching(false);
+    setExcludedIds([]);
+  }, [search, filterKey, summaryStatus]);
   const hasSearchContext = Boolean(
     search.trim() ||
       Object.values(filters).some((value) => value !== undefined) ||
@@ -431,7 +442,7 @@ function Workbench({
     abortRef.current = abort;
     const update = (data: Page) => {
       if (id === requestId.current && !abort.signal.aborted) {
-        if (!search.trim() && offset > 0 && offset >= data.total) {
+        if (offset > 0 && offset >= data.total) {
           setOffset(Math.max(0, Math.ceil(data.total / 30) - 1) * 30);
           return;
         }
@@ -446,27 +457,9 @@ function Workbench({
     const timer = setTimeout(
       async () => {
         try {
-          if (!search.trim()) {
-            update(
-              await api<Page>(`/bookmarks?${query({ ...filters, offset, limit: 30 })}`, {
-                signal: abort.signal,
-              }),
-            );
-            return;
-          }
-          const terms = searchTerms;
-          const fast = await api<Page>(`/quick?${query({ q: terms, offset, limit: 30, depth })}`, {
+          update(await api<Page>(`/bookmarks?${query({ ...filters, q: search, status: summaryStatus, sort: collectionSort, offset, limit: 30 })}`, {
             signal: abort.signal,
-          });
-          update(fast);
-          if (semantic) {
-            const full = await post<Page>(
-              "/search",
-              { q: terms, offset, limit: 30, depth: depth ?? fast.depth },
-              abort.signal,
-            );
-            update(full);
-          }
+          }));
         } catch (e) {
           if (id === requestId.current && !abort.signal.aborted) {
             setError(String(e));
@@ -482,7 +475,7 @@ function Workbench({
     };
     // Depth is the returned ranking snapshot; updating it must not restart page one.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paired, view, search, offset, filterKey, semantic, requestRevision]);
+  }, [paired, view, search, offset, filterKey, summaryStatus, collectionSort, requestRevision]);
   useEffect(() => {
     if (selected === null) {
       setPreview(null);
@@ -598,7 +591,7 @@ function Workbench({
   const moveSelection = (step: number) => {
     const next = items[selectedPosition + step];
     const button =
-      list.current?.querySelectorAll<HTMLButtonElement>(".result-row")[selectedPosition + step];
+      list.current?.querySelectorAll<HTMLButtonElement>(".bookmark-preview")[selectedPosition + step];
     if (next) {
       select(next.bookmark_id, button);
       button?.scrollIntoView({ block: "nearest" });
@@ -999,19 +992,25 @@ function Workbench({
             <section className="results-column" inert={focusReading}>
               <header className="search-header">
                 {adminAvailable && selected === null && <LibraryToolbar
-                  batch={batchMode} ids={selectedIds} pageIds={items.map(item => item.bookmark_id)}
+                  batch={batchMode && !allMatching} ids={selectedIds} pageIds={items.map(item => item.bookmark_id)}
                   disabled={job.state === "running"} pending={scopePending}
-                  onBatch={value => { setBatchMode(value); setSelectedIds([]); }}
+                  onBatch={value => { setBatchMode(value); setSelectedIds([]); setAllMatching(false); setExcludedIds([]); }}
                   onIds={setSelectedIds} onAction={setLibraryAction}
                 />}
+                {selected === null && <CollectionTools scope={collectionScope} page={page} display={summaryDisplay} onDisplay={setSummaryDisplay}
+                  sort={collectionSort} onSort={value => { setCollectionSort(value); setOffset(0); }}
+                  onStatus={value => { setSummaryStatus(value); setOffset(0); }} disabled={scopePending}
+                  allMatching={allMatching} selectedCount={allMatching ? Math.max(0, (page?.total || 0) - excludedIds.length) : selectedIds.length}
+                  onAll={() => { setAllMatching(true); setBatchMode(false); setExcludedIds([]); setSelectedIds([]); }}
+                  onClear={() => { setAllMatching(false); setBatchMode(false); setExcludedIds([]); setSelectedIds([]); }}
+                  onSummarizeSelection={() => setLibraryAction({ kind: "process", mode: "summarize", ...(allMatching ? { scope: collectionScope, scopeLabel: t("跨页所选收藏", "Selection across pages") } : { ids: selectedIds }) })}
+                  onAction={setLibraryAction} job={job} refresh={refresh} admin={adminAvailable}/>}
                 <div className="search-controls">
                   <div className="search-meta">
                     <span>
                       {search
-                        ? semantic
-                          ? t("关键词 + 语义检索", "Keyword + semantic search")
-                          : t("关键词检索", "Keyword search")
-                        : t("按收藏时间排列", "Recently saved first")}
+                        ? t("全部关键词匹配", "All keyword matches")
+                        : t("直接打开原网页 · 摘要就地浏览", "Open original pages · Read summaries here")}
                     </span>
                     {selected === null && <div className="collection-view-switch" role="group" aria-label={t("收藏显示方式", "Collection layout")}>
                       {[{ value: "grid", label: t("卡片视图", "Card view"), Icon: LayoutGrid },
@@ -1122,65 +1121,17 @@ function Workbench({
                     )}
                   </div>
                 ) : (
-                  items.map((record, index) => (
-                    <button
-                      data-bookmark-id={record.bookmark_id}
-                      className={`result-row ${selected === record.bookmark_id ? "selected" : ""} ${batchMode && selectedIds.includes(record.bookmark_id) ? "batch-selected" : ""}`}
-                      key={record.bookmark_id}
-                      disabled={scopePending}
-                      onClick={(e) => {
-                        if (batchMode) setSelectedIds((ids) => ids.includes(record.bookmark_id)
-                          ? ids.filter((id) => id !== record.bookmark_id)
-                          : [...ids, record.bookmark_id].slice(0, 1000));
-                        else select(record.bookmark_id, e.currentTarget);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-                          e.preventDefault();
-                          const next = items[index + (e.key === "ArrowDown" ? 1 : -1)];
-                          const button =
-                            list.current?.querySelectorAll<HTMLButtonElement>(".result-row")[
-                              index + (e.key === "ArrowDown" ? 1 : -1)
-                            ];
-                          if (next && button) {
-                            if (!batchMode) select(next.bookmark_id, button);
-                            button.focus();
-                          }
-                        }
-                      }}
-                      aria-pressed={batchMode ? selectedIds.includes(record.bookmark_id) : selected === record.bookmark_id}
-                    >
-                      <span className="result-copy">
-                        <span className="result-source">
-                          {batchMode && <span className="batch-check" aria-hidden="true">{selectedIds.includes(record.bookmark_id) && <Check size={13}/>}</span>}
-                          <span className="site-letter" aria-hidden="true">
-                            {(record.domain || record.title || "F").slice(0, 1).toUpperCase()}
-                          </span>
-                          <span className="source-domain">{record.domain}</span>
-                          {selected === record.bookmark_id ? (
-                            <span className="reading-label">{t("正在阅读", "Reading")}</span>
-                          ) : (
-                            <ArrowRight className="result-open" size={16} aria-hidden="true" />
-                          )}
-                        </span>
-                        <span className="result-title" title={record.title || record.url}>{record.title || record.url}</span>
-                        {(record.snippet || record.summary) &&
-                          (record.snippet || record.summary) !== record.title && (
-                            <span className="result-summary">
-                              {record.snippet || record.summary}
-                            </span>
-                          )}
-                        <span className="result-meta">
-                          <span className="result-folder">
-                            <Folder size={12} />
-                            <span>{record.folder || t("未分类", "Unfiled")}</span>
-                          </span>
-                          <SavedDate seconds={record.date_added} language={language} />
-                        </span>
-                      </span>
-                      <ChevronRight className="row-chevron" size={15} />
-                    </button>
-                  ))
+                  items.map((record) => <BookmarkCard key={record.bookmark_id} record={record}
+                    selected={selected === record.bookmark_id}
+                    checked={allMatching ? !excludedIds.includes(record.bookmark_id) : selectedIds.includes(record.bookmark_id)}
+                    disabled={scopePending} display={summaryDisplay}
+                    onCheck={() => {
+                      if (allMatching) setExcludedIds(ids => ids.includes(record.bookmark_id) ? ids.filter(id => id !== record.bookmark_id) : [...ids, record.bookmark_id].slice(0, 10000));
+                      else { setBatchMode(true); setSelectedIds(ids => ids.includes(record.bookmark_id) ? ids.filter(id => id !== record.bookmark_id) : [...ids, record.bookmark_id].slice(0, 1000)); }
+                    }}
+                    onPreview={button => select(record.bookmark_id, button)}
+                    onSummarize={adminAvailable ? () => setLibraryAction({ kind: "process", mode: "summarize", ids: [record.bookmark_id] }) : undefined}
+                  />)
                 )}
               </div>
               <footer className="results-footer">
@@ -1426,7 +1377,7 @@ function Workbench({
         action={libraryAction}
         onClose={() => setLibraryAction(null)}
         onChanged={libraryChanged}
-        onJobStarted={async () => { await refresh(); setFocusReading(false); openView("tasks"); }}
+        onJobStarted={async () => { await refresh(); setRequestRevision(v => v + 1); }}
         facets={facets}
         setup={setup}
         running={job.state === "running"}

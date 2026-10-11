@@ -14,6 +14,7 @@ import { useText } from "./locale";
 
 export function Models({ setup, refresh }: { setup: Setup | null; refresh: () => Promise<void> }) {
   const t = useText();
+  const [agents, setAgents] = useState<{ id: string; name: string; installed: boolean }[]>([]);
   const [rows, setRows] = useState<Setting[]>([]);
   const [draft, setDraft] = useState<Record<string, unknown>>({});
   const [results, setResults] = useState<Record<string, Probe>>({});
@@ -39,6 +40,12 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
   async function load() {
     const data = await api<{ settings: Setting[] }>("/admin/settings");
     setRows(data.settings);
+    try {
+      const found = await api<{ agents: { id: string; name: string; installed: boolean }[] }>("/admin/agents");
+      setAgents(found.agents);
+      if (!setup?.channels.chat.configured && found.agents.some(a => a.installed) && !data.settings.find(r => r.key === "chat_backend")?.locked)
+        setDraft(current => ({ chat_backend: "agent", ...current }));
+    } catch { /* API configurations remain available if CLI detection fails. */ }
   }
   useEffect(() => {
     load().catch((e) => setError(String(e)));
@@ -70,7 +77,7 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
       setBusy("");
     }
   }
-  async function test(channel: string) {
+  async function test(channel: string, saveAfter = false) {
     await run(channel, async () => {
       const payload = Object.fromEntries(
         Object.entries(draft).filter(
@@ -82,6 +89,12 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
         channel,
       });
       setResults((r) => ({ ...r, [channel]: data[channel] }));
+      if (saveAfter && data[channel]?.ok && data[channel]?.dim_matches !== false) {
+        await api("/admin/settings", { method: "PUT", body: JSON.stringify({ values: payload }) });
+        setDraft(current => Object.fromEntries(Object.entries(current).filter(([key]) => !(key in payload))));
+        await load();
+        setNotice(t("连接已验证并保存，可以开始生成摘要。", "Connection verified and saved. Ready to generate summaries."));
+      }
       await refresh();
     });
   }
@@ -134,11 +147,11 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
   return (
     <section className="models">
       <div className="section-heading">
-        <h2>{t("让两个模型各司其职", "Two models, two clear roles")}</h2>
+        <h2>{t("连接你已经在用的 AI", "Connect the AI you already use")}</h2>
         <p>
           {t(
-            "聊天负责理解与摘要，向量负责语义检索。可以使用不同服务。",
-            "Chat understands and summarizes. Embeddings power semantic search. Each can use a different service.",
+            "摘要可直接使用本机已登录的 Agent，也可连接 API。向量模型仅用于可选的语义检索。",
+            "Use an installed, signed-in agent or a chat API for summaries. Embeddings are optional and only needed for semantic search.",
           )}
         </p>
       </div>
@@ -155,21 +168,38 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
                 </h3>
                 <span className="quiet">{channelStatus(channel)}</span>
               </header>
-              {field(
-                `${channel}_base_url`,
-                t("服务地址", "Base URL"),
-                "url",
-                "https://api.openai.com/v1",
-              )}
-              {field(`${channel}_api_key`, "API Key", "password")}
-              {field(`${channel}_model`, t("模型名称", "Model name"))}
-              {channel === "embed" && field("embed_dim", t("向量维度", "Dimensions"), "number")}
+              {channel === "chat" && <label className="field">{t("摘要来源", "Summary provider")}
+                <select aria-label={t("摘要来源", "Summary provider")} value={String(value("chat_backend") || "endpoint")}
+                  disabled={!!busy || row("chat_backend")?.locked} onChange={e => change("chat_backend", e.target.value)}>
+                  <option value="agent">{t("本机 Agent · 使用已有登录", "Local agent · existing sign-in")}</option>
+                  <option value="endpoint">{t("API 服务", "API endpoint")}</option>
+                </select>
+              </label>}
+              {channel === "chat" && value("chat_backend") === "agent" ? <>
+                <label className="field">{t("选择 Agent", "Agent")}
+                  <select aria-label={t("选择 Agent", "Agent")} value={String(value("chat_agent") || "auto")}
+                    disabled={!!busy || row("chat_agent")?.locked} onChange={e => change("chat_agent", e.target.value)}>
+                    <option value="auto">{t("自动检测可用 Agent", "Auto-detect available agent")}</option>
+                    {agents.map(a => <option key={a.id} value={a.id}>{a.name}{a.installed ? t(" · 已检测到", " · detected") : t(" · 未安装", " · not installed")}</option>)}
+                  </select>
+                </label>
+                <p className="agent-detection" role="status">{agents.some(a => a.installed) ? t(`已检测到：${agents.filter(a => a.installed).map(a => a.name).join("、")}`, `Detected: ${agents.filter(a => a.installed).map(a => a.name).join(", ")}`) : t("未检测到 CLI。安装并登录 Codex 或 Claude Code 后重新检测。", "No CLI detected. Install and sign into Codex or Claude Code, then detect again.")}</p>
+                <button className="text-button" disabled={!!busy} onClick={() => run("detect", load)}>{t("重新检测", "Detect again")}</button>
+                {field("chat_agent_model", t("模型（可留空）", "Model (optional)"), "text", t("沿用 Agent 默认模型", "Use the agent's default model"))}
+                <p className="hint">{t("复用 Agent 的登录与服务配置，无需重复填写 API Key。摘要会通过该 Agent 的模型服务处理。", "Reuses the agent's sign-in and provider configuration. No duplicate API key entry. Summaries are processed by that agent's model service.")}</p>
+              </> : <>
+                {field(`${channel}_base_url`, t("服务地址", "Base URL"), "url", "https://api.openai.com/v1")}
+                {field(`${channel}_api_key`, "API Key", "password")}
+                {field(`${channel}_model`, t("模型名称", "Model name"))}
+                {channel === "embed" && field("embed_dim", t("向量维度", "Dimensions"), "number")}
+              </>}
             </div>
             <div className="model-test">
               <button className="secondary" disabled={!!busy} onClick={() => test(channel)}>
                 {busy === channel ? <LoaderCircle className="spin" /> : <FlaskConical />}
                 {t("测试连接", "Test connection")}
               </button>
+              <button className="primary" disabled={!!busy} onClick={() => test(channel, true)}><Check size={16}/>{t("测试并保存", "Test and save")}</button>
               {results[channel] && (
                 <div
                   role="status"
@@ -210,7 +240,7 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
                 </div>
               )}
             </div>
-            <div className="model-options">
+            {!(channel === "chat" && value("chat_backend") === "agent") && <div className="model-options">
               <label className="check">
                 <input
                   type="checkbox"
@@ -237,7 +267,7 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
                   {t("在请求中指定维度", "Send dimensions in requests")}
                 </label>
               )}
-            </div>
+            </div>}
           </section>
         ))}
       </div>

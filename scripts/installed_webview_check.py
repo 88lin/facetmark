@@ -60,7 +60,7 @@ with sync_playwright() as playwright:
     page.get_by_role('button', name='先用关键词检索', exact=True).click()
     page.get_by_role('textbox', name='搜索书签').fill('合成示例')
     page.locator('.result-row').first.wait_for(timeout=15000)
-    page.locator('.result-row').first.click()
+    page.locator('.bookmark-preview').first.click()
     page.get_by_text('正文还未保存', exact=True).wait_for(timeout=15000)
     page.screenshot(path=str(output / 'installed-reader.png'))
     narrow_reader = page.locator('.preview-drawer').is_visible()

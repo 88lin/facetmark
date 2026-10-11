@@ -155,6 +155,10 @@ class Settings(BaseSettings):
     chat_base_url: str | None = None
     chat_api_key: str | None = None
     chat_allow_no_key: bool = False
+    chat_backend: str = "endpoint"
+    chat_agent: str = "auto"
+    chat_agent_model: str = ""
+    chat_agent_timeout: float = Field(default=180, ge=10, le=1800)
     embed_base_url: str | None = None
     embed_api_key: str | None = None
     embed_allow_no_key: bool = False
@@ -402,6 +406,20 @@ class Settings(BaseSettings):
             raise ValueError(f"embed_backend must be 'endpoint' or 'local', not {v!r}")
         return v
 
+    @field_validator("chat_backend")
+    @classmethod
+    def _chat_backend(cls, value: str) -> str:
+        if value not in {"endpoint", "agent"}:
+            raise ValueError("chat_backend must be endpoint or agent")
+        return value
+
+    @field_validator("chat_agent")
+    @classmethod
+    def _chat_agent(cls, value: str) -> str:
+        if value not in {"auto", "codex", "claude"}:
+            raise ValueError("Unsupported local agent")
+        return value
+
     @field_validator("chat_extra_body")
     @classmethod
     def _chat_options(cls, v: str) -> str:
@@ -451,6 +469,9 @@ class Settings(BaseSettings):
     def channel_ready(self, channel: str) -> bool:
         if self.use_mock_provider:
             return False
+        if channel == 'chat' and self.chat_backend == 'agent':
+            from .local_agents import selected_agent
+            return selected_agent(self.chat_agent) is not None
         if channel == 'embed' and self.embed_backend == 'local':
             return bool(self.local_embed_path)
         try:

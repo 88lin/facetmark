@@ -144,7 +144,7 @@ def test_fetch_needs_no_model_or_embedding_apply_and_respects_selection(client, 
     job = wait_job(client)
     assert job["state"] == "done", job
     assert job["planned"] == job["done"] == ["fetch"]
-    assert job["items"] == {"done": 1, "total": 1}
+    assert job["items"] == {"done": 1, "total": 1, "failed": 0}
     assert job["params"]["mode"] == "fetch"
     assert job["params"]["bookmark_ids"] == [selected, cached, private]
     assert contacted == ["https://reading.test/selected"]
@@ -195,7 +195,7 @@ def test_selected_summary_uses_chat_only_and_retires_stale_vectors(client, monke
     assert job["state"] == "done", job
     assert job["planned"] == job["done"] == ["enrich"]
     assert job["params"]["fetch"] is False
-    assert job["items"] == {"done": 1, "total": 1}
+    assert job["items"] == {"done": 1, "total": 1, "failed": 0}
     assert len(instances) == 1 and len(instances[0].prompts) == 1
     assert instances[0].settings.base_url == "https://chat.test/v1"
     assert instances[0].settings.api_key == "synthetic-secret"
@@ -260,7 +260,7 @@ def test_limit_applies_to_selected_pending_work_only(client, monkeypatch, mode):
         "mode": mode, "bookmark_ids": [second, cached, first], "limit": 1, "confirmed": True,
     })
     assert response.status_code == 200
-    assert wait_job(client)["items"] == {"done": 1, "total": 1}
+    assert wait_job(client)["items"] == {"done": 1, "total": 1, "failed": 0}
     if mode == "fetch":
         assert contacted == ["https://reading.test/first"]
     else:
@@ -268,7 +268,7 @@ def test_limit_applies_to_selected_pending_work_only(client, monkeypatch, mode):
         assert "https://reading.test/first" in instances[0].prompts[0]
 
 
-@pytest.mark.parametrize("ids", [[], [0], [-1], [True], [2**64], [1, 1], list(range(1, 202))])
+@pytest.mark.parametrize("ids", [[], [0], [-1], [True], [2**64], [1, 1], list(range(1, 10002))])
 def test_invalid_selection_never_starts_a_job(client, ids):
     response = client.post("/admin/jobs/start", json={"mode": "fetch", "bookmark_ids": ids})
     assert response.status_code == 422
@@ -288,6 +288,7 @@ def test_new_route_requires_token(client):
 
 
 def test_fetch_cancellation_is_persisted_and_blocks_imports(client, monkeypatch):
+    save(client, "cancellation target")
     async def slow(*args, **kwargs):
         await asyncio.sleep(0.2)
         return fetchstore.CrawlReport()
@@ -313,6 +314,10 @@ async def test_fetch_shutdown_persists_interrupted(tmp_path, monkeypatch):
 
     monkeypatch.setattr(fetchstore, "crawl", slow)
     settings = Settings(data_dir=tmp_path)
+    from facetmark.db import open_db
+    conn = open_db(settings.db_path)
+    service.save_bookmark(conn, "https://fetch.test/pending", settings=settings)
+    conn.close()
     runner = admin.JobRunner(tmp_path)
     runner.start(settings, mode="fetch", fetch=True, limit=None, force=False)
     await asyncio.wait_for(entered.wait(), 2)
@@ -361,3 +366,109 @@ def test_unfinished_snapshot_reloads_without_claiming_a_current_stage(tmp_path):
     previous = admin.JobRunner(tmp_path).previous
     assert previous["state"] == "interrupted"
     assert previous["current"] is None
+
+
+def test_scoped_summary_preview_and_execution_skip_exclusions_and_private_rows(client, monkeypatch):
+    first = save(client, "chosen first")
+    excluded = save(client, "chosen excluded")
+    save(client, "outside")
+    save(client, "chosen private", url="https://private.test/excluded")
+    instances = configure_chat(client, monkeypatch)
+    scope = {"q": "chosen", "exclude_ids": [excluded]}
+    preview = client.post("/admin/jobs/preview", json={"mode": "summarize", "scope": scope}).json()
+    assert preview["total"] == 1
+    response = client.post("/admin/jobs/start", json={"mode": "summarize", "scope": scope,
+        "confirmed": True, "preview_revision": preview["revision"]})
+    assert response.status_code == 200, response.text
+    assert wait_job(client)["items"] == {"done": 1, "total": 1, "failed": 0}
+    assert len(instances[0].prompts) == 1 and "chosen first" in instances[0].prompts[0]
+    data = client.get("/bookmarks", params={"q": "chosen", "status": "done"}).json()
+    assert [row["bookmark_id"] for row in data["items"]] == [first]
+    assert data["items"][0]["summary"] == "A fresh reading summary."
+    assert data["items"][0]["summary_basis"] == "title"
+
+
+def test_preview_rejects_changed_library_and_title_only_changes_are_eligible(client, monkeypatch):
+    bid = save(client, "before", enriched=True)
+    configure_chat(client, monkeypatch)
+    state = client.app.state.fm
+    assert client.post("/admin/jobs/preview", json={"mode": "summarize"}).json()["total"] == 0
+    state.conn.execute("UPDATE bookmark SET title='after' WHERE id=?", (bid,))
+    preview = client.post("/admin/jobs/preview", json={"mode": "summarize"}).json()
+    assert preview["total"] == 1
+    save(client, "added after preview")
+    response = client.post("/admin/jobs/start", json={"mode": "summarize", "confirmed": True,
+        "preview_revision": preview["revision"]})
+    assert response.status_code == 409
+    assert client.get("/admin/job").json()["state"] == "idle"
+
+
+def test_failure_filter_retry_does_not_reprocess_success(client, monkeypatch):
+    failed = save(client, "will fail", enriched=True)
+    save(client, "successful", enriched=True)
+    configure_chat(client, monkeypatch, fail=True)
+    client.post("/admin/jobs/start", json={"mode": "summarize", "bookmark_ids": [failed], "force": True, "confirmed": True})
+    assert wait_job(client)["state"] == "partial"
+    data = client.get("/bookmarks?status=failed").json()
+    assert data["total"] == 1 and "synthetic-secret" not in json.dumps(data)
+    assert client.get("/bookmarks?status=done").json()["total"] == 1
+    instances = configure_chat(client, monkeypatch)
+    client.post("/admin/jobs/start", json={"mode": "summarize", "scope": {"status": "failed"}, "confirmed": True})
+    assert wait_job(client)["state"] == "done"
+    assert len(instances[0].prompts) == 1
+    assert client.get("/bookmarks?status=failed").json()["total"] == 0
+
+
+async def test_pause_drains_inflight_work_and_restart_resumes_original_snapshot(tmp_path, monkeypatch):
+    from facetmark.db import open_db
+    settings = Settings(data_dir=tmp_path, use_mock_provider=True, enrich_concurrency=2)
+    conn = open_db(settings.db_path)
+    ids = [service.save_bookmark(conn, f"https://resume.test/{i}", title=f"item {i}", settings=settings)["bookmark_id"] for i in range(6)]
+    conn.close()
+    runner = admin.JobRunner(tmp_path)
+    calls = []
+    class Chat(Provider):
+        async def embed(self, texts):
+            raise AssertionError("No embeddings")
+        async def chat_json(self, system, user):
+            calls.append(user)
+            runner.pause()
+            await asyncio.sleep(0.01)
+            return {"summary": "saved summary"}
+    monkeypatch.setattr(admin, "get_chat_provider", lambda s: Chat(s))
+    job = runner.start(settings, fetch=False, limit=None, force=True, mode="summarize", bookmark_ids=ids)
+    await runner._task
+    assert job.state == "paused" and not job.pause_requested
+    assert job.items_done == 2 and len(calls) == 2
+    conn = open_db(settings.db_path)
+    conn.execute("DELETE FROM bookmark WHERE id=?", (ids[-1],))
+    conn.close()
+    restarted = admin.JobRunner(tmp_path)
+    saved = restarted.saved(job.id)
+    assert saved["resumable"]
+    # A different task must not erase this resume handle.
+    other = restarted.start(settings, fetch=False, limit=None, force=False, mode="summarize", bookmark_ids=[ids[0]])
+    await restarted._task
+    assert other.state == "done" and restarted.saved(job.id)["resumable"]
+    resumed = restarted.start(settings, fetch=False, limit=None, force=True, mode="summarize",
+        bookmark_ids=ids, resume_id=job.id, snapshot_ready=True)
+    await restarted._task
+    assert resumed.state == "done" and resumed.items_done == 5
+    assert len(calls) == 5  # two committed + three pending; no repeat or deleted item
+
+
+async def test_summary_and_progress_rollback_together_on_callback_failure(tmp_path):
+    from facetmark.db import open_db
+    from facetmark.enrich import enrich_all
+    from facetmark.providers import MockProvider
+    settings = Settings(data_dir=tmp_path, use_mock_provider=True)
+    conn = open_db(settings.db_path)
+    bid = service.save_bookmark(conn, "https://atomic.test/page", title="atomic", settings=settings)["bookmark_id"]
+    def failed_callback(target, enrichment, error):
+        assert conn.execute("SELECT summary FROM enrichment WHERE bookmark_id=?", (bid,)).fetchone()
+        raise RuntimeError("injected after summary before progress commit")
+    with pytest.raises(RuntimeError, match="injected"):
+        await enrich_all(conn, settings=settings, provider=MockProvider(settings), ids=[bid], progress=failed_callback)
+    assert conn.execute("SELECT count(*) FROM enrichment").fetchone()[0] == 0
+    assert conn.execute("SELECT count(*) FROM intent_query").fetchone()[0] == 0
+    conn.close()

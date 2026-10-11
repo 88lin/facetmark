@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Circle, Download, LoaderCircle, Pause, Play, RefreshCw, Sparkles } from "lucide-react";
-import { post, type Job, type Setup } from "./api";
+import { api, post, type Job, type Setup } from "./api";
 import { useText } from "./locale";
 
 export function Tasks({
@@ -19,6 +19,8 @@ export function Tasks({
   const [fetchPages, setFetchPages] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [saved, setSaved] = useState<Job[]>([]);
+  useEffect(() => { api<{ items: Job[] }>("/admin/jobs").then(data => setSaved(data.items)).catch(() => {}); }, [job.id, job.state]);
   const mode = job.params?.mode || "index";
   const running = job.state === "running";
   const taskName =
@@ -44,6 +46,7 @@ export function Tasks({
     failed: t(`${taskName}未完成`, `${taskName} failed`),
     cancelled: t("任务已取消", "Task cancelled"),
     interrupted: t("上次任务被中断", "Previous task was interrupted"),
+    paused: t("任务已暂停", "Task paused"),
   };
   async function action(path: string, body: unknown) {
     setBusy(true);
@@ -90,6 +93,10 @@ export function Tasks({
           "Fetching visits the original websites and needs no model. Summaries use only the chat model.",
         )}
       </p>
+      {saved.filter(item => item.id !== job.id).map(item => <div className="collection-job" key={item.id}>
+        <span>{item.params?.mode === "summarize" ? t("已保存的摘要任务", "Saved summary task") : t("已保存的抓取任务", "Saved fetch task")} · {item.items?.done} / {item.items?.total}</span>
+        <button className="secondary" disabled={busy || running} onClick={() => action("/admin/jobs/resume", { resume_id: item.id, confirmed: true })}><Play/>{t("继续", "Resume")}</button>
+      </div>)}
       {job.state !== "idle" && (
         <p className="hint">
           {job.params?.bookmark_ids
@@ -142,6 +149,8 @@ export function Tasks({
       )}
       {running ? (
         <div>
+          {mode !== "index" && <button className="secondary" disabled={busy || job.pause_requested}
+            onClick={() => action("/admin/jobs/pause", {})}><Pause/>{job.pause_requested ? t("正在暂停…", "Pausing…") : t("暂停任务", "Pause task")}</button>}
           <p role="status">
             {job.cancel_requested
               ? t(
@@ -164,6 +173,8 @@ export function Tasks({
         </div>
       ) : (
         <div className="index-consent">
+          {job.resumable && <button className="primary" disabled={busy}
+            onClick={() => action("/admin/jobs/resume", { resume_id: job.id, confirmed: true })}><Play/>{t("继续上次任务", "Resume saved task")}</button>}
           <h3>{t("建立完整索引", "Build the full index")}</h3>
           <p>
             {t(

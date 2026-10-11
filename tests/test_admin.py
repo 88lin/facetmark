@@ -406,6 +406,24 @@ class TestSettings:
         assert client.post("/admin/settings/test", json={"chat_extra_body": "[]"},
                            headers=auth).status_code == 400
 
+    def test_chat_fallback_draft_probe_matches_saved_configuration(self, client, auth, monkeypatch):
+        import facetmark.admin as admin
+
+        seen = []
+
+        async def capture(settings, channel):
+            seen.append(settings.chat_model_chain())
+            return {"chat": {"ok": True, "model": "working-backup", "ms": 1}}
+
+        monkeypatch.setattr(admin, "probe", capture)
+        values = {"chat_model": "primary", "chat_model_fallbacks": "working-backup"}
+        response = client.post("/admin/settings/test", json={**values, "channel": "chat"}, headers=auth)
+        assert response.status_code == 200
+        assert seen == [["primary", "working-backup"]]
+        assert client.put("/admin/settings", json={"values": values}, headers=auth).status_code == 200
+        state = client.app.state.fm
+        assert state.probe_results["chat"]["fingerprint"] == admin.probe_fingerprint(state.settings, "chat")
+
     @pytest.mark.parametrize("key", ["fetch_concurrency", "enrich_concurrency", "request_timeout"])
     def test_numeric_settings_are_typed_and_positive_live(self, client, auth, key):
         sent = "2" if key != "request_timeout" else "2.5"

@@ -1,5 +1,22 @@
 # Facetmark 桌面化与体验升级交接
 
+## 2026-10-11 用户再次否定：收藏操作、20 万数据与模型连接（进行中）
+
+用户指出不能从卡片直接打开原网址、摘要被藏在逐篇阅读中、模型填写后无法使用，
+实际书库约 20 万条。明确要求参考 GithubStarsManager 的完整工作流，以及 open-design
+自动发现／调用本机 Agent 的方式。上一节及下方的 ship 不代表本次需求已完成或用户认可。
+
+已确认：App.tsx 将整个收藏渲染为进入阅读器的 button，没有直接链接；列表优先展示检索
+片段并截断摘要。ProbeRequest 漏掉 chat_model_fallbacks，测试指纹与保存配置可不一致。
+enrich_all 预读所有正文并为全部目标创建任务，_summarize 又将全库 ID 放入 SQL IN，
+不适用于 20 万规模。需要直接外链、集合摘要显示／筛选、当前范围的批量处理与失败重试，
+有限并发与分块读取、实际 API 配置修复和本机 Agent 适配，再做云端验收。
+
+参考源码只读保存在 `.desktop-build/starsmanager-current` 和 `.desktop-build/open-design-reference`，
+各自 source.txt 记录固定提交。GitHubStarsManager 为 MIT，open-design 为 Apache-2.0；
+如移植代码须带来源和许可证。仍按已有约定只在 Actions 构建、浏览器和安装验证。
+当前测试分支已包含旧一轮文档提交 6163b29，PR #44 尚未更新本轮新范围，继续保持草稿。
+
 ## 2026-10-11 字体与常用流程打磨（最终云端验证通过）
 
 用户继续指出字体又小又细、整体不好看不好用，并要求不再询问偏好，由实现方直接判断改进。

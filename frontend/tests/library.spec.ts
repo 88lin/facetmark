@@ -153,7 +153,7 @@ test("create and edit preserve literal folder names and tags after reload", asyn
   expect(await library.read(record.bookmark_id)).toMatchObject(original);
 
   await search(page, token, 1);
-  await row(page, record.bookmark_id).click();
+  await row(page, record.bookmark_id).locator(".bookmark-preview").click();
   await page.getByRole("button", { name: "编辑", exact: true }).click();
   const edit = page.getByRole("dialog", { name: "编辑收藏", exact: true });
   await expect(edit.getByLabel("收藏网址", { exact: true })).toHaveValue(original.url);
@@ -170,7 +170,7 @@ test("create and edit preserve literal folder names and tags after reload", asyn
   await expect(page.locator(".preview-title h1")).toHaveText(updated.title);
   await page.reload();
   await expect(row(page, record.bookmark_id)).toContainText(updated.title);
-  await row(page, record.bookmark_id).click();
+  await row(page, record.bookmark_id).locator(".bookmark-preview").click();
   await page.locator(".article-details > summary").click();
   for (const tag of updated.tags) await expect(page.locator(".preview-tags").getByRole("button", { name: `# ${tag}`, exact: true })).toBeVisible();
 });
@@ -186,7 +186,7 @@ test("delete requires fresh consent and cancellation leaves the bookmark intact"
   });
   await page.goto("/app");
   await search(page, token, 2);
-  await row(page, first.bookmark_id).click();
+  await row(page, first.bookmark_id).locator(".bookmark-preview").click();
   await page.locator(".article-details > summary").click();
   const trigger = page.getByRole("button", { name: "删除收藏", exact: true });
   await trigger.click();
@@ -219,12 +219,12 @@ test("keyboard selection and bulk move and tags affect only the selected results
   await search(page, token, 2);
   await page.getByRole("button", { name: "批量管理", exact: true }).click();
   await expect(page.getByRole("button", { name: "批量操作", exact: true })).toBeDisabled();
-  await page.locator(".result-row").first().focus();
+  await page.locator(".result-row").first().locator(".bookmark-check").focus();
   await page.keyboard.press("Space");
-  await expect(page.locator(".result-row").first()).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".bookmark-check").first()).toBeChecked();
   await page.keyboard.press("ArrowDown");
-  await expect(page.locator(".result-row").nth(1)).toBeFocused();
-  await expect(page.locator(".result-row").nth(1)).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator(".result-row").nth(1).locator(".bookmark-check")).toBeFocused();
+  await expect(page.locator(".bookmark-check").nth(1)).not.toBeChecked();
   await expect(page.locator(".preview-pane")).toHaveCount(0);
   await page.getByRole("button", { name: "选择本页", exact: true }).click();
   await expect(page.locator(".selection-total")).toHaveText("已选择 2 条");
@@ -277,7 +277,7 @@ test("export downloads honor search-page, selected and category scopes", async (
   expect(json.bookmarks.find((bookmark: Bookmark) => bookmark.url === first.url).tags).toEqual(["带,逗号"]);
 
   await page.getByRole("button", { name: "批量管理", exact: true }).click();
-  await row(page, first.bookmark_id).click();
+  await row(page, first.bookmark_id).locator(".bookmark-check").check();
   await page.getByRole("button", { name: "导出所选", exact: true }).click();
   await expect(dialog.getByRole("combobox", { name: "导出范围", exact: true })).toHaveValue("selected");
   await dialog.getByRole("combobox", { name: "文件格式", exact: true }).selectOption("html");
@@ -450,7 +450,7 @@ test("fetch needs no model while summarization requires chat and explicit consen
   chatReady = true;
   await page.reload();
   await search(page, token, 1);
-  await row(page, record.bookmark_id).click();
+  await row(page, record.bookmark_id).locator(".bookmark-preview").click();
   await page.getByRole("tab", { name: "AI 摘要", exact: true }).click();
   await page.getByRole("button", { name: "生成这篇摘要", exact: true }).click();
   dialog = page.getByRole("dialog", { name: "生成 AI 摘要", exact: true });
@@ -481,7 +481,7 @@ test("mobile action dialogs trap focus, fit the screen and restore the underlyin
   await expect(dialog).toHaveCount(0);
   await expect(add).toBeFocused();
   await search(page, token, 1);
-  await row(page, record.bookmark_id).click();
+  await row(page, record.bookmark_id).locator(".bookmark-preview").click();
   const preview = page.getByRole("dialog", { name: "书签预览", exact: true });
   await expect(preview).toBeVisible();
   const edit = preview.getByRole("button", { name: "编辑", exact: true });
@@ -501,7 +501,7 @@ test("mobile action dialogs trap focus, fit the screen and restore the underlyin
   expect((await library.read(record.bookmark_id)).title).toBe(token);
   await page.keyboard.press("Escape");
   await expect(preview).toHaveCount(0);
-  await expect(row(page, record.bookmark_id)).toBeFocused();
+  await expect(row(page, record.bookmark_id).locator(".bookmark-preview")).toBeFocused();
 });
 
 test("failed saves retain the draft and allow a successful retry", async ({ page, library }) => {
@@ -515,7 +515,7 @@ test("failed saves retain the draft and allow a successful retry", async ({ page
   });
   await page.goto("/app");
   await search(page, record.title, 1);
-  await row(page, record.bookmark_id).click();
+  await row(page, record.bookmark_id).locator(".bookmark-preview").click();
   await page.getByRole("button", { name: "编辑", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "编辑收藏", exact: true });
   await dialog.getByLabel("收藏标题", { exact: true }).fill(`${record.title} retry`);
@@ -543,7 +543,7 @@ test("opening during a running task refreshes the cached reader when that task c
   });
   await page.goto("/app");
   await search(page, record.title, 1);
-  await row(page, record.bookmark_id).click();
+  await row(page, record.bookmark_id).locator(".bookmark-preview").click();
   await expect(page.locator(".reading")).toContainText("Old text shown while");
   completed = true;
   await expect(page.locator(".reading")).toContainText("New saved text from", { timeout: 10000 });

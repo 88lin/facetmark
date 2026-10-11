@@ -194,6 +194,18 @@ def _v6_bookmark_tags(conn: sqlite3.Connection) -> None:
         )
 
 
+def _v7_collection_processing(conn: sqlite3.Connection) -> None:
+    conn.execute("CREATE INDEX IF NOT EXISTS ix_bookmark_browse ON bookmark(COALESCE(date_added,created_at) DESC,id DESC)")
+    conn.execute("CREATE INDEX IF NOT EXISTS ix_bookmark_folder_browse ON bookmark(folder,COALESCE(date_added,created_at) DESC,id DESC)")
+    conn.execute("CREATE TABLE IF NOT EXISTS enrichment_failure ("
+                 "bookmark_id INTEGER PRIMARY KEY REFERENCES bookmark(id) ON DELETE CASCADE,"
+                 "error TEXT NOT NULL,updated_at INTEGER NOT NULL)")
+    conn.execute("CREATE TABLE IF NOT EXISTS processing_item ("
+                 "job_id TEXT NOT NULL,bookmark_id INTEGER NOT NULL REFERENCES bookmark(id) ON DELETE CASCADE,"
+                 "state TEXT NOT NULL DEFAULT 'pending',error TEXT,PRIMARY KEY(job_id,bookmark_id))")
+    conn.execute("CREATE INDEX IF NOT EXISTS ix_processing_pending ON processing_item(job_id,state,bookmark_id)")
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(2, "browser queue remembers when a retry is allowed", _v2_browser_queue_backoff),
     Migration(3, "content vectors remember what they were built from",
@@ -204,6 +216,7 @@ MIGRATIONS: tuple[Migration, ...] = (
                  "or only from its title", _v5_enrichment_basis),
     Migration(6, "bookmarks keep the tags the importer already parsed",
               _v6_bookmark_tags),
+    Migration(7, "large collections retain processing snapshots and failures", _v7_collection_processing),
 )
 
 #: What this build writes into a new database. Derived from the migration list

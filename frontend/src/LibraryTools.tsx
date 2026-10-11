@@ -1,7 +1,7 @@
-import { useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Download, Folder, ListChecks, LoaderCircle, Plus, Tag, Trash2, X } from "lucide-react";
-import { api, downloadExport, post, type Bookmark, type Setup } from "./api";
+import { api, downloadExport, post, type Bookmark, type CollectionScope, type Setup } from "./api";
 import { useText } from "./locale";
 import "./library-tools.css";
 
@@ -14,7 +14,7 @@ export type LibraryAction =
   | { kind: "bulk"; ids: number[] }
   | { kind: "taxonomy" }
   | { kind: "export" }
-  | { kind: "process"; mode: "fetch" | "summarize"; ids?: number[] };
+  | { kind: "process"; mode: "fetch" | "summarize"; ids?: number[]; scope?: CollectionScope; scopeLabel?: string };
 
 export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch, onIds, onAction }: {
   batch: boolean; ids: number[]; pageIds: number[]; disabled: boolean; pending: boolean;
@@ -90,6 +90,18 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
   const ids = "ids" in action ? action.ids : undefined;
   const processing = action.kind === "process" || (action.kind === "bulk" && ["fetch", "summarize"].includes(operation));
   const mode = action.kind === "process" ? action.mode : operation;
+  const processScope = action.kind === "process" ? action.scope : undefined;
+  const [targetCount, setTargetCount] = useState<number | null>(null);
+  const [previewRevision, setPreviewRevision] = useState("");
+  const [countError, setCountError] = useState("");
+  useEffect(() => {
+    if (!processing) return;
+    const abort = new AbortController();
+    setTargetCount(null); setCountError("");
+    post<{ total: number; revision: string }>("/admin/jobs/preview", { mode, bookmark_ids: ids, scope: processScope, force }, abort.signal)
+      .then(data => { setTargetCount(data.total); setPreviewRevision(data.revision); }).catch(e => { if (!abort.signal.aborted) setCountError(String(e)); });
+    return () => abort.abort();
+  }, [processing, mode, ids, processScope, force]);
   const deleting = action.kind === "delete" || (action.kind === "bulk" && operation === "delete");
   const chatReady = Boolean(setup?.demo || setup?.channels.chat.tested);
   const needsConsent = deleting || (processing && mode === "summarize") || action.kind === "taxonomy";
@@ -110,7 +122,7 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
       if (action.kind === "export") {
         await downloadExport({ format, ...(scope === "selected" ? { ids: selectedIds } : scope === "page" ? { ids: pageIds } : scope === "filtered" ? { filters } : {}) });
       } else if (processing) {
-        await post("/admin/jobs/start", { mode, ...(ids ? { bookmark_ids: ids } : {}), confirmed, force });
+        await post("/admin/jobs/start", { mode, ...(ids ? { bookmark_ids: ids } : {}), confirmed, force, scope: processScope, preview_revision: previewRevision });
         await onJobStarted();
       } else if (action.kind === "create" || action.kind === "edit") {
         const values = { url: url.trim(), title: title.trim(), folder: folder.trim(), tags };
@@ -175,10 +187,11 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
             <p className="hint">{t("JSON 包含已保存的正文与摘要，请妥善保管。重新导入只恢复书签信息，正文与 AI 索引需重新处理。HTML 只导出书签信息；含逗号的标签请用 JSON 保留。", "JSON includes saved text and summaries; store it safely. Reimport restores bookmark metadata; page text and AI indexes must be rebuilt. HTML contains bookmark metadata only. Use JSON to preserve tags containing commas.")}</p>
           </>}
           {processing && <>
-            <p>{ids ? t(`处理选中的 ${ids.length} 条收藏。`, `Process ${ids.length} selected bookmarks.`) : t("处理整个书库中符合条件的收藏。", "Process eligible bookmarks across your library.")}</p>
+            <p>{ids ? t(`处理选中的 ${ids.length} 条收藏。`, `Process ${ids.length} selected bookmarks.`) : (action.kind === "process" && action.scopeLabel ? action.scopeLabel : t("处理整个书库中符合条件的收藏。", "Process eligible bookmarks across your library."))}</p>
             <p className="hint">{mode === "fetch" ? t("会访问收藏的网址以提取正文，不调用 AI 模型。受隐私排除或访问限制的页面会跳过或记录失败。", "Visits the saved websites to fetch text without calling AI. Privacy-excluded or inaccessible pages are skipped or reported.") : t("标题、网址、文件夹和已有正文会发送给已配置的聊天模型；不要求向量模型。未保存正文时会明确标注基于标题推断。", "Sends titles, URLs, folders and saved text to your chat model. No embedding model is needed. Missing text is labeled as title-based inference.")}</p>
             {mode === "summarize" && !chatReady && <p role="alert" className="error">{t("请先在设置中配置并测试聊天模型。", "Configure and test the chat model in Settings first.")}</p>}
-            {ids && ids.length > 200 && <p role="alert" className="error">{t("单次任务最多选择 200 条，请减少选择。", "Select at most 200 bookmarks per task.")}</p>}
+            {countError ? <p className="error" role="alert">{countError}</p> : <p className="processing-count" role="status">{targetCount === null ? t("正在计算处理范围…", "Counting eligible bookmarks…") : t(`本次将处理 ${targetCount.toLocaleString()} 条，已完成且未变化的内容会跳过。`, `${targetCount.toLocaleString()} eligible bookmarks. Completed, unchanged content is skipped.`)}</p>}
+            <p className="hint">{t("任务可暂停，重启后可继续。无需逐条打开书签。", "Pause and resume after restarting. No need to open bookmarks individually.")}</p>
             <label className="check"><input type="checkbox" checked={force} onChange={e => setForce(e.target.checked)}/>{t("重新处理已完成的内容", "Reprocess completed content")}</label>
           </>}
           {deleting && <p className="deletion-note"><Trash2 size={18}/>{t(`将删除 ${ids?.length || 0} 条收藏，以及它们在 Facetmark 中的正文和索引。此操作无法撤销，建议先导出备份。`, `Delete ${ids?.length || 0} bookmarks and their Facetmark text and indexes. This cannot be undone; export a backup first.`)}</p>}
@@ -187,7 +200,7 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
         </fieldset>
         {error && <p className="error" role="alert">{error}</p>}
         {running && action.kind !== "export" && <p className="notice">{t("请等待当前任务完成，再修改收藏或启动新任务。", "Wait for the current task before editing or starting another task.")}</p>}
-        <div className="library-dialog-footer"><button type="button" className="secondary" disabled={busy} onClick={onClose}>{t("取消", "Cancel")}</button><button className={`primary ${deleting ? "danger-action" : ""}`} disabled={busy || (running && action.kind !== "export") || (needsConsent && !confirmed) || (processing && ((mode === "summarize" && !chatReady) || (ids?.length || 0) > 200)) || (action.kind === "bulk" && ["tag-add", "tag-remove"].includes(operation) && !tags.length)}>
+        <div className="library-dialog-footer"><button type="button" className="secondary" disabled={busy} onClick={onClose}>{t("取消", "Cancel")}</button><button className={`primary ${deleting ? "danger-action" : ""}`} disabled={busy || (running && action.kind !== "export") || (needsConsent && !confirmed) || (processing && ((mode === "summarize" && !chatReady) || targetCount === null || targetCount === 0 || !!countError)) || (action.kind === "bulk" && ["tag-add", "tag-remove"].includes(operation) && !tags.length)}>
           {busy ? <LoaderCircle size={16} className="spin"/> : deleting ? <Trash2 size={16}/> : <Check size={16}/>}{busy ? t("正在处理…", "Working…") : action.kind === "export" ? t("下载导出文件", "Download export") : processing ? t("开始任务", "Start task") : deleting ? t("确认删除", "Delete bookmarks") : t("保存", "Save")}
         </button></div>
       </form>

@@ -45,6 +45,15 @@ jobs:
         if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
         working-directory: frontend
         run: npm test
+      - name: Real 200k collection API and bounded snapshot benchmark
+        if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
+        run: python scripts/bench_collection.py
+      - name: Real 200k browser paging and scoped selection
+        if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
+        working-directory: frontend
+        env:
+          FACETMARK_LARGE_VALIDATION: '1'
+        run: npx playwright test large-collection.spec.ts
       - name: Prepare small visual evidence with source provenance
         if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
         run: |

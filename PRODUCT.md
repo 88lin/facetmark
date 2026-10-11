@@ -65,6 +65,18 @@ actions, make active filters explicit, and support efficient navigation in large
 
 ## Evidence on Hand
 
+On 2026-10-11 the user rejected the current result as unusable for a 200,000-bookmark
+library. A bookmark title must open its original website directly; saved reading is
+an explicit secondary action. Summaries must be visible, expandable and filterable
+in the collection, with obvious scoped bulk processing and failed-item retry.
+Adopt the concrete collection workflows in GithubStarsManager rather than treating
+it as a cosmetic reference. Detect and use installed local coding agents following
+open-design's runtime-adapter approach, without requiring duplicated chat API setup.
+Keep custom API connections available and fix their actual test/save/use path.
+Large-library validation must exercise 200,000 synthetic records, bounded requests
+and bounded processing concurrency. Earlier visual ship verdicts do not accept this
+rejected interaction model. Do not ask the user to supply another preference list.
+
 Synthetic demo corpus in the repository. CI captures must identify demo data.
 Installer smoke on hosted Windows Server is not Windows 10/11 certification.
 Real user bookmarks must never appear in presentation captures.

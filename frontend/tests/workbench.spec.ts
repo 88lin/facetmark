@@ -11,16 +11,16 @@ test("real library: stable paging, preview, filters and keyboard", async ({ page
   await page.goto("/app");
   await expect(page.locator(".result-row")).toHaveCount(30);
   const first = await page.locator(".result-title").first().innerText();
-  await page.locator(".result-row").first().click();
+  await page.locator(".result-row").first().locator(".bookmark-preview").click();
   await expect(page.locator(".body-text")).toContainText("synthetic content");
   await page.getByRole("button", { name: "下一页", exact: true }).click();
   await expect(page.locator(".results-footer")).toContainText("31–60");
   await expect(page.locator(".result-title").first()).not.toHaveText(first);
   await page.getByRole("button", { name: "上一页", exact: true }).click();
   await expect(page.locator(".result-title").first()).toHaveText(first);
-  await page.locator(".result-row").first().focus();
+  await page.locator(".result-row").first().locator(".bookmark-preview").focus();
   await page.keyboard.press("ArrowDown");
-  await expect(page.locator(".result-row").nth(1)).toBeFocused();
+  await expect(page.locator(".result-row").nth(1).locator(".bookmark-preview")).toBeFocused();
   await page.keyboard.press("Control+k");
   await expect(page.getByRole("textbox", { name: "搜索书签" })).toBeFocused();
   await page.getByRole("textbox", { name: "搜索书签" }).fill("SQLite");
@@ -34,7 +34,7 @@ test("IME and stale responses cannot replace the current query", async ({ page }
   const input = page.getByRole("textbox", { name: "搜索书签" });
   await expect(page.locator(".result-row")).toHaveCount(30);
   const queries: string[] = [];
-  await page.route("**/quick?**", async (route) => {
+  await page.route("**/bookmarks?**", async (route) => {
     const q = new URL(route.request().url()).searchParams.get("q") || "";
     queries.push(q);
     if (q === "old") await new Promise((resolve) => setTimeout(resolve, 900));
@@ -376,7 +376,7 @@ test("draft status, filtered emptiness and contextual request recovery", async (
   await page.route("**/bookmark/*/related", (route) =>
     route.fulfill({ status: 503, json: { detail: "Related temporarily unavailable" } }),
   );
-  await page.locator(".result-row").first().click();
+  await page.locator(".result-row").first().locator(".bookmark-preview").click();
   await page.getByRole("tab", { name: "相关书签" }).click();
   await expect(page.getByRole("button", { name: "重试相关书签" })).toBeVisible();
   await expect(page.getByText("暂时无法读取相关书签", { exact: true })).toBeVisible();
@@ -468,11 +468,11 @@ test("render matrix: Chinese, English, light, dark, desktop and narrow", async (
           animations: "disabled",
         });
         if (width === 390) {
-          await page.locator(".result-row").first().click();
+          await page.locator(".result-row").first().locator(".bookmark-preview").click();
           await expect(page.getByRole("dialog")).toBeVisible();
           await page.keyboard.press("Escape");
           await expect(page.getByRole("dialog")).toHaveCount(0);
-          await expect(page.locator(".result-row").first()).toBeFocused();
+          await expect(page.locator(".result-row").first().locator(".bookmark-preview")).toBeFocused();
         }
       }
   await page.setViewportSize({ width: 1440, height: 1050 });
