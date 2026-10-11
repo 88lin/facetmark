@@ -1,6 +1,74 @@
 # Desktop experience validation
 
-## 2026-10-10: large-collection usability correction
+## 2026-10-11: readable typography and everyday collection flows (final cloud validation passed)
+
+The user rejected the small, thin typography and asked for further visual and
+functional refinement without more preference questions. Current source:
+`bbd6cae273ccfa2dd44ee75542900f60f6cf7893`. Card/list titles share an 18px-equivalent
+700-weight role, routine controls/categories use 14px, and source/date metadata uses
+13px. Core sizes use rem; Chinese titles have normal tracking and explicit system
+fallbacks. The compact header and collection toolbar remain. Context-aware creation,
+organization/export defaults, page jumping, named filters and page-only deselection
+address concrete friction in everyday library use.
+
+Five added browser scenarios cover readable roles and 125% text scaling, last-page
+navigation, cross-page selection, explicit Unfiled filters and a create/export flow
+inside combined folder/tag filters. Final corrections keep category labels on one
+line and mobile collection actions beside the 44px view toggle in both languages.
+Secondary mobile actions retain their names and touch targets without redundant icons.
+
+All final runs completed on 2026-10-10 and were rechecked on 2026-10-11 against
+the application and browser-test source above:
+
+- [Experience 38051851958](https://github.com/88lin/facetmark/actions/runs/38051851958):
+  **42/42 browser tests**, **2003 Python passed / 1 skipped**, Ruff, TypeScript/Vite,
+  wheel/sdist resources, Docker and extension passed.
+- [CI 38051855595](https://github.com/88lin/facetmark/actions/runs/38051855595):
+  **all ten jobs passed**, including Linux/Windows × Python 3.10/3.12.
+- [Visual artifact 11670640239](https://github.com/88lin/facetmark/actions/runs/38051851958/artifacts/11670640239):
+  **56 actual screenshots**, **14.32-second recording**, WEBM and typography/layout
+  diagnostics. All 56 capture hashes match the source manifest. Local evidence:
+  `.desktop-build/readability-38051851958`. Four landing images preserve captured
+  raster chunks and embed this source/run. Measured text: titles 18px / weight 700,
+  summaries 15px, sources 13px, categories/actions 14px, search 16px. The 125% text
+  scaling test passed, including unbroken category labels and document overflow checks.
+- [Windows 38051852075](https://github.com/88lin/facetmark/actions/runs/38051852075):
+  offline installation with WebView2 initially absent and installer networking blocked,
+  real installed WebView import/search/missing-body state/query-preserving return,
+  same-version reinstall, uninstall data retention, parent-process cleanup and frozen
+  service checks passed. Three installed 1028×749 screenshots and diagnostics were
+  inspected; the reader evidence records `bbd6cae`.
+  [Unsigned x64 preview](https://github.com/88lin/facetmark/actions/runs/38051852075/artifacts/11670495977)
+  contains an installer of **279151591 bytes**; the package was not downloaded locally.
+  [Small installation evidence](https://github.com/88lin/facetmark/actions/runs/38051852075/artifacts/11670785603)
+  is saved at `.desktop-build/readability-windows-38051852075`.
+
+Measured card view with 1892 synthetic bookmarks and 295 folders; fully visible
+counts exclude partial cards:
+
+| Viewport | List top | First card top | List height | Height share | Fully visible cards |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1440×960 | 164px | 167px | 744px | 77.5% | 16 |
+| 1366×768 | 164px | 167px | 552px | 71.9% | 9 |
+| 1280×600 | 164px | 167px | 384px | 64.0% | 6 |
+| 1024×749 | 164px | 167px | 533px | 71.2% | 6 |
+| 390×844 | 216.1px | 219.1px | 575.9px | 68.2% | 3 |
+
+No tested viewport has horizontal document overflow. A fresh independent visual review
+inspected 12 final captures and sampled the source, returning **ship** with no material
+fixes. The specialized reviewer was unavailable, so a general reviewer fulfilled the
+contract in a separate context. The targeted design detector returned no findings.
+This review covers the current readability and collection-flow refinement; it does
+not certify an external QUALITY BAR or constitute user aesthetic acceptance.
+
+All builds, browser execution and installer checks run in Actions. Local work is
+source editing, lightweight checks and small evidence retrieval. No real bookmarks or
+personal browser profile was used. Real cloud-drive transport, external model services,
+Windows 10/11 hardware, non-administrator behavior and cross-version upgrades remain
+unverified. This unsigned preview uses manual updates; artifacts expire after 14 days.
+PR #44 stays a draft, with no merge, release or Pages deployment.
+
+## 2026-10-10: large-collection usability correction (historical)
 
 The user rejected the previous collection layout: oversized upper controls left
 only about half the window for bookmarks, and horizontal categories were

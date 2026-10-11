@@ -1,7 +1,7 @@
 ---
 name: Facetmark collection and reader
-description: A white and lake-blue collection with compact controls, a searchable category directory, source-first cards and a focused
-  article rail.
+description: A white and lake-blue collection with readable type, compact controls, a searchable category directory and a
+  focused article rail.
 colors:
   canvas: '#ffffff'
   desk: '#f5f9fb'
@@ -29,103 +29,171 @@ colors:
   on-accent-dark: '#0c2b3b'
   danger-dark: '#f7a0ae'
   overlay-dark: '#06151f99'
+  secondary-ink: '#405767'
+  secondary-ink-dark: '#c6d8e1'
 typography:
   collection-heading:
-    fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 22px
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 1.375rem
     lineHeight: 1.35
-    fontWeight: 650
-    letterSpacing: -0.035em
+    fontWeight: 700
+    letterSpacing: -0.025em
   page-title:
-    fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
     fontSize: 32px
     lineHeight: 1.5
     fontWeight: 600
     letterSpacing: -0.02em
   article-title:
-    fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
     fontSize: 36px
     lineHeight: 1.4
-    fontWeight: 650
+    fontWeight: 700
     letterSpacing: -0.025em
   article-title-focus:
-    fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
     fontSize: 38px
     lineHeight: 1.4
-    fontWeight: 650
+    fontWeight: 700
     letterSpacing: -0.025em
   article-section:
-    fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 21px
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 1.375rem
     lineHeight: 1.65
-    fontWeight: 600
+    fontWeight: 700
     letterSpacing: -0.02em
   collection-title:
-    fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 16px
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 1.125rem
     lineHeight: 1.5
-    fontWeight: 650
+    fontWeight: 700
   index-title:
-    fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 15px
-    lineHeight: 1.6
-    fontWeight: 650
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 1rem
+    lineHeight: 1.5
+    fontWeight: 700
   collection-summary:
-    fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 13px
-    lineHeight: 1.6
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 0.9375rem
+    lineHeight: 1.5
   index-summary:
-    fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 12px
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 0.8125rem
     lineHeight: 1.7
   body:
-    fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 14px
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 1rem
     lineHeight: 1.6
   reading:
-    fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 17px
-    lineHeight: 1.9
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 1.125rem
+    lineHeight: 1.85
   button:
-    fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 13px
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 0.875rem
     lineHeight: 1.5
     fontWeight: 600
   search:
-    fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 14px
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 1rem
     lineHeight: 1.6
   tab:
-    fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 13px
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 0.875rem
     lineHeight: 1.6
+    fontWeight: 600
   label:
-    fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 12px
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 0.875rem
     lineHeight: 1.6
+    fontWeight: 600
   caption:
-    fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 11px
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 0.75rem
     lineHeight: 1.6
   diagnostic:
     fontFamily: ui-monospace, Consolas, monospace
     fontSize: 11px
     lineHeight: 1.6
   workspace-heading:
-    fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 22px
-    fontWeight: 650
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 1.375rem
+    fontWeight: 700
     lineHeight: 1.35
     letterSpacing: -0.025em
   index-search:
-    fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
-    fontSize: 15px
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 1rem
     lineHeight: 1.6
   outline:
-    fontFamily: '"Manrope", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
     fontSize: 12px
     fontWeight: 500
     lineHeight: 1.65
+  meta:
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 0.8125rem
+    lineHeight: 1.6
+  list-summary:
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 0.875rem
+    lineHeight: 1.5
+  article-subsection:
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 1.25rem
+    fontWeight: 700
+    lineHeight: 1.5
+  category-label:
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 0.875rem
+    fontWeight: 500
+    lineHeight: 1.5
+  category-selected:
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 0.875rem
+    fontWeight: 700
+    lineHeight: 1.5
+  form-input:
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 1rem
+    fontWeight: 400
+    lineHeight: 1.5
+  navigation-active:
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 0.875rem
+    fontWeight: 700
+    lineHeight: 1.6
+  reader-return:
+    fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
+      UI", sans-serif'
+    fontSize: 13px
+    lineHeight: 1.6
 rounded:
   micro: 4px
   hint: 7px
@@ -179,7 +247,7 @@ components:
     height: 36px
   reader-back:
     textColor: '{colors.muted}'
-    typography: '{typography.tab}'
+    typography: '{typography.reader-return}'
     rounded: '{rounded.pill}'
     padding: 6px 12px
     height: 40px
@@ -189,17 +257,17 @@ components:
     typography: '{typography.search}'
     rounded: '{rounded.pill}'
     padding: 6px 14px
-    height: 40px
+    height: 44px
   header-navigation-active:
     textColor: '{colors.accent}'
-    typography: '{typography.tab}'
+    typography: '{typography.navigation-active}'
     padding: 8px 17px
     backgroundColor: '{colors.soft}'
     rounded: '{rounded.pill}'
   filter-chip:
     backgroundColor: '{colors.soft}'
     textColor: '{colors.accent}'
-    typography: '{typography.label}'
+    typography: '{typography.meta}'
     rounded: '{rounded.pill}'
     padding: 5px 12px
     height: 32px
@@ -236,6 +304,7 @@ components:
     rounded: '{rounded.field}'
     padding: 12px 14px
     height: 46px
+    typography: '{typography.form-input}'
   reader-tab-active:
     backgroundColor: '{colors.soft}'
     textColor: '{colors.accent}'
@@ -252,14 +321,14 @@ components:
     typography: '{typography.index-search}'
     rounded: '{rounded.pill}'
     padding: 7px 18px
-    height: 40px
+    height: 44px
   category-option-active:
     backgroundColor: '{colors.selected}'
     textColor: '{colors.accent}'
-    typography: '{typography.label}'
+    typography: '{typography.category-selected}'
     rounded: 8px
-    padding: 8px 10px
-    height: 36px
+    padding: 9px 10px
+    height: 40px
   query-suggestion-active:
     backgroundColor: '{colors.soft}'
     textColor: '{colors.accent}'
@@ -285,23 +354,29 @@ components:
 
 **Creative North Star: "Shared collection and reader — Operate / Read"**
 
-Facetmark keeps saved writing easy to find and comfortable to read. A compact title/count and pill search share the desktop toolbar. A searchable vertical category directory sits beside the actual bookmarks. Source-first white cards or a denser list use the available width, while the layered Facetmark mark and lake-blue interactions retain the identity.
+Facetmark keeps saved writing easy to find and comfortable to read. A compact title/count and pill search share the desktop toolbar. A searchable vertical category directory sits beside the actual bookmarks. Source-first white cards and the denser list share a stronger title scale; larger supporting text and explicit filter labels make the collection easier to scan. The layered Facetmark mark and lake-blue interactions retain the identity.
 
-Selecting a bookmark replaces the category directory with a compact supporting index and makes the article the primary surface. The reader keeps its bounded text measure, quiet chapter rail and return context. Bundled Manrope, local Chinese fallbacks, dark-theme roles, keyboard access and reduced motion carry the system across desktop and Web.
+Selecting a bookmark replaces the category directory with a compact supporting index and makes the article the primary surface. The reader keeps its bounded text measure, quiet chapter rail and return context. Bundled Manrope, explicit local Chinese fallbacks with weight synthesis, relative text roles, dark-theme colors, keyboard access and reduced motion carry the system across desktop and Web.
 
 **Key Characteristics:**
 
-- A compact toolbar leaves the majority of a short desktop window available for bookmarks.
+- A compact toolbar preserves browsing space while stronger titles and readable controls carry the hierarchy.
 - Complete folders, tags and sites are searchable and vertically scrollable with a mouse; loading more is explicit.
-- Source-first cards and a persistent list alternative support different browsing densities.
+- Source-first cards and a persistent list alternative use the same title scale while changing the layout density.
 - Lake-blue selection, pill controls and circular icon actions clarify state and priority.
 - The bounded reader retains query, filters, page, collection position and return focus.
 - Changing search/category clears the old reading context and prevents selection or export of stale results.
+- Typed filter chips, page jumps and category-aware collection actions make the current scope explicit.
 
-The previous large-masthead layout and its historical `ship` verdict were rejected by the user. This contract supersedes those layout rules. The user-supplied interface reference is [GithubStarsManager](https://github.com/AmintaCCCP/GithubStarsManager), inspected at `6d1dd80700b0ee717f79a5da7d0137f32afc91b7`; only its compact controls and accessible category organization inform this revision. It is an interface reference, not an approved pixel comp. No reference code or screenshots ship in Facetmark.
+The user-supplied interface reference is [GithubStarsManager](https://github.com/AmintaCCCP/GithubStarsManager), inspected at `6d1dd80700b0ee717f79a5da7d0137f32afc91b7`; its compact controls and accessible category organization inform this revision. It is an interface reference, not an approved pixel comp. No reference code or screenshots ship in Facetmark.
 
-This documentation was confirmed on 2026-10-10 against source `09ab0332c5f9ec40627afc7f48f3da2ce0b8b36b` and the synthetic-only cloud evidence captured on 2026-10-09. `.desktop-build/collection-verified/provenance.json` records 51 captures and the 14.24-second reading recording from [Experience 37927920369](https://github.com/88lin/facetmark/actions/runs/37927920369). The current desktop collection, mobile collection and exact-category-search captures match the compact toolbar, source-first cards and vertical directory described here. Cloud validation has passed. The final independent confirmation returned `disposition: ship`, with all six requested fixes resolved and no material regression identified in that scope. The original reviewer and an earlier replacement were rate-limited; a general independent substitute completed the confirmation because the dedicated role was unavailable. This verdict covers those six fixes and does not imply the user's visual approval. Earlier captures do not verify this revision.
+On 2026-10-10 the user rejected the resulting typography as too small and thin, and the interface as unattractive and hard to use. They asked for direct correction without another preference interview. This document records the source-defined response at `bbd6cae273ccfa2dd44ee75542900f60f6cf7893`: larger and heavier reading hierarchies, explicit current filters and category-aware actions within the existing visual identity.
 
+Cloud validation for `bbd6cae273ccfa2dd44ee75542900f60f6cf7893` completed on 2026-10-10 and was rechecked alongside independent confirmation on 2026-10-11. [Experience run 38051851958](https://github.com/88lin/facetmark/actions/runs/38051851958) passed 42 browser tests and 2003 Python tests with 1 skip; its remaining jobs passed. [CI run 38051855595](https://github.com/88lin/facetmark/actions/runs/38051855595) passed all 10 jobs, and [Windows run 38051852075](https://github.com/88lin/facetmark/actions/runs/38051852075) passed. The source-matched evidence is recorded in the locally retrieved `.desktop-build/readability-38051851958/provenance.json`, with 56 capture hashes verified and a 14.32-second recording. The stronger type roles, unbroken category-type labels and explicit mobile action text beside a single view-switch button are represented by this evidence.
+
+A fresh independent general reviewer inspected 12 raw final screenshots and sampled the source on 2026-10-11, returning **SHIP** with no material fixes and an empty detector list (`[]`). The specialist reviewer and documenter roles were unavailable; general substitutes performed these scoped passes. No external QUALITY BAR or approved pixel comp exists, and a new-world seed is not required for this code-led refinement of the established system. This disposition records the scoped review; user aesthetic acceptance remains a separate judgment.
+
+The earlier `09ab0332c5f9ec40627afc7f48f3da2ce0b8b36b` captures, density measurements and six-fix `ship` verdict remain historical evidence of the previous revision, whose typography the user subsequently rejected; they do not verify or approve this revision.
 
 ## Colors
 
@@ -319,7 +394,9 @@ Frontmatter is normative. Base names map to runtime custom properties; each `-da
 - **Pure White** (`canvas`): header, open cards, search, reader and support surfaces; blue charcoal in dark mode.
 - **Pale Blue Workspace** (`desk`): surrounding workspace, transparent index rows and focused header.
 - **Cool Inset** (`inset`): navigation tray, fields, reader actions, skeletons, diagnostics and shared hover.
-- **Deep Blue Ink / Muted Blue Ink** (`ink`, `muted`): titles/prose and subordinate excerpts, metadata and controls.
+- **Deep Blue Ink** (`ink`): titles, prose, form input and ordinary category names.
+- **Secondary Blue Ink** (`secondary-ink`): readable excerpts, category-type labels and dialog descriptions, with a corresponding dark-theme role.
+- **Muted Blue Ink** (`muted`): metadata, placeholders, inactive states and secondary controls.
 - **Cool Rule / Navigation Scrim** (`rule`, `overlay`): fine borders/seams and temporary navigation backdrop. The full-width reader overlay is transparent.
 
 Error Red (`danger`) accompanies explicit failures, recovery and destructive-action warnings. Dark mode retains hierarchy with pale blue accents over deeper surfaces.
@@ -328,36 +405,42 @@ Error Red (`danger`) accompanies explicit failures, recovery and destructive-act
 
 ## Typography
 
-Manrope is bundled at `frontend/src/assets/Manrope-variable.ttf` for offline Latin typography, with normal weights (200–800) and `font-display: swap`. The frontmatter stack includes local Segoe UI and Chinese fallbacks. Diagnostic output alone uses monospace; platform font rendering is not guaranteed by declarations alone.
+Manrope is bundled at `frontend/src/assets/Manrope-variable.ttf` for offline Latin typography, with normal weights (200-800) and `font-display: swap`. The frontmatter stack matches `--font-ui`: Manrope, PingFang SC, Microsoft YaHei UI, Microsoft YaHei, Noto Sans CJK SC, Noto Sans SC, Segoe UI, then sans-serif. The explicit Chinese stack precedes Segoe UI. `font-synthesis: weight` allows a fallback font to render requested emphasis when that weight is unavailable; it does not require a new font download.
 
-- **Headings:** collection-heading is the compact current collection/category heading; workspace-heading introduces selected reading; page-title serves support pages. Article-title enlarges to article-title-focus. Chinese base headings remove tracking; more specific collection/article rules retain their declared tracking.
-- **Cards/index:** visual and DOM order is source, title, optional excerpt, then folder/date metadata. Open titles/excerpts clamp to two lines; the compact index keeps a two-line title and one-line excerpt.
-- **Reading:** paragraphs use lower space (1.25em); explicit section headings use margins (34px above, 12px below). Counts, dates, pagination and percentages use tabular numerals.
-- **Responsive type:** the collection heading remains (22px) across breakpoints, card title (16px) and excerpt (13px). Search is (14px) on desktop and (15px) on mobile. List view uses (15px) titles and (12px) single-line excerpts, with source and metadata in a second desktop column; mobile uses a single column without an excerpt. Standard article title is (32px) at 1120–1300px. At most 719px: article title (27px), tabs (12px), prose (17px / 1.85). Selected-index title/excerpt remain (15px / 12px).
+The root uses `font-size: 100%`. Body, UI, metadata, caption and card-title roles correspond to `--type-body`, `--type-ui`, `--type-meta`, `--type-caption` and `--type-card-title`. Their canonical values are in frontmatter; px equivalents below assume the browser's default 16px root and scale with the user's default font size. Diagnostic output alone uses monospace.
 
-**The Reading Rhythm Rule.** Let a recognizable source introduce each saved page, then use title and excerpt to invite reading. Give the article a bounded measure and wrap Chinese text, long titles and URLs.
+- **Headings:** collection-heading and workspace-heading use the same compact heading scale (22px equivalent / 700). Article titles retain their established 36px and 38px sizes with weight 700; support page titles retain their existing role. Chinese collection, article and library-dialog headings use zero tracking. Latin headings retain their declared negative tracking.
+- **Cards and list:** both views use the same title scale (18px equivalent / 700). Cards retain source, title, optional excerpt, then folder/date metadata. Source and metadata use the meta role (13px equivalent), with source weight 500. Desktop card excerpts use secondary ink (15px equivalent / 1.5) and one line; mobile card excerpts use two lines.
+- **List and supporting index:** desktop list rows place source and metadata in the second column and use a single-line excerpt (14px equivalent). Mobile list rows wrap titles to two lines and omit excerpts. The separate selected-reading index uses titles (16px equivalent / 700), one-line excerpts (13px equivalent / 1.7) and smaller auxiliary metadata.
+- **Controls and forms:** routine actions, header/reader tabs and category names use the UI role (14px equivalent). Category names use weight 500, selected names 700, and deep ink at rest. Search and form input use the body role (16px equivalent); labels use the UI role at 600 and form values use weight 400. Placeholders inherit the input size.
+- **Reading:** desktop prose is (18px equivalent / 1.85), mobile (17px equivalent / 1.85). Body h2 uses (22px equivalent / 700 / 1.65); h3 uses (20px equivalent / 700 / 1.5). Paragraphs retain lower space (1.25em), h2 margins (34px above, 12px below), and h3 top space (24px). Counts, dates, pagination and percentages use tabular numerals.
+- **Responsive and auxiliary roles:** search remains at the body scale across breakpoints. Standard article title remains (32px) at 1120-1300px and (27px) at at most 719px. Reader tabs retain the UI scale on mobile. The chapter rail keeps its existing wrapping outline role, and the narrow reader return retains its source-defined 13px label.
+
+**The Reading Rhythm Rule.** Keep card and list titles at the same strong scale. Let a recognizable source introduce each saved page, then use title and excerpt to invite reading. Give the article a bounded measure and wrap Chinese text, long titles and URLs.
 
 ## Layout
 
 The dynamic-viewport shell (`100dvh`, minimum height 400px) places a white header (56px) above a full-width workspace (sides 24px, bottom 12px). Identity/navigation sit left; utilities/import sit right. Temporary navigation is (300px) wide, closed/inert with no shadow until opened.
 
-The desktop toolbar is (60px) high. Current title and result count share its left side; the (40px) pill search and filter controls share the right. A compact action row above the results contains creation, selection, organization, export and the card/list switch. Filter chips appear only when active. There is no duplicate collection/result masthead or horizontal folder strip.
+The desktop toolbar is (60px) high. Current title and result count share its left side; the (44px) pill search and filter controls share the right. A compact action row above the results contains creation, selection, organization, export and the card/list switch. Filter chips appear only when active. There is no duplicate collection/result masthead or horizontal folder strip.
 
-From (960px), an independently scrolling category directory (208px) sits left of the results with a (20px) gutter. Folders, tags and sites have explicit type controls, a search input, counts and a visible Load more action in pages of 50. Search applies to the entire directory, including entries beyond the former 200-item ceiling; exact matches appear first, then prefixes and other literal matches, with stable alphabetical ordering within each group. Long names wrap and retain a native title. The directory has a visible native vertical scrollbar, mouse-wheel scrolling and keyboard-focusable buttons. Below (960px), the same directory is in the filter drawer.
+From (960px), an independently scrolling category directory (232px) sits left of the results with a (20px) gutter, a fine right rule and right padding (12px). Folders, tags and sites have explicit type controls, a search input, counts and a visible Load more action in pages of 50. Search applies to the entire directory, including entries beyond the former 200-item ceiling; exact matches appear first, then prefixes and other literal matches, with stable alphabetical ordering within each group. Long names wrap and retain a native title. The directory has a visible native vertical scrollbar, mouse-wheel scrolling and keyboard-focusable buttons. Below (960px), the same directory is in the filter drawer.
 
-Cards use `repeat(auto-fill, minmax(270px, 1fr))`, (12px) gaps, padding (14px), corners (12px) and content-driven row height. A row aligns its cards without a fixed minimum height or compulsory excerpt. The independently scrolling result list uses padding (3px 4px 8px) above a pagination footer (40px). List view replaces the card grid with ruled rows and persists across reloads.
+Cards use `repeat(auto-fill, minmax(270px, 1fr))`, (12px) gaps, padding (14px), corners (12px) and content-driven row height. A row aligns its cards without a fixed minimum height or compulsory excerpt. The independently scrolling result list uses padding (3px 4px 8px) above a pagination footer (40px desktop, 44px mobile). List view replaces the card grid with ruled rows and persists across reloads.
 
-The final synthetic collection contains 1892 bookmarks and 295 folders. `collection-density.json` in the evidence directory records the following initial unfiltered view; the percentages describe available result-list height, while the last column counts complete cards. All five captures have no horizontal document overflow.
+Source-matched measurements in the locally retrieved `.desktop-build/readability-38051851958/collection-density.json` use 1892 synthetic bookmarks and over 240 folders. All five measured viewports have no horizontal document overflow; these are observed results for this fixture, not fixed card-height rules.
 
-| Viewport | First card top | Result-list height | Viewport share | Complete cards |
-| --- | --- | --- | --- | --- |
-| 1440 × 960 | 163px | 748px | 77.9% | 16 |
-| 1366 × 768 | 163px | 556px | 72.4% | 9 |
-| 1280 × 600 | 163px | 388px | 64.7% | 6 |
-| 1024 × 749 | 163px | 537px | 71.7% | 6 |
-| 390 × 844 | 218.6875px | 580.3125px | 68.8% | 3 |
+| Viewport | List top / first card top | List height | Fully visible cards |
+| --- | --- | --- | --- |
+| 1440 × 960 | 164px / 167px | 744px | 16 |
+| 1366 × 768 | 164px / 167px | 552px | 9 |
+| 1280 × 600 | 164px / 167px | 384px | 6 |
+| 1024 × 749 | 164px / 167px | 533px | 6 |
+| 390 × 844 | 216.078px / 219.078px | 575.922px | 3 |
 
-Selection hides the category directory and contracts the desktop index to (312px), beside a gutter (24px) and flexible reader. Index entries use padding (16px 14px), lower spacing (6px), panel corners and transparent default fill/border; selection restores a blue fill/edge. The toolbar remains (60px), search/control-group basis (680px), search height (40px). No empty reader column is reserved. Opening/returning preserve the real list scroll; choosing a different category/query resets scroll and pagination and closes the old reader.
+The same run's `collection-typography.json` measured title (18px / 700), summary (15px), source (13px), category and action text (14px), search (16px), and normal Chinese tracking. The previous revision's measurements remain historical.
+
+Selection hides the category directory and contracts the desktop index to (312px), beside a gutter (24px) and flexible reader. Index entries use padding (16px 14px), lower spacing (6px), panel corners and transparent default fill/border; selection restores a blue fill/edge. The toolbar remains (60px), search/control-group basis (680px), search height (44px). No empty reader column is reserved. Opening/returning preserve the real list scroll; choosing a different category/query resets scroll and pagination and closes the old reader.
 
 Reader tabs/actions share a strip (56px). Article width is capped at (780px), including gutters; title padding is (40px 46px 0), body padding (24px 46px 44px), and position footer height (48px). Source lower space is (16px); title lower margin is (14px). Controls remain outside the article scroller.
 
@@ -405,23 +488,29 @@ Lucide SVGs provide stroke icons and the layered brand mark. Source initials ide
 
 ### Buttons, navigation and fields
 
-Primary/secondary form pills use minimum height (40px); collection-toolbar pills use (36px) with (6px 12px) padding and (12px) labels. All main mobile actions remain at least (44px). Form pills use weight (600), gap (8px), icons (16px) and frontmatter padding. Import/Filters use minimum height (42px); general icon circles (36px), pagination (38px). Primary/import hover uses `brightness(0.94)`; secondary uses Lake Mist, blue text and Selected Edge. Text pills use Lake Mist hover and minimum height (32px). Disabled buttons use opacity (0.42).
+Primary/secondary form pills use minimum height (40px); collection-toolbar pills use (40px) with (6px 12px) padding and the UI text role at weight 600. All main mobile actions remain at least (44px). Form pills use weight (600), gap (8px), icons (16px) and frontmatter padding. Import/Filters use minimum height (42px); general icon circles (36px), pagination (38px). Primary/import hover uses `brightness(0.94)`; secondary uses Lake Mist, blue text and Selected Edge. Text pills use Lake Mist hover and minimum height (32px). Disabled buttons use opacity (0.42).
 
-Header navigation has tray padding/gap (4px), segment padding (8px 17px), minimum height (36px). Active navigation uses Lake Mist, blue text and weight (700), with no underline/shadow. The utility group is transparent with white raised active toggles. Filters open temporary modal navigation at every width with keyboard handling and return focus.
+Header navigation has tray padding/gap (4px), segment padding (8px 17px), minimum height (36px), and UI text at weight 600. Active navigation uses Lake Mist, blue text and weight (700), with no underline/shadow. The utility group is transparent with white raised active toggles. Filters open temporary modal navigation at every width with keyboard handling and return focus.
 
-Model inputs are at least (46px) high, with label gap (9px), model-field spacing (16px), shared-field spacing elsewhere (20px). Cool Inset becomes white on focus with an accent border/outline; disabled type is muted. Reader Focus is a labeled pill with Lake Mist pressed state. Main mobile actions, navigation/filter/folder targets, return, checkbox labels, setup steps and section selector are at least (44px); icon, pagination and search clear are (44px) circles.
+Model inputs are at least (46px) high, with label gap (9px), model-field spacing (16px), shared-field spacing elsewhere (20px). Labels use the UI text role at 600; fields and their placeholders use the body role at 400. Collection-dialog labels and inputs follow the same type roles while retaining their scoped pill shape and minimum input height (44px). Cool Inset becomes white on focus with an accent border/outline; disabled type is muted. Reader Focus is a labeled pill with Lake Mist pressed state. Main mobile actions, navigation/filter/folder targets, return, checkbox labels, setup steps and section selector are at least (44px); icon, pagination and search clear are (44px) circles.
 
 ### Search and complete category navigation
 
-Ctrl/Cmd+K accesses persistent search. Browsing and selected reading both use a (40px) desktop search capsule. Category selection uses the searchable vertical directory described above, with selected blue fill and explicit counts. All folders clears the folder dimension while preserving other active dimensions, which remain visible as removable filter chips.
+Ctrl/Cmd+K accesses persistent search. Browsing and selected reading both use a (44px) search capsule with body-sized input text. Category selection uses the searchable vertical directory described above, with deep-ink names, selected blue fill and explicit counts. Category names and load-more actions have minimum height (40px desktop, 44px mobile); type selectors are (38px desktop, 44px mobile), sized to their contents with unbroken labels and non-shrinking icons. The type group can wrap whole buttons when required. All folders clears the folder dimension while preserving other active dimensions.
+
+Active filter chips name the dimension and value, including Unfiled, expose an explicit removal label and retain the full value in a native title. Values truncate within the bounded chip; the type label remains visible. A separate Clear filters action removes filter dimensions, closes old reading content and resets page/list position while retaining the search query. The filter trigger carries an active-count badge (20px) and a screen-reader description.
 
 Query/category/page changes associate results with their exact context. During a new request or its failure, rows from the old context are not exposed for selection, bulk actions or scoped export. Repeating the active category preserves its in-flight request; repeated Enter and IME completion start a replacement search when needed. Category loading, no-match and failure/retry states are separate. Query changes reset list/page/reader; opening and returning from the same result preserve them.
 
 The query trigger is a (40px) circle, (44px) on mobile. Its cmdk-powered popup opens below at offset (10px), width `min(368px, calc(100vw - 36px))`, padding (16px 8px 0), and popup corners. Suggestion rows have minimum height (58px), padding (10px), category icon, label/detail and selected Enter cue. Lake Mist identifies selection. The list scrolls within `min(348px, 48dvh)`; mobile popup right offset is (-76px).
 
-The menu uses at most six returned suggestions, preserves syntax and quotes multiword values. Opening focuses the list; arrows/Enter use cmdk selection, Escape returns to the trigger, and leaving closes the menu. Loading, empty and failure content remain distinct; retry is a compact contextual action (minimum 32px). This is a search-suggestion menu, not a global action launcher.
+The menu uses at most six returned suggestions, preserves syntax and quotes multiword values. Opening focuses the list; arrows/Enter use cmdk selection, Escape returns to the trigger, and leaving closes the menu. Loading, empty and failure content remain distinct; retry is a compact contextual action (minimum 32px). This is a search-suggestion menu, not a global action launcher. Its heading uses the body role at 700, suggestion labels use the UI role at 600, detail/footer text uses the caption role, and loading/error/retry content uses the UI role.
 
 ### Collection and reader
+
+A page-jump form accompanies previous/next when the unselected collection has more than one known page and the result is not depth-capped. The numeric input and submit action accept only integer pages in range, are disabled while the scope is pending, and reset to the current page when query or filters change. Desktop input width/minimum height are (50px / 32px), submit minimum height (34px); mobile uses (44px / 40px) input and a (44px) submit action. Desktop card/list choices remain (36px by 34px). At at most 719px they become one (44px square) action whose icon, title and accessible label name the destination view. Mobile collection actions use padding (8px 6px), and the action row uses a (6px) column gap to preserve the available width. Ordinary mobile collection toolbars keep explicit text on secondary actions, omit their repeated icons and retain minimum width/height (44px). Add keeps its plus icon; selection-mode controls retain their existing treatment.
+
+Collection actions use the current context: new bookmarks inherit the active folder and tag; editing preserves saved values. Organize categories prefills the active folder or tag, choosing the folder when both are set. Export defaults in order to selected items, the current search page, the filtered collection, then the whole collection. The batch page toggle can select or deselect only the current page while preserving other selected pages; reaching 1000 selected items shows the existing limit explicitly.
 
 Cards begin with a (24px) source badge/domain, then title, optional excerpt and quiet folder/date metadata. Content gap is (6px); metadata margin-top (4px), with no extra footer rule or padding. Open arrows transition from x (-4px)/opacity (0) to visible on hover/focus. Selection exposes `aria-pressed` and Reading. Index content gap is (6px), with smaller typography and no footer rule. ArrowUp/ArrowDown selects adjacent entries; opening/returning preserve query, filters, page, position and originating focus.
 
@@ -447,6 +536,7 @@ GSAP owns tab-marker x/width (180ms, `power3.out`, overwrite `auto`) and interru
 
 - Do prioritize visible bookmarks with a compact toolbar and complete, mouse-accessible category directory.
 - Do preserve source-first card order and content-driven row heights without compulsory excerpt space.
+- Do keep card and list titles equally legible, respect the root font preference and preserve visible Chinese weight differences.
 - Do use true pill controls and circular icon actions while retaining card, reader and field exceptions.
 - Do keep the index subordinate and preserve query, filters, pagination, collection position and return focus.
 - Do keep persistent reader navigation and progress controls outside the article scroller and show the focus rail only for real headings. Contextual bookmark editing and processing actions follow the article information inside the scroller.
@@ -459,6 +549,7 @@ GSAP owns tab-marker x/width (180ms, `power3.out`, overwrite `auto`) and interru
 - Don't restore the rejected grey-violet palette or permanent three-column management shell.
 - Don't impose fixed card heights, hide category access in horizontal gestures, or fill missing excerpts with decorative content.
 - Don't apply the open collection's card treatment to every supporting index row.
+- Don't shrink list titles below the card title scale or disable weight synthesis for the Chinese fallback stack.
 - Don't replace Facetmark identity with hand-drawn borders, gradients or a candy-colored dashboard.
 - Don't let GSAP, Motion and CSS animate the same property on the same element.
 - Don't invent folder categories, headings, reading percentages or successful task states.
