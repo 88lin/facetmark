@@ -190,7 +190,11 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
             <p>{ids ? t(`处理选中的 ${ids.length} 条收藏。`, `Process ${ids.length} selected bookmarks.`) : (action.kind === "process" && action.scopeLabel ? action.scopeLabel : t("处理整个书库中符合条件的收藏。", "Process eligible bookmarks across your library."))}</p>
             <p className="hint">{mode === "fetch" ? t("会访问收藏的网址以提取正文，不调用 AI 模型。受隐私排除或访问限制的页面会跳过或记录失败。", "Visits the saved websites to fetch text without calling AI. Privacy-excluded or inaccessible pages are skipped or reported.") : t("标题、网址、文件夹和已有正文会发送给已配置的聊天模型；不要求向量模型。未保存正文时会明确标注基于标题推断。", "Sends titles, URLs, folders and saved text to your chat model. No embedding model is needed. Missing text is labeled as title-based inference.")}</p>
             {mode === "summarize" && !chatReady && <p role="alert" className="error">{t("请先在设置中配置并测试聊天模型。", "Configure and test the chat model in Settings first.")}</p>}
-            {countError ? <p className="error" role="alert">{countError}</p> : <p className="processing-count" role="status">{targetCount === null ? t("正在计算处理范围…", "Counting eligible bookmarks…") : t(`本次将处理 ${targetCount.toLocaleString()} 条，已完成且未变化的内容会跳过。`, `${targetCount.toLocaleString()} eligible bookmarks. Completed, unchanged content is skipped.`)}</p>}
+            {countError ? <p className="error" role="alert">{countError}</p> : <p className="processing-count" role="status">{targetCount === null ? t("正在计算处理范围…", "Counting eligible bookmarks…") : <>
+              {t(`本次将处理 ${targetCount.toLocaleString()} 条。`, `${targetCount.toLocaleString()} eligible bookmarks. `)}
+              {force ? t("包括已完成且未变化的内容，将重新处理。", "Includes completed, unchanged content for reprocessing.")
+                : t("已完成且未变化的内容会跳过。", "Completed, unchanged content is skipped.")}
+            </>}</p>}
             <p className="hint">{t("任务可暂停，重启后可继续。无需逐条打开书签。", "Pause and resume after restarting. No need to open bookmarks individually.")}</p>
             <label className="check"><input type="checkbox" checked={force} onChange={e => setForce(e.target.checked)}/>{t("重新处理已完成的内容", "Reprocess completed content")}</label>
           </>}

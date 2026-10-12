@@ -91,4 +91,17 @@ test("display and batch-summary options expose the current collection scope", as
   await expect(dialog).toContainText("本次将处理");
   await expect(dialog.getByRole("button", { name: "开始任务", exact: true })).toBeDisabled();
   await dialog.getByRole("button", { name: "取消", exact: true }).click();
+  await options.getByRole("combobox", { name: "摘要处理范围", exact: true }).selectOption("current");
+  await options.getByRole("button", { name: "批量生成摘要", exact: true }).click();
+  await expect(dialog.locator(".processing-count")).toHaveText("本次将处理 0 条。已完成且未变化的内容会跳过。");
+  await page.screenshot({ path: "screenshots/summary-skip-completed-mobile.png", animations: "disabled" });
+  const reprocess = dialog.getByLabel("重新处理已完成的内容", { exact: true });
+  await reprocess.check();
+  await expect(dialog.locator(".processing-count")).toHaveText("本次将处理 1,892 条。包括已完成且未变化的内容，将重新处理。");
+  await page.screenshot({ path: "screenshots/summary-reprocess-mobile.png", animations: "disabled" });
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.screenshot({ path: "screenshots/summary-reprocess-desktop.png", animations: "disabled" });
+  await reprocess.uncheck();
+  await expect(dialog.locator(".processing-count")).toHaveText("本次将处理 0 条。已完成且未变化的内容会跳过。");
+  await dialog.getByRole("button", { name: "取消", exact: true }).click();
 });
