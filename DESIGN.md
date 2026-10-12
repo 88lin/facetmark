@@ -1,7 +1,7 @@
 ---
-name: Facetmark collection and reader
-description: A white and lake-blue collection with readable type, compact controls, a searchable category directory and a
-  focused article rail.
+name: Facetmark collection workbench
+description: A white and lake-blue bookmark workbench with readable summaries, direct original links, scoped batch actions
+  and an optional preview.
 colors:
   canvas: '#ffffff'
   desk: '#f5f9fb'
@@ -83,12 +83,12 @@ typography:
     fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
       UI", sans-serif'
     fontSize: 0.9375rem
-    lineHeight: 1.5
+    lineHeight: 1.75
   index-summary:
     fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
       UI", sans-serif'
-    fontSize: 0.8125rem
-    lineHeight: 1.7
+    fontSize: 0.9375rem
+    lineHeight: 1.75
   body:
     fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
       UI", sans-serif'
@@ -157,8 +157,8 @@ typography:
   list-summary:
     fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
       UI", sans-serif'
-    fontSize: 0.875rem
-    lineHeight: 1.5
+    fontSize: 0.9375rem
+    lineHeight: 1.75
   article-subsection:
     fontFamily: '"Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe
       UI", sans-serif'
@@ -348,33 +348,40 @@ components:
     height: 36px
 ---
 
-# Design System: Facetmark collection and reader
+# Design System: Facetmark collection workbench
 
 ## Overview
 
-**Creative North Star: "Shared collection and reader — Operate / Read"**
+**Creative North Star: "Collection workbench — Operate"**
 
-Facetmark keeps saved writing easy to find and comfortable to read. A compact title/count and pill search share the desktop toolbar. A searchable vertical category directory sits beside the actual bookmarks. Source-first white cards and the denser list share a stronger title scale; larger supporting text and explicit filter labels make the collection easier to scan. The layered Facetmark mark and lake-blue interactions retain the identity.
+Facetmark makes a large bookmark collection useful from the collection itself. Titles are native links to the original websites; independent checkboxes, readable summaries or page excerpts, status filters and scoped batch actions support browsing and processing without first opening a reader. A compact title/count, pill search and searchable vertical category directory organize the work. The layered Facetmark mark, white cards and lake-blue interactions retain the identity.
 
-Selecting a bookmark replaces the category directory with a compact supporting index and makes the article the primary surface. The reader keeps its bounded text measure, quiet chapter rail and return context. Bundled Manrope, explicit local Chinese fallbacks with weight synthesis, relative text roles, dark-theme colors, keyboard access and reduced motion carry the system across desktop and Web.
+Preview is an explicit secondary action for inspecting saved content. It retains its bounded article measure, quiet chapter rail and return context, while ordinary title activation stays with the original website and checkbox selection stays in the collection. Bundled Manrope, explicit local Chinese fallbacks with weight synthesis, relative text roles, dark-theme colors, keyboard access and reduced motion carry the system across desktop and Web.
 
 **Key Characteristics:**
 
-- A compact toolbar preserves browsing space while stronger titles and readable controls carry the hierarchy.
+- A compact collection shell keeps direct original links, readable content and scoped actions together.
 - Complete folders, tags and sites are searchable and vertically scrollable with a mouse; loading more is explicit.
-- Source-first cards and a persistent list alternative use the same title scale while changing the layout density.
+- Source-first cards and a persistent list alternative share strong titles and multiline summaries or excerpts.
 - Lake-blue selection, pill controls and circular icon actions clarify state and priority.
-- The bounded reader retains query, filters, page, collection position and return focus.
-- Changing search/category clears the old reading context and prevents selection or export of stale results.
-- Typed filter chips, page jumps and category-aware collection actions make the current scope explicit.
+- Native links, checkboxes and optional preview buttons have separate targets and keyboard semantics.
+- A compact status row keeps processing state visible; a disclosure holds display, sort and batch-summary controls.
+- Cross-page selection appears in selection mode and applies to summary processing; metadata management and export retain their own scope.
+- Processing counts explain whether completed, unchanged content is skipped or included for reprocessing.
+- Processing progress, failures, pause and resume remain visible; saved tasks can be continued.
+- Changing query, category, summary status or search mode clears incompatible selections; stale results remain unavailable for scoped actions.
 
 The user-supplied interface reference is [GithubStarsManager](https://github.com/AmintaCCCP/GithubStarsManager), inspected at `6d1dd80700b0ee717f79a5da7d0137f32afc91b7`; its compact controls and accessible category organization inform this revision. It is an interface reference, not an approved pixel comp. No reference code or screenshots ship in Facetmark.
 
-On 2026-10-10 the user rejected the resulting typography as too small and thin, and the interface as unattractive and hard to use. They asked for direct correction without another preference interview. This document records the source-defined response at `bbd6cae273ccfa2dd44ee75542900f60f6cf7893`: larger and heavier reading hierarchies, explicit current filters and category-aware actions within the existing visual identity.
+The user rejected small, thin typography on 2026-10-10 and subsequently rejected the reader-first workflow. The current direction keeps the white/lake-blue identity and readable type while making direct original access, collection summaries and batch work primary. The old requirement for single-line excerpts and automatic reader entry is superseded.
 
-Cloud validation for `bbd6cae273ccfa2dd44ee75542900f60f6cf7893` completed on 2026-10-10 and was rechecked alongside independent confirmation on 2026-10-11. [Experience run 38051851958](https://github.com/88lin/facetmark/actions/runs/38051851958) passed 42 browser tests and 2003 Python tests with 1 skip; its remaining jobs passed. [CI run 38051855595](https://github.com/88lin/facetmark/actions/runs/38051855595) passed all 10 jobs, and [Windows run 38051852075](https://github.com/88lin/facetmark/actions/runs/38051852075) passed. The source-matched evidence is recorded in the locally retrieved `.desktop-build/readability-38051851958/provenance.json`, with 56 capture hashes verified and a 14.32-second recording. The stronger type roles, unbroken category-type labels and explicit mobile action text beside a single view-switch button are represented by this evidence.
+The final application source is `8bf3689e64b7a77222648f65dbe414a588d81731`. The frontend/Python source and their tests are identical to `da0b08e`, retaining the `3b04e0d` reprocessing-confirmation correction. `main.tsx` imports `collection-tools.css` after the base and workbench styles; its overrides target the actual `.main-workspace` container.
 
-A fresh independent general reviewer inspected 12 raw final screenshots and sampled the source on 2026-10-11, returning **SHIP** with no material fixes and an empty detector list (`[]`). The specialist reviewer and documenter roles were unavailable; general substitutes performed these scoped passes. No external QUALITY BAR or approved pixel comp exists, and a new-world seed is not required for this code-led refinement of the established system. This disposition records the scoped review; user aesthetic acceptance remains a separate judgment.
+[Experience 38244640757](https://github.com/88lin/facetmark/actions/runs/38244640757) passed 45 ordinary browser tests, the independent 200,000-record browser test and 2021 Python tests with 1 skip at the final source. [CI 38244648319](https://github.com/88lin/facetmark/actions/runs/38244648319) passed all ten jobs, and [Windows 38244640923](https://github.com/88lin/facetmark/actions/runs/38244640923) passed all jobs. Visual evidence remains the 65 hash-verified screenshots from [Experience 38200196817](https://github.com/88lin/facetmark/actions/runs/38200196817), captured at `da0b08eef38ba1a3284fa6dfe7fc57c558927c7e` in `.desktop-build/bookmark-native-38200196817/`; the unchanged frontend/Python source and tests make these captures source-compatible with the final application.
+
+The independent follow-up review returned **ship** only for the single P2 finding that reprocessing confirmation must match the `force` state: **resolved**, with no partial or unresolved finding in that scope. It does not establish a full-surface verdict, user aesthetic acceptance or real-model success. Windows acceptance is established separately by the final installed-desktop evidence: a real original-link click reached Edge, produced no page errors, and recorded a successful native `new_window` event; returning from Preview preserved the query. Runtime installation, backend readiness, same-version reinstall, data-preserving uninstall and parent-exit lifecycle checks also passed. The installer remains unsigned; hosted Windows Server evidence does not certify every Windows 10/11 environment.
+
+Historical evidence for `bbd6cae273ccfa2dd44ee75542900f60f6cf7893` remains at [Experience 38051851958](https://github.com/88lin/facetmark/actions/runs/38051851958), [CI 38051855595](https://github.com/88lin/facetmark/actions/runs/38051855595), [Windows 38051852075](https://github.com/88lin/facetmark/actions/runs/38051852075) and `.desktop-build/readability-38051851958/`. Its 42 browser passes, 2003 Python passes / 1 skip, 56 verified captures, 14.32-second recording and scoped reviewer SHIP applied to the superseded reader-first revision. They do not verify this Operate workflow. No external QUALITY BAR or approved pixel comp exists; this remains a refinement of the established identity, documented by the general substitute for the unavailable specialist.
 
 The earlier `09ab0332c5f9ec40627afc7f48f3da2ce0b8b36b` captures, density measurements and six-fix `ship` verdict remain historical evidence of the previous revision, whose typography the user subsequently rejected; they do not verify or approve this revision.
 
@@ -401,7 +408,7 @@ Frontmatter is normative. Base names map to runtime custom properties; each `-da
 
 Error Red (`danger`) accompanies explicit failures, recovery and destructive-action warnings. Dark mode retains hierarchy with pale blue accents over deeper surfaces.
 
-**The Lake-blue Selection Rule.** Use white bordered cards in the open collection, then a quiet supporting index with a blue selected entry. Pair selected fill, border and title color; reserve danger color for failures and destructive actions.
+**The Lake-blue Selection Rule.** Use white bordered cards for browsing and lake-blue state for selected checkboxes, active filters and explicit preview controls. Keep the original title link legible in deep ink; reserve danger color for failures and destructive actions.
 
 ## Typography
 
@@ -410,37 +417,38 @@ Manrope is bundled at `frontend/src/assets/Manrope-variable.ttf` for offline Lat
 The root uses `font-size: 100%`. Body, UI, metadata, caption and card-title roles correspond to `--type-body`, `--type-ui`, `--type-meta`, `--type-caption` and `--type-card-title`. Their canonical values are in frontmatter; px equivalents below assume the browser's default 16px root and scale with the user's default font size. Diagnostic output alone uses monospace.
 
 - **Headings:** collection-heading and workspace-heading use the same compact heading scale (22px equivalent / 700). Article titles retain their established 36px and 38px sizes with weight 700; support page titles retain their existing role. Chinese collection, article and library-dialog headings use zero tracking. Latin headings retain their declared negative tracking.
-- **Cards and list:** both views use the same title scale (18px equivalent / 700). Cards retain source, title, optional excerpt, then folder/date metadata. Source and metadata use the meta role (13px equivalent), with source weight 500. Desktop card excerpts use secondary ink (15px equivalent / 1.5) and one line; mobile card excerpts use two lines.
-- **List and supporting index:** desktop list rows place source and metadata in the second column and use a single-line excerpt (14px equivalent). Mobile list rows wrap titles to two lines and omit excerpts. The separate selected-reading index uses titles (16px equivalent / 700), one-line excerpts (13px equivalent / 1.7) and smaller auxiliary metadata.
+- **Cards and list:** both views use the same title scale (18px equivalent / 700). Source and folder/action metadata use the meta role (13px equivalent), with source weight 500. Summary and excerpt text uses secondary ink (15px equivalent / 1.75), up to four lines before expansion; content remains visible in the mobile list. The caption role identifies AI summary, title-based inference or page excerpt.
+- **List and preview index:** desktop list rows place source and metadata in the second column, beside the title and multiline description. Mobile rows return to a vertical stack. The optional preview's supporting index retains titles (16px equivalent / 700) while descriptions use the same readable summary role, clamped to three lines. An expand/collapse action appears when the rendered paragraph is actually clipped: the component compares scroll height with client height and remeasures on resize. Character count does not decide whether content can expand.
 - **Controls and forms:** routine actions, header/reader tabs and category names use the UI role (14px equivalent). Category names use weight 500, selected names 700, and deep ink at rest. Search and form input use the body role (16px equivalent); labels use the UI role at 600 and form values use weight 400. Placeholders inherit the input size.
+- **Collection processing controls:** status, summary/excerpt switching, sort, processing scope, selection totals and the task bar currently use the meta role (13px equivalent); status counts and summary provenance use the caption role. Current captures show the implemented layout, while the latest reviewer disposition is limited to the reprocessing-confirmation P2 described above.
 - **Reading:** desktop prose is (18px equivalent / 1.85), mobile (17px equivalent / 1.85). Body h2 uses (22px equivalent / 700 / 1.65); h3 uses (20px equivalent / 700 / 1.5). Paragraphs retain lower space (1.25em), h2 margins (34px above, 12px below), and h3 top space (24px). Counts, dates, pagination and percentages use tabular numerals.
 - **Responsive and auxiliary roles:** search remains at the body scale across breakpoints. Standard article title remains (32px) at 1120-1300px and (27px) at at most 719px. Reader tabs retain the UI scale on mobile. The chapter rail keeps its existing wrapping outline role, and the narrow reader return retains its source-defined 13px label.
 
-**The Reading Rhythm Rule.** Keep card and list titles at the same strong scale. Let a recognizable source introduce each saved page, then use title and excerpt to invite reading. Give the article a bounded measure and wrap Chinese text, long titles and URLs.
+**The Collection Rhythm Rule.** Keep card and list titles at the same strong scale, expose summaries or excerpts where the bookmarks are, and give longer content room to expand. Preserve original links and explicit action labels; the optional preview keeps its bounded article measure.
 
 ## Layout
 
 The dynamic-viewport shell (`100dvh`, minimum height 400px) places a white header (56px) above a full-width workspace (sides 24px, bottom 12px). Identity/navigation sit left; utilities/import sit right. Temporary navigation is (300px) wide, closed/inert with no shadow until opened.
 
-The desktop toolbar is (60px) high. Current title and result count share its left side; the (44px) pill search and filter controls share the right. A compact action row above the results contains creation, selection, organization, export and the card/list switch. Filter chips appear only when active. There is no duplicate collection/result masthead or horizontal folder strip.
+The desktop toolbar is (60px) high. Current title and result count share its left side; the (44px) pill search and filter controls share the right. Below the management actions, a compact row exposes summary-status counts and the native **显示与批量摘要 / Display & batch summaries** disclosure. The disclosure is closed initially; opening it reveals summary/excerpt switching, sorting and the summary-processing scope and start controls in an inset panel. Cross-page selection controls appear only in batch-selection mode or while a selection exists. The active task bar occupies its own row. These rows wrap with content; filter chips appear only when active.
 
 From (960px), an independently scrolling category directory (232px) sits left of the results with a (20px) gutter, a fine right rule and right padding (12px). Folders, tags and sites have explicit type controls, a search input, counts and a visible Load more action in pages of 50. Search applies to the entire directory, including entries beyond the former 200-item ceiling; exact matches appear first, then prefixes and other literal matches, with stable alphabetical ordering within each group. Long names wrap and retain a native title. The directory has a visible native vertical scrollbar, mouse-wheel scrolling and keyboard-focusable buttons. Below (960px), the same directory is in the filter drawer.
 
-Cards use `repeat(auto-fill, minmax(270px, 1fr))`, (12px) gaps, padding (14px), corners (12px) and content-driven row height. A row aligns its cards without a fixed minimum height or compulsory excerpt. The independently scrolling result list uses padding (3px 4px 8px) above a pagination footer (40px desktop, 44px mobile). List view replaces the card grid with ruled rows and persists across reloads.
+Cards use `repeat(auto-fill, minmax(270px, 1fr))`, (12px) gaps, padding (14px), corners (12px) and content-driven row height. Descriptions carry up to four lines with optional expansion; the footer follows the content with (12px) top padding. The independently scrolling result list uses padding (3px 4px 8px) above a pagination footer (40px desktop, 44px mobile). List view uses ruled rows and persists across reloads; its description remains visible on mobile.
 
-Source-matched measurements in the locally retrieved `.desktop-build/readability-38051851958/collection-density.json` use 1892 synthetic bookmarks and over 240 folders. All five measured viewports have no horizontal document overflow; these are observed results for this fixture, not fixed card-height rules.
+The following measurements come from `.desktop-build/bookmark-native-38200196817/collection-density.json`, captured at `da0b08e` with the final `3b04e0d` frontend: 1892 synthetic bookmarks and over 240 folders. All five measured viewports have no horizontal document overflow. Values are rounded to two decimals and describe this fixture; they do not impose fixed card heights or guarantee the same density for different content. The earlier `bbd6cae` one-line-summary measurements remain historical.
 
 | Viewport | List top / first card top | List height | Fully visible cards |
 | --- | --- | --- | --- |
-| 1440 × 960 | 164px / 167px | 744px | 16 |
-| 1366 × 768 | 164px / 167px | 552px | 9 |
-| 1280 × 600 | 164px / 167px | 384px | 6 |
-| 1024 × 749 | 164px / 167px | 533px | 6 |
-| 390 × 844 | 216.078px / 219.078px | 575.922px | 3 |
+| 1440 × 960 | 210.39px / 213.39px | 697.61px | 8 |
+| 1366 × 768 | 210.39px / 213.39px | 505.61px | 3 |
+| 1280 × 600 | 210.39px / 213.39px | 337.61px | 3 |
+| 1024 × 749 | 210.39px / 213.39px | 486.61px | 4 |
+| 390 × 844 | 320.08px / 323.08px | 471.92px | 1 |
 
-The same run's `collection-typography.json` measured title (18px / 700), summary (15px), source (13px), category and action text (14px), search (16px), and normal Chinese tracking. The previous revision's measurements remain historical.
+The current run's `collection-typography.json` measured title (18px / 700), summary (15px), source (13px), category and action text (14px), search (16px), and normal Chinese tracking. Its `collection-200k.json` records first-page (72.81ms), deep-page (135.64ms) and whole-keyword-scope (111.63ms) queries for 200,000 synthetic records, a durable snapshot of 199,998 targets, and a pending batch of 64. The recorded `snapshot_python_peak_bytes` value (3259 bytes) is additional Python allocation observed by tracemalloc during the snapshot operation; it is not total process memory or total library memory.
 
-Selection hides the category directory and contracts the desktop index to (312px), beside a gutter (24px) and flexible reader. Index entries use padding (16px 14px), lower spacing (6px), panel corners and transparent default fill/border; selection restores a blue fill/edge. The toolbar remains (60px), search/control-group basis (680px), search height (44px). No empty reader column is reserved. Opening/returning preserve the real list scroll; choosing a different category/query resets scroll and pagination and closes the old reader.
+Only the explicit Preview action hides the category directory and contracts the desktop index to (312px), beside a gutter (24px) and flexible reader. Checkbox selection and native title links do not open this layout. Index entries use padding (16px 14px), lower spacing (6px), panel corners and transparent default fill/border; an active preview restores a blue fill/edge. The toolbar remains (60px), search/control-group basis (680px), search height (44px). No empty reader column is reserved. Preview opening/returning preserve the real list scroll; choosing a different category/query resets scroll and pagination and closes the old preview.
 
 Reader tabs/actions share a strip (56px). Article width is capped at (780px), including gutters; title padding is (40px 46px 0), body padding (24px 46px 44px), and position footer height (48px). Source lower space is (16px); title lower margin is (14px). Controls remain outside the article scroller.
 
@@ -452,7 +460,7 @@ Support pages use maximum width (1050px), top margin (28px), padding (32px 40px 
 | --- | --- |
 | At least 1600px | Index (328px), reader gutter (56px); collection grid uses all available width. |
 | 1120–1300px | Index (292px), reader gutter (36px), workspace sides (28px), selected gap (22px), search-group basis (620px); reader count hides. |
-| 960–1119px | Category directory remains visible; workspace sides (20px). Reading opens the full-width modal. |
+| 960–1119px | Category directory remains visible; workspace sides (20px). Explicit Preview opens the full-width modal. |
 | 720–959px | Category directory is in the filter drawer; workspace sides (20px), header sides (20px), import is an icon-only (42px) circle. |
 | 720–1119px | Browse horizontal gaps (18px); selected collection behind modal has (18px) gaps. Full-width reader return/actions row (60px), tabs (56px), no sheet shadow. Support padding (32px); model columns stack with gap (16px). |
 | At most 719px | Header (56px), workspace sides (12px), bottom (8px), navigation/utilities in drawer. Toolbar padding (12px 0), gap (10px), title then search; search controls `minmax(0, 1fr) 44px 68px`, search height (44px). One card column, padding (14px), corners (12px). Article gutter (24px), body top space (20px), reader footer (52px). Support margin-top (16px), padding (24px 20px); form actions stack. |
@@ -482,7 +490,7 @@ Collection-management dialogs extend this system with pill-shaped inputs and sel
 20px dialog corners, the existing semantic colors and an explicit muted placeholder.
 These scoped form shapes do not replace the incumbent model-setting field tokens.
 
-Lucide SVGs provide stroke icons and the layered brand mark. Source initials identify pages. The open arrow appears on hover/keyboard focus; selected entries show Reading in its place. No selection-edge stripe or decorative imagery is introduced.
+Lucide SVGs provide stroke icons and the layered brand mark. Source initials identify pages. Each bookmark has an independent checkbox, a visible original-link icon and a secondary Preview control; summary generation is a separate contextual action. Links and buttons keep their native shapes and focus targets.
 
 ## Components
 
@@ -506,17 +514,23 @@ The query trigger is a (40px) circle, (44px) on mobile. Its cmdk-powered popup o
 
 The menu uses at most six returned suggestions, preserves syntax and quotes multiword values. Opening focuses the list; arrows/Enter use cmdk selection, Escape returns to the trigger, and leaving closes the menu. Loading, empty and failure content remain distinct; retry is a compact contextual action (minimum 32px). This is a search-suggestion menu, not a global action launcher. Its heading uses the body role at 700, suggestion labels use the UI role at 600, detail/footer text uses the caption role, and loading/error/retry content uses the UI role.
 
-### Collection and reader
+### Collection operations and optional preview
 
 A page-jump form accompanies previous/next when the unselected collection has more than one known page and the result is not depth-capped. The numeric input and submit action accept only integer pages in range, are disabled while the scope is pending, and reset to the current page when query or filters change. Desktop input width/minimum height are (50px / 32px), submit minimum height (34px); mobile uses (44px / 40px) input and a (44px) submit action. Desktop card/list choices remain (36px by 34px). At at most 719px they become one (44px square) action whose icon, title and accessible label name the destination view. Mobile collection actions use padding (8px 6px), and the action row uses a (6px) column gap to preserve the available width. Ordinary mobile collection toolbars keep explicit text on secondary actions, omit their repeated icons and retain minimum width/height (44px). Add keeps its plus icon; selection-mode controls retain their existing treatment.
 
 Collection actions use the current context: new bookmarks inherit the active folder and tag; editing preserves saved values. Organize categories prefills the active folder or tag, choosing the folder when both are set. Export defaults in order to selected items, the current search page, the filtered collection, then the whole collection. The batch page toggle can select or deselect only the current page while preserving other selected pages; reaching 1000 selected items shows the existing limit explicitly.
 
-Cards begin with a (24px) source badge/domain, then title, optional excerpt and quiet folder/date metadata. Content gap is (6px); metadata margin-top (4px), with no extra footer rule or padding. Open arrows transition from x (-4px)/opacity (0) to visible on hover/focus. Selection exposes `aria-pressed` and Reading. Index content gap is (6px), with smaller typography and no footer rule. ArrowUp/ArrowDown selects adjacent entries; opening/returning preserve query, filters, page, position and originating focus.
+Collection tools expose All, Pending, Summarized and Failed states with counts. The native **显示与批量摘要 / Display & batch summaries** disclosure contains the Summaries / Excerpts switch, sorting by newest or oldest save time, title or website, and batch-summary controls. Its summary remains a separate keyboard target; opening it expands a full-width inset panel. At widths up to (720px), status controls span the row, processing controls take a full row and the disclosure, status, display, sort, scope and selection controls have minimum height (44px). Summary mode uses a saved summary when available and otherwise the page excerpt. Labels distinguish AI summary, title-only inference, page excerpt and missing summary. A failed generation remains visible with a Retry action. Keyword mode is the default; semantic search is optional. An active semantic query hides this collection-tools group, including status, display, sorting and whole-filter summary processing; explicit result selection and management remain separate.
+
+**全选 N 条用于摘要 / Select all N for summaries** is offered only in batch-selection mode or while a selection exists. It represents the current keyword query, category filters and summary status across pages for **summary processing**. Individual unchecked items form a bounded exclusion list (up to 10,000 IDs in the current source); explicit checkbox selection remains capped at 1,000 IDs. The group is named **摘要批量选择 / Batch summary selection**. Its selected-count banner explicitly says **摘要处理 · 跨页生效 / summaries across pages**, alongside Summarize selected and Clear. Changing the query, category, summary status or search mode clears both selection forms. Metadata management and export do not consume this cross-page selection or its exclusions: they retain explicit selected IDs, page, category-filter or library scope according to the action.
+
+Batch summary scope can be Current filters, Pending in filters, Retry failures or Entire library. Before starting, the protected dialog shows the computed eligible count, requires a tested saved chat connection and explicit content-processing consent, and passes the preview revision with the request. A changed library requires a fresh preview. The count and explanation follow the **Reprocess completed content** checkbox: unchecked skips completed, unchanged content; checked includes that content for reprocessing. Zero eligible items disables Start task. The synthetic completed-library case is verified as **0 → 1,892 → 0** when checking and then clearing the option, with corresponding desktop/mobile captures `summary-reprocess-desktop.png`, `summary-reprocess-mobile.png` and `summary-skip-completed-mobile.png` in the current evidence directory. Server-side scope creates a durable target snapshot and bounded batches; it does not send every matching bookmark ID from the browser. The 1,000-item UI selection limit and 10,000-ID request limit do not cap a server-scoped job's total. The collection task bar shows processed/total and failures, with Pause, Pausing and Resume states; Tasks also lists saved jobs that can be continued. Pausing completes the current bounded batch, and resuming retains the saved target set. Fetching page text and generating summaries remain distinct operations.
+
+BookmarkCard is an article with separate interactive children. Its (16px) native checkbox selects; the title and external-link icon are real safe-URL anchors with a new-tab target, so normal link actions remain available. A missing safe URL leaves a text title. The title hover becomes lake blue and underlined. The description is followed by folder metadata, optional summary generation and an explicitly labeled Preview button. Preview alone uses `aria-pressed`; checkbox state is independent. ArrowUp/ArrowDown moves focus among adjacent checkboxes or among preview buttons. Returning from preview preserves the originating control and collection context.
 
 Reader tab pills are (36px) with padding (0 13px), gap (4px), and a moving marker at top (10px). Mobile pills/marker are (44px), marker top (6px). One active tab stop, arrow/Home/End navigation and linked panels preserve keyboard access. Previous/next, Focus and close share the desktop strip; narrow reading exposes Back to collection.
 
-The original-page link is an inset pill above the title; saved folder/tags/search context use an on-demand pill disclosure with rotating chevron. Body, summary and related content retain distinct loading/missing/failure states. Tab positions persist per bookmark and reset on a new one. Exact duplicated first-title paragraphs are omitted; only explicit Markdown headings become sections.
+Inside the optional preview, the original-page link is an inset pill above the title; saved folder/tags/search context use an on-demand pill disclosure with rotating chevron. Body, summary and related content retain distinct loading/missing/failure states. Tab positions persist per bookmark and reset on a new one. Exact duplicated first-title paragraphs are omitted; only explicit Markdown headings become sections.
 
 The Rare UI RailToc adaptation appears only for successfully loaded, focused body reading with more than one actual heading, at desktop widths. The sticky (170px) rail has wrapping (12px) labels, minimum link height (36px), a fine vertical rule and blue current marker. Clicks scroll only the article container with offset (28px). Real heading measurements, font readiness and resize updates drive tracking; the rail scrolls internally to keep the active link visible. Preserve its attribution in THIRD_PARTY_NOTICES.md.
 
@@ -526,7 +540,9 @@ The separate position footer measures actual saved-body scroll extent and retain
 
 Each model channel renders essential fields, its test/result, then optional settings. Deep-ink headings use blue role icons. Tests have margin-top (12px) with no separator; options have margin-top (22px), padding-top (12px), and a fine upper rule. Checkbox labels are at least (40px) with (17px) controls, (44px) labels on mobile. Setup steps remain pills; apply/consent/stage panels outlined; import uses a dashed edge on Lake Mist. Configured, tested, indexed and applied states remain distinct.
 
-CSS owns general icon/search changes (150ms), suggestions and chapter-link/marker changes (160ms), primary/secondary/card/header/folder/disclosure states (180ms), and navigation translation (220ms), using `cubic-bezier(0.22, 1, 0.36, 1)`. The card arrow animates opacity/translation; cards have no entrance stagger or lift. Busy spinners rotate over (1.1s linear).
+Summary settings offer an installed Codex / Claude Code agent with existing sign-in or an API endpoint. Agent mode exposes detection/re-detection, an explicit agent choice and an optional model override, while explaining that content uses that agent's model service. Detection alone is not a successful connection test. Test connection and Test and save remain explicit actions; embeddings are only required for optional semantic search. Chat test-and-save success confirms readiness to generate summaries; embedding success says the connection was saved and directs the user to apply any embedding configuration changes.
+
+CSS owns general icon/search changes (150ms), suggestions and chapter-link/marker changes (160ms), primary/secondary/card/header/folder/disclosure states (180ms), and navigation translation (220ms), using `cubic-bezier(0.22, 1, 0.36, 1)`. Original-link icons remain available without a hover-reveal gate; cards have no entrance stagger or lift. Busy spinners rotate over (1.1s linear).
 
 GSAP owns tab-marker x/width (180ms, `power3.out`, overwrite `auto`) and interruptible focus-pane x/y (220ms), clearing transforms on completion. Motion owns modal-reader x (220ms), transparent-overlay opacity (180ms), and measured progress scale with spring stiffness (180), damping (35), mass (0.25). Reduced motion disables CSS transitions/animations, makes GSAP/drawer changes immediate, uses direct progress and automatic scrolling, including chapter navigation.
 
@@ -535,10 +551,12 @@ GSAP owns tab-marker x/width (180ms, `power3.out`, overwrite `auto`) and interru
 ### Do:
 
 - Do prioritize visible bookmarks with a compact toolbar and complete, mouse-accessible category directory.
-- Do preserve source-first card order and content-driven row heights without compulsory excerpt space.
+- Do preserve source-first card order, multiline summaries or excerpts, explicit provenance and content-driven row heights.
 - Do keep card and list titles equally legible, respect the root font preference and preserve visible Chinese weight differences.
 - Do use true pill controls and circular icon actions while retaining card, reader and field exceptions.
-- Do keep the index subordinate and preserve query, filters, pagination, collection position and return focus.
+- Do keep preview secondary to collection operations and preserve query, filters, pagination, collection position and return focus.
+- Do keep original links, selection checkboxes and preview buttons independent, and distinguish cross-page summary scope from management/export scope.
+- Do keep status counts visible, place display/sort/batch controls in their disclosure, and show processing counts, failures and pause/resume state.
 - Do keep persistent reader navigation and progress controls outside the article scroller and show the focus rail only for real headings. Contextual bookmark editing and processing actions follow the article information inside the scroller.
 - Do place each model test after essential fields, with options below.
 - Do provide a visible Back to collection control in the full-width narrow reader.
@@ -547,6 +565,7 @@ GSAP owns tab-marker x/width (180ms, `power3.out`, overwrite `auto`) and interru
 ### Don't:
 
 - Don't restore the rejected grey-violet palette or permanent three-column management shell.
+- Don't make a title click open the reader, require preview before collection work, or restore single-line summaries and hidden mobile excerpts.
 - Don't impose fixed card heights, hide category access in horizontal gestures, or fill missing excerpts with decorative content.
 - Don't apply the open collection's card treatment to every supporting index row.
 - Don't shrink list titles below the card title scale or disable weight synthesis for the Chinese fallback stack.

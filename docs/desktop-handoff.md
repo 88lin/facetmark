@@ -1,6 +1,63 @@
 # Facetmark 桌面化与体验升级交接
 
-## 2026-10-11 用户再次否定：收藏操作、20 万数据与模型连接（进行中）
+## 2026-10-12 收藏工作流修复与 20 万条验收（最终云端验证通过）
+
+最终应用与测试源码为 `8bf3689e64b7a77222648f65dbe414a588d81731`。
+前端与 Python 工作流修复源码为 `3b04e0d534dae0dbf31e326d2e2dbec2c674d76c`；
+已核验的截图源码为 `da0b08eef38ba1a3284fa6dfe7fc57c558927c7e`，其应用差异仅为桌面外链插件配置。
+书签标题和外链图标直接打开原网页，选择框与预览独立；卡片及手机列表显示多行摘要，
+按实际裁切提供展开。补齐收藏样式入口及正确容器选择器，状态筛选常驻，显示、排序和
+摘要处理范围收在 **显示与批量摘要**。跨页全选明确用于摘要，整理与导出保留各自范围。
+
+修复抓取事务的内部落盘钩子与外部进度通知顺序，保留结果／索引／任务状态的原子提交；
+20 万条合成夹具补齐必填字段，Windows 子进程夹具明确以 UTF-8 读写。
+本机 Codex／Claude Code 适配复用已有 CLI 配置；API 的备用模型、JSON 模式回退、
+测试与保存指纹均有回归。真实用户账号连通性未验证。
+
+`da0b08e` 的已确认结果：
+
+- [Experience 38200196817](https://github.com/88lin/facetmark/actions/runs/38200196817)：
+  45 项普通浏览器测试、2021 项 Python 测试（1 跳过）、独立 20 万条浏览器专项、规模基准、
+  构建、分发资源、Docker 与扩展通过。
+- [CI 38200198977](https://github.com/88lin/facetmark/actions/runs/38200198977)：十项任务通过，
+  包含 Linux／Windows × Python 3.10／3.12。
+- [视觉证据 11725421003](https://github.com/88lin/facetmark/actions/runs/38200196817/artifacts/11725421003)：
+  65 张截图的哈希全部匹配；已检查收藏主界面、手机摘要／选项、模型设置与重处理确认。
+  四张中英文深浅主题展示图同步来源，保留原始像素数据；这四张图包含可选阅读器。
+  本机小型证据位于 `.desktop-build/bookmark-native-38200196817`。
+
+20 万条合成基准：首页 72.81ms、深页 135.64ms、完整关键词范围 111.63ms；
+排除两条后目标快照 199998 条，每批最多读取 64 条。3259 字节仅是快照操作的 Python
+额外分配测量，不是进程或书库总内存，也没有向真实模型生成 20 万条摘要。
+
+独立通用复核原先检查 12 张有效截图，要求修复一项 P2：重处理说明与选项不一致。
+新截图与浏览器测试确认处理数量和说明随勾选呈 **0 → 1892 → 0**；verdict 为 **ship**，
+该项评分 **resolved**。此结论仅覆盖该项修复；专用角色不可用，由独立通用代理完成。
+
+最终源码 `8bf3689` 再次通过
+[Experience 38244640757](https://github.com/88lin/facetmark/actions/runs/38244640757)
+（45 项普通浏览器、20 万条专项、2021 Python／1 跳过、构建与分发检查）及
+[CI 38244648319](https://github.com/88lin/facetmark/actions/runs/38244648319) 十项任务。
+此后应用源码未变，交接提交仅包含文档和展示图片。
+
+[Windows 38244640923](https://github.com/88lin/facetmark/actions/runs/38244640923) 全部通过：
+WebView2 初始缺失且安装器网络被阻断时完成离线安装，实际窗口导入和检索、点击原网页、
+独立预览、返回保留查询、同版本重装、卸载保留数据及后端随父进程退出均已验证。
+`installed-reader.json` 的源码为 `8bf3689`，记录 `original_opened_in_system_browser: true`，
+系统 Edge 实际访问了 `/original`，页面错误为空；原生事件为 `new_window`，错误为 null。
+三张安装后截图已检查；[小型证据 11746731014](https://github.com/88lin/facetmark/actions/runs/38244640923/artifacts/11746731014)
+位于 `.desktop-build/bookmark-final-windows-38244640923`。
+
+[未签名 Windows x64 安装包](https://github.com/88lin/facetmark/actions/runs/38244640923/artifacts/11746416238)
+本体为 **279196220 字节**，未下载到本机。预览版手动更新，Actions 产物保留 14 天。
+此前外链故障来自 opener 与 shell 插件的网页点击拦截。最终关闭 opener 的点击脚本，
+通过 `native_shell.rs` 保留官方 shell 的 Rust 初始化和事件生命周期，省去网页脚本与 IPC，
+让 HTTP／HTTPS 链接走原生处理；独立 OS 对照结果没有被当作应用点击通过。
+
+真实模型账号、云盘传输、Windows 10/11 真机和跨版本升级仍未验证。
+PR #44 保持草稿；未合并、发布或部署。全部构建、浏览器与安装验证均在 Actions。
+
+## 2026-10-11 用户再次否定：收藏操作、20 万数据与模型连接（历史问题记录）
 
 用户指出不能从卡片直接打开原网址、摘要被藏在逐篇阅读中、模型填写后无法使用，
 实际书库约 20 万条。明确要求参考 GithubStarsManager 的完整工作流，以及 open-design
@@ -15,7 +72,7 @@ enrich_all 预读所有正文并为全部目标创建任务，_summarize 又将�
 参考源码只读保存在 `.desktop-build/starsmanager-current` 和 `.desktop-build/open-design-reference`，
 各自 source.txt 记录固定提交。GitHubStarsManager 为 MIT，open-design 为 Apache-2.0；
 如移植代码须带来源和许可证。仍按已有约定只在 Actions 构建、浏览器和安装验证。
-当前测试分支已包含旧一轮文档提交 6163b29，PR #44 尚未更新本轮新范围，继续保持草稿。
+此节记录当时的起点；本轮完成情况和 PR 状态以上方最新交接为准。
 
 ## 2026-10-11 字体与常用流程打磨（最终云端验证通过）
 

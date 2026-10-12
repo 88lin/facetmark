@@ -1,5 +1,90 @@
 # Desktop experience validation
 
+## 2026-10-12: original links, visible summaries and bounded collection processing (verified)
+
+Final application/test source: `8bf3689e64b7a77222648f65dbe414a588d81731`.
+Frontend and Python workflow fix: `3b04e0d534dae0dbf31e326d2e2dbec2c674d76c`.
+Verified visual source: `da0b08eef38ba1a3284fa6dfe7fc57c558927c7e`; its only
+application difference from that frontend revision is the desktop native-link
+plugin configuration. The final source changes only desktop Rust and installation
+scripts after the visual capture; frontend, Python source and tests match it.
+Native title links open original pages; selection and Preview are independent. The
+collection stylesheet is now imported and targets the actual main container.
+Desktop and mobile lists show multiline summaries with measured clipping/expansion.
+Scoped summary jobs use persistent target snapshots and bounded batches. Installed
+Codex/Claude Code adapters reuse CLI settings; tests use synthetic subprocesses and
+API fixtures, not a user's model account.
+
+- [Experience 38200196817](https://github.com/88lin/facetmark/actions/runs/38200196817):
+  **45 ordinary browser tests**, **2021 Python passed / 1 skipped**, separate
+  **200,000-record browser acceptance**, scale benchmark, frontend build, package
+  resources, Docker and extension passed. The ordinary browser matrix skips the
+  large test, which runs separately against the actual synthetic database.
+- [CI 38200198977](https://github.com/88lin/facetmark/actions/runs/38200198977):
+  **all ten jobs passed**, including Linux/Windows × Python 3.10/3.12.
+- [Visual artifact 11725421003](https://github.com/88lin/facetmark/actions/runs/38200196817/artifacts/11725421003):
+  **65 screenshots**, with every capture hash matching the source manifest. The
+  main desktop collection, mobile summaries/options, model settings and three
+  reprocessing-confirmation captures were opened and checked. Four language/theme
+  landing images retain the captured raster data and embedded source metadata;
+  those matrix images include the optional reader. Small local evidence is in
+  `.desktop-build/bookmark-native-38200196817`.
+
+The 200,000 synthetic-record benchmark measured first page **72.81ms**, deep page
+**135.64ms**, full keyword scope **111.63ms**, and durable snapshot **306.71ms**.
+The snapshot contains **199,998** items after two exclusions; pending reads are
+bounded to **64**. The **3,259-byte tracemalloc peak** measures extra Python
+allocations during snapshot creation, not process/database memory. This is paging,
+scope and bounded-processing evidence, not 200,000 real model generations or a
+benchmark of the user's library.
+
+The independent general reviewer originally inspected 12 valid screenshots and
+requested one P2 correction: reprocessing must not claim completed items are
+skipped. The new desktop/mobile captures and browser assertion show the count and
+explanation switching **0 → 1,892 → 0**. The verdict pass returned **ship**, scoring
+that one finding **resolved**. This is a fix-scoped verdict, not whole-product
+approval or user aesthetic acceptance. The specialist was unavailable, so a
+separate general reviewer fulfilled the contract. The single design detector pass
+returned `[]`; it was not rerun.
+
+Final-source confirmation:
+
+- [Experience 38244640757](https://github.com/88lin/facetmark/actions/runs/38244640757):
+  45 ordinary browser scenarios, the separate 200,000-record scenario, 2021 Python
+  tests (1 skipped), frontend/package checks, Docker and extension passed.
+- [CI 38244648319](https://github.com/88lin/facetmark/actions/runs/38244648319):
+  all ten jobs passed.
+- [Windows 38244640923](https://github.com/88lin/facetmark/actions/runs/38244640923):
+  offline installation with WebView2 initially absent and installer networking
+  blocked, frozen-service checks, actual installed import/search/original-link/
+  preview-return flow, same-version reinstall, parent-process cleanup and uninstall
+  data retention all passed.
+
+The Windows evidence records `original_opened_in_system_browser: true`, an actual
+Edge request to the disposable `/original` destination, no click-related WebView
+errors, and a native `new_window` event with `error: null`. The workbench stays at
+its original URL; Preview is separate and returning preserves the search query.
+Three 1028 × 749 installed captures were opened and checked. The
+[170,006-byte evidence artifact](https://github.com/88lin/facetmark/actions/runs/38244640923/artifacts/11746731014)
+is saved under `.desktop-build/bookmark-final-windows-38244640923`.
+The [unsigned Windows x64 preview](https://github.com/88lin/facetmark/actions/runs/38244640923/artifacts/11746416238)
+contains a **279,196,220-byte installer**; the large package was not downloaded locally.
+
+The earlier external-link failures exposed two injected JavaScript interceptors.
+The opener plugin now disables its click script; `native_shell.rs` delegates the
+official shell plugin's Rust initialization/event lifecycle without exposing its
+legacy web script or IPC. Native navigation handlers open HTTP/HTTPS destinations.
+The failure diagnostic's independent OS control cannot satisfy the app-click gate;
+the final successful run used the real installed title click.
+
+All builds, browser execution, scale benchmarks and installation tests run in
+GitHub Actions. Local work is editing, lightweight checks and small evidence
+retrieval. No real bookmarks or personal browser profiles were accessed. Real
+model accounts/services, cloud-drive transport, Windows 10/11 hardware,
+non-administrator behavior and cross-version upgrades remain unverified. The
+unsigned x64 preview uses manual updates; artifacts expire after 14 days. PR #44
+remains a draft with no merge, release or Pages deployment.
+
 ## 2026-10-11: readable typography and everyday collection flows (final cloud validation passed)
 
 The user rejected the small, thin typography and asked for further visual and
