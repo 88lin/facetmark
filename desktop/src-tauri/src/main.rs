@@ -205,7 +205,9 @@ fn main() {
         .manage(Backend::default())
         .plugin(tauri_plugin_single_instance::init(|app, _, _| focus_main(app)))
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_opener::init())
+        // The remote workbench has no opener IPC capability. Leave native link
+        // events to on_navigation/on_new_window instead of cancelling them in JS.
+        .plugin(tauri_plugin_opener::Builder::new().open_js_links_on_click(false).build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_autostart::Builder::new().build())
         .plugin(tauri_plugin_global_shortcut::Builder::new().with_handler(|app, _, event| {
