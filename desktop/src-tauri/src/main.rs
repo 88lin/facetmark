@@ -9,7 +9,7 @@ use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use tauri_plugin_opener::OpenerExt;
-use tauri_plugin_shell::{process::{CommandChild, CommandEvent}, ShellExt};
+use tauri_plugin_shell::process::{Command, CommandChild, CommandEvent};
 
 const SHORTCUT: &str = "Ctrl+Shift+Space";
 
@@ -116,7 +116,7 @@ fn spawn_backend(app: &tauri::AppHandle) -> Result<(), String> {
     if state.starting.swap(true, Ordering::SeqCst) { return Ok(()); }
     let generation = state.generation.fetch_add(1, Ordering::SeqCst) + 1;
     state.ready.store(false, Ordering::SeqCst);
-    let command = app.shell().sidecar("facetmark-service").map_err(|e| {
+    let command = Command::new_sidecar("facetmark-service").map_err(|e| {
             state.starting.store(false, Ordering::SeqCst); e.to_string()
         })?
         .args(["--parent-pid", &std::process::id().to_string()]);
@@ -221,7 +221,8 @@ fn main() {
     tauri::Builder::default()
         .manage(Backend::default())
         .plugin(tauri_plugin_single_instance::init(|app, _, _| focus_main(app)))
-        .plugin(tauri_plugin_shell::init())
+        // Rust starts the sidecar directly; registering the shell IPC plugin
+        // would inject its legacy link interceptor into the remote workbench.
         // The remote workbench has no opener IPC capability. Leave native link
         // events to on_navigation/on_new_window instead of cancelling them in JS.
         .plugin(tauri_plugin_opener::Builder::new().open_js_links_on_click(false).build())

@@ -123,6 +123,7 @@ with sync_playwright() as playwright:
                     'os_control_error': control_error, 'path': os.environ.get('PATH'),
                 }, indent=2), encoding='utf-8')
                 raise AssertionError('The installed app did not open the original URL in the system browser')
+            assert not link_errors, f'Original-page click raised WebView errors: {link_errors}'
             assert page.url == workbench_url
             assert page.locator('.bookmark-preview[aria-pressed="true"]').count() == 0
         finally:
@@ -139,6 +140,8 @@ with sync_playwright() as playwright:
         'commit': os.environ.get('GITHUB_SHA'), 'data': 'synthetic HTML import only',
         'import_rendered': True, 'keyword_search': True,
         'original_opened_in_system_browser': True,
+        'original_requests': requests,
+        'original_click_page_errors': link_errors,
         'reader_missing_body_state': True, 'close_preserved_query': True,
         'reader_return_label': return_label,
         'viewport': page.evaluate('({ width: innerWidth, height: innerHeight })'),
