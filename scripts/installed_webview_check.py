@@ -65,15 +65,22 @@ with sync_playwright() as playwright:
     # Exercise the actual Tauri -> system-browser handoff. The only destination
     # is a disposable loopback server on this GitHub-hosted VM, never a real site.
     opened = threading.Event()
+    control_opened = threading.Event()
+    link_errors = []
+    requests = []
+    page.on('pageerror', lambda error: link_errors.append(str(error)))
 
     class OriginalPage(BaseHTTPRequestHandler):
         def do_GET(self):
+            requests.append({'path': self.path, 'user_agent': self.headers.get('User-Agent')})
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.end_headers()
             self.wfile.write(b'<h1>Facetmark synthetic original page</h1>')
             if self.path == '/original':
                 opened.set()
+            elif self.path == '/os-control':
+                control_opened.set()
 
         def log_message(self, *args):
             pass
@@ -87,9 +94,35 @@ with sync_playwright() as playwright:
             # Keep the imported record, substituting only its synthetic link
             # destination so this test can observe the external process request.
             original_link.evaluate('(link, url) => link.href = url', original_url)
+            page.evaluate('''() => {
+                window.__linkClicks = [];
+                window.addEventListener('click', event => {
+                    const link = event.target.closest('a');
+                    if (link) setTimeout(() => window.__linkClicks.push({
+                        href: link.href, prevented: event.defaultPrevented, trusted: event.isTrusted
+                    }), 0);
+                });
+            }''')
             workbench_url = page.url
             original_link.click()
-            assert opened.wait(30), 'The installed app did not open the original URL in the system browser'
+            deadline = time.monotonic() + 30
+            while not opened.is_set() and time.monotonic() < deadline:
+                page.wait_for_timeout(250)
+            if not opened.is_set():
+                # A diagnostic control only: it never satisfies the app-click gate.
+                control_error = None
+                try:
+                    os.startfile(original_url.replace('/original', '/os-control'))
+                    control_opened.wait(15)
+                except OSError as error:
+                    control_error = str(error)
+                (output / 'external-link-failure.json').write_text(json.dumps({
+                    'commit': os.environ.get('GITHUB_SHA'),
+                    'clicks': page.evaluate('window.__linkClicks'), 'page_errors': link_errors,
+                    'requests': requests, 'os_control_opened': control_opened.is_set(),
+                    'os_control_error': control_error, 'path': os.environ.get('PATH'),
+                }, indent=2), encoding='utf-8')
+                raise AssertionError('The installed app did not open the original URL in the system browser')
             assert page.url == workbench_url
             assert page.locator('.bookmark-preview[aria-pressed="true"]').count() == 0
         finally:

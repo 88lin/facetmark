@@ -20,6 +20,23 @@ fn cloud_webview_inspection() -> bool {
 }
 const CI_BROWSER_ARGS: &str = "--remote-debugging-port=9223 --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection";
 
+fn open_original(app: &tauri::AppHandle, target: &tauri::Url, event: &str) {
+    if !matches!(target.scheme(), "http" | "https") { return; }
+    let result = app.opener().open_url(target.as_str(), None::<&str>);
+    // Diagnostics are restricted to the disposable CI VM and its synthetic URLs.
+    if cloud_webview_inspection() {
+        if let Some(directory) = std::env::var_os("FACETMARK_CI_EVIDENCE_DIR") {
+            use std::io::Write;
+            let path = std::path::PathBuf::from(directory).join("native-links.jsonl");
+            if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
+                let record = serde_json::json!({ "event": event, "url": target.as_str(),
+                    "error": result.err().map(|error| error.to_string()) });
+                let _ = writeln!(file, "{record}");
+            }
+        }
+    }
+}
+
 #[derive(Default)]
 struct Backend {
     child: Mutex<Option<CommandChild>>,
@@ -81,11 +98,11 @@ fn open_workspace(app: &tauri::AppHandle, port: u16) -> Result<(), String> {
         .center()
         .on_navigation(move |target| {
             if target.origin() == origin && (target.path() == "/app" || target.path().starts_with("/app/")) { return true; }
-            if matches!(target.scheme(), "http" | "https") { let _ = handle.opener().open_url(target.as_str(), None::<&str>); }
+            open_original(&handle, target, "navigation");
             false
         })
         .on_new_window(move |target, _| {
-            if matches!(target.scheme(), "http" | "https") { let _ = new_handle.opener().open_url(target.as_str(), None::<&str>); }
+            open_original(&new_handle, &target, "new_window");
             tauri::webview::NewWindowResponse::Deny
         });
     if cloud_webview_inspection() { builder = builder.additional_browser_args(CI_BROWSER_ARGS); }

@@ -14,6 +14,7 @@ $dataTarget = Join-Path $env:RUNNER_TEMP 'Facetmark CI 资料库'
 $env:FACETMARK_DATA_DIR = $dataTarget
 $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--remote-debugging-port=9223'
 $env:FACETMARK_CI_WEBVIEW_INSPECT = '1'
+$env:FACETMARK_CI_EVIDENCE_DIR = $evidenceDir
 $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
 Get-ChildItem Env: | Where-Object Name -Like 'PYTHON*' | ForEach-Object { Remove-Item -LiteralPath "Env:$($_.Name)" }
 
@@ -61,7 +62,7 @@ try {
     # Attach to this installed app's WebView, not a separately launched browser.
     $webviews | Select-Object ProcessId, ParentProcessId, CommandLine | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidenceDir 'webview-processes.json') -Encoding utf8
     & (Join-Path $repoRoot '.desktop-build/venv/Scripts/python.exe') (Join-Path $repoRoot 'scripts/installed_webview_check.py') $evidenceDir
-    if ($LASTEXITCODE -ne 0) { throw 'Installed WebView did not render the React workbench' }
+    if ($LASTEXITCODE -ne 0) { throw 'Installed WebView interaction check failed; inspect its trace and evidence.' }
     $token = (Get-Content -LiteralPath (Join-Path $dataTarget 'pairing-token.txt') -Raw).Trim()
     $headers = @{ Authorization = "Bearer $token" }
     $saved = Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:$($ready.port)/bookmark" -Headers $headers -ContentType 'application/json' -Body '{"url":"https://ci.example/retained","title":"Synthetic retained bookmark"}'
@@ -96,7 +97,7 @@ try {
         $capture.Save((Join-Path $evidenceDir 'runner-failure.png'))
         $graphics.Dispose()
         $capture.Dispose()
-        Get-CimInstance Win32_Process | Where-Object { $_.Name -like '*facetmark*' -or $_.Name -eq 'msedgewebview2.exe' } | Select-Object ProcessId, ParentProcessId, Name, CommandLine | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidenceDir 'failure-processes.json') -Encoding utf8
+        Get-CimInstance Win32_Process | Where-Object { $_.Name -like '*facetmark*' -or $_.Name -in @('msedgewebview2.exe', 'msedge.exe', 'chrome.exe', 'powershell.exe', 'explorer.exe') } | Select-Object ProcessId, ParentProcessId, Name, CommandLine | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidenceDir 'failure-processes.json') -Encoding utf8
     } catch { Write-Warning "Failure evidence unavailable: $_" }
     throw
 } finally {
