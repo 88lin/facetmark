@@ -95,7 +95,9 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
         await api("/admin/settings", { method: "PUT", body: JSON.stringify({ values: payload }) });
         setDraft(current => Object.fromEntries(Object.entries(current).filter(([key]) => !(key in payload))));
         await load();
-        setNotice(t("连接已验证并保存，可以开始生成摘要。", "Connection verified and saved. Ready to generate summaries."));
+        setNotice(channel === "chat"
+          ? t("连接已验证并保存，可以开始生成摘要。", "Connection verified and saved. Ready to generate summaries.")
+          : t("向量连接已验证并保存；如有配置变更，请继续应用向量配置。", "Embedding connection verified and saved. Apply any embedding configuration changes below."));
       }
       await refresh();
     });

@@ -56,10 +56,11 @@ def test_failed_agent_result_never_becomes_a_summary():
 async def test_real_child_process_uses_stdin_unicode_and_existing_agent_config(tmp_path, monkeypatch):
     script = tmp_path / "fake_cli.py"
     script.write_text('''import json, sys
-prompt = sys.stdin.read()
+prompt = sys.stdin.buffer.read().decode("utf-8")
 assert "摘要 $(do-not-execute)" in prompt
 assert "摘要 $(do-not-execute)" not in " ".join(sys.argv)
-print(json.dumps({"type":"item.completed","item":{"type":"agent_message","text":json.dumps({"summary":"中文结果"})}}))
+event = {"type":"item.completed","item":{"type":"agent_message","text":json.dumps({"summary":"中文结果"}, ensure_ascii=False)}}
+sys.stdout.buffer.write(json.dumps(event, ensure_ascii=False).encode("utf-8"))
 ''', encoding="utf-8")
     monkeypatch.setattr("facetmark.local_agents.selected_agent", lambda _: "codex")
     monkeypatch.setattr("facetmark.local_agents.resolve_command", lambda _: [sys.executable, str(script)])

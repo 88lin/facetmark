@@ -54,9 +54,9 @@ export function CollectionTools({ scope, page, display, onDisplay, sort, onSort,
       </div>}
       </div>
     </details>
-    {admin && (selecting || allMatching || selectedCount > 0) && <div className="collection-selection">
-      <button className="text-button" disabled={disabled || !page?.total} onClick={onAll}><CheckCheck size={15}/>{t(`全选符合条件的 ${(page?.total || 0).toLocaleString()} 条`, `Select all ${(page?.total || 0).toLocaleString()} matches`)}</button>
-      {!!selectedCount && <><span role="status">{t(`已选 ${selectedCount.toLocaleString()} 条${allMatching ? " · 跨页生效" : ""}`, `${selectedCount.toLocaleString()} selected${allMatching ? " · across pages" : ""}`)}</span>
+    {admin && (selecting || allMatching || selectedCount > 0) && <div className="collection-selection" role="group" aria-label={t("摘要批量选择", "Batch summary selection")}>
+      <button className="text-button" disabled={disabled || !page?.total} onClick={onAll}><CheckCheck size={15}/>{t(`全选 ${(page?.total || 0).toLocaleString()} 条用于摘要`, `Select all ${(page?.total || 0).toLocaleString()} for summaries`)}</button>
+      {!!selectedCount && <><span role="status">{t(`已选 ${selectedCount.toLocaleString()} 条${allMatching ? " · 摘要处理 · 跨页生效" : ""}`, `${selectedCount.toLocaleString()} selected${allMatching ? " · summaries across pages" : ""}`)}</span>
         <button className="text-button" disabled={disabled || job.state === "running"} onClick={onSummarizeSelection}><Sparkles size={15}/>{t("生成所选摘要", "Summarize selected")}</button>
         <button className="text-button" onClick={onClear}><X size={14}/>{t("清空", "Clear")}</button></>}
     </div>}

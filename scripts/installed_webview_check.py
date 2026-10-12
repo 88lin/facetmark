@@ -4,7 +4,9 @@ from __future__ import annotations
 import json
 import os
 import sys
+import threading
 import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from playwright.sync_api import Error, sync_playwright
@@ -60,6 +62,38 @@ with sync_playwright() as playwright:
     page.get_by_role('button', name='先用关键词检索', exact=True).click()
     page.get_by_role('textbox', name='搜索书签').fill('合成示例')
     page.locator('.result-row').first.wait_for(timeout=15000)
+    # Exercise the actual Tauri -> system-browser handoff. The only destination
+    # is a disposable loopback server on this GitHub-hosted VM, never a real site.
+    opened = threading.Event()
+
+    class OriginalPage(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(b'<h1>Facetmark synthetic original page</h1>')
+            if self.path == '/original':
+                opened.set()
+
+        def log_message(self, *args):
+            pass
+
+    with ThreadingHTTPServer(('127.0.0.1', 0), OriginalPage) as original_server:
+        threading.Thread(target=original_server.serve_forever, daemon=True).start()
+        try:
+            original_url = f'http://127.0.0.1:{original_server.server_port}/original'
+            original_link = page.locator('a.result-title').first
+            assert original_link.get_attribute('target') == '_blank'
+            # Keep the imported record, substituting only its synthetic link
+            # destination so this test can observe the external process request.
+            original_link.evaluate('(link, url) => link.href = url', original_url)
+            workbench_url = page.url
+            original_link.click()
+            assert opened.wait(30), 'The installed app did not open the original URL in the system browser'
+            assert page.url == workbench_url
+            assert page.locator('.bookmark-preview[aria-pressed="true"]').count() == 0
+        finally:
+            original_server.shutdown()
     page.locator('.bookmark-preview').first.click()
     page.get_by_text('正文还未保存', exact=True).wait_for(timeout=15000)
     page.screenshot(path=str(output / 'installed-reader.png'))
@@ -71,6 +105,7 @@ with sync_playwright() as playwright:
     (output / 'installed-reader.json').write_text(json.dumps({
         'commit': os.environ.get('GITHUB_SHA'), 'data': 'synthetic HTML import only',
         'import_rendered': True, 'keyword_search': True,
+        'original_opened_in_system_browser': True,
         'reader_missing_body_state': True, 'close_preserved_query': True,
         'reader_return_label': return_label,
         'viewport': page.evaluate('({ width: innerWidth, height: innerHeight })'),

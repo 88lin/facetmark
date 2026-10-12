@@ -59,10 +59,36 @@ test("local agent can be detected, tested and saved without API fields", async (
   const panel = page.locator(".model-panel").first();
   await expect(panel.locator(".agent-detection")).toContainText("Codex");
   await expect(panel.locator('input[name="chat_api_key"]')).toHaveCount(0);
+  await page.screenshot({ path: "screenshots/local-agent-settings.png", animations: "disabled" });
   await panel.getByRole("button", { name: "测试并保存", exact: true }).click();
   await expect.poll(() => saved.chat_backend).toBe("agent");
   expect(tested.chat_backend).toBe("agent");
   expect(tested.channel).toBe("chat");
   expect(tested.chat_api_key).toBeUndefined();
-  await page.screenshot({ path: "screenshots/local-agent-settings.png", animations: "disabled" });
+});
+
+test("display and batch-summary options expose the current collection scope", async ({ page }) => {
+  await page.goto("/app");
+  await expect(page.locator(".result-row")).toHaveCount(30);
+  const options = page.locator(".collection-options-menu");
+  await options.locator("summary").click();
+  await options.getByRole("button", { name: "原文摘录", exact: true }).click();
+  await expect(page.locator(".summary-basis").first()).toHaveText("正文摘录");
+  await options.getByRole("button", { name: "摘要", exact: true }).click();
+  await expect(page.locator(".summary-basis").first()).toHaveText("AI 摘要");
+  await page.screenshot({ path: "screenshots/collection-options-desktop.png", animations: "disabled" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(options.getByRole("button", { name: "批量生成摘要", exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await page.screenshot({ path: "screenshots/collection-options-mobile.png", animations: "disabled" });
+  await options.getByRole("combobox", { name: "摘要处理范围", exact: true }).selectOption("failed");
+  const request = page.waitForRequest(r => r.url().includes("/admin/jobs/preview"));
+  await options.getByRole("button", { name: "批量生成摘要", exact: true }).click();
+  const payload = (await request).postDataJSON();
+  expect(payload.scope.status).toBe("failed");
+  expect(payload.bookmark_ids).toBeUndefined();
+  const dialog = page.getByRole("dialog", { name: "生成 AI 摘要", exact: true });
+  await expect(dialog).toContainText("本次将处理");
+  await expect(dialog.getByRole("button", { name: "开始任务", exact: true })).toBeDisabled();
+  await dialog.getByRole("button", { name: "取消", exact: true }).click();
 });
