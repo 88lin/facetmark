@@ -6,6 +6,7 @@ test.skip(process.env.FACETMARK_LARGE_VALIDATION !== "1", "Runs in the separate 
 test("200k actual records stay paginated and all matching selection survives deep paging", async ({ page }) => {
   await page.goto("/app");
   await expect(page.locator(".result-row")).toHaveCount(30);
+  await page.getByRole("button", { name: "批量管理", exact: true }).click();
   await expect(page.getByRole("button", { name: "全选符合条件的 200,000 条", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "全选符合条件的 200,000 条", exact: true }).click();
   await page.locator(".bookmark-check").first().uncheck();

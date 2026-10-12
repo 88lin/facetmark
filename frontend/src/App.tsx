@@ -140,6 +140,7 @@ function Workbench({
   const [libraryAction, setLibraryAction] = useState<LibraryAction | null>(null);
   const [batchMode, setBatchMode] = useState(false);
   const [summaryStatus, setSummaryStatus] = useState<CollectionScope["status"]>("all");
+  const [searchMode, setSearchMode] = useState("keyword");
   const [collectionSort, setCollectionSort] = useState("newest");
   const [summaryDisplay, setSummaryDisplay] = useState<"summary" | "original">("summary");
   const [allMatching, setAllMatching] = useState(false);
@@ -400,13 +401,13 @@ function Workbench({
     if (force) setRequestRevision(value => value + 1);
   }
   const filterKey = JSON.stringify(filters);
-  const resultContext = JSON.stringify([search, offset, filterKey, summaryStatus, collectionSort]);
+  const resultContext = JSON.stringify([search, offset, filterKey, summaryStatus, collectionSort, searchMode]);
   const page = loadedContext === resultContext ? loadedPage : null;
   const scopePending = loading || !page || Boolean(error);
   const activeFilters = Object.entries(filters).filter(([, value]) => value !== undefined);
   const pageSize = page?.limit || 30;
   const currentPage = Math.floor(offset / pageSize) + 1;
-  const sameLoadedScope = loadedContext === JSON.stringify([search, loadedPage?.offset, filterKey, summaryStatus, collectionSort]);
+  const sameLoadedScope = loadedContext === JSON.stringify([search, loadedPage?.offset, filterKey, summaryStatus, collectionSort, searchMode]);
   const paginationPage = page || (sameLoadedScope ? loadedPage : null);
   const pageCount = Math.max(1, Math.ceil((paginationPage?.total || 0) / pageSize));
   useEffect(() => setPageInput(String(currentPage)), [currentPage, filterKey, search]);
@@ -415,7 +416,7 @@ function Workbench({
     setBatchMode(false);
     setAllMatching(false);
     setExcludedIds([]);
-  }, [search, filterKey, summaryStatus]);
+  }, [search, filterKey, summaryStatus, searchMode]);
   const hasSearchContext = Boolean(
     search.trim() ||
       Object.values(filters).some((value) => value !== undefined) ||
@@ -457,6 +458,12 @@ function Workbench({
     const timer = setTimeout(
       async () => {
         try {
+          if (search.trim() && searchMode === "semantic" && semantic) {
+            const fast = await api<Page>(`/quick?${query({ q: searchTerms, offset, limit: 30, depth })}`, { signal: abort.signal });
+            update(fast);
+            update(await post<Page>("/search", { q: searchTerms, offset, limit: 30, depth: depth ?? fast.depth }, abort.signal));
+            return;
+          }
           update(await api<Page>(`/bookmarks?${query({ ...filters, q: search, status: summaryStatus, sort: collectionSort, offset, limit: 30 })}`, {
             signal: abort.signal,
           }));
@@ -475,7 +482,7 @@ function Workbench({
     };
     // Depth is the returned ranking snapshot; updating it must not restart page one.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paired, view, search, offset, filterKey, summaryStatus, collectionSort, requestRevision]);
+  }, [paired, view, search, offset, filterKey, summaryStatus, collectionSort, searchMode, semantic, requestRevision]);
   useEffect(() => {
     if (selected === null) {
       setPreview(null);
@@ -997,19 +1004,24 @@ function Workbench({
                   onBatch={value => { setBatchMode(value); setSelectedIds([]); setAllMatching(false); setExcludedIds([]); }}
                   onIds={setSelectedIds} onAction={setLibraryAction}
                 />}
-                {selected === null && <CollectionTools scope={collectionScope} page={page} display={summaryDisplay} onDisplay={setSummaryDisplay}
+                {selected === null && !(search.trim() && searchMode === "semantic" && semantic) && <CollectionTools scope={collectionScope} page={page} display={summaryDisplay} onDisplay={setSummaryDisplay}
                   sort={collectionSort} onSort={value => { setCollectionSort(value); setOffset(0); }}
                   onStatus={value => { setSummaryStatus(value); setOffset(0); }} disabled={scopePending}
-                  allMatching={allMatching} selectedCount={allMatching ? Math.max(0, (page?.total || 0) - excludedIds.length) : selectedIds.length}
+                  selecting={batchMode} allMatching={allMatching} selectedCount={allMatching ? Math.max(0, (page?.total || 0) - excludedIds.length) : selectedIds.length}
                   onAll={() => { setAllMatching(true); setBatchMode(false); setExcludedIds([]); setSelectedIds([]); }}
                   onClear={() => { setAllMatching(false); setBatchMode(false); setExcludedIds([]); setSelectedIds([]); }}
                   onSummarizeSelection={() => setLibraryAction({ kind: "process", mode: "summarize", ...(allMatching ? { scope: collectionScope, scopeLabel: t("跨页所选收藏", "Selection across pages") } : { ids: selectedIds }) })}
                   onAction={setLibraryAction} job={job} refresh={refresh} admin={adminAvailable}/>}
                 <div className="search-controls">
                   <div className="search-meta">
-                    <span>
+                    {semantic && <select className="search-mode-select" aria-label={t("检索方式", "Search mode")} value={searchMode}
+                      onChange={event => { setSearchMode(event.target.value); setOffset(0); setDepth(undefined); }}>
+                      <option value="keyword">{t("关键词", "Keyword")}</option>
+                      <option value="semantic" disabled={!semantic}>{t("语义检索", "Semantic search")}</option>
+                    </select>}
+                    <span className="collection-hint">
                       {search
-                        ? t("全部关键词匹配", "All keyword matches")
+                        ? searchMode === "semantic" && semantic ? t("语义检索结果", "Semantic results") : t("全部关键词匹配", "All keyword matches")
                         : t("直接打开原网页 · 摘要就地浏览", "Open original pages · Read summaries here")}
                     </span>
                     {selected === null && <div className="collection-view-switch" role="group" aria-label={t("收藏显示方式", "Collection layout")}>

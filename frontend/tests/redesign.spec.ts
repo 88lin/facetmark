@@ -24,20 +24,20 @@ test("reader keeps the latest selection and remains usable while another body is
       await new Promise((resolve) => setTimeout(resolve, 900));
     await route.fulfill({ response });
   });
-  await rows.nth(0).click();
+  await rows.nth(0).locator(".bookmark-preview").click();
   await expect(page.locator(".skeleton-article")).toBeVisible();
   await expect(page.getByRole("tab", { name: "正文", exact: true })).toBeVisible();
-  await rows.nth(1).click();
+  await rows.nth(1).locator(".bookmark-preview").click();
   await expect(page.locator(".preview-title h1")).toHaveText(fastTitle);
   await expect(page.locator(".body-text")).toBeVisible();
   await page.waitForTimeout(950);
   await expect(page.locator(".preview-title h1")).toHaveText(fastTitle);
-  await expect(page.locator(`.result-row[data-bookmark-id="${fast}"]`)).toHaveAttribute(
+  await expect(page.locator(`.result-row[data-bookmark-id="${fast}"] .bookmark-preview`)).toHaveAttribute(
     "aria-pressed",
     "true",
   );
-  await rows.nth(0).click();
-  await rows.nth(1).click();
+  await rows.nth(0).locator(".bookmark-preview").click();
+  await rows.nth(1).locator(".bookmark-preview").click();
   await expect(page.locator(".body-text")).toBeVisible();
   await expect(page.locator(".skeleton-article")).toHaveCount(0);
 });
@@ -106,7 +106,7 @@ test("reader tabs, expansion reversal and keyboard preserve query and scroll con
   const selectedRow = page.locator(".result-row").nth(24);
   await selectedRow.scrollIntoViewIfNeeded();
   const browsePosition = await list.evaluate((el) => el.scrollTop);
-  await selectedRow.click();
+  await selectedRow.locator(".bookmark-preview").click();
   await expect(page.locator(".body-text")).toBeVisible();
   const listPosition = await list.evaluate((el) => el.scrollTop);
   expect(listPosition).toBeGreaterThan(0);
@@ -117,7 +117,7 @@ test("reader tabs, expansion reversal and keyboard preserve query and scroll con
     1,
   );
   await page.keyboard.press("Escape");
-  await expect(selectedRow).toBeFocused();
+  await expect(selectedRow.locator(".bookmark-preview")).toBeFocused();
   expect(
     Math.abs((await list.evaluate((el) => el.scrollTop)) - browsePosition),
   ).toBeLessThanOrEqual(1);

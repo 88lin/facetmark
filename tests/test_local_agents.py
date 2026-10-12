@@ -112,3 +112,17 @@ command = "do-not-run-either"
     assert 'model="existing-model"' in args
     assert "MY_MODEL_KEY" in " ".join(args)
     assert "do-not-run" not in " ".join(args)
+
+
+def test_codex_literal_headers_are_reused_only_through_child_environment(tmp_path):
+    (tmp_path / "config.toml").write_text('''model_provider = "custom"
+[model_providers.custom]
+name = "Custom"
+base_url = "https://model.example/v1"
+http_headers = {"X-API-Key"="synthetic-private-header"}
+experimental_bearer_token = "synthetic-private-token"
+''', encoding="utf-8")
+    args, env = build_invocation("codex", tmp_path, model="", environ={"CODEX_HOME": str(tmp_path)})
+    assert "synthetic-private" not in " ".join(args)
+    assert "synthetic-private-header" in env.values()
+    assert "synthetic-private-token" in env.values()

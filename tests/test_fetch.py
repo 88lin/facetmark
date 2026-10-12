@@ -731,6 +731,24 @@ class TestCrawlPersistsAsItGoes:
         ).fetchone()["c"]
 
     @respx.mock
+    async def test_internal_hook_rolls_back_body_and_never_reports_progress(self, db):
+        bid, url, _title = pending_targets(db)[0]
+        respx.get(url).mock(return_value=httpx.Response(200, html=article_html()))
+        observed = []
+
+        def fail_after_body(_result):
+            assert db.in_transaction
+            assert self._stored(db) == 1
+            raise _Interrupted("derived state failed")
+
+        with pytest.raises(_Interrupted, match="derived state failed"):
+            await crawl(db, ids=[bid], policy=FetchPolicy(per_host_min_interval_s=0.0),
+                        on_stored=fail_after_body, progress=observed.append)
+        assert self._stored(db) == 0
+        assert not db.in_transaction
+        assert observed == []
+
+    @respx.mock
     async def test_each_body_is_committed_before_the_next_one_arrives(self, db):
         targets = pending_targets(db)
         for n, (_bid, url, _t) in enumerate(targets):

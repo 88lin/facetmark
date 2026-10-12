@@ -379,6 +379,7 @@ async def crawl(
     policy: FetchPolicy | None = None,
     client: httpx.AsyncClient | None = None,
     progress=None,
+    on_stored=None,
 ) -> CrawlReport:
     """Run channel A over the pending set and persist everything it learns."""
     if ids is None:
@@ -391,7 +392,8 @@ async def crawl(
                 break
             after = batch[-1][0]
             result = await crawl(conn, ids=[row[0] for row in batch], refetch=refetch,
-                                 settings=settings, policy=policy, client=client, progress=progress)
+                                 settings=settings, policy=policy, client=client,
+                                 progress=progress, on_stored=on_stored)
             for key in ("attempted", "stored", "changed", "queued"):
                 setattr(report, key, getattr(report, key) + getattr(result, key))
             for key, count in (result.by_verdict or {}).items():
@@ -428,13 +430,18 @@ async def crawl(
                 rep.stored += int(out.stored)
                 rep.changed += int(out.changed)
                 rep.queued += int(out.queued_for_browser)
-            if progress is not None:
-                progress(res)
+            if on_stored is not None:
+                on_stored(res)
         except BaseException:
             conn.execute("ROLLBACK TO fetch_item")
             conn.execute("RELEASE fetch_item")
             raise
         conn.execute("RELEASE fetch_item")
+        # Observers run only after the item and its derived state are durable.
+        # on_stored is the internal transactional hook; progress may interrupt
+        # the crawl without rolling back an already reported result.
+        if progress is not None:
+            progress(res)
 
     batch: BatchResult = await fetch_many(
         [t[1] for t in targets], policy=pol, client=client, on_result=persist

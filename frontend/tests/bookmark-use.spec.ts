@@ -2,6 +2,12 @@ import { expect, test } from "@playwright/test";
 
 test("titles use native external links and summaries are readable without preview", async ({ page, context }) => {
   await context.route("https://**/*", route => route.fulfill({ contentType: "text/html", body: "<h1>Synthetic original page</h1>" }));
+  await page.route("**/bookmarks?**", async route => {
+    const response = await route.fetch();
+    const data = await response.json();
+    data.items[0].summary = "直接浏览书签摘要，保留上下文，快速决定是否打开原网页。".repeat(12);
+    await route.fulfill({ response, json: data });
+  });
   await page.goto("/app");
   const row = page.locator(".result-row").first();
   const title = row.locator("a.result-title");
@@ -10,6 +16,10 @@ test("titles use native external links and summaries are readable without previe
   expect(url).toMatch(/^https?:\/\//);
   await expect(row.locator(".result-summary")).toBeVisible();
   await expect(page.locator(".preview-pane")).toHaveCount(0);
+  await row.getByRole("button", { name: "展开全文", exact: true }).click();
+  expect(await row.locator(".result-summary").evaluate(el => el.scrollHeight <= el.clientHeight + 1)).toBe(true);
+  await row.getByRole("button", { name: "收起", exact: true }).click();
+  await page.screenshot({ path: "screenshots/bookmark-summaries-desktop.png", animations: "disabled" });
   const opened = context.waitForEvent("page");
   await title.click();
   const original = await opened;

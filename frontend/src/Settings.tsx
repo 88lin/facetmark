@@ -43,7 +43,9 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
     try {
       const found = await api<{ agents: { id: string; name: string; installed: boolean }[] }>("/admin/agents");
       setAgents(found.agents);
-      if (!setup?.channels.chat.configured && found.agents.some(a => a.installed) && !data.settings.find(r => r.key === "chat_backend")?.locked)
+      if (!setup?.channels.chat.configured && found.agents.some(a => a.installed)
+        && data.settings.find(r => r.key === "chat_backend")?.value !== "agent"
+        && !data.settings.find(r => r.key === "chat_backend")?.locked)
         setDraft(current => ({ chat_backend: "agent", ...current }));
     } catch { /* API configurations remain available if CLI detection fails. */ }
   }
@@ -81,7 +83,7 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
     await run(channel, async () => {
       const payload = Object.fromEntries(
         Object.entries(draft).filter(
-          ([key]) => key.startsWith(`${channel}_`) || key === "local_embed_path",
+          ([key]) => key.startsWith(`${channel}_`) || (channel === "embed" && key === "local_embed_path"),
         ),
       );
       const data = await post<Record<string, Probe>>("/admin/settings/test", {

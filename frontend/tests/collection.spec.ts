@@ -31,9 +31,12 @@ test("a large collection leaves useful browsing space in short desktop and mobil
         overflow: document.documentElement.scrollWidth > innerWidth + 1 };
     });
     expect(size.overflow).toBe(false);
-    expect(size.top).toBeLessThanOrEqual(viewport.width < 720 ? 230 : 180);
-    expect(size.height / size.viewport).toBeGreaterThanOrEqual(viewport.width < 720 ? .58 : .63);
-    expect(size.fullyVisible).toBeGreaterThanOrEqual(viewport.width < 720 ? 2 : viewport.width < 1120 ? 4 : 6);
+    // One explicit summary-status row (two on phones) replaces the old
+    // single-line excerpts. Keep at least half the window for actual content.
+    expect(size.top).toBeLessThanOrEqual(viewport.width < 720 ? 320 : 235);
+    expect(size.height / size.viewport).toBeGreaterThanOrEqual(.5);
+    expect(size.fullyVisible).toBeGreaterThanOrEqual(viewport.width < 1120 ? 1 : 3);
+    await expect(page.locator(".result-summary").first()).toBeVisible();
     if (viewport.width >= 960) {
       const directory = await page.locator(".collection-sidebar").boundingBox();
       const results = await page.locator(".result-list").boundingBox();
@@ -53,7 +56,7 @@ test("a large collection leaves useful browsing space in short desktop and mobil
   await page.reload();
   await expect(page.getByRole("button", { name: "Add bookmark", exact: true })).toBeVisible();
   await expect(page.locator(".result-row")).toHaveCount(30);
-  expect((await page.locator(".result-list").boundingBox())!.y).toBeLessThanOrEqual(230);
+  expect((await page.locator(".result-list").boundingBox())!.y).toBeLessThanOrEqual(320);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)).toBe(false);
   await page.screenshot({ path: "screenshots/collection-en-mobile.png", animations: "disabled" });
 });

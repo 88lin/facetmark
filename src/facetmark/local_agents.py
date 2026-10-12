@@ -84,14 +84,23 @@ def _codex_model_config(environ):
     for name, definition in config.get("model_providers", {}).items():
         if not isinstance(definition, dict):
             continue
-        if definition.get("http_headers") or definition.get("experimental_bearer_token"):
-            if config.get("model_provider") == name:
-                raise ProviderError("This Codex provider stores a literal credential. Use its env_key setting or connect the API directly in Facetmark.")
-            continue
         providers[name] = {k: v for k, v in definition.items() if k in {
             "name", "base_url", "wire_api", "env_key", "env_http_headers", "requires_openai_auth",
             "request_max_retries", "stream_max_retries", "stream_idle_timeout_ms",
         }}
+        # Preserve existing literal credentials through child-only environment
+        # variables, never command arguments, logs or a rewritten config file.
+        headers = dict(providers[name].get("env_http_headers", {}))
+        for index, (header, value) in enumerate(definition.get("http_headers", {}).items()):
+            variable = f"FACETMARK_AGENT_HEADER_{len(providers)}_{index}"
+            environ[variable] = str(value)
+            headers[header] = variable
+        if headers:
+            providers[name]["env_http_headers"] = headers
+        if token := definition.get("experimental_bearer_token"):
+            variable = f"FACETMARK_AGENT_TOKEN_{len(providers)}"
+            environ[variable] = str(token)
+            providers[name]["env_key"] = variable
     if providers:
         args += ["-c", "model_providers=" + _toml_literal(providers)]
     return args
@@ -109,7 +118,7 @@ def build_invocation(agent: str, directory: Path, *, model: str, environ: dict) 
                 "-c", "features.js_repl=false", "-c", "features.apps=false",
                 "-c", "features.multi_agent=false", "-c", "features.hooks=false",
                 "-c", "mcp_servers={}", "-c", 'model_reasoning_summary="none"']
-        args += _codex_model_config(environ)
+        args += _codex_model_config(env)
         if model:
             args += ["--model", model]
         args += ["-"]

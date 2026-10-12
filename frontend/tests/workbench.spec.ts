@@ -420,6 +420,7 @@ test("render matrix: Chinese, English, light, dark, desktop and narrow", async (
           await page
             .locator(".result-row")
             .nth(language === "zh" ? 0 : 1)
+            .locator(".bookmark-preview")
             .click();
         if (width >= 1120) await expect(page.locator(".body-text")).toBeVisible();
         if (language === "zh" && theme === "light" && width === 1440) {

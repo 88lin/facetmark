@@ -5,11 +5,11 @@ import { useText } from "./locale";
 import type { LibraryAction } from "./LibraryTools";
 
 export function CollectionTools({ scope, page, display, onDisplay, sort, onSort, onStatus, disabled,
-  allMatching, selectedCount, onAll, onClear, onSummarizeSelection, onAction, job, refresh, admin }: {
+  selecting, allMatching, selectedCount, onAll, onClear, onSummarizeSelection, onAction, job, refresh, admin }: {
   scope: CollectionScope; page: Page | null; display: "summary" | "original";
   onDisplay: (value: "summary" | "original") => void; sort: string; onSort: (value: string) => void;
   onStatus: (value: CollectionScope["status"]) => void; disabled: boolean;
-  allMatching: boolean; selectedCount: number; onAll: () => void; onClear: () => void;
+  selecting: boolean; allMatching: boolean; selectedCount: number; onAll: () => void; onClear: () => void;
   onSummarizeSelection: () => void;
   onAction: (action: LibraryAction) => void; job: Job; refresh: () => Promise<void>; admin: boolean;
 }) {
@@ -35,7 +35,9 @@ export function CollectionTools({ scope, page, display, onDisplay, sort, onSort,
         onClick={() => onStatus(status)}>{[t("全部", "All"), t("待生成", "Pending"), t("有摘要", "Summarized"), t("失败", "Failed")][i]}
         <span>{(counts?.[status === "all" ? "total" : status] ?? 0).toLocaleString()}</span></button>)}
     </div>
-    <div className="collection-options">
+    <details className="collection-options-menu">
+      <summary>{t("显示与批量摘要", "Display & batch summaries")}</summary>
+      <div className="collection-options">
       <div className="summary-display" role="group" aria-label={t("列表内容", "Collection content")}>
         <button aria-pressed={display === "summary"} onClick={() => onDisplay("summary")}>{t("摘要", "Summaries")}</button>
         <button aria-pressed={display === "original"} onClick={() => onDisplay("original")}>{t("原文摘录", "Excerpts")}</button>
@@ -50,8 +52,9 @@ export function CollectionTools({ scope, page, display, onDisplay, sort, onSort,
           <option value="failed">{t("当前失败重试", "Retry failures")}</option><option value="all">{t("整个书签库", "Entire library")}</option>
         </select><button className="primary" disabled={disabled || job.state === "running"} onClick={process}><Sparkles size={16}/>{t("批量生成摘要", "Generate summaries")}</button>
       </div>}
-    </div>
-    {admin && <div className="collection-selection">
+      </div>
+    </details>
+    {admin && (selecting || allMatching || selectedCount > 0) && <div className="collection-selection">
       <button className="text-button" disabled={disabled || !page?.total} onClick={onAll}><CheckCheck size={15}/>{t(`全选符合条件的 ${(page?.total || 0).toLocaleString()} 条`, `Select all ${(page?.total || 0).toLocaleString()} matches`)}</button>
       {!!selectedCount && <><span role="status">{t(`已选 ${selectedCount.toLocaleString()} 条${allMatching ? " · 跨页生效" : ""}`, `${selectedCount.toLocaleString()} selected${allMatching ? " · across pages" : ""}`)}</span>
         <button className="text-button" disabled={disabled || job.state === "running"} onClick={onSummarizeSelection}><Sparkles size={15}/>{t("生成所选摘要", "Summarize selected")}</button>

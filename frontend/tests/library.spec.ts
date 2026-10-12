@@ -390,7 +390,7 @@ test("JSON download retains the saved page text for the selected synthetic bookm
   const record = await library.read(id);
   expect(record.body_text).toContain("synthetic content");
   await page.getByRole("button", { name: "批量管理", exact: true }).click();
-  await first.click();
+  await first.locator(".bookmark-check").check();
   await page.getByRole("button", { name: "导出所选", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "导出收藏", exact: true });
   const exported = JSON.parse((await download(page, dialog)).content);
@@ -444,7 +444,8 @@ test("fetch needs no model while summarization requires chat and explicit consen
   await expect(dialog.getByRole("button", { name: "开始任务", exact: true })).toBeEnabled();
   await dialog.getByRole("button", { name: "开始任务", exact: true }).click();
   await expect(dialog).toHaveCount(0);
-  expect(starts).toEqual([{ mode: "fetch", confirmed: false, force: false }]);
+  expect(starts).toEqual([expect.objectContaining({ mode: "fetch", confirmed: false, force: false })]);
+  expect(starts[0].preview_revision).toEqual(expect.any(String));
   await expect(page.locator(".tasks h2")).toHaveText("正文抓取已完成");
 
   chatReady = true;
@@ -460,7 +461,9 @@ test("fetch needs no model while summarization requires chat and explicit consen
   await dialog.getByLabel("重新处理已完成的内容", { exact: true }).check();
   await dialog.getByRole("button", { name: "开始任务", exact: true }).click();
   await expect(dialog).toHaveCount(0);
-  expect(starts[1]).toEqual({ mode: "summarize", bookmark_ids: [record.bookmark_id], confirmed: true, force: true });
+  expect(starts[1]).toEqual(expect.objectContaining({ mode: "summarize", bookmark_ids: [record.bookmark_id], confirmed: true, force: true }));
+  await expect(page.locator(".preview-pane")).toBeVisible();
+  await page.getByRole("button", { name: "任务", exact: true }).click();
   await expect(page.locator(".tasks h2")).toHaveText("摘要生成已完成");
   await expect(page.locator(".tasks")).toContainText("范围：1 条所选书签");
 });

@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS enrichment (
     basis        TEXT NOT NULL DEFAULT 'body'
 );
 
--- Facet 2: hypothetical queries generated from the page (doc2query), then
+-- Durable status and target snapshots for bounded collection processing.
 CREATE TABLE IF NOT EXISTS enrichment_failure (
     bookmark_id INTEGER PRIMARY KEY REFERENCES bookmark(id) ON DELETE CASCADE,
     error TEXT NOT NULL,

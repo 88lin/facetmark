@@ -400,6 +400,9 @@ class JobRunner:
                 from .processing import update_counts
                 with contextlib.suppress(Exception):
                     update_counts(conn, job)
+                    if job.state in {"done", "partial"}:
+                        conn.execute("DELETE FROM processing_item WHERE job_id=?", (job.id,))
+                        conn.commit()
             job.finished_at = time.monotonic()
             self.persist()
             if provider is not None:
@@ -465,7 +468,7 @@ class JobRunner:
             processing.finished(conn, job, bid, error)
 
         result = await fetchstore.crawl(
-            conn, ids=selected, refetch=job.force, settings=settings, progress=finished,
+            conn, ids=selected, refetch=job.force, settings=settings, on_stored=finished,
         )
         return result.as_dict()
 
