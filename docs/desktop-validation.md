@@ -1,5 +1,86 @@
 # Desktop experience validation
 
+## 2026-10-13: collection actions and supporting workflows (verified)
+
+Application and test source: `5ea56ab86e4822c1114f9288fbbaebadd5aeea1c`.
+This refinement keeps the white/lake-blue identity and direct original links while
+making sorting and editing accessible in the collection. Settings has four
+keyboard-accessible categories with preserved form drafts; import validates export
+types, supports same-file retry and returns to imported bookmarks. Desktop Preview
+separates its return controls from the tabs. Tasks has state-specific descriptions,
+current progress and recovery before new work, and distinct fetch/summary recovery.
+
+- [Experience 38395130633](https://github.com/88lin/facetmark/actions/runs/38395130633):
+  **51 ordinary browser tests**, **2021 Python passed / 1 skipped**, a separate
+  **200,000-record browser test**, scale benchmark, frontend build, wheel/sdist
+  resources, Docker and extension passed. The ordinary run skips the large test;
+  the dedicated large-data run executes it successfully.
+- [CI 38395139361](https://github.com/88lin/facetmark/actions/runs/38395139361):
+  **all ten jobs passed**, including Linux/Windows with Python 3.10/3.12.
+- [Windows 38395130294](https://github.com/88lin/facetmark/actions/runs/38395130294):
+  offline installation with WebView2 initially absent and installer networking
+  blocked, frozen-service isolation, installed-app navigation and lifecycle checks
+  all passed.
+- [Visual artifact 11811747380](https://github.com/88lin/facetmark/actions/runs/38395130633/artifacts/11811747380):
+  **72 PNG captures**, every SHA256 verified against `provenance.json`; manifest
+  source and run match the application above. Small local evidence is in
+  `.desktop-build/refinement-verdict-38395130633`.
+
+The first render pass exposed a disclosure wrapping issue that consumed collection
+space; the correction kept the existing density thresholds. The subsequent review
+inspected 11 desktop/mobile captures at `3947df9` across collection cards/lists,
+settings, sync, extension, import, tasks and the English dark reader. It retained
+two P2 task findings: paused/terminal captions claimed background work continued,
+and current-task recovery followed new-work shortcuts on mobile. The final source
+corrects both. Fresh paused/idle task captures were inspected, and the 390×844
+browser assertion requires Resume to be fully visible and above the new actions.
+
+The independent verdict pass scored **both P2 findings resolved**, with
+**remaining: clear / disposition: ship**. This verdict covers those two fixes,
+not whole-product aesthetic acceptance or real-model validation. A general
+reviewer and documenter substituted for unavailable Impeccable specialist roles.
+The single design detector scan returned `[]`; it was not rerun.
+
+Current density measurements use 1,892 synthetic bookmarks and more than 240
+folders. All five sizes have no horizontal document overflow. Counts exclude
+partially visible cards and depend on the fixture's content.
+
+| Viewport | List top | List height | Fully visible cards |
+| --- | ---: | ---: | ---: |
+| 1440×960 | 212.39px | 695.61px | 8 |
+| 1366×768 | 212.39px | 503.61px | 3 |
+| 1280×600 | 212.39px | 335.61px | 3 |
+| 1024×749 | 212.39px | 484.61px | 4 |
+| 390×844 | 320.08px | 471.92px | 1 |
+
+The 200,000-record benchmark measured first page **51.39ms**, deep page **94.14ms**,
+full keyword scope **86.09ms**, and durable snapshot **357.60ms**. Its snapshot
+contains **199,998** items after two exclusions; pending reads are bounded to **64**.
+The **3,259-byte tracemalloc peak** is extra Python allocation during that snapshot
+operation, not process/database memory. These synthetic measurements do not show
+200,000 real model generations or performance on a personal library.
+
+The final installed app opened an original link in Edge via a successful native
+`new_window` event with no click-related page errors. Import, keyword search,
+missing-body reading state and query preservation after Preview return passed.
+Same-version reinstall, data-preserving uninstall and backend shutdown with its
+parent passed. The three 1028×749 installed-app captures were opened and inspected;
+`installed-reader.json` identifies the final application source above.
+
+- [Small installation evidence](https://github.com/88lin/facetmark/actions/runs/38395130294/artifacts/11811998316):
+  176,528 bytes, retrieved to `.desktop-build/refinement-windows-38395130294`.
+- [Unsigned Windows x64 preview](https://github.com/88lin/facetmark/actions/runs/38395130294/artifacts/11811918343):
+  contains the 279,215,022-byte installer. The large installer was not downloaded
+  or executed locally.
+
+All builds, application/browser tests, scale benchmarks and installation execution
+run in GitHub Actions. Local work is source/document editing, lightweight static
+checks and small evidence inspection. No personal browser profiles or real
+bookmarks were used. Real model accounts/services and cloud-drive transport remain
+unverified. The Windows x64 preview is unsigned and uses manual updates; hosted
+Windows Server checks do not certify all Windows 10/11 machines. Artifacts expire
+after 14 days. PR #44 remains a draft with no merge, release or Pages deployment.
+
 ## 2026-10-12: original links, visible summaries and bounded collection processing (verified)
 
 Final application/test source: `8bf3689e64b7a77222648f65dbe414a588d81731`.

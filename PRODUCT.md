@@ -28,7 +28,8 @@ works without AI. Mock providers are restricted to explicit demo/test operation.
 
 ## Capabilities and Constraints
 
-Import → configure two channels → test independently → confirm indexing → search.
+Import → search and organize. Configure and independently test AI channels when
+needed, then confirm summary processing or optional semantic indexing.
 The collection also supports manual create/edit, tags and folder organization,
 confirmed deletion and bulk actions, JSON/HTML export, and independent page-fetch
 or chat-only summary tasks. JSON keeps saved reading data; reimport restores
@@ -76,6 +77,33 @@ Keep custom API connections available and fix their actual test/save/use path.
 Large-library validation must exercise 200,000 synthetic records, bounded requests
 and bounded processing concurrency. Earlier visual ship verdicts do not accept this
 rejected interaction model. Do not ask the user to supply another preference list.
+
+On 2026-10-13 the user rejected the current PR #44 experience across its surfaces
+and twice requested continued refinement. Preserve the white/lake-blue identity,
+readable titles, direct original links and secondary preview. Settings must expose
+AI connections, sync, extension and desktop updates without losing unsaved drafts
+when switching categories. Keep sorting visible, offer direct bookmark editing,
+and distinguish task idleness, failure, cancellation, pause and saved-task recovery.
+Only running tasks may claim to continue in the background. Current progress,
+Pause/Resume/Cancel and current errors take priority over starting new work; the
+mobile saved-task Resume action must be fully visible in the first viewport.
+Import should validate exports, allow retrying the same file and return directly
+to the imported collection. At source `5ea56ab86e4822c1114f9288fbbaebadd5aeea1c`,
+[Experience 38395130633](https://github.com/88lin/facetmark/actions/runs/38395130633) passed 51 ordinary browser tests, the independent
+200,000-record browser test and 2021 Python tests with 1 skip. All 72 captured PNG
+hashes and the source/run manifest match the current visual artifact. The final
+mobile paused-task capture and assertions confirm saved-progress wording and a
+fully visible Resume action before new-work shortcuts. CI 38395139361 passed all
+10 jobs. The follow-up marked both P2 findings resolved with no remaining findings
+in its scope and disposition ship; it covers task-state truthfulness and recovery
+placement/mobile visibility, not full-product aesthetic acceptance or real-model
+success. [Windows 38395130294](https://github.com/88lin/facetmark/actions/runs/38395130294) passed all jobs at the same source. Installed-desktop
+evidence confirms the original link opened in Edge without page errors, Preview
+return preserved the query, runtime installation and backend readiness worked,
+and reinstall, data-preserving uninstall and parent-exit cleanup passed. The
+installer is unsigned; hosted Windows Server evidence does not certify every
+Windows 10/11 environment. Historical passes remain evidence only for their
+recorded revisions.
 
 Synthetic demo corpus in the repository. CI captures must identify demo data.
 Installer smoke on hosted Windows Server is not Windows 10/11 certification.
