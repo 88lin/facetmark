@@ -6,8 +6,9 @@
 .collection-status button span { font-size: var(--type-caption); font-variant-numeric: tabular-nums; }
 .collection-sort { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; color: var(--muted); }
 .collection-options-menu { position: relative; }
-.collection-options-menu > summary { cursor: pointer; color: var(--accent); padding: 8px 12px; border: 1px solid var(--rule); background: var(--canvas); border-radius: 99px; font-size: var(--type-ui); font-weight: 600; }
-.collection-options-menu > summary svg { vertical-align: -3px; margin-right: 6px; }
+.collection-options-menu > summary { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; white-space: nowrap; list-style: none; cursor: pointer; color: var(--accent); padding: 8px 12px; border: 1px solid var(--rule); background: var(--canvas); border-radius: 99px; font-size: var(--type-ui); font-weight: 600; }
+.collection-options-menu > summary::-webkit-details-marker { display: none; }
+.collection-options-menu[open] .disclosure-chevron { transform: rotate(180deg); }
 .collection-options-menu > summary:hover { background: var(--soft); }
 .collection-options-menu[open] { flex-basis: 100%; }
 .collection-options { gap: 10px; padding: 12px; margin-top: 6px; background: var(--inset); border: 1px solid var(--rule); border-radius: 12px; }

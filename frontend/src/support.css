@@ -42,6 +42,9 @@
 .import-help p, .import-result > p { font-size: .9375rem; color: var(--secondary-ink); line-height: 1.75; }
 .import-result { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--rule); }
 .preview-heading .reader-back { flex-shrink: 0; }
+.preview-pane > .preview-heading { position: static; width: 100%; height: 56px; min-height: 56px; padding: 0 20px; justify-content: space-between; border-bottom: 1px solid var(--rule); }
+.preview-pane > .preview-tabs { height: 48px; flex-shrink: 0; }
+.preview-pane > .preview-tabs .tab-indicator { top: 6px; }
 @media (max-width: 1119px) {
   .utility-label span { display: none; }
   .utility-cluster .utility-label { width: 36px; padding: 0; }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowDownWideNarrow, Sparkles, Pause, Play, CheckCheck, X } from "lucide-react";
+import { ArrowDownWideNarrow, ChevronDown, Sparkles, Pause, Play, CheckCheck, X } from "lucide-react";
 import { post, type CollectionScope, type Job, type Page } from "./api";
 import { useText } from "./locale";
 import type { LibraryAction } from "./LibraryTools";
@@ -40,7 +40,7 @@ export function CollectionTools({ scope, page, display, onDisplay, sort, onSort,
       <option value="title">{t("标题顺序", "Title")}</option><option value="domain">{t("按站点", "Website")}</option>
     </select></label>
     <details className="collection-options-menu">
-      <summary><Sparkles size={15} aria-hidden="true"/>{t("显示与摘要", "Display & summaries")}</summary>
+      <summary><Sparkles size={15} aria-hidden="true"/>{t("显示与摘要", "Display & summaries")}<ChevronDown className="disclosure-chevron" size={14} aria-hidden="true"/></summary>
       <div className="collection-options">
       <div className="summary-display" role="group" aria-label={t("列表内容", "Collection content")}>
         <button aria-pressed={display === "summary"} onClick={() => onDisplay("summary")}>{t("摘要", "Summaries")}</button>

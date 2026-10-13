@@ -157,7 +157,9 @@ export function Tasks({
               aria-label={t("书签处理进度", "Bookmark processing progress")}
             />
           )}
-          {!!job.items.failed && <p className="error">{t(`${job.items.failed} 条处理失败，可返回收藏筛选「失败」后重试。`, `${job.items.failed} failed. Return to the collection and filter Failed to retry.`)}</p>}
+          {!!job.items.failed && <p className="error">{mode === "summarize"
+            ? t(`${job.items.failed} 条处理失败，可返回收藏筛选「失败」后重试。`, `${job.items.failed} failed. Return to the collection and filter Failed to retry.`)
+            : t(`${job.items.failed} 条正文抓取失败。可继续已保存的任务，或再次抓取；已完成且未变化的内容会跳过。`, `${job.items.failed} page fetches failed. Resume the saved task or fetch again; completed, unchanged content is skipped.`)}</p>}
         </div>
       )}
       {running ? (

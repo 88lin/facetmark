@@ -59,6 +59,49 @@ test("idle and paused tasks show truthful status and recover failed saved-task r
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await page.screenshot({ path: "screenshots/support-tasks-paused-mobile.png", animations: "disabled" });
+  current = { ...current, params: { mode: "fetch" }, current: "fetch", planned: ["fetch"] };
+  await expect(page.locator(".task-progress")).toContainText("2 条正文抓取失败", { timeout: 10000 });
+  await expect(page.locator(".task-progress")).not.toContainText("筛选「失败」");
+});
+
+test("long excerpts remain expandable after changing display without changing text", async ({ page }) => {
+  await page.route("**/bookmarks?**", async route => {
+    const response = await route.fetch();
+    const data = await response.json();
+    data.items[0].summary = "";
+    data.items[0].snippet = "没有摘要时仍然需要展开这段很长的网页摘录。".repeat(30);
+    await route.fulfill({ response, json: data });
+  });
+  await page.goto("/app");
+  const entry = page.locator(".result-row").first();
+  await expect(entry.getByRole("button", { name: "展开全文", exact: true })).toBeVisible();
+  await page.locator(".collection-options-menu > summary").click();
+  await page.getByRole("button", { name: "原文摘录", exact: true }).click();
+  await entry.getByRole("button", { name: "展开全文", exact: true }).click();
+  expect(await entry.locator(".result-summary").evaluate(el => el.scrollHeight <= el.clientHeight + 1)).toBe(true);
+  await page.getByRole("button", { name: "摘要", exact: true }).click();
+  await expect(entry.getByRole("button", { name: "展开全文", exact: true })).toBeVisible();
+});
+
+test("desktop reader return and tabs have separate space in English dark mode", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("fm-language", "en");
+    localStorage.setItem("fm-theme", "dark");
+  });
+  await page.setViewportSize({ width: 1120, height: 800 });
+  await page.goto("/app");
+  await page.locator(".result-row").first().locator(".bookmark-preview").click();
+  const back = page.getByRole("button", { name: "Back to collection", exact: true });
+  await expect(back).toBeVisible();
+  const bounds = await page.locator(".preview-heading").boundingBox();
+  const tabs = await page.locator(".preview-tabs").boundingBox();
+  expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(tabs!.y + 1);
+  await page.getByRole("tab", { name: "Related", exact: true }).click();
+  await page.getByRole("tab", { name: "Page text", exact: true }).click();
+  await expect(page.locator(".body-text")).toBeVisible();
+  await page.screenshot({ path: "screenshots/support-reader-en-dark-1120.png", animations: "disabled" });
+  await back.click();
+  await expect(page.locator(".result-row").first().locator(".bookmark-preview")).toBeFocused();
 });
 
 test("an import can retry the same file and returns directly to the collection", async ({ page }) => {

@@ -24,7 +24,7 @@ export function BookmarkCard({ record, selected, checked, disabled, display, onC
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [text, expanded]);
+  }, [text, expanded, display, record.bookmark_id]);
   const label = display === "summary" && record.summary
     ? record.summary_basis === "title" ? t("标题推断", "Inferred from title") : t("AI 摘要", "AI summary")
     : text ? t("正文摘录", "Page excerpt") : display === "original" ? t("暂无正文", "No page text yet") : t("暂无摘要", "No summary yet");
