@@ -24,13 +24,16 @@
 .task-current { padding: 0 0 20px; border-bottom: 1px solid var(--rule); margin-bottom: 4px; }
 .task-current h2 { margin-bottom: 6px; }
 .task-current p { margin-bottom: 0; }
+.task-current-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 16px 0; }
+.task-current-actions:empty { display: none; }
+.task-current-actions > p { order: 1; flex-basis: 100%; margin: 0; font-size: .9375rem; color: var(--secondary-ink); }
+.task-current-actions > button { min-height: 44px; }
 .task-shortcuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; margin: 0 0 24px; }
 .task-operation { padding: 20px 0; }
 .task-operation p { margin: 10px 0 0; max-width: 48ch; }
 .tasks .stages { padding: 8px 16px; margin: 20px 0; }
 .tasks .stages li { padding: 10px 0; }
 .tasks .collection-job { margin: 12px 0; }
-.task-index-section > .primary { margin: 4px 0 20px; }
 .tasks .index-consent { padding: 18px 20px; margin: 20px 0; }
 .index-consent > summary { cursor: pointer; font-size: 1rem; font-weight: 700; color: var(--ink); }
 .index-consent > summary span { display: block; margin: 5px 0 0 18px; font-size: var(--type-ui); font-weight: 400; color: var(--muted); }

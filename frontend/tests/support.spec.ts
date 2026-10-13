@@ -58,6 +58,13 @@ test("idle and paused tasks show truthful status and recover failed saved-task r
   await expect(page.locator(".task-progress")).toContainText("2 条处理失败");
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await expect(page.locator(".task-current")).toContainText("进度已保存");
+  await expect(page.locator(".task-current")).not.toContainText("后台继续");
+  const resume = page.getByRole("button", { name: "继续上次任务", exact: true });
+  await expect(resume).toBeInViewport({ ratio: 1 });
+  const resumeBounds = await resume.boundingBox();
+  const newWorkBounds = await page.locator(".task-shortcuts").boundingBox();
+  expect(resumeBounds!.y + resumeBounds!.height).toBeLessThanOrEqual(newWorkBounds!.y);
   await page.screenshot({ path: "screenshots/support-tasks-paused-mobile.png", animations: "disabled" });
   current = { ...current, params: { mode: "fetch" }, current: "fetch", planned: ["fetch"] };
   await expect(page.locator(".task-progress")).toContainText("2 条正文抓取失败", { timeout: 10000 });

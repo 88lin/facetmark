@@ -57,6 +57,16 @@ export function Tasks({
     interrupted: t("上次任务被中断", "Previous task was interrupted"),
     paused: t("任务已暂停", "Task paused"),
   };
+  const descriptions: Record<string, string> = {
+    idle: t("先抓取正文或生成摘要；需要语义检索时，再建立完整索引。", "Start with page text or summaries. Build a full index when you need semantic search."),
+    running: t("任务在后台继续，切换页面不会中断。", "Work continues in the background when you switch views."),
+    paused: t("进度已保存。点击继续，处理剩余收藏。", "Progress is saved. Resume to process the remaining bookmarks."),
+    done: t("处理已完成，可以返回收藏查看结果。", "Processing is complete. Return to the collection to view the results."),
+    partial: t("部分内容未完成，请查看失败提示后重试。", "Some items could not be completed. Review the failure details before retrying."),
+    failed: t("处理已停止，请查看错误并重试。", "Processing stopped. Review the error and retry."),
+    cancelled: t("处理已取消，已完成的内容仍然保留。", "Processing was cancelled. Completed content has been kept."),
+    interrupted: t("上次处理已中断，请继续已保存的任务或重新运行。", "Processing was interrupted. Resume the saved task or run it again."),
+  };
   async function action(path: string, body: unknown) {
     setBusy(true);
     setError("");
@@ -80,12 +90,64 @@ export function Tasks({
       <div className={`section-heading task-current task-state-${job.state}`}>
         <h2>{states[job.state] || job.state}</h2>
         <p>
-          {job.state === "idle" ? t("先抓取正文或生成摘要；需要语义检索时，再建立完整索引。", "Start with page text or summaries. Build a full index when you need semantic search.") : t(
-            "任务在后台继续，切换页面不会中断。",
-            "Work continues in the background when you switch views.",
-          )}
+          {descriptions[job.state] || t("请查看当前任务状态。", "Review the current task status.")}
         </p>
       </div>
+      {mode !== "index" && job.items && (
+        <div className="task-progress">
+          <p role="status">
+            {t(
+              `已处理 ${job.items.done} / ${job.items.total} 条待处理书签`,
+              `Processed ${job.items.done} of ${job.items.total} pending bookmarks`,
+            )}
+          </p>
+          {job.items.total > 0 && (
+            <progress
+              value={job.items.done}
+              max={job.items.total}
+              aria-label={t("书签处理进度", "Bookmark processing progress")}
+            />
+          )}
+          {!!job.items.failed && <p className="error">{mode === "summarize"
+            ? t(`${job.items.failed} 条处理失败，可返回收藏筛选「失败」后重试。`, `${job.items.failed} failed. Return to the collection and filter Failed to retry.`)
+            : t(`${job.items.failed} 条正文抓取失败。可继续已保存的任务，或再次抓取；已完成且未变化的内容会跳过。`, `${job.items.failed} page fetches failed. Resume the saved task or fetch again; completed, unchanged content is skipped.`)}</p>}
+        </div>
+      )}
+      {running ? (
+        <div className="task-current-actions">
+          {mode !== "index" && <button className="secondary" disabled={busy || job.pause_requested}
+            onClick={() => action("/admin/jobs/pause", {})}><Pause/>{job.pause_requested ? t("正在暂停…", "Pausing…") : t("暂停任务", "Pause task")}</button>}
+          <p role="status">
+            {job.cancel_requested
+              ? t(
+                  "已请求取消，将在当前阶段结束后停止。",
+                  "Cancellation requested. Stopping after the current stage.",
+                )
+              : job.pause_requested ? t("正在保存当前批次，完成后暂停。", "Saving the current batch before pausing.") : t(
+                  "正在处理当前阶段，所需时间取决于页面和模型服务。",
+                  "Processing this stage. Time depends on the pages and model service.",
+                )}
+          </p>
+          <button
+            className="secondary"
+            disabled={busy || job.cancel_requested}
+            onClick={() => action("/admin/job/cancel", {})}
+          >
+            <X />
+            {t("取消任务", "Cancel task")}
+          </button>
+        </div>
+      ) : (
+        <div className="task-current-actions">
+          {job.resumable && <button className="primary" disabled={busy}
+            onClick={() => action("/admin/jobs/resume", { resume_id: job.id, confirmed: true })}><Play/>{t("继续上次任务", "Resume saved task")}</button>}
+        </div>
+      )}
+      {(error || job.error) && (
+        <p className="error" role="alert">
+          {error || job.error}
+        </p>
+      )}
       <div className="task-shortcuts" aria-label={t("处理操作", "Processing actions")}>
         <div className="task-operation">
         <button className="secondary" disabled={busy || running} onClick={() => onProcess("fetch")}>
@@ -142,54 +204,8 @@ export function Tasks({
           </li>
         ))}
       </ol>}
-      {mode !== "index" && job.items && (
-        <div className="task-progress">
-          <p role="status">
-            {t(
-              `已处理 ${job.items.done} / ${job.items.total} 条待处理书签`,
-              `Processed ${job.items.done} of ${job.items.total} pending bookmarks`,
-            )}
-          </p>
-          {job.items.total > 0 && (
-            <progress
-              value={job.items.done}
-              max={job.items.total}
-              aria-label={t("书签处理进度", "Bookmark processing progress")}
-            />
-          )}
-          {!!job.items.failed && <p className="error">{mode === "summarize"
-            ? t(`${job.items.failed} 条处理失败，可返回收藏筛选「失败」后重试。`, `${job.items.failed} failed. Return to the collection and filter Failed to retry.`)
-            : t(`${job.items.failed} 条正文抓取失败。可继续已保存的任务，或再次抓取；已完成且未变化的内容会跳过。`, `${job.items.failed} page fetches failed. Resume the saved task or fetch again; completed, unchanged content is skipped.`)}</p>}
-        </div>
-      )}
-      {running ? (
-        <div>
-          {mode !== "index" && <button className="secondary" disabled={busy || job.pause_requested}
-            onClick={() => action("/admin/jobs/pause", {})}><Pause/>{job.pause_requested ? t("正在暂停…", "Pausing…") : t("暂停任务", "Pause task")}</button>}
-          <p role="status">
-            {job.cancel_requested
-              ? t(
-                  "已请求取消，将在当前阶段结束后停止。",
-                  "Cancellation requested. Stopping after the current stage.",
-                )
-              : job.pause_requested ? t("正在保存当前批次，完成后暂停。", "Saving the current batch before pausing.") : t(
-                  "正在处理当前阶段，所需时间取决于页面和模型服务。",
-                  "Processing this stage. Time depends on the pages and model service.",
-                )}
-          </p>
-          <button
-            className="secondary"
-            disabled={busy || job.cancel_requested}
-            onClick={() => action("/admin/job/cancel", {})}
-          >
-            <X />
-            {t("取消任务", "Cancel task")}
-          </button>
-        </div>
-      ) : (
+      {!running && (
         <div className="task-index-section">
-          {job.resumable && <button className="primary" disabled={busy}
-            onClick={() => action("/admin/jobs/resume", { resume_id: job.id, confirmed: true })}><Play/>{t("继续上次任务", "Resume saved task")}</button>}
           <details className="index-consent" open={mode === "index" && job.state !== "idle"}>
           <summary>{t("建立完整索引", "Build the full index")}<span>{t("可选 · 用于语义检索与关联", "Optional · Semantic search and connections")}</span></summary>
           <p>
@@ -232,11 +248,6 @@ export function Tasks({
           </button>
           </details>
         </div>
-      )}
-      {(error || job.error) && (
-        <p className="error" role="alert">
-          {error || job.error}
-        </p>
       )}
       <details className="advanced">
         <summary>{t("任务日志与资料库诊断", "Task log and library diagnostics")}</summary>
