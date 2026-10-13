@@ -87,6 +87,7 @@ test("shared-folder sync reviews actual changes, rejects a stale preview and res
 
     await page.goto("/app");
     await page.getByRole("button", { name: "设置", exact: true }).click();
+    await page.getByRole("tab", { name: "设备同步", exact: true }).click();
     const sync = page.locator(".sync-settings");
     await expect(sync.getByRole("heading", { name: "在设备之间同步书签" })).toBeVisible();
     await sync.getByLabel("共享文件夹完整路径").fill(shared);
@@ -224,6 +225,7 @@ test("shared-folder sync reviews actual changes, rejects a stale preview and res
     await page.reload();
     await page.getByRole("button", { name: "打开导航", exact: true }).click();
     await page.getByRole("button", { name: "设置", exact: true }).click();
+    await page.getByRole("tab", { name: "设备同步", exact: true }).click();
     await expect(page.locator(".sync-settings .sync-state")).toHaveText("未启用");
     await expect(page.getByLabel("共享文件夹完整路径")).toHaveValue(shared);
   });
@@ -239,6 +241,7 @@ test("sync settings distinguish loading failure and recover through retry", asyn
   });
   await page.goto("/app");
   await page.getByRole("button", { name: "设置", exact: true }).click();
+  await page.getByRole("tab", { name: "设备同步", exact: true }).click();
   const sync = page.locator(".sync-settings");
   await expect(sync.getByRole("alert")).toContainText("Synthetic status failure");
   await sync.getByRole("button", { name: "重试读取设置", exact: true }).click();

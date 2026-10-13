@@ -1,16 +1,18 @@
 import { useRef, useState } from "react";
-import { ArrowRight, Check, FolderOpen, Upload } from "lucide-react";
+import { ArrowRight, Check, FolderOpen, LoaderCircle, Upload } from "lucide-react";
 import { api, post, type Job, type Setup } from "./api";
 import { Models } from "./Settings";
 import { Tasks } from "./Tasks";
 import { useText } from "./locale";
 
-export function Importer({ refresh }: { refresh: () => Promise<void> }) {
+export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; onDone?: () => void }) {
   const t = useText();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [finding, setFinding] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const [sources, setSources] = useState<{ id: string; browser: string; profile: string }[] | null>(
     null,
   );
@@ -32,6 +34,10 @@ export function Importer({ refresh }: { refresh: () => Promise<void> }) {
   }
   async function upload(file?: File) {
     if (!file || busy) return;
+    if (!/\.(html?|json)$/i.test(file.name)) {
+      setError(t("请选择 HTML 或 JSON 书签导出文件。", "Choose an HTML or JSON bookmark export."));
+      return;
+    }
     if (file.size > 64 * 1024 * 1024) {
       setError(t("请选择不超过 64 MB 的导出文件。", "Choose an export up to 64 MB."));
       return;
@@ -54,10 +60,13 @@ export function Importer({ refresh }: { refresh: () => Promise<void> }) {
         )}
       </p>
       <div
-        className="dropzone"
-        onDragOver={(e) => e.preventDefault()}
+        className={`dropzone ${dragging ? "is-dragging" : ""}`}
+        aria-busy={busy}
+        onDragOver={(e) => { e.preventDefault(); if (!busy) setDragging(true); }}
+        onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false); }}
         onDrop={(e) => {
           e.preventDefault();
+          setDragging(false);
           upload(e.dataTransfer.files[0]);
         }}
       >
@@ -69,18 +78,23 @@ export function Importer({ refresh }: { refresh: () => Promise<void> }) {
           type="file"
           accept=".html,.htm,.json"
           hidden
-          onChange={(e) => upload(e.target.files?.[0])}
+          onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; upload(file); }}
         />
         <button className="primary" disabled={busy} onClick={() => input.current?.click()}>
-          <FolderOpen />
+          {busy ? <LoaderCircle className="spin"/> : <FolderOpen />}
           {busy ? t("正在导入…", "Importing…") : t("选择文件", "Choose a file")}
         </button>
       </div>
+      <details className="import-help">
+        <summary>{t("如何导出浏览器书签？", "How do I export my bookmarks?")}</summary>
+        <p>{t("在 Chrome 或 Edge 中打开书签管理器，选择菜单中的「导出书签」，再将保存的 HTML 文件拖到这里。也可导入 Facetmark 导出的 JSON。", "Open the bookmark manager in Chrome or Edge, choose Export bookmarks from its menu, then drop the saved HTML file here. Facetmark JSON exports are also supported.")}</p>
+      </details>
       <button
         className="text-button"
-        disabled={busy}
+        disabled={busy || finding}
         onClick={async () => {
           setError("");
+          setFinding(true);
           try {
             const data = await api<{ sources: { id: string; browser: string; profile: string }[] }>(
               "/admin/import/sources",
@@ -88,10 +102,12 @@ export function Importer({ refresh }: { refresh: () => Promise<void> }) {
             setSources(data.sources);
           } catch (e) {
             setError(String(e));
+          } finally {
+            setFinding(false);
           }
         }}
       >
-        {t("查找本机 Chromium 浏览器的书签来源", "Find local Chromium bookmark sources")}
+        {finding ? t("正在查找书签来源…", "Finding bookmark sources…") : t("查找本机 Chromium 浏览器的书签来源", "Find local Chromium bookmark sources")}
       </button>
       {sources && (
         <div className="source-list">
@@ -122,10 +138,11 @@ export function Importer({ refresh }: { refresh: () => Promise<void> }) {
         </div>
       )}
       {message && (
-        <p className="notice" role="status">
+        <div className="import-result"><p className="notice" role="status">
           <Check size={16} />
           {message}
-        </p>
+        </p><p>{t("现在就可以搜索和整理收藏，AI 摘要可稍后配置。", "Your bookmarks are ready to search and organize. AI summaries can be set up later.")}</p>
+        {onDone && <button className="primary" onClick={onDone}>{t("查看已导入的收藏", "View imported bookmarks")}<ArrowRight size={16}/></button>}</div>
       )}
       {error && (
         <p className="error" role="alert">

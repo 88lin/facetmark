@@ -172,6 +172,9 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
                 </h3>
                 <span className="quiet">{channelStatus(channel)}</span>
               </header>
+              <p className="model-purpose">{channel === "chat"
+                ? t("用于生成摘要与检索意图，选择一种接入方式即可。", "Generates summaries and search intents. Choose one provider below.")
+                : t("可选 · 用于按含义查找。普通关键词搜索和摘要不需要向量模型。", "Optional · Find pages by meaning. Keyword search and summaries do not require embeddings.")}</p>
               {channel === "chat" && <label className="field">{t("摘要来源", "Summary provider")}
                 <select aria-label={t("摘要来源", "Summary provider")} value={String(value("chat_backend") || "endpoint")}
                   disabled={!!busy || row("chat_backend")?.locked} onChange={e => change("chat_backend", e.target.value)}>

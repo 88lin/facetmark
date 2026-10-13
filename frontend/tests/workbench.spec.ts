@@ -90,6 +90,7 @@ test("setup, separate model tests, consent and persistent tasks", async ({ page 
   await page.locator(".model-panel").nth(1).getByRole("button", { name: "测试连接" }).click();
   expect(requests).toEqual(["chat", "embed"]);
   await page.getByRole("button", { name: "任务", exact: true }).click();
+  await page.locator(".index-consent > summary").click();
   const start = page.getByRole("button", { name: "开始索引", exact: true });
   await expect(start).toBeDisabled();
   await page.getByLabel("我已了解并确认开始处理").check();

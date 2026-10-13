@@ -263,7 +263,7 @@ export default function Reader({
   return (
     <>
       <header className="preview-heading">
-        {!canFocus && selected !== null && (
+        {selected !== null && (
           <button className="reader-back" onClick={onClose}>
             <ArrowLeft size={17} />
             <span>{t("返回收藏", "Back to collection")}</span>

@@ -99,11 +99,15 @@ export function FacetBrowser({ filters, enabled = true, revision, onSelect }: {
         <span>{t("未分类", "Unfiled")}</span>
         {filters.folder === "" && <Check size={14} aria-hidden="true" />}
       </button>}
-      {items.map(item => <button className="facet-option" key={item.value} type="button"
-        title={item.value} aria-pressed={filters[field] === item.value}
-        onClick={() => onSelect(field, item.value)}>
-        <span>{item.value}</span><small>{item.count}</small>
-      </button>)}
+      {items.map(item => {
+        const split = group === "folders" ? item.value.lastIndexOf(" / ") : -1;
+        return <button className="facet-option" key={item.value} type="button"
+          title={item.value} aria-label={`${item.value} ${item.count}`} aria-pressed={filters[field] === item.value}
+          onClick={() => onSelect(field, item.value)}>
+          <span>{split >= 0 ? <><small className="facet-parent">{item.value.slice(0, split)} / </small><span>{item.value.slice(split + 3)}</span></> : item.value}</span>
+          <small>{item.count.toLocaleString()}</small>
+        </button>;
+      })}
       {error ? <div className="facet-feedback" role="alert">
         <p>{t("分类暂时无法加载。", "Categories could not be loaded.")}</p>
         <button className="text-button" onClick={() => setRetry(value => value + 1)}>{t("重试", "Retry")}</button>

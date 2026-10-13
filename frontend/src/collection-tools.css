@@ -4,8 +4,10 @@
 .collection-status button { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 0; border-radius: 99px; background: transparent; color: var(--secondary-ink); font-size: var(--type-meta); }
 .collection-status button[aria-pressed="true"] { color: var(--accent); background: var(--selected); font-weight: 700; }
 .collection-status button span { font-size: var(--type-caption); font-variant-numeric: tabular-nums; }
-.collection-options-menu { margin-left: auto; position: relative; }
-.collection-options-menu > summary { cursor: pointer; color: var(--accent); padding: 8px 10px; border-radius: 99px; font-size: var(--type-ui); font-weight: 600; }
+.collection-sort { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; color: var(--muted); }
+.collection-options-menu { position: relative; }
+.collection-options-menu > summary { cursor: pointer; color: var(--accent); padding: 8px 12px; border: 1px solid var(--rule); background: var(--canvas); border-radius: 99px; font-size: var(--type-ui); font-weight: 600; }
+.collection-options-menu > summary svg { vertical-align: -3px; margin-right: 6px; }
 .collection-options-menu > summary:hover { background: var(--soft); }
 .collection-options-menu[open] { flex-basis: 100%; }
 .collection-options { gap: 10px; padding: 12px; margin-top: 6px; background: var(--inset); border: 1px solid var(--rule); border-radius: 12px; }
@@ -36,6 +38,9 @@
 .main-workspace .bookmark-description.expanded .result-summary { display: block; -webkit-line-clamp: unset; }
 .summary-expand { font-size: var(--type-meta); margin-top: 3px; }
 .main-workspace .result-row .result-meta { margin-top: auto; padding-top: 12px; justify-content: space-between; flex-wrap: nowrap; }
+.main-workspace .result-row .result-folder { min-width: 0; flex: 1; }
+.main-workspace .result-row .result-folder > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.facet-parent { display: block; font-size: var(--type-caption); font-weight: 400; color: var(--muted); line-height: 1.6; }
 .bookmark-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .bookmark-preview { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); background: transparent; border: 0; border-radius: 99px; padding: 5px 8px; font-size: var(--type-meta); }
 .bookmark-preview:hover, .bookmark-preview[aria-pressed="true"] { color: var(--accent); background: var(--selected); }
@@ -56,6 +61,8 @@
   .collection-status button { gap: 4px; padding: 6px 8px; }
   .collection-status { width: 100%; }
   .collection-options-menu { margin-left: 0; }
+  .collection-sort { margin-left: 0; }
+  .collection-sort select { max-width: 130px; }
   .collection-options-menu > summary, .collection-status button, .collection-selection .text-button,
   .summary-display button, .collection-sort select, .collection-process select { min-height: 44px; }
   .collection-tools .collection-selection { width: auto; flex: 1; }

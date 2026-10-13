@@ -40,13 +40,12 @@ import {
 } from "./api";
 import { Locale, useText, type Language } from "./locale";
 import SetupFlow, { Importer } from "./Setup";
-import { ExtensionSettings, Models, UpdateSettings } from "./Settings";
+import { SettingsWorkspace } from "./SettingsWorkspace";
 import { Tasks } from "./Tasks";
 import { BookmarkCard } from "./BookmarkCard";
 import { CollectionTools } from "./CollectionTools";
 import type { CollectionScope } from "./api";
 import { LibraryDialog, LibraryToolbar, type LibraryAction } from "./LibraryTools";
-import { SyncSettings } from "./SyncSettings";
 import { FacetBrowser } from "./FacetBrowser";
 import { QuerySuggestions, SearchAnswer } from "./SearchTools";
 import Reader, { Skeleton } from "./Reader";
@@ -693,22 +692,24 @@ function Workbench({
             {adminAvailable && (
               <>
                 <button
-                  className="icon-button"
+                  className="icon-button utility-label"
                   aria-label={t("任务", "Tasks")}
                   aria-pressed={view === "tasks"}
                   title={t("任务", "Tasks")}
                   onClick={() => openView("tasks")}
                 >
                   {job.state === "running" ? <LoaderCircle className="spin" /> : <Layers3 />}
+                  <span>{t("任务", "Tasks")}</span>
                 </button>
                 <button
-                  className="icon-button"
+                  className="icon-button utility-label"
                   aria-label={t("设置", "Settings")}
                   aria-pressed={view === "settings"}
                   title={t("设置", "Settings")}
                   onClick={() => openView("settings")}
                 >
                   <Settings2 />
+                  <span>{t("设置", "Settings")}</span>
                 </button>
               </>
             )}
@@ -1137,6 +1138,7 @@ function Workbench({
                     selected={selected === record.bookmark_id}
                     checked={allMatching ? !excludedIds.includes(record.bookmark_id) : selectedIds.includes(record.bookmark_id)}
                     disabled={scopePending} display={summaryDisplay}
+                    onEdit={adminAvailable && job.state !== "running" ? () => setLibraryAction({ kind: "edit", record }) : undefined}
                     onCheck={() => {
                       if (allMatching) setExcludedIds(ids => ids.includes(record.bookmark_id) ? ids.filter(id => id !== record.bookmark_id) : [...ids, record.bookmark_id].slice(0, 10000));
                       else { setBatchMode(true); setSelectedIds(ids => ids.includes(record.bookmark_id) ? ids.filter(id => id !== record.bookmark_id) : [...ids, record.bookmark_id].slice(0, 1000)); }
@@ -1265,31 +1267,15 @@ function Workbench({
                     <ArrowRight size={14} />
                   </button>
                 </header>
-                <Importer refresh={refresh} />
+                <Importer refresh={refresh} onDone={() => openView("library")} />
               </>
             ) : view === "settings" ? (
-              <>
-                <header className="page-heading">
-                  <h1>{t("设置", "Settings")}</h1>
-                  <span className="quiet">
-                    {t("配置属于你的检索方式", "Make retrieval your own")}
-                  </span>
-                </header>
-                <Models setup={setup} refresh={refresh} />
-                <SyncSettings onChanged={libraryChanged} />
-                <ExtensionSettings />
-                <UpdateSettings />
-                <p className="credits">
-                  {t("界面组件致谢：", "Interface credits: ")}
-                  <a href="https://rareui.com" target="_blank" rel="noreferrer">
-                    Rare UI
-                  </a>
-                </p>
-              </>
+              <SettingsWorkspace setup={setup} refresh={refresh} onChanged={libraryChanged} onBack={() => openView("library")} />
             ) : view === "tasks" ? (
               <>
                 <header className="page-heading">
-                  <h1>{t("任务与诊断", "Tasks and diagnostics")}</h1>
+                  <div><h1>{t("任务与诊断", "Tasks and diagnostics")}</h1><p>{t("查看进度，继续处理未完成的收藏。", "Follow progress and resume unfinished work.")}</p></div>
+                  <button className="text-button support-back" onClick={() => openView("library")}><ArrowLeft size={16}/>{t("返回收藏", "Back to collection")}</button>
                 </header>
                 <Tasks job={job} setup={setup} refresh={refresh} onProcess={(mode) => setLibraryAction({ kind: "process", mode })} />
                 <HealthTools />

@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { ExternalLink, Eye, Folder, Sparkles } from "lucide-react";
+import { ExternalLink, Eye, Folder, Pencil, Sparkles } from "lucide-react";
 import { post, safeUrl, type Bookmark } from "./api";
 import { useText } from "./locale";
 
-export function BookmarkCard({ record, selected, checked, disabled, display, onCheck, onPreview, onSummarize }: {
+export function BookmarkCard({ record, selected, checked, disabled, display, onCheck, onPreview, onSummarize, onEdit }: {
   record: Bookmark; selected: boolean; checked: boolean; disabled: boolean;
   display: "summary" | "original"; onCheck: () => void;
-  onPreview: (button: HTMLButtonElement) => void; onSummarize?: () => void;
+  onPreview: (button: HTMLButtonElement) => void; onSummarize?: () => void; onEdit?: () => void;
 }) {
   const t = useText();
   const [expanded, setExpanded] = useState(false);
@@ -15,6 +15,7 @@ export function BookmarkCard({ record, selected, checked, disabled, display, onC
   const href = safeUrl(record.url);
   const trackOpen = () => { post("/open", { bookmark_id: record.bookmark_id }).catch(() => {}); };
   const text = display === "summary" ? record.summary || record.snippet : record.snippet;
+  useEffect(() => { setExpanded(false); setClipped(false); }, [record.bookmark_id, display, text]);
   useEffect(() => {
     const element = summary.current;
     if (!element || expanded) return;
@@ -26,7 +27,7 @@ export function BookmarkCard({ record, selected, checked, disabled, display, onC
   }, [text, expanded]);
   const label = display === "summary" && record.summary
     ? record.summary_basis === "title" ? t("标题推断", "Inferred from title") : t("AI 摘要", "AI summary")
-    : text ? t("正文摘录", "Page excerpt") : t("暂无摘要", "No summary yet");
+    : text ? t("正文摘录", "Page excerpt") : display === "original" ? t("暂无正文", "No page text yet") : t("暂无摘要", "No summary yet");
   return <article data-bookmark-id={record.bookmark_id}
     className={`result-row ${selected ? "selected" : ""} ${checked ? "batch-selected" : ""}`}>
     <div className="result-copy">
@@ -49,7 +50,7 @@ export function BookmarkCard({ record, selected, checked, disabled, display, onC
         : <span className="result-title">{record.title || record.url}</span>}
       <div className={`bookmark-description ${expanded ? "expanded" : ""}`}>
         <span className="summary-basis">{label}</span>
-        <p ref={summary} className="result-summary">{text || t("可批量生成摘要，在列表中直接浏览。", "Generate summaries in bulk and read them here.")}</p>
+        <p ref={summary} className="result-summary">{text || (display === "original" ? t("预览中可抓取正文，或直接打开原网页。", "Fetch page text in Preview, or open the original website.") : t("可生成摘要，在收藏中直接浏览。", "Generate a summary to read it here."))}</p>
         {!!text && (clipped || expanded) && <button className="text-button summary-expand" aria-expanded={expanded}
           onClick={() => setExpanded(!expanded)}>{expanded ? t("收起", "Collapse") : t("展开全文", "Show full text")}</button>}
       </div>
@@ -58,6 +59,8 @@ export function BookmarkCard({ record, selected, checked, disabled, display, onC
       <div className="result-meta">
         <span className="result-folder" title={record.folder}><Folder size={12}/><span>{record.folder || t("未分类", "Unfiled")}</span></span>
         <div className="bookmark-actions">
+          {onEdit && <button className="icon-button" disabled={disabled} onClick={onEdit}
+            aria-label={t(`编辑：${record.title || record.url}`, `Edit: ${record.title || record.url}`)} title={t("编辑收藏", "Edit bookmark")}><Pencil size={15}/></button>}
           {onSummarize && <button className="icon-button" disabled={disabled} onClick={onSummarize}
             aria-label={t("生成此条摘要", "Summarize this bookmark")} title={t("生成摘要", "Summarize")}><Sparkles size={15}/></button>}
           <button className="bookmark-preview" disabled={disabled} onClick={event => onPreview(event.currentTarget)}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Circle, Download, LoaderCircle, Pause, Play, RefreshCw, Sparkles } from "lucide-react";
+import { Check, Circle, Download, LoaderCircle, Pause, Play, RefreshCw, Sparkles, X } from "lucide-react";
 import { api, post, type Job, type Setup } from "./api";
 import { useText } from "./locale";
 
@@ -20,7 +20,16 @@ export function Tasks({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState<Job[]>([]);
-  useEffect(() => { api<{ items: Job[] }>("/admin/jobs").then(data => setSaved(data.items)).catch(() => {}); }, [job.id, job.state]);
+  const [savedError, setSavedError] = useState(false);
+  const [savedRevision, setSavedRevision] = useState(0);
+  useEffect(() => {
+    const abort = new AbortController();
+    setSavedError(false);
+    api<{ items: Job[] }>("/admin/jobs", { signal: abort.signal })
+      .then(data => { if (!abort.signal.aborted) setSaved(data.items); })
+      .catch(() => { if (!abort.signal.aborted) setSavedError(true); });
+    return () => abort.abort();
+  }, [job.id, job.state, savedRevision]);
   const mode = job.params?.mode || "index";
   const running = job.state === "running";
   const taskName =
@@ -68,33 +77,36 @@ export function Tasks({
       setup?.vector_compatible);
   return (
     <section className="tasks">
-      <div className="section-heading">
+      <div className={`section-heading task-current task-state-${job.state}`}>
         <h2>{states[job.state] || job.state}</h2>
         <p>
-          {t(
+          {job.state === "idle" ? t("先抓取正文或生成摘要；需要语义检索时，再建立完整索引。", "Start with page text or summaries. Build a full index when you need semantic search.") : t(
             "任务在后台继续，切换页面不会中断。",
             "Work continues in the background when you switch views.",
           )}
         </p>
       </div>
       <div className="task-shortcuts" aria-label={t("处理操作", "Processing actions")}>
+        <div className="task-operation">
         <button className="secondary" disabled={busy || running} onClick={() => onProcess("fetch")}>
           <Download />
           {t("抓取网页正文", "Fetch page text")}
         </button>
+        <p>{t("读取原网页，保存可供阅读和生成摘要的正文。无需模型。", "Save original page text for reading and summaries. No model needed.")}</p>
+        </div>
+        <div className="task-operation">
         <button className="secondary" disabled={busy || running} onClick={() => onProcess("summarize")}>
           <Sparkles />
           {t("生成阅读摘要", "Generate summaries")}
         </button>
+        <p>{t("用已连接的 AI 生成摘要，可在确认前选择处理范围。", "Generate summaries with your connected AI. Review the scope before starting.")}</p>
+        </div>
       </div>
-      <p className="hint">
-        {t(
-          "抓取正文会访问原网站，无需配置模型。生成摘要只使用聊天模型。",
-          "Fetching visits the original websites and needs no model. Summaries use only the chat model.",
-        )}
-      </p>
+      {savedError && <div className="error" role="alert"><p>{t("无法读取已保存的任务，请重试。", "Saved tasks could not be loaded. Please retry.")}</p>
+        <button className="text-button" onClick={() => setSavedRevision(value => value + 1)}>{t("重试读取任务", "Retry saved tasks")}</button></div>}
       {saved.filter(item => item.id !== job.id).map(item => <div className="collection-job" key={item.id}>
-        <span>{item.params?.mode === "summarize" ? t("已保存的摘要任务", "Saved summary task") : t("已保存的抓取任务", "Saved fetch task")} · {item.items?.done} / {item.items?.total}</span>
+        <span>{item.params?.mode === "summarize" ? t("已保存的摘要任务", "Saved summary task") : t("已保存的抓取任务", "Saved fetch task")} · {item.items?.done ?? 0} / {item.items?.total ?? 0}
+          {!!item.items?.failed && t(` · ${item.items.failed} 条失败`, ` · ${item.items.failed} failed`)}</span>
         <button className="secondary" disabled={busy || running} onClick={() => action("/admin/jobs/resume", { resume_id: item.id, confirmed: true })}><Play/>{t("继续", "Resume")}</button>
       </div>)}
       {job.state !== "idle" && (
@@ -115,12 +127,12 @@ export function Tasks({
           )}
         </p>
       )}
-      <ol className="stages">
+      {job.state !== "idle" && <ol className="stages">
         {(job.planned || Object.keys(names)).map((name) => (
-          <li key={name} className={job.current === name ? "current" : ""}>
+          <li key={name} className={job.current === name && running ? "current" : ""}>
             {job.done?.includes(name) ? (
               <Check />
-            ) : job.current === name ? (
+            ) : job.current === name && running ? (
               <LoaderCircle className="spin" />
             ) : (
               <Circle />
@@ -129,7 +141,7 @@ export function Tasks({
             {job.done?.includes(name) && <small>{t("完成", "Done")}</small>}
           </li>
         ))}
-      </ol>
+      </ol>}
       {mode !== "index" && job.items && (
         <div className="task-progress">
           <p role="status">
@@ -145,6 +157,7 @@ export function Tasks({
               aria-label={t("书签处理进度", "Bookmark processing progress")}
             />
           )}
+          {!!job.items.failed && <p className="error">{t(`${job.items.failed} 条处理失败，可返回收藏筛选「失败」后重试。`, `${job.items.failed} failed. Return to the collection and filter Failed to retry.`)}</p>}
         </div>
       )}
       {running ? (
@@ -157,7 +170,7 @@ export function Tasks({
                   "已请求取消，将在当前阶段结束后停止。",
                   "Cancellation requested. Stopping after the current stage.",
                 )
-              : t(
+              : job.pause_requested ? t("正在保存当前批次，完成后暂停。", "Saving the current batch before pausing.") : t(
                   "正在处理当前阶段，所需时间取决于页面和模型服务。",
                   "Processing this stage. Time depends on the pages and model service.",
                 )}
@@ -167,15 +180,16 @@ export function Tasks({
             disabled={busy || job.cancel_requested}
             onClick={() => action("/admin/job/cancel", {})}
           >
-            <Pause />
+            <X />
             {t("取消任务", "Cancel task")}
           </button>
         </div>
       ) : (
-        <div className="index-consent">
+        <div className="task-index-section">
           {job.resumable && <button className="primary" disabled={busy}
             onClick={() => action("/admin/jobs/resume", { resume_id: job.id, confirmed: true })}><Play/>{t("继续上次任务", "Resume saved task")}</button>}
-          <h3>{t("建立完整索引", "Build the full index")}</h3>
+          <details className="index-consent" open={mode === "index" && job.state !== "idle"}>
+          <summary>{t("建立完整索引", "Build the full index")}<span>{t("可选 · 用于语义检索与关联", "Optional · Semantic search and connections")}</span></summary>
           <p>
             {t(
               "索引会将非隐私排除书签的标题、网址、已提取正文和生成的检索意图发送至你配置的聊天与向量服务。使用云端服务时，这些内容会离开本机。",
@@ -214,6 +228,7 @@ export function Tasks({
             {job.state === "idle" ? <Play /> : <RefreshCw />}
             {t("开始索引", "Start indexing")}
           </button>
+          </details>
         </div>
       )}
       {(error || job.error) && (

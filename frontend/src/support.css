@@ -1,0 +1,62 @@
+/* Supporting workflows share the collection's typography and control scale. */
+.utility-cluster .utility-label { width: auto; gap: 6px; padding: 0 11px; font-size: var(--type-ui); font-weight: 600; }
+.utility-cluster .utility-label[aria-pressed="true"] { background: var(--selected); box-shadow: none; }
+.page-scroll { width: min(1160px, 100%); margin-top: 20px; padding: 28px 32px 40px; }
+.page-heading { align-items: flex-start; margin-bottom: 28px; }
+.page-heading h1 { font-size: 1.75rem; font-weight: 700; }
+.page-heading p { font-size: var(--type-ui); line-height: 1.7; }
+.support-back { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; min-height: 40px; }
+.section-heading p, .importer > p, .task-operation p, .model-purpose { font-size: .9375rem; line-height: 1.75; color: var(--secondary-ink); }
+.settings-tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--rule); padding: 0 0 12px; margin-bottom: 28px; }
+.settings-tabs button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 16px; border-radius: var(--radius-pill); color: var(--secondary-ink); font-size: var(--type-ui); font-weight: 600; }
+.settings-tabs button:hover { background: var(--inset); color: var(--ink); }
+.settings-tabs button[aria-selected="true"] { background: var(--selected); color: var(--accent); }
+.settings-panel { min-width: 0; }
+.settings-panel[hidden] { display: none; }
+.settings-panel .sync-settings, .settings-panel .extension-settings, .settings-panel .desktop-note { margin-top: 0; padding-top: 0; border-top: 0; }
+.settings-panel .section-heading { margin-bottom: 20px; }
+.settings-panel .model-columns { gap: 32px; }
+.model-panel header { margin-bottom: 8px; }
+.model-purpose { margin: 0 0 24px; max-width: 60ch; }
+.model-panel .model-test { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+.model-test .test-result, .model-test .error { flex-basis: 100%; }
+.model-panel .field select { min-height: 46px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 10px; background: var(--inset); color: var(--ink); font: inherit; font-size: 1rem; }
+.task-current { padding: 0 0 20px; border-bottom: 1px solid var(--rule); margin-bottom: 4px; }
+.task-current h2 { margin-bottom: 6px; }
+.task-current p { margin-bottom: 0; }
+.task-shortcuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; margin: 0 0 24px; }
+.task-operation { padding: 20px 0; }
+.task-operation p { margin: 10px 0 0; max-width: 48ch; }
+.tasks .stages { padding: 8px 16px; margin: 20px 0; }
+.tasks .stages li { padding: 10px 0; }
+.tasks .collection-job { margin: 12px 0; }
+.task-index-section > .primary { margin: 4px 0 20px; }
+.tasks .index-consent { padding: 18px 20px; margin: 20px 0; }
+.index-consent > summary { cursor: pointer; font-size: 1rem; font-weight: 700; color: var(--ink); }
+.index-consent > summary span { display: block; margin: 5px 0 0 18px; font-size: var(--type-ui); font-weight: 400; color: var(--muted); }
+.tasks .advanced { margin-top: 28px; }
+.importer .dropzone { padding: 32px 24px; margin-bottom: 20px; }
+.dropzone.is-dragging { background: var(--selected); outline: 2px solid var(--accent); outline-offset: 3px; }
+.import-help { margin: 0 0 16px; max-width: 70ch; }
+.import-help summary { cursor: pointer; color: var(--ink); font-size: var(--type-ui); font-weight: 600; padding: 8px 0; }
+.import-help p, .import-result > p { font-size: .9375rem; color: var(--secondary-ink); line-height: 1.75; }
+.import-result { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--rule); }
+.preview-heading .reader-back { flex-shrink: 0; }
+@media (max-width: 1119px) {
+  .utility-label span { display: none; }
+  .utility-cluster .utility-label { width: 36px; padding: 0; }
+}
+@media (max-width: 720px) {
+  .page-scroll { margin-top: 12px; padding: 22px 18px 32px; }
+  .page-heading { flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .page-heading h1 { font-size: 1.5rem; }
+  .support-back { min-height: 44px; }
+  .settings-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-bottom: 24px; }
+  .settings-tabs button { padding: 10px; justify-content: flex-start; }
+  .settings-panel .model-columns { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .task-shortcuts { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .task-operation + .task-operation { border-top: 1px solid var(--rule); }
+  .task-operation .secondary { min-height: 44px; }
+  .index-consent > summary span { margin-left: 0; }
+  .importer .dropzone { padding: 28px 16px; }
+}
