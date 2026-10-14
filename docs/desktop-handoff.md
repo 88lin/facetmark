@@ -1,5 +1,48 @@
 # Facetmark 桌面化与体验升级交接
 
+## 2026-10-14 OpenCode、自动探测与连接设置完善（最终云端验证通过）
+
+最终应用与测试源码为 `0a1b8f042c7628cf32b7a09f26f6efc605ef8ea3`，
+本轮功能提交为 `93673dc`、`0a1b8f0`。后续文档提交不改变应用或测试源码。
+
+- 本机 Agent 支持 Codex、Claude Code、OpenCode。探测覆盖 PATH、常见安装目录及
+  Windows 当前用户／系统注册表 PATH，处理桌面进程仍持有旧环境的情况；npm 包装器
+  解析为实际入口，不通过 shell 拼接提示词。自动选择显示实际 Agent，重新探测保留草稿。
+- OpenCode 复用 JSON／JSONC 模型配置与认证，使用标准输入和 JSON 事件输出。
+  摘要会话隔离数据库和指令，禁用工具、外部插件及分享；模型、超时、安装路径可展开。
+  外部认证插件与组织 `wellknown` 配置需走 API，支持边界见 `docs/local-agents.md`。
+- 修复连接失败仍残留成功状态／可以保存、自动选择切换后复用旧测试等问题；修改
+  embedding 配置保留独立的 chat 测试。摘要与可选语义检索分行，取消设置页重复标题，
+  共用控件收为 10px 圆角，减轻支持页阴影。1024×749 下测试并保存按钮完整可见。
+
+最终源码对应的三组 Actions 全部通过：
+
+- [Experience 38558317737](https://github.com/88lin/facetmark/actions/runs/38558317737)：
+  2033 项 Python 通过／1 跳过、55 项普通浏览器测试、独立 20 万条浏览器专项、
+  规模基准、构建、分发资源、Docker 与扩展通过；真实 OpenCode 1.19.0 在 Windows／
+  Linux 上通过隔离 HTTP 模型夹具，检查中文输入、JSON 结果、不暴露工具及原配置不变。
+- [CI 38558328220](https://github.com/88lin/facetmark/actions/runs/38558328220)：十项任务通过。
+- [Windows 38558317904](https://github.com/88lin/facetmark/actions/runs/38558317904)：
+  WebView2 初始缺失且安装器网络被阻断时完成离线安装；冻结服务、实际窗口导入／搜索、
+  原网页在系统 Edge 打开、预览返回保留查询、同版本重装、卸载保留数据及退出清理通过。
+
+[视觉产物 11891212284](https://github.com/88lin/facetmark/actions/runs/38558317737/artifacts/11891212284)
+含 76 张截图；取回的 8 张已逐张查看并核对 SHA256，未核验其余 68 张的哈希。
+检查覆盖桌面／手机 OpenCode 设置、手机连接错误、收藏、英文深色设置与暂停任务。
+五种收藏视口均无横向溢出。证据在 `.desktop-build/agent-final-38558317737`。
+本轮由主代理直接检查，没有独立 reviewer 结论，也不代表用户认可整体审美。
+
+[Windows 小型证据 11891104231](https://github.com/88lin/facetmark/actions/runs/38558317904/artifacts/11891104231)
+为 164390 字节，位于 `.desktop-build/agent-windows-38558317904`；三张安装后截图均已
+查看，诊断源码与最终提交一致。原网页点击记录 `new_window`、`error: null`，页面错误为空。
+[未签名 x64 安装包](https://github.com/88lin/facetmark/actions/runs/38558317904/artifacts/11890914292)
+本体为 279220209 字节，未下载到本机。
+
+所有构建、浏览器、规模与安装执行均在 Actions。本机仅做编辑、轻量 Python／静态检查和
+小型证据查看；没有使用个人浏览器资料或真实书签。真实模型账号、额度、摘要质量、
+云盘传输与 Windows 10/11 真机仍未验证；真实 CLI 测试不能替代个人账号验收。
+PR #44 保持草稿，未合并、发布或部署；预览版手动更新，Actions 产物保留 14 天。
+
 ## 2026-10-12 收藏工作流修复与 20 万条验收（最终云端验证通过）
 
 最终应用与测试源码为 `8bf3689e64b7a77222648f65dbe414a588d81731`。

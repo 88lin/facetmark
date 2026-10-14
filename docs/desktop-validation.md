@@ -1,5 +1,69 @@
 # Desktop experience validation
 
+## 2026-10-14: OpenCode, reliable agent connections and compact settings (verified)
+
+Application and test source: `0a1b8f042c7628cf32b7a09f26f6efc605ef8ea3`.
+OpenCode joins Codex and Claude Code. Discovery reads PATH and common installation
+locations, including current Windows registry PATH, and resolves npm wrappers
+without a shell. The UI shows the actual automatic selection, preserves drafts
+during retries, clears failed connection results and invalidates tests when the
+resolved CLI changes. Summary and optional embedding settings have separate rows;
+shared controls use 10px corners and support surfaces have quieter shadows.
+
+- [Experience 38558317737](https://github.com/88lin/facetmark/actions/runs/38558317737):
+  **2033 Python passed / 1 skipped**, **55 ordinary browser tests**, a separate
+  **200,000-record browser test**, scale benchmark, frontend build, package
+  resources, Docker and extension passed. Real **OpenCode 1.19.0** passed on both
+  Windows and Linux against an isolated HTTP model fixture: Chinese stdin, valid
+  JSON results, no exposed tools and unchanged source configuration were checked.
+- [CI 38558328220](https://github.com/88lin/facetmark/actions/runs/38558328220):
+  **all ten jobs passed**, including Linux/Windows with Python 3.10/3.12.
+- [Windows 38558317904](https://github.com/88lin/facetmark/actions/runs/38558317904):
+  offline installation, frozen-service isolation, installed-app interactions and
+  lifecycle checks all passed at the same application source.
+- [Visual artifact 11891212284](https://github.com/88lin/facetmark/actions/runs/38558317737/artifacts/11891212284):
+  contains **76 PNG captures**. **Eight selected captures** were downloaded,
+  visually inspected and SHA256-verified against the matching `provenance.json`;
+  the other capture hashes were not independently checked. Small local evidence
+  is in `.desktop-build/agent-final-38558317737`.
+
+The two visual passes first identified redundant Settings headings and action
+placement, then checked the corrected source. The final eight captures cover
+desktop/mobile OpenCode settings, mobile connection errors, desktop/mobile
+collections, English dark settings and paused mobile tasks. All five collection
+viewport measurements have no horizontal document overflow. A browser assertion
+requires Test and save to be fully visible at 1024×749; mobile Settings uses normal
+vertical scrolling. The paused mobile task retains a fully visible Resume action.
+The single mechanical design scan returned `[]`; it was not rerun. No independent
+reviewer verdict or user aesthetic acceptance is claimed for this revision.
+
+The final installed app imported the synthetic HTML file, searched its bookmarks,
+opened an original link in Edge through `new_window` with no click-related page
+errors, displayed the missing-body state and preserved the query after Preview
+return. WebView2 was initially absent and installer networking was blocked.
+Same-version reinstall, data-preserving uninstall and backend shutdown with its
+parent passed. All three 1028×749 installed-app captures were opened and inspected;
+`installed-reader.json` identifies the matching final application source.
+
+- [Small installation evidence 11891104231](https://github.com/88lin/facetmark/actions/runs/38558317904/artifacts/11891104231):
+  **164,390 bytes**, retrieved to `.desktop-build/agent-windows-38558317904`.
+- [Unsigned Windows x64 preview](https://github.com/88lin/facetmark/actions/runs/38558317904/artifacts/11890914292):
+  contains the **279,220,209-byte installer**. The large installer was not
+  downloaded or executed locally.
+
+OpenCode uses a temporary session database, isolated instructions, denied tools
+and no external plugins while retaining its authentication store for OAuth refresh.
+External authentication plugins and organization `wellknown` configuration require
+the API integration; see [local-agent support](local-agents.md). Codex/Claude tests
+use controlled subprocesses; OpenCode additionally uses real binaries. These tests
+do not verify personal model accounts, quotas or real-summary quality. The large
+library corpus is synthetic. No personal browser profiles or bookmarks were used.
+Builds, browser/scale execution and installation run in Actions; local checks are
+lightweight targeted Python/static checks and small evidence inspection. The
+unsigned preview uses manual updates, hosted Windows Server results do not certify
+all Windows 10/11 machines, and artifacts expire after 14 days. PR #44 remains a
+draft with no merge, release or Pages deployment.
+
 ## 2026-10-13: collection actions and supporting workflows (verified)
 
 Application and test source: `5ea56ab86e4822c1114f9288fbbaebadd5aeea1c`.
