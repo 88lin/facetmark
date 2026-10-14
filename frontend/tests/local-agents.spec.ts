@@ -39,6 +39,9 @@ test("OpenCode is detected, selected, tested and saved without duplicated creden
   await expect(panel.locator('input[name="chat_api_key"]')).toHaveCount(0);
   const save = panel.getByRole("button", { name: "测试并保存", exact: true });
   await expect(save).toBeInViewport({ ratio: 1 });
+  await page.setViewportSize({ width: 1024, height: 749 });
+  await expect(save).toBeInViewport({ ratio: 1 });
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.screenshot({ path: "screenshots/agents-opencode-desktop.png", animations: "disabled" });
   await page.getByRole("combobox", { name: "选择 Agent", exact: true }).selectOption("opencode");
   await save.click();
@@ -47,6 +50,8 @@ test("OpenCode is detected, selected, tested and saved without duplicated creden
   expect(tested.chat_api_key).toBeUndefined();
   await expect(panel.locator(".tested-model")).toHaveText("opencode/configured default");
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator(".page-scroll").evaluate(el => { el.scrollTop = 0; });
+  await page.screenshot({ path: "screenshots/agents-opencode-mobile-overview.png", animations: "disabled" });
   await panel.locator(".agent-details > summary").click();
   await expect(panel.locator(".agent-paths")).toContainText("opencode.exe");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);

@@ -22,6 +22,7 @@ from facetmark.providers import ProviderError
 @pytest.fixture(autouse=True)
 def isolated_agent_home(tmp_path, monkeypatch):
     monkeypatch.setattr("facetmark.local_agents.Path.home", lambda: tmp_path)
+    monkeypatch.setattr("facetmark.local_agents._registry_directories", lambda: [])
     for key in ("XDG_CONFIG_HOME", "XDG_DATA_HOME", "OPENCODE_CONFIG", "OPENCODE_CONFIG_DIR",
                 "OPENCODE_CONFIG_CONTENT", "OPENCODE_AUTH_CONTENT"):
         monkeypatch.delenv(key, raising=False)
@@ -90,6 +91,20 @@ def test_discovery_finds_user_installs_without_path(tmp_path, monkeypatch):
     assert selected_agent("claude") is None
 
 
+def test_discovery_uses_refreshed_desktop_path_and_skips_broken_shims(tmp_path, monkeypatch):
+    monkeypatch.setattr("facetmark.local_agents.os.environ", {})
+    stale = tmp_path / "stale/opencode.cmd"
+    stale.parent.mkdir()
+    stale.touch()
+    fresh = tmp_path / "fresh"
+    fresh.mkdir()
+    binary = fresh / "opencode"
+    binary.touch(mode=0o755)
+    monkeypatch.setattr("facetmark.local_agents.shutil.which", lambda name: str(stale) if name == "opencode" else None)
+    monkeypatch.setattr("facetmark.local_agents._registry_directories", lambda: [fresh])
+    assert resolve_command("opencode") == [str(binary)]
+
+
 @pytest.mark.parametrize("event", [
     {"type": "text", "part": None},
     {"type": "text", "part": {"text": {"summary": "invalid"}}},
@@ -99,6 +114,13 @@ def test_malformed_opencode_events_are_safe_provider_errors(event):
     with pytest.raises(ProviderError) as error:
         parse_agent_output("opencode", json.dumps(event))
     assert "private-credential" not in str(error.value)
+
+
+def test_invalid_agent_json_does_not_echo_private_output():
+    with pytest.raises(ProviderError) as error:
+        parse_agent_output("opencode", json.dumps({"type": "text", "part": {"text": "private-credential"}}))
+    assert "private-credential" not in str(error.value)
+    assert "invalid JSON" in str(error.value)
 
 
 def test_auto_probe_is_invalidated_when_the_resolved_cli_changes(tmp_path, monkeypatch):

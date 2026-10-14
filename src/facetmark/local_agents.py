@@ -14,6 +14,7 @@ import re
 import shutil
 import signal
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -32,11 +33,31 @@ _NPM_ENTRIES = {
 }
 
 
+def _registry_directories() -> list[Path]:
+    directories = []
+    if sys.platform == "win32":
+        # Explorer/desktop applications may retain the PATH from before npm or
+        # a native CLI was installed. Read the current registry values; no login
+        # shell, registry writes or profile modifications are needed.
+        import winreg
+        for hive, key in ((winreg.HKEY_CURRENT_USER, "Environment"),
+                          (winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment")):
+            try:
+                with winreg.OpenKey(hive, key) as handle:
+                    value, _ = winreg.QueryValueEx(handle, "Path")
+                directories.extend(Path(os.path.expandvars(folder)) for folder in value.split(";") if folder)
+            except OSError:
+                pass
+    return directories
+
+
 def _install_directories() -> list[Path]:
     """Bounded, read-only discovery for GUI processes with a stale/minimal PATH."""
     home = Path.home()
-    directories = [home / ".local/bin", home / ".opencode/bin", home / ".bun/bin",
-                   home / ".npm-global/bin", home / ".volta/bin"]
+    directories = [Path(value) for value in os.environ.get("PATH", "").split(os.pathsep) if value]
+    directories.extend([home / ".local/bin", home / ".opencode/bin", home / ".bun/bin",
+                        home / ".npm-global/bin", home / ".volta/bin", home / "scoop/shims",
+                        home / ".claude/local", *_registry_directories()])
     for key, suffix in (("APPDATA", "npm"), ("LOCALAPPDATA", "Programs/nodejs"),
                         ("ProgramFiles", "nodejs"), ("ProgramFiles", "nodejs/node_global"),
                         ("NPM_CONFIG_PREFIX", ""),
@@ -288,7 +309,10 @@ def parse_agent_output(agent: str, output: str) -> dict:
     messages = [message for message in messages if isinstance(message, str) and message.strip()]
     if not messages:
         raise ProviderError("Local agent returned no result. Update or sign into the selected CLI and test again.")
-    return parse_json_object("\n".join(messages))
+    try:
+        return parse_json_object("\n".join(messages))
+    except ProviderError:
+        raise ProviderError("Local agent returned invalid JSON. Check its model configuration and retry the connection test.") from None
 
 
 def _terminate(process: subprocess.Popen) -> None:

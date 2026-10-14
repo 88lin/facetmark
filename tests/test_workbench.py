@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sys
 import time
 
 import pytest
@@ -432,3 +433,30 @@ def test_real_provider_setup_apply_index_and_search(client):
         result = client.post("/search", json={"q": "SQLite"})
         assert result.status_code == 200 and bid in [row["bookmark_id"] for row in result.json()["hits"]]
         assert client.get("/admin/setup-status").json()["has_vectors"]
+
+
+def test_opencode_detection_probe_save_and_actual_configuration_agree(client, tmp_path, monkeypatch):
+    script = tmp_path / "fixture_agent.py"
+    script.write_text('''import json, sys
+assert 'Return exactly' in sys.stdin.read()
+print(json.dumps({"type":"text", "part":{"text":'{"ok":true}'}}))
+''', encoding="utf-8")
+    monkeypatch.setattr("facetmark.local_agents.resolve_command",
+                        lambda agent: [sys.executable, str(script)] if agent == "opencode" else None)
+    monkeypatch.setattr("facetmark.local_agents.Path.home", lambda: tmp_path)
+    for key in ("OPENCODE_CONFIG", "OPENCODE_CONFIG_DIR", "OPENCODE_CONFIG_CONTENT", "OPENCODE_AUTH_CONTENT"):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
+    detected = client.get("/admin/agents").json()["agents"]
+    assert [agent["id"] for agent in detected if agent["installed"]] == ["opencode"]
+    values = {"chat_backend": "agent", "chat_agent": "opencode"}
+    result = client.post("/admin/settings/test", json={"channel": "chat", **values})
+    assert result.status_code == 200 and result.json()["chat"]["ok"], result.text
+    assert result.json()["chat"]["model"] == "opencode/configured default"
+    assert client.put("/admin/settings", json={"values": values}).status_code == 200
+    status = client.get("/admin/setup-status").json()
+    assert status["channels"]["chat"] == {"configured": True, "tested": True}
+    assert client.app.state.fm.settings.chat_agent == "opencode"
+    monkeypatch.setattr("facetmark.local_agents.resolve_command", lambda _: None)
+    assert not client.get("/admin/setup-status").json()["channels"]["chat"]["tested"]

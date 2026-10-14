@@ -15,7 +15,7 @@ import { useText } from "./locale";
 
 type LocalAgent = { id: string; name: string; installed: boolean; path?: string | null };
 
-export function Models({ setup, refresh }: { setup: Setup | null; refresh: () => Promise<void> }) {
+export function Models({ setup, refresh, showHeading = true }: { setup: Setup | null; refresh: () => Promise<void>; showHeading?: boolean }) {
   const t = useText();
   const [agents, setAgents] = useState<LocalAgent[]>([]);
   const [detecting, setDetecting] = useState(true);
@@ -175,7 +175,7 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
   );
   return (
     <section className="models">
-      <div className="section-heading">
+      {showHeading && <div className="section-heading">
         <h2>{t("连接你已经在用的 AI", "Connect the AI you already use")}</h2>
         <p>
           {t(
@@ -183,7 +183,7 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
             "Use an installed, signed-in agent or a chat API for summaries. Embeddings are optional and only needed for semantic search.",
           )}
         </p>
-      </div>
+      </div>}
       <div className="model-columns">
         {["chat", "embed"].map((channel) => (
           <section className={`model-panel model-${channel}`} key={channel}>

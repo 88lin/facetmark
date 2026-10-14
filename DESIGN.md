@@ -218,7 +218,7 @@ rounded:
   popover: 14px
   entry: 16px
   sheet: 20px
-  pill: 999px
+  control: 10px
   circle: 50%
 spacing:
   micro: 4px
@@ -239,21 +239,21 @@ components:
     backgroundColor: '{colors.accent}'
     textColor: '{colors.on-accent}'
     typography: '{typography.button}'
-    rounded: '{rounded.pill}'
+    rounded: '{rounded.control}'
     padding: 10px 20px
     height: 40px
   button-secondary:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.ink}'
     typography: '{typography.button}'
-    rounded: '{rounded.pill}'
+    rounded: '{rounded.control}'
     padding: 9px 18px
     height: 40px
   button-text:
     textColor: '{colors.accent}'
     typography: '{typography.label}'
     padding: 5px 10px
-    rounded: '{rounded.pill}'
+    rounded: '{rounded.control}'
     height: 32px
   button-icon:
     textColor: '{colors.ink}'
@@ -263,14 +263,14 @@ components:
   reader-back:
     textColor: '{colors.muted}'
     typography: '{typography.reader-return}'
-    rounded: '{rounded.pill}'
+    rounded: '{rounded.control}'
     padding: 6px 12px
     height: 40px
   search-field:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.ink}'
     typography: '{typography.search}'
-    rounded: '{rounded.pill}'
+    rounded: '{rounded.control}'
     padding: 6px 14px
     height: 44px
   header-navigation-active:
@@ -278,12 +278,12 @@ components:
     typography: '{typography.navigation-active}'
     padding: 8px 17px
     backgroundColor: '{colors.soft}'
-    rounded: '{rounded.pill}'
+    rounded: '{rounded.control}'
   filter-chip:
     backgroundColor: '{colors.soft}'
     textColor: '{colors.accent}'
     typography: '{typography.meta}'
-    rounded: '{rounded.pill}'
+    rounded: '{rounded.control}'
     padding: 5px 12px
     height: 32px
   collection-entry:
@@ -315,20 +315,20 @@ components:
   support-surface:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.ink}'
-    rounded: '{rounded.sheet}'
+    rounded: '{rounded.panel}'
     padding: 28px 32px 40px
     width: min(1160px, 100%)
   settings-tab:
     textColor: '{colors.secondary-ink}'
     typography: '{typography.tab}'
-    rounded: '{rounded.pill}'
+    rounded: '{rounded.control}'
     padding: 10px 16px
     height: 44px
   settings-tab-active:
     backgroundColor: '{colors.selected}'
     textColor: '{colors.accent}'
     typography: '{typography.tab}'
-    rounded: '{rounded.pill}'
+    rounded: '{rounded.control}'
     padding: 10px 16px
     height: 44px
   apply-panel:
@@ -347,7 +347,7 @@ components:
     backgroundColor: '{colors.soft}'
     textColor: '{colors.accent}'
     typography: '{typography.tab}'
-    rounded: '{rounded.pill}'
+    rounded: '{rounded.control}'
     padding: 0 13px
     height: 36px
   model-channels:
@@ -357,7 +357,7 @@ components:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.ink}'
     typography: '{typography.index-search}'
-    rounded: '{rounded.pill}'
+    rounded: '{rounded.control}'
     padding: 7px 18px
     height: 44px
   category-option-active:
@@ -392,7 +392,7 @@ components:
 
 **Creative North Star: "Collection workbench — Operate"**
 
-Facetmark makes a large bookmark collection useful from the collection itself. Titles are native links to the original websites; independent checkboxes, readable summaries or page excerpts, status filters and scoped batch actions support browsing and processing without first opening a reader. A compact title/count, pill search and searchable vertical category directory organize the work. The layered Facetmark mark, white cards and lake-blue interactions retain the identity.
+Facetmark makes a large bookmark collection useful from the collection itself. Titles are native links to the original websites; independent checkboxes, readable summaries or page excerpts, status filters and scoped batch actions support browsing and processing without first opening a reader. A compact title/count, rounded search and searchable vertical category directory organize the work. The layered Facetmark mark, white cards and lake-blue interactions retain the identity.
 
 Preview is an explicit secondary action for inspecting saved content. It retains its bounded article measure, quiet chapter rail and return context, while ordinary title activation stays with the original website and checkbox selection stays in the collection. Bundled Manrope, explicit local Chinese fallbacks with weight synthesis, relative text roles, dark-theme colors, keyboard access and reduced motion carry the system across desktop and Web.
 
@@ -401,7 +401,7 @@ Preview is an explicit secondary action for inspecting saved content. It retains
 - A compact collection shell keeps direct original links, readable content and scoped actions together.
 - Complete folders, tags and sites are searchable and vertically scrollable with a mouse; loading more is explicit.
 - Source-first cards and a persistent list alternative share strong titles and multiline summaries or excerpts.
-- Lake-blue selection, pill controls and circular icon actions clarify state and priority.
+- Lake-blue selection, compact controls and circular icon actions clarify state and priority.
 - Native links, checkboxes and optional preview buttons have separate targets and keyboard semantics.
 - A compact status row keeps processing state and sorting visible; a disclosure holds display and batch-summary controls.
 - Cross-page selection appears in selection mode and applies to summary processing; metadata management and export retain their own scope.
@@ -480,7 +480,7 @@ The root uses `font-size: 100%`. Body, UI, metadata, caption and card-title role
 
 The dynamic-viewport shell (`100dvh`, minimum height 400px) places a white header (56px) above a full-width workspace (sides 24px, bottom 12px). Identity/navigation sit left; utilities/import sit right. Tasks and Settings show text beside their icons from 1120px, use icon-only controls below that width, and use the existing selected fill without a raised shadow when active. Temporary navigation is (300px) wide, closed/inert with no shadow until opened.
 
-The desktop toolbar is (60px) high. Current title and result count share its left side; the (44px) pill search and filter controls share the right. Below the management actions, a compact row exposes summary-status counts, a persistent sort selector and the native **显示与摘要 / Display & summaries** disclosure. Sorting remains available while the disclosure is closed. Opening it reveals summary/excerpt switching and the summary-processing scope and start controls in an inset panel. Cross-page selection controls appear only in batch-selection mode or while a selection exists. The active task bar occupies its own row. These rows wrap with content; filter chips appear only when active.
+The desktop toolbar is (60px) high. Current title and result count share its left side; the (44px) rounded search and filter controls share the right. Below the management actions, a compact row exposes summary-status counts, a persistent sort selector and the native **显示与摘要 / Display & summaries** disclosure. Sorting remains available while the disclosure is closed. Opening it reveals summary/excerpt switching and the summary-processing scope and start controls in an inset panel. Cross-page selection controls appear only in batch-selection mode or while a selection exists. The active task bar occupies its own row. These rows wrap with content; filter chips appear only when active.
 
 From (960px), an independently scrolling category directory (232px) sits left of the results with a (20px) gutter, a fine right rule and right padding (12px). Folders, tags and sites have explicit type controls, a search input, counts and a visible Load more action in pages of 50. Search applies to the entire directory, including entries beyond the former 200-item ceiling; exact matches appear first, then prefixes and other literal matches, with stable alphabetical ordering within each group. Long names wrap and retain a native title. The directory has a visible native vertical scrollbar, mouse-wheel scrolling and keyboard-focusable buttons. Below (960px), the same directory is in the filter drawer.
 
@@ -512,19 +512,19 @@ Support pages use maximum width (1160px), top margin (20px), padding (28px 32px 
 | 1120–1300px | Index (292px), reader gutter (36px), workspace sides (28px), selected gap (22px), search-group basis (620px); reader count hides. |
 | 960–1119px | Category directory remains visible; workspace sides (20px). Explicit Preview opens the full-width modal. |
 | 720–959px | Category directory is in the filter drawer; workspace sides (20px), header sides (20px), import is an icon-only (42px) circle. |
-| 720–1119px | Browse horizontal gaps (18px); selected collection behind modal has (18px) gaps. Full-width reader return/actions row (60px), tabs (56px), no sheet shadow. Model columns stack; Settings retains its (32px) gap until its mobile override. Support pages retain their updated desktop padding above 720px. |
+| 720–1119px | Browse horizontal gaps (18px); selected collection behind modal has (18px) gaps. Full-width reader return/actions row (60px), tabs (56px), no sheet shadow. AI channels form separate rows with purpose on the left and fields on the right, stacking below 720px. Support pages retain their updated desktop padding above 720px. |
 | At most 719px | Header (56px), workspace sides (12px), bottom (8px), navigation/utilities in drawer. Toolbar padding (12px 0), gap (10px), title then search; search controls `minmax(0, 1fr) 44px 68px`, search height (44px). One card column, padding (14px), corners (12px). Article gutter (24px), body top space (20px), reader footer (52px). Form actions stack; support spacing follows the at-most-720px rule below. |
 
 At widths up to (720px), support pages use top margin (12px), padding (22px 18px 32px), heading spacing (20px), and the page-title-mobile role. Settings tabs become two columns with (6px) gaps, (10px) button padding and (24px) lower space. Settings model columns stack with (12px) gaps; task shortcuts stack without a gap and use a fine separator. Support return and task shortcut controls reach at least (44px).
 
-The square-edged modal reader fills the viewport. Its tab strip remains (56px) on mobile; tablet pills are (36px), mobile pills (44px). Mobile search hides the shortcut hint. Import targets use padding (32px 24px), reduced to (28px 16px) at widths up to 720px. Main mobile controls reach at least (44px); article tags and suggestion-menu retry retain compact exceptions.
+The square-edged modal reader fills the viewport. Its tab strip remains (56px) on mobile; tablet controls are (36px), mobile controls (44px). Mobile search hides the shortcut hint. Import targets use padding (32px 24px), reduced to (28px 16px) at widths up to 720px. Main mobile controls reach at least (44px); article tags and suggestion-menu retry retain compact exceptions.
 
 ## Elevation & Depth
 
 Collection cards are flat, separated by white fill and a fine border. Hover changes their border; compact index hover becomes white. Elevation belongs to larger reading/support surfaces and temporary overlays. There is no backdrop blur.
 
 - **Empty collection / other active utility toggles:** `var(--card-shadow)`; light `0 2px 8px #244e6709, 0 8px 24px #244e6706`, dark `0 3px 14px #00000020`.
-- **Reader / support surface:** `var(--sheet-shadow)`; light `0 12px 36px #244e6712`, dark `0 12px 36px #00000028`.
+- **Reader surface:** `var(--sheet-shadow)`; light `0 12px 36px #244e6712`, dark `0 12px 36px #00000028`.
 - **Open navigation:** `8px 0 40px #16374a24`; closed navigation has no shadow.
 - **Query suggestions:** `0 12px 36px color-mix(in srgb, var(--ink) 16%, transparent)`.
 
@@ -534,11 +534,11 @@ Focus uses a blue outline (2px, offset 3px); result cards use inset offset (-3px
 
 ## Shapes
 
-Open cards and compact index entries use (12px) corners, import targets (16px), reader/support surfaces (20px). Buttons, search, header navigation, reader tabs, category-type controls, filter chips and article tags have true pill ends (999px); category options use (8px) corners, and icon-only actions are circular (50%). Source badges are rounded tiles: (24px) with (8px) corners in cards, (22px) with (7px) corners in the index.
+Open cards and compact index entries use (12px) corners, import targets (16px), reader surfaces (20px), support surfaces (12px). Buttons, search, header navigation, reader tabs, category-type controls, filter chips and article tags use the shared control radius (10px); category options use (8px) corners, and icon-only actions are circular (50%). Source badges are rounded tiles: (24px) with (8px) corners in cards, (22px) with (7px) corners in the index.
 
 Fields, notices, diagnostics and session rows retain (10px); brand tile (11px); apply/consent/stage panels (12px). Query popup corners are (14px), suggestion rows (10px), category icons circular (30px), and keyboard hints (4px). Chapter links use (4px) corners and a current marker (2px by 16px). The modal reader remains a square full-viewport exception.
 
-Collection-management dialogs extend this system with pill-shaped inputs and selects,
+Collection-management dialogs extend this system with 10px inputs and selects,
 20px dialog corners, the existing semantic colors and an explicit muted placeholder.
 These scoped form shapes do not replace the incumbent model-setting field tokens.
 
@@ -546,17 +546,19 @@ Lucide SVGs provide stroke icons and the layered brand mark. Source initials ide
 
 ## Components
 
+AI connections open directly onto sequential summary and optional embedding rows, without a repeated section heading in Settings. Each row has purpose and status on the left, fields and test/save controls on the right. On mobile the same content stacks. Agent detection identifies the automatic selection; loading, detection failure, missing installation and failed connection are separate states. Model override, timeout and executable paths live in a native details disclosure. Editing one channel preserves the other channel's test result. Support pages use 12px corners without a sheet shadow.
+
 ### Buttons, navigation and fields
 
-Primary/secondary form pills use minimum height (40px); collection-toolbar pills use (40px) with (6px 12px) padding and the UI text role at weight 600. All main mobile actions remain at least (44px). Form pills use weight (600), gap (8px), icons (16px) and frontmatter padding. Import/Filters use minimum height (42px); general icon circles (36px), pagination (38px). Primary/import hover uses `brightness(0.94)`; secondary uses Lake Mist, blue text and Selected Edge. Text pills use Lake Mist hover and minimum height (32px). Disabled buttons use opacity (0.42).
+Primary/secondary form controls use minimum height (40px); collection-toolbar controls use (40px) with (6px 12px) padding and the UI text role at weight 600. All main mobile actions remain at least (44px). Form controls use weight (600), gap (8px), icons (16px) and frontmatter padding. Import/Filters use minimum height (42px); general icon circles (36px), pagination (38px). Primary/import hover uses `brightness(0.94)`; secondary uses Lake Mist, blue text and Selected Edge. Text controls use Lake Mist hover and minimum height (32px). Disabled buttons use opacity (0.42).
 
 Header navigation has tray padding/gap (4px), segment padding (8px 17px), minimum height (36px), and UI text at weight 600. Active navigation uses Lake Mist, blue text and weight (700), with no underline/shadow. The utility group is transparent. Tasks and Settings add visible text labels at desktop widths and use Selected Water with no shadow when pressed; other active utility toggles retain their existing raised treatment. Filters open temporary modal navigation at every width with keyboard handling and return focus.
 
-Model inputs are at least (46px) high, with label gap (9px), model-field spacing (16px), shared-field spacing elsewhere (20px). Labels use the UI text role at 600; fields and their placeholders use the body role at 400. Collection-dialog labels and inputs follow the same type roles while retaining their scoped pill shape and minimum input height (44px). Cool Inset becomes white on focus with an accent border/outline; disabled type is muted. Reader Focus is a labeled pill with Lake Mist pressed state. Main mobile actions, navigation/filter/folder targets, return, checkbox labels, setup steps and section selector are at least (44px); icon, pagination and search clear are (44px) circles.
+Model inputs are at least (46px) high, with label gap (9px), model-field spacing (16px), shared-field spacing elsewhere (20px). Labels use the UI text role at 600; fields and their placeholders use the body role at 400. Collection-dialog labels and inputs follow the same type roles while retaining their shared 10px shape and minimum input height (44px). Cool Inset becomes white on focus with an accent border/outline; disabled type is muted. Reader Focus is a labeled control with Lake Mist pressed state. Main mobile actions, navigation/filter/folder targets, return, checkbox labels, setup steps and section selector are at least (44px); icon, pagination and search clear are (44px) circles.
 
 ### Search and complete category navigation
 
-Ctrl/Cmd+K accesses persistent search. Browsing and selected reading both use a (44px) search capsule with body-sized input text. Category selection uses the searchable vertical directory described above, with deep-ink names, selected blue fill and explicit counts. Category names and load-more actions have minimum height (40px desktop, 44px mobile); type selectors are (38px desktop, 44px mobile), sized to their contents with unbroken labels and non-shrinking icons. The type group can wrap whole buttons when required. All folders clears the folder dimension while preserving other active dimensions.
+Ctrl/Cmd+K accesses persistent search. Browsing and selected reading both use a (44px) search field with body-sized input text. Category selection uses the searchable vertical directory described above, with deep-ink names, selected blue fill and explicit counts. Category names and load-more actions have minimum height (40px desktop, 44px mobile); type selectors are (38px desktop, 44px mobile), sized to their contents with unbroken labels and non-shrinking icons. The type group can wrap whole buttons when required. All folders clears the folder dimension while preserving other active dimensions.
 
 Active filter chips name the dimension and value, including Unfiled, expose an explicit removal label and retain the full value in a native title. Values truncate within the bounded chip; the type label remains visible. A separate Clear filters action removes filter dimensions, closes old reading content and resets page/list position while retaining the search query. The filter trigger carries an active-count badge (20px) and a screen-reader description.
 
@@ -580,7 +582,7 @@ Batch summary scope can be Current filters, Pending in filters, Retry failures o
 
 BookmarkCard is an article with separate interactive children. Its (16px) native checkbox selects; the title and external-link icon are real safe-URL anchors with a new-tab target, so normal link actions remain available. A missing safe URL leaves a text title. The title hover becomes lake blue and underlined. The description is followed by folder metadata, a direct edit action when management is available and no task is running, optional summary generation and an explicitly labeled Preview button. Folder text truncates within its own flexible space while action targets remain available. Empty summary and excerpt modes have distinct labels and next steps; switching the bookmark, display mode or content resets expansion and remeasures clipping. Preview alone uses `aria-pressed`; checkbox state is independent. ArrowUp/ArrowDown moves focus among adjacent checkboxes or among preview buttons. Returning from preview preserves the originating control and collection context.
 
-Reader tab pills are (36px) with padding (0 13px) and gap (4px). The desktop (48px) tab row places its marker at top (6px); the modal (56px) tab row retains top (10px). Mobile pills/marker are (44px), marker top (6px). One active tab stop, arrow/Home/End navigation and linked panels preserve keyboard access. Back to collection, previous/next, Focus and close occupy the separate desktop header; narrow reading retains its return/action row.
+Reader tab controls are (36px) with padding (0 13px) and gap (4px). The desktop (48px) tab row places its marker at top (6px); the modal (56px) tab row retains top (10px). Mobile controls/marker are (44px), marker top (6px). One active tab stop, arrow/Home/End navigation and linked panels preserve keyboard access. Back to collection, previous/next, Focus and close occupy the separate desktop header; narrow reading retains its return/action row.
 
 Inside the optional preview, the original-page link is an inset pill above the title; saved folder/tags/search context use an on-demand pill disclosure with rotating chevron. Body, summary and related content retain distinct loading/missing/failure states. Tab positions persist per bookmark and reset on a new one. Exact duplicated first-title paragraphs are omitted; only explicit Markdown headings become sections.
 
@@ -611,7 +613,7 @@ GSAP owns tab-marker x/width (180ms, `power3.out`, overwrite `auto`) and interru
 - Do prioritize visible bookmarks with a compact toolbar and complete, mouse-accessible category directory.
 - Do preserve source-first card order, multiline summaries or excerpts, explicit provenance and content-driven row heights.
 - Do keep card and list titles equally legible, respect the root font preference and preserve visible Chinese weight differences.
-- Do use true pill controls and circular icon actions while retaining card, reader and field exceptions.
+- Do use true compact controls and circular icon actions while retaining card, reader and field exceptions.
 - Do keep preview secondary to collection operations and preserve query, filters, pagination, collection position and return focus.
 - Do keep original links, selection checkboxes and preview buttons independent, and distinguish cross-page summary scope from management/export scope.
 - Do keep status counts and sorting visible, place display/batch controls in their disclosure, and show processing counts, failures and pause/resume state.

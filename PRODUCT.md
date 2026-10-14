@@ -66,6 +66,8 @@ actions, make active filters explicit, and support efficient navigation in large
 
 ## Evidence on Hand
 
+On 2026-10-14 the user rejected PR #44 again, specifically incomplete automatic agent detection, missing OpenCode support and an over-rounded utility appearance. Continue without a preference interview. Preserve white/lake blue, direct bookmark access and readable content; make agent selection, connection tests and errors reliable. Prior test/review passes do not imply acceptance of this revision.
+
 On 2026-10-11 the user rejected the current result as unusable for a 200,000-bookmark
 library. A bookmark title must open its original website directly; saved reading is
 an explicit secondary action. Summaries must be visible, expandable and filterable

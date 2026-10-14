@@ -38,7 +38,7 @@ export function SettingsWorkspace({ setup, refresh, onChanged, onBack }: {
     {/* Keep forms mounted so switching categories preserves unsaved drafts and test results. */}
     {sections.map(({ id }) => <div key={id} role="tabpanel" id={`settings-panel-${id}`}
       aria-labelledby={`settings-tab-${id}`} hidden={active !== id} tabIndex={0} className="settings-panel">
-      {id === "models" ? <Models setup={setup} refresh={refresh}/> :
+      {id === "models" ? <Models setup={setup} refresh={refresh} showHeading={false}/> :
         id === "sync" ? <SyncSettings onChanged={onChanged}/> :
         id === "extension" ? <ExtensionSettings/> : <>
           <UpdateSettings/>
