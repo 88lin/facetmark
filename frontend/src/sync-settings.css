@@ -22,7 +22,7 @@
 .sync-state {
   flex-shrink: 0;
   padding: 5px 12px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
   background: var(--soft);
   color: var(--accent);
   font-size: 12px;
@@ -174,7 +174,7 @@
   padding: 9px 16px;
   margin-bottom: 14px;
   border: 1px solid var(--rule);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
   min-height: 44px;
   cursor: pointer;
 }
@@ -219,7 +219,7 @@
 .sync-tags li {
   max-width: 100%;
   padding: 3px 10px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
   background: var(--inset);
   overflow-wrap: anywhere;
 }

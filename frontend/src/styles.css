@@ -30,7 +30,7 @@
   --danger: #ad3448;
   --overlay: #16374a55;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --radius-pill: 999px;
+  --radius-control: 10px;
   --control-height: 40px;
   --reader-gutter: 48px;
   --index-width: 424px;
@@ -225,7 +225,7 @@ small,
   text-align: left;
   padding: 9px 12px;
   min-height: 38px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
   color: var(--muted);
   font-size: 13px;
   transition:
@@ -288,7 +288,7 @@ small,
   width: 100%;
   min-height: var(--control-height);
   padding: 8px 14px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
   gap: 8px;
   font-size: 12px;
 }
@@ -746,7 +746,7 @@ kbd {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
   font-size: var(--type-ui);
   font-weight: 600;
   line-height: 1.5;
@@ -788,7 +788,7 @@ kbd {
   font-weight: 600;
   min-height: 32px;
   padding: 5px 10px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
 }
 .text-button:hover:not(:disabled) {
   background: var(--soft);
@@ -980,7 +980,7 @@ kbd {
   font-size: 10px;
   background: var(--inset);
   padding: 2px 7px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
 }
 .preview-tags button:hover {
   background: var(--soft);
@@ -1157,7 +1157,7 @@ kbd {
   cursor: pointer;
   min-height: 36px;
   padding: 4px 8px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
 }
 .reading-percent {
   margin-left: auto;
@@ -1478,7 +1478,7 @@ pre {
   gap: 8px;
   padding: 8px 14px;
   min-height: var(--control-height);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
   font-size: 13px;
   color: var(--muted);
 }

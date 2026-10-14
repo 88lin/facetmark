@@ -24,7 +24,7 @@
   height: 40px;
   min-height: 40px;
   padding: 0;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
   list-style: none;
   color: var(--muted);
   transition:
@@ -191,7 +191,7 @@
 .query-suggestions .query-suggestions-state .secondary {
   min-height: 32px;
   padding: 5px 14px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
   font-size: var(--type-ui);
 }
 

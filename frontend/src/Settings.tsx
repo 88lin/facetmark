@@ -7,14 +7,19 @@ import {
   LoaderCircle,
   MessageCircle,
   Network,
+  RefreshCw,
   Save,
 } from "lucide-react";
 import { api, getToken, post, type Probe, type Setting, type Setup } from "./api";
 import { useText } from "./locale";
 
+type LocalAgent = { id: string; name: string; installed: boolean; path?: string | null };
+
 export function Models({ setup, refresh }: { setup: Setup | null; refresh: () => Promise<void> }) {
   const t = useText();
-  const [agents, setAgents] = useState<{ id: string; name: string; installed: boolean }[]>([]);
+  const [agents, setAgents] = useState<LocalAgent[]>([]);
+  const [detecting, setDetecting] = useState(true);
+  const [detectionError, setDetectionError] = useState("");
   const [rows, setRows] = useState<Setting[]>([]);
   const [draft, setDraft] = useState<Record<string, unknown>>({});
   const [results, setResults] = useState<Record<string, Probe>>({});
@@ -24,6 +29,8 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
   const [consent, setConsent] = useState(false);
   const hasDraft = Object.keys(draft).length > 0;
   const channelStatus = (channel: string) => {
+    if (results[channel] && (!results[channel].ok || results[channel].dim_matches === false))
+      return t("测试未通过", "Test failed");
     const dirty = Object.keys(draft).some(
       (key) => key.startsWith(`${channel}_`) || (channel === "embed" && key === "local_embed_path"),
     );
@@ -37,24 +44,41 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
         ? t("待测试", "Needs test")
         : t("未配置", "Not configured");
   };
-  async function load() {
+  async function detect() {
+    setDetecting(true);
+    setDetectionError("");
+    try {
+      const found = await api<{ agents: LocalAgent[] }>("/admin/agents");
+      setAgents(found.agents);
+      return found.agents;
+    } catch {
+      setAgents([]);
+      setDetectionError(t("暂时无法检测本机 Agent，请重新检测。", "Agent detection failed. Please retry."));
+      return [];
+    } finally {
+      setDetecting(false);
+    }
+  }
+  async function load(suggestAgent = false) {
     const data = await api<{ settings: Setting[] }>("/admin/settings");
     setRows(data.settings);
-    try {
-      const found = await api<{ agents: { id: string; name: string; installed: boolean }[] }>("/admin/agents");
-      setAgents(found.agents);
-      if (!setup?.channels.chat.configured && found.agents.some(a => a.installed)
+    if (suggestAgent) {
+      const found = await detect();
+      if (!setup?.channels.chat.configured && found.some(a => a.installed)
         && data.settings.find(r => r.key === "chat_backend")?.value !== "agent"
         && !data.settings.find(r => r.key === "chat_backend")?.locked)
         setDraft(current => ({ chat_backend: "agent", ...current }));
-    } catch { /* API configurations remain available if CLI detection fails. */ }
+    }
   }
   useEffect(() => {
-    load().catch((e) => setError(String(e)));
+    load(true).catch((e) => { setError(String(e)); setDetecting(false); });
   }, []);
   const row = (key: string) => rows.find((r) => r.key === key);
   const value = (key: string) =>
     key in draft ? draft[key] : row(key)?.secret ? "" : (row(key)?.value ?? "");
+  const agentPreference = String(value("chat_agent") || "auto");
+  const selectedAgent = agentPreference === "auto" ? agents.find(a => a.installed) : agents.find(a => a.id === agentPreference && a.installed);
+  const agentUnavailable = value("chat_backend") === "agent" && (detecting || !selectedAgent || !!detectionError);
   const change = (key: string, next: unknown) => {
     setDraft((d) => ({
       ...d,
@@ -64,7 +88,8 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
         : {}),
     }));
     setNotice("");
-    setResults({});
+    setResults(current => Object.fromEntries(Object.entries(current).filter(([channel]) =>
+      !key.startsWith(`${channel}_`) && !(channel === "embed" && key === "local_embed_path"))));
     setConsent(false);
   };
   async function run(name: string, work: () => Promise<void>) {
@@ -161,13 +186,13 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
       </div>
       <div className="model-columns">
         {["chat", "embed"].map((channel) => (
-          <section className="model-panel" key={channel}>
-            <div className="model-fields">
+          <section className={`model-panel model-${channel}`} key={channel}>
+            <div className="model-intro">
               <header>
                 <h3>
                   {channel === "chat" ? <MessageCircle size={20} /> : <Network size={20} />}
                   {channel === "chat"
-                    ? t("聊天模型", "Chat model")
+                    ? t("阅读摘要", "Reading summaries")
                     : t("向量模型", "Embedding model")}
                 </h3>
                 <span className="quiet">{channelStatus(channel)}</span>
@@ -175,6 +200,8 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
               <p className="model-purpose">{channel === "chat"
                 ? t("用于生成摘要与检索意图，选择一种接入方式即可。", "Generates summaries and search intents. Choose one provider below.")
                 : t("可选 · 用于按含义查找。普通关键词搜索和摘要不需要向量模型。", "Optional · Find pages by meaning. Keyword search and summaries do not require embeddings.")}</p>
+            </div>
+            <div className="model-fields">
               {channel === "chat" && <label className="field">{t("摘要来源", "Summary provider")}
                 <select aria-label={t("摘要来源", "Summary provider")} value={String(value("chat_backend") || "endpoint")}
                   disabled={!!busy || row("chat_backend")?.locked} onChange={e => change("chat_backend", e.target.value)}>
@@ -186,14 +213,28 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
                 <label className="field">{t("选择 Agent", "Agent")}
                   <select aria-label={t("选择 Agent", "Agent")} value={String(value("chat_agent") || "auto")}
                     disabled={!!busy || row("chat_agent")?.locked} onChange={e => change("chat_agent", e.target.value)}>
-                    <option value="auto">{t("自动检测可用 Agent", "Auto-detect available agent")}</option>
-                    {agents.map(a => <option key={a.id} value={a.id}>{a.name}{a.installed ? t(" · 已检测到", " · detected") : t(" · 未安装", " · not installed")}</option>)}
+                    <option value="auto">{selectedAgent && agentPreference === "auto" ? t(`自动选择 · ${selectedAgent.name}`, `Automatic · ${selectedAgent.name}`) : t("自动选择已检测到的 Agent", "Automatically select a detected agent")}</option>
+                    {agents.map(a => <option key={a.id} value={a.id}>{a.name}{a.installed ? t(" · 已检测到", " · detected") : t(" · 未检测到", " · not detected")}</option>)}
+                    {agentPreference !== "auto" && !agents.some(a => a.id === agentPreference) && <option value={agentPreference}>{agentPreference}</option>}
                   </select>
                 </label>
-                <p className="agent-detection" role="status">{agents.some(a => a.installed) ? t(`已检测到：${agents.filter(a => a.installed).map(a => a.name).join("、")}`, `Detected: ${agents.filter(a => a.installed).map(a => a.name).join(", ")}`) : t("未检测到 CLI。安装并登录 Codex 或 Claude Code 后重新检测。", "No CLI detected. Install and sign into Codex or Claude Code, then detect again.")}</p>
-                <button className="text-button" disabled={!!busy} onClick={() => run("detect", load)}>{t("重新检测", "Detect again")}</button>
-                {field("chat_agent_model", t("模型（可留空）", "Model (optional)"), "text", t("沿用 Agent 默认模型", "Use the agent's default model"))}
-                <p className="hint">{t("复用 Agent 的登录与服务配置，无需重复填写 API Key。摘要会通过该 Agent 的模型服务处理。", "Reuses the agent's sign-in and provider configuration. No duplicate API key entry. Summaries are processed by that agent's model service.")}</p>
+                <div className="agent-discovery">
+                  <p className="agent-detection" role="status">{detecting ? t("正在检测本机 Agent…", "Detecting local agents…") : detectionError || (selectedAgent
+                    ? t(`将使用 ${selectedAgent.name}，连接状态以测试结果为准。`, `Will use ${selectedAgent.name}. Test the connection to verify access.`)
+                    : agentPreference === "auto" ? t("未检测到 CLI。支持 Codex、Claude Code 和 OpenCode。安装并登录后重新检测。", "No CLI detected. Codex, Claude Code and OpenCode are supported. Install, sign in and retry detection.")
+                    : t("未检测到所选 Agent，请安装后重试，或选择其他 Agent。", "Selected agent not detected. Install it or choose another agent."))}</p>
+                  <button className="text-button" disabled={!!busy || detecting} onClick={async () => {
+                    setResults(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== "chat")));
+                    await detect(); await refresh();
+                  }}><RefreshCw size={14} className={detecting ? "spin" : ""}/>{t("重新检测", "Detect again")}</button>
+                </div>
+                <details className="agent-details">
+                  <summary>{t("模型、超时与安装位置", "Model, timeout and installation paths")}</summary>
+                  {field("chat_agent_model", t("模型（可留空）", "Model (optional)"), "text", selectedAgent?.id === "opencode" ? "provider/model" : t("沿用 Agent 默认模型", "Use the agent's default model"))}
+                  {field("chat_agent_timeout", t("单次超时（秒）", "Request timeout (seconds)"), "number", "180")}
+                  <ul className="agent-paths">{agents.map(agent => <li key={agent.id}><strong>{agent.name}</strong><span>{agent.path || (agent.installed ? t("已检测到", "Detected") : t("未检测到", "Not detected"))}</span></li>)}</ul>
+                </details>
+                <p className="hint">{t("使用已有登录，无需再填 Key。摘要会发送到所选 Agent 的模型服务。", "Uses your existing sign-in. Summaries are sent to the selected agent's model service.")}</p>
               </> : <>
                 {field(`${channel}_base_url`, t("服务地址", "Base URL"), "url", "https://api.openai.com/v1")}
                 {field(`${channel}_api_key`, "API Key", "password")}
@@ -202,11 +243,11 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
               </>}
             </div>
             <div className="model-test">
-              <button className="secondary" disabled={!!busy} onClick={() => test(channel)}>
+              <button className="secondary" disabled={!!busy || !rows.length || (channel === "chat" && agentUnavailable)} onClick={() => test(channel)}>
                 {busy === channel ? <LoaderCircle className="spin" /> : <FlaskConical />}
                 {t("测试连接", "Test connection")}
               </button>
-              <button className="primary" disabled={!!busy} onClick={() => test(channel, true)}><Check size={16}/>{t("测试并保存", "Test and save")}</button>
+              <button className="primary" disabled={!!busy || !rows.length || (channel === "chat" && agentUnavailable)} onClick={() => test(channel, true)}><Check size={16}/>{t("测试并保存", "Test and save")}</button>
               {results[channel] && (
                 <div
                   role="status"
@@ -220,6 +261,7 @@ export function Models({ setup, refresh }: { setup: Setup | null; refresh: () =>
                     <>
                       <Check size={16} />
                       {t("连接成功", "Connected")} · {results[channel].ms} ms
+                      {channel === "chat" && <span className="tested-model">{results[channel].model}</span>}
                       {channel === "embed" && (
                         <>
                           {" "}

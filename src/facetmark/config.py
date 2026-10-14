@@ -416,7 +416,7 @@ class Settings(BaseSettings):
     @field_validator("chat_agent")
     @classmethod
     def _chat_agent(cls, value: str) -> str:
-        if value not in {"auto", "codex", "claude"}:
+        if value not in {"auto", "codex", "claude", "opencode"}:
             raise ValueError("Unsupported local agent")
         return value
 

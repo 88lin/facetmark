@@ -24,32 +24,70 @@ except ModuleNotFoundError:  # Python 3.10
 
 from .providers import Provider, ProviderError, parse_json_object
 
-AGENTS = {"codex": "Codex", "claude": "Claude Code"}
+AGENTS = {"codex": "Codex", "claude": "Claude Code", "opencode": "OpenCode"}
 _NPM_ENTRIES = {
-    "codex": "@openai/codex/bin/codex.js",
-    "claude": "@anthropic-ai/claude-code/cli.js",
+    "codex": ("@openai/codex/bin/codex.js",),
+    "claude": ("@anthropic-ai/claude-code/cli.js",),
+    "opencode": ("opencode-ai/bin/opencode.exe", "opencode-ai/bin/opencode"),
 }
+
+
+def _install_directories() -> list[Path]:
+    """Bounded, read-only discovery for GUI processes with a stale/minimal PATH."""
+    home = Path.home()
+    directories = [home / ".local/bin", home / ".opencode/bin", home / ".bun/bin",
+                   home / ".npm-global/bin", home / ".volta/bin"]
+    for key, suffix in (("APPDATA", "npm"), ("LOCALAPPDATA", "Programs/nodejs"),
+                        ("ProgramFiles", "nodejs"), ("ProgramFiles", "nodejs/node_global"),
+                        ("NPM_CONFIG_PREFIX", ""),
+                        ("npm_config_prefix", ""), ("PNPM_HOME", ""), ("NVM_SYMLINK", "")):
+        if value := os.environ.get(key):
+            directories.append(Path(value) / suffix)
+    if os.name != "nt":
+        directories.extend((Path("/usr/local/bin"), Path("/opt/homebrew/bin")))
+    return list(dict.fromkeys(directories))
+
+
+def _normalize_command(agent: str, path: Path) -> list[str] | None:
+    if path.suffix.lower() not in {".cmd", ".bat", ".ps1"}:
+        return [str(path)]
+    # Resolve known npm entrypoints directly. Prompt text never goes through a shell.
+    for entry_name in _NPM_ENTRIES[agent]:
+        entry = path.parent / "node_modules" / entry_name
+        if not entry.is_file():
+            continue
+        if entry.suffix.lower() == ".exe":
+            return [str(entry)]
+        node = shutil.which("node")
+        if not node:
+            node = next((str(folder / "node.exe") for folder in [path.parent, *_install_directories()]
+                         if (folder / "node.exe").is_file()), None)
+        if node:
+            return [node, str(entry)]
+    return None
 
 
 def resolve_command(agent: str) -> list[str] | None:
     if agent not in AGENTS:
         return None
-    executable = shutil.which(agent)
-    if not executable:
-        return None
-    path = Path(executable)
-    if path.suffix.lower() in {".cmd", ".bat", ".ps1"}:
-        # Never interpolate prompts into cmd.exe/PowerShell or run an npm shim
-        # as a shell command. Installed JS entries work with Unicode paths too.
-        entry = path.parent / "node_modules" / _NPM_ENTRIES[agent]
-        node = shutil.which("node")
-        return [node, str(entry)] if node and entry.is_file() else None
-    return [executable]
+    names = ("opencode", "opencode-cli") if agent == "opencode" else (agent,)
+    candidates = [Path(found) for name in names if (found := shutil.which(name))]
+    suffixes = (".exe", ".cmd", ".bat", ".ps1", "") if os.name == "nt" else ("",)
+    candidates.extend(folder / (name + suffix) for folder in _install_directories()
+                      for name in names for suffix in suffixes if (folder / (name + suffix)).is_file())
+    for path in dict.fromkeys(candidates):
+        if command := _normalize_command(agent, path):
+            return command
+    return None
 
 
 def available_agents() -> list[dict]:
-    return [{"id": key, "name": name, "installed": bool(resolve_command(key))}
-            for key, name in AGENTS.items()]
+    result = []
+    for key, name in AGENTS.items():
+        command = resolve_command(key)
+        result.append({"id": key, "name": name, "installed": bool(command),
+                       "path": command[-1] if command else None})
+    return result
 
 
 def selected_agent(preference: str) -> str | None:
@@ -106,6 +144,90 @@ def _codex_model_config(environ):
     return args
 
 
+def _jsonc_object(text: str) -> dict:
+    # Keep JSON strings intact while removing JSONC comments and trailing commas.
+    tokens = r'"(?:\\.|[^"\\])*"|//[^\r\n]*|/\*[\s\S]*?\*/'
+    text = re.sub(tokens, lambda match: match[0] if match[0].startswith('"') else " ", text)
+    text = re.sub(r'"(?:\\.|[^"\\])*"|,\s*(?=[}\]])',
+                  lambda match: match[0] if match[0].startswith('"') else "", text)
+    value = json.loads(text)
+    if not isinstance(value, dict):
+        raise ValueError("Expected a configuration object")
+    return value
+
+
+def _opencode_environment(directory: Path, env: dict) -> dict:
+    """Reuse model/auth settings, isolate instructions, plugins and session DB.
+
+    OpenCode 1.19's --pure disables external plugins; its built-in authentication
+    adapters remain available. The CLI retains its normal auth/cache/state paths
+    so an OAuth refresh does not leave the user's original credentials stale.
+    """
+    home = Path.home()
+    config_root = Path(env.get("XDG_CONFIG_HOME", home / ".config")) / "opencode"
+    sources = [(config_root / name) for name in ("config.json", "opencode.json", "opencode.jsonc")]
+    if custom := env.get("OPENCODE_CONFIG"):
+        sources.append(Path(custom).expanduser())
+    if custom_dir := env.get("OPENCODE_CONFIG_DIR"):
+        sources.extend(Path(custom_dir) / name for name in ("opencode.json", "opencode.jsonc"))
+    config: dict = {}
+
+    def merge(target, incoming):
+        for key, value in incoming.items():
+            if isinstance(value, dict) and isinstance(target.get(key), dict):
+                merge(target[key], value)
+            else:
+                target[key] = value
+
+    def model_settings(value, base):
+        allowed = {key: item for key, item in value.items() if key in {
+            "model", "small_model", "provider", "enabled_providers", "disabled_providers",
+        }}
+        # Relative credential file references remain relative to their original config.
+        def references(item):
+            if isinstance(item, dict):
+                return {key: references(value) for key, value in item.items()}
+            if isinstance(item, list):
+                return [references(value) for value in item]
+            if isinstance(item, str):
+                return re.sub(r"\{file:([^}]+)\}",
+                              lambda m: "{file:" + (base / Path(m[1]).expanduser()).resolve().as_posix() + "}", item)
+            return item
+        return references(allowed)
+
+    try:
+        for source in sources:
+            if source.is_file():
+                merge(config, model_settings(_jsonc_object(source.read_text(encoding="utf-8-sig")), source.parent))
+        if inline := env.get("OPENCODE_CONFIG_CONTENT"):
+            merge(config, model_settings(_jsonc_object(inline), Path.cwd()))
+        auth_file = Path(env.get("XDG_DATA_HOME", home / ".local/share")) / "opencode/auth.json"
+        auth = json.loads(env["OPENCODE_AUTH_CONTENT"]) if env.get("OPENCODE_AUTH_CONTENT") else (
+            json.loads(auth_file.read_text(encoding="utf-8-sig")) if auth_file.is_file() else {})
+        if not isinstance(auth, dict):
+            raise ValueError("Invalid auth store")
+        if any(isinstance(item, dict) and item.get("type") == "wellknown" for item in auth.values()):
+            raise ProviderError("OpenCode organization-managed configuration is not supported for tool-free summaries. Use its API endpoint instead.")
+    except (OSError, ValueError):
+        raise ProviderError("Cannot read OpenCode configuration. Check opencode.json/opencode.jsonc and its sign-in, then retry.") from None
+
+    config.update({"permission": {"*": "deny"}, "mcp": {}, "plugin": [], "instructions": [],
+                   "share": "disabled", "autoupdate": False, "snapshot": False,
+                   "default_agent": "facetmark-summary",
+                   "agent": {"facetmark-summary": {"mode": "primary", "permission": {"*": "deny"},
+                             "description": "Text-only bookmark summaries"}}})
+    # No inline credentials or source configuration ever goes into process arguments.
+    for key in ("OPENCODE_CONFIG", "OPENCODE_CONFIG_DIR", "OPENCODE_PERMISSION", "OPENCODE_WORKSPACE_ID"):
+        env.pop(key, None)
+    env.update({"XDG_CONFIG_HOME": str(directory / "config"),
+                "OPENCODE_TEST_HOME": str(directory),
+                "OPENCODE_CONFIG_CONTENT": json.dumps(config),
+                "OPENCODE_DB": str(directory / "sessions.db"),
+                "OPENCODE_DISABLE_PROJECT_CONFIG": "1", "OPENCODE_DISABLE_AUTOUPDATE": "1",
+                "OPENCODE_PURE": "1", "OPENCODE_PERMISSION": '{"*":"deny"}'})
+    return env
+
+
 def build_invocation(agent: str, directory: Path, *, model: str, environ: dict) -> tuple[list[str], dict]:
     env = dict(environ)
     # Do not inherit an active parent conversation or spawn a nested interactive session.
@@ -129,6 +251,12 @@ def build_invocation(agent: str, directory: Path, *, model: str, environ: dict) 
                 "--settings", '{"disableAllHooks":true}']
         if model:
             args += ["--model", model]
+    elif agent == "opencode":
+        env = _opencode_environment(directory, env)
+        args = ["run", "--format", "json", "--pure", "--agent", "facetmark-summary",
+                "--title", "Facetmark summary"]
+        if model:
+            args += ["--model", model]
     else:
         raise ProviderError("Unknown local agent")
     return args, env
@@ -146,13 +274,18 @@ def parse_agent_output(agent: str, output: str) -> dict:
         if event.get("is_error") or event.get("type") in {"error", "turn.failed"}:
             raise ProviderError("Local agent failed. Check its sign-in and service connection, then retry.")
         if agent == "codex" and event.get("type") == "item.completed":
-            item = event.get("item") or {}
-            if item.get("type") == "agent_message":
+            item = event.get("item")
+            if isinstance(item, dict) and item.get("type") == "agent_message":
                 messages.append(item.get("text", ""))
         elif agent == "claude" and event.get("type") == "result":
             if isinstance(event.get("structured_output"), dict):
                 return event["structured_output"]
             messages.append(event.get("result", ""))
+        elif agent == "opencode" and event.get("type") == "text":
+            part = event.get("part")
+            if isinstance(part, dict):
+                messages.append(part.get("text", ""))
+    messages = [message for message in messages if isinstance(message, str) and message.strip()]
     if not messages:
         raise ProviderError("Local agent returned no result. Update or sign into the selected CLI and test again.")
     return parse_json_object("\n".join(messages))
@@ -180,7 +313,7 @@ class LocalAgentProvider(Provider):
         super().__init__(settings)
         self.agent = selected_agent(settings.chat_agent)
         if not self.agent:
-            raise ProviderError("No supported local agent is available. Install/sign into Codex or Claude Code, then refresh detection.")
+            raise ProviderError("No supported local agent is available. Install/sign into Codex, Claude Code or OpenCode, then refresh detection.")
         self.chat_model_in_use = f"{self.agent}/{settings.chat_agent_model or 'configured default'}"
         self._processes: set[subprocess.Popen] = set()
         self._gate = asyncio.Semaphore(2)
@@ -214,7 +347,10 @@ class LocalAgentProvider(Provider):
                 output, error = await asyncio.shield(communication)
                 if process.returncode:
                     # Never return the prompt, environment or raw credential-bearing output.
-                    reason = ("Sign into the selected CLI first." if re.search(r"auth|log.?in|401|403", error, re.I)
+                    diagnostic = error + "\n" + output
+                    reason = ("Update the selected CLI; this version does not support the required non-interactive options."
+                              if re.search(r"unknown (argument|option)|unrecognized (argument|option)|unexpected argument", diagnostic, re.I)
+                              else "Sign into the selected CLI first." if re.search(r"auth|log.?in|401|403", diagnostic, re.I)
                               else "Check the selected CLI's connection and default model, then retry.")
                     raise ProviderError(f"{AGENTS[self.agent]} exited with code {process.returncode}. {reason}")
                 self.usage.calls += 1

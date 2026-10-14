@@ -682,7 +682,13 @@ def probe_fingerprint(settings: Settings, channel: str) -> str:
              (['embed_dim', 'embed_backend', 'local_embed_path', 'embed_send_dimensions']
               if channel == 'embed' else ['chat_extra_body', 'chat_model_fallbacks',
                   'chat_backend', 'chat_agent', 'chat_agent_model', 'chat_agent_timeout']))
-    return hashlib.sha256(json.dumps({k: getattr(settings, k) for k in names},
+    values = {k: getattr(settings, k) for k in names}
+    if channel == 'chat' and settings.chat_backend == 'agent':
+        from .local_agents import resolve_command, selected_agent
+        agent = selected_agent(settings.chat_agent)
+        values['resolved_agent'] = agent
+        values['resolved_command'] = resolve_command(agent) if agent else None
+    return hashlib.sha256(json.dumps(values,
                                     sort_keys=True, default=str).encode()).hexdigest()
 
 
