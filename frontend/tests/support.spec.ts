@@ -108,6 +108,8 @@ test("long excerpts remain expandable after changing display without changing te
   await page.getByRole("button", { name: "原文摘录", exact: true }).click();
   await entry.getByRole("button", { name: "展开全文", exact: true }).click();
   expect(await entry.locator(".result-summary").evaluate(el => el.scrollHeight <= el.clientHeight + 1)).toBe(true);
+  await expect(page.locator(".collection-options-menu")).not.toHaveAttribute("open", "");
+  await page.locator(".collection-options-menu > summary").click();
   await page.getByRole("button", { name: "摘要", exact: true }).click();
   await expect(entry.getByRole("button", { name: "展开全文", exact: true })).toBeVisible();
 });

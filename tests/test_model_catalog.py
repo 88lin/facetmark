@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -89,9 +90,9 @@ async def test_opencode_lists_live_catalog_and_preserves_source_config(tmp_path,
 
 async def test_catalog_child_uses_no_shell_and_returns_utf8(tmp_path, monkeypatch):
     script = tmp_path / "model fixture.py"
-    script.write_text('import json\nprint(json.dumps({"models":[{"slug":"fixture","name":"中文"}]}))', encoding="utf-8")
+    script.write_text('import json\nprint(json.dumps({"models":[{"slug":"fixture","name":"中文"}]}, ensure_ascii=False))', encoding="utf-8")
     monkeypatch.setattr(local_agents, "resolve_command", lambda agent: [sys.executable, str(script)])
-    output = await model_catalog._cli_catalog("codex", tmp_path, {})
+    output = await model_catalog._cli_catalog("codex", tmp_path, {**os.environ, "PYTHONIOENCODING": "utf-8"})
     assert json.loads(output)["models"][0]["name"] == "中文"
 
 

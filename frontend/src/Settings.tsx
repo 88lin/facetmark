@@ -93,8 +93,10 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
   const selectedAgent = agentPreference === "auto" ? agents.find(a => a.installed) : agents.find(a => a.id === agentPreference && a.installed);
   const agentUnavailable = value("chat_backend") === "agent" && (detecting || !selectedAgent || !!detectionError);
   useEffect(() => {
-    if (detecting) return;
-    const id = selectedAgent?.id || "";
+    // A failed discovery has not established a new agent identity. Keep the
+    // last known identity and any manual draft until detection succeeds.
+    if (detecting || detectionError || !selectedAgent) return;
+    const id = selectedAgent.id;
     const previous = lastAgent.current;
     lastAgent.current = { preference: agentPreference, id };
     if (previous?.preference === "auto" && agentPreference === "auto" && previous.id !== id) {
@@ -103,7 +105,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
       setResults(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== "chat")));
       setChannelFeedback(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== "chat")));
     }
-  }, [selectedAgent?.id, agentPreference, detecting]);
+  }, [selectedAgent?.id, agentPreference, detecting, detectionError]);
   const change = (key: string, next: unknown) => {
     if (key === "chat_agent") agentModels.current[selectedAgent?.id || agentPreference] = String(value("chat_agent_model"));
     const nextAgent = next === "auto" ? agents.find(agent => agent.installed)?.id || "auto" : String(next);
