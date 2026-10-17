@@ -33,6 +33,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
   const [channelFeedback, setChannelFeedback] = useState<Record<string, { text: string; saved: boolean }>>({});
   const [testingAndSaving, setTestingAndSaving] = useState(false);
   const agentModels = useRef<Record<string, string>>({});
+  const lastAgent = useRef<{ preference: string; id: string } | null>(null);
   const hasDraft = Object.keys(draft).length > 0;
   const channelStatus = (channel: string) => {
     if (busy === channel) return t("正在测试…", "Testing…");
@@ -69,11 +70,11 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
   async function load(suggestAgent = false) {
     setLoadingSettings(true); setLoadError("");
     try {
-      const data = await api<{ settings: Setting[] }>("/admin/settings");
+      const data = await api<{ settings: Setting[]; channels: { chat: { configured: boolean } } }>("/admin/settings");
       setRows(data.settings);
       if (suggestAgent) {
         const found = await detect();
-        if (!setup?.channels.chat.configured && found.some(a => a.installed)
+        if (!data.channels.chat.configured && found.some(a => a.installed)
           && data.settings.find(r => r.key === "chat_backend")?.value !== "agent"
           && !data.settings.find(r => r.key === "chat_backend")?.locked)
           setDraft(current => ({ chat_backend: "agent", ...current }));
@@ -91,13 +92,26 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
   const agentPreference = String(value("chat_agent") || "auto");
   const selectedAgent = agentPreference === "auto" ? agents.find(a => a.installed) : agents.find(a => a.id === agentPreference && a.installed);
   const agentUnavailable = value("chat_backend") === "agent" && (detecting || !selectedAgent || !!detectionError);
+  useEffect(() => {
+    if (detecting) return;
+    const id = selectedAgent?.id || "";
+    const previous = lastAgent.current;
+    lastAgent.current = { preference: agentPreference, id };
+    if (previous?.preference === "auto" && agentPreference === "auto" && previous.id !== id) {
+      if (previous.id) agentModels.current[previous.id] = String(value("chat_agent_model"));
+      if (!row("chat_agent_model")?.locked) setDraft(current => ({ ...current, chat_agent_model: agentModels.current[id] || "" }));
+      setResults(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== "chat")));
+      setChannelFeedback(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== "chat")));
+    }
+  }, [selectedAgent?.id, agentPreference, detecting]);
   const change = (key: string, next: unknown) => {
-    if (key === "chat_agent") agentModels.current[agentPreference] = String(value("chat_agent_model"));
+    if (key === "chat_agent") agentModels.current[selectedAgent?.id || agentPreference] = String(value("chat_agent_model"));
+    const nextAgent = next === "auto" ? agents.find(agent => agent.installed)?.id || "auto" : String(next);
     setDraft((d) => ({
       ...d,
       [key]: next,
       ...(key === "chat_agent" && !row("chat_agent_model")?.locked
-        ? { chat_agent_model: agentModels.current[String(next)] || "" } : {}),
+        ? { chat_agent_model: agentModels.current[nextAgent] || "" } : {}),
       ...(key.endsWith("_allow_no_key") && next
         ? { [key.replace("_allow_no_key", "_api_key")]: "" }
         : {}),
@@ -132,6 +146,12 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
       setResults(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== channel)));
       let data: Record<string, Probe>;
       try {
+        if (channel === "chat" && value("chat_backend") === "agent") {
+          const found = await detect();
+          const actual = agentPreference === "auto" ? found.find(agent => agent.installed) : found.find(agent => agent.id === agentPreference && agent.installed);
+          if (!actual || actual.id !== selectedAgent?.id || actual.path !== selectedAgent?.path)
+            throw new Error(t("本机 Agent 已变化，请确认当前 Agent 和模型后重新测试。", "The detected agent changed. Check the current agent and model, then test again."));
+        }
         data = await post<Record<string, Probe>>("/admin/settings/test", { ...payload, channel });
         if (!data[channel]) throw new Error(t("没有收到测试结果，请重试。", "No test result received. Please retry."));
       } catch (e) {
@@ -146,7 +166,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
           setChannelFeedback(current => ({ ...current, [channel]: { saved: false, text: t("连接测试成功，但配置未保存。请重试。", "Connection passed, but settings were not saved. Please retry.") + " " + String(e) } }));
           return;
         }
-        setDraft(current => Object.fromEntries(Object.entries(current).filter(([key]) => !(key in payload))));
+        acknowledgeSaved(payload);
         await load();
         setChannelFeedback(current => ({ ...current, [channel]: { saved: true, text: channel === "chat"
           ? t("连接已验证并保存，可以开始生成摘要。", "Connection verified and saved. Ready to generate summaries.")
@@ -158,7 +178,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
   async function save() {
     await run("save", async () => {
       await api("/admin/settings", { method: "PUT", body: JSON.stringify({ values: draft }) });
-      setDraft({});
+      acknowledgeSaved(draft);
       await load();
       await refresh();
       setNotice(
@@ -168,6 +188,11 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
         ),
       );
     });
+  }
+  function acknowledgeSaved(values: Record<string, unknown>) {
+    setRows(current => current.map(item => item.key in values ? { ...item,
+      value: item.secret ? "" : values[item.key], set: Boolean(values[item.key]), source: "file" } : item));
+    setDraft(current => Object.fromEntries(Object.entries(current).filter(([key]) => !(key in values))));
   }
   const field = (key: string, label: string, type = "text", hint?: string) => (
     <label className="field" key={key}>
@@ -203,7 +228,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
   );
   const modelPicker = (channel: string, local = false) => {
     const key = local ? "chat_agent_model" : `${channel}_model`;
-    const payload = { channel, ...Object.fromEntries(Object.entries(draft).filter(([key]) => key.startsWith(`${channel}_`))) };
+    const payload = { channel, ...Object.fromEntries(Object.entries(draft).filter(([key]) => key.startsWith(`${channel}_`))), ...(local ? { chat_agent: selectedAgent?.id || agentPreference } : {}) };
     const identity = local ? JSON.stringify([agentPreference, selectedAgent?.path, selectedAgent?.id, detecting])
       : JSON.stringify([value(`${channel}_base_url`), value(`${channel}_api_key`), value(`${channel}_allow_no_key`)]);
     return <ModelPicker key={local ? "agent" : channel} name={key} value={String(value(key))}
@@ -268,6 +293,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
                     : t("未检测到所选 Agent，请安装后重试，或选择其他 Agent。", "Selected agent not detected. Install it or choose another agent."))}</p>
                   <button className="text-button" disabled={!!busy || detecting} onClick={async () => {
                     setResults(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== "chat")));
+                    setChannelFeedback(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== "chat")));
                     await detect(); await refresh();
                   }}><RefreshCw size={14} className={detecting ? "spin" : ""}/>{t("重新检测", "Detect again")}</button>
                 </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowDownWideNarrow, ChevronDown, SlidersHorizontal, Sparkles, Pause, Play, CheckCheck, X } from "lucide-react";
 import { post, type CollectionScope, type Job, type Page } from "./api";
 import { useText } from "./locale";
@@ -15,6 +15,12 @@ export function CollectionTools({ scope, page, display, onDisplay, sort, onSort,
   const t = useText();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const displayMenu = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const dismiss = (event: PointerEvent) => { if (event.target instanceof Node && displayMenu.current && !displayMenu.current.contains(event.target)) displayMenu.current.open = false; };
+    document.addEventListener("pointerdown", dismiss);
+    return () => document.removeEventListener("pointerdown", dismiss);
+  }, []);
   const counts = page?.summary_counts;
   async function taskAction() {
     setBusy(true); setError("");
@@ -33,7 +39,9 @@ export function CollectionTools({ scope, page, display, onDisplay, sort, onSort,
       <option value="newest">{t("最近收藏", "Newest saved")}</option><option value="oldest">{t("最早收藏", "Oldest saved")}</option>
       <option value="title">{t("标题顺序", "Title")}</option><option value="domain">{t("按站点", "Website")}</option>
     </select></label>
-    <details className="collection-options-menu">
+    <details ref={displayMenu} className="collection-options-menu"
+      onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}
+      onKeyDown={event => { if (event.key === "Escape") { event.stopPropagation(); event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }}>
       <summary aria-label={t("显示内容", "Display content")}><SlidersHorizontal size={15}/><span>{t("显示", "Display")}</span><ChevronDown className="disclosure-chevron" size={14} aria-hidden="true"/></summary>
       <div className="collection-options">
       <div className="summary-display" role="group" aria-label={t("列表内容", "Collection content")}>

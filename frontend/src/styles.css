@@ -1256,32 +1256,6 @@ kbd {
 .desktop-note {
   max-width: 1040px;
 }
-.model-columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 48px;
-}
-.model-panel {
-  padding: 24px 0;
-  border-top: 1px solid var(--rule);
-}
-.model-panel + .model-panel {
-  border-top: 1px solid var(--rule);
-}
-.model-panel header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 26px;
-}
-.model-panel header h3 {
-  margin: 0;
-  font-size: 18px;
-}
-.model-panel header > span {
-  font-size: 11px;
-}
 .field {
   display: flex;
   flex-direction: column;
@@ -1752,13 +1726,6 @@ pre {
   .search-header {
     padding: 22px 28px 16px;
   }
-  .model-columns {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-  .model-panel {
-    padding: 22px 0;
-  }
   .setup-steps {
     gap: 18px;
   }
@@ -1857,9 +1824,6 @@ pre {
   .section-heading h2,
   .importer h2 {
     font-size: 19px;
-  }
-  .model-panel {
-    padding: 20px 0;
   }
   .form-actions {
     align-items: flex-start;

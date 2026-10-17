@@ -36,6 +36,8 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
     setError("");
     try {
       const data = await post<Catalog>("/admin/settings/models", latestPayload.current, request.signal);
+      if (agent && data.agent && data.agent !== agent)
+        throw new Error(t("检测到的 Agent 已变化，请重新检测后读取模型。", "The detected agent changed. Detect agents again to read its models."));
       if (!request.signal.aborted) setCatalog(data);
     } catch (e) {
       if (!request.signal.aborted) setError(String(e));
@@ -81,13 +83,18 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
         {busy ? t("读取模型…", "Loading models…") : t("刷新模型", "Refresh models")}
       </button>
     </div>
+    <div className={`model-picker-control ${!agent ? "is-editable" : ""}`}>
+    {!agent && <input id={`${id}-input`} name={name} value={value} aria-label={t("自定义模型名称", "Custom model name")}
+      disabled={disabled} spellCheck={false} autoComplete="off" placeholder={t("输入模型名称，或从右侧目录选择", "Enter a model name or browse the catalog")}
+      onChange={event => onChange(event.target.value)}/>}
     <button ref={trigger} id={`${id}-trigger`} type="button" className="model-picker-trigger" disabled={disabled}
       aria-haspopup="listbox" aria-expanded={open} aria-controls={`${id}-list`} aria-labelledby={`${id}-label ${id}-value`}
       onClick={() => { setSearch(""); setActive(0); setOpen(!open); if (!catalog && !busy && !agent) void load(); }}>
-      <span id={`${id}-value`}>{value ? selected?.label || value : agent
+      <span id={`${id}-value`} className={!agent ? "sr-only" : undefined}>{agent && value ? selected?.label || value : agent
         ? catalog?.default_model ? t(`默认 · ${catalog.default_model}`, `Default · ${catalog.default_model}`) : t("沿用 Agent 默认模型", "Use agent default")
         : t("从服务中选择模型", "Choose from service models")}</span><ChevronDown size={16}/>
     </button>
+    </div>
     {open && <div className="model-picker-menu" onKeyDown={event => {
       if (event.nativeEvent.isComposing) return;
       if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setOpen(false); trigger.current?.focus(); }
@@ -118,7 +125,7 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
       {choices.length > shown.length && <p className="hint">{t(`共 ${choices.length} 个匹配，输入名称缩小范围。`, `${choices.length} matches. Type to narrow the list.`)}</p>}
       <button className="text-button model-manual" type="button" onClick={() => { setManual(true); setOpen(false); requestAnimationFrame(() => document.getElementById(`${id}-input`)?.focus()); }}>{t("手动输入模型名称", "Enter a model name")}</button>
     </div>}
-    {(manual || !agent) && <input id={`${id}-input`} name={name} value={value} aria-label={t("自定义模型名称", "Custom model name")}
+    {manual && agent && <input id={`${id}-input`} name={name} value={value} aria-label={t("自定义模型名称", "Custom model name")}
       disabled={disabled} spellCheck={false} autoComplete="off" placeholder={agent === "opencode" ? "provider/model" : t("输入完整模型名称", "Enter the full model name")}
       onChange={event => onChange(event.target.value)}/>}
     {agent && !manual && <button className="text-button model-manual" type="button" disabled={disabled} onClick={() => setManual(true)}>{t("手动输入", "Enter manually")}</button>}

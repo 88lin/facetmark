@@ -114,7 +114,7 @@ def configure_chat(client, monkeypatch, *, fail=False):
 
         async def chat_json(self, system, user):
             self.prompts.append(user)
-            if fail:
+            if fail and (fail is True or fail in user):
                 raise ProviderError("failure synthetic-secret")
             return {"summary": "A fresh reading summary.", "topics": ["reading"],
                     "intent_queries": ["new reading question"]}
@@ -252,10 +252,11 @@ def test_summary_failure_is_partial_keeps_existing_summary_and_redacts_status(cl
 @pytest.mark.parametrize("mode", ["fetch", "summarize"])
 def test_partial_task_retries_original_snapshot_without_new_library_items(client, monkeypatch, mode):
     failed = save(client, "retry-original")
+    save(client, "already-succeeded")
     if mode == "fetch":
         fake_fetch(monkeypatch, failures=("https://reading.test/retry-original",))
     else:
-        configure_chat(client, monkeypatch, fail=True)
+        configure_chat(client, monkeypatch, fail="retry-original")
     response = client.post("/admin/jobs/start", json={"mode": mode, "scope": {}, "confirmed": True})
     assert response.status_code == 200
     previous = wait_job(client)
@@ -269,7 +270,7 @@ def test_partial_task_retries_original_snapshot_without_new_library_items(client
     assert resumed.status_code == 200, resumed.text
     final = wait_job(client)
     assert final["id"] == previous["id"]
-    assert final["state"] == "done" and final["items"] == {"done": 1, "total": 1, "failed": 0}
+    assert final["state"] == "done" and final["items"] == {"done": 2, "total": 2, "failed": 0}
     if mode == "fetch":
         assert contacted == ["https://reading.test/retry-original"]
     else:
@@ -279,6 +280,48 @@ def test_partial_task_retries_original_snapshot_without_new_library_items(client
     conn = client.app.state.fm.conn
     assert conn.execute(f"SELECT bookmark_id FROM {table} WHERE bookmark_id IN (?,?)", (failed, added)).fetchall()[0][0] == failed
     assert conn.execute("SELECT count(*) FROM processing_item WHERE job_id=?", (previous["id"],)).fetchone()[0] == 0
+
+
+def test_discovered_model_is_tested_saved_and_used_by_actual_summary_job(client, monkeypatch):
+    from facetmark import local_agents, model_catalog
+
+    calls = []
+    monkeypatch.setattr(local_agents, "selected_agent", lambda preference: "opencode")
+    monkeypatch.setattr(local_agents, "resolve_command", lambda agent: ["synthetic-agent"])
+
+    async def catalog(preference):
+        return {"agent": "opencode", "models": [{"id": "fixture/chosen", "label": "Chosen", "source": "cli"}],
+                "default_model": "fixture/default", "warning": ""}
+
+    class Agent(Provider):
+        name = "synthetic-agent"
+
+        def __init__(self, settings):
+            super().__init__(settings)
+            self.chat_model_in_use = settings.chat_agent_model
+
+        async def chat_json(self, system, user):
+            calls.append((self.chat_model_in_use, user))
+            return {"ok": True, "summary": "Summary from the selected model", "topics": [], "intent_queries": ["selected model"]}
+
+        async def embed(self, texts):
+            raise AssertionError("Summary generation must not require embeddings")
+
+    monkeypatch.setattr(model_catalog, "agent_catalog", catalog)
+    monkeypatch.setattr(local_agents, "LocalAgentProvider", Agent)
+    draft = {"chat_backend": "agent", "chat_agent": "opencode"}
+    choices = client.post("/admin/settings/models", json={"channel": "chat", **draft}).json()
+    draft["chat_agent_model"] = choices["models"][0]["id"]
+    probe = client.post("/admin/settings/test", json={"channel": "chat", **draft})
+    assert probe.json()["chat"]["ok"], probe.text
+    assert client.put("/admin/settings", json={"values": draft}).status_code == 200
+    bid = save(client, "summary-workflow", body="Saved text to summarize")
+    started = client.post("/admin/jobs/start", json={"mode": "summarize", "bookmark_ids": [bid], "confirmed": True})
+    assert started.status_code == 200, started.text
+    assert wait_job(client)["state"] == "done"
+    assert len(calls) == 2 and all(model == "fixture/chosen" for model, _ in calls)
+    assert "summary-workflow" in calls[-1][1]
+    assert client.app.state.fm.conn.execute("SELECT summary FROM enrichment WHERE bookmark_id=?", (bid,)).fetchone()[0] == "Summary from the selected model"
 
 
 @pytest.mark.parametrize("mode", ["fetch", "summarize"])

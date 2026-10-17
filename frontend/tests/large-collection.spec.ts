@@ -28,6 +28,9 @@ test("200k actual records stay paginated and all matching selection survives dee
   expect(JSON.stringify(body).length).toBeLessThan(1000);
   const dialog = page.getByRole("dialog", { name: "生成 AI 摘要", exact: true });
   await expect(dialog.locator(".processing-count")).toContainText("本次将处理");
+  const pendingRequest = page.waitForRequest(r => r.url().includes("/admin/jobs/preview") && r.postDataJSON()?.scope?.status === "pending");
+  await dialog.getByRole("combobox", { name: "摘要处理范围", exact: true }).selectOption("pending");
+  expect((await pendingRequest).postDataJSON().scope.exclude_ids).toEqual(body.scope.exclude_ids);
   await dialog.getByRole("button", { name: "取消", exact: true }).click();
   await page.locator(".collection-selection").getByRole("button", { name: "清空", exact: true }).click();
   await page.getByRole("textbox", { name: "搜索书签", exact: true }).fill("needle");

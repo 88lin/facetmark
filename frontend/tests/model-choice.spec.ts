@@ -40,7 +40,7 @@ test("model choice survives test, save and reopen and reaches summary generation
   await expect(panel.locator(".model-picker-trigger")).toContainText("opencode/default");
   await panel.locator(".model-picker-trigger").click();
   await page.getByRole("combobox", { name: "搜索模型", exact: true }).fill("careful");
-  await expect(page.getByRole("option")).toHaveCount(1);
+  await expect(page.getByRole("listbox").getByRole("option")).toHaveCount(1);
   await page.screenshot({ path: "screenshots/models-search-desktop.png", animations: "disabled" });
   await page.keyboard.press("Enter");
   await expect(panel.locator(".model-picker-trigger")).toContainText("详细阅读");
@@ -118,6 +118,7 @@ test("test transport errors and save failures replace stale success beside the a
     ? route.fulfill(saveFails ? { status: 409, json: { detail: "Synthetic save conflict" } } : { json: {} }) : route.continue());
   await page.goto("/app#settings");
   const panel = page.locator(".model-chat");
+  await page.getByRole("combobox", { name: "摘要来源", exact: true }).selectOption("endpoint");
   await panel.locator('input[name="chat_model"]').fill("my-draft");
   await panel.getByRole("button", { name: "测试并保存", exact: true }).click();
   await expect(panel.locator(".connection-feedback")).toContainText("配置未保存");
@@ -141,5 +142,56 @@ test("settings load failure can recover without editing a blank configuration", 
   await expect(page.locator('.models input[name="chat_model"]')).toHaveCount(0);
   failed = false;
   await page.getByRole("button", { name: "重新读取设置", exact: true }).click();
+  await page.getByRole("combobox", { name: "摘要来源", exact: true }).selectOption("endpoint");
   await expect(page.locator('.models input[name="chat_model"]')).toBeVisible();
+});
+
+test("automatic detection changes agent without reusing its old model or success", async ({ page }) => {
+  let installed = agents;
+  await page.route("**/admin/agents", route => route.fulfill({ json: { agents: installed } }));
+  await page.route("**/admin/settings/test", route => route.fulfill({ json: { chat: { ok: true, model: "codex/custom", ms: 10 } } }));
+  await page.goto("/app#settings");
+  await page.getByRole("combobox", { name: "摘要来源", exact: true }).selectOption("agent");
+  const panel = page.locator(".model-chat");
+  await panel.getByRole("button", { name: "手动输入", exact: true }).click();
+  await panel.locator('input[name="chat_agent_model"]').fill("codex/custom");
+  await panel.getByRole("button", { name: "测试连接", exact: true }).click();
+  await expect(panel.locator(".test-result")).toBeVisible();
+  installed = agents.map(agent => ({ ...agent, installed: agent.id === "opencode" }));
+  await panel.getByRole("button", { name: "重新检测", exact: true }).click();
+  await expect(panel.locator(".agent-detection")).toContainText("OpenCode");
+  await expect(panel.locator('input[name="chat_agent_model"]')).toHaveValue("");
+  await expect(panel.locator(".test-result")).toHaveCount(0);
+  await expect(panel.locator(".connection-feedback")).toHaveCount(0);
+  await expect(panel.locator(".model-picker-trigger")).toContainText("opencode/default");
+});
+
+test("successful save keeps the acknowledged model visible when reload fails", async ({ page }) => {
+  let saved: Record<string, unknown> = {};
+  let reloadFails = false;
+  await page.route("**/admin/settings/test", route => route.fulfill({ json: { chat: { ok: true, model: "new-model", ms: 10 } } }));
+  await page.route("**/admin/settings", async route => {
+    if (route.request().method() === "PUT") {
+      saved = route.request().postDataJSON().values;
+      reloadFails = true;
+      return route.fulfill({ json: {} });
+    }
+    if (reloadFails) return route.fulfill({ status: 503, json: { detail: "Synthetic reload failed" } });
+    const response = await route.fetch();
+    const data = await response.json();
+    data.settings = data.settings.map((row: { key: string }) => row.key in saved ? { ...row, value: saved[row.key] } : row);
+    return route.fulfill({ response, json: data });
+  });
+  await page.goto("/app#settings");
+  const panel = page.locator(".model-chat");
+  await page.getByRole("combobox", { name: "摘要来源", exact: true }).selectOption("endpoint");
+  await panel.locator('input[name="chat_model"]').fill("new-model");
+  await panel.getByRole("button", { name: "测试并保存", exact: true }).click();
+  await expect(panel.locator(".connection-feedback")).toContainText("连接已验证并保存");
+  await expect(page.locator(".models > .error")).toContainText("未能读取");
+  await expect(panel.locator('input[name="chat_model"]')).toHaveValue("new-model");
+  reloadFails = false;
+  await page.getByRole("button", { name: "重新读取设置", exact: true }).click();
+  await expect(page.locator(".models > .error")).toHaveCount(0);
+  await expect(panel.locator('input[name="chat_model"]')).toHaveValue("new-model");
 });

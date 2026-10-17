@@ -15,12 +15,13 @@
 .settings-panel[hidden] { display: none; }
 .settings-panel .sync-settings, .settings-panel .extension-settings, .settings-panel .desktop-note { margin-top: 0; padding-top: 0; border-top: 0; }
 .settings-panel .section-heading { margin-bottom: 16px; }
-.model-columns, .settings-panel .model-columns { grid-template-columns: minmax(0, 1fr); gap: 0; }
-.model-panel { display: block; padding: 24px 0; }
+.model-columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+.model-panel { display: block; padding: 24px 0; border-top: 1px solid var(--rule); }
 .settings-panel .model-chat { border-top: 0; padding-top: 0; }
 .model-intro { margin-bottom: 18px; }
 .model-panel header { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center; margin-bottom: 6px; }
-.model-panel header h3 { font-size: 1.125rem; font-weight: 700; }
+.model-panel header h3 { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--ink); font-size: 1.125rem; font-weight: 700; }
+.model-panel header h3 svg { color: var(--accent); }
 .model-panel header > span { background: none; padding: 0; font-size: var(--type-meta); text-align: left; }
 .model-purpose { margin: 0; max-width: 72ch; }
 .model-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 20px; }
@@ -51,6 +52,9 @@
 .model-picker-trigger, .model-picker > input { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 44px; padding: 9px 12px; gap: 12px; border: 1px solid var(--rule); border-radius: var(--radius-control); background: var(--canvas); color: var(--ink); font-size: 1rem; text-align: left; }
 .model-picker-trigger > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .model-picker-trigger > svg { flex-shrink: 0; }
+.model-picker-control.is-editable { display: flex; border: 1px solid var(--rule); border-radius: var(--radius-control); background: var(--canvas); }
+.model-picker-control.is-editable > input { width: 100%; min-width: 0; padding: 9px 12px; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--ink); font-size: 1rem; }
+.model-picker-control.is-editable > .model-picker-trigger { flex-shrink: 0; width: 44px; min-height: 44px; padding: 0; justify-content: center; border: 0; }
 .model-picker > input { margin-top: 8px; }
 .model-manual { min-height: 30px; padding: 4px 0; font-size: var(--type-meta); }
 .model-catalog-note { margin: 2px 0 0; }

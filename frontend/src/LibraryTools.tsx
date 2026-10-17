@@ -107,7 +107,7 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
   const mode = action.kind === "process" ? action.mode : operation;
   const [processTarget, setProcessTarget] = useState("current");
   const processScope = action.kind === "process" ? processTarget === "all" ? {} : processTarget === "current" ? action.scope
-    : { ...action.scope, status: processTarget as "pending" | "failed", exclude_ids: [] } : undefined;
+    : { ...action.scope, status: processTarget as "pending" | "failed" } : undefined;
   const processScopeKey = JSON.stringify(processScope);
   const [targetCount, setTargetCount] = useState<number | null>(null);
   const [previewRevision, setPreviewRevision] = useState("");
@@ -205,10 +205,10 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
             <p className="hint">{t("JSON 包含已保存的正文与摘要，请妥善保管。重新导入只恢复书签信息，正文与 AI 索引需重新处理。HTML 只导出书签信息；含逗号的标签请用 JSON 保留。", "JSON includes saved text and summaries; store it safely. Reimport restores bookmark metadata; page text and AI indexes must be rebuilt. HTML contains bookmark metadata only. Use JSON to preserve tags containing commas.")}</p>
           </>}
           {processing && <>
-            {!ids && action.kind === "process" && <label className="field">{t("摘要处理范围", "Processing scope")}<select aria-label={t("摘要处理范围", "Summary scope")} value={processTarget}
+            {!ids && action.kind === "process" && <label className="field">{mode === "summarize" ? t("摘要处理范围", "Summary scope") : t("正文抓取范围", "Page fetch scope")}<select aria-label={mode === "summarize" ? t("摘要处理范围", "Summary scope") : t("正文抓取范围", "Page fetch scope")} value={processTarget}
               onChange={event => { setProcessTarget(event.target.value); setConfirmed(false); setTargetCount(null); }}>
               <option value="current">{action.scopeLabel || t("当前范围", "Current scope")}</option>
-              <option value="pending">{t("当前未生成", "Pending in current scope")}</option><option value="failed">{t("当前失败重试", "Failures in current scope")}</option>
+              {mode === "summarize" && <><option value="pending">{t("当前未生成", "Pending in current scope")}</option><option value="failed">{t("当前失败重试", "Failures in current scope")}</option></>}
               <option value="all">{t("整个书签库", "Entire library")}</option>
             </select></label>}
             <p>{ids ? t(`处理选中的 ${ids.length} 条收藏。`, `Process ${ids.length} selected bookmarks.`)

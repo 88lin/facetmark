@@ -19,14 +19,17 @@ def main():
     sha = os.environ["GITHUB_SHA"]
     run = os.environ["GITHUB_RUN_ID"]
     captures = []
-    for source in sorted(Path("frontend/screenshots").glob("*.png")):
+    sources = [(source, source.name) for source in sorted(Path("frontend/screenshots").glob("*.png"))]
+    sources += [(source, f"failure-{source.parent.name}-{source.name}")
+                for source in sorted(Path("frontend/test-results").rglob("test-failed-*.png"))]
+    for source, filename in sources:
         with Image.open(source) as picture:
             metadata = PngImagePlugin.PngInfo()
             metadata.add_text("Source", f"Facetmark shared React /app; commit {sha}; Actions {run}")
             metadata.add_text("Data", "Repository synthetic corpus; controlled failure cases are test fixtures")
-            destination = target / source.name
+            destination = target / filename
             picture.save(destination, pnginfo=metadata)
-            captures.append({"file": source.name, "width": picture.width, "height": picture.height,
+            captures.append({"file": filename, "width": picture.width, "height": picture.height,
                              "sha256": hashlib.sha256(destination.read_bytes()).hexdigest()})
     for offset in range(0, len(captures), 6):
         batch = captures[offset:offset + 6]

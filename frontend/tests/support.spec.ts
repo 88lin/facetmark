@@ -79,13 +79,18 @@ test("partial task recovery resumes the saved scope without starting broad work"
   await page.route("**/admin/jobs", route => route.fulfill({ json: { items: [current] } }));
   await page.route("**/admin/jobs/resume", route => { resumed = route.request().postDataJSON(); return route.fulfill({ json: {} }); });
   await page.route("**/admin/jobs/start", route => { started = true; return route.fulfill({ json: {} }); });
-  await page.goto("/app#tasks");
+  await page.goto("/app");
+  await page.getByRole("button", { name: "任务", exact: true }).click();
   await expect(page.locator(".task-scope")).toContainText("Research");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: "screenshots/support-tasks-partial-mobile.png", animations: "disabled" });
   await page.getByRole("button", { name: "重试此任务失败项", exact: true }).click();
   await expect.poll(() => resumed).toEqual({ resume_id: current.id, confirmed: true });
   expect(started).toBe(false);
+  await page.getByRole("button", { name: "抓取网页正文", exact: true }).click();
+  const scope = page.getByRole("combobox", { name: "正文抓取范围", exact: true });
+  await expect(scope.locator("option")).toHaveCount(2);
+  await expect(scope.locator('option[value="failed"]')).toHaveCount(0);
 });
 
 test("long excerpts remain expandable after changing display without changing text", async ({ page }) => {

@@ -436,7 +436,7 @@ test("fetch needs no model while summarization requires chat and explicit consen
   await page.route("**/admin/jobs/start", async (route) => {
     const body = route.request().postDataJSON();
     starts.push(body);
-    job = { state: "done", params: body, planned: [body.mode === "fetch" ? "fetch" : "enrich"], done: [body.mode === "fetch" ? "fetch" : "enrich"], items: { done: 1, total: 1 }, log: [] };
+    job = { id: "synthetic-processing-task", state: "done", params: body, planned: [body.mode === "fetch" ? "fetch" : "enrich"], done: [body.mode === "fetch" ? "fetch" : "enrich"], items: { done: 1, total: 1 }, log: [] };
     await route.fulfill({ json: job });
   });
   await page.goto("/app");
@@ -475,7 +475,7 @@ test("fetch needs no model while summarization requires chat and explicit consen
   await expect(page.locator(".preview-pane")).toBeVisible();
   await page.getByRole("button", { name: "任务", exact: true }).click();
   await expect(page.locator(".tasks h2")).toHaveText("摘要生成已完成");
-  await expect(page.locator(".tasks")).toContainText("范围：1 条所选书签");
+  await expect(page.locator(".task-scope")).toContainText("1 条选定收藏");
 });
 
 test("mobile action dialogs trap focus, fit the screen and restore the underlying reader", async ({ page, library }) => {
