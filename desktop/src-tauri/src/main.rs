@@ -46,14 +46,24 @@ struct Backend {
     starting: AtomicBool,
     ready: AtomicBool,
     owned: AtomicBool,
+    error_shown: AtomicBool,
     generation: AtomicU64,
 }
 
+/// Last known main-window box. Stored so a reopen lands where the user left it.
+#[derive(Serialize, Deserialize, Clone, Copy)]
+struct Geometry { x: i32, y: i32, width: u32, height: u32 }
+
 #[derive(Serialize, Deserialize)]
 #[serde(default)]
-struct Preferences { tray_notice_seen: bool, shortcut: bool }
+struct Preferences {
+    tray_notice_seen: bool,
+    shortcut: bool,
+    window: Option<Geometry>,
+    maximized: bool,
+}
 impl Default for Preferences {
-    fn default() -> Self { Self { tray_notice_seen: false, shortcut: true } }
+    fn default() -> Self { Self { tray_notice_seen: false, shortcut: true, window: None, maximized: false } }
 }
 fn preferences(app: &tauri::AppHandle) -> Preferences {
     app.path().app_config_dir().ok()
@@ -73,6 +83,48 @@ fn save_preferences(app: &tauri::AppHandle, prefs: &Preferences) {
         app.dialog().message(format!("偏好未能保存，重启后可能恢复默认值。 / Preferences could not be saved: {error}")).title("Facetmark").show(|_| {});
     }
 }
+
+/// Mutex because it is the only way to keep a throttle in a plain `static`;
+/// `Instant::now` is monotonic, so a clock change cannot freeze the writes.
+static LAST_GEOMETRY: Mutex<Option<(std::time::Instant, Geometry)>> = Mutex::new(None);
+
+fn remember_geometry(window: &tauri::Window) {
+    if window.is_maximized().unwrap_or(false) || window.is_minimized().unwrap_or(false) { return; }
+    let (Ok(position), Ok(size)) = (window.outer_position(), window.outer_size()) else { return };
+    if size.width == 0 || size.height == 0 { return; }
+    let geometry = Geometry {
+        x: position.x, y: position.y,
+        width: size.width, height: size.height,
+    };
+    // Drags resize hundreds of times a second; one write per second is enough
+    // to survive a crash and keeps the config file off the hot path.
+    let mut last = LAST_GEOMETRY.lock().unwrap();
+    if let Some((at, previous)) = *last {
+        if at.elapsed() < std::time::Duration::from_millis(900) && previous.width == geometry.width
+            && previous.height == geometry.height && previous.x == geometry.x && previous.y == geometry.y { return; }
+    }
+    *last = Some((std::time::Instant::now(), geometry));
+    let mut prefs = preferences(window.app_handle());
+    prefs.window = Some(geometry);
+    prefs.maximized = false;
+    save_preferences(window.app_handle(), &prefs);
+}
+
+/// A geometry saved on a monitor that is gone would open the window offscreen.
+fn saved_geometry(app: &tauri::AppHandle) -> Option<Geometry> {
+    let geometry = preferences(app).window?;
+    let monitors = app.available_monitors().ok()?;
+    let monitor = monitors.iter().find(|m| {
+        let (origin, size) = (m.position(), m.size());
+        geometry.x < origin.x + size.width as i32 && geometry.x + geometry.width as i32 > origin.x
+            && geometry.y < origin.y + size.height as i32 && geometry.y + geometry.height as i32 > origin.y
+    })?;
+    let bounds = monitor.size();
+    if geometry.width < 780 || geometry.height < 560 || geometry.width > bounds.width.saturating_mul(2)
+        || geometry.height > bounds.height.saturating_mul(2) { return None; }
+    Some(geometry)
+}
+
 fn focus_main(app: &tauri::AppHandle) {
     if let Some(win) = app.get_webview_window("main").or_else(|| app.get_webview_window("loading")) {
         let _ = win.show(); let _ = win.unminimize(); let _ = win.set_focus();
@@ -86,18 +138,25 @@ fn startup_error(app: &tauri::AppHandle, message: &str) {
     if let Some(win) = window {
         let _ = win.show();
         let payload = serde_json::to_string(message).unwrap_or_default();
-        let _ = win.eval(format!("setTimeout(() => window.showStartupError({payload}), 300)").as_str());
+        // `eval` can beat the splash's script on a cold start. Park the message
+        // on the window and let the page pick it up when it is ready.
+        let _ = win.eval(format!(
+            "window.__facetmarkStartupError = {payload};\
+             if (window.showStartupError) window.showStartupError({payload});"
+        ).as_str());
     }
 }
 fn open_workspace(app: &tauri::AppHandle, port: u16) -> Result<(), String> {
     let url: tauri::Url = format!("http://127.0.0.1:{port}/app").parse().map_err(|e| format!("{e}"))?;
-    if let Some(old) = app.get_webview_window("main") { let _ = old.destroy(); }
+    let geometry = saved_geometry(app);
+    let prefs = preferences(app);
     let origin = url.origin();
     let handle = app.clone();
     let new_handle = app.clone();
     let mut builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
-        .title("Facetmark").inner_size(1440., 920.).min_inner_size(780., 560.)
-        .center()
+        .title("Facetmark")
+        .inner_size(geometry.map_or(1440., |g| g.width as f64), geometry.map_or(920., |g| g.height as f64))
+        .min_inner_size(780., 560.)
         .on_navigation(move |target| {
             if target.origin() == origin && (target.path() == "/app" || target.path().starts_with("/app/")) { return true; }
             open_original(&handle, target, "navigation");
@@ -107,8 +166,23 @@ fn open_workspace(app: &tauri::AppHandle, port: u16) -> Result<(), String> {
             open_original(&new_handle, &target, "new_window");
             tauri::webview::NewWindowResponse::Deny
         });
+    // Only a service restart under a live UI needs the label freed first.
+    if let Some(old) = app.get_webview_window("main") { let _ = old.destroy(); }
+    builder = match geometry {
+        Some(box_) => builder.position(box_.x as f64, box_.y as f64),
+        None => builder.center(),
+    };
     if cloud_webview_inspection() { builder = builder.additional_browser_args(CI_BROWSER_ARGS); }
-    let window = builder.build().map_err(|e| e.to_string())?;
+    let window = match builder.build() {
+        Ok(window) => window,
+        Err(error) => {
+            // Keep the app reachable: without a window the tray is the only
+            // entry point, and a failed build may have taken the splash too.
+            startup_error(app, &format!("工作台窗口未能打开。 / The workspace window could not open: {error}"));
+            return Err(error.to_string());
+        }
+    };
+    if prefs.maximized { let _ = window.maximize(); }
     let _ = window.set_focus();
     if let Some(splash) = app.get_webview_window("loading") { let _ = splash.destroy(); }
     Ok(())
@@ -156,7 +230,16 @@ fn spawn_backend(app: &tauri::AppHandle) -> Result<(), String> {
                                     }
                                 }
                             },
-                            Some("error") => startup_error(&handle, record["message"].as_str().unwrap_or("Service startup failed")),
+                            Some("error") => {
+                                // The sidecar reports a fatal condition and then
+                                // exits; clear the handle now so Restart is not
+                                // rejected as "still running" during that gap.
+                                let state = handle.state::<Backend>();
+                                state.error_shown.store(true, Ordering::SeqCst);
+                                state.starting.store(false, Ordering::SeqCst);
+                                if let Some(child) = state.child.lock().unwrap().take() { let _ = child.kill(); }
+                                startup_error(&handle, record["message"].as_str().unwrap_or("Service startup failed"));
+                            },
                             _ => {},
                         }
                     }
@@ -165,7 +248,11 @@ fn spawn_backend(app: &tauri::AppHandle) -> Result<(), String> {
                     let state = handle.state::<Backend>();
                     state.starting.store(false, Ordering::SeqCst);
                     *state.child.lock().unwrap() = None;
-                    if !state.exiting.load(Ordering::SeqCst) && (!state.ready.load(Ordering::SeqCst) || state.owned.load(Ordering::SeqCst)) {
+                    // A specific startup error already explains this exit; the
+                    // generic line would replace it with less information.
+                    let specific = state.error_shown.swap(false, Ordering::SeqCst);
+                    if !specific && !state.exiting.load(Ordering::SeqCst)
+                        && (!state.ready.load(Ordering::SeqCst) || state.owned.load(Ordering::SeqCst)) {
                         startup_error(&handle, "本地服务已停止。可重新启动；已保存的书签会保留。 / Local service stopped. Restart to continue.");
                     }
                     break;
@@ -215,7 +302,9 @@ fn main() {
         let _ = std::fs::create_dir_all(&path);
         if let Ok(path) = path.canonicalize() {
             std::env::set_var("FACETMARK_DATA_DIR", &path);
-            let normalized = path.to_string_lossy().to_lowercase();
+            // Windows paths are case-insensitive; elsewhere two distinct
+            // directory names must stay distinct single-instance namespaces.
+            let normalized = if cfg!(windows) { path.to_string_lossy().to_lowercase() } else { path.to_string_lossy().into_owned() };
             let hash = normalized.bytes().fold(0xcbf29ce484222325u64, |h, b| (h ^ b as u64).wrapping_mul(0x100000001b3));
             context.config_mut().identifier.push_str(&format!(".library-{hash:016x}"));
         }
@@ -242,6 +331,16 @@ fn main() {
             let exit = MenuItem::with_id(app, "exit", "退出 / Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &startup, &shortcut, &update, &exit])?;
             TrayIconBuilder::new().icon(app.default_window_icon().unwrap().clone()).tooltip("Facetmark")
+                .on_tray_icon_event(|tray, event| {
+                    // Windows convention: a plain left click restores the app;
+                    // without this the tray icon feels dead until right-clicked.
+                    if let tauri::tray::TrayIconEvent::Click {
+                        button: tauri::tray::MouseButton::Left,
+                        button_state: tauri::tray::MouseButtonState::Up, ..
+                    } = event {
+                        focus_main(tray.app_handle());
+                    }
+                })
                 .menu(&menu).on_menu_event(move |app, event| {
                     match event.id.as_ref() {
                         "show" => focus_main(app),
@@ -251,10 +350,15 @@ fn main() {
                             let _ = startup.set_checked(if result.is_ok() { !enabled } else { enabled });
                         },
                         "shortcut" => {
+                            // Trust the actual registration, not the stored
+                            // preference: a failed first registration leaves
+                            // the two disagreeing, and toggling from the stale
+                            // value asks the wrong direction.
+                            let registered = app.global_shortcut().is_registered(SHORTCUT).unwrap_or(false);
                             let mut prefs = preferences(app);
-                            let result = if prefs.shortcut { app.global_shortcut().unregister(SHORTCUT) } else { app.global_shortcut().register(SHORTCUT) };
-                            if result.is_ok() { prefs.shortcut = !prefs.shortcut; save_preferences(app, &prefs); }
-                            let _ = shortcut.set_checked(prefs.shortcut);
+                            let result = if registered { app.global_shortcut().unregister(SHORTCUT) } else { app.global_shortcut().register(SHORTCUT) };
+                            if result.is_ok() { prefs.shortcut = !registered; save_preferences(app, &prefs); }
+                            let _ = shortcut.set_checked(result.is_ok() && !registered);
                         },
                         "update" => {
                             if let Some(win) = app.get_webview_window("main") { let _ = win.eval("window.location.hash = 'settings'"); }
@@ -266,6 +370,7 @@ fn main() {
                 }).build(app)?;
             if prefs.shortcut {
                 if let Err(error) = app.global_shortcut().register(SHORTCUT) {
+                    let _ = shortcut.set_checked(false);
                     app.dialog().message(format!("无法注册全局快捷键，可能已被占用。 / Global shortcut unavailable: {error}")).title("Facetmark").show(|_| {});
                 }
             }
@@ -273,20 +378,32 @@ fn main() {
             Ok(())
         })
         .on_window_event(|win, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                if win.label() == "main" {
-                    api.prevent_close();
-                    let app = win.app_handle();
-                    let mut prefs = preferences(app);
-                    if !prefs.tray_notice_seen {
-                        app.dialog().message("Facetmark 将在系统托盘继续运行，索引任务不会停止。可在托盘菜单退出。\n\nFacetmark continues in the system tray. Use the tray menu to quit.").title("Facetmark").show(|_| {});
-                        prefs.tray_notice_seen = true; save_preferences(app, &prefs);
-                    }
-                    let _ = win.hide();
-                } else if win.label() == "loading" {
-                    api.prevent_close();
-                    request_exit(win.app_handle());
+            match event {
+                tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) if win.label() == "main" => {
+                    remember_geometry(win);
                 }
+                tauri::WindowEvent::CloseRequested { api, .. } => {
+                    if win.label() == "main" {
+                        api.prevent_close();
+                        remember_geometry(win);
+                        if win.is_maximized().unwrap_or(false) {
+                            let mut prefs = preferences(win.app_handle());
+                            prefs.maximized = true;
+                            save_preferences(win.app_handle(), &prefs);
+                        }
+                        let app = win.app_handle();
+                        let mut prefs = preferences(app);
+                        if !prefs.tray_notice_seen {
+                            app.dialog().message("Facetmark 将在系统托盘继续运行，索引任务不会停止。可在托盘菜单退出。\n\nFacetmark continues in the system tray. Use the tray menu to quit.").title("Facetmark").show(|_| {});
+                            prefs.tray_notice_seen = true; save_preferences(app, &prefs);
+                        }
+                        let _ = win.hide();
+                    } else if win.label() == "loading" {
+                        api.prevent_close();
+                        request_exit(win.app_handle());
+                    }
+                }
+                _ => {}
             }
         })
         .build(context).expect("Cannot initialize Facetmark")

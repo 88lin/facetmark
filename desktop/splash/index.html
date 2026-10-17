@@ -1,4 +1,46 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Facetmark</title>
-<style>html{color-scheme:light dark}body{margin:0;min-height:100vh;display:grid;place-content:center;gap:16px;text-align:center;font:15px/1.6 system-ui,sans-serif;background:light-dark(#faf9fc,#19181c);color:light-dark(#27232e,#ece9f0)}h1{margin:0;font-size:26px;letter-spacing:-.03em}p{margin:0;max-width:360px}small{opacity:.7}button{font:inherit;padding:8px 18px;border:1px solid #8c789f;border-radius:8px;background:transparent;color:inherit;cursor:pointer}[hidden]{display:none}</style>
-</head><body><h1>Facetmark</h1><p id="status">正在启动你的书签工作台…</p><small id="hint">首次启动可能需要一点时间</small><button id="retry" hidden>重新启动服务</button><script src="loading.js"></script></body></html>
+<style>
+  :root { color-scheme: light dark; --canvas: #fff; --desk: #f3f8fb; --ink: #1c303b; --muted: #566b78;
+    --rule: #e1eaf0; --accent: #087293; --soft: #e0f2f8; }
+  @media (prefers-color-scheme: dark) {
+    :root { --canvas: #1b303e; --desk: #101e28; --ink: #e4f0f5; --muted: #a6becc; --rule: #345060;
+      --accent: #70cde9; --soft: #203f50; }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; display: grid; place-content: center; justify-items: center; gap: 20px;
+    padding: 32px; text-align: center; background: var(--desk); color: var(--ink);
+    font: 15px/1.6 "Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased; user-select: none; }
+  .mark { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 15px;
+    background: var(--accent); box-shadow: 0 8px 24px #08729326; }
+  .mark svg { width: 32px; height: 32px; stroke: var(--canvas); stroke-width: 1.7;
+    fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -.03em; line-height: 1.3; }
+  .copy { display: grid; gap: 6px; justify-items: center; max-width: 360px; }
+  #status { margin: 0; color: var(--muted); font-size: 15px; }
+  #hint { margin: 0; color: var(--muted); font-size: 12.5px; opacity: .8; overflow-wrap: anywhere; }
+  .track { width: 148px; height: 3px; border-radius: 999px; background: var(--soft); overflow: hidden; }
+  .track span { display: block; width: 40%; height: 100%; border-radius: inherit; background: var(--accent);
+    animation: glide 1.4s cubic-bezier(.22, 1, .36, 1) infinite; }
+  @keyframes glide { 0% { transform: translateX(-110%); } 100% { transform: translateX(360%); } }
+  button { font: inherit; font-size: 14px; font-weight: 600; padding: 9px 20px; border: 1px solid var(--rule);
+    border-radius: 7px; background: var(--canvas); color: var(--accent); cursor: pointer; }
+  button:hover { background: var(--soft); }
+  button:disabled { opacity: .5; cursor: default; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { .track span { animation: none; transform: none; } }
+</style>
+</head><body>
+  <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 12.5 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></span>
+  <div class="copy">
+    <h1>Facetmark</h1>
+    <p id="status">正在启动你的书签工作台…</p>
+    <small id="hint">首次启动可能需要一点时间</small>
+  </div>
+  <div class="track" id="track" aria-hidden="true"><span></span></div>
+  <button id="retry" hidden>重新启动服务</button>
+  <script src="loading.js"></script>
+</body></html>
