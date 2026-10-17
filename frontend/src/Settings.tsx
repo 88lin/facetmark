@@ -204,7 +204,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
   const modelPicker = (channel: string, local = false) => {
     const key = local ? "chat_agent_model" : `${channel}_model`;
     const payload = { channel, ...Object.fromEntries(Object.entries(draft).filter(([key]) => key.startsWith(`${channel}_`))) };
-    const identity = local ? JSON.stringify([agentPreference, selectedAgent?.path, selectedAgent?.id, detecting, loadingSettings])
+    const identity = local ? JSON.stringify([agentPreference, selectedAgent?.path, selectedAgent?.id, detecting])
       : JSON.stringify([value(`${channel}_base_url`), value(`${channel}_api_key`), value(`${channel}_allow_no_key`)]);
     return <ModelPicker key={local ? "agent" : channel} name={key} value={String(value(key))}
       onChange={next => change(key, next)} payload={payload} identity={identity}

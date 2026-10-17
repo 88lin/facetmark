@@ -46,11 +46,13 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
   useEffect(() => {
     abort.current?.abort();
     setCatalog(null); setError(""); setOpen(false); setSearch(""); setBusy(false);
-    if (autoLoad && !disabled) void load();
     return () => abort.current?.abort();
     // Identity includes provider, credential draft and resolved installation path.
     // Editing a model does not refetch its own catalog.
   }, [identity]);
+  useEffect(() => {
+    if (autoLoad && !disabled) void load();
+  }, [identity, autoLoad, disabled]);
   useEffect(() => {
     if (!open) return;
     filter.current?.focus();
@@ -87,6 +89,7 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
         : t("从服务中选择模型", "Choose from service models")}</span><ChevronDown size={16}/>
     </button>
     {open && <div className="model-picker-menu" onKeyDown={event => {
+      if (event.nativeEvent.isComposing) return;
       if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setOpen(false); trigger.current?.focus(); }
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         event.preventDefault(); setActive(index => Math.max(0, Math.min(shown.length - 1, index + (event.key === "ArrowDown" ? 1 : -1))));
@@ -99,7 +102,7 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
         aria-label={t("搜索模型", "Search models")} placeholder={t("搜索模型名称…", "Search model names…")}
         onChange={event => { setSearch(event.target.value); setActive(0); }}/></div>
       <div ref={list} id={`${id}-list`} role="listbox" aria-label={label} className="model-picker-list">
-        {shown.map((choice, index) => <button key={choice.id} type="button" role="option" id={`${id}-option-${index}`}
+        {shown.map((choice, index) => <button key={choice.id} type="button" role="option" tabIndex={-1} id={`${id}-option-${index}`}
           aria-selected={value === choice.id} className={active === index ? "is-active" : ""}
           ref={element => { if (index === active && element && list.current) {
             const bounds = element.getBoundingClientRect();
@@ -107,7 +110,7 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
             if (bounds.top < viewport.top) list.current.scrollTop -= viewport.top - bounds.top;
             else if (bounds.bottom > viewport.bottom) list.current.scrollTop += bounds.bottom - viewport.bottom;
           } }}
-          onMouseEnter={() => setActive(index)} onClick={() => choose(choice.id)}>
+          onMouseDown={event => event.preventDefault()} onMouseEnter={() => setActive(index)} onClick={() => choose(choice.id)}>
           <strong>{choice.label}</strong>{choice.label !== choice.id && choice.id && <small>{choice.id}</small>}
         </button>)}
       </div>

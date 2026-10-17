@@ -203,9 +203,9 @@ export default function SetupFlow({
       {step === 0 ? (
         <Importer refresh={refresh} />
       ) : step === 1 ? (
-        <Models setup={setup} refresh={refresh} />
+        <Models setup={setup} refresh={refresh} onSummarize={() => onProcess("summarize")} />
       ) : step === 2 ? (
-        <Tasks setup={setup} job={job} refresh={refresh} onProcess={onProcess} />
+        <Tasks setup={setup} job={job} refresh={refresh} onProcess={onProcess} onBack={onDone} />
       ) : (
         <section className="ready">
           <Check size={32} />

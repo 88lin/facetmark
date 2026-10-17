@@ -48,6 +48,10 @@ test("model choice survives test, save and reopen and reaches summary generation
   await expect(panel.locator(".connection-feedback")).toContainText("连接已验证并保存");
   expect(tested.chat_agent_model).toBe("opencode/careful");
   expect(saved.chat_agent_model).toBe("opencode/careful");
+  await expect(panel.getByRole("button", { name: "刷新模型", exact: true })).toBeEnabled();
+  await panel.locator(".model-picker-trigger").click();
+  await expect(page.getByRole("option", { name: /快速摘要/ })).toBeVisible();
+  await page.keyboard.press("Escape");
   await panel.getByRole("button", { name: "前往生成摘要", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "生成 AI 摘要", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "取消", exact: true }).click();
