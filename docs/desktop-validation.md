@@ -1,6 +1,111 @@
 # Desktop experience validation
 
-## 2026-10-14: OpenCode, reliable agent connections and compact settings (verified)
+## 2026-10-17: complete model choice, summary use and exact recovery
+
+<!-- current-experience-evidence:start -->
+
+Validated application/test source: `4c6383ad0537bccb85ce32f76fc11fe3f9e139e8`.
+Experience, all ten CI jobs and Windows installation checks passed at this source.
+The fresh independent visual review returned **ship** for the complete reviewed
+improvement scope. No user aesthetic approval is recorded.
+
+The revision completes model discovery → selection → test/save → summary use,
+separates Display from generation scope, and preserves the original target snapshot
+for partial-task recovery. The final lifecycle correction keeps a hand-entered model
+when failed initial Agent detection first succeeds; unresolved detection does not
+establish a new Agent identity.
+
+| Evidence | Verified state |
+| --- | --- |
+| Experience | [39002142092](https://github.com/88lin/facetmark/actions/runs/39002142092) **success**: 2049 Python passed / 1 skipped; 63 ordinary Playwright passed / 1 large-matrix case skipped; the separate 200,000-record browser job passed. TypeScript/Vite, wheel/sdist resources, Docker and extension checks passed. |
+| CI | [39002144664](https://github.com/88lin/facetmark/actions/runs/39002144664) **success**: all ten jobs individually verified passed. |
+| Real OpenCode | Linux and Windows passed catalog → specified model → summary through isolated synthetic HTTP services. |
+| Targeted local checks | 42 Python tests passed, including application HTTP discovery, specified-model test/save/job execution and summary storage. `ruff check src tests scripts` passed. |
+| Independent source review | Five material findings scored resolved after correction. This is distinct from the fresh rendered visual review. |
+| Mechanical design scan | One pass across 14 changed UI targets returned `[]`. |
+| Web visual provenance | [Artifact 12089977028](https://github.com/88lin/facetmark/actions/runs/39002142092/artifacts/12089977028): all **80 PNG SHA256 values** verified against the exact-source/run `provenance.json` in `.desktop-build/holistic-final-39002142092`. |
+| Windows | [39002142193](https://github.com/88lin/facetmark/actions/runs/39002142193) **success**: offline WebView2 installation, backend isolation, installed-app behavior, reinstall, data-preserving uninstall and parent-exit cleanup passed. |
+| Fresh visual review | **Ship**: 17 named captures independently inspected; all eight original findings resolved, with no remaining material findings in the reviewed scope. |
+
+The root's final Web capture inspection covered desktop/mobile collections, searchable
+models on desktop and the selected-model mobile state. The independent review's
+broader 17-capture scope and completed disposition are recorded below.
+
+Final density uses results viewport/list top, separately from the first card's
+3px inset. The desktop and 390px mobile fixtures respectively measure list top
+**208.39px / 256.08px** and first card **211.39px / 259.08px**. These satisfy the
+list-top targets of 210px desktop and 270px mobile.
+
+| Viewport width | Complete visible cards | Horizontal document overflow |
+| --- | ---: | --- |
+| 1440px | 8 | None |
+| 1366px | 6 | None |
+| 1280px | 3 | None |
+| 1024px | 4 | None |
+| 390px | 2 | None |
+
+The synthetic 200,000-record benchmark measured first page **73.56ms** and deep
+page **139.31ms**. The separate large-library browser pass validates the scoped
+workflow on that fixture; it does not mean 200,000 real summaries were generated.
+
+Windows evidence is [desktop-install-evidence 12089883505](https://github.com/88lin/facetmark/actions/runs/39002142193/artifacts/12089883505)
+(**161,300 bytes**), stored in `.desktop-build/holistic-windows-39002142193`.
+`installed-reader.json` identifies the exact validated source. The synthetic
+installed-app flow imported bookmarks, searched, opened the original URL through
+an actual Edge request and returned from Preview with the query preserved.
+No page errors were recorded. `installed-collection.png` and
+`installed-reader.png` were inspected at **1028 × 749px**.
+
+The [unsigned preview installer artifact 12089928203](https://github.com/88lin/facetmark/actions/runs/39002142193/artifacts/12089928203)
+is a **279,602,130-byte archive** containing a **279,375,572-byte installer**.
+The large installer was not downloaded locally. Hosted Windows Server evidence
+does not certify every Windows 10/11 environment.
+
+**Fresh visual review verdict: ship.** All eight original findings are resolved,
+with no remaining material findings in the reviewed scope. The reviewer independently
+inspected **17 named captures**: five collection sizes, six model/connection states,
+English dark settings, paused and partial tasks, import, and the installed collection
+and preview. It checked source `4c6383a` against the `39002142092` manifest.
+A generic reviewer substituted for the unavailable specialist role.
+
+The reviewer visually inspected those 17 captures, not all 80 Web PNGs, and did not
+run a browser. The 80-image hash verification and passing cloud browser/installation
+jobs provide separate provenance and runtime evidence. The partial-task capture's
+generic stage list is declared fixture content; actual scoped-resume backend tests
+establish precise recovery behavior. This verdict supports the complete reviewed
+improvement scope, not user aesthetic acceptance, personal model-account permissions
+or certification of every Windows environment. No current evidence field remains pending.
+
+Synthetic HTTP summaries verify that the selected model reaches the application
+pipeline and stored result. They do not establish personal account access, model
+quality or quota. Earlier runs below apply only to their recorded source.
+
+<!-- current-experience-evidence:end -->
+
+## Historical validation
+
+All entries below describe earlier revisions. Their uses of “current” or “final”
+are local to the dated entry and do not override the current status above.
+
+### Intermediate runs for the 2026-10-17 refinement
+
+These failures were superseded by the validated source above:
+
+- `6ecd43b`: TypeScript failed because Setup lacked `onBack`.
+- `027a0d6`, [Experience 39000193832](https://github.com/88lin/facetmark/actions/runs/39000193832):
+  2048 Python passed / 1 skipped, 57 ordinary browser passed / 4 failed, with the
+  separate 200,000-record browser pass. The failures concerned a scope fixture,
+  provider selection, a route hash and stale task copy. Its 76 verified PNGs in
+  `.desktop-build/holistic-39000193832` remain intermediate evidence.
+- `eebe1fe`, [Experience 39001262530](https://github.com/88lin/facetmark/actions/runs/39001262530):
+  61 ordinary browser passed / 2 failed. [CI 39001265145](https://github.com/88lin/facetmark/actions/runs/39001265145)
+  had those browser failures and a Windows Python 3.10 child-fixture environment
+  failure. The next revision preserves a manual model across first successful
+  detection, reopens Display after outside dismissal in its fixture, and retains
+  the system environment for the UTF-8 child fixture. Captures in
+  `.desktop-build/holistic-39001262530` are intermediate, not final acceptance.
+
+## 2026-10-14: OpenCode, reliable agent connections and compact settings (historical verified)
 
 Application and test source: `0a1b8f042c7628cf32b7a09f26f6efc605ef8ea3`.
 OpenCode joins Codex and Claude Code. Discovery reads PATH and common installation
@@ -64,7 +169,7 @@ unsigned preview uses manual updates, hosted Windows Server results do not certi
 all Windows 10/11 machines, and artifacts expire after 14 days. PR #44 remains a
 draft with no merge, release or Pages deployment.
 
-## 2026-10-13: collection actions and supporting workflows (verified)
+## 2026-10-13: collection actions and supporting workflows (historical verified)
 
 Application and test source: `5ea56ab86e4822c1114f9288fbbaebadd5aeea1c`.
 This refinement keeps the white/lake-blue identity and direct original links while
@@ -145,7 +250,7 @@ unverified. The Windows x64 preview is unsigned and uses manual updates; hosted
 Windows Server checks do not certify all Windows 10/11 machines. Artifacts expire
 after 14 days. PR #44 remains a draft with no merge, release or Pages deployment.
 
-## 2026-10-12: original links, visible summaries and bounded collection processing (verified)
+## 2026-10-12: original links, visible summaries and bounded collection processing (historical verified)
 
 Final application/test source: `8bf3689e64b7a77222648f65dbe414a588d81731`.
 Frontend and Python workflow fix: `3b04e0d534dae0dbf31e326d2e2dbec2c674d76c`.
