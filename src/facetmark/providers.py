@@ -200,7 +200,7 @@ class OpenAICompatibleProvider(Provider):
     def __init__(self, settings: Settings | None = None,
                  client: httpx.AsyncClient | None = None) -> None:
         super().__init__(settings)
-        if not self.settings.api_key:
+        if not self.settings.api_key and not self.settings.endpoint_allow_no_key:
             raise ProviderError(
                 "no API key. Set FACETMARK_API_KEY (and FACETMARK_BASE_URL for a "
                 "non-OpenAI endpoint), or run with FACETMARK_USE_MOCK_PROVIDER=1."
@@ -208,13 +208,14 @@ class OpenAICompatibleProvider(Provider):
         #: Index into ``settings.chat_model_chain()`` that ``chat_json`` starts
         #: from. Only ever moves forward; see ``chat_json``.
         self._chat_at = 0
+        self._json_mode = True
         self.chat_calls: Counter[str] = Counter()
         self.chat_failures: Counter[str] = Counter()
         self._own = client is None
         self._client = client or httpx.AsyncClient(
             base_url=self.settings.base_url.rstrip("/"),
             timeout=self.settings.request_timeout,
-            headers={"Authorization": f"Bearer {self.settings.api_key}",
+            headers={**({"Authorization": f"Bearer {self.settings.api_key}"} if self.settings.api_key else {}),
                      "Content-Type": "application/json"},
         )
 
@@ -254,13 +255,26 @@ class OpenAICompatibleProvider(Provider):
         )
 
     async def _chat_once(self, model: str, system: str, user: str) -> dict:
-        data = await self._post("/chat/completions", {
+        payload = {
             **json.loads(self.settings.chat_extra_body or "{}"),
             "model": model,
             "messages": [{"role": "system", "content": system},
                          {"role": "user", "content": user}],
-            "response_format": {"type": "json_object"},
-        })
+        }
+        if self._json_mode:
+            payload["response_format"] = {"type": "json_object"}
+        try:
+            data = await self._post("/chat/completions", payload)
+        except ProviderError as exc:
+            # Several compatible services support chat but reject JSON mode.
+            # Retry only that explicit parameter rejection, never auth/rate errors.
+            error = str(exc).lower()
+            if self._json_mode and any(f"http {code}" in error for code in (400, 422)) and "response_format" in error:
+                self._json_mode = False
+                payload.pop("response_format")
+                data = await self._post("/chat/completions", payload)
+            else:
+                raise
         u = data.get("usage") or {}
         self.usage.calls += 1
         self.usage.prompt_tokens += int(u.get("prompt_tokens") or 0)
@@ -336,7 +350,11 @@ class OpenAICompatibleProvider(Provider):
             vecs.extend(await self._embed_batch(texts[start:start + size]))
         return vecs
 
-    async def _embed_batch(self, texts: list[str]) -> list[list[float]]:
+    async def probe_embedding(self) -> list[list[float]]:
+        """Measure the server's dimension without accepting it into an index."""
+        return await self._embed_batch(['facetmark connection test'], validate_dim=False)
+
+    async def _embed_batch(self, texts: list[str], *, validate_dim: bool = True) -> list[list[float]]:
         data = await self._post("/embeddings", {
             "model": self.settings.embed_model,
             "input": texts,
@@ -356,7 +374,7 @@ class OpenAICompatibleProvider(Provider):
             raise ProviderError(f"asked for {len(texts)} embeddings, got {len(vecs)}")
         for vec in vecs:
             got = len(vec)
-            if got != self.embed_dim:
+            if validate_dim and got != self.embed_dim:
                 raise ProviderError(
                     f"{self.embed_model} returned {got}-dim vectors but settings say "
                     f"{self.embed_dim}. Set FACETMARK_EMBED_DIM={got} and rebuild the "
@@ -560,15 +578,52 @@ def parse_json_object(text: str) -> dict:
     raise ProviderError(f"model did not return a JSON object: {text[:200]!r}")
 
 
+def get_embed_provider(settings: Settings) -> Provider:
+    if settings.embed_backend == 'local':
+        return LocalEmbeddingProvider(settings)
+    if settings.use_mock_provider:
+        return MockProvider(settings)
+    if settings.channel_ready('embed'):
+        return OpenAICompatibleProvider(settings.channel_settings('embed'))
+    return UnconfiguredProvider(settings, 'embedding')
+
+
 def get_provider(settings: Settings | None = None, **kw) -> Provider:
     s = settings or get_settings()
-    # Validate local configuration before allocating the chat HTTP client.
-    local = LocalEmbeddingProvider(s) if s.embed_backend == "local" else None
-    base: Provider
-    if s.use_mock_provider or not s.api_key:
+    # Validate local configuration before allocating any HTTP resources.
+    local = LocalEmbeddingProvider(s) if s.embed_backend == 'local' else None
+    if s.use_mock_provider:
         base = MockProvider(s)
+        return SplitProvider(base, local, settings=s) if local is not None else base
+    chat = s.channel_settings('chat')
+    embed = s.channel_settings('embed')
+    if s.chat_backend == 'agent':
+        from .local_agents import LocalAgentProvider
+        chat_provider = LocalAgentProvider(s) if s.channel_ready('chat') else UnconfiguredProvider(s, 'chat')
     else:
-        base = OpenAICompatibleProvider(s, **kw)
+        chat_provider = (OpenAICompatibleProvider(chat, **kw) if s.channel_ready('chat')
+                         else UnconfiguredProvider(s, 'chat'))
     if local is not None:
-        return SplitProvider(base, local, settings=s)
-    return base
+        embedding = local
+    elif s.channel_ready('embed'):
+        if s.chat_backend == 'endpoint' and (chat.base_url, chat.api_key, chat.endpoint_allow_no_key) == (embed.base_url, embed.api_key, embed.endpoint_allow_no_key) and s.channel_ready('chat'):
+            return chat_provider
+        embedding = OpenAICompatibleProvider(embed, **kw)
+    else:
+        embedding = UnconfiguredProvider(s, 'embedding')
+    return SplitProvider(chat_provider, embedding, settings=s)
+
+
+class UnconfiguredProvider(Provider):
+    """Keyword retrieval remains usable; model work fails explicitly."""
+    name = 'unconfigured'
+
+    def __init__(self, settings: Settings, channel: str):
+        super().__init__(settings)
+        self.channel = channel
+
+    async def chat_json(self, system: str, user: str) -> dict:
+        raise ProviderError(f'{self.channel} model is not configured. Configure and test it in Settings.')
+
+    async def embed(self, texts: list[str]) -> list[list[float]]:
+        raise ProviderError(f'{self.channel} model is not configured. Configure and test it in Settings.')

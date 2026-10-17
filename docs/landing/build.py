@@ -710,6 +710,11 @@ def page_index(t: dict) -> str:
     o.append('</div></div><div class="hero-preview">')
     o.append(_shot(*hero_shots(t)))
     o.append("</div></div></section>")
+    preview = i.get('desktop_preview')
+    if preview:
+        title, body, download, note = preview
+        o.append('<section class="band" id="desktop-preview"><div class="wrap">')
+        o.append(f'<h2>{title}</h2><p class="lede read">{body}</p><p>{download}</p><p class="tiny">{note}</p></div></section>')
     terminal = (
         '<div class="win dark term"><div class="win-bar">'
         "<i></i><i></i><i></i>"

@@ -89,7 +89,7 @@ def parse(text: str) -> ImportResult:
                     folder_path=list(stack),
                     date_added_raw=_num(attrs, "ADD_DATE"),
                     date_modified_raw=_num(attrs, "LAST_MODIFIED"),
-                    tags=[t.strip() for t in tags_raw.split(",") if t.strip()],
+                    tags=[html.unescape(t).strip() for t in tags_raw.split(",") if html.unescape(t).strip()],
                 )
             )
         elif m.group("dd") is not None and bookmarks:

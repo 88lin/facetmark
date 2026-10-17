@@ -83,6 +83,8 @@ CREATE TABLE IF NOT EXISTS bookmark (
 CREATE INDEX IF NOT EXISTS ix_bookmark_added  ON bookmark(date_added);
 CREATE INDEX IF NOT EXISTS ix_bookmark_domain ON bookmark(domain);
 CREATE INDEX IF NOT EXISTS ix_bookmark_folder ON bookmark(folder);
+CREATE INDEX IF NOT EXISTS ix_bookmark_browse ON bookmark(COALESCE(date_added,created_at) DESC,id DESC);
+CREATE INDEX IF NOT EXISTS ix_bookmark_folder_browse ON bookmark(folder,COALESCE(date_added,created_at) DESC,id DESC);
 
 -- Fetched page body. Separated from `bookmark` so a re-fetch never rewrites
 -- bookmark identity, and so the big TEXT column stays out of scan-heavy paths.
@@ -121,6 +123,21 @@ CREATE TABLE IF NOT EXISTS enrichment (
     created_at   INTEGER,
     basis        TEXT NOT NULL DEFAULT 'body'
 );
+
+-- Durable status and target snapshots for bounded collection processing.
+CREATE TABLE IF NOT EXISTS enrichment_failure (
+    bookmark_id INTEGER PRIMARY KEY REFERENCES bookmark(id) ON DELETE CASCADE,
+    error TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS processing_item (
+    job_id TEXT NOT NULL,
+    bookmark_id INTEGER NOT NULL REFERENCES bookmark(id) ON DELETE CASCADE,
+    state TEXT NOT NULL DEFAULT 'pending',
+    error TEXT,
+    PRIMARY KEY(job_id,bookmark_id)
+);
+CREATE INDEX IF NOT EXISTS ix_processing_pending ON processing_item(job_id,state,bookmark_id);
 
 -- Facet 2: hypothetical queries generated from the page (doc2query), then
 -- filtered for self-consistency. `kept=1` rows are the ones that get embedded.
@@ -279,6 +296,11 @@ def connect(
         with contextlib.suppress(OSError):
             p.chmod(0o600)
     conn.row_factory = sqlite3.Row
+    # Same deterministic input fingerprint used by title-only enrichment.
+    def title_hash(title, url):
+        import hashlib
+        return "t:" + hashlib.sha256(f"{title or ''}\x00{url}".encode()).hexdigest()
+    conn.create_function("fm_title_hash", 2, title_hash, deterministic=True)
     conn.enable_load_extension(True)
     sqlite_vec.load(conn)
     conn.enable_load_extension(False)

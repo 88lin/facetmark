@@ -300,7 +300,7 @@ class TestQueryFile:
         with pytest.raises(ValueError, match="--queries"):
             await run_eval(build=False, db=tmp_path / "x.db")
 
-    async def test_an_existing_library_can_be_measured_from_a_file(self, tmp_path):
+    async def test_an_existing_library_can_be_measured_from_a_file(self, tmp_path, monkeypatch):
         """The end-to-end shape of the real-corpus run, on a mock library."""
         st = get_settings(use_mock_provider=True, data_dir=str(tmp_path))
         db = tmp_path / "lib.db"
@@ -319,12 +319,13 @@ class TestQueryFile:
             {"text": q.text, "qtype": q.qtype, "target_url": c.pages[q.target].url}
             for q in c.queries[:12]
         ])
+        monkeypatch.setattr('facetmark.eval.harness.get_settings', lambda: st)
         rep = await run_eval(db=db, build=False, queries_path=f, bootstrap=50)
         assert rep["corpus"]["pages"] == 24
         assert rep["rungs"][0]["overall"]["n"] == 12
         assert rep["queries_from"] == str(f)
 
-    async def test_the_report_carries_the_per_query_judgements(self, tmp_path):
+    async def test_the_report_carries_the_per_query_judgements(self, tmp_path, monkeypatch):
         """Aggregates alone cannot be re-cut by a slice the author missed.
 
         The episodic reading in particular has to be split by how the time
@@ -349,6 +350,7 @@ class TestQueryFile:
              "note": "subtype-x"}
             for q in c.queries[:8]
         ])
+        monkeypatch.setattr('facetmark.eval.harness.get_settings', lambda: st)
         rep = await run_eval(db=db, build=False, queries_path=f, bootstrap=20,
                              ablation=True)
 

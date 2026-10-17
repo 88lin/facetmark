@@ -37,7 +37,18 @@ FORMAT_VERSION = 1
 def looks_like_facetmark_export(text: str) -> bool:
     """Cheap sniff on the head of the file, like the other parsers do."""
     head = text[:2048]
-    return f'"{MARKER}"' in head and '"bookmarks"' in head
+    if f'"{MARKER}"' not in head:
+        return False
+    if '"bookmarks"' in head:
+        return True
+    # A valid export query or folder filter can make the header longer than
+    # this prefix. Check its actual top-level keys before falling through to
+    # the Chromium parser, which would otherwise silently import zero rows.
+    try:
+        document = json.loads(text)
+    except ValueError:
+        return False
+    return isinstance(document, dict) and MARKER in document and "bookmarks" in document
 
 
 def parse(text: str) -> ImportResult:
