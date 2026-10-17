@@ -34,9 +34,9 @@ test("a large collection leaves useful browsing space in short desktop and mobil
     // One explicit summary-status row (two on phones) replaces the old
     // single-line excerpts. Keep at least half the window for actual content.
     // Layout coordinates may contain subpixels from rem line heights.
-    expect(size.top).toBeLessThanOrEqual((viewport.width < 720 ? 320 : 235) + 1);
+    expect(size.top).toBeLessThanOrEqual((viewport.width < 720 ? 270 : 210) + 1);
     expect(size.height / size.viewport).toBeGreaterThanOrEqual(.5);
-    expect(size.fullyVisible).toBeGreaterThanOrEqual(viewport.width < 1120 ? 1 : 3);
+    expect(size.fullyVisible).toBeGreaterThanOrEqual(viewport.width < 1120 ? 2 : 3);
     await expect(page.locator(".result-summary").first()).toBeVisible();
     if (viewport.width >= 960) {
       const directory = await page.locator(".collection-sidebar").boundingBox();
@@ -132,6 +132,7 @@ test("a large library can jump to its last page without stepping through every p
 test("deselecting this page preserves selections from other pages", async ({ page }) => {
   await page.goto("/app");
   await expect(page.locator(".result-row")).toHaveCount(30);
+  await page.locator(".library-manage > summary").click();
   await page.getByRole("button", { name: "批量管理", exact: true }).click();
   await page.getByRole("button", { name: "选择本页", exact: true }).click();
   await expect(page.locator(".selection-total")).toHaveText("已选择 30 条");
@@ -232,12 +233,12 @@ test("repeating the active category during a slow request does not leave loading
     await expect.poll(() => calls).toBe(1);
     await expect(page.locator(".result-list")).toHaveAttribute("aria-busy", "true");
     await expect(page.locator(".result-row")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "导出", exact: true })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "导出", exact: true, includeHidden: true })).toBeDisabled();
     await target.click();
     release();
     await expect(page.locator(".result-list")).toHaveAttribute("aria-busy", "false");
     await expect(page.locator(".result-row").first()).toBeVisible();
-    await expect(page.getByRole("button", { name: "导出", exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "导出", exact: true, includeHidden: true })).toBeEnabled();
     expect(calls).toBe(1);
   } finally { release(); }
 });
@@ -285,8 +286,8 @@ test("changing a category closes the old reader and fails closed until the new s
   await expect(page.locator(".preview-pane")).toHaveCount(0);
   await expect(page.locator(".search-error")).toBeVisible();
   await expect(page.locator(".result-row")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "批量管理", exact: true })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "导出", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "批量管理", exact: true, includeHidden: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "导出", exact: true, includeHidden: true })).toBeDisabled();
   await page.unroute("**/bookmarks?**");
   await page.locator(".search-error").getByRole("button", { name: "重试", exact: true }).click();
   await expect(page.locator(".result-list")).toHaveAttribute("aria-busy", "false");

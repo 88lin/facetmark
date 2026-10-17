@@ -42,6 +42,7 @@ export function BookmarkCard({ record, selected, checked, disabled, display, onC
           }}/>
         <span className="site-letter" aria-hidden="true">{(record.domain || "F").slice(0, 1).toUpperCase()}</span>
         <span className="source-domain">{record.domain}</span>
+        <span className="summary-basis">{label}</span>
         {href && <a className="bookmark-external" href={href} target="_blank" rel="noreferrer" onClick={trackOpen}
           aria-label={t(`打开原网页：${record.title || record.url}`, `Open original: ${record.title || record.url}`)}><ExternalLink size={15}/></a>}
       </div>
@@ -49,7 +50,6 @@ export function BookmarkCard({ record, selected, checked, disabled, display, onC
         onClick={trackOpen} onAuxClick={event => { if (event.button === 1) trackOpen(); }}>{record.title || record.url}</a>
         : <span className="result-title">{record.title || record.url}</span>}
       <div className={`bookmark-description ${expanded ? "expanded" : ""}`}>
-        <span className="summary-basis">{label}</span>
         <p ref={summary} className="result-summary">{text || (display === "original" ? t("预览中可抓取正文，或直接打开原网页。", "Fetch page text in Preview, or open the original website.") : t("可生成摘要，在收藏中直接浏览。", "Generate a summary to read it here."))}</p>
         {!!text && (clipped || expanded) && <button className="text-button summary-expand" aria-expanded={expanded}
           onClick={() => setExpanded(!expanded)}>{expanded ? t("收起", "Collapse") : t("展开全文", "Show full text")}</button>}

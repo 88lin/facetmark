@@ -148,6 +148,7 @@ function Workbench({
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [libraryNotice, setLibraryNotice] = useState("");
   const libraryRevision = useRef<string | undefined>(undefined);
+  const refreshId = useRef(0);
   const [preview, setPreview] = useState<Bookmark | null>(null);
   const [previewError, setPreviewError] = useState("");
   const [related, setRelated] = useState<Bookmark[]>([]);
@@ -241,8 +242,10 @@ function Workbench({
     setDepth(undefined);
   }, []);
   const refresh = useCallback(async () => {
+    const id = ++refreshId.current;
     try {
       const data = await api<Record<string, Facet[]>>("/bookmarks/facets");
+      if (id !== refreshId.current) return;
       setFacets(data);
       setConnectionError("");
       try {
@@ -250,6 +253,7 @@ function Workbench({
           api<Setup>("/admin/setup-status"),
           api<Job>("/admin/job"),
         ]);
+        if (id !== refreshId.current) return;
         setSetup(status);
         setJob(task);
         if (libraryRevision.current === undefined) {
@@ -264,10 +268,12 @@ function Workbench({
           if (!status.bookmarks && !remember("fm-setup-skipped")) setView("setup");
         }
       } catch (e) {
+        if (id !== refreshId.current) return;
         if (e instanceof ApiError && e.status === 403) setAdminAvailable(false);
         else throw e;
       }
     } catch (e) {
+      if (id !== refreshId.current) return;
       setConnectionError(String(e));
     }
   }, [invalidateLibrary]);
@@ -310,9 +316,14 @@ function Workbench({
   }, []);
   useEffect(() => {
     if (!paired) return;
-    refresh();
-    const timer = setInterval(refresh, 4000);
-    return () => clearInterval(timer);
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      await refresh();
+      if (!cancelled) timer = setTimeout(poll, 4000);
+    };
+    void poll();
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [paired, refresh]);
   useEffect(() => {
     const media = matchMedia("(max-width: 1119px)");
@@ -1004,6 +1015,9 @@ function Workbench({
                   disabled={job.state === "running"} pending={scopePending}
                   onBatch={value => { setBatchMode(value); setSelectedIds([]); setAllMatching(false); setExcludedIds([]); }}
                   onIds={setSelectedIds} onAction={setLibraryAction}
+                  onSummarize={() => setLibraryAction({ kind: "process", mode: "summarize",
+                    ...(search.trim() && searchMode === "semantic" && semantic ? { ids: items.map(item => item.bookmark_id) }
+                      : { scope: collectionScope, scopeLabel: t("当前筛选结果", "Current matching results") }) })}
                 />}
                 {selected === null && !(search.trim() && searchMode === "semantic" && semantic) && <CollectionTools scope={collectionScope} page={page} display={summaryDisplay} onDisplay={setSummaryDisplay}
                   sort={collectionSort} onSort={value => { setCollectionSort(value); setOffset(0); }}
@@ -1012,7 +1026,7 @@ function Workbench({
                   onAll={() => { setAllMatching(true); setBatchMode(false); setExcludedIds([]); setSelectedIds([]); }}
                   onClear={() => { setAllMatching(false); setBatchMode(false); setExcludedIds([]); setSelectedIds([]); }}
                   onSummarizeSelection={() => setLibraryAction({ kind: "process", mode: "summarize", ...(allMatching ? { scope: collectionScope, scopeLabel: t("跨页所选收藏", "Selection across pages") } : { ids: selectedIds }) })}
-                  onAction={setLibraryAction} job={job} refresh={refresh} admin={adminAvailable}/>}
+                  job={job} refresh={refresh} admin={adminAvailable}/>}
                 <div className="search-controls">
                   <div className="search-meta">
                     {semantic && <select className="search-mode-select" aria-label={t("检索方式", "Search mode")} value={searchMode}
@@ -1270,14 +1284,14 @@ function Workbench({
                 <Importer refresh={refresh} onDone={() => openView("library")} />
               </>
             ) : view === "settings" ? (
-              <SettingsWorkspace setup={setup} refresh={refresh} onChanged={libraryChanged} onBack={() => openView("library")} />
+              <SettingsWorkspace setup={setup} refresh={refresh} onChanged={libraryChanged} onBack={() => openView("library")} onSummarize={() => setLibraryAction({ kind: "process", mode: "summarize", scope: collectionScope, scopeLabel: t("当前收藏范围", "Current collection scope") })} />
             ) : view === "tasks" ? (
               <>
                 <header className="page-heading">
                   <div><h1>{t("任务与诊断", "Tasks and diagnostics")}</h1><p>{t("查看进度，继续处理未完成的收藏。", "Follow progress and resume unfinished work.")}</p></div>
                   <button className="text-button support-back" onClick={() => openView("library")}><ArrowLeft size={16}/>{t("返回收藏", "Back to collection")}</button>
                 </header>
-                <Tasks job={job} setup={setup} refresh={refresh} onProcess={(mode) => setLibraryAction({ kind: "process", mode })} />
+                <Tasks job={job} setup={setup} refresh={refresh} onBack={() => openView("library")} onProcess={(mode) => setLibraryAction({ kind: "process", mode })} />
                 <HealthTools />
               </>
             ) : (

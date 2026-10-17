@@ -78,12 +78,13 @@ test("display and batch-summary options expose the current collection scope", as
   await expect(page.locator(".summary-basis").first()).toHaveText("AI 摘要");
   await page.screenshot({ path: "screenshots/collection-options-desktop.png", animations: "disabled" });
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(options.getByRole("button", { name: "批量生成摘要", exact: true })).toBeVisible();
+  await expect(page.locator(".library-tools").getByRole("button", { name: "生成摘要", exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await page.screenshot({ path: "screenshots/collection-options-mobile.png", animations: "disabled" });
-  await options.getByRole("combobox", { name: "摘要处理范围", exact: true }).selectOption("failed");
-  const request = page.waitForRequest(r => r.url().includes("/admin/jobs/preview"));
-  await options.getByRole("button", { name: "批量生成摘要", exact: true }).click();
+  await options.locator("summary").click();
+  await page.locator(".library-tools").getByRole("button", { name: "生成摘要", exact: true }).click();
+  const request = page.waitForRequest(r => r.url().includes("/admin/jobs/preview") && r.postDataJSON()?.scope?.status === "failed");
+  await page.getByRole("combobox", { name: "摘要处理范围", exact: true }).selectOption("failed");
   const payload = (await request).postDataJSON();
   expect(payload.scope.status).toBe("failed");
   expect(payload.bookmark_ids).toBeUndefined();
@@ -91,8 +92,7 @@ test("display and batch-summary options expose the current collection scope", as
   await expect(dialog).toContainText("本次将处理");
   await expect(dialog.getByRole("button", { name: "开始任务", exact: true })).toBeDisabled();
   await dialog.getByRole("button", { name: "取消", exact: true }).click();
-  await options.getByRole("combobox", { name: "摘要处理范围", exact: true }).selectOption("current");
-  await options.getByRole("button", { name: "批量生成摘要", exact: true }).click();
+  await page.locator(".library-tools").getByRole("button", { name: "生成摘要", exact: true }).click();
   await expect(dialog.locator(".processing-count")).toHaveText("本次将处理 0 条。已完成且未变化的内容会跳过。");
   await page.screenshot({ path: "screenshots/summary-skip-completed-mobile.png", animations: "disabled" });
   const reprocess = dialog.getByLabel("重新处理已完成的内容", { exact: true });

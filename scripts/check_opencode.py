@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 from facetmark.config import Settings
 from facetmark.local_agents import LocalAgentProvider, resolve_command
+from facetmark.model_catalog import agent_catalog
 
 
 def main():
@@ -72,8 +73,12 @@ def main():
                            "OPENCODE_DISABLE_MODELS_FETCH": "1"}
 
             async def generate():
+                catalog = await agent_catalog("opencode")
+                assert catalog["default_model"] == "fixture/fixture-model", catalog
+                assert any(item["id"] == "fixture/fixture-model" and item["source"] == "cli" for item in catalog["models"]), catalog
+                assert not catalog["warning"], catalog
                 provider = LocalAgentProvider(Settings(data_dir=root / "facetmark", chat_backend="agent",
-                    chat_agent="opencode", chat_agent_timeout=120))
+                    chat_agent="opencode", chat_agent_model="fixture/fixture-model", chat_agent_timeout=120))
                 try:
                     result = await provider.chat_json("Return a JSON summary.", "测试中文和 $(do-not-execute)")
                     assert result == {"summary": "中文摘要链路通过"}, result

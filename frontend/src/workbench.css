@@ -2,7 +2,7 @@
    Shared forms, semantic states and reader internals remain in styles.css. */
 :root {
   --rail: #f0f6f9;
-  --desk: #f5f9fb;
+  --desk: #f8fafb;
   --ink: #1c303b;
   --muted: #566b78;
   --accent: #087293;
@@ -71,7 +71,7 @@
   gap: 4px;
   margin-left: 4px;
   padding: 4px;
-  background: var(--inset);
+  background: transparent;
   border-radius: var(--radius-control);
 }
 .header-navigation button {
@@ -92,11 +92,18 @@
 }
 .header-navigation button.active {
   color: var(--accent);
-  background: var(--soft);
+  background: transparent;
   font-weight: 700;
 }
 .header-navigation button.active::after {
-  display: none;
+  display: block;
+  content: "";
+  position: absolute;
+  left: 17px;
+  right: 17px;
+  bottom: 0;
+  height: 2px;
+  background: var(--accent);
 }
 .header-navigation button:not(.active):hover {
   color: var(--accent);
@@ -550,7 +557,7 @@
   margin: 0 auto;
 }
 .browse-mode .workspace-toolbar {
-  height: 60px;
+  height: 56px;
   display: flex;
   gap: 18px;
   padding: 0;
@@ -600,7 +607,7 @@
 .browse-mode .result-copy {
   min-height: 0;
   align-self: stretch;
-  gap: 6px;
+  gap: 4px;
 }
 .browse-mode .result-source {
   font-size: var(--type-meta);
@@ -1360,10 +1367,10 @@
   .workspace-toolbar,
   .browse-mode .workspace-toolbar {
     height: auto;
-    padding: 12px 0;
+    padding: 8px 0;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
+    gap: 6px;
   }
   .workspace-search,
   .browse-mode .workspace-search {

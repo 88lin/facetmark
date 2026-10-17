@@ -8,11 +8,13 @@ export function Tasks({
   setup,
   refresh,
   onProcess,
+  onBack,
 }: {
   job: Job;
   setup: Setup | null;
   refresh: () => Promise<void>;
   onProcess: (mode: "fetch" | "summarize") => void;
+  onBack: () => void;
 }) {
   const t = useText();
   const [consent, setConsent] = useState(false);
@@ -92,6 +94,9 @@ export function Tasks({
         <p>
           {descriptions[job.state] || t("请查看当前任务状态。", "Review the current task status.")}
         </p>
+        {mode !== "index" && job.id && <p className="task-scope">{t("处理范围：", "Scope: ")}{job.params?.bookmark_ids
+          ? t(`${job.params.bookmark_ids.length} 条选定收藏`, `${job.params.bookmark_ids.length} selected bookmarks`)
+          : [job.params?.scope?.folder, job.params?.scope?.tag, job.params?.scope?.domain, job.params?.scope?.q].filter(Boolean).join(" · ") || t("书签库中的任务快照", "Saved library selection")}</p>}
       </div>
       {mode !== "index" && job.items && (
         <div className="task-progress">
@@ -109,8 +114,8 @@ export function Tasks({
             />
           )}
           {!!job.items.failed && <p className="error">{mode === "summarize"
-            ? t(`${job.items.failed} 条处理失败，可返回收藏筛选「失败」后重试。`, `${job.items.failed} failed. Return to the collection and filter Failed to retry.`)
-            : t(`${job.items.failed} 条正文抓取失败。可继续已保存的任务，或再次抓取；已完成且未变化的内容会跳过。`, `${job.items.failed} page fetches failed. Resume the saved task or fetch again; completed, unchanged content is skipped.`)}</p>}
+            ? t(`${job.items.failed} 条处理失败。继续此任务会重试失败项，保留已完成的结果。`, `${job.items.failed} failed. Resume this task to retry failures and keep completed results.`)
+            : t(`${job.items.failed} 条正文抓取失败。继续此任务只处理失败和未完成的收藏。`, `${job.items.failed} page fetches failed. Resume this task to process only failed and unfinished bookmarks.`)}</p>}
         </div>
       )}
       {running ? (
@@ -140,7 +145,8 @@ export function Tasks({
       ) : (
         <div className="task-current-actions">
           {job.resumable && <button className="primary" disabled={busy}
-            onClick={() => action("/admin/jobs/resume", { resume_id: job.id, confirmed: true })}><Play/>{t("继续上次任务", "Resume saved task")}</button>}
+            onClick={() => action("/admin/jobs/resume", { resume_id: job.id, confirmed: true })}><Play/>{job.state === "partial" ? t("重试此任务失败项", "Retry this task's failures") : t("继续上次任务", "Resume saved task")}</button>}
+          {job.state !== "idle" && <button className="secondary" onClick={onBack}>{t("返回收藏查看内容", "Return to collection")}</button>}
         </div>
       )}
       {(error || job.error) && (
@@ -171,7 +177,7 @@ export function Tasks({
           {!!item.items?.failed && t(` · ${item.items.failed} 条失败`, ` · ${item.items.failed} failed`)}</span>
         <button className="secondary" disabled={busy || running} onClick={() => action("/admin/jobs/resume", { resume_id: item.id, confirmed: true })}><Play/>{t("继续", "Resume")}</button>
       </div>)}
-      {job.state !== "idle" && (
+      {job.state !== "idle" && mode === "index" && (
         <p className="hint">
           {job.params?.bookmark_ids
             ? t(
@@ -181,7 +187,7 @@ export function Tasks({
             : t("范围：书签库中符合条件的书签", "Scope: eligible bookmarks in your library")}
         </p>
       )}
-      {["interrupted", "failed", "cancelled", "partial"].includes(job.state) && (
+      {mode === "index" && ["interrupted", "failed", "cancelled", "partial"].includes(job.state) && (
         <p className="notice">
           {t(
             "可以再次运行。未变化且已经完成的内容会被指纹检查跳过。",

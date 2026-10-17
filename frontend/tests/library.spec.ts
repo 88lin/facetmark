@@ -86,6 +86,7 @@ async function save(dialog: Locator) {
 }
 
 async function selectAll(page: Page) {
+  await page.locator(".library-manage > summary").click();
   await page.getByRole("button", { name: "批量管理", exact: true }).click();
   await page.getByRole("button", { name: "选择本页", exact: true }).click();
   await page.getByRole("button", { name: "批量操作", exact: true }).click();
@@ -217,6 +218,7 @@ test("keyboard selection and bulk move and tags affect only the selected results
   const outside = await library.create({ title: "Not in the selected result set", folder: "保持原样", tags: ["原标签"] });
   await page.goto("/app");
   await search(page, token, 2);
+  await page.locator(".library-manage > summary").click();
   await page.getByRole("button", { name: "批量管理", exact: true }).click();
   await expect(page.getByRole("button", { name: "批量操作", exact: true })).toBeDisabled();
   await page.locator(".result-row").first().locator(".bookmark-check").focus();
@@ -264,6 +266,7 @@ test("export downloads honor search-page, selected and category scopes", async (
   const outside = await library.create({ title: `${token} 文件夹之外`, folder: "导出范围之外" });
   await page.goto("/app");
   await search(page, token, 3);
+  await page.locator(".library-manage > summary").click();
   await page.getByRole("button", { name: "导出", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "导出收藏", exact: true });
   await expect(dialog.getByRole("combobox", { name: "导出范围", exact: true })).toHaveValue("page");
@@ -276,6 +279,7 @@ test("export downloads honor search-page, selected and category scopes", async (
   expect(json.bookmarks.map((bookmark: Bookmark) => bookmark.url).sort()).toEqual([first.url, second.url, outside.url].sort());
   expect(json.bookmarks.find((bookmark: Bookmark) => bookmark.url === first.url).tags).toEqual(["带,逗号"]);
 
+  await page.locator(".library-manage > summary").click();
   await page.getByRole("button", { name: "批量管理", exact: true }).click();
   await row(page, first.bookmark_id).locator(".bookmark-check").check();
   await page.getByRole("button", { name: "导出所选", exact: true }).click();
@@ -296,6 +300,7 @@ test("export downloads honor search-page, selected and category scopes", async (
   await page.locator(".facet-nav").getByRole("textbox", { name: "查找分类" }).fill(folder);
   await page.locator(".facet-nav").getByTitle(folder, { exact: true }).click();
   await expect(page.locator(".result-row")).toHaveCount(2);
+  await page.locator(".library-manage > summary").click();
   await page.getByRole("button", { name: "导出", exact: true }).click();
   await expect(dialog.getByRole("combobox", { name: "导出范围", exact: true })).toHaveValue("filtered");
   const filtered = await download(page, dialog);
@@ -315,6 +320,7 @@ test("creation, organization and export start in the category the user is browsi
   await rail.getByRole("textbox", { name: "查找分类" }).fill(folder);
   await rail.getByTitle(folder, { exact: true }).click();
   await expect(page.locator(".result-row")).toHaveCount(1);
+  await page.locator(".library-manage > summary").click();
   await page.getByRole("button", { name: "整理分类", exact: true }).click();
   let dialog = page.getByRole("dialog");
   await expect(dialog.getByLabel("当前名称", { exact: true })).toHaveValue(folder);
@@ -335,6 +341,7 @@ test("creation, organization and export start in the category the user is browsi
   library.remember(created.bookmark_id);
   expect(await library.read(created.bookmark_id)).toMatchObject({ folder, tags: [tag] });
   await expect(page.locator(".result-row")).toHaveCount(2);
+  await page.locator(".library-manage > summary").click();
   await page.getByRole("button", { name: "导出", exact: true }).click();
   dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("combobox", { name: "导出范围", exact: true })).toHaveValue("filtered");
@@ -355,6 +362,7 @@ test("taxonomy merges exact names and removes labels without deleting bookmarks"
   const second = await library.create({ folder: targetFolder, tags: [oldTag] });
   const outside = await library.create({ folder: `${oldFolder}/child`, tags: [`${oldTag} suffix`] });
   await page.goto("/app");
+  await page.locator(".library-manage > summary").click();
   await page.getByRole("button", { name: "整理分类", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "整理文件夹与标签", exact: true });
   await dialog.getByLabel("当前名称", { exact: true }).fill(oldFolder);
@@ -370,6 +378,7 @@ test("taxonomy merges exact names and removes labels without deleting bookmarks"
   expect((await library.read(outside.bookmark_id)).folder).toBe(`${oldFolder}/child`);
 
   for (const action of ["rename", "delete"]) {
+    await page.locator(".library-manage > summary").click();
     await page.getByRole("button", { name: "整理分类", exact: true }).click();
     await dialog.getByRole("combobox", { name: "整理对象", exact: true }).selectOption("tag");
     await dialog.getByRole("combobox", { name: "操作", exact: true }).selectOption(action);
@@ -389,6 +398,7 @@ test("JSON download retains the saved page text for the selected synthetic bookm
   const id = Number(await first.getAttribute("data-bookmark-id"));
   const record = await library.read(id);
   expect(record.body_text).toContain("synthetic content");
+  await page.locator(".library-manage > summary").click();
   await page.getByRole("button", { name: "批量管理", exact: true }).click();
   await first.locator(".bookmark-check").check();
   await page.getByRole("button", { name: "导出所选", exact: true }).click();

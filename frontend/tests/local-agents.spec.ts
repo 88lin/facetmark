@@ -12,6 +12,9 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("fm-language", "zh"));
   await page.route("**/*", route => new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort());
   await mkdir("screenshots", { recursive: true });
+  await page.route("**/admin/settings/models", route => route.fulfill({ json: { agent: "opencode", default_model: "custom/default", warning: "", models: [
+    { id: "custom/default", label: "Default summary", source: "cli" }, { id: "custom/selected", label: "Selected summary", source: "cli" },
+  ] } }));
 });
 
 test("OpenCode is detected, selected, tested and saved without duplicated credentials", async ({ page }) => {
@@ -69,6 +72,7 @@ test("detection failure is retryable and does not erase an agent model draft", a
   await expect(panel.locator(".agent-detection")).toContainText("暂时无法检测");
   await expect(panel.getByRole("button", { name: "测试并保存", exact: true })).toBeDisabled();
   await panel.locator(".agent-details > summary").click();
+  await panel.getByRole("button", { name: "手动输入", exact: true }).click();
   await panel.locator('input[name="chat_agent_model"]').fill("custom/keep-my-draft");
   fail = false;
   await panel.getByRole("button", { name: "重新检测", exact: true }).click();

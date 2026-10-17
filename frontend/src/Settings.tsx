@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Check,
   Copy,
@@ -12,10 +12,11 @@ import {
 } from "lucide-react";
 import { api, getToken, post, type Probe, type Setting, type Setup } from "./api";
 import { useText } from "./locale";
+import { ModelPicker } from "./ModelPicker";
 
 type LocalAgent = { id: string; name: string; installed: boolean; path?: string | null };
 
-export function Models({ setup, refresh, showHeading = true }: { setup: Setup | null; refresh: () => Promise<void>; showHeading?: boolean }) {
+export function Models({ setup, refresh, showHeading = true, onSummarize }: { setup: Setup | null; refresh: () => Promise<void>; showHeading?: boolean; onSummarize?: () => void }) {
   const t = useText();
   const [agents, setAgents] = useState<LocalAgent[]>([]);
   const [detecting, setDetecting] = useState(true);
@@ -27,8 +28,14 @@ export function Models({ setup, refresh, showHeading = true }: { setup: Setup | 
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [consent, setConsent] = useState(false);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [channelFeedback, setChannelFeedback] = useState<Record<string, { text: string; saved: boolean }>>({});
+  const [testingAndSaving, setTestingAndSaving] = useState(false);
+  const agentModels = useRef<Record<string, string>>({});
   const hasDraft = Object.keys(draft).length > 0;
   const channelStatus = (channel: string) => {
+    if (busy === channel) return t("正在测试…", "Testing…");
     if (results[channel] && (!results[channel].ok || results[channel].dim_matches === false))
       return t("测试未通过", "Test failed");
     const dirty = Object.keys(draft).some(
@@ -60,15 +67,20 @@ export function Models({ setup, refresh, showHeading = true }: { setup: Setup | 
     }
   }
   async function load(suggestAgent = false) {
-    const data = await api<{ settings: Setting[] }>("/admin/settings");
-    setRows(data.settings);
-    if (suggestAgent) {
-      const found = await detect();
-      if (!setup?.channels.chat.configured && found.some(a => a.installed)
-        && data.settings.find(r => r.key === "chat_backend")?.value !== "agent"
-        && !data.settings.find(r => r.key === "chat_backend")?.locked)
-        setDraft(current => ({ chat_backend: "agent", ...current }));
-    }
+    setLoadingSettings(true); setLoadError("");
+    try {
+      const data = await api<{ settings: Setting[] }>("/admin/settings");
+      setRows(data.settings);
+      if (suggestAgent) {
+        const found = await detect();
+        if (!setup?.channels.chat.configured && found.some(a => a.installed)
+          && data.settings.find(r => r.key === "chat_backend")?.value !== "agent"
+          && !data.settings.find(r => r.key === "chat_backend")?.locked)
+          setDraft(current => ({ chat_backend: "agent", ...current }));
+      }
+    } catch {
+      setLoadError(t("未能读取已保存的设置，请重试。", "Saved settings could not be loaded. Please retry."));
+    } finally { setLoadingSettings(false); }
   }
   useEffect(() => {
     load(true).catch((e) => { setError(String(e)); setDetecting(false); });
@@ -80,14 +92,18 @@ export function Models({ setup, refresh, showHeading = true }: { setup: Setup | 
   const selectedAgent = agentPreference === "auto" ? agents.find(a => a.installed) : agents.find(a => a.id === agentPreference && a.installed);
   const agentUnavailable = value("chat_backend") === "agent" && (detecting || !selectedAgent || !!detectionError);
   const change = (key: string, next: unknown) => {
+    if (key === "chat_agent") agentModels.current[agentPreference] = String(value("chat_agent_model"));
     setDraft((d) => ({
       ...d,
       [key]: next,
+      ...(key === "chat_agent" && !row("chat_agent_model")?.locked
+        ? { chat_agent_model: agentModels.current[String(next)] || "" } : {}),
       ...(key.endsWith("_allow_no_key") && next
         ? { [key.replace("_allow_no_key", "_api_key")]: "" }
         : {}),
     }));
     setNotice("");
+    setChannelFeedback(current => Object.fromEntries(Object.entries(current).filter(([channel]) => !key.startsWith(`${channel}_`))));
     setResults(current => Object.fromEntries(Object.entries(current).filter(([channel]) =>
       !key.startsWith(`${channel}_`) && !(channel === "embed" && key === "local_embed_path"))));
     setConsent(false);
@@ -105,24 +121,36 @@ export function Models({ setup, refresh, showHeading = true }: { setup: Setup | 
     }
   }
   async function test(channel: string, saveAfter = false) {
+    setTestingAndSaving(saveAfter);
+    setChannelFeedback(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== channel)));
     await run(channel, async () => {
       const payload = Object.fromEntries(
         Object.entries(draft).filter(
           ([key]) => key.startsWith(`${channel}_`) || (channel === "embed" && key === "local_embed_path"),
         ),
       );
-      const data = await post<Record<string, Probe>>("/admin/settings/test", {
-        ...payload,
-        channel,
-      });
+      setResults(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== channel)));
+      let data: Record<string, Probe>;
+      try {
+        data = await post<Record<string, Probe>>("/admin/settings/test", { ...payload, channel });
+        if (!data[channel]) throw new Error(t("没有收到测试结果，请重试。", "No test result received. Please retry."));
+      } catch (e) {
+        setResults(current => ({ ...current, [channel]: { ok: false, model: "", error: String(e) } }));
+        return;
+      }
       setResults((r) => ({ ...r, [channel]: data[channel] }));
       if (saveAfter && data[channel]?.ok && data[channel]?.dim_matches !== false) {
-        await api("/admin/settings", { method: "PUT", body: JSON.stringify({ values: payload }) });
+        try {
+          await api("/admin/settings", { method: "PUT", body: JSON.stringify({ values: payload }) });
+        } catch (e) {
+          setChannelFeedback(current => ({ ...current, [channel]: { saved: false, text: t("连接测试成功，但配置未保存。请重试。", "Connection passed, but settings were not saved. Please retry.") + " " + String(e) } }));
+          return;
+        }
         setDraft(current => Object.fromEntries(Object.entries(current).filter(([key]) => !(key in payload))));
         await load();
-        setNotice(channel === "chat"
+        setChannelFeedback(current => ({ ...current, [channel]: { saved: true, text: channel === "chat"
           ? t("连接已验证并保存，可以开始生成摘要。", "Connection verified and saved. Ready to generate summaries.")
-          : t("向量连接已验证并保存；如有配置变更，请继续应用向量配置。", "Embedding connection verified and saved. Apply any embedding configuration changes below."));
+          : t("向量连接已验证并保存；如有配置变更，请继续应用向量配置。", "Embedding connection verified and saved. Apply any embedding configuration changes below.") } }));
       }
       await refresh();
     });
@@ -151,7 +179,7 @@ export function Models({ setup, refresh, showHeading = true }: { setup: Setup | 
         name={key}
         type={type}
         value={String(value(key))}
-        disabled={!!busy || row(key)?.locked}
+        disabled={!!busy || loadingSettings || !rows.length || row(key)?.locked}
         autoComplete={type === "password" ? "new-password" : "off"}
         spellCheck={false}
         placeholder={
@@ -173,6 +201,20 @@ export function Models({ setup, refresh, showHeading = true }: { setup: Setup | 
       )}
     </label>
   );
+  const modelPicker = (channel: string, local = false) => {
+    const key = local ? "chat_agent_model" : `${channel}_model`;
+    const payload = { channel, ...Object.fromEntries(Object.entries(draft).filter(([key]) => key.startsWith(`${channel}_`))) };
+    const identity = local ? JSON.stringify([agentPreference, selectedAgent?.path, selectedAgent?.id, detecting, loadingSettings])
+      : JSON.stringify([value(`${channel}_base_url`), value(`${channel}_api_key`), value(`${channel}_allow_no_key`)]);
+    return <ModelPicker key={local ? "agent" : channel} name={key} value={String(value(key))}
+      onChange={next => change(key, next)} payload={payload} identity={identity}
+      agent={local ? selectedAgent?.id || agentPreference : undefined} autoLoad={local && !agentUnavailable}
+      disabled={!!busy || loadingSettings || !!row(key)?.locked}/>;
+  };
+  if (!rows.length) return <section className="models settings-loading" aria-busy={loadingSettings}>
+    {loadingSettings ? <p role="status"><LoaderCircle className="spin" size={18}/>{t("正在读取连接设置…", "Loading connection settings…")}</p>
+      : <><p className="error" role="alert">{loadError}</p><button className="secondary" onClick={() => load(true)}><RefreshCw size={16}/>{t("重新读取设置", "Reload settings")}</button></>}
+  </section>;
   return (
     <section className="models">
       {showHeading && <div className="section-heading">
@@ -184,6 +226,7 @@ export function Models({ setup, refresh, showHeading = true }: { setup: Setup | 
           )}
         </p>
       </div>}
+      {loadError && <div className="error" role="alert">{loadError}<button className="text-button" onClick={() => load()}>{t("重新读取设置", "Reload settings")}</button></div>}
       <div className="model-columns">
         {["chat", "embed"].map((channel) => (
           <section className={`model-panel model-${channel}`} key={channel}>
@@ -228,26 +271,20 @@ export function Models({ setup, refresh, showHeading = true }: { setup: Setup | 
                     await detect(); await refresh();
                   }}><RefreshCw size={14} className={detecting ? "spin" : ""}/>{t("重新检测", "Detect again")}</button>
                 </div>
-                <details className="agent-details">
-                  <summary>{t("模型、超时与安装位置", "Model, timeout and installation paths")}</summary>
-                  {field("chat_agent_model", t("模型（可留空）", "Model (optional)"), "text", selectedAgent?.id === "opencode" ? "provider/model" : t("沿用 Agent 默认模型", "Use the agent's default model"))}
-                  {field("chat_agent_timeout", t("单次超时（秒）", "Request timeout (seconds)"), "number", "180")}
-                  <ul className="agent-paths">{agents.map(agent => <li key={agent.id}><strong>{agent.name}</strong><span>{agent.path || (agent.installed ? t("已检测到", "Detected") : t("未检测到", "Not detected"))}</span></li>)}</ul>
-                </details>
-                <p className="hint">{t("使用已有登录，无需再填 Key。摘要会发送到所选 Agent 的模型服务。", "Uses your existing sign-in. Summaries are sent to the selected agent's model service.")}</p>
+                {modelPicker("chat", true)}
               </> : <>
                 {field(`${channel}_base_url`, t("服务地址", "Base URL"), "url", "https://api.openai.com/v1")}
                 {field(`${channel}_api_key`, "API Key", "password")}
-                {field(`${channel}_model`, t("模型名称", "Model name"))}
+                {modelPicker(channel)}
                 {channel === "embed" && field("embed_dim", t("向量维度", "Dimensions"), "number")}
               </>}
             </div>
             <div className="model-test">
               <button className="secondary" disabled={!!busy || !rows.length || (channel === "chat" && agentUnavailable)} onClick={() => test(channel)}>
-                {busy === channel ? <LoaderCircle className="spin" /> : <FlaskConical />}
+                {busy === channel && !testingAndSaving ? <LoaderCircle className="spin" /> : <FlaskConical />}
                 {t("测试连接", "Test connection")}
               </button>
-              <button className="primary" disabled={!!busy || !rows.length || (channel === "chat" && agentUnavailable)} onClick={() => test(channel, true)}><Check size={16}/>{t("测试并保存", "Test and save")}</button>
+              <button className="primary" disabled={!!busy || !rows.length || (channel === "chat" && agentUnavailable)} onClick={() => test(channel, true)}>{busy === channel && testingAndSaving ? <LoaderCircle size={16} className="spin"/> : <Check size={16}/>} {t("测试并保存", "Test and save")}</button>
               {results[channel] && (
                 <div
                   role="status"
@@ -288,7 +325,19 @@ export function Models({ setup, refresh, showHeading = true }: { setup: Setup | 
                   )}
                 </div>
               )}
+              {channelFeedback[channel] && <div className={channelFeedback[channel].saved ? "notice connection-feedback" : "error connection-feedback"} role={channelFeedback[channel].saved ? "status" : "alert"}>
+                <p>{channelFeedback[channel].text}</p>
+                {channel === "chat" && channelFeedback[channel].saved && onSummarize && <button type="button" className="text-button" onClick={onSummarize}>{t("前往生成摘要", "Start generating summaries")}</button>}
+              </div>}
             </div>
+            {channel === "chat" && value("chat_backend") === "agent" && <div className="model-options">
+              <p className="hint">{t("使用已有登录，无需再填 Key。摘要会发送到所选 Agent 的模型服务。", "Uses your existing sign-in. Summaries are sent to the selected agent's model service.")}</p>
+              <details className="agent-details">
+                <summary>{t("超时与安装位置", "Timeout and installation paths")}</summary>
+                {field("chat_agent_timeout", t("单次超时（秒）", "Request timeout (seconds)"), "number", "180")}
+                <ul className="agent-paths">{agents.map(agent => <li key={agent.id}><strong>{agent.name}</strong><span>{agent.path || (agent.installed ? t("已检测到", "Detected") : t("未检测到", "Not detected"))}</span></li>)}</ul>
+              </details>
+            </div>}
             {!(channel === "chat" && value("chat_backend") === "agent") && <div className="model-options">
               <label className="check">
                 <input
@@ -355,6 +404,7 @@ export function Models({ setup, refresh, showHeading = true }: { setup: Setup | 
           <Save />
           {t("保存配置", "Save settings")}
         </button>
+        {hasDraft && <button className="secondary" disabled={!!busy} onClick={() => { setDraft({}); setResults({}); setChannelFeedback({}); setError(""); setNotice(""); setConsent(false); agentModels.current = {}; }}>{t("放弃修改", "Discard changes")}</button>}
         <span className="hint">
           {t(
             "测试只发送固定测试句，不发送书签。",

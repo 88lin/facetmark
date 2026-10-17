@@ -44,7 +44,7 @@ export type Job = {
   log?: string[];
   cancel_requested?: boolean;
   elapsed?: number;
-  params?: { mode?: "index" | "fetch" | "summarize"; bookmark_ids?: number[] };
+  params?: { mode?: "index" | "fetch" | "summarize"; bookmark_ids?: number[]; scope?: CollectionScope | null };
   items?: { done: number; total: number; failed?: number };
 };
 export type CollectionScope = {

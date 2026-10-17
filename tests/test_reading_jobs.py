@@ -250,6 +250,38 @@ def test_summary_failure_is_partial_keeps_existing_summary_and_redacts_status(cl
 
 
 @pytest.mark.parametrize("mode", ["fetch", "summarize"])
+def test_partial_task_retries_original_snapshot_without_new_library_items(client, monkeypatch, mode):
+    failed = save(client, "retry-original")
+    if mode == "fetch":
+        fake_fetch(monkeypatch, failures=("https://reading.test/retry-original",))
+    else:
+        configure_chat(client, monkeypatch, fail=True)
+    response = client.post("/admin/jobs/start", json={"mode": mode, "scope": {}, "confirmed": True})
+    assert response.status_code == 200
+    previous = wait_job(client)
+    assert previous["state"] == "partial" and previous["resumable"]
+    added = save(client, "added-after-failure")
+    if mode == "fetch":
+        contacted = fake_fetch(monkeypatch)
+    else:
+        instances = configure_chat(client, monkeypatch)
+    resumed = client.post("/admin/jobs/resume", json={"resume_id": previous["id"], "confirmed": True})
+    assert resumed.status_code == 200, resumed.text
+    final = wait_job(client)
+    assert final["id"] == previous["id"]
+    assert final["state"] == "done" and final["items"] == {"done": 1, "total": 1, "failed": 0}
+    if mode == "fetch":
+        assert contacted == ["https://reading.test/retry-original"]
+    else:
+        assert len(instances[0].prompts) == 1
+        assert "retry-original" in instances[0].prompts[0]
+    table = "content" if mode == "fetch" else "enrichment"
+    conn = client.app.state.fm.conn
+    assert conn.execute(f"SELECT bookmark_id FROM {table} WHERE bookmark_id IN (?,?)", (failed, added)).fetchall()[0][0] == failed
+    assert conn.execute("SELECT count(*) FROM processing_item WHERE job_id=?", (previous["id"],)).fetchone()[0] == 0
+
+
+@pytest.mark.parametrize("mode", ["fetch", "summarize"])
 def test_limit_applies_to_selected_pending_work_only(client, monkeypatch, mode):
     cached = save(client, "cached", body="Saved", enriched=True)
     first = save(client, "first")

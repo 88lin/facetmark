@@ -26,6 +26,14 @@ related_targets:
 
 # Facetmark collection workbench and optional preview — Operate
 
+## Current refinement — 2026-10-17
+
+The user rejected the incomplete model-selection journey and repeated isolated edits. This revision must deliver detection → searchable model choice or manual entry → test and save → scoped summary generation → exact failed-task recovery as one usable workflow. Prior reviews and screenshots are historical, not acceptance of this revision.
+
+Preserve the white/lake-blue identity and 18px/700 titles with 15px descriptions. Use 7px shared control corners, unboxed navigation and support-page sections, adjacent labels/fields/feedback, and a two-column desktop settings form that becomes one column on mobile. Test/save must remain visible in the first 390×844 Agent settings viewport. Model catalogs identify configured defaults and distinguish live discovery, local cache, configured choices and aliases; manual input and retry remain available.
+
+Collection chrome has one Add / Manage / Summarize row and one status/sort/display row. Display selects summaries or excerpts; production scope and consent belong in the processing dialog. Target first content at or before 270px on mobile and 210px on desktop, with two complete cards visible at 390×844. Keep 44px mobile actions. Partial tasks retain their original processing snapshot and resume failed or unfinished entries only. Cloud-rendered evidence and a fresh review are required before reporting this revision complete. The older contract and evidence below are superseded where they conflict with these requirements.
+
 ## Direction contract
 
 USER EVIDENCE: On 2026-10-14 the user rejected the over-rounded utility appearance and incomplete agent detection. Use compact 10px controls and expose actual agent selection, including OpenCode. White/lake blue, compact 10px controls and the stronger readable type remain selected. The user rejected small, thin typography on 2026-10-10 and subsequently rejected the reader-first workflow. The collection must support direct original access, useful summaries and batch work without entering the reader. The previous one-line-summary requirement is superseded. Retain ordinary-mouse category access and proceed without another preference interview; earlier SHIP verdicts apply only to their historical revisions. On 2026-10-13 the user rejected the current PR #44 experience across its surfaces and twice asked to continue. Refine the established workbench without a new brand or preference interview. This revision is not accepted by the earlier tests, captures or reviews.

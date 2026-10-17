@@ -30,7 +30,7 @@
   --danger: #ad3448;
   --overlay: #16374a55;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --radius-control: 10px;
+  --radius-control: 7px;
   --control-height: 40px;
   --reader-gutter: 48px;
   --index-width: 424px;
@@ -1300,9 +1300,9 @@ kbd {
   width: 100%;
   padding: 12px 14px;
   min-height: 46px;
-  background: var(--inset);
+  background: var(--canvas);
   border: 1px solid var(--rule);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   color: var(--ink);
   font-size: var(--type-body);
   font-weight: 400;

@@ -71,6 +71,23 @@ test("idle and paused tasks show truthful status and recover failed saved-task r
   await expect(page.locator(".task-progress")).not.toContainText("筛选「失败」");
 });
 
+test("partial task recovery resumes the saved scope without starting broad work", async ({ page }) => {
+  const current = { id: "original-scoped-task", state: "partial", resumable: true, params: { mode: "summarize", scope: { folder: "Research", status: "pending" } }, items: { done: 4, total: 5, failed: 1 } };
+  let resumed: unknown;
+  let started = false;
+  await page.route("**/admin/job", route => route.fulfill({ json: current }));
+  await page.route("**/admin/jobs", route => route.fulfill({ json: { items: [current] } }));
+  await page.route("**/admin/jobs/resume", route => { resumed = route.request().postDataJSON(); return route.fulfill({ json: {} }); });
+  await page.route("**/admin/jobs/start", route => { started = true; return route.fulfill({ json: {} }); });
+  await page.goto("/app#tasks");
+  await expect(page.locator(".task-scope")).toContainText("Research");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: "screenshots/support-tasks-partial-mobile.png", animations: "disabled" });
+  await page.getByRole("button", { name: "重试此任务失败项", exact: true }).click();
+  await expect.poll(() => resumed).toEqual({ resume_id: current.id, confirmed: true });
+  expect(started).toBe(false);
+});
+
 test("long excerpts remain expandable after changing display without changing text", async ({ page }) => {
   await page.route("**/bookmarks?**", async route => {
     const response = await route.fetch();

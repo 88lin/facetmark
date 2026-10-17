@@ -5,9 +5,10 @@ import { Models, ExtensionSettings, UpdateSettings } from "./Settings";
 import { SyncSettings } from "./SyncSettings";
 import { useText } from "./locale";
 
-export function SettingsWorkspace({ setup, refresh, onChanged, onBack }: {
+export function SettingsWorkspace({ setup, refresh, onChanged, onBack, onSummarize }: {
   setup: Setup | null; refresh: () => Promise<void>;
   onChanged: (deleted?: number[]) => Promise<void>; onBack: () => void;
+  onSummarize: () => void;
 }) {
   const t = useText();
   const [active, setActive] = useState("models");
@@ -38,7 +39,7 @@ export function SettingsWorkspace({ setup, refresh, onChanged, onBack }: {
     {/* Keep forms mounted so switching categories preserves unsaved drafts and test results. */}
     {sections.map(({ id }) => <div key={id} role="tabpanel" id={`settings-panel-${id}`}
       aria-labelledby={`settings-tab-${id}`} hidden={active !== id} tabIndex={0} className="settings-panel">
-      {id === "models" ? <Models setup={setup} refresh={refresh} showHeading={false}/> :
+      {id === "models" ? <Models setup={setup} refresh={refresh} showHeading={false} onSummarize={onSummarize}/> :
         id === "sync" ? <SyncSettings onChanged={onChanged}/> :
         id === "extension" ? <ExtensionSettings/> : <>
           <UpdateSettings/>

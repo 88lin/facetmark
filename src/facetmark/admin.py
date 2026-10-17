@@ -185,7 +185,7 @@ class IndexJob:
             "cancel_requested": self.cancel_requested,
             "pause_requested": self.pause_requested,
             "snapshot_ready": self.snapshot_ready,
-            "resumable": self.mode != "index" and self.state in {"paused", "interrupted", "cancelled", "failed"},
+            "resumable": self.mode != "index" and self.state in {"paused", "interrupted", "cancelled", "failed", "partial"},
             "log": list(self.log),
             "params": {"fetch": self.fetch, "limit": self.limit, "force": self.force,
                        "mode": self.mode,
@@ -400,7 +400,7 @@ class JobRunner:
                 from .processing import update_counts
                 with contextlib.suppress(Exception):
                     update_counts(conn, job)
-                    if job.state in {"done", "partial"}:
+                    if job.state == "done":
                         conn.execute("DELETE FROM processing_item WHERE job_id=?", (job.id,))
                         conn.commit()
             job.finished_at = time.monotonic()
@@ -952,6 +952,12 @@ def register(app: FastAPI, auth: list) -> None:
                 from .workbench import validate_space
 
                 validate_space(state.conn, state.settings)
+            if body.resume_id and snapshot_ready:
+                # Retry exactly the failed members of the original snapshot;
+                # completed items and later additions to the library stay out.
+                state.conn.execute("UPDATE processing_item SET state='pending',error=NULL "
+                                   "WHERE job_id=? AND state='failed'", (body.resume_id,))
+                state.conn.commit()
             job = state.jobs.start(
                 state.settings, fetch=body.fetch, limit=body.limit, force=body.force,
                 mode=body.mode, bookmark_ids=body.bookmark_ids,
@@ -1111,3 +1117,20 @@ def register(app: FastAPI, auth: list) -> None:
     async def local_agents():
         from .local_agents import available_agents
         return {"agents": available_agents()}
+
+    @app.post("/admin/settings/models", dependencies=deps)
+    async def model_choices(body: ProbeRequest, request: Request) -> dict:
+        from .model_catalog import agent_catalog, endpoint_catalog
+
+        if body.channel not in ("chat", "embed"):
+            raise HTTPException(400, "channel must be chat or embed")
+        state = _state(request)
+        try:
+            settings = draft_settings(draft_settings(state.settings, state.pending_settings),
+                body.model_dump(exclude_none=True, exclude={"channel"}))
+            if body.channel == "chat" and settings.chat_backend == "agent":
+                return await agent_catalog(settings.chat_agent)
+            return await endpoint_catalog(settings, body.channel)
+        except (ValueError, ProviderError) as exc:
+            detail = str(exc) if isinstance(exc, ProviderError) else "Invalid model settings; check the service address."
+            raise HTTPException(400, detail) from None

@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Check, Download, Folder, ListChecks, LoaderCircle, Plus, Tag, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Download, Folder, ListChecks, LoaderCircle, Plus, Sparkles, Tag, Trash2, X } from "lucide-react";
 import { api, downloadExport, post, type Bookmark, type CollectionScope, type Setup } from "./api";
 import { useText } from "./locale";
 import "./library-tools.css";
@@ -16,12 +16,21 @@ export type LibraryAction =
   | { kind: "export" }
   | { kind: "process"; mode: "fetch" | "summarize"; ids?: number[]; scope?: CollectionScope; scopeLabel?: string };
 
-export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch, onIds, onAction }: {
+export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch, onIds, onAction, onSummarize }: {
   batch: boolean; ids: number[]; pageIds: number[]; disabled: boolean; pending: boolean;
   onBatch: (value: boolean) => void; onIds: (ids: number[]) => void;
   onAction: (action: LibraryAction) => void;
+  onSummarize: () => void;
 }) {
   const t = useText();
+  const manage = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const dismiss = (event: PointerEvent) => {
+      if (event.target instanceof Node && manage.current && !manage.current.contains(event.target)) manage.current.open = false;
+    };
+    document.addEventListener("pointerdown", dismiss);
+    return () => document.removeEventListener("pointerdown", dismiss);
+  }, []);
   const pageSelected = pageIds.length > 0 && pageIds.every(id => ids.includes(id));
   return <div className={`library-tools ${batch ? "selecting" : ""}`}>
     {batch ? <>
@@ -34,10 +43,16 @@ export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch
       <button className="text-button" onClick={() => onBatch(false)}>{t("完成选择", "Done")}</button>
       {ids.length >= 1000 && <span className="selection-limit" role="status">{t("一次最多选择 1000 条", "Select up to 1,000 at a time")}</span>}
     </> : <>
-      <button className="primary" aria-label={t("新增收藏", "Add bookmark")} disabled={disabled} onClick={() => onAction({ kind: "create" })}><Plus size={15}/><span className="action-full">{t("新增收藏", "Add bookmark")}</span><span className="action-short" aria-hidden="true">{t("新增", "Add")}</span></button>
-      <button className="secondary" aria-label={t("批量管理", "Select")} disabled={!pageIds.length || disabled || pending} onClick={() => onBatch(true)}><ListChecks size={15}/><span className="action-full">{t("批量管理", "Select")}</span><span className="action-short" aria-hidden="true">{t("批量", "Select")}</span></button>
-      <button className="secondary" aria-label={t("整理分类", "Organize")} disabled={disabled} onClick={() => onAction({ kind: "taxonomy" })}><Folder size={15}/><span className="action-full">{t("整理分类", "Organize")}</span><span className="action-short" aria-hidden="true">{t("整理", "Organize")}</span></button>
-      <button className="secondary" disabled={pending} onClick={() => onAction({ kind: "export" })}><Download size={15}/>{t("导出", "Export")}</button>
+      <button className="secondary" aria-label={t("新增收藏", "Add bookmark")} disabled={disabled} onClick={() => onAction({ kind: "create" })}><Plus size={15}/><span className="action-full">{t("新增收藏", "Add bookmark")}</span><span className="action-short" aria-hidden="true">{t("新增", "Add")}</span></button>
+      <details ref={manage} className="library-manage" onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }} onKeyDown={event => { if (event.key === "Escape") { event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }}>
+        <summary>{t("管理收藏", "Manage")}<ChevronDown size={14}/></summary>
+        <div className="library-manage-menu" onClick={event => { if ((event.target as HTMLElement).closest("button:not(:disabled)")) event.currentTarget.closest("details")!.open = false; }}>
+          <button type="button" disabled={!pageIds.length || disabled || pending} onClick={() => onBatch(true)}><ListChecks size={16}/>{t("批量管理", "Select")}</button>
+          <button type="button" disabled={disabled} onClick={() => onAction({ kind: "taxonomy" })}><Folder size={16}/>{t("整理分类", "Organize")}</button>
+          <button type="button" disabled={pending} onClick={() => onAction({ kind: "export" })}><Download size={16}/>{t("导出", "Export")}</button>
+        </div>
+      </details>
+      <button className="primary" disabled={disabled || pending || !pageIds.length} onClick={onSummarize}><Sparkles size={15}/>{t("生成摘要", "Summarize")}</button>
     </>}
   </div>;
 }
@@ -86,11 +101,14 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const foldersId = useId();
-  const returnFocus = useRef(document.activeElement as HTMLElement | null);
+  const returnFocus = useRef(document.activeElement?.closest(".library-manage")?.querySelector("summary") || document.activeElement as HTMLElement | null);
   const ids = "ids" in action ? action.ids : undefined;
   const processing = action.kind === "process" || (action.kind === "bulk" && ["fetch", "summarize"].includes(operation));
   const mode = action.kind === "process" ? action.mode : operation;
-  const processScope = action.kind === "process" ? action.scope : undefined;
+  const [processTarget, setProcessTarget] = useState("current");
+  const processScope = action.kind === "process" ? processTarget === "all" ? {} : processTarget === "current" ? action.scope
+    : { ...action.scope, status: processTarget as "pending" | "failed", exclude_ids: [] } : undefined;
+  const processScopeKey = JSON.stringify(processScope);
   const [targetCount, setTargetCount] = useState<number | null>(null);
   const [previewRevision, setPreviewRevision] = useState("");
   const [countError, setCountError] = useState("");
@@ -99,9 +117,9 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
     const abort = new AbortController();
     setTargetCount(null); setCountError("");
     post<{ total: number; revision: string }>("/admin/jobs/preview", { mode, bookmark_ids: ids, scope: processScope, force }, abort.signal)
-      .then(data => { setTargetCount(data.total); setPreviewRevision(data.revision); }).catch(e => { if (!abort.signal.aborted) setCountError(String(e)); });
+      .then(data => { if (!abort.signal.aborted) { setTargetCount(data.total); setPreviewRevision(data.revision); } }).catch(e => { if (!abort.signal.aborted) setCountError(String(e)); });
     return () => abort.abort();
-  }, [processing, mode, ids, processScope, force]);
+  }, [processing, mode, ids, processScopeKey, force]);
   const deleting = action.kind === "delete" || (action.kind === "bulk" && operation === "delete");
   const chatReady = Boolean(setup?.demo || setup?.channels.chat.tested);
   const needsConsent = deleting || (processing && mode === "summarize") || action.kind === "taxonomy";
@@ -187,7 +205,15 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
             <p className="hint">{t("JSON 包含已保存的正文与摘要，请妥善保管。重新导入只恢复书签信息，正文与 AI 索引需重新处理。HTML 只导出书签信息；含逗号的标签请用 JSON 保留。", "JSON includes saved text and summaries; store it safely. Reimport restores bookmark metadata; page text and AI indexes must be rebuilt. HTML contains bookmark metadata only. Use JSON to preserve tags containing commas.")}</p>
           </>}
           {processing && <>
-            <p>{ids ? t(`处理选中的 ${ids.length} 条收藏。`, `Process ${ids.length} selected bookmarks.`) : (action.kind === "process" && action.scopeLabel ? action.scopeLabel : t("处理整个书库中符合条件的收藏。", "Process eligible bookmarks across your library."))}</p>
+            {!ids && action.kind === "process" && <label className="field">{t("摘要处理范围", "Processing scope")}<select aria-label={t("摘要处理范围", "Summary scope")} value={processTarget}
+              onChange={event => { setProcessTarget(event.target.value); setConfirmed(false); setTargetCount(null); }}>
+              <option value="current">{action.scopeLabel || t("当前范围", "Current scope")}</option>
+              <option value="pending">{t("当前未生成", "Pending in current scope")}</option><option value="failed">{t("当前失败重试", "Failures in current scope")}</option>
+              <option value="all">{t("整个书签库", "Entire library")}</option>
+            </select></label>}
+            <p>{ids ? t(`处理选中的 ${ids.length} 条收藏。`, `Process ${ids.length} selected bookmarks.`)
+              : processTarget === "all" ? t("整个书签库", "Entire library")
+              : [processScope?.folder, processScope?.tag, processScope?.domain, processScope?.q].filter(Boolean).join(" · ") || t("处理当前范围中符合条件的收藏。", "Process eligible bookmarks in the selected scope.")}</p>
             <p className="hint">{mode === "fetch" ? t("会访问收藏的网址以提取正文，不调用 AI 模型。受隐私排除或访问限制的页面会跳过或记录失败。", "Visits the saved websites to fetch text without calling AI. Privacy-excluded or inaccessible pages are skipped or reported.") : t("标题、网址、文件夹和已有正文会发送给已配置的聊天模型；不要求向量模型。未保存正文时会明确标注基于标题推断。", "Sends titles, URLs, folders and saved text to your chat model. No embedding model is needed. Missing text is labeled as title-based inference.")}</p>
             {mode === "summarize" && !chatReady && <p role="alert" className="error">{t("请先在设置中配置并测试聊天模型。", "Configure and test the chat model in Settings first.")}</p>}
             {countError ? <p className="error" role="alert">{countError}</p> : <p className="processing-count" role="status">{targetCount === null ? t("正在计算处理范围…", "Counting eligible bookmarks…") : <>

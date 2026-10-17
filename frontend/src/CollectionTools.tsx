@@ -1,27 +1,21 @@
 import { useState } from "react";
-import { ArrowDownWideNarrow, ChevronDown, Sparkles, Pause, Play, CheckCheck, X } from "lucide-react";
+import { ArrowDownWideNarrow, ChevronDown, SlidersHorizontal, Sparkles, Pause, Play, CheckCheck, X } from "lucide-react";
 import { post, type CollectionScope, type Job, type Page } from "./api";
 import { useText } from "./locale";
-import type { LibraryAction } from "./LibraryTools";
 
 export function CollectionTools({ scope, page, display, onDisplay, sort, onSort, onStatus, disabled,
-  selecting, allMatching, selectedCount, onAll, onClear, onSummarizeSelection, onAction, job, refresh, admin }: {
+  selecting, allMatching, selectedCount, onAll, onClear, onSummarizeSelection, job, refresh, admin }: {
   scope: CollectionScope; page: Page | null; display: "summary" | "original";
   onDisplay: (value: "summary" | "original") => void; sort: string; onSort: (value: string) => void;
   onStatus: (value: CollectionScope["status"]) => void; disabled: boolean;
   selecting: boolean; allMatching: boolean; selectedCount: number; onAll: () => void; onClear: () => void;
   onSummarizeSelection: () => void;
-  onAction: (action: LibraryAction) => void; job: Job; refresh: () => Promise<void>; admin: boolean;
+  job: Job; refresh: () => Promise<void>; admin: boolean;
 }) {
   const t = useText();
-  const [target, setTarget] = useState("current");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const counts = page?.summary_counts;
-  const process = () => onAction({ kind: "process", mode: "summarize",
-    scope: target === "all" ? {} : target === "pending" || target === "failed" ? { ...scope, status: target, exclude_ids: [] } : scope,
-    scopeLabel: target === "all" ? t("整个书签库", "Entire library") : target === "pending" ? t("当前筛选中的未生成内容", "Pending in current filters")
-      : target === "failed" ? t("当前筛选中的失败内容", "Failures in current filters") : t("当前筛选结果", "Current matching results") });
   async function taskAction() {
     setBusy(true); setError("");
     try {
@@ -40,18 +34,12 @@ export function CollectionTools({ scope, page, display, onDisplay, sort, onSort,
       <option value="title">{t("标题顺序", "Title")}</option><option value="domain">{t("按站点", "Website")}</option>
     </select></label>
     <details className="collection-options-menu">
-      <summary><Sparkles size={15} aria-hidden="true"/>{t("显示与摘要", "Display & summaries")}<ChevronDown className="disclosure-chevron" size={14} aria-hidden="true"/></summary>
+      <summary aria-label={t("显示内容", "Display content")}><SlidersHorizontal size={15}/><span>{t("显示", "Display")}</span><ChevronDown className="disclosure-chevron" size={14} aria-hidden="true"/></summary>
       <div className="collection-options">
       <div className="summary-display" role="group" aria-label={t("列表内容", "Collection content")}>
         <button aria-pressed={display === "summary"} onClick={() => onDisplay("summary")}>{t("摘要", "Summaries")}</button>
         <button aria-pressed={display === "original"} onClick={() => onDisplay("original")}>{t("原文摘录", "Excerpts")}</button>
       </div>
-      {admin && <div className="collection-process">
-        <select aria-label={t("摘要处理范围", "Summary scope")} value={target} onChange={e => setTarget(e.target.value)}>
-          <option value="current">{t("当前筛选", "Current filters")}</option><option value="pending">{t("当前未生成", "Pending in filters")}</option>
-          <option value="failed">{t("当前失败重试", "Retry failures")}</option><option value="all">{t("整个书签库", "Entire library")}</option>
-        </select><button className="primary" disabled={disabled || job.state === "running"} onClick={process}><Sparkles size={16}/>{t("批量生成摘要", "Generate summaries")}</button>
-      </div>}
       </div>
     </details>
     {admin && (selecting || allMatching || selectedCount > 0) && <div className="collection-selection" role="group" aria-label={t("摘要批量选择", "Batch summary selection")}>
