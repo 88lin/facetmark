@@ -463,9 +463,6 @@ kbd {
   background: var(--canvas);
   box-shadow: 0 12px 36px #244e6718;
 }
-.query-tool:has([open]) {
-  width: 108px;
-}
 .query-help p {
   margin: 12px 0;
 }
@@ -1626,19 +1623,22 @@ pre {
   font-size: 12px;
 }
 .connection-error {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  z-index: 10;
+  position: fixed;
+  left: 50%;
+  bottom: 76px;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 32px));
+  z-index: 60;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 20px;
+  padding: 12px 16px;
   background: var(--canvas);
-  border-bottom: 1px solid var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-control);
+  box-shadow: 0 12px 32px #142c4926;
   color: var(--danger);
-  font-size: 12px;
+  font-size: 13px;
 }
 .connection-error small {
   display: block;

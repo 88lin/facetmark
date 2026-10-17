@@ -192,7 +192,7 @@ export default function SetupFlow({
           <button
             key={label}
             aria-current={step === index ? "step" : undefined}
-            disabled={index > step + 1 || (index > 0 && !setup?.bookmarks)}
+            disabled={index > step + 1}
             onClick={() => setStep(index)}
           >
             <span>{index < step ? <Check size={14} /> : index + 1}</span>

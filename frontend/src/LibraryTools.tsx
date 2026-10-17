@@ -103,6 +103,10 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
   const foldersId = useId();
   const returnFocus = useRef(document.activeElement?.closest(".library-manage")?.querySelector("summary") || document.activeElement as HTMLElement | null);
   const ids = "ids" in action ? action.ids : undefined;
+  // The parent passes a fresh array each render (a 4 s poll re-renders it), so
+  // the effect key is the content, not the identity, or the preview refetches
+  // on every poll while the dialog is open.
+  const idsKey = JSON.stringify(ids ?? null);
   const processing = action.kind === "process" || (action.kind === "bulk" && ["fetch", "summarize"].includes(operation));
   const mode = action.kind === "process" ? action.mode : operation;
   const [processTarget, setProcessTarget] = useState("current");
@@ -119,7 +123,7 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
     post<{ total: number; revision: string }>("/admin/jobs/preview", { mode, bookmark_ids: ids, scope: processScope, force }, abort.signal)
       .then(data => { if (!abort.signal.aborted) { setTargetCount(data.total); setPreviewRevision(data.revision); } }).catch(e => { if (!abort.signal.aborted) setCountError(String(e)); });
     return () => abort.abort();
-  }, [processing, mode, ids, processScopeKey, force]);
+  }, [processing, mode, idsKey, processScopeKey, force]);
   const deleting = action.kind === "delete" || (action.kind === "bulk" && operation === "delete");
   const chatReady = Boolean(setup?.demo || setup?.channels.chat.tested);
   const needsConsent = deleting || (processing && mode === "summarize") || action.kind === "taxonomy";
@@ -166,7 +170,7 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
 
   return <Dialog.Root open onOpenChange={value => { if (!value && !busy) onClose(); }}><Dialog.Portal>
     <Dialog.Overlay className="library-dialog-overlay"/>
-    <Dialog.Content className="library-dialog" onCloseAutoFocus={e => { e.preventDefault(); requestAnimationFrame(() => { const target = returnFocus.current?.isConnected ? returnFocus.current : document.querySelector<HTMLElement>(".library-tools button, .app-header button"); target?.focus({ preventScroll: true }); }); }} onEscapeKeyDown={e => { e.stopPropagation(); if (busy) e.preventDefault(); }} onInteractOutside={e => { if (busy) e.preventDefault(); }}>
+    <Dialog.Content className="library-dialog" onCloseAutoFocus={e => { e.preventDefault(); requestAnimationFrame(() => { const target = returnFocus.current?.isConnected && !(returnFocus.current as HTMLButtonElement).disabled ? returnFocus.current : document.querySelector<HTMLElement>(".library-tools button:not(:disabled), .app-header button:not(:disabled), .workspace-search input"); target?.focus({ preventScroll: true }); }); }} onEscapeKeyDown={e => { e.stopPropagation(); if (busy) e.preventDefault(); }} onInteractOutside={e => { if (busy) e.preventDefault(); }}>
       <div className="library-dialog-heading"><Dialog.Title>{heading}</Dialog.Title><Dialog.Close className="icon-button" disabled={busy} aria-label={t("关闭操作窗口", "Close actions")}><X size={18}/></Dialog.Close></div>
       <Dialog.Description className="library-dialog-description">{action.kind === "export" ? t("保存一份可带走的副本。JSON 可完整保留分类、标签和已保存正文。", "Keep a portable copy. JSON preserves folders, tags and saved page text.") : t("管理 Facetmark 中的收藏，浏览器中的原始书签保持原样。", "Manage your Facetmark collection. Original browser bookmarks stay untouched.")}</Dialog.Description>
       <form onSubmit={submit}>

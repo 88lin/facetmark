@@ -110,7 +110,9 @@ export function SyncSettings({ onChanged }: { onChanged: () => void | Promise<vo
     const controller = new AbortController();
     async function refresh(initial = false) {
       if (busyRef.current) return;
-      const generation = statusGeneration.current;
+      // Claim a generation before the request, not after: a slow poll that
+      // resolves after an apply must not overwrite the post-apply state.
+      const generation = ++statusGeneration.current;
       try {
         const next = await api<SyncStatus>(`${endpoint}/status`, { signal: controller.signal });
         if (controller.signal.aborted || generation !== statusGeneration.current) return;

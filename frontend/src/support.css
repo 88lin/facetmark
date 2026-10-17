@@ -58,7 +58,8 @@
 .model-picker > input { margin-top: 8px; }
 .model-manual { min-height: 30px; padding: 4px 0; font-size: var(--type-meta); }
 .model-catalog-note { margin: 2px 0 0; }
-.model-picker-menu { position: absolute; top: 76px; left: 0; right: 0; z-index: 15; background: var(--canvas); border: 1px solid var(--rule); border-radius: 10px; box-shadow: 0 12px 28px #122b3a22; padding: 8px; }
+.model-picker-anchor { position: relative; }
+.model-picker-menu { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 15; background: var(--canvas); border: 1px solid var(--rule); border-radius: 10px; box-shadow: 0 12px 28px #122b3a22; padding: 8px; }
 .model-picker-search { display: flex; align-items: center; gap: 8px; padding: 8px; border-bottom: 1px solid var(--rule); }
 .model-picker-search input { width: 100%; min-width: 0; border: 0; padding: 0; background: transparent; color: var(--ink); font-size: 1rem; outline: 0; }
 .model-picker-list { max-height: min(280px, 34vh); overflow-y: auto; overscroll-behavior: contain; }

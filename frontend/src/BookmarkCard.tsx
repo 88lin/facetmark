@@ -13,7 +13,12 @@ export function BookmarkCard({ record, selected, checked, disabled, display, onC
   const [clipped, setClipped] = useState(false);
   const summary = useRef<HTMLParagraphElement>(null);
   const href = safeUrl(record.url);
-  const trackOpen = () => { post("/open", { bookmark_id: record.bookmark_id }).catch(() => {}); };
+  const trackOpen = (event?: { button: number }) => {
+    // Middle/right clicks get their own event; counting both would double the
+    // open history and make ranking treat one visit as two.
+    if (event && event.button !== 0) return;
+    post("/open", { bookmark_id: record.bookmark_id }).catch(() => {});
+  };
   const text = display === "summary" ? record.summary || record.snippet : record.snippet;
   useEffect(() => { setExpanded(false); setClipped(false); }, [record.bookmark_id, display, text]);
   useEffect(() => {

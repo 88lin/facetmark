@@ -92,6 +92,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
   const agentPreference = String(value("chat_agent") || "auto");
   const selectedAgent = agentPreference === "auto" ? agents.find(a => a.installed) : agents.find(a => a.id === agentPreference && a.installed);
   const agentUnavailable = value("chat_backend") === "agent" && (detecting || !selectedAgent || !!detectionError);
+  const manualEdits = useRef(new Set<string>());
   useEffect(() => {
     // A failed discovery has not established a new agent identity. Keep the
     // last known identity and any manual draft until detection succeeds.
@@ -101,12 +102,19 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
     lastAgent.current = { preference: agentPreference, id };
     if (previous?.preference === "auto" && agentPreference === "auto" && previous.id !== id) {
       if (previous.id) agentModels.current[previous.id] = String(value("chat_agent_model"));
-      if (!row("chat_agent_model")?.locked) setDraft(current => ({ ...current, chat_agent_model: agentModels.current[id] || "" }));
+      // A model the user typed while detection was in flight outranks the
+      // remembered value for the newly detected agent.
+      if (!row("chat_agent_model")?.locked && !manualEdits.current.has(id)) {
+        setDraft(current => ({ ...current, chat_agent_model: agentModels.current[id] || "" }));
+      }
       setResults(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== "chat")));
       setChannelFeedback(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== "chat")));
     }
   }, [selectedAgent?.id, agentPreference, detecting, detectionError]);
   const change = (key: string, next: unknown) => {
+    if (key === "chat_agent_model" || key.endsWith("_model")) {
+      manualEdits.current.add(selectedAgent?.id || agentPreference);
+    }
     if (key === "chat_agent") agentModels.current[selectedAgent?.id || agentPreference] = String(value("chat_agent_model"));
     const nextAgent = next === "auto" ? agents.find(agent => agent.installed)?.id || "auto" : String(next);
     setDraft((d) => ({
@@ -214,7 +222,12 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
             ? t("已保存 · 留空保留，输入替换", "Saved · leave untouched to keep")
             : hint
         }
-        onChange={(e) => change(key, type === "number" ? Number(e.target.value) : e.target.value)}
+        onChange={(e) => {
+          // An emptied number field means "unset", not "zero": sending 0 for
+          // a cleared timeout or dimension is a value the user never chose.
+          const raw = e.target.value;
+          change(key, type === "number" ? (raw === "" ? "" : Number(raw)) : raw);
+        }}
       />
       {type === "password" && row(key)?.set && !row(key)?.locked && (
         <button

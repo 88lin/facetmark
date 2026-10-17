@@ -41,7 +41,7 @@
 .article-options .article-details{flex:1;min-width:0}
 .reader-edit{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0;min-height:36px;padding:7px 13px;font-size:var(--type-ui);font-weight:600}
 .reader-manage-actions .delete-bookmark{color:var(--danger)}
-.library-toast{position:fixed;z-index:40;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;max-width:calc(100vw - 32px);padding:12px 20px;border-radius:var(--radius-control);background:var(--ink);color:var(--canvas);box-shadow:0 10px 32px #142c4926;font-size:13px;pointer-events:none}
+.library-toast{position:fixed;z-index:90;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;max-width:calc(100vw - 32px);padding:12px 20px;border-radius:var(--radius-control);background:var(--ink);color:var(--canvas);box-shadow:0 10px 32px #142c4926;font-size:13px;pointer-events:none}
 .library-toast svg{flex-shrink:0}
 .task-progress{margin:16px 0 24px;font-variant-numeric:tabular-nums}
 .task-progress p{margin-bottom:8px}

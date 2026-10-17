@@ -6,11 +6,7 @@ import {
   ArrowRight,
   Bookmark as BookmarkIcon,
   Check,
-  ChevronRight,
   Clock3,
-  ExternalLink,
-  FileText,
-  Folder,
   Import,
   Layers3,
   LayoutGrid,
@@ -18,10 +14,8 @@ import {
   LoaderCircle,
   Menu,
   Moon,
-  PanelRightClose,
   Search,
   Settings2,
-  Sparkles,
   Sun,
   WifiOff,
   X,
@@ -31,7 +25,6 @@ import {
   ApiError,
   post,
   query,
-  safeUrl,
   setToken,
   type Bookmark,
   type Job,
@@ -87,20 +80,6 @@ export default function App() {
   );
 }
 
-function SavedDate({ seconds, language }: { seconds?: number | null; language: Language }) {
-  if (seconds == null) return null;
-  const date = new Date(seconds * 1000);
-  if (!Number.isFinite(date.getTime())) return null;
-  return (
-    <time dateTime={date.toISOString()}>
-      {date.toLocaleDateString(language === "zh" ? "zh-CN" : "en", {
-        month: "short",
-        day: "numeric",
-      })}
-    </time>
-  );
-}
-
 function Workbench({
   language,
   theme,
@@ -131,6 +110,7 @@ function Workbench({
   const [depth, setDepth] = useState<number>();
   const [loadedPage, setPage] = useState<Page | null>(null);
   const [loadedContext, setLoadedContext] = useState("");
+  const [loadedScope, setLoadedScope] = useState("");
   const [collectionLayout, setCollectionLayout] = useState(() => remember("fm-collection-layout") === "list" ? "list" : "grid");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -411,14 +391,19 @@ function Workbench({
     if (force) setRequestRevision(value => value + 1);
   }
   const filterKey = JSON.stringify(filters);
+  const resultScope = JSON.stringify([search, filterKey, summaryStatus, collectionSort, searchMode]);
   const resultContext = JSON.stringify([search, offset, filterKey, summaryStatus, collectionSort, searchMode]);
-  const page = loadedContext === resultContext ? loadedPage : null;
+  // Paging keeps the current scope, so the previous rows stay on screen until
+  // the next page arrives. A new query changes the scope and clears them.
+  const page =
+    loadedContext === resultContext || (loadedScope === resultScope && loadedPage)
+      ? loadedPage
+      : null;
   const scopePending = loading || !page || Boolean(error);
   const activeFilters = Object.entries(filters).filter(([, value]) => value !== undefined);
   const pageSize = page?.limit || 30;
   const currentPage = Math.floor(offset / pageSize) + 1;
-  const sameLoadedScope = loadedContext === JSON.stringify([search, loadedPage?.offset, filterKey, summaryStatus, collectionSort, searchMode]);
-  const paginationPage = page || (sameLoadedScope ? loadedPage : null);
+  const paginationPage = page;
   const pageCount = Math.max(1, Math.ceil((paginationPage?.total || 0) / pageSize));
   useEffect(() => setPageInput(String(currentPage)), [currentPage, filterKey, search]);
   useEffect(() => {
@@ -459,6 +444,7 @@ function Workbench({
         }
         setPage(data);
         setLoadedContext(resultContext);
+        setLoadedScope(resultScope);
         if (data.depth) setDepth(data.depth);
         setLoading(false);
       }
@@ -733,7 +719,7 @@ function Workbench({
             </button>
             <button
               className="language"
-              aria-label="Switch language"
+              aria-label={t("切换语言", "Switch language")}
               onClick={() => setLanguage(language === "zh" ? "en" : "zh")}
             >
               {language === "zh" ? "EN" : "中文"}
@@ -796,7 +782,9 @@ function Workbench({
           </button>
         </nav>
         <div className="facet-nav">
-          <FacetBrowser filters={filters} enabled={paired && navOpen} revision={requestRevision} onSelect={selectFilter} />
+          {/* The collection sidebar below repeats this directory at ≥960px.
+              Mount only while the drawer is open so both copies do not fetch. */}
+          {navOpen && <FacetBrowser filters={filters} enabled={paired && navOpen} revision={requestRevision} onSelect={selectFilter} />}
         </div>
         <div className="sidebar-bottom">
           {adminAvailable && (
@@ -835,7 +823,7 @@ function Workbench({
             </button>
             <button
               className="language"
-              aria-label="Switch language"
+              aria-label={t("切换语言", "Switch language")}
               onClick={() => setLanguage(language === "zh" ? "en" : "zh")}
             >
               {language === "zh" ? "EN" : "中文"}
@@ -962,6 +950,7 @@ function Workbench({
                       composing.current = false;
                       changeQuery(e.currentTarget.value, true);
                     }}
+                    onBlur={() => { composing.current = false; }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.nativeEvent.isComposing && !composing.current)
                         changeQuery(input, true);
@@ -1016,6 +1005,9 @@ function Workbench({
                   onBatch={value => { setBatchMode(value); setSelectedIds([]); setAllMatching(false); setExcludedIds([]); }}
                   onIds={setSelectedIds} onAction={setLibraryAction}
                   onSummarize={() => setLibraryAction({ kind: "process", mode: "summarize",
+                    // Keyword mode has a server scope, so the dialog can preview
+                    // and exclude across pages without shipping every ID. The
+                    // counts shown beside the button then match what starts.
                     ...(search.trim() && searchMode === "semantic" && semantic ? { ids: items.map(item => item.bookmark_id) }
                       : { scope: collectionScope, scopeLabel: t("当前筛选结果", "Current matching results") }) })}
                 />}
@@ -1362,20 +1354,28 @@ function Workbench({
                 {sessionsMore && (
                   <button
                     className="secondary"
+                    disabled={sessionsLoading}
                     onClick={async () => {
+                      if (sessionsLoading) return;
+                      setSessionsLoading(true);
                       try {
                         const more = await api<Session[]>(
                           `/sessions?limit=40&offset=${sessions.length}`,
                         );
-                        setSessions((s) => [...s, ...more]);
+                        setSessions((s) => {
+                          const seen = new Set(s.map((row) => row.session_id));
+                          return [...s, ...more.filter((row) => !seen.has(row.session_id))];
+                        });
                         setSessionsMore(more.length === 40);
                       } catch (e) {
                         setSessionsError(String(e));
+                      } finally {
+                        setSessionsLoading(false);
                       }
                     }}
                   >
+                    {sessionsLoading ? <LoaderCircle className="spin" /> : <ArrowDown />}
                     {t("加载更多", "Load more")}
-                    <ArrowDown />
                   </button>
                 )}
               </>
