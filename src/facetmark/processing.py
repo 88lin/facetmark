@@ -32,14 +32,23 @@ def preview(conn, **kwargs):
     return conn.execute("SELECT count(*) FROM (" + sql + ")", params).fetchone()[0]
 
 
-def snapshot(conn, job):
+def snapshot(conn, job, planned_ids=None):
     existing = conn.execute("SELECT count(*) FROM processing_item WHERE job_id=?", (job.id,)).fetchone()[0]
     if not existing and not job.snapshot_ready:
-        scope = CollectionScope(**job.scope) if job.scope is not None else None
-        sql, params = target_query(scope=scope, ids=job.bookmark_ids, mode=job.mode,
-                                   force=job.force, limit=job.limit)
-        conn.execute("INSERT INTO processing_item(job_id,bookmark_id) SELECT ?,id FROM (" + sql + ")",
-                     [job.id, *params])
+        selected = planned_ids if planned_ids is not None else job.bookmark_ids
+        # `planned_ids` is the resolved list from the job's first run. Without
+        # it a resume of a job whose rows were cleaned up would re-expand the
+        # scope and pick up bookmarks added after the original task started.
+        if planned_ids is not None and job.bookmark_ids is None:
+            conn.execute("INSERT INTO processing_item(job_id,bookmark_id) "
+                         "SELECT ?, value FROM json_each(?) WHERE value IN (SELECT id FROM bookmark)",
+                         (job.id, json.dumps(planned_ids)))
+        else:
+            scope = CollectionScope(**job.scope) if job.scope is not None else None
+            sql, params = target_query(scope=scope, ids=selected, mode=job.mode,
+                                       force=job.force, limit=job.limit)
+            conn.execute("INSERT INTO processing_item(job_id,bookmark_id) SELECT ?,id FROM (" + sql + ")",
+                         [job.id, *params])
         conn.commit()
     job.snapshot_ready = True
     update_counts(conn, job)

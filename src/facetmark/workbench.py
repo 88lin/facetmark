@@ -48,14 +48,24 @@ def browse(conn, *, limit=40, offset=0, folder=None, tag=None, domain=None, sess
     for item in items:
         item["tags"] = json.loads(item["tags"])
     count_where, count_params = predicate(scope, include_status=False)
-    counts = conn.execute(
-        "SELECT count(*) AS total, "
-        "sum(CASE WHEN COALESCE(e.summary,'')!='' AND ef.bookmark_id IS NULL THEN 1 ELSE 0 END) AS done, "
-        "sum(CASE WHEN ef.bookmark_id IS NOT NULL THEN 1 ELSE 0 END) AS failed "
-        "FROM bookmark b LEFT JOIN enrichment e ON e.bookmark_id=b.id "
-        "LEFT JOIN enrichment_failure ef ON ef.bookmark_id=b.id WHERE " + count_where, count_params,
-    ).fetchone()
-    counts = {key: int(counts[key] or 0) for key in ("total", "done", "failed")}
+    # The status counts ignore the status filter by design, so an unfiltered
+    # request already has the answer in `total`: one aggregate pass, not three.
+    if not count_where.strip():
+        done, failed = conn.execute(
+            "SELECT sum(CASE WHEN COALESCE(e.summary,'')!='' AND ef.bookmark_id IS NULL THEN 1 ELSE 0 END), "
+            "sum(CASE WHEN ef.bookmark_id IS NOT NULL THEN 1 ELSE 0 END) "
+            "FROM bookmark b LEFT JOIN enrichment e ON e.bookmark_id=b.id "
+            "LEFT JOIN enrichment_failure ef ON ef.bookmark_id=b.id").fetchone()
+        counts = {"total": int(total), "done": int(done or 0), "failed": int(failed or 0)}
+    else:
+        counts = conn.execute(
+            "SELECT count(*) AS total, "
+            "sum(CASE WHEN COALESCE(e.summary,'')!='' AND ef.bookmark_id IS NULL THEN 1 ELSE 0 END) AS done, "
+            "sum(CASE WHEN ef.bookmark_id IS NOT NULL THEN 1 ELSE 0 END) AS failed "
+            "FROM bookmark b LEFT JOIN enrichment e ON e.bookmark_id=b.id "
+            "LEFT JOIN enrichment_failure ef ON ef.bookmark_id=b.id WHERE " + count_where, count_params,
+        ).fetchone()
+        counts = {key: int(counts[key] or 0) for key in ("total", "done", "failed")}
     counts["pending"] = counts["total"] - counts["done"] - counts["failed"]
     return {
         "items": items,
@@ -123,7 +133,11 @@ def register(app: FastAPI, auth: list) -> None:
             response.raise_for_status()
             version = str(response.json().get('tag_name', '')).removeprefix('v')
             def parts(value):
-                return tuple(int(n) for n in value.split('.') if n.isdecimal())
+                # Pad to three components so "2.0" and "2.0.0" compare equal;
+                # a pre-release tag compares as its numeric hull, which is the
+                # conservative answer for an update prompt.
+                numbers = [int(n) for n in value.split('-')[0].split('.') if n.isdecimal()]
+                return tuple((numbers + [0, 0, 0])[:max(3, len(numbers))])
             return {'current': __version__, 'latest': version, 'available': parts(version) > parts(__version__),
                     'url': 'https://github.com/88lin/facetmark/releases/latest'}
         except (httpx.HTTPError, ValueError):
@@ -165,7 +179,15 @@ def register(app: FastAPI, auth: list) -> None:
 
     @app.get("/bookmarks/facets", dependencies=auth)
     async def facets(request: Request):
-        conn = request.app.state.fm.conn
+        state = request.app.state.fm
+        conn = state.conn
+        # The workbench polls this every 4 s. The counts only move when the
+        # library revision moves, so a revision-keyed memo removes three full
+        # aggregate scans per poll on large collections.
+        cached = getattr(facets, "cache", None)
+        revision = admin.library_revision(conn)
+        if cached and cached[0] == revision:
+            return cached[1]
         result = {
             name: [
                 dict(r)
@@ -183,6 +205,7 @@ def register(app: FastAPI, auth: list) -> None:
                 "GROUP BY j.value ORDER BY count DESC,j.value LIMIT 200"
             )
         ]
+        facets.cache = (revision, result)
         return result
 
     @app.get("/bookmarks/facets/{group}", dependencies=auth)

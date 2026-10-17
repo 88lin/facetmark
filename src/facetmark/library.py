@@ -322,13 +322,18 @@ def update_bookmark(conn: sqlite3.Connection, bookmark_id: int, values: EditBook
         changes.update(date_modified=int(time.time()), updated_at=int(time.time()))
         conn.execute("UPDATE bookmark SET " + ",".join(f"{k}=?" for k in changes) + " WHERE id=?",
                      [*changes.values(), bookmark_id])
-        # Tags are not part of the enrichment prompt or embedding recipe.
-        # Refiling or changing title/URL is; its previous summary is stale.
-        if changed.intersection({"url", "title", "folder"}):
+        # Tags and folder are collection metadata; title and URL are inputs to
+        # the enrichment prompt and embedding recipe, so only those retire the
+        # old summary. Retiring on a folder rename silently discarded every
+        # summary in the folder.
+        if changed.intersection({"url", "title"}):
             retire_derived(conn, bookmark_id, discard_content="url" in changed)
         service.sync_fts_tag_refresh(conn, bookmark_id)
         _repair_sessions(conn, session_ids)
-        record = service.bookmark_record(conn, bookmark_id, settings=settings)
+        if _repair:
+            record = service.bookmark_record(conn, bookmark_id, settings=settings)
+        else:
+            record = {"bookmark_id": bookmark_id}
     return {**record, "updated": True}
 
 

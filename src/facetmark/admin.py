@@ -27,6 +27,7 @@ import contextlib
 import hashlib
 import json
 import re
+import sqlite3
 import time
 import uuid
 from collections import deque
@@ -219,6 +220,19 @@ class JobRunner:
         self._task: asyncio.Task | None = None
         self.path = data_dir / 'last-index-job.json' if data_dir else None
         self.previous = None
+        # The resolved id list of the last snapshot. Kept on disk because the
+        # `processing_item` rows are deleted when a job finishes: a resume that
+        # finds no rows must replay this list, not re-expand the current scope.
+        self.planned_path = data_dir / 'last-index-job.ids.json' if data_dir else None
+        self.planned_ids: list[int] | None = None
+        if self.planned_path:
+            try:
+                payload = json.loads(self.planned_path.read_text(encoding='utf-8'))
+                ids = payload.get('ids')
+                if isinstance(ids, list) and all(isinstance(value, int) for value in ids):
+                    self.planned_ids = ids
+            except (OSError, ValueError, AttributeError, TypeError):
+                self.planned_ids = None
         if self.path:
             try:
                 self.previous = json.loads(self.path.read_text(encoding='utf-8'))
@@ -245,6 +259,21 @@ class JobRunner:
             with contextlib.suppress(OSError):
                 tmp.chmod(0o600)
             tmp.replace(target)
+
+    def record_planned(self, conn: sqlite3.Connection, job: IndexJob) -> None:
+        """Store the snapshot's ids so a later resume has something to replay."""
+        if not self.planned_path:
+            return
+        rows = [row[0] for row in conn.execute(
+            "SELECT bookmark_id FROM processing_item WHERE job_id=? ORDER BY bookmark_id", (job.id,))]
+        if not rows:
+            return
+        self.planned_ids = rows
+        tmp = self.planned_path.with_suffix('.tmp')
+        tmp.write_text(json.dumps({"job_id": job.id, "ids": rows}), encoding='utf-8')
+        with contextlib.suppress(OSError):
+            tmp.chmod(0o600)
+        tmp.replace(self.planned_path)
 
     def saved(self, job_id: str) -> dict | None:
         if not re.fullmatch(r"[0-9a-f]{12}", job_id):
@@ -414,7 +443,8 @@ class JobRunner:
     async def _fetch(self, conn, job: IndexJob, settings: Settings, progress):
         from . import processing
 
-        processing.snapshot(conn, job)
+        processing.snapshot(conn, job, planned_ids=self.planned_ids if job.snapshot_ready else None)
+        self.record_planned(conn, job)
         self.persist()
         totals = {"attempted": 0, "stored": 0, "changed": 0, "queued_for_browser": 0}
         while batch := processing.pending_batch(conn, job):
@@ -475,7 +505,8 @@ class JobRunner:
     async def _summarize(self, conn, job: IndexJob, settings: Settings, provider, progress):
         from . import processing
 
-        processing.snapshot(conn, job)
+        processing.snapshot(conn, job, planned_ids=self.planned_ids if job.snapshot_ready else None)
+        self.record_planned(conn, job)
         self.persist()
 
         def finished(target, enrichment, _error):

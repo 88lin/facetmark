@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import hmac
 import sqlite3
 import time
 from contextlib import asynccontextmanager
@@ -110,6 +111,23 @@ def get_state(request: Request) -> AppState:
     return request.app.state.fm
 
 
+class _BundleStaticFiles(StaticFiles):
+    """Serve the React build, or the legacy assets, without freezing the choice.
+
+    ``StaticFiles`` resolves its directories once at construction. The bundle
+    can appear later (a dev server writing into the package, a wheel upgrade in
+    place), and when it does the old mount keeps serving the previous
+    directory -- which is how a fresh build turns into a blank page with 404s
+    for its hashed assets. Re-resolving on each lookup is cheap: two ``is_dir``
+    calls. Path traversal is still rejected by the parent implementation.
+    """
+
+    def lookup_path(self, path: str) -> tuple[str, Any]:
+        bundle = BUNDLE_DIR / "static"
+        self.all_directories = [bundle if bundle.is_dir() else STATIC_DIR]
+        return super().lookup_path(path)
+
+
 def require_token(request: Request) -> None:
     state: AppState = request.app.state.fm
     if not state.token:  # pragma: no cover - token is always minted
@@ -118,7 +136,7 @@ def require_token(request: Request) -> None:
     supplied = header[7:].strip() if header.lower().startswith("bearer ") else ""
     if not supplied:
         supplied = request.headers.get("x-facetmark-token", "").strip()
-    if supplied != state.token:
+    if not hmac.compare_digest(supplied, state.token):
         raise HTTPException(status_code=401, detail="bad or missing pairing token")
     if request.headers.get('x-facetmark-client') == 'extension':
         state.extension_seen_at = int(time.time())
@@ -370,10 +388,13 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
         return JSONResponse(body, headers={"Cache-Control": "no-store"})
 
     # `check_dir=False`: a broken install should 404 one asset, not refuse to
-    # start the service the extension depends on.
+    # start the service the extension depends on. The React build can also land
+    # after the service is already running (Vite writes into the package while
+    # `facetmark serve` holds it open), so resolve the directory per request
+    # rather than freezing whichever one existed at import time.
     app.mount(
         "/app/static",
-        StaticFiles(directory=BUNDLE_DIR / 'static' if BUNDLE_DIR.is_dir() else STATIC_DIR, check_dir=False),
+        _BundleStaticFiles(check_dir=False),
         name="facetmark-web",
     )
 

@@ -153,7 +153,8 @@ async def run_service(settings, *, parent_pid: int = 0) -> None:
         settings = settings.model_copy(update={'host': '127.0.0.1', 'port': port})
         app = create_app(settings)
         server = uvicorn.Server(uvicorn.Config(app, host='127.0.0.1', port=port,
-                                loop='asyncio', http='h11', log_level='warning', access_log=False))
+                                loop='asyncio', http='h11', log_level='warning', access_log=False,
+                                timeout_graceful_shutdown=30))
 
         def control():
             for line in sys.stdin:
@@ -164,7 +165,10 @@ async def run_service(settings, *, parent_pid: int = 0) -> None:
                         faulthandler.dump_traceback_later(12)
                     server.should_exit = True
                     return
-            if parent_pid:
+            # EOF is not a stop request: the shell may have closed the pipe
+            # while a job is mid-write. Parent death is watched separately on
+            # Windows, and stdin is only a convenience channel elsewhere.
+            if parent_pid and os.name != 'nt':
                 server.should_exit = True
 
         threading.Thread(target=control, daemon=True).start()
