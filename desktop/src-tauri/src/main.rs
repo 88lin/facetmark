@@ -354,7 +354,7 @@ fn main() {
                             // preference: a failed first registration leaves
                             // the two disagreeing, and toggling from the stale
                             // value asks the wrong direction.
-                            let registered = app.global_shortcut().is_registered(SHORTCUT).unwrap_or(false);
+                            let registered = app.global_shortcut().is_registered(SHORTCUT);
                             let mut prefs = preferences(app);
                             let result = if registered { app.global_shortcut().unregister(SHORTCUT) } else { app.global_shortcut().register(SHORTCUT) };
                             if result.is_ok() { prefs.shortcut = !registered; save_preferences(app, &prefs); }
