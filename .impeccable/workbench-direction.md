@@ -30,11 +30,20 @@ FINISH: Unreviewed and undocumented is unfinished. Current cloud-rendered eviden
 
 ## Verification status
 
-This update describes the uncommitted working-tree source. No current build,
-browser rendering, screenshots or independent visual review has run; repository
-policy requires GitHub Actions and the current changes have not been pushed.
-DESIGN.md and its sidecar now reflect inspected source, including motion restoration;
-the sidecar specimens are not rendered acceptance evidence. The following records
-belong only to their named historical revisions.
+Use [PR #44 checks](https://github.com/88lin/facetmark/pull/44/checks) for the
+latest pushed source and GitHub Actions outcomes. DESIGN.md and the sidecar record
+source-derived tokens and specimens; the specimens are not screenshot evidence.
+
+Historical run [39127258266](https://github.com/88lin/facetmark/actions/runs/39127258266)
+built and rendered source `3a9c49a`: 66 browser tests passed, including folder
+creation, editing, bulk moves and keyboard cases; three reader-motion tests failed
+on the footer's last-chapter label and live reduced-motion behavior. Six captures
+matched provenance, and independent visual review found the typography, palette,
+depth and folder layout consistent with the direction, with no new visual fixes.
+That run retained the known reader mismatch. Reader corrections were pushed at
+`29ed015`; consult the linked checks for their verification. The initial run and
+review do not establish the outcome of later runs or user aesthetic approval.
+
+The following records belong only to their named historical revisions.
 
 The source-matched evidence lives in [desktop validation](../docs/desktop-validation.md). At application/test source 0993020882434593932d3d50ad5ad25594b0531f, Experience 39089551750, all ten jobs in CI 39089554204 and Windows 39089551767 passed, including the 200,000-record paging/scoped-selection browser pass. That revision corrects asset delivery, partial-task resume scope, folder-move data loss, batch cost, window lifecycle, splash identity and collection spacing; it does not restate the visual contract. The `ship` verdict and the 80 verified Web PNGs belong to the earlier source 4c6383ad0537bccb85ce32f76fc11fe3f9e139e8 (Experience 39002142092, CI 39002144664, Windows 39002142193), where an independent review inspected 17 named captures and marked all eight original findings resolved. A generic reviewer substituted for the unavailable specialist; it did not inspect all 80 Web images or run a browser. Neither record is user aesthetic approval, personal-account permission or all-Windows certification. Older source/run details remain in that validation history and are not part of the current direction contract.

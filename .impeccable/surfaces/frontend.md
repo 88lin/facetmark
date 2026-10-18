@@ -118,13 +118,21 @@ visible in the first mobile viewport.
 
 ## Verification and boundaries
 
-The current working-tree changes have source inspection only. No current build,
-browser render or screenshot review has run; repository policy requires GitHub
-Actions. Current source has not been committed or pushed. The GithubStarsManager
-`repo.png` and FlClash `preview.png` images were inspected as references; they are
-not Facetmark evidence. The refreshed sidecar contains source-derived component
-specimens and does not claim rendered verification. Prior results below remain
-historical and do not verify this revision.
+Use [PR #44 checks](https://github.com/88lin/facetmark/pull/44/checks) for the
+latest pushed source and Actions outcomes. At historical source `3a9c49a`, run
+[39127258266](https://github.com/88lin/facetmark/actions/runs/39127258266) built and
+rendered the UI: 66 browser tests passed, including folder creation, editing, bulk
+moves and keyboard cases; three reader-motion cases failed on the footer's
+last-chapter label and live reduced-motion behavior. Six captures matched provenance.
+Independent visual review found typography, palette, depth and folder layout
+consistent with the direction, with no new visual fixes; the reader mismatch
+remained. Reader corrections were pushed at `29ed015`; their verification is
+recorded in the linked checks, not inferred from the initial run or review.
+
+GithubStarsManager `repo.png` and FlClash `preview.png` remain external references,
+not Facetmark evidence. Sidecar specimens are source-derived examples. All results
+below remain scoped to their named historical revisions; no user aesthetic approval
+is implied.
 
 At source `0993020882434593932d3d50ad5ad25594b0531f`, Experience 39089551750,
 all ten CI jobs and Windows installation checks passed. That revision fixes
