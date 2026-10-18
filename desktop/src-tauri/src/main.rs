@@ -330,6 +330,9 @@ fn main() {
             let update = MenuItem::with_id(app, "update", "检查更新 / Check for updates", true, None::<&str>)?;
             let exit = MenuItem::with_id(app, "exit", "退出 / Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &startup, &shortcut, &update, &exit])?;
+            // The closure owns its handles; the registration fallback below
+            // still needs the menu item, so it takes a clone.
+            let shortcut_item = shortcut.clone();
             TrayIconBuilder::new().icon(app.default_window_icon().unwrap().clone()).tooltip("Facetmark")
                 .on_tray_icon_event(|tray, event| {
                     // Windows convention: a plain left click restores the app;
@@ -358,7 +361,7 @@ fn main() {
                             let mut prefs = preferences(app);
                             let result = if registered { app.global_shortcut().unregister(SHORTCUT) } else { app.global_shortcut().register(SHORTCUT) };
                             if result.is_ok() { prefs.shortcut = !registered; save_preferences(app, &prefs); }
-                            let _ = shortcut.set_checked(result.is_ok() && !registered);
+                            let _ = shortcut_item.set_checked(result.is_ok() && !registered);
                         },
                         "update" => {
                             if let Some(win) = app.get_webview_window("main") { let _ = win.eval("window.location.hash = 'settings'"); }
