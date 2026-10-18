@@ -11,6 +11,7 @@ import { motion, useSpring, useTransform, useVelocity } from "motion/react";
 import { Send } from "lucide-react";
 import { useText } from "../../locale";
 import { useReducedMotion } from "../../useReducedMotion";
+import { SECTION_SELECTED, selectReaderSection, scrollToReaderSection } from "./reader-section";
 import "./reader-outline.css";
 
 export type ReaderOutlineSection = { id: string; label: string };
@@ -120,6 +121,17 @@ export function ReaderOutline({
         "--reader-outline-available-height",
         `${Math.max(0, scroller.clientHeight - ANCHOR_OFFSET * 2)}px`,
       );
+      // Width changes reflow paragraphs. Keep a deliberately selected chapter
+      // in view instead of retaining a now-unrelated pixel offset.
+      const selectedHeading = pinned.current && available.get(pinned.current);
+      if (selectedHeading) scrollToReaderSection(scroller, selectedHeading, "instant");
+      schedule();
+    };
+    const onSectionSelected = (event: Event) => {
+      const id = (event as CustomEvent<string>).detail;
+      pinned.current = available.has(id) ? id : null;
+      userScrolled.current = false;
+      if (pinned.current !== null) setActiveId(pinned.current);
       schedule();
     };
     const onIntent = (event: Event) => {
@@ -136,6 +148,7 @@ export function ReaderOutline({
 
     const document = scroller.ownerDocument;
     scroller.addEventListener("scroll", onScroll, { passive: true });
+    scroller.addEventListener(SECTION_SELECTED, onSectionSelected);
     scroller.addEventListener("wheel", onIntent, { passive: true });
     scroller.addEventListener("touchstart", onIntent, { passive: true });
     // Reader toolbar controls live outside the scroller. Their pointer/keyboard
@@ -160,6 +173,7 @@ export function ReaderOutline({
       if (frame !== null) cancelAnimationFrame(frame);
       observer.disconnect();
       scroller.removeEventListener("scroll", onScroll);
+      scroller.removeEventListener(SECTION_SELECTED, onSectionSelected);
       scroller.removeEventListener("wheel", onIntent);
       scroller.removeEventListener("touchstart", onIntent);
       document.removeEventListener("pointerdown", onIntent);
@@ -185,19 +199,8 @@ export function ReaderOutline({
     const scroller = containerRef.current;
     const heading = headingsRef.current.get(id);
     if (!scroller || !heading || !scroller.contains(heading)) return;
-    pinned.current = id;
-    userScrolled.current = false;
-    setActiveId(id);
-    const top =
-      heading.getBoundingClientRect().top -
-      scroller.getBoundingClientRect().top -
-      scroller.clientTop +
-      scroller.scrollTop -
-      ANCHOR_OFFSET;
-    scroller.scrollTo({
-      top: Math.max(0, Math.min(top, scroller.scrollHeight - scroller.clientHeight)),
-      behavior: reduceMotion ? "auto" : "smooth",
-    });
+    selectReaderSection(scroller, id);
+    scrollToReaderSection(scroller, heading, reduceMotion ? "instant" : "smooth");
   };
 
   return (

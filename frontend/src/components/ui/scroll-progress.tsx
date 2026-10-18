@@ -10,6 +10,7 @@ import { motion, useScroll, useSpring } from "motion/react";
 import { List, ArrowUp } from "lucide-react";
 import { useText } from "../../locale";
 import { useReducedMotion } from "../../useReducedMotion";
+import { SECTION_SELECTED, selectReaderSection, scrollToReaderSection } from "./reader-section";
 
 export type ScrollProgressSection = { id: string; label: string };
 export function ScrollProgress({
@@ -53,17 +54,28 @@ export function ScrollProgress({
         ? sections.at(-1)?.id ?? "" : active?.id ?? sections[0]?.id ?? "");
     };
     const release = () => { pinned.current = null; };
+    const onSectionSelected = (event: Event) => {
+      const id = (event as CustomEvent<string>).detail;
+      if (sections.some(section => section.id === id)) { pinned.current = id; setActiveId(id); }
+    };
+    const measure = () => {
+      const heading = pinned.current && scroller.querySelector<HTMLElement>(`#${CSS.escape(pinned.current)}`);
+      if (heading) scrollToReaderSection(scroller, heading, "instant");
+      update();
+    };
     update();
     scroller.addEventListener("scroll", update, { passive: true });
+    scroller.addEventListener(SECTION_SELECTED, onSectionSelected);
     scroller.addEventListener("wheel", release, { passive: true });
     scroller.addEventListener("touchstart", release, { passive: true });
     document.addEventListener("keydown", release);
     document.addEventListener("pointerdown", release);
-    const ro = new ResizeObserver(update);
+    const ro = new ResizeObserver(measure);
     ro.observe(scroller);
     if (scroller.firstElementChild) ro.observe(scroller.firstElementChild);
     return () => {
       scroller.removeEventListener("scroll", update);
+      scroller.removeEventListener(SECTION_SELECTED, onSectionSelected);
       scroller.removeEventListener("wheel", release);
       scroller.removeEventListener("touchstart", release);
       document.removeEventListener("keydown", release);
@@ -105,13 +117,8 @@ export function ScrollProgress({
                 const scroller = containerRef.current;
                 const heading = scroller?.querySelector<HTMLElement>(`#${CSS.escape(e.target.value)}`);
                 if (!scroller || !heading) return;
-                pinned.current = e.target.value;
-                setActiveId(e.target.value);
-                scroller.scrollTo({
-                  top: heading.getBoundingClientRect().top - scroller.getBoundingClientRect().top
-                    - scroller.clientTop + scroller.scrollTop - 28,
-                  behavior: reduceMotion ? "auto" : "smooth",
-                });
+                selectReaderSection(scroller, e.target.value);
+                scrollToReaderSection(scroller, heading, reduceMotion ? "instant" : "smooth");
               }}
             >
               {sections.map((section) => (
@@ -137,8 +144,10 @@ export function ScrollProgress({
           title={t("回到顶部", "Back to top")}
           aria-label={t("回到顶部", "Back to top")}
           onClick={() => {
-            pinned.current = null;
-            containerRef.current?.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+            const scroller = containerRef.current;
+            if (!scroller) return;
+            selectReaderSection(scroller, sections[0]?.id ?? "");
+            scroller.scrollTo({ top: 0, behavior: reduceMotion ? "instant" : "smooth" });
           }}
         >
           <ArrowUp size={14} />

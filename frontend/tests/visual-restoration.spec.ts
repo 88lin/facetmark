@@ -16,13 +16,15 @@ for (const { width, theme } of [{ width: 1440, theme: "light" }, { width: 390, t
     }, theme);
     await page.goto("/app");
     await expect(page.locator(".result-row")).toHaveCount(30);
-    const listPosition = await page.locator(".result-list").evaluate(el => el.scrollTop);
     await page.locator(".bookmark-preview").first().click();
     await expect(page.locator(".body-text")).toBeVisible();
     const surface = page.locator(".reading-position-surface");
     const picker = page.getByRole("combobox", { name: "跳转到章节" });
     await expect(surface).toHaveCSS("transform", "none");
     await expect(surface).toBeInViewport({ ratio: 1 });
+    // Opening preview intentionally reflows the grid into an index and reveals
+    // the selected row. Chapter navigation must preserve that established view.
+    const listPosition = await page.locator(".result-list").evaluate(el => el.scrollTop);
     expect(await surface.evaluate(el => getComputedStyle(el).backdropFilter)).not.toBe("none");
     await picker.focus();
     await expect(picker).toBeFocused();
@@ -75,12 +77,14 @@ test("paper plane follows rapid chapter changes and settles immediately with red
   await page.setViewportSize({ width: 1180, height: 860 });
   await expect.poll(alignment).toBeLessThan(1.5);
   await expect(page.locator(".section-picker-copy")).toContainText((await last.textContent())!);
+  await expect(page.locator(`#${await last.getAttribute("aria-controls")}`)).toBeInViewport({ ratio: 1 });
   await page.screenshot({ path: "screenshots/restored-paper-plane.png", animations: "disabled" });
 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await first.press("Enter");
   await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   expect(await alignment()).toBeLessThan(1.5);
+  await expect(page.locator(".section-picker-copy")).toContainText((await first.textContent())!);
   await expect(plane.locator("span")).toHaveCSS("transform", "none");
   await page.keyboard.press("Escape");
   await page.keyboard.press("Escape");
