@@ -337,22 +337,83 @@ def update_bookmark(conn: sqlite3.Connection, bookmark_id: int, values: EditBook
     return {**record, "updated": True}
 
 
+def _delete_ids(conn: sqlite3.Connection, ids: Sequence[int]) -> None:
+    """Remove every row a bookmark owns, in chunks, without per-id statements.
+
+    Foreign keys cascade from ``bookmark``, but the virtual FTS and vector
+    tables have no cascade support, so they are cleared explicitly first.
+    """
+    tables = ["vec_content_meta", "intent_query", "enrichment", "content",
+              "fetch_queue", "health", "interaction"]
+    vec_content = _table_exists(conn, "vec_content")
+    vec_intent = _table_exists(conn, "vec_intent")
+    for chunk in in_chunks(ids):
+        marks = ",".join("?" * len(chunk))
+        if vec_content:
+            conn.execute(f"DELETE FROM vec_content WHERE bookmark_id IN ({marks})", chunk)
+        if vec_intent:
+            conn.execute(
+                f"DELETE FROM vec_intent WHERE intent_id IN "
+                f"(SELECT id FROM intent_query WHERE bookmark_id IN ({marks}))", chunk)
+        for table in tables:
+            conn.execute(f"DELETE FROM {table} WHERE bookmark_id IN ({marks})", chunk)
+        conn.execute(f"DELETE FROM edge WHERE (src IN ({marks}) OR dst IN ({marks})) "
+                     f"AND kind!='session'", [*chunk, *chunk])
+        for table in ("fts_tri", "fts_seg"):
+            conn.execute(f"DELETE FROM {table} WHERE rowid IN ({marks})", chunk)
+        conn.execute(f"DELETE FROM bookmark WHERE id IN ({marks})", chunk)
+
+
 def delete_bookmarks(conn: sqlite3.Connection, ids: Sequence[int]) -> dict:
     ids = list(dict.fromkeys(ids))
     with transaction(conn):
         _rows(conn, ids)
-        session_ids = []
-        for bid in ids:
+        session_ids: list[int] = []
+        for chunk in in_chunks(ids):
+            marks = ",".join("?" * len(chunk))
             session_ids.extend(r[0] for r in conn.execute(
-                "SELECT session_id FROM bookmark_session WHERE bookmark_id=?", (bid,)))
-            retire_derived(conn, bid, discard_content=True)
-            for table in ("fts_tri", "fts_seg"):
-                conn.execute(f"DELETE FROM {table} WHERE rowid=?", (bid,))
-            # Foreign keys remove content, sessions, relations and interactions;
-            # virtual FTS/vec tables above have no cascade support.
-            conn.execute("DELETE FROM bookmark WHERE id=?", (bid,))
+                f"SELECT DISTINCT session_id FROM bookmark_session "
+                f"WHERE bookmark_id IN ({marks})", chunk))
+        _delete_ids(conn, ids)
         _repair_sessions(conn, session_ids)
     return {"deleted": len(ids), "ids": ids}
+
+
+def _move_ids(conn: sqlite3.Connection, ids: Sequence[int], folder: str) -> int:
+    """Refile every id in a constant number of statements per chunk."""
+    depth = _destination_depth(conn, folder)
+    now = int(time.time())
+    updated = 0
+    for chunk in in_chunks(ids):
+        marks = ",".join("?" * len(chunk))
+        updated += conn.execute(
+            f"SELECT count(*) FROM bookmark WHERE id IN ({marks}) AND folder IS NOT ?", [*chunk, folder],
+        ).fetchone()[0]
+        conn.execute(
+            f"DELETE FROM bookmark_session WHERE bookmark_id IN ({marks}) AND session_id IN "
+            f"(SELECT id FROM session WHERE method='folder')", chunk)
+        conn.execute(
+            f"UPDATE bookmark SET folder=?,folder_depth=?,date_modified=?,updated_at=? "
+            f"WHERE id IN ({marks})", [folder, depth, now, now, *chunk],
+        )
+    return updated
+
+
+def _retag_ids(conn: sqlite3.Connection, plan: Sequence[tuple[int, list[str]]]) -> int:
+    """Apply prepared tag lists, then refresh only the affected FTS rows.
+
+    Tag text is part of the lexical index, so unlike a move this still rebuilds
+    one FTS row per bookmark; the per-row record join is what the batch path
+    avoids.
+    """
+    now = int(time.time())
+    conn.executemany(
+        "UPDATE bookmark SET tags=?,date_modified=?,updated_at=? WHERE id=?",
+        [(json.dumps(tags, ensure_ascii=False), now, now, bid) for bid, tags in plan],
+    )
+    for bid, _tags in plan:
+        service.sync_fts_tag_refresh(conn, bid)
+    return len(plan)
 
 
 def bulk_edit(conn: sqlite3.Connection, body: BulkRequest, *, settings: Settings) -> dict:
@@ -360,20 +421,24 @@ def bulk_edit(conn: sqlite3.Connection, body: BulkRequest, *, settings: Settings
         rows = _rows(conn, body.ids)
         if body.action == "delete":
             return {"updated": 0, **delete_bookmarks(conn, body.ids)}
-        sessions = _folder_sessions(conn, body.ids) if body.action == "move" else []
-        updated = 0
+        ids = [row["id"] for row in rows]
+        if body.action == "move":
+            sessions = _folder_sessions(conn, ids)
+            updated = _move_ids(conn, ids, body.folder)
+            _repair_sessions(conn, sessions)
+            return {"updated": updated, "deleted": 0, "ids": body.ids}
+        # Validate every replacement before writing any of them, so a cap breach
+        # rolls back nothing instead of relying on the savepoint to undo writes.
+        plan: list[tuple[int, list[str]]] = []
         for row in rows:
-            if body.action == "move":
-                values = EditBookmark(folder=body.folder)
-            else:
-                tags = jload(row["tags"], [])
-                replacement = (list(dict.fromkeys([*tags, *body.tags])) if body.action == "tag-add"
-                               else [tag for tag in tags if tag not in body.tags])
-                if len(replacement) > 100:
-                    raise HTTPException(422, "A bookmark cannot have more than 100 tags")
-                values = EditBookmark(tags=replacement)
-            updated += int(update_bookmark(conn, row["id"], values, settings=settings, _repair=False)["updated"])
-        _repair_sessions(conn, sessions)
+            tags = jload(row["tags"], [])
+            replacement = (list(dict.fromkeys([*tags, *body.tags])) if body.action == "tag-add"
+                           else [tag for tag in tags if tag not in body.tags])
+            if len(replacement) > 100:
+                raise HTTPException(422, "A bookmark cannot have more than 100 tags")
+            if replacement != tags:
+                plan.append((row["id"], replacement))
+        updated = _retag_ids(conn, plan)
     return {"updated": updated, "deleted": 0, "ids": body.ids}
 
 
@@ -388,18 +453,20 @@ def edit_taxonomy(conn: sqlite3.Connection, body: TaxonomyRequest, *, settings: 
         if not ids:
             raise HTTPException(404, "Folder or tag no longer exists")
         rows = _rows(conn, ids)
-        sessions = _folder_sessions(conn, ids) if body.kind == "folder" else []
-        updated = 0
+        if body.kind == "folder":
+            sessions = _folder_sessions(conn, ids)
+            updated = _move_ids(conn, ids, body.new_name if body.action == "rename" else "")
+            _repair_sessions(conn, sessions)
+            return {"updated": updated, "deleted": 0, "ids": ids}
+        plan: list[tuple[int, list[str]]] = []
         for row in rows:
-            if body.kind == "folder":
-                values = EditBookmark(folder=body.new_name if body.action == "rename" else "")
-            else:
-                tags = jload(row["tags"], [])
-                replacement = ([body.new_name if tag == body.name else tag for tag in tags]
-                               if body.action == "rename" else [tag for tag in tags if tag != body.name])
-                values = EditBookmark(tags=list(dict.fromkeys(replacement)))
-            updated += int(update_bookmark(conn, row["id"], values, settings=settings, _repair=False)["updated"])
-        _repair_sessions(conn, sessions)
+            tags = jload(row["tags"], [])
+            replacement = ([body.new_name if tag == body.name else tag for tag in tags]
+                           if body.action == "rename" else [tag for tag in tags if tag != body.name])
+            normalized = list(dict.fromkeys(replacement))
+            if normalized != tags:
+                plan.append((row["id"], normalized))
+        updated = _retag_ids(conn, plan)
     return {"updated": updated, "deleted": 0, "ids": ids}
 
 
