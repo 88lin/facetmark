@@ -129,6 +129,30 @@ test("a large library can jump to its last page without stepping through every p
   await page.screenshot({ path: "screenshots/collection-page-jump.png", animations: "disabled" });
 });
 
+test("reopening a removed current category always settles its directory request", async ({ page }) => {
+  await page.goto("/app");
+  const rail = page.locator(".collection-sidebar");
+  const target = rail.locator(".facet-option[title]").first();
+  await expect(target).toBeVisible();
+  const selected = await target.getAttribute("title");
+  await target.click();
+  // A renamed/removed category is no longer in the directory, while the
+  // bookmark filter deliberately retains the user's existing scope.
+  await page.route("**/bookmarks/facets/folders?**", route => route.fulfill({
+    json: { items: [], total: 0, offset: 0, limit: 50, has_more: false },
+  }));
+  await rail.getByRole("textbox", { name: "查找分类" }).fill("missing-category-fixture");
+  const current = rail.locator(".facet-current");
+  await expect(current).toHaveAttribute("title", selected!);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const requested = page.waitForResponse(res => new URL(res.url()).pathname === "/bookmarks/facets/folders" && new URL(res.url()).searchParams.get("q") === selected);
+    await current.click();
+    await requested;
+    await expect(rail.locator(".facet-options")).toHaveAttribute("aria-busy", "false");
+    await expect(rail).toContainText("没有匹配的分类");
+  }
+});
+
 test("deselecting this page preserves selections from other pages", async ({ page }) => {
   await page.goto("/app");
   await expect(page.locator(".result-row")).toHaveCount(30);
@@ -184,27 +208,27 @@ test("collection typography stays readable across views and larger user text set
       search: size(".search-box input"), weight: getComputedStyle(document.querySelector(".result-title")!).fontWeight,
       tracking: getComputedStyle(document.querySelector(".toolbar-location h1")!).letterSpacing };
   });
-  expect(typography.title).toBeGreaterThanOrEqual(18);
+  expect(typography.title).toBeGreaterThanOrEqual(16);
   expect(typography.summary).toBeGreaterThanOrEqual(14);
   expect(typography.source).toBeGreaterThanOrEqual(12);
   expect(typography.category).toBeGreaterThanOrEqual(14);
   expect(typography.action).toBeGreaterThanOrEqual(14);
   expect(typography.search).toBeGreaterThanOrEqual(16);
-  expect(Number(typography.weight)).toBeGreaterThanOrEqual(700);
+  expect(Number(typography.weight)).toBeGreaterThanOrEqual(600);
   expect(["normal", "0px"]).toContain(typography.tracking);
   const categoryLabelsStayOnOneLine = () => page.locator(".collection-sidebar .facet-types button span").evaluateAll(labels =>
     labels.every(label => label.getBoundingClientRect().height <= parseFloat(getComputedStyle(label).lineHeight) + 1));
   expect(await categoryLabelsStayOnOneLine()).toBe(true);
   await page.getByRole("button", { name: "列表视图", exact: true }).click();
-  expect(await page.locator(".result-title").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(18);
+  expect(await page.locator(".result-title").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
   await page.evaluate(() => { document.documentElement.style.fontSize = "125%"; });
-  expect(await page.locator(".result-title").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(22.5);
+  expect(await page.locator(".result-title").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(20);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)).toBe(false);
   expect(await categoryLabelsStayOnOneLine()).toBe(true);
   await page.screenshot({ path: "screenshots/collection-text-125.png", animations: "disabled" });
   await page.evaluate(() => { document.documentElement.style.fontSize = ""; });
   await page.setViewportSize({ width: 390, height: 844 });
-  expect(await page.locator(".result-title").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(18);
+  expect(await page.locator(".result-title").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
   await page.screenshot({ path: "screenshots/collection-readable-mobile-list.png", animations: "disabled" });
   await page.getByRole("button", { name: "筛选收藏", exact: true }).click();
   const option = page.locator(".sidebar .facet-option").first();

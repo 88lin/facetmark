@@ -64,18 +64,25 @@ contracts remain.
 
 ## Brand Commitments
 
-Preserve Facetmark's layered mark, pure white and lake-blue identity, compact
-navigation and readable content. The user rejected the grey-violet treatment,
-permanent three-column management layout, oversized collection masthead,
-mouse-inaccessible categories, small/thin type and reader-first workflow.
-Card and list titles share the stronger type hierarchy; descriptions remain visible
-on narrow screens. Searchable vertical categories support ordinary mouse use.
+Preserve Facetmark's layered mark, compact navigation, rounded controls and
+readable content. The user rejected a permanent three-column management layout,
+oversized collection masthead, mouse-inaccessible categories, small/thin type and
+reader-first workflow. Card and list views share readable title and description
+hierarchy; searchable vertical categories support ordinary mouse use.
 
-The current refinement uses restrained controls, plain support sections and local
-feedback. Exact visual tokens belong in [DESIGN.md](DESIGN.md); page composition
-belongs in the [frontend surface brief](.impeccable/surfaces/frontend.md).
-GithubStarsManager is a user-supplied workflow reference, not an approved pixel comp.
-Do not replace the identity with hand-drawn borders or candy-colored dashboards.
+On 2026-10-18 the user rejected PR #44's loss of roundness, surface depth and
+visual effects. A later explicit correction rejected Manrope and the lake-blue
+palette and named GithubStarsManager and FlClash as optimization references.
+This latest correction supersedes the earlier white/lake-blue commitment while
+retaining rounded cards, capsule controls, soft shadows and purposeful motion.
+Use neutral light/dark surfaces, system typography with Chinese fallbacks and a
+blue action accent. Exact tokens belong in [DESIGN.md](DESIGN.md); composition
+and interaction details belong in the [frontend surface brief](.impeccable/surfaces/frontend.md).
+
+The reference projects inform compact, legible desktop controls and explicit
+selection. Their source and images do not establish an approved Facetmark pixel
+comp or acceptance of the current implementation. Do not introduce hand-drawn
+borders or candy-colored dashboards.
 
 ## Evidence on Hand
 

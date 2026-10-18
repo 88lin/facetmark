@@ -3,8 +3,9 @@ import { ExternalLink, Eye, Folder, Pencil, Sparkles } from "lucide-react";
 import { post, safeUrl, type Bookmark } from "./api";
 import { useText } from "./locale";
 
-export function BookmarkCard({ record, selected, checked, disabled, display, onCheck, onPreview, onSummarize, onEdit }: {
+export function BookmarkCard({ record, selected, checked, disabled, display, entranceOrder = 0, onCheck, onPreview, onSummarize, onEdit }: {
   record: Bookmark; selected: boolean; checked: boolean; disabled: boolean;
+  entranceOrder?: number;
   display: "summary" | "original"; onCheck: () => void;
   onPreview: (button: HTMLButtonElement) => void; onSummarize?: () => void; onEdit?: () => void;
 }) {
@@ -34,6 +35,7 @@ export function BookmarkCard({ record, selected, checked, disabled, display, onC
     ? record.summary_basis === "title" ? t("标题推断", "Inferred from title") : t("AI 摘要", "AI summary")
     : text ? t("正文摘录", "Page excerpt") : display === "original" ? t("暂无正文", "No page text yet") : t("暂无摘要", "No summary yet");
   return <article data-bookmark-id={record.bookmark_id}
+    style={{ animationDelay: `${Math.min(entranceOrder, 7) * 18}ms` }}
     className={`result-row ${selected ? "selected" : ""} ${checked ? "batch-selected" : ""}`}>
     <div className="result-copy">
       <div className="result-source">

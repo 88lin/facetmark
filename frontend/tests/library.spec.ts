@@ -80,6 +80,25 @@ async function addTag(dialog: Locator, value: string) {
   await expect(dialog.getByRole("button", { name: `移除标签 ${value}`, exact: true })).toBeVisible();
 }
 
+function folderPicker(dialog: Locator, label: string) {
+  return dialog.locator(".folder-picker").filter({ has: dialog.page().getByText(label, { exact: true }) });
+}
+
+async function chooseFolder(dialog: Locator, label: string, value: string) {
+  const picker = folderPicker(dialog, label);
+  await picker.locator(".folder-picker-trigger").click();
+  if (!value) await picker.getByRole("button", { name: "未分类", exact: true }).click();
+  else {
+    await picker.getByRole("textbox", { name: "搜索文件夹", exact: true }).fill(value);
+    await expect(picker.locator(".folder-picker-options")).toHaveAttribute("aria-busy", "false");
+    const target = picker.getByTitle(value, { exact: true });
+    if (await target.count()) await target.click();
+    else await picker.getByRole("button", { name: `使用新文件夹「${value}」`, exact: true }).click();
+  }
+  await expect(picker.locator(".folder-picker-trigger")).toHaveAttribute("aria-expanded", "false");
+  await expect(picker.locator(".folder-picker-trigger")).toContainText(value || "未分类");
+}
+
 async function save(dialog: Locator) {
   await dialog.getByRole("button", { name: "保存", exact: true }).click();
   await expect(dialog).toHaveCount(0);
@@ -138,7 +157,7 @@ test("create and edit preserve literal folder names and tags after reload", asyn
   const create = page.getByRole("dialog", { name: "新增收藏", exact: true });
   await create.getByLabel("收藏网址", { exact: true }).fill(original.url);
   await create.getByLabel("收藏标题", { exact: true }).fill(original.title);
-  await create.getByLabel("收藏文件夹", { exact: true }).fill(original.folder);
+  await chooseFolder(create, "收藏文件夹", original.folder);
   for (const tag of original.tags) await addTag(create, tag);
   await addTag(create, original.tags[0]);
   await expect(create.locator(".editing-tags button")).toHaveCount(2);
@@ -158,11 +177,11 @@ test("create and edit preserve literal folder names and tags after reload", asyn
   await page.getByRole("button", { name: "编辑", exact: true }).click();
   const edit = page.getByRole("dialog", { name: "编辑收藏", exact: true });
   await expect(edit.getByLabel("收藏网址", { exact: true })).toHaveValue(original.url);
-  await expect(edit.getByLabel("收藏文件夹", { exact: true })).toHaveValue(original.folder);
+  await expect(folderPicker(edit, "收藏文件夹").locator(".folder-picker-trigger")).toContainText(original.folder);
   const updated = { ...original, url: `${original.url}/updated`, title: `${token} 修改后的标题`, folder: "", tags: ["带,逗号", "稍后 阅读"] };
   await edit.getByLabel("收藏网址", { exact: true }).fill(updated.url);
   await edit.getByLabel("收藏标题", { exact: true }).fill(updated.title);
-  await edit.getByLabel("收藏文件夹", { exact: true }).fill(updated.folder);
+  await chooseFolder(edit, "收藏文件夹", updated.folder);
   await edit.getByRole("button", { name: `移除标签 ${original.tags[0]}`, exact: true }).click();
   await addTag(edit, updated.tags[1]);
   await page.screenshot({ path: "screenshots/library-edit-zh-1440.png", animations: "disabled" });
@@ -174,6 +193,84 @@ test("create and edit preserve literal folder names and tags after reload", asyn
   await row(page, record.bookmark_id).locator(".bookmark-preview").click();
   await page.locator(".article-details > summary").click();
   for (const tag of updated.tags) await expect(page.locator(".preview-tags").getByRole("button", { name: `# ${tag}`, exact: true })).toBeVisible();
+});
+
+test("folder picker pages the full catalog, searches a late folder and saves the explicit choice", async ({ page, request, library }) => {
+  const token = marker();
+  const directory = await request.get("/bookmarks/facets/folders?offset=220&limit=1", { headers: library.headers });
+  const late = await directory.json();
+  expect(late.total).toBeGreaterThan(220);
+  const target: string = late.items[0].value;
+  await page.goto("/app");
+  await page.getByRole("button", { name: "新增收藏", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "新增收藏", exact: true });
+  await dialog.getByLabel("收藏网址", { exact: true }).fill(`https://library-ui.example/${token}`);
+  await dialog.getByLabel("收藏标题", { exact: true }).fill(token);
+  const picker = folderPicker(dialog, "收藏文件夹");
+  const trigger = picker.locator(".folder-picker-trigger");
+  await trigger.click();
+  await expect(picker.locator("button[title]")).toHaveCount(50);
+  await picker.getByRole("button", { name: /加载更多/ }).click();
+  await expect(picker.locator("button[title]")).toHaveCount(100);
+  const input = picker.getByRole("textbox", { name: "搜索文件夹", exact: true });
+  await input.fill(target);
+  const option = picker.getByTitle(target, { exact: true });
+  await expect(option).toBeVisible();
+  await expect(trigger).toContainText("未分类");
+  // Searching and pressing Enter alone cannot accidentally save the bookmark.
+  await input.press("Enter");
+  await expect(dialog).toBeVisible();
+  await expect(trigger).toContainText("未分类");
+  // Trailing whitespace still settles the request instead of stranding Loading.
+  await input.fill(`${target} `);
+  await expect(picker.locator(".folder-picker-options")).toHaveAttribute("aria-busy", "false");
+  await option.focus();
+  await option.press("Enter");
+  await expect(trigger).toBeFocused();
+  await expect(trigger).toContainText(target);
+  const created = page.waitForResponse(res => new URL(res.url()).pathname === "/admin/library/bookmarks" && res.request().method() === "POST");
+  await save(dialog);
+  const record = await (await created).json() as Bookmark;
+  library.remember(record.bookmark_id);
+  expect((await library.read(record.bookmark_id)).folder).toBe(target);
+});
+
+test("mobile folder selection recovers from errors and Escape cancels only the search draft", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/app");
+  await page.getByRole("button", { name: "新增收藏", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "新增收藏", exact: true });
+  const picker = folderPicker(dialog, "收藏文件夹");
+  const trigger = picker.locator(".folder-picker-trigger");
+  await page.route("**/bookmarks/facets/folders?**", route => route.fulfill({ status: 503, json: { detail: "Synthetic failure" } }));
+  await trigger.click();
+  await expect(picker.getByRole("alert")).toContainText("无法加载文件夹");
+  await page.unroute("**/bookmarks/facets/folders?**");
+  await picker.getByRole("button", { name: "重试", exact: true }).click();
+  await expect(picker.locator("button[title]").first()).toBeVisible();
+  const input = picker.getByRole("textbox", { name: "搜索文件夹", exact: true });
+  const nested = `手机资料 / 阅读计划 ${marker()}`;
+  await input.fill(nested);
+  await picker.getByRole("button", { name: `使用新文件夹「${nested}」`, exact: true }).click();
+  await trigger.click();
+  await expect(input).toBeFocused();
+  await expect(picker.getByTitle(nested)).toHaveAttribute("aria-pressed", "true");
+  await input.fill("未选中的搜索草稿");
+  await input.press("Escape");
+  await expect(dialog).toBeVisible();
+  await expect(trigger).toBeFocused();
+  await expect(trigger).toContainText(nested);
+  await trigger.click();
+  await page.screenshot({ path: "screenshots/library-folder-picker-mobile.png", animations: "disabled" });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)).toBe(false);
+  const optionBox = await picker.getByTitle(nested).boundingBox();
+  expect(optionBox!.height).toBeGreaterThanOrEqual(44);
+  await input.press("ArrowDown");
+  await expect(picker.getByRole("button", { name: "未分类", exact: true })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(trigger).toContainText("未分类");
+  await trigger.press("Escape");
+  await expect(dialog).toHaveCount(0);
 });
 
 test("delete requires fresh consent and cancellation leaves the bookmark intact", async ({ page, request, library }) => {
@@ -232,7 +329,7 @@ test("keyboard selection and bulk move and tags affect only the selected results
   await expect(page.locator(".selection-total")).toHaveText("已选择 2 条");
   await page.getByRole("button", { name: "批量操作", exact: true }).click();
   let dialog = page.getByRole("dialog", { name: "批量管理", exact: true });
-  await dialog.getByLabel("目标文件夹", { exact: true }).fill("同一文件夹 / 完整名称");
+  await chooseFolder(dialog, "目标文件夹", "同一文件夹 / 完整名称");
   await save(dialog);
   for (const record of [first, second]) expect((await library.read(record.bookmark_id)).folder).toBe("同一文件夹 / 完整名称");
   await expect(page.locator(".selection-total")).toHaveCount(0);
@@ -323,14 +420,14 @@ test("creation, organization and export start in the category the user is browsi
   await page.locator(".library-manage > summary").click();
   await page.getByRole("button", { name: "整理分类", exact: true }).click();
   let dialog = page.getByRole("dialog");
-  await expect(dialog.getByLabel("当前名称", { exact: true })).toHaveValue(folder);
+  await expect(folderPicker(dialog, "当前文件夹").locator(".folder-picker-trigger")).toContainText(folder);
   await dialog.getByRole("button", { name: "取消", exact: true }).click();
   await rail.getByRole("button", { name: "标签", exact: true }).click();
   await rail.getByRole("textbox", { name: "查找分类" }).fill(tag);
   await rail.getByTitle(tag, { exact: true }).click();
   await page.getByRole("button", { name: "新增收藏", exact: true }).click();
   dialog = page.getByRole("dialog");
-  await expect(dialog.getByLabel("收藏文件夹", { exact: true })).toHaveValue(folder);
+  await expect(folderPicker(dialog, "收藏文件夹").locator(".folder-picker-trigger")).toContainText(folder);
   await expect(dialog.getByRole("button", { name: `移除标签 ${tag}`, exact: true })).toBeVisible();
   await dialog.getByLabel("收藏网址", { exact: true }).fill(`https://library-ui.example/${token}/context`);
   await dialog.getByLabel("收藏标题", { exact: true }).fill("在当前分类里保存一条新收藏");
@@ -365,7 +462,7 @@ test("taxonomy merges exact names and removes labels without deleting bookmarks"
   await page.locator(".library-manage > summary").click();
   await page.getByRole("button", { name: "整理分类", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "整理文件夹与标签", exact: true });
-  await dialog.getByLabel("当前名称", { exact: true }).fill(oldFolder);
+  await chooseFolder(dialog, "当前文件夹", oldFolder);
   await dialog.getByLabel("新名称", { exact: true }).fill(targetFolder);
   await expect(dialog.getByRole("button", { name: "保存", exact: true })).toBeDisabled();
   await dialog.getByLabel("我确认应用到使用该分类的全部收藏", { exact: true }).check();

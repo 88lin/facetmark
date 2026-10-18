@@ -3,6 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Check, ChevronDown, Download, Folder, ListChecks, LoaderCircle, Plus, Sparkles, Tag, Trash2, X } from "lucide-react";
 import { api, downloadExport, post, type Bookmark, type CollectionScope, type Setup } from "./api";
 import { useText } from "./locale";
+import { FolderPicker } from "./FolderPicker";
 import "./library-tools.css";
 
 type Facet = { value: string; count: number };
@@ -138,7 +139,7 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (busy || (running && action.kind !== "export") || (needsConsent && !confirmed)) return;
+    if (busy || (running && action.kind !== "export") || (needsConsent && !confirmed) || (action.kind === "taxonomy" && !name.trim())) return;
     setBusy(true); setError("");
     try {
       if (action.kind === "export") {
@@ -170,7 +171,7 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
 
   return <Dialog.Root open onOpenChange={value => { if (!value && !busy) onClose(); }}><Dialog.Portal>
     <Dialog.Overlay className="library-dialog-overlay"/>
-    <Dialog.Content className="library-dialog" onCloseAutoFocus={e => { e.preventDefault(); requestAnimationFrame(() => { const target = returnFocus.current?.isConnected && !(returnFocus.current as HTMLButtonElement).disabled ? returnFocus.current : document.querySelector<HTMLElement>(".library-tools button:not(:disabled), .app-header button:not(:disabled), .workspace-search input"); target?.focus({ preventScroll: true }); }); }} onEscapeKeyDown={e => { e.stopPropagation(); if (busy) e.preventDefault(); }} onInteractOutside={e => { if (busy) e.preventDefault(); }}>
+    <Dialog.Content className="library-dialog" onCloseAutoFocus={e => { e.preventDefault(); requestAnimationFrame(() => { const target = returnFocus.current?.isConnected && !(returnFocus.current as HTMLButtonElement).disabled ? returnFocus.current : document.querySelector<HTMLElement>(".library-tools button:not(:disabled), .app-header button:not(:disabled), .workspace-search input"); target?.focus({ preventScroll: true }); }); }} onEscapeKeyDown={e => { if (e.target instanceof Element && e.target.closest('.folder-picker[data-open="true"]')) { e.preventDefault(); return; } e.stopPropagation(); if (busy) e.preventDefault(); }} onInteractOutside={e => { if (busy) e.preventDefault(); }}>
       <div className="library-dialog-heading"><Dialog.Title>{heading}</Dialog.Title><Dialog.Close className="icon-button" disabled={busy} aria-label={t("关闭操作窗口", "Close actions")}><X size={18}/></Dialog.Close></div>
       <Dialog.Description className="library-dialog-description">{action.kind === "export" ? t("保存一份可带走的副本。JSON 可完整保留分类、标签和已保存正文。", "Keep a portable copy. JSON preserves folders, tags and saved page text.") : t("管理 Facetmark 中的收藏，浏览器中的原始书签保持原样。", "Manage your Facetmark collection. Original browser bookmarks stay untouched.")}</Dialog.Description>
       <form onSubmit={submit}>
@@ -178,7 +179,7 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
           {(action.kind === "create" || action.kind === "edit") && <>
             <label className="field">{t("网址", "URL")}<input aria-label={t("收藏网址", "Bookmark URL")} type="url" required value={url} maxLength={8192} onChange={e => setUrl(e.target.value)} placeholder="https://" autoComplete="url"/></label>
             <label className="field">{t("标题", "Title")}<input aria-label={t("收藏标题", "Bookmark title")} value={title} maxLength={2048} onChange={e => setTitle(e.target.value)}/></label>
-            <label className="field">{t("文件夹", "Folder")}<input aria-label={t("收藏文件夹", "Bookmark folder")} value={folder} list={foldersId} maxLength={2048} onChange={e => setFolder(e.target.value)} placeholder={t("留空为未分类", "Leave blank for Unfiled")}/></label>
+            <FolderPicker label={t("收藏文件夹", "Bookmark folder")} value={folder} onChange={setFolder}/>
             <label className="field-label">{t("标签", "Tags")}</label><TagEditor tags={tags} onChange={setTags}/>
             {action.kind === "edit" && <p className="hint">{t("修改网址会清除旧网页正文与索引；修改标题或文件夹后，相关 AI 索引需要重新生成。", "Changing the URL clears old text and indexes. Title or folder changes require rebuilding affected AI indexes.")}</p>}
           </>}
@@ -187,14 +188,15 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
             <label className="field">{t("操作", "Action")}<select value={operation} onChange={e => resetConfirm(e.target.value)} aria-label={t("批量操作类型", "Bulk action")}>
               <option value="move">{t("移动到文件夹", "Move to folder")}</option><option value="tag-add">{t("添加标签", "Add tags")}</option><option value="tag-remove">{t("移除标签", "Remove tags")}</option><option value="fetch">{t("提取正文", "Fetch text")}</option><option value="summarize">{t("生成摘要", "Generate summaries")}</option><option value="delete">{t("删除收藏", "Delete bookmarks")}</option>
             </select></label>
-            {operation === "move" && <label className="field">{t("目标文件夹", "Destination folder")}<input value={folder} list={foldersId} maxLength={2048} placeholder={t("留空移到未分类", "Leave blank to unfile")} onChange={e => setFolder(e.target.value)}/></label>}
+            {operation === "move" && <FolderPicker label={t("目标文件夹", "Destination folder")} value={folder} onChange={setFolder}/>}
             {["tag-add", "tag-remove"].includes(operation) && <TagEditor tags={tags} onChange={setTags}/>}
           </>}
           {action.kind === "taxonomy" && <>
             <div className="library-form-pair"><label className="field">{t("整理对象", "Organize")}<select value={taxonomy} onChange={e => { setTaxonomy(e.target.value); setName(""); setConfirmed(false); }}><option value="folder">{t("文件夹", "Folders")}</option><option value="tag">{t("标签", "Tags")}</option></select></label>
             <label className="field">{t("操作", "Action")}<select value={taxonomyAction} onChange={e => { setTaxonomyAction(e.target.value); setConfirmed(false); }}><option value="rename">{t("重命名或合并", "Rename or merge")}</option><option value="delete">{t("移除分类", "Remove category")}</option></select></label></div>
-            <label className="field">{t("当前名称", "Current name")}<input required value={name} maxLength={taxonomy === "tag" ? 128 : 2048} list={`${foldersId}-taxonomy`} onChange={e => { setName(e.target.value); setConfirmed(false); }}/></label>
-            <datalist id={`${foldersId}-taxonomy`}>{(facets[taxonomy === "folder" ? "folders" : "tags"] || []).map(item => <option key={item.value} value={item.value}/>)}</datalist>
+            {taxonomy === "folder" ? <FolderPicker label={t("当前文件夹", "Current folder")} value={name} onChange={value => { setName(value); setConfirmed(false); }} allowCreate={false} allowUnfiled={false}/>
+              : <label className="field">{t("当前名称", "Current name")}<input required value={name} maxLength={128} list={`${foldersId}-taxonomy`} onChange={e => { setName(e.target.value); setConfirmed(false); }}/></label>}
+            <datalist id={`${foldersId}-taxonomy`}>{(facets.tags || []).map(item => <option key={item.value} value={item.value}/>)}</datalist>
             {taxonomyAction === "rename" && <label className="field">{t("新名称", "New name")}<input required value={newName} maxLength={taxonomy === "tag" ? 128 : 2048} onChange={e => { setNewName(e.target.value); setConfirmed(false); }}/></label>}
             <p className="hint">{t("作用于书库中所有使用该名称的收藏。移除文件夹会把其中收藏移到未分类；移除标签只解除标签关联，不删除收藏。目标名称已存在时会合并。", "Applies to all bookmarks with this exact name. Removing a folder unfiles its bookmarks; removing a tag removes only that label. An existing destination is merged.")}</p>
           </>}
@@ -230,11 +232,10 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
           </>}
           {deleting && <p className="deletion-note"><Trash2 size={18}/>{t(`将删除 ${ids?.length || 0} 条收藏，以及它们在 Facetmark 中的正文和索引。此操作无法撤销，建议先导出备份。`, `Delete ${ids?.length || 0} bookmarks and their Facetmark text and indexes. This cannot be undone; export a backup first.`)}</p>}
           {needsConsent && <label className="check consent"><input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)}/>{deleting ? t("我确认删除这些收藏", "I confirm deletion") : processing ? t("我同意将上述内容发送给聊天模型", "I agree to send this content to the chat model") : t("我确认应用到使用该分类的全部收藏", "Apply to all bookmarks using this category")}</label>}
-          <datalist id={foldersId}>{(facets.folders || []).map(item => <option key={item.value} value={item.value}/>)}</datalist>
         </fieldset>
         {error && <p className="error" role="alert">{error}</p>}
         {running && action.kind !== "export" && <p className="notice">{t("请等待当前任务完成，再修改收藏或启动新任务。", "Wait for the current task before editing or starting another task.")}</p>}
-        <div className="library-dialog-footer"><button type="button" className="secondary" disabled={busy} onClick={onClose}>{t("取消", "Cancel")}</button><button className={`primary ${deleting ? "danger-action" : ""}`} disabled={busy || (running && action.kind !== "export") || (needsConsent && !confirmed) || (processing && ((mode === "summarize" && !chatReady) || targetCount === null || targetCount === 0 || !!countError)) || (action.kind === "bulk" && ["tag-add", "tag-remove"].includes(operation) && !tags.length)}>
+        <div className="library-dialog-footer"><button type="button" className="secondary" disabled={busy} onClick={onClose}>{t("取消", "Cancel")}</button><button className={`primary ${deleting ? "danger-action" : ""}`} disabled={busy || (running && action.kind !== "export") || (needsConsent && !confirmed) || (action.kind === "taxonomy" && !name.trim()) || (processing && ((mode === "summarize" && !chatReady) || targetCount === null || targetCount === 0 || !!countError)) || (action.kind === "bulk" && ["tag-add", "tag-remove"].includes(operation) && !tags.length)}>
           {busy ? <LoaderCircle size={16} className="spin"/> : deleting ? <Trash2 size={16}/> : <Check size={16}/>}{busy ? t("正在处理…", "Working…") : action.kind === "export" ? t("下载导出文件", "Download export") : processing ? t("开始任务", "Start task") : deleting ? t("确认删除", "Delete bookmarks") : t("保存", "Save")}
         </button></div>
       </form>

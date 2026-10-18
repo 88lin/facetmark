@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Folder, Globe2, LoaderCircle, Search, Tags, X } from "lucide-react";
+import { Check, Folder, FolderOpen, Globe2, Inbox, LoaderCircle, Search, Settings2, Tags, X } from "lucide-react";
 import { api, query } from "./api";
 import { useText } from "./locale";
 
@@ -8,11 +8,12 @@ type Group = "folders" | "tags" | "domains";
 type Facet = { value: string; count: number };
 type FacetPage = { items: Facet[]; total: number; has_more: boolean };
 
-export function FacetBrowser({ filters, enabled = true, revision, onSelect }: {
+export function FacetBrowser({ filters, enabled = true, revision, onSelect, onManage }: {
   filters: { folder?: string; tag?: string; domain?: string; session?: number };
   enabled?: boolean;
   revision: number;
   onSelect: (field: Field, value: string | undefined) => void;
+  onManage?: () => void;
 }) {
   const t = useText();
   const [group, setGroup] = useState<Group>("folders");
@@ -66,8 +67,9 @@ export function FacetBrowser({ filters, enabled = true, revision, onSelect }: {
 
   return <section className="facet-browser" aria-label={t("分类与筛选", "Categories and filters")}>
     <div className="facet-browser-heading">
-      <h2>{t("分类", "Categories")}</h2>
-      <span>{text ? t("精确匹配优先", "Exact first") : t("按名称排列", "A–Z")}</span>
+      <h2>{t("收藏分类", "Categories")}</h2>
+      {onManage && <button type="button" className="icon-button" onClick={onManage}
+        title={t("整理文件夹与标签", "Organize folders and tags")} aria-label={t("整理文件夹与标签", "Organize folders and tags")}><Settings2 size={16}/></button>}
     </div>
     <div className="facet-types" role="group" aria-label={t("分类类型", "Category type")}>
       {groups.map(({ key, label, Icon }) => <button key={key} type="button"
@@ -79,23 +81,29 @@ export function FacetBrowser({ filters, enabled = true, revision, onSelect }: {
     <label className="facet-search">
       <Search size={15} aria-hidden="true" />
       <input aria-label={t("查找分类", "Find a category")} value={text}
-        placeholder={t("查找分类…", "Find a category…")} maxLength={512}
+        placeholder={group === "folders" ? t("搜索文件夹…", "Search folders…") : group === "tags" ? t("搜索标签…", "Search tags…") : t("搜索站点…", "Search sites…")} maxLength={2048}
         onChange={e => { resetList(); setText(e.target.value); }} />
       {text && <button type="button" aria-label={t("清空分类搜索", "Clear category search")}
         onClick={() => { resetList(); setText(""); }}><X size={14} /></button>}
     </label>
+    {filters[field] && !items.some(item => item.value === filters[field]) && <button type="button" className="facet-current"
+      title={filters[field]} onClick={() => { resetList(); setText(filters[field]!); setRetry(value => value + 1); }}>
+      <Check size={15}/><span>{filters[field]}</span><Search size={14}/>
+    </button>}
     <nav className="facet-options" ref={scroller} tabIndex={0}
       aria-label={group === "folders" ? t("按文件夹浏览", "Browse by folder") :
         group === "tags" ? t("按标签浏览", "Browse by tag") : t("按站点浏览", "Browse by site")}
       aria-busy={loading}>
       <button className="facet-option facet-any" type="button" aria-pressed={filters[field] === undefined}
         onClick={() => onSelect(field, undefined)}>
+        {group === "folders" ? <FolderOpen size={16}/> : group === "tags" ? <Tags size={16}/> : <Globe2 size={16}/>}
         <span>{group === "folders" ? t("全部文件夹", "All folders") :
           group === "tags" ? t("不限标签", "Any tag") : t("不限站点", "Any site")}</span>
         {filters[field] === undefined && <Check size={14} aria-hidden="true" />}
       </button>
       {group === "folders" && !text && <button className="facet-option" type="button"
         aria-pressed={filters.folder === ""} onClick={() => onSelect("folder", "")}>
+        <Inbox size={16}/>
         <span>{t("未分类", "Unfiled")}</span>
         {filters.folder === "" && <Check size={14} aria-hidden="true" />}
       </button>}
@@ -104,8 +112,9 @@ export function FacetBrowser({ filters, enabled = true, revision, onSelect }: {
         return <button className="facet-option" key={item.value} type="button"
           title={item.value} aria-label={`${item.value} ${item.count}`} aria-pressed={filters[field] === item.value}
           onClick={() => onSelect(field, item.value)}>
-          <span>{split >= 0 ? <><small className="facet-parent">{item.value.slice(0, split)} / </small><span>{item.value.slice(split + 3)}</span></> : item.value}</span>
-          <small>{item.count.toLocaleString()}</small>
+          {group === "folders" ? <Folder size={16}/> : group === "tags" ? <Tags size={16}/> : <Globe2 size={16}/>}
+          <span>{split >= 0 ? <><span>{item.value.slice(split + 3)}</span><small className="facet-parent">{item.value.slice(0, split)}</small></> : item.value}</span>
+          <small>{item.count.toLocaleString()}</small>{filters[field] === item.value && <Check size={14}/>}
         </button>;
       })}
       {error ? <div className="facet-feedback" role="alert">

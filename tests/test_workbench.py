@@ -130,6 +130,18 @@ def test_facet_directory_search_is_literal_and_requires_auth(client):
     assert client.get("/bookmarks/facets/folders").status_code == 401
 
 
+def test_folder_picker_can_search_a_full_length_literal_path(client):
+    folder = "研究 / " + "资料%_" * 180
+    created = client.post("/admin/library/bookmarks", json={
+        "url": "https://facets.example/long-path", "folder": folder,
+    })
+    assert created.status_code == 200, created.text
+    response = client.get("/bookmarks/facets/folders", params={"q": folder})
+    assert response.status_code == 200
+    assert response.json()["items"] == [{"value": folder, "count": 1}]
+    assert client.get("/bookmarks/facets/folders", params={"q": "x" * 2049}).status_code == 422
+
+
 def test_channel_override_does_not_inherit_lower_source_key(monkeypatch):
     write_config({"chat_base_url": "https://a.example/v1", "chat_api_key": "a-secret"})
     monkeypatch.setenv("FACETMARK_CHAT_BASE_URL", "https://b.example/v1")

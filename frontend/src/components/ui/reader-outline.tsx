@@ -4,10 +4,11 @@
  * Copyright (c) 2026 Swami Malode.
  * MIT + Commons Clause + Attribution; full notice: /THIRD_PARTY_NOTICES.md.
  * Facetmark adaptation: real article headings, container-local scrolling,
- * and a quiet current-section rail in place of the animated paper plane.
+ * and a spring-driven paper plane that follows the current section.
  */
-import { useEffect, useRef, useState, type RefObject } from "react";
-import { useReducedMotion } from "motion/react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { motion, useReducedMotion, useSpring, useTransform, useVelocity } from "motion/react";
+import { Send } from "lucide-react";
 import { useText } from "../../locale";
 import "./reader-outline.css";
 
@@ -28,10 +29,39 @@ export function ReaderOutline({
   const t = useText();
   const reduceMotion = useReducedMotion();
   const navRef = useRef<HTMLElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const headingsRef = useRef(new Map<string, HTMLElement>());
   const pinned = useRef<string | null>(null);
   const userScrolled = useRef(false);
   const [activeId, setActiveId] = useState("");
+  const [planeReady, setPlaneReady] = useState(false);
+  const planePositioned = useRef(false);
+  const planeY = useSpring(0, { stiffness: 380, damping: 32, mass: 0.65 });
+  const planeVelocity = useVelocity(planeY);
+  const planeRotation = useTransform(planeVelocity, speed => Math.max(-18, Math.min(18, speed / 25)));
+
+  useLayoutEffect(() => {
+    const track = trackRef.current;
+    const current = track?.querySelector<HTMLElement>('[aria-current="location"]');
+    if (!track || !current) {
+      setPlaneReady(false);
+      planePositioned.current = false;
+      return;
+    }
+    const measure = () => {
+      const row = current.getBoundingClientRect();
+      const y = row.top - track.getBoundingClientRect().top + (row.height - 24) / 2;
+      if (reduceMotion || !planePositioned.current) planeY.jump(y);
+      else planeY.set(y);
+      planePositioned.current = true;
+      setPlaneReady(true);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(track);
+    observer.observe(current);
+    return () => observer.disconnect();
+  }, [activeId, sections, contentKey, reduceMotion, planeY]);
 
   useEffect(() => {
     const scroller = containerRef.current;
@@ -172,21 +202,29 @@ export function ReaderOutline({
   return (
     <nav ref={navRef} className="reader-outline" aria-label={t("文章目录", "Table of contents")}>
       <p className="reader-outline-title">{t("文章目录", "Table of contents")}</p>
-      <ul className="reader-outline-list" role="list">
-        {sections.map((section) => (
-          <li className="reader-outline-item" key={section.id}>
-            <button
-              type="button"
-              className="reader-outline-link"
-              aria-controls={section.id}
-              aria-current={section.id === activeId ? "location" : undefined}
-              onClick={() => select(section.id)}
-            >
-              {section.label}
-            </button>
-          </li>
-        ))}
-      </ul>
+      <div className="reader-outline-track" ref={trackRef}>
+        <ul className="reader-outline-list" role="list">
+          {sections.map((section) => (
+            <li className="reader-outline-item" key={section.id}>
+              <button
+                type="button"
+                className="reader-outline-link"
+                aria-controls={section.id}
+                aria-current={section.id === activeId ? "location" : undefined}
+                onClick={() => select(section.id)}
+              >
+                {section.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+        <motion.span className="reader-outline-plane" aria-hidden="true"
+          style={{ y: planeY, visibility: planeReady ? "visible" : "hidden" }}>
+          <motion.span style={{ rotate: reduceMotion ? 0 : planeRotation }}>
+            <Send size={17} />
+          </motion.span>
+        </motion.span>
+      </div>
     </nav>
   );
 }

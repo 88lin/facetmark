@@ -1,36 +1,35 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: "Manrope";
-  src: url("./assets/Manrope-variable.ttf") format("truetype");
-  font-style: normal;
-  font-weight: 200 800;
-  font-display: swap;
-}
-
 :root {
-  --font-ui: "Manrope", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe UI", sans-serif;
+  --font-ui: "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
   --type-body: 1rem;
   --type-ui: 0.875rem;
   --type-meta: 0.8125rem;
   --type-caption: 0.75rem;
-  --type-card-title: 1.125rem;
-  --secondary-ink: #405767;
+  --type-card-title: 1rem;
+  --secondary-ink: #494d57;
   font-family: var(--font-ui);
   color-scheme: light;
   --canvas: #ffffff;
-  --rail: #f0f6f9;
-  --inset: #f3f8fb;
-  --ink: #193549;
-  --muted: #526d7e;
-  --rule: #dce8ee;
-  --accent: #087293;
-  --soft: #e0f2f8;
+  --desk: #f5f5f7;
+  --rail: #edeef1;
+  --inset: #f2f3f5;
+  --ink: #23252b;
+  --muted: #626774;
+  --rule: #dfe1e6;
+  --accent: #1860db;
+  --soft: #eaf1ff;
+  --selected: #e8effd;
+  --selected-edge: #98b8f5;
+  --selection-neutral: #e7e8ed;
+  --card-shadow: 0 2px 4px #20253206, 0 6px 18px #20253208;
+  --sheet-shadow: 0 14px 40px #20253214;
   --on-accent: #fff;
   --danger: #ad3448;
-  --overlay: #16374a55;
+  --overlay: #17192355;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --radius-control: 7px;
+  --radius-control: 12px;
+  --radius-pill: 999px;
   --control-height: 40px;
   --reader-gutter: 48px;
   --index-width: 424px;
@@ -43,19 +42,25 @@
   -webkit-font-smoothing: antialiased;
 }
 :root[data-theme="dark"] {
-  --secondary-ink: #c6d8e1;
+  --secondary-ink: #c7c9d0;
   color-scheme: dark;
-  --canvas: #1b303e;
-  --rail: #152631;
-  --inset: #243b49;
-  --ink: #e4f0f5;
-  --muted: #a6becc;
-  --rule: #345060;
-  --accent: #70cde9;
-  --soft: #203f50;
-  --on-accent: #0c2b3b;
+  --desk: #141518;
+  --canvas: #212226;
+  --rail: #1b1c20;
+  --inset: #2a2c32;
+  --ink: #f0f0f3;
+  --muted: #a7abb6;
+  --rule: #383b44;
+  --accent: #8bb5ff;
+  --soft: #27344b;
+  --selected: #2b3a53;
+  --selected-edge: #577eb7;
+  --selection-neutral: #33353d;
+  --card-shadow: 0 3px 14px #00000020;
+  --sheet-shadow: 0 14px 40px #00000038;
+  --on-accent: #102448;
   --danger: #f7a0ae;
-  --overlay: #06151f99;
+  --overlay: #06070a99;
 }
 * {
   box-sizing: border-box;
@@ -461,7 +466,7 @@ kbd {
   border: 1px solid var(--rule);
   border-radius: 8px;
   background: var(--canvas);
-  box-shadow: 0 12px 36px #244e6718;
+  box-shadow: var(--sheet-shadow);
 }
 .query-help p {
   margin: 12px 0;
@@ -743,7 +748,7 @@ kbd {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-pill);
   font-size: var(--type-ui);
   font-weight: 600;
   line-height: 1.5;
@@ -785,7 +790,7 @@ kbd {
   font-weight: 600;
   min-height: 32px;
   padding: 5px 10px;
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-pill);
 }
 .text-button:hover:not(:disabled) {
   background: var(--soft);

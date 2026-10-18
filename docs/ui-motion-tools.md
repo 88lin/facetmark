@@ -1,11 +1,11 @@
 # UI and motion tools
 
-Updated on 2026-10-07 for the collection and focused-reading redesign. Impeccable owns
+Updated on 2026-10-18 for the restoration of the rounded workbench and reading effects. Impeccable owns
 the visual system. Runtime dependencies are selected for specific interactions:
 `gsap` 3.13.0, `@gsap/react` 2.1.2 and `motion` 12.23.24.
 
-The collection now uses a larger masthead, a separate search row, real folder
-shortcuts and source-first cards. The supporting index contracts when a page opens.
+The collection keeps a compact header, searchable categories and source-first cards.
+The supporting index contracts when a page opens.
 The GSAP tab indicator remains a capsule selection behind icon-labeled tabs;
 its existing interruptible position/width tween is preserved. CSS provides pill
 actions, circular icon buttons, natural card heights and the stronger reading scale.
@@ -38,17 +38,21 @@ npx -y shadcn@latest add @rare-ui/component-name
 Replace `component-name` with a verified name from
 [the component catalog](https://rareui.com/components). Registry components and
 their dependencies are added on demand. Facetmark now adapts **ScrollProgress**
-in `frontend/src/components/ui/scroll-progress.tsx`: a quiet reading-position
-footer with a native chapter selector and back-to-top button. It reads actual
-scroll position and does not claim that the user has read the article. The
-upstream glass treatment, floating pill and staggered text are omitted.
+in `frontend/src/components/ui/scroll-progress.tsx`: a floating glass capsule with
+a native chapter selector, animated chapter label and back-to-top button. It reads
+actual scroll position and does not claim that the user has read the article.
+The capsule enters in 240ms; chapter labels settle in 180ms with a small blur and
+vertical transition. Backdrop blur is confined to this small surface, with an opaque
+fallback. Reader bottom padding keeps final paragraphs clear of the floating controls.
 The wide focused reader also adapts **RailToc** in
 `frontend/src/components/ui/reader-outline.tsx`, from the fixed upstream registry
 revision `b4de46efe4eb2613e22bb8134b482ed4e0c7736a/public/r/rail-toc.json`.
 It tracks actual saved-text headings, scrolls only the article container and
 restores scroll tracking after keyboard paging. It appears only when more than
-one real heading is available. A sticky text rail replaces the original animated
-paper-plane treatment; narrower layouts retain the existing chapter selector.
+one real heading is available. Its paper-plane marker follows the measured center
+of the active heading with a spring and a slight turn based on travel direction.
+Resizing and wrapped labels remeasure the target. Reduced motion positions the plane
+immediately; narrower layouts retain the native chapter selector in the capsule.
 The configured `utils` alias is the future destination for the
 component registry's utility dependency, not an existing application import.
 Do not install the upstream Next.js demo application into this Vite project.
@@ -77,10 +81,14 @@ The new focus composition removes the search row and reduces the app header;
 the pane transition accounts for both horizontal and vertical displacement.
 
 Motion owns the Radix reading drawer's horizontal position and overlay opacity,
-plus the adapted Rare UI scroll indicator. The drawer uses `AnimatePresence`
+plus the adapted Rare UI capsule, chapter label, scroll indicator and paper-plane
+marker. The drawer uses `AnimatePresence`
 so rapid close/open continues from its current position. No property on the
-same element is controlled by both engines. CSS handles ordinary hover, focus
-and color feedback; result rows appear without staggered entrances.
+same element is controlled by both engines. CSS handles hover, focus and color
+feedback plus collection entry: a 220ms fade/8px rise, with 18ms spacing capped at
+126ms. Entries stay interactive throughout, the full entrance finishes within 346ms,
+and checking or previewing a mounted card does not replay it. Reduced motion removes
+the entrance, plane travel and chapter-label movement while keeping selected state.
 
 Use the core skill and the relevant specialist skill as needed. Generic visual
 redesign continues through Impeccable. Simple transitions can use CSS, and
@@ -107,6 +115,12 @@ The machine-specific entry points and maintenance commands are documented at
 `C:\Users\Computer\.agents\external\UI-MOTION-TOOLS.md`.
 
 ## Verification
+
+The restored effects have targeted coverage in `frontend/tests/visual-restoration.spec.ts`:
+desktop/light and mobile/dark floating controls, keyboard chapter selection,
+container-local scrolling, unobscured final paragraphs, rapid chapter changes,
+resized plane alignment and reduced motion. These browser cases require GitHub
+Actions; adding them is not evidence that the current revision has passed them.
 
 `frontend/tests/redesign.spec.ts` exercises rapid selection, delayed responses,
 tab scroll restoration, expansion reversal, drawer focus return, reduced motion,

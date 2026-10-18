@@ -212,7 +212,7 @@ def register(app: FastAPI, auth: list) -> None:
     async def facet_directory(
         request: Request,
         group: Literal["folders", "tags", "domains"],
-        q: str = Query("", max_length=512),
+        q: str = Query("", max_length=2048),
         limit: int = Query(50, ge=1, le=200),
         offset: int = Query(0, ge=0),
     ):

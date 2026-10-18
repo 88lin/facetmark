@@ -12,6 +12,8 @@ related_targets:
   - "frontend/src/LibraryTools.tsx"
   - "frontend/src/BookmarkCard.tsx"
   - "frontend/src/FacetBrowser.tsx"
+  - "frontend/src/FolderPicker.tsx"
+  - "frontend/src/folder-picker.css"
   - "frontend/src/Tasks.tsx"
   - "frontend/src/Reader.tsx"
   - "frontend/src/styles.css"
@@ -22,14 +24,23 @@ related_targets:
 
 # Collection, connection settings and exact task recovery — Operate
 
-## Current refinement — 2026-10-17
+## Current refinement — 2026-10-18
 
 Implement the complete discovery → model selection → test/save → scoped summary →
-recovery journey. The user rejected repeated isolated edits. Preserve white/lake blue,
-18px/700 collection titles and 15px descriptions. Shared controls use 7px corners;
-navigation and support sections are unboxed. The authoritative direction is
-[workbench-direction.md](../workbench-direction.md), with visual tokens in
-[DESIGN.md](../../DESIGN.md).
+recovery journey. The latest user correction rejects Manrope and the lake-blue
+palette and names GithubStarsManager and FlClash as references. Use neutral
+light/dark surfaces, system typography, 16px/600 collection titles, 15px descriptions
+and 14px controls. Global body and principal inputs remain 16px. Preserve the
+previously restored capsule actions/navigation, 16px collection cards, 20px support
+surfaces and soft shadows; form fields retain a separate 12px radius. Folder
+selection uses neutral fill plus a blue check; actions and focus use blue.
+The authoritative direction is [workbench-direction.md](../workbench-direction.md),
+with visual tokens in [DESIGN.md](../../DESIGN.md).
+
+Restore the Rare UI reading effects as well as shape: a floating glass progress
+capsule, animated chapter label and a paper plane following the actual current
+heading. Collection entries use a short bounded stagger. Preserve native keyboard
+controls, actual scroll measurements, rapid reversal and reduced-motion behavior.
 
 ## Collection composition
 
@@ -39,14 +50,21 @@ summary-status counts, visible sorting and Display. Display switches Summaries /
 Excerpts only; processing scope belongs in the summary dialog.
 
 The desktop category directory remains searchable and vertically scrollable.
-Narrow windows use a filter drawer. Original links, selection, direct editing and
+Narrow windows use a filter drawer. An Organize folders and tags action sits beside the
+directory heading. Add, edit and move dialogs use the searchable FolderPicker:
+50-item pages from the complete directory, separate search drafts, exact selection,
+explicit Unfiled and new-folder choices, and local loading/no-match/retry states.
+Typing never commits a path. New folders are created when the bookmark is saved.
+Arrow keys, Home/End, Escape, button activation and focus return remain available.
+Original links, selection, direct editing and
 Preview stay independent. Multiline content remains visible in both collection views;
 expansion responds to actual clipping. Cross-page selection appears only while
 selecting or when a selection exists, and it names its summary-processing scope.
 
 Acceptance targets: results viewport/list top at or before 210px on desktop and 270px on mobile,
 two complete cards at 390 × 844, no horizontal document overflow, and at least 44px
-main mobile actions. Exact-source measurements meet these targets; see the validation record for list-top and first-card values.
+main mobile actions. Previous measurements are historical; the restored styling
+still needs fresh browser validation in GitHub Actions.
 
 ## Connection settings composition
 
@@ -56,7 +74,7 @@ test/save actions and local feedback. At 720px and below, the grid becomes one c
 Keep the primary test/save action in the first 390 × 844 Agent settings viewport.
 Timeout and installation paths follow the actions in a disclosure.
 
-The four settings categories use keyboard-operable underlined tabs. Inactive panels
+The four settings categories use keyboard-operable capsule tabs with selected fill. Inactive panels
 stay mounted and hidden, preserving drafts and results. The tab row scrolls
 horizontally on narrow screens. Settings, Tasks and preview provide explicit return.
 
@@ -100,12 +118,20 @@ visible in the first mobile viewport.
 
 ## Verification and boundaries
 
+The current working-tree changes have source inspection only. No current build,
+browser render or screenshot review has run; repository policy requires GitHub
+Actions. Current source has not been committed or pushed. The GithubStarsManager
+`repo.png` and FlClash `preview.png` images were inspected as references; they are
+not Facetmark evidence. The refreshed sidecar contains source-derived component
+specimens and does not claim rendered verification. Prior results below remain
+historical and do not verify this revision.
+
 At source `0993020882434593932d3d50ad5ad25594b0531f`, Experience 39089551750,
 all ten CI jobs and Windows installation checks passed. That revision fixes
 delivery and state defects rather than changing the visual contract: the served
 page is the React build again, pagination keeps the current rows, list-view rules
 no longer contradict each other, the grid uses a 310px minimum card, mobile row
-actions meet 44px, and the splash uses the product's white/lake-blue tokens. The
+actions meet 44px, and that revision's splash used its then-current white/lake-blue tokens. The
 current record lives in [desktop validation](../../docs/desktop-validation.md).
 
 The `ship` verdict below belongs to `4c6383ad0537bccb85ce32f76fc11fe3f9e139e8`

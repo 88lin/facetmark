@@ -7,6 +7,7 @@ import {
   Bookmark as BookmarkIcon,
   Check,
   Clock3,
+  Folder,
   Import,
   Layers3,
   LayoutGrid,
@@ -784,7 +785,8 @@ function Workbench({
         <div className="facet-nav">
           {/* The collection sidebar below repeats this directory at ≥960px.
               Mount only while the drawer is open so both copies do not fetch. */}
-          {navOpen && <FacetBrowser filters={filters} enabled={paired && navOpen} revision={requestRevision} onSelect={selectFilter} />}
+          {navOpen && <FacetBrowser filters={filters} enabled={paired && navOpen} revision={requestRevision} onSelect={selectFilter}
+            onManage={adminAvailable && job.state !== "running" ? () => { setNavOpen(false); setLibraryAction({ kind: "taxonomy" }); } : undefined} />}
         </div>
         <div className="sidebar-bottom">
           {adminAvailable && (
@@ -923,7 +925,7 @@ function Workbench({
           <>
             <header className="workspace-toolbar">
               <div className="toolbar-location">
-                <h1>
+                <h1 title={filters.folder}>
                   {search.trim() ? t("搜索结果", "Search results") :
                     filters.folder !== undefined ? filters.folder || t("未分类", "Unfiled") :
                     filters.tag || filters.domain || (filters.session !== undefined ? t("浏览批次", "Saving session") : t("我的收藏", "Your collection"))}
@@ -985,8 +987,8 @@ function Workbench({
                   aria-label={t("筛选收藏", "Filter collection")}
                   aria-describedby={activeFilters.length ? "active-filter-count" : undefined}
                 >
-                  <Settings2 size={17} />
-                  <span>{t("筛选", "Filters")}</span>
+                  <Folder size={17} />
+                  <span>{t("分类", "Categories")}</span>
                   {activeFilters.length > 0 && <>
                     <span className="filter-indicator" aria-hidden="true">{activeFilters.length}</span>
                     <span id="active-filter-count" className="sr-only">{t(`已启用 ${activeFilters.length} 项筛选`, `${activeFilters.length} active filters`)}</span>
@@ -995,7 +997,8 @@ function Workbench({
               </div>
             </header>
             <aside className="collection-sidebar" hidden={selected !== null}>
-              <FacetBrowser filters={filters} enabled={selected === null && !navOpen} revision={requestRevision} onSelect={selectFilter} />
+              <FacetBrowser filters={filters} enabled={selected === null && !navOpen} revision={requestRevision} onSelect={selectFilter}
+                onManage={adminAvailable && job.state !== "running" ? () => setLibraryAction({ kind: "taxonomy" }) : undefined} />
             </aside>
             <section className="results-column" inert={focusReading}>
               <header className="search-header">
@@ -1140,7 +1143,7 @@ function Workbench({
                     )}
                   </div>
                 ) : (
-                  items.map((record) => <BookmarkCard key={record.bookmark_id} record={record}
+                  items.map((record, index) => <BookmarkCard key={record.bookmark_id} record={record} entranceOrder={index}
                     selected={selected === record.bookmark_id}
                     checked={allMatching ? !excludedIds.includes(record.bookmark_id) : selectedIds.includes(record.bookmark_id)}
                     disabled={scopePending} display={summaryDisplay}
