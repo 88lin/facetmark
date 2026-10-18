@@ -7,9 +7,10 @@
  * and a spring-driven paper plane that follows the current section.
  */
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
-import { motion, useReducedMotion, useSpring, useTransform, useVelocity } from "motion/react";
+import { motion, useSpring, useTransform, useVelocity } from "motion/react";
 import { Send } from "lucide-react";
 import { useText } from "../../locale";
+import { useReducedMotion } from "../../useReducedMotion";
 import "./reader-outline.css";
 
 export type ReaderOutlineSection = { id: string; label: string };

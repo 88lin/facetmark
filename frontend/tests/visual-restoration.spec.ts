@@ -74,6 +74,7 @@ test("paper plane follows rapid chapter changes and settles immediately with red
   await expect.poll(alignment).toBeLessThan(1.5);
   await page.setViewportSize({ width: 1180, height: 860 });
   await expect.poll(alignment).toBeLessThan(1.5);
+  await expect(page.locator(".section-picker-copy")).toContainText((await last.textContent())!);
   await page.screenshot({ path: "screenshots/restored-paper-plane.png", animations: "disabled" });
 
   await page.emulateMedia({ reducedMotion: "reduce" });

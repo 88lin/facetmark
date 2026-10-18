@@ -46,7 +46,8 @@ import Reader, { Skeleton } from "./Reader";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { motionTiming } from "./motion";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
+import { useReducedMotion } from "./useReducedMotion";
 
 type View = "library" | "sessions" | "tasks" | "settings" | "setup" | "import";
 type Facet = { value: string; count: number };

@@ -6,9 +6,10 @@
  * animated chapter label over a keyboard-accessible native section picker.
  */
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { motion, useReducedMotion, useScroll, useSpring } from "motion/react";
+import { motion, useScroll, useSpring } from "motion/react";
 import { List, ArrowUp } from "lucide-react";
 import { useText } from "../../locale";
+import { useReducedMotion } from "../../useReducedMotion";
 
 export type ScrollProgressSection = { id: string; label: string };
 export function ScrollProgress({
@@ -29,29 +30,44 @@ export function ScrollProgress({
   const [activeId, setActiveId] = useState("");
   const [percent, setPercent] = useState(0);
   const picker = useRef<HTMLSelectElement>(null);
+  const pinned = useRef<string | null>(null);
   const sectionLabel = sections.find(({ id }) => id === activeId)?.label ?? sections[0]?.label;
   useEffect(() => {
     const scroller = containerRef.current;
     if (!scroller) return;
+    pinned.current = null;
     const update = () => {
       const extent = scroller.scrollHeight - scroller.clientHeight;
       const ratio = extent > 0 ? Math.min(1, scroller.scrollTop / extent) : 1;
       scrollYProgress.set(ratio);
       setPercent(Math.round(ratio * 100));
+      // A short final section cannot always reach the top anchor. Preserve an
+      // explicit chapter choice through its smooth scroll until new user input.
+      if (pinned.current !== null) { setActiveId(pinned.current); return; }
       const anchor = scroller.getBoundingClientRect().top + 100;
       const active = [...sections].reverse().find(({ id }) => {
         const top = document.getElementById(id)?.getBoundingClientRect().top;
         return top !== undefined && top <= anchor;
       });
-      setActiveId(active?.id ?? sections[0]?.id ?? "");
+      setActiveId(extent > 0 && scroller.scrollTop >= extent - 1
+        ? sections.at(-1)?.id ?? "" : active?.id ?? sections[0]?.id ?? "");
     };
+    const release = () => { pinned.current = null; };
     update();
     scroller.addEventListener("scroll", update, { passive: true });
+    scroller.addEventListener("wheel", release, { passive: true });
+    scroller.addEventListener("touchstart", release, { passive: true });
+    document.addEventListener("keydown", release);
+    document.addEventListener("pointerdown", release);
     const ro = new ResizeObserver(update);
     ro.observe(scroller);
     if (scroller.firstElementChild) ro.observe(scroller.firstElementChild);
     return () => {
       scroller.removeEventListener("scroll", update);
+      scroller.removeEventListener("wheel", release);
+      scroller.removeEventListener("touchstart", release);
+      document.removeEventListener("keydown", release);
+      document.removeEventListener("pointerdown", release);
       ro.disconnect();
     };
   }, [containerRef, sections, contentKey, scrollYProgress]);
@@ -89,6 +105,8 @@ export function ScrollProgress({
                 const scroller = containerRef.current;
                 const heading = scroller?.querySelector<HTMLElement>(`#${CSS.escape(e.target.value)}`);
                 if (!scroller || !heading) return;
+                pinned.current = e.target.value;
+                setActiveId(e.target.value);
                 scroller.scrollTo({
                   top: heading.getBoundingClientRect().top - scroller.getBoundingClientRect().top
                     - scroller.clientTop + scroller.scrollTop - 28,
@@ -118,9 +136,10 @@ export function ScrollProgress({
           className="icon-button"
           title={t("回到顶部", "Back to top")}
           aria-label={t("回到顶部", "Back to top")}
-          onClick={() =>
-            containerRef.current?.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" })
-          }
+          onClick={() => {
+            pinned.current = null;
+            containerRef.current?.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+          }}
         >
           <ArrowUp size={14} />
         </button>
