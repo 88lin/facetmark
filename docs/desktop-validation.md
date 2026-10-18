@@ -1,8 +1,60 @@
 # Desktop experience validation
 
-## 2026-10-17: complete model choice, summary use and exact recovery
+## 2026-10-18: asset delivery, task scope, desktop lifecycle and collection polish
 
 <!-- current-experience-evidence:start -->
+
+Validated application/test source: `0993020882434593932d3d50ad5ad25594b0531f` (branch
+`desktop/facetmark-experience`, PR #44). The commit raised here is the build
+input for every run below; no independent visual review or user aesthetic
+approval is claimed for this revision.
+
+This pass fixes defects that made the desktop build feel broken rather than
+unfinished:
+
+| Defect | Correction |
+| --- | --- |
+| `/app` fell back to the legacy purple page | Missing frontend dependencies made `npm run build` fail silently. Installing them from the lockfile makes the React workbench the served page. |
+| Blank page with 404s for hashed assets | `/app/static` froze its directory at startup while `index.html` resolved at request time. Both now resolve per request, so a build that lands after boot is served. |
+| Partial-task resume re-expanded scope | `processing_item` rows are deleted when a job finishes, so resuming recomputed "current library". The snapshot id list is now persisted separately and replayed. |
+| Renaming a folder discarded its summaries and vectors | `folder` was treated as enrichment input. Only `title` and `url` retire derived data now. |
+| Bulk move/tag read every full record under the lock | Batch paths skip the per-row record fetch; browsing counts and `/bookmarks/facets` are merged/cached instead of repeated full scans. |
+| Restart could leave the app invisible | The main window is created before the previous one is destroyed; a failed build returns to the splash with the reason. |
+| Restart rejected while the sidecar reported an error | The `error` record releases the child handle immediately, and its message is not overwritten by the later generic "service stopped". |
+| Window geometry, tray click and shortcut state | Size/position/maximized are remembered with an off-screen guard; a tray left click restores the window; a failed registration unchecks the menu item. |
+| Blank flash and off-brand splash | The loading window has a background colour; the splash uses the product's white/lake-blue tokens and its own progress/retry states. |
+| Pagination cleared the list and duplicated sessions | Paging keeps the current scope's rows; "load more" is guarded and de-duplicated. |
+| Empty numeric setting stored `0`; auto-detection overwrote a typed model | Cleared numbers stay unset; a manual model edit survives late detection. |
+| List view rules contradicted each other | One rule family now owns list layout; grid cards widen to a 310px minimum. |
+
+Verification at this source:
+
+| Evidence | Verified state |
+| --- | --- |
+| [Experience 39089551750](https://github.com/88lin/facetmark/actions/runs/39089551750) | **success**. `web`: backend lint and regression **2049 passed / 1 skipped**; behavior and render matrix **63 passed**; separate 200,000-record paging/scoped-selection browser test **1 passed**; wheel and sdist contain the workbench; visual evidence uploaded. `extension`, `docker` and real OpenCode CLI on Linux and Windows also passed. |
+| [CI 39089554204](https://github.com/88lin/facetmark/actions/runs/39089554204) | **success**, all ten jobs: Linux and Windows × Python 3.10/3.12, wheel, webui, browser, extension, Karakeep plugin and image. |
+| [Windows 39089551767](https://github.com/88lin/facetmark/actions/runs/39089551767) | **success**. Frozen service isolation, offline WebView2 install, installed-app launch checks and upload all passed. [Install evidence](https://github.com/88lin/facetmark/actions/runs/39089551767/artifacts/12122746412) is 153,657 bytes; the [unsigned x64 preview](https://github.com/88lin/facetmark/actions/runs/39089551767/artifacts/12122452198) is a 279,560,635-byte archive, not downloaded locally. |
+| Local targeted checks | `ruff check src/facetmark` clean; `pytest tests/test_library.py tests/test_workbench.py tests/test_reading_jobs.py tests/test_admin.py tests/test_web.py` passed; a full local run reported 2015 passed / 35 skipped. `tsc --noEmit` and `vite build` passed. |
+| Local browser subset | 19 of 22 targeted Playwright cases passed before the final build. One failure was a real IME regression introduced in this pass and fixed (`onChange` must not clear composition state). Two Settings cases fail only on a machine with Codex/Claude Code/OpenCode installed, because the demo auto-selects an agent and hides the API fields; CI without those CLIs passes the same cases. |
+
+Two Rust compile failures were caught by this run and fixed before the passing
+build: `is_registered` returns `bool` rather than a `Result`, and the shortcut
+menu item handle was moved into the tray closure while still needed afterwards.
+
+Scope limits: the browser and 200,000-record data are synthetic; CI ran on
+Windows Server, not every Windows 10/11 machine; the installer is unsigned; the
+local browser subset above is not the full 63-case matrix except where the
+Experience run covers it. No fresh independent visual review was performed for
+this revision, so the earlier `ship` verdict remains scoped to `4c6383a`.
+
+<!-- current-experience-evidence:end -->
+
+## Historical validation
+
+All entries below describe earlier revisions. Their uses of “current” or “final”
+are local to the dated entry and do not override the current status above.
+
+## 2026-10-17: complete model choice, summary use and exact recovery (historical verified)
 
 Validated application/test source: `4c6383ad0537bccb85ce32f76fc11fe3f9e139e8`.
 Experience, all ten CI jobs and Windows installation checks passed at this source.

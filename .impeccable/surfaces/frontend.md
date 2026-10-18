@@ -100,15 +100,21 @@ visible in the first mobile viewport.
 
 ## Verification and boundaries
 
-At source `4c6383ad0537bccb85ce32f76fc11fe3f9e139e8`, Experience, all ten CI jobs
-and Windows installation checks passed. All 80 final Web PNG hashes match provenance;
-density and installed-app behavior are verified in
-[desktop validation](../../docs/desktop-validation.md). Five source-review corrections
-are resolved. The fresh independent review inspected 15 Web captures and two installed
-captures and returned **ship**: all eight original findings resolved, no remaining
-material findings in the reviewed scope. A generic reviewer substituted for the
-unavailable specialist; it did not inspect all 80 Web captures or run a browser.
-This verdict supports the complete reviewed improvement scope, not user aesthetic
-approval, personal-account permissions or all-Windows certification. Prior passes
-apply only to their recorded revisions. Use synthetic data and isolated HTTP model fixtures,
-never personal libraries or browser profiles.
+At source `0993020882434593932d3d50ad5ad25594b0531f`, Experience 39089551750,
+all ten CI jobs and Windows installation checks passed. That revision fixes
+delivery and state defects rather than changing the visual contract: the served
+page is the React build again, pagination keeps the current rows, list-view rules
+no longer contradict each other, the grid uses a 310px minimum card, mobile row
+actions meet 44px, and the splash uses the product's white/lake-blue tokens. The
+current record lives in [desktop validation](../../docs/desktop-validation.md).
+
+The `ship` verdict below belongs to `4c6383ad0537bccb85ce32f76fc11fe3f9e139e8`
+only; no fresh independent visual review or user aesthetic approval is claimed
+for the newer revision. At that earlier source, all 80 final Web PNG hashes match
+provenance, five source-review corrections are resolved, and the independent
+review inspected 15 Web captures and two installed captures: all eight original
+findings resolved, no remaining material findings in the reviewed scope. A generic
+reviewer substituted for the unavailable specialist; it did not inspect all 80
+Web captures or run a browser. Prior passes apply only to their recorded
+revisions. Use synthetic data and isolated HTTP model fixtures, never personal
+libraries or browser profiles.
