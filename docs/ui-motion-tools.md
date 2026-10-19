@@ -1,15 +1,16 @@
 # UI and motion tools
 
-The whole capsule design and all three subsequent studies were rejected on
-2026-10-19. Only the animated Orbit folder glyph is retained; the design notes
-below otherwise describe the technical baseline, not an accepted visual direction.
+The latest 2026-10-19 instruction rejects the current icons, layout, styling and
+colours in full, superseding the earlier animated-Orbit-folder exception. The
+implementation notes below are migration and technical evidence, not visual
+requirements for the replacement. Existing icon artwork, fonts, palette, capsule
+treatments, material and layout are not pinned.
 
-Updated on 2026-10-19 for the capsule workspace rebuild after the user rejected
-`082e36d`. The application now combines navigation and searchable categories in
-one sidebar, with neutral surfaces, indigo accents and complete capsule controls.
-[The workbench contract](../.impeccable/workbench-direction.md) owns the direction;
-[DESIGN.md](../DESIGN.md) and [the surface brief](../.impeccable/surfaces/frontend.md)
-record the implementation and acceptance scope.
+[The current redesign brief](../.impeccable/workbench-direction.md) owns the visual
+requirements. [DESIGN.md](../DESIGN.md) and its sidecar mark the replacement pending;
+[the surface brief](../.impeccable/surfaces/frontend.md) preserves functional behavior.
+Runtime dependencies and licenses below apply to code that remains. Their presence
+does not require retaining the old appearance or migrating every control at once.
 
 ## Controls, fonts and search
 

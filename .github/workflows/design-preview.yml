@@ -3,7 +3,6 @@ on:
   push:
     branches: ['desktop/**']
     paths:
-      - '.impeccable/mocks/decision/*.html'
       - 'scripts/design_preview.py'
       - '.github/workflows/design-preview.yml'
       - 'frontend/design/**'
@@ -12,6 +11,12 @@ on:
       - 'frontend/vite.folder-preview.config.ts'
       - 'scripts/folder_preview.py'
   workflow_dispatch:
+    inputs:
+      include_legacy_folder:
+        description: 'Also render the rejected legacy folder component for historical regression review'
+        type: boolean
+        required: false
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -28,14 +33,20 @@ jobs:
           python-version: '3.12'
       - run: pip install playwright
       - run: playwright install --with-deps chromium
+      - run: sudo apt-get install -y ffmpeg
       - run: python scripts/design_preview.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: facetmark-design-directions
-          path: design-evidence/
+          path: |
+            design-evidence/*.png
+            design-evidence/*.mp4
+            design-evidence/*.json
+            design-evidence/preview/**
           retention-days: 14
   folder-motion:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.include_legacy_folder == true }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:

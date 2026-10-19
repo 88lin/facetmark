@@ -60,3 +60,7 @@ pairing-token.txt
 !docs/landing/*.css
 !desktop/splash/*.html
 !frontend/index.html
+
+# Isolated redesign proposal and generated cloud evidence
+!frontend/design/workbench/index.html
+design-evidence/

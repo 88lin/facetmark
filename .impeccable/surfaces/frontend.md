@@ -28,139 +28,76 @@ related_targets:
 - frontend/src/interaction-motion.css
 ---
 
-# Capsule collection workspace, settings and task recovery — Operate
+# Facetmark frontend — Operate
 
-## Direction contract — 2026-10-19, after the second rejection
+## Direction status
 
-THESIS: One unified sidebar for application navigation and searchable categories,
-with a spacious content canvas. The user explicitly rejected the lavender/10px
-replacement at `082e36d`, required full capsule controls and authorized a rebuild
-using HeroUI and GSAP. The [workbench contract](../workbench-direction.md) is the
-current direction authority; historical visual contracts are superseded.
+**Replacement pending. The current icons, layout, styling and colours are rejected
+in full, including the earlier folder-glyph exception.** The sole active visual
+brief is [the current redesign requirements](../workbench-direction.md); the product
+contract is [PRODUCT.md](../../PRODUCT.md). Existing screenshots, code and the
+history directory describe the rejected implementation, not a desired appearance.
 
-OWN-WORLD: White and softly shaded neutral surfaces, graphite text and local indigo
-actions/selection. Inter and Noto Sans SC stay bundled. Complete capsule controls,
-circular icon buttons, 22px cards, 28px sidebar/support panels and 24px menus give
-controls and surfaces distinct proportions. Page/item/summary/control/metadata
-roles use 28/18/16/15/13px, with responsive heading exceptions in DESIGN.md.
+The user has delegated the redesign. Choose and implement a coherent replacement
+without restarting settled preference questions. A full working first viewport
+must establish a different composition and interaction treatment before expansion
+to the other routes. There is no prescribed sidebar width, grid, palette, icon set,
+font family, control radius or number of effects in this pending brief.
 
-STORY: Select a collection, scan useful descriptions, open the original or preview,
-and organize chosen entries. Navigation and categories share one place. Search
-queries, IME composition, selected entries, model configuration and task snapshots
-keep their actual functional meaning during transitions.
+## Collection and navigation behavior
 
-FIRST VIEWPORT: A 244px unified sidebar, 12px shell padding and gap, and a flexible
-collection canvas. Main destinations stack as full-width capsules; utilities use
-40px circles with accessible labels/tooltips. Category-type segments keep text labels
-without redundant icons. Compact desktop uses 224px; wide desktop 260px. A 76px title/search
-row precedes maintenance and status controls. Below 960px navigation becomes a 56px
-header and categories use the existing focus-managed drawer. Below 720px title and
-search stack, cards use one column and principal actions retain 44px targets.
+Keep Add / Manage / Summarize distinct from summary status, sorting and display.
+Original links, selection, editing, summary actions and preview remain independent.
+Descriptions must remain readable; measured clipping determines expansion.
+Searchable access to the full folder/tag/site directory, parent paths, counts and
+pagination must remain available at narrow and short viewport sizes.
 
-FORM: HeroUI leads actual component construction. GithubStarsManager informs
-collection organization; FlClash informs selected-state continuity and layered
-transitions. Repeated user instructions override the earlier random concept seed.
-The references are not approved Facetmark mockups. [DESIGN.md](../../DESIGN.md)
-owns implementation tokens and [the sidecar](../design.json) carries source specimens.
-
-MOTION: HeroUI owns button press/focus states. GSAP composes directional page,
-settings-section, category, pagination and filter timelines in existing containers.
-Named heading/content positions and interrupted paint state preserve continuity.
-Motion owns selection capsules, card entry/reflow and overlay presence. The theme
-uses an interruptible circular View Transition; reader effects remain. State and
-focus update immediately. Live reduced motion removes travel while retaining controls.
-
-FINISH: Fresh cloud builds, browser/installation checks, settled-font captures,
-continuous click recordings and a full independent review are required after this
-rejection. No historical ship verdict establishes current acceptance; user aesthetic
-approval is not recorded.
-
-## Collection and unified sidebar
-
-Keep Add / Manage / Summarize separate from summary status, sorting and Display.
-Display changes summaries/excerpts; processing scope and consent stay in the dialog.
-Card/list changes retain 18px titles and 16px descriptions. Original links,
-checkboxes, editing, summary actions and Preview are independent. Expansion uses
-measured clipping through a footer icon with an explicit accessible name; summary
-provenance is a 13px inline label. Missing/failed content has a specific next action.
-
-Application destinations and the searchable folder/tag/site directory share one
-sidebar. Preserve vertical scrolling, full accessible paths, counts and complete
-pagination. Organize folders/tags remains directly available. On short desktop
-windows every utility and category stays reachable; on narrow screens the drawer
-keeps focus containment, Escape and focus return.
-
-Add/edit/move use the shared FolderPicker: 50-item pages, exact choice, separate
-search draft, explicit Unfiled/new-folder choices, local loading/retry and keyboard
-navigation. A new path is created only on save. Model choices begin with a bounded
-100-item rendered page and explicit more rather than an unbounded option surface.
-Preserve searchable access to the complete catalog.
-
-Maintain server paging and scoped selection for 200,000-record libraries. Context
-changes clear incompatible selection, stale results cannot drive scoped actions,
-and rapid navigation preserves the final query, selected state and scroll context.
-Check the 390px collection and short-window desktop composition; earlier density
-measurements do not certify this rebuilt layout.
+Add/edit/move retain the shared complete folder-selection flow: bounded pages,
+exact choice, separate search draft, explicit unfiled/new-folder states, retry and
+keyboard navigation. Create a path only on save. Model choices remain bounded
+with explicit access to additional results. Preserve server paging and scoped
+selection for large collections; stale results must not drive actions after context
+changes. Preserve IME input, final query and relevant scroll/focus context.
 
 ## Model settings and task recovery
 
-Summary and optional embedding channels retain independent full-width sections
-with purpose/status, essential fields, model choice, test/save and nearby feedback.
-Settings use capsule tabs and preserve mounted hidden panels so switching does not
-lose drafts or results. Narrow screens use one field column. Advanced paths and
-timeouts follow the essential actions.
+Summary and optional embedding channels remain independently configurable. Preserve
+drafts and results across settings navigation. Discovery, catalog availability,
+model selection, successful test, persisted save and execution are separate states.
+Per-Agent drafts stay independent. Provider/installation/credential changes
+invalidate stale catalogs and tests; changing the model requires a fresh test.
+A failed save remains visibly unsaved.
 
-Discovery identifies the actual Agent. Catalog source, configured default, manual
-entry and retry remain visible. Per-Agent drafts stay independent; provider,
-installation or credential changes invalidate stale catalogs/tests. A model change
-requires a fresh test. Catalog discovery, successful test, persisted save and actual
-summary use remain separate states. A failed save stays visibly unsaved.
+Processing requires scope review and consent. Zero eligible items cannot start.
+Library changes invalidate stale scope previews. Management/export scope remains
+separate from processing scope. Resume/retry uses the original durable target
+snapshot, preserves completed entries and only handles its unfinished/failed entries.
 
-Processing requires scope review and content consent. Zero eligible items disables
-Start; library changes invalidate scope previews. Explicit IDs or server scope with
-exclusions identify targets without changing management/export scope. Pause completes
-the current batch; resume/retry uses the original durable snapshot, keeps completed
-entries and handles only the snapshot's unfinished/failed targets. Tasks presents
-scope, truthful state and recovery before new-work shortcuts.
+## Controls, reading and motion behavior
 
-## Native controls, reading and motion acceptance
+Preserve click currentTarget, Enter/Space activation, form submission, labels,
+disabled/pending state, focus containment/return and caller preventDefault semantics.
+If a library adapter changes, verify these contracts before applying it everywhere.
+Each element/property has one animation owner. Closing overlays must stop accepting
+input immediately; rapid reversal and live reduced-motion changes remain safe.
 
-Exercise the real HeroUI wrapper in native click, Enter/Space, implicit submission,
-label activation, disabled/pending state and form flows. Anchored actions must receive
-the actual button currentTarget; keyboard handlers and caller preventDefault remain
-meaningful. HeroUI press must not stack with fallback CSS or another engine.
+Reader layouts may change. Keep actual heading navigation, article progress,
+chapter selection and an unobscured final paragraph. Resizing and closing preview
+must preserve meaningful reading/search context. Existing glass/plane artwork and
+layout are not mandatory; their underlying progress and navigation behavior is.
 
-Check application destination, directory type/choice, status, card/list, settings
-and pagination in continuous sequences, including rapid reversal and delayed data.
-GSAP cleanup must remove temporary styles without losing the final visible content.
-Verify overlay closing immediately removes interaction/focus eligibility, while
-visual exit completes; check theme reversal and a live reduced-motion change.
-Static screenshots alone cannot establish these behaviors. Detailed motion ownership
-and capture-settling rules are in [UI motion tools](../../docs/ui-motion-tools.md).
+## Implementation and verification
 
-Desktop preview uses an independent article surface beside a compact result index;
-focus mode expands within the content area. Narrow preview contains focus and returns
-to its initiating control. Retain real-heading navigation, actual article progress,
-the glass capsule, native selector and spring outline plane. Resize, long labels,
-rapid chapter choice and reduced motion must leave the final paragraph unobscured
-and the selected chapter correct.
+Give components ownership of styles and motion. Remove migrated definitions rather
+than stacking overrides over obsolete ones. Avoid blanket radii on all controls
+and global event effects that leak across routes or portals.
 
-## Evidence status and references
+Validate the replacement's full screen and relevant journeys in the cloud, including
+desktop, short windows, mobile, Chinese/English and light/dark operation. Use synthetic
+data and source-matched images/recordings. Do not run builds, browser automation,
+package installation or desktop installation locally or touch real browser profiles.
 
-This pass records rebuild base `1f2a4ce8037c41c7dc279954cecc1a8de527ba0d` and the
-subsequent working-tree navigation-fit corrections, after rejected
-`082e36d53a19acc1553a5ea3ce8482fe5d526826`. The final correction revision, complete
-cloud run set, fresh captures/recordings and independent reviewer verdict are pending. No user
-aesthetic approval is claimed. Source specimens illustrate appearance and CSS
-states; they are not HeroUI/GSAP runtime tests or rendered evidence.
-
-Use [PR #44 checks](https://github.com/88lin/facetmark/pull/44/checks) for current
-source/results and [desktop validation](../../docs/desktop-validation.md) for the
-recorded evidence and historical boundaries. Tests and captures use synthetic
-libraries and isolated fixtures, never original browser profiles or personal data.
-
-[HeroUI](https://www.heroui.com/) leads control quality and actual library use.
-[GithubStarsManager](https://github.com/AmintaCCCP/GithubStarsManager) informs
-collection organization. [FlClash](https://github.com/chen08209/FlClash) informs
-selection continuity and layered transitions. Reference source/images do not prove
-Facetmark implementation correctness or user acceptance.
+[Desktop validation](../../docs/desktop-validation.md) records the existing
+technical baseline. It does not approve the appearance. Update DESIGN.md and the
+sidecar from the actual new implementation; do not restore the historical tokens
+or claim a new visual acceptance from old tests or component-only review.

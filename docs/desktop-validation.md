@@ -8,8 +8,11 @@
 direction at `bed41ee`: the solid-color treatment, palette, composition and lack of
 appealing visual elements still felt old-fashioned. Redesign continues. All runs
 below are technical evidence only, not completed delivery, a visual `ship` verdict
-or user aesthetic approval.** All three later samples were rejected too; only
-Orbit's animated folder glyph is retained. A replacement whole UI is unfinished.
+or user aesthetic approval.** All three later samples were rejected too. The latest
+instruction, “现在这种图标布局样式颜色等都不要”, also supersedes the earlier Orbit-folder
+exception. All current visuals are rejected; a replacement whole UI is unfinished.
+The results below remain technical evidence for the existing application, not
+retained visual requirements. Active rules are in the current redesign brief.
 
 ### Current verified application: `f145470`
 
@@ -69,8 +72,8 @@ cloud rendering. [Sample run 39206868180](https://github.com/88lin/facetmark/act
 succeeded; [artifact 12166290878](https://github.com/88lin/facetmark/actions/runs/39206868180/artifacts/12166290878)
 is **2,888,243 bytes**. The main agent verified all **6 PNG hashes**. The samples
 contain synthetic content. The user explicitly rejected all three overall
-directions, then retained only Orbit's sculpted folder glyph conditional on
-animation. Its dock, palette, repeated rows and reader are not approved. These
+directions, then temporarily retained Orbit's sculpted folder glyph conditional on
+animation. The later whole-interface rejection supersedes that exception. These
 samples do not implement a new application UI or certify application workflows.
 
 ### Folder-only continuation

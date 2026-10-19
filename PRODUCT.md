@@ -64,60 +64,41 @@ contracts remain.
 
 ## Brand Commitments
 
-Latest user evidence (2026-10-19, after `bed41ee`): the user rejected the capsule
-workspace screenshots as visually flat, monotonous and lifeless, explicitly saying
-that changing the accent colour cannot fix the composition. The neutral surfaces
-and repeated card treatment below are a superseded design, not an approved brand
-commitment. The next direction must address material, light, content hierarchy and
-spatial continuity together, with fresh visual studies before implementation.
-Capsule controls, readable Chinese, direct folder selection, the referenced
-products' quality bar and functional safety remain required. The user has already
-delegated broad redesign choices; do not restart a preference interview.
+Latest user instruction (2026-10-19): **“现在这种图标布局样式颜色等都不要。”**
+The whole current visual system is rejected: icons and mark treatment, composition,
+layout, styling, palette and typography are open for replacement. This supersedes
+all earlier partial visual acceptance, including the Orbit folder glyph and the
+old capsule/neutral/indigo implementation. No current visual asset or token is pinned.
 
-The user subsequently rejected all three Prism Light / Spectrum Dark / Orbit
-studies. Only Orbit's sculpted folder glyph may be retained, conditional on real
-animation. This is not acceptance of Orbit's composition, palette, dock, cards or
-reader. The folder component joins the real directory and picker; the whole
-interface still needs a replacement direction and visual review. Do not expand
-this component preference into approval of an entire material treatment.
+The user has already delegated a whole-interface redesign and authorized correction
+of conflicting rules. Do not restart a preference interview, ask whether to rebuild
+again or make a random concept tournament a prerequisite. Establish a concrete
+working direction, implement it and show actual results. Existing product behavior,
+data protection, accessible controls and readable Chinese/English remain required.
 
-Preserve Facetmark's layered mark, direct access to original pages, readable
-Chinese/English content and tactile rounded controls. Card and list views share
-a clear title/description hierarchy. Searchable categories remain usable with a
-mouse, while preview stays an optional inspection tool.
+Replace composition, icons, typography, colour, material and motion together.
+Another accent swap, radius adjustment or isolated animated icon does not satisfy
+the request. Rounded forms, depth, light, texture and expressive transitions are
+available when they support the replacement direction and remain usable. The
+Operate mode does not force a neutral shell, small radii or sparse effects.
 
-On 2026-10-19 the user explicitly rejected the lavender surfaces, 10px controls,
-typography and sparse motion of revision `082e36d`, after earlier rejections of
-PR #44's visual direction. They required full capsule buttons, added HeroUI as a
-concrete reference, requested the installed GSAP capabilities and authorized a
-whole-interface rebuild. This instruction supersedes the earlier palette,
-separate rail/directory composition and random concept seed.
+HeroUI, GithubStarsManager and FlClash remain quality and interaction references,
+not approved Facetmark mockups or compulsory component replacements. Preserve
+library/license obligations for code that remains; choose visual treatments from
+the current brief, not from dependency defaults.
 
-The superseded implementation was a fluid capsule workspace: one sidebar combining
-application navigation and searchable categories, a spacious neutral content
-canvas, indigo accents, complete capsule controls, circular icon buttons and
-proportionately rounded content panels. Inter and Noto Sans SC remain bundled.
-HeroUI supplies real controls and their interaction states; GSAP composes
-interruptible page and section motion. Keep focus, native button/link semantics,
-search drafts and actual data state independent of decorative motion.
-
-HeroUI leads component construction, GithubStarsManager informs collection
-organization, and FlClash informs selection continuity and layered transitions.
-These sources are references, not approved Facetmark mockups. Do not restore the
-rejected lavender wash, compact rail beside a second category column, rigid
-controls or undersized content typography. Fresh verification and independent
-review are required; no current user aesthetic approval is recorded.
-
-Exact baseline tokens belong in [DESIGN.md](DESIGN.md). Historical direction is in
-[the workbench contract](.impeccable/workbench-direction.md); composition and
-interaction acceptance belong in [the frontend surface brief](.impeccable/surfaces/frontend.md).
+The [current redesign requirements](.impeccable/workbench-direction.md) are the
+active visual brief; the [frontend surface brief](.impeccable/surfaces/frontend.md)
+records behavior and verification boundaries. DESIGN.md and its sidecar explicitly
+mark the replacement pending and carry no inherited tokens. Rejected specifications
+are archived under `.impeccable/history/` for migration, not design authority.
 
 ## Evidence on Hand
 
 On 2026-10-17 the user rejected the incomplete model-selection journey and repeated
 isolated patches. Continue the comprehensive detection → model choice → test/save →
-summary → recovery workflow within the established identity, without another
-preference interview. The user has not approved the current aesthetics.
+summary → recovery workflow while replacing the rejected appearance, without
+another preference interview. The user has not approved the current aesthetics.
 
 Current source-matched verification and the visual review disposition are recorded once in
 [desktop validation](docs/desktop-validation.md). Historical green runs and scoped
