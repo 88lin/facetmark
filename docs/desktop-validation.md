@@ -1,8 +1,119 @@
 # Desktop experience validation
 
-## 2026-10-18: asset delivery, task scope, desktop lifecycle and collection polish
-
 <!-- current-experience-evidence:start -->
+
+## 2026-10-19: visual direction rejected; redesign continues
+
+**After seeing the screenshots on 2026-10-19, the user rejected the entire visual
+direction at `bed41ee`: the solid-color treatment, palette, composition and lack of
+appealing visual elements still felt old-fashioned. Redesign continues. All runs
+below are technical evidence only, not completed delivery, a visual `ship` verdict
+or user aesthetic approval.** New sample preferences are being collected; the new
+application UI is not implemented.
+
+The built application/test baseline is
+`bed41ee497e52f5b70b6426683640e2532520995`, branch `desktop/facetmark-experience`,
+[PR #44](https://github.com/88lin/facetmark/pull/44). It contains the actual HeroUI
+3.2.6 controls, unified sidebar, bundled Inter/Noto Sans SC, 28/18/16/15/13px type
+hierarchy, GSAP content timelines and retained reader effects. These describe the
+rejected implementation and its regression baseline, not an accepted new direction.
+
+### Application technical evidence
+
+| Evidence | Confirmed result for `bed41ee` |
+| --- | --- |
+| [CI 39204650822](https://github.com/88lin/facetmark/actions/runs/39204650822) | **Failure**: browser **74 passed / 1 skipped / 1 failed**. Mobile collection density required 2 fully visible cards and found 1. All other CI jobs passed. |
+| [Experience 39204645206](https://github.com/88lin/facetmark/actions/runs/39204645206) | **Failure** in `web`; the other 4 jobs succeeded. Exact test counts have not yet been extracted and are not inferred from CI. |
+| [Windows 39204645205](https://github.com/88lin/facetmark/actions/runs/39204645205) | **Success**. Installed-app evidence records 13 actions, 0 page errors and 0 unexpected writes. |
+| Web provenance and interaction evidence | The main agent verified hashes for **82 PNGs and 2 MP4s**; the Web interaction recording contains **18 actions**. Hash matching and recorded actions do not establish visual acceptance. |
+| Installation evidence | [Artifact 12165886859](https://github.com/88lin/facetmark/actions/runs/39204645205/artifacts/12165886859), **362,483 bytes**, was downloaded and checked against the application source. |
+| Unsigned installer | [Artifact 12165414259](https://github.com/88lin/facetmark/actions/runs/39204645205/artifacts/12165414259), **287,498,248 bytes**, was not downloaded. |
+
+The previous ink leakage is fixed in the technical evidence. Ink retains its
+originating control and clears on hidden/inert/disconnected/moved targets, with a
+600ms bound; structural scrims are excluded from capsule radius, scaling and ink.
+The source also retains keyboard/form semantics and reduced-motion portal handling,
+corrects short-window gaps/navigation/icon spacing, removes the square Agent model
+wrapper and uses accent `#5c4ddb` (defined selected-surface contrast about 4.84:1).
+These fixes do not resolve the user's rejection of the overall visual direction.
+The mobile density failure above remains a failed requirement.
+
+### A/B/C samples, not a new application UI
+
+`2e56a7c9ee0b7aa09753f9afdaae9cc24aaa1198` adds only A/B/C visual samples and their
+cloud rendering. [Sample run 39206868180](https://github.com/88lin/facetmark/actions/runs/39206868180)
+succeeded; [artifact 12166290878](https://github.com/88lin/facetmark/actions/runs/39206868180/artifacts/12166290878)
+is **2,888,243 bytes**. The main agent verified all **6 PNG hashes**. The samples
+contain synthetic content. The user explicitly rejected all three overall
+directions, then retained only Orbit's sculpted folder glyph conditional on
+animation. Its dock, palette, repeated rows and reader are not approved. These
+samples do not implement a new application UI or certify application workflows.
+
+### Folder-only continuation
+
+`FolderGlyph` reuses the four-tone folder geometry in the real facet directory and
+folder picker. GSAP opens the front cover and lifts the paper on row hover and
+keyboard focus, provides a short selection response and closes to the selected or
+rest pose on leave. Stable path hashing keeps tones consistent between both
+locations. The parent button retains its press behavior and geometry. Live
+reduced motion removes travel while preserving the selected state. New cloud
+coverage records intermediate transforms and verifies actual folder filtering and
+picker selection; runtime evidence for this continuation is pending.
+
+The whole interface redesign remains unresolved. This component is not a claim
+that the rejected application layout has become acceptable.
+
+Local work remains limited to source editing, lightweight static checks and small
+evidence inspection. No local build, browser, package installation, desktop
+packaging/installation or large artifact download is authorized. Use synthetic
+libraries and isolated fixtures; never modify or automate against the user's real
+browser profiles. Hosted Windows Server does not certify every Windows 10/11
+machine, cross-version upgrades or ordinary non-administrator use. Changes remain
+on the existing PR; no merge, formal release or Pages deployment is part of this work.
+
+<!-- current-experience-evidence:end -->
+
+## Historical validation
+
+All entries below describe earlier revisions. Their uses of “current” or “final”
+are local to the dated entry and do not override the current status above.
+Historical local execution records do not change this pass's cloud-only execution
+constraint.
+
+## 2026-10-19: tonal replacement passed technically, then rejected by the user
+
+Historical corrected application/test source:
+`082e36d53a19acc1553a5ea3ce8482fe5d526826`. This was the lavender/white/violet
+replacement with a 96px rail, separate directory, 16px collection titles and
+10px controls. The user subsequently rejected its appearance and required the
+capsule rebuild above. These technical passes do not establish current visual
+completion or user acceptance.
+
+| Historical run | Confirmed outcome |
+| --- | --- |
+| [Experience 39195530353](https://github.com/88lin/facetmark/actions/runs/39195530353) | **Success** at `082e36d`; superseded as the current design. |
+| [Windows 39195530367](https://github.com/88lin/facetmark/actions/runs/39195530367) | **Success** at `082e36d`; superseded as the current design. |
+| [CI 39195533713](https://github.com/88lin/facetmark/actions/runs/39195533713) | **Success** at `082e36d`; superseded as the current design. |
+
+The first replacement baseline was
+`ac90d24805e346ba974a197da72a59cdac11231f`.
+[Windows 39193153702](https://github.com/88lin/facetmark/actions/runs/39193153702)
+passed. [Experience 39193153703](https://github.com/88lin/facetmark/actions/runs/39193153703)
+and [CI 39193157986](https://github.com/88lin/facetmark/actions/runs/39193157986)
+failed only the mobile collection-density assertion: list top **280.93px** against
+**271px**; the browser matrix recorded **69 passed / 1 skipped / 1 failed**.
+
+The independent full review returned **fix** for mobile density, a duplicate Add
+label, FORM seed persistence and corrected-source recapture. The source correction
+batch fixed mobile category wrapping and the duplicate label, retained 44px mobile
+card actions, separated picker Motion/CSS press ownership, persisted the FORM seed
+and stabilized Windows final capture. TypeScript and Python AST checks passed;
+one manual detector pass returned `[]`. The subsequent cloud runs above passed,
+but the user rejection interrupted visual acceptance; no completed current-design
+`ship` claim follows from that sequence. Later capsule-rebuild evidence belongs to
+the current entry, not to this historical revision.
+
+## 2026-10-18: asset delivery, task scope, desktop lifecycle and collection polish (historical verified)
 
 Validated application/test source: `0993020882434593932d3d50ad5ad25594b0531f` (branch
 `desktop/facetmark-experience`, PR #44). The commit raised here is the build
@@ -47,7 +158,7 @@ local browser subset above is not the full 63-case matrix except where the
 Experience run covers it. No fresh independent visual review was performed for
 this revision, so the earlier `ship` verdict remains scoped to `4c6383a`.
 
-<!-- current-experience-evidence:end -->
+
 
 ## Historical validation
 
@@ -132,7 +243,7 @@ Synthetic HTTP summaries verify that the selected model reaches the application
 pipeline and stored result. They do not establish personal account access, model
 quality or quota. Earlier runs below apply only to their recorded source.
 
-<!-- current-experience-evidence:end -->
+
 
 ## Historical validation
 

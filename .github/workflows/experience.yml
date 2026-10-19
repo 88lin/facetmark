@@ -85,6 +85,9 @@ jobs:
           if test -f frontend/recordings/facetmark-interactions.webm; then
             ffmpeg -y -i frontend/recordings/facetmark-interactions.webm -vf scale=1280:-2 -c:v libx264 -crf 25 -pix_fmt yuv420p -movflags +faststart frontend/visual-evidence/facetmark-interactions.mp4
           fi
+          if test -f frontend/recordings/facetmark-folders.webm; then
+            ffmpeg -y -i frontend/recordings/facetmark-folders.webm -c:v libx264 -crf 22 -pix_fmt yuv420p -movflags +faststart frontend/visual-evidence/facetmark-folders.mp4
+          fi
           python scripts/experience_evidence.py
       - name: Upload small visual evidence separately
         if: always()

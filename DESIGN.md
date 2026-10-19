@@ -252,6 +252,10 @@ components:
 
 # Design System: Facetmark capsule workspace
 
+> This is the technical baseline of a rejected visual direction (2026-10-19).
+> The user also rejected all three later visual studies; only the animated Orbit
+> folder glyph may be retained. Existing tokens below are not aesthetic approval.
+
 ## Overview
 
 **Creative North Star: "Fluid capsule workspace"**

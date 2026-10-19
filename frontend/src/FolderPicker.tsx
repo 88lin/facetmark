@@ -1,12 +1,13 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Input } from "@heroui/react";
-import { Check, ChevronDown, Folder, FolderOpen, FolderPlus, Inbox, LoaderCircle, Search } from "lucide-react";
+import { Check, ChevronDown, FolderPlus, Inbox, LoaderCircle, Search } from "lucide-react";
 import { api, query } from "./api";
 import { useText } from "./locale";
 import { OverlayMotion } from "./overlay-motion";
 import { useReducedMotion } from "./useReducedMotion";
 import { CapsuleButton as Button } from "./ui/controls";
+import { FolderGlyph, folderTone } from "./FolderGlyph";
 import "./folder-picker.css";
 
 type FolderPage = { items: { value: string; count: number }[]; total: number; has_more: boolean };
@@ -101,7 +102,7 @@ export function FolderPicker({ value, onChange, label, allowCreate = true, allow
         if (!open) { setRequest({ q: "", offset: 0 }); setPage({ items: [], total: 0, has_more: false }); setLoading(true); }
         setOpen(!open);
       }}>
-      {value ? <FolderOpen size={18} /> : <Inbox size={18} />}
+      {value ? <FolderGlyph tone={folderTone(value)} active={open} /> : <FolderGlyph tone="sage" active={open} />}
       <motion.span key={value} id={`${id}-value`} initial={reduced ? false : { opacity: 0.65, y: 3 }}
         animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : 0.18 }}>
         {value || (allowUnfiled ? t("未分类", "Unfiled") : t("选择文件夹", "Choose a folder"))}
@@ -120,11 +121,11 @@ export function FolderPicker({ value, onChange, label, allowCreate = true, allow
           <Inbox size={17}/><span>{t("未分类", "Unfiled")}</span>{value === "" && <Check size={16}/>}
         </Button>}
         {selectedMissing && <Button data-overlay-motion type="button" data-folder-option title={value} aria-pressed="true" onClick={() => choose(value)}>
-          <FolderOpen size={17}/><FolderPath value={value}/><Check size={16}/>
+          <FolderGlyph tone={folderTone(value)} active/><FolderPath value={value}/><Check size={16}/>
         </Button>}
         {page.items.map(item => <Button data-overlay-motion type="button" key={item.value} data-folder-option title={item.value}
           aria-pressed={value === item.value} onClick={() => choose(item.value)}>
-          <Folder size={17}/><FolderPath value={item.value}/>
+          <FolderGlyph tone={folderTone(item.value)} active={value === item.value}/><FolderPath value={item.value}/>
           {value === item.value ? <Check size={16}/> : <small className="folder-picker-count">{item.count.toLocaleString()}</small>}
         </Button>)}
         {error ? <div className="folder-picker-feedback" role="alert">

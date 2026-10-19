@@ -74,6 +74,13 @@ Capsule controls, readable Chinese, direct folder selection, the referenced
 products' quality bar and functional safety remain required. The user has already
 delegated broad redesign choices; do not restart a preference interview.
 
+The user subsequently rejected all three Prism Light / Spectrum Dark / Orbit
+studies. Only Orbit's sculpted folder glyph may be retained, conditional on real
+animation. This is not acceptance of Orbit's composition, palette, dock, cards or
+reader. The folder component joins the real directory and picker; the whole
+interface still needs a replacement direction and visual review. Do not expand
+this component preference into approval of an entire material treatment.
+
 Preserve Facetmark's layered mark, direct access to original pages, readable
 Chinese/English content and tactile rounded controls. Card and list views share
 a clear title/description hierarchy. Searchable categories remain usable with a
@@ -86,7 +93,7 @@ concrete reference, requested the installed GSAP capabilities and authorized a
 whole-interface rebuild. This instruction supersedes the earlier palette,
 separate rail/directory composition and random concept seed.
 
-The current direction is a fluid capsule workspace: one sidebar combining
+The superseded implementation was a fluid capsule workspace: one sidebar combining
 application navigation and searchable categories, a spacious neutral content
 canvas, indigo accents, complete capsule controls, circular icon buttons and
 proportionately rounded content panels. Inter and Noto Sans SC remain bundled.
@@ -101,7 +108,7 @@ rejected lavender wash, compact rail beside a second category column, rigid
 controls or undersized content typography. Fresh verification and independent
 review are required; no current user aesthetic approval is recorded.
 
-Exact tokens belong in [DESIGN.md](DESIGN.md). The authoritative direction is
+Exact baseline tokens belong in [DESIGN.md](DESIGN.md). Historical direction is in
 [the workbench contract](.impeccable/workbench-direction.md); composition and
 interaction acceptance belong in [the frontend surface brief](.impeccable/surfaces/frontend.md).
 

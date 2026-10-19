@@ -70,7 +70,8 @@
 .facet-search button { padding: 0; display: flex; }
 .facet-options { min-height: 0; overflow: auto; overscroll-behavior: contain; flex: 1; padding: 2px; scrollbar-gutter: stable; }
 .facet-option, .facet-current { position: relative; isolation: isolate; width: 100%; display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 9px 12px; border-radius: 9999px; margin-bottom: 4px; text-align: left; font-size: var(--type-ui); line-height: 1.45; color: var(--secondary-ink); font-weight: 400; }
-.facet-option > span, .facet-current > span { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.facet-option > span:not(.folder-glyph), .facet-current > span { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.facet-option .folder-glyph { --folder-glyph-size: 28px; }
 .facet-option > svg { flex-shrink: 0; color: var(--muted); }
 .facet-option > small { flex-shrink: 0; font-size: var(--type-caption); font-variant-numeric: tabular-nums; }
 .facet-option[aria-pressed="true"] { color: var(--accent); font-weight: 500; }
@@ -358,7 +359,7 @@ button:disabled:active { scale: 1; }
 .app-shell .field > :is(input, select), .model-picker-control.is-editable, .model-picker-control:not(.is-editable) > .model-picker-trigger, .folder-picker-trigger { min-height: 46px; padding: 11px 16px; background: var(--inset); border: 1px solid transparent; font-weight: 400; }
 .app-shell .field > :is(input, select):focus, .model-picker-control.is-editable:focus-within { border-color: var(--selected-edge); background: var(--canvas); }
 .app-shell .field > span:first-child { font-size: var(--type-ui); font-weight: 500; }
-.facet-option > span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.facet-option > span:not(.folder-glyph) { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .result-source { flex-wrap: nowrap; }
 .result-source .source-domain { flex: 1; }
 .result-source .summary-basis { display: none; }
@@ -372,7 +373,9 @@ button:disabled:active { scale: 1; }
 @media (max-width: 719px) {
   .app-header .brand { height: auto; }
   .workspace-toolbar { padding-top: 10px; }
-  .main-workspace .result-row .result-meta { padding-top: 10px; }
+  .main-workspace .result-row, .main-workspace.list-mode .result-row { padding: 14px; }
+  .result-copy, .main-workspace.list-mode .result-copy { gap: 8px; }
+  .main-workspace .result-row .result-meta { padding-top: 8px; }
   .main-workspace .result-list { padding-left: 1px; padding-right: 1px; }
   .collection-status button { font-size: 13px; padding-left: 4px; padding-right: 4px; }
   .collection-status button span { font-size: var(--type-caption); }

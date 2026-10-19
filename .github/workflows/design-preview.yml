@@ -6,6 +6,11 @@ on:
       - '.impeccable/mocks/decision/*.html'
       - 'scripts/design_preview.py'
       - '.github/workflows/design-preview.yml'
+      - 'frontend/design/**'
+      - 'frontend/src/FolderGlyph.tsx'
+      - 'frontend/src/folder-glyph.css'
+      - 'frontend/vite.folder-preview.config.ts'
+      - 'scripts/folder_preview.py'
   workflow_dispatch:
 permissions:
   contents: read
@@ -29,4 +34,34 @@ jobs:
         with:
           name: facetmark-design-directions
           path: design-evidence/
+          retention-days: 14
+  folder-motion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - working-directory: frontend
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx vite build --config vite.folder-preview.config.ts
+      - run: |
+          pip install playwright
+          playwright install --with-deps chromium
+          sudo apt-get install -y ffmpeg
+          python scripts/folder_preview.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: facetmark-folder-motion
+          path: |
+            folder-evidence/*.png
+            folder-evidence/*.mp4
+            folder-evidence/*.gif
+            folder-evidence/provenance.json
           retention-days: 14

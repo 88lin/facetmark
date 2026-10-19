@@ -1,5 +1,10 @@
 # Facetmark capsule workspace — Operate
 
+> Superseded on 2026-10-19. The user rejected this full design and all three
+> subsequent Prism Light / Spectrum Dark / Orbit studies. Only Orbit's sculpted
+> folder glyph is retained, conditional on animation. The notes below document
+> the rejected baseline, not visual authority for the replacement interface.
+
 ## Current direction — 2026-10-19, after the second rejection
 
 USER EVIDENCE: The user rejected the lavender/10px-control replacement, repeated that buttons must be rounded capsules, described the typography and sparse motion as ugly and rigid, and authorized a full rebuild. They added HeroUI as a concrete reference and explicitly requested the installed GSAP capabilities. Earlier tests and reviews are historical technical evidence, never aesthetic approval.

@@ -1,9 +1,10 @@
 import { CapsuleButton } from "./ui/controls";
 import { useEffect, useId, useRef, useState } from "react";
-import { Check, Folder, FolderOpen, Globe2, Inbox, LoaderCircle, Search, Settings2, Tags, X } from "lucide-react";
+import { Check, Folder, Globe2, Inbox, LoaderCircle, Search, Settings2, Tags, X } from "lucide-react";
 import { api, query } from "./api";
 import { useText } from "./locale";
 import { SelectionPill, useContentMotion } from "./InteractionMotion";
+import { FolderGlyph, folderTone } from "./FolderGlyph";
 
 type Field = "folder" | "tag" | "domain";
 type Group = "folders" | "tags" | "domains";
@@ -101,7 +102,7 @@ export function FacetBrowser({ filters, enabled = true, revision, onSelect, onMa
       <CapsuleButton className="facet-option facet-any" type="button" aria-pressed={filters[field] === undefined}
         onClick={() => onSelect(field, undefined)}>
         <SelectionPill active={filters[field] === undefined} group={`${motionGroup}-folder`} />
-        {group === "folders" ? <FolderOpen size={16}/> : group === "tags" ? <Tags size={16}/> : <Globe2 size={16}/>}
+        {group === "folders" ? <FolderGlyph tone="sage" active={filters.folder === undefined}/> : group === "tags" ? <Tags size={16}/> : <Globe2 size={16}/>}
         <span>{group === "folders" ? t("全部文件夹", "All folders") :
           group === "tags" ? t("不限标签", "Any tag") : t("不限站点", "Any site")}</span>
         {filters[field] === undefined && <Check size={14} aria-hidden="true" />}
@@ -119,7 +120,7 @@ export function FacetBrowser({ filters, enabled = true, revision, onSelect, onMa
           title={item.value} aria-label={`${item.value} ${item.count}`} aria-pressed={filters[field] === item.value}
           onClick={() => onSelect(field, item.value)}>
           <SelectionPill active={filters[field] === item.value} group={`${motionGroup}-folder`} />
-          {group === "folders" ? <Folder size={16}/> : group === "tags" ? <Tags size={16}/> : <Globe2 size={16}/>}
+          {group === "folders" ? <FolderGlyph tone={folderTone(item.value)} active={filters.folder === item.value}/> : group === "tags" ? <Tags size={16}/> : <Globe2 size={16}/>}
           <span>{split >= 0 ? <><span>{item.value.slice(split + 3)}</span><small className="facet-parent">{item.value.slice(0, split)}</small></> : item.value}</span>
           <small>{item.count.toLocaleString()}</small>{filters[field] === item.value && <Check size={14}/>}
         </CapsuleButton>;

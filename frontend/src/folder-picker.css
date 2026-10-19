@@ -20,7 +20,8 @@
   line-height: 1.5;
   white-space: normal;
 }
-.folder-picker-trigger > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.folder-picker-trigger > span:not(.folder-glyph) { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.folder-picker .folder-glyph { --folder-glyph-size: 28px; }
 .folder-picker-trigger > svg:first-child { color: var(--muted); }
 .folder-picker .folder-picker-trigger:hover,
 .folder-picker .folder-picker-trigger[aria-expanded="true"],
@@ -111,7 +112,7 @@
   white-space: normal;
   transition: background 180ms var(--ease), color 180ms var(--ease), box-shadow 180ms var(--ease), transform 180ms var(--ease);
 }
-.folder-picker-options > .fm-button > span,
+.folder-picker-options > .fm-button > span:not(.folder-glyph),
 .model-picker-choice { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .folder-picker-options > .fm-button > svg { color: var(--muted); }
 .folder-picker-options > .fm-button:hover,
