@@ -1,5 +1,9 @@
 # UI and motion tools
 
+The whole capsule design and all three subsequent studies were rejected on
+2026-10-19. Only the animated Orbit folder glyph is retained; the design notes
+below otherwise describe the technical baseline, not an accepted visual direction.
+
 Updated on 2026-10-19 for the capsule workspace rebuild after the user rejected
 `082e36d`. The application now combines navigation and searchable categories in
 one sidebar, with neutral surfaces, indigo accents and complete capsule controls.
@@ -57,6 +61,7 @@ fallback CSS states; they neither load nor verify HeroUI, GSAP or Motion.
 
 | Interaction | Owner and source | Current source behavior |
 | --- | --- | --- |
+| Sculpted folders | GSAP/useGSAP, [FolderGlyph.tsx](../frontend/src/FolderGlyph.tsx) and [folder-glyph.css](../frontend/src/folder-glyph.css) | Four layers, four path-stable tones; 28px in directory/picker. Row hover/focus opens the cover to -25° and raises paper 24% of its own height; selection responds for 390ms then rests at -14°. Interrupted quickTo reads the painted pose. Live reduced motion reverts owned styles, leaving CSS selected/rest states. No parent-button transform ownership. |
 | Button press/focus | HeroUI through [controls.tsx](../frontend/src/ui/controls.tsx) | HeroUI owns its controls' pressed/focus state; `.fm-button` transform transitions use 250ms with the smooth/ease fallback. Native CSS scale excludes `.button` and `data-overlay-motion`; remaining fallback press is .96, category .98 over 160ms. The global reduced-motion `.fm-button` rule removes press transform in the app and portaled dialogs. |
 | Selection continuity | Motion `SelectionPill`, [InteractionMotion.tsx](../frontend/src/InteractionMotion.tsx) | Separate shared layout groups; spring stiffness 480, damping 29, mass .8. Semantic pressed/current/selected state remains on the control. |
 | Page arrival | GSAP `useContentMotion`, [InteractionMotion.tsx](../frontend/src/InteractionMotion.tsx) | Ordered destination direction; 340ms, 18px travel, initial opacity .76/blur .7px. Collection results instead use 24px travel at the content label. |

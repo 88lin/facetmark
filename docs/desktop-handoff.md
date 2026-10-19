@@ -7,14 +7,15 @@
 视觉 `ship` 或用户认可。** 随后三张样机整体也全部被拒绝，只保留 Orbit 的立体
 文件夹图标，且以真实动画效果为条件；整体新 UI 实施未完成。
 
-已构建应用／测试的技术基线为 `bed41ee497e52f5b70b6426683640e2532520995`，工作分支为
+当前通过验证的应用／测试源码为 `f1454704f15d89f9fd6aa74889e984280410e425`，工作分支为
 `desktop/facetmark-experience`，对应 [PR #44](https://github.com/88lin/facetmark/pull/44)。
 `2e56a7c9ee0b7aa09753f9afdaae9cc24aaa1198` 仅添加 A／B／C 视觉样机和云端渲染，
 不是应用的新 UI。样机使用合成内容，三张的构图、配色和其余组件均已被用户拒绝。
 
 当前只把立体文件夹接入真实目录和文件夹选择器：整行悬停／键盘焦点展开前盖、
 抬起纸张，选择后有短促反馈，移开后回到选中／收起状态。文件夹路径决定稳定配色，
-两处一致；减少动画偏好实时生效。该组件的云端录像与交互结果待验证。
+两处一致；减少动画偏好实时生效。实际 28px、深浅色与选择器截图已独立复核；
+Web 快速打断／动画中途减少动态测试、安装版真实文件夹操作均通过。这只验收文件夹组件。
 
 [方向契约](../.impeccable/workbench-direction.md)与
 [前端 surface brief](../.impeccable/surfaces/frontend.md)记录设计与验收上下文；
@@ -60,16 +61,17 @@ FlClash 提供组件、组织和交互参考。这些记录及既有截图均不
 
 | 证据 | 当前结论 |
 | --- | --- |
-| [Experience 39204645206](https://github.com/88lin/facetmark/actions/runs/39204645206) | web 作业失败，其余 4 个作业成功；准确测试计数尚未提取。 |
-| [Windows 39204645205](https://github.com/88lin/facetmark/actions/runs/39204645205) | 成功；安装版记录 13 个动作、0 页面错误、0 非预期写入。 |
-| [CI 39204650822](https://github.com/88lin/facetmark/actions/runs/39204650822) | 浏览器 74 通过／1 跳过／1 失败：手机收藏期望完整显示 2 张卡，实际 1 张；其余 CI 作业通过。 |
-| Web 与安装证据 | 主线程核对 82 张 Web PNG、2 个 MP4 的哈希；Web 录制含 18 个动作。小型安装证据已下载并核对源码，墨迹残留已修复。 |
+| [Experience 39214088010](https://github.com/88lin/facetmark/actions/runs/39214088010) | 全部 5 作业成功；后端 2050 通过／1 跳过，浏览器 76 通过／1 跳过，独立 20 万条浏览器测试通过。 |
+| [Windows 39214088011](https://github.com/88lin/facetmark/actions/runs/39214088011) | 成功；实际安装版记录 17 个动作，包括文件夹动效与选择，0 页面错误、0 非预期写入。 |
+| [CI 39214092925](https://github.com/88lin/facetmark/actions/runs/39214092925) | 全部 10 作业成功。手机 390×844 完整显示 2 张卡；标题 18px、摘要 16px 与触达尺寸保留。 |
+| Web 与安装证据 | 主线程核对 89 张 Web PNG、3 个 MP4 哈希；主交互 18 个动作，文件夹专项 9 个动作，包含快速打断和中途减少动态。安装证据源码一致。 |
 | [样机渲染 39206868180](https://github.com/88lin/facetmark/actions/runs/39206868180) | 成功；6 张 PNG 哈希已核对。仅证明 A／B／C 合成样机被渲染，不证明应用新 UI 已实现或获得认可。 |
 
-小型安装证据为 [12165886859](https://github.com/88lin/facetmark/actions/runs/39204645205/artifacts/12165886859)
-（362,483 bytes）；[安装器 12165414259](https://github.com/88lin/facetmark/actions/runs/39204645205/artifacts/12165414259)
-为 287,498,248 bytes，未下载。样机[产物 12166290878](https://github.com/88lin/facetmark/actions/runs/39206868180/artifacts/12166290878)
-为 2,888,243 bytes。手机密度失败仍是未通过项；三张整体方向均被拒绝，不能沿用。
+小型安装证据为 [12170105241](https://github.com/88lin/facetmark/actions/runs/39214088011/artifacts/12170105241)
+（492,731 bytes）；[安装器 12169053783](https://github.com/88lin/facetmark/actions/runs/39214088011/artifacts/12169053783)
+为 287,596,770 bytes，未下载，未替换用户本机安装。文件夹 GIF／MP4 来自
+[组件预览 39212823994](https://github.com/88lin/facetmark/actions/runs/39212823994)，使用实际组件。
+三张整体方向仍均被拒绝，不能沿用；当前通过不代表整体设计完成。
 
 ## 使用与工程边界
 

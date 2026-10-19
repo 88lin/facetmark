@@ -8,17 +8,41 @@
 direction at `bed41ee`: the solid-color treatment, palette, composition and lack of
 appealing visual elements still felt old-fashioned. Redesign continues. All runs
 below are technical evidence only, not completed delivery, a visual `ship` verdict
-or user aesthetic approval.** New sample preferences are being collected; the new
-application UI is not implemented.
+or user aesthetic approval.** All three later samples were rejected too; only
+Orbit's animated folder glyph is retained. A replacement whole UI is unfinished.
 
-The built application/test baseline is
+### Current verified application: `f145470`
+
+Application and test source: `f1454704f15d89f9fd6aa74889e984280410e425`.
+
+| Evidence | Confirmed result |
+| --- | --- |
+| [CI 39214092925](https://github.com/88lin/facetmark/actions/runs/39214092925) | **Success**, all 10 jobs. |
+| [Experience 39214088010](https://github.com/88lin/facetmark/actions/runs/39214088010) | **Success**, all 5 jobs. Backend **2050 passed / 1 skipped**; browser **76 passed / 1 skipped**; separate 200k browser case **1 passed**. |
+| [Windows 39214088011](https://github.com/88lin/facetmark/actions/runs/39214088011) | **Success**. Actual installed WebView records **17 actions**, including folder hover/leave, keyboard selection and picker use, with **0 page errors / 0 unexpected writes**. |
+| Source-matched Web evidence | **89 PNGs and 3 MP4 hashes** verified. Main interaction sequence **18 actions**; additional folder sequence **9 actions**, including rapid interruption and reduced-motion changes during selection. No page errors or unexpected writes. |
+| Mobile density regression | At **390×844**, content starts at **263.8px**, list height **528.2px**, **2 fully visible cards** and no horizontal overflow. Reduced internal spacing retains 18px titles, 16px summaries and touch targets. |
+| Folder visual review | Independent scoped pass for the enlarged component and actual **28px**, light/dark, sidebar and picker integration. It is not a full-interface pass or user aesthetic approval. |
+
+Downloaded [Web evidence 12169950396](https://github.com/88lin/facetmark/actions/runs/39214088010/artifacts/12169950396)
+is **22,638,253 bytes**; [installation evidence 12170105241](https://github.com/88lin/facetmark/actions/runs/39214088011/artifacts/12170105241)
+is **492,731 bytes**. [Unsigned installer 12169053783](https://github.com/88lin/facetmark/actions/runs/39214088011/artifacts/12169053783)
+is **287,596,770 bytes**, not downloaded or installed on the user's computer.
+
+[Component preview 39212823994](https://github.com/88lin/facetmark/actions/runs/39212823994)
+uses the identical production glyph at `586f156`; subsequent changes only repair
+test diagnostics and extend installed-app checks. Its **3,712,605-byte** artifact
+contains verified GIF/MP4 and two screenshots, with no page errors. This is a
+component study with synthetic labels, not the whole replacement UI.
+
+The previous built application/test baseline was
 `bed41ee497e52f5b70b6426683640e2532520995`, branch `desktop/facetmark-experience`,
 [PR #44](https://github.com/88lin/facetmark/pull/44). It contains the actual HeroUI
 3.2.6 controls, unified sidebar, bundled Inter/Noto Sans SC, 28/18/16/15/13px type
 hierarchy, GSAP content timelines and retained reader effects. These describe the
 rejected implementation and its regression baseline, not an accepted new direction.
 
-### Application technical evidence
+### Previous application evidence, before the folder continuation
 
 | Evidence | Confirmed result for `bed41ee` |
 | --- | --- |
@@ -36,7 +60,7 @@ The source also retains keyboard/form semantics and reduced-motion portal handli
 corrects short-window gaps/navigation/icon spacing, removes the square Agent model
 wrapper and uses accent `#5c4ddb` (defined selected-surface contrast about 4.84:1).
 These fixes do not resolve the user's rejection of the overall visual direction.
-The mobile density failure above remains a failed requirement.
+The mobile density failure above is resolved in the current `f145470` evidence.
 
 ### A/B/C samples, not a new application UI
 
@@ -58,7 +82,7 @@ rest pose on leave. Stable path hashing keeps tones consistent between both
 locations. The parent button retains its press behavior and geometry. Live
 reduced motion removes travel while preserving the selected state. New cloud
 coverage records intermediate transforms and verifies actual folder filtering and
-picker selection; runtime evidence for this continuation is pending.
+picker selection. Current runtime results and scoped visual review are listed above.
 
 The whole interface redesign remains unresolved. This component is not a claim
 that the rejected application layout has become acceptable.
