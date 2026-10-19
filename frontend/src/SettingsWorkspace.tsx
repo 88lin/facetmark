@@ -47,7 +47,7 @@ export function SettingsWorkspace({ setup, refresh, onChanged, onBack, onSummari
         id === "sync" ? <SyncSettings onChanged={onChanged}/> :
         id === "extension" ? <ExtensionSettings/> : <>
           <UpdateSettings/>
-          <p className="credits">{t("界面组件致谢：", "Interface credits: ")}<a href="https://rareui.com" target="_blank" rel="noreferrer">Rare UI</a></p>
+          <p className="credits">{t("界面组件致谢：", "Interface credits: ")}<a href="https://heroui.com" target="_blank" rel="noreferrer">HeroUI</a> · <a href="https://rareui.com" target="_blank" rel="noreferrer">Rare UI</a></p>
         </>}
     </div>)}
   </div>;

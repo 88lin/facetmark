@@ -1,5 +1,10 @@
 @import "tailwindcss";
-@import "@heroui/styles";
+@import "@heroui/styles/base" layer(base);
+@import "@heroui/styles/themes/default" layer(theme);
+@import "@heroui/styles/utilities";
+@import "@heroui/styles/variants";
+@import "@heroui/styles/components/button.css" layer(components);
+@import "@heroui/styles/components/input.css" layer(components);
 
 @font-face {
   font-family: "Facetmark Inter";
@@ -17,6 +22,7 @@
 }
 
 :root {
+  view-transition-name: root;
   --font-ui: "Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif;
   --type-body: 1rem;
   --type-ui: 0.9375rem;

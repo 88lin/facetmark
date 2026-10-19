@@ -76,3 +76,24 @@ test("portal buttons honor live reduced motion and retain keyboard cancellation"
   await expect(dialog).toHaveCount(0);
   await expect(trigger).toBeFocused();
 });
+
+test("theme reveal remains available with HeroUI base styles", async ({ page }) => {
+  await page.goto("/app");
+  await expect(page.locator("html")).toHaveCSS("view-transition-name", "root");
+  const revealed = await page.evaluate(async () => {
+    const seen: string[] = [];
+    const animate = Element.prototype.animate;
+    Element.prototype.animate = function (frames, options) {
+      if (typeof options === "object" && options.pseudoElement) seen.push(options.pseudoElement);
+      return animate.call(this, frames, options);
+    };
+    try {
+      document.querySelector<HTMLButtonElement>('.app-header button[aria-label="切换主题"]')!.click();
+      const deadline = performance.now() + 2000;
+      while (!seen.length && performance.now() < deadline) await new Promise(requestAnimationFrame);
+      return seen;
+    } finally { Element.prototype.animate = animate; }
+  });
+  expect(revealed).toContain("::view-transition-new(root)");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+});
