@@ -3,10 +3,13 @@
 Facetmark uses cmdk 1.1.1 by Paco Coursey under the MIT license. The complete
 notice is distributed at `licenses/cmdk.txt` in the shared web application.
 
-Facetmark self-hosts the unmodified Manrope variable font from Google Fonts
-(`google/fonts/ofl/manrope/Manrope[wght].ttf`, blob
-`75274da58537d6123b14f2cd0c355ad4681fc2b3`). Copyright 2018 The Manrope Project
-Authors. The SIL Open Font License 1.1 ships at `licenses/Manrope-OFL.txt`.
+Facetmark bundles Inter Variable (Latin) and Noto Sans SC Variable (Chinese)
+as local WOFF2 subsets, retaining variable weights and layout features. Sources:
+https://github.com/google/fonts/tree/main/ofl/inter and
+https://github.com/google/fonts/tree/main/ofl/notosanssc. Both use the SIL Open
+Font License 1.1; their complete copyright and license notices ship at
+`licenses/Inter-OFL.txt` and `licenses/NotoSansSC-OFL.txt`. Subsetting details are
+recorded in `frontend/src/assets/fonts/README.md` in the source repository.
 
 Facetmark uses an adapted ScrollProgress component from [Rare UI](https://rareui.com),
 source: https://github.com/swamimalode07/rare-ui/blob/main/components/ui/scroll-progress.tsx.

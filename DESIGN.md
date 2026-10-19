@@ -1,707 +1,485 @@
 ---
-name: Facetmark collection workbench
-description: A neutral bookmark workbench with system typography, blue actions, readable summaries and explicit folder selection.
+name: Facetmark tonal collection workbench
+description: A Material-inspired collection workspace with a stable navigation rail, separate directory, bundled
+  Latin and Chinese fonts, and visible interaction continuity.
 colors:
-  secondary-ink: '#494d57'
+  secondary-ink: '#585361'
   canvas: '#ffffff'
-  desk: '#f5f5f7'
-  rail: '#edeef1'
-  inset: '#f2f3f5'
-  ink: '#23252b'
-  muted: '#626774'
-  rule: '#dfe1e6'
-  accent: '#1860db'
-  soft: '#eaf1ff'
-  selected: '#e8effd'
-  selected-edge: '#98b8f5'
-  selection-neutral: '#e7e8ed'
+  desk: '#f5f2fa'
+  rail: '#ece6f4'
+  inset: '#f0edf5'
+  ink: '#292431'
+  muted: '#716a7d'
+  rule: '#e4deeb'
+  accent: '#7252ad'
+  soft: '#f0e9fa'
+  selected: '#e6daf6'
+  selected-edge: '#b9a4d5'
+  selection-neutral: '#e6daf6'
   on-accent: '#fff'
-  danger: '#ad3448'
-  overlay: '#17192355'
-  secondary-ink-dark: '#c7c9d0'
-  desk-dark: '#141518'
-  canvas-dark: '#212226'
-  rail-dark: '#1b1c20'
-  inset-dark: '#2a2c32'
-  ink-dark: '#f0f0f3'
-  muted-dark: '#a7abb6'
-  rule-dark: '#383b44'
-  accent-dark: '#8bb5ff'
-  soft-dark: '#27344b'
-  selected-dark: '#2b3a53'
-  selected-edge-dark: '#577eb7'
-  selection-neutral-dark: '#33353d'
-  on-accent-dark: '#102448'
+  danger: '#b13e52'
+  overlay: '#24182d66'
+  secondary-ink-dark: '#cec6d9'
+  desk-dark: '#1b1821'
+  canvas-dark: '#25212c'
+  rail-dark: '#201b29'
+  inset-dark: '#312b3b'
+  ink-dark: '#f0eaf7'
+  muted-dark: '#b3a9c0'
+  rule-dark: '#3c3448'
+  accent-dark: '#cfb4ff'
+  soft-dark: '#382c4d'
+  selected-dark: '#483463'
+  selected-edge-dark: '#82649f'
+  selection-neutral-dark: '#483463'
+  on-accent-dark: '#302047'
   danger-dark: '#f7a0ae'
   overlay-dark: '#06070a99'
 typography:
-  collection-heading:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 1.375rem
-    lineHeight: 1.35
-    fontWeight: 600
-    letterSpacing: -0.025em
-  page-title:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 1.75rem
-    lineHeight: 1.5
-    fontWeight: 700
-    letterSpacing: -0.02em
-  page-title-mobile:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
+  workspace-title:
+    fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
     fontSize: 1.5rem
+    fontWeight: 600
+    lineHeight: 1.4
+    letterSpacing: -0.025em
+  section-title:
+    fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
+    fontSize: 1.125rem
+    fontWeight: 600
     lineHeight: 1.5
-    fontWeight: 700
-    letterSpacing: -0.02em
-  support-copy:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
+  collection-title:
+    fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
+    fontSize: 1rem
+    fontWeight: 600
+    lineHeight: 1.5
+    letterSpacing: -0.015em
+  collection-summary:
+    fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
     fontSize: 0.9375rem
-    lineHeight: 1.65
-  category-parent:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
+    fontWeight: 400
+    lineHeight: 1.7
+  body:
+    fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
+    fontSize: 1rem
+    fontWeight: 400
+    lineHeight: 1.6
+  button:
+    fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
+    fontSize: 0.875rem
+    fontWeight: 500
+    lineHeight: 1.5
+  field-label:
+    fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
+    fontSize: 0.875rem
+    fontWeight: 600
+    lineHeight: 1.6
+  directory:
+    fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
+    fontSize: 0.875rem
+    fontWeight: 400
+    lineHeight: 1.45
+  directory-selected:
+    fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
+    fontSize: 0.875rem
+    fontWeight: 600
+    lineHeight: 1.45
+  navigation:
+    fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
+    fontSize: 0.75rem
+    fontWeight: 500
+    lineHeight: 1.35
+  meta:
+    fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
+    fontSize: 0.8125rem
+    fontWeight: 400
+    lineHeight: 1.6
+  caption:
+    fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
     fontSize: 0.75rem
     fontWeight: 400
     lineHeight: 1.6
   article-title:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
+    fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
     fontSize: 36px
+    fontWeight: 600
     lineHeight: 1.4
-    fontWeight: 600
     letterSpacing: -0.025em
-  article-title-focus:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 38px
-    lineHeight: 1.4
-    fontWeight: 600
-    letterSpacing: -0.025em
-  article-section:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 1.375rem
-    lineHeight: 1.65
-    fontWeight: 700
-    letterSpacing: -0.02em
-  collection-title:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 1rem
-    lineHeight: 1.5
-    fontWeight: 600
-  index-title:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 1rem
-    lineHeight: 1.5
-    fontWeight: 600
-  collection-summary:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 0.9375rem
-    lineHeight: 1.75
-  index-summary:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 0.9375rem
-    lineHeight: 1.75
-  body:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 1rem
-    lineHeight: 1.6
   reading:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
+    fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
     fontSize: 1.125rem
+    fontWeight: 400
     lineHeight: 1.85
-  button:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 0.875rem
-    lineHeight: 1.5
-    fontWeight: 600
-  search:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 1rem
-    lineHeight: 1.6
-  tab:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 0.875rem
-    lineHeight: 1.6
-    fontWeight: 600
-  label:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 0.875rem
-    lineHeight: 1.6
-    fontWeight: 600
-  caption:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
+  navigation-active:
+    fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
     fontSize: 0.75rem
-    lineHeight: 1.6
-  diagnostic:
-    fontFamily: ui-monospace, Consolas, monospace
-    fontSize: 11px
-    lineHeight: 1.6
-  workspace-heading:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 1.375rem
     fontWeight: 600
     lineHeight: 1.35
-    letterSpacing: -0.025em
-  index-search:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 1rem
-    lineHeight: 1.6
-  outline:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 12px
-    fontWeight: 500
-    lineHeight: 1.65
-  meta:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 0.8125rem
-    lineHeight: 1.6
-  list-summary:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 0.9375rem
-    lineHeight: 1.75
-  article-subsection:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 1.25rem
-    fontWeight: 700
-    lineHeight: 1.5
-  category-label:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 0.875rem
-    fontWeight: 500
-    lineHeight: 1.5
-  category-selected:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 0.875rem
-    fontWeight: 600
-    lineHeight: 1.5
-  form-input:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 1rem
-    fontWeight: 400
-    lineHeight: 1.5
-  navigation-active:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 0.875rem
-    fontWeight: 600
-    lineHeight: 1.6
-  reader-return:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 13px
-    lineHeight: 1.6
-  folder-control:
-    fontFamily: '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei
-      UI", "Microsoft YaHei", sans-serif'
-    fontSize: 0.875rem
-    fontWeight: 400
-    lineHeight: 1.6
 rounded:
-  micro: 4px
-  hint: 7px
-  field: 10px
-  brand: 11px
-  panel: 12px
-  popover: 14px
-  entry: 16px
-  sheet: 20px
-  control: 12px
+  small: 8px
+  status: 9px
+  control: 10px
+  search: 14px
+  card: 16px
+  navigation: 18px
+  reader: 20px
+  sheet: 24px
   pill: 999px
   circle: 50%
 spacing:
-  micro: 4px
-  tight: 6px
   compact: 8px
+  control: 10px
   small: 12px
-  medium: 16px
+  grid-gap: 14px
+  card-padding: 18px
   content: 20px
-  card-padding: 14px
   section: 24px
-  gutter: 28px
-  large: 32px
-  frame: 36px
-  reader-top: 40px
-  reader-gutter: 46px
+  dialog-padding: 28px
+  page-gutter: 36px
+  reader-gutter: 44px
 components:
   button-primary:
     backgroundColor: '{colors.accent}'
     textColor: '{colors.on-accent}'
     typography: '{typography.button}'
-    rounded: '{rounded.pill}'
+    rounded: '{rounded.control}'
     padding: 10px 20px
     height: 40px
   button-secondary:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.ink}'
     typography: '{typography.button}'
-    rounded: '{rounded.pill}'
+    rounded: '{rounded.control}'
     padding: 9px 18px
     height: 40px
   button-text:
     textColor: '{colors.accent}'
-    typography: '{typography.label}'
+    typography: '{typography.button}'
+    rounded: '{rounded.small}'
     padding: 5px 10px
-    rounded: '{rounded.pill}'
     height: 32px
   button-icon:
     textColor: '{colors.ink}'
     rounded: '{rounded.circle}'
     width: 36px
     height: 36px
-  reader-back:
-    textColor: '{colors.muted}'
-    typography: '{typography.reader-return}'
-    rounded: '{rounded.pill}'
-    padding: 6px 12px
-    height: 40px
+  navigation-item:
+    textColor: '{colors.secondary-ink}'
+    typography: '{typography.navigation}'
+    rounded: '{rounded.navigation}'
+    padding: 10px 4px
+    height: 66px
+  navigation-item-active:
+    backgroundColor: '{colors.selected}'
+    textColor: '{colors.accent}'
+    typography: '{typography.navigation-active}'
+    rounded: '{rounded.navigation}'
+    padding: 10px 4px
+    height: 66px
   search-field:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.ink}'
-    typography: '{typography.search}'
-    rounded: '{rounded.pill}'
-    padding: 6px 14px
+    typography: '{typography.body}'
+    rounded: '{rounded.search}'
+    padding: 8px 14px
     height: 44px
-  header-navigation-active:
-    textColor: '{colors.on-accent}'
-    typography: '{typography.navigation-active}'
-    padding: 8px 17px
-    backgroundColor: '{colors.accent}'
-    rounded: '{rounded.pill}'
+  directory-option-selected:
+    backgroundColor: '{colors.selected}'
+    textColor: '{colors.accent}'
+    typography: '{typography.directory-selected}'
+    rounded: '{rounded.control}'
+    padding: 9px 10px
+    height: 40px
   filter-chip:
     backgroundColor: '{colors.soft}'
     textColor: '{colors.accent}'
-    typography: '{typography.meta}'
-    rounded: '{rounded.pill}'
-    padding: 5px 12px
-    height: 32px
+    typography: '{typography.caption}'
+    rounded: '{rounded.small}'
+    padding: 4px 10px
+    height: 30px
   collection-entry:
+    backgroundColor: '{colors.canvas}'
     textColor: '{colors.ink}'
     typography: '{typography.collection-title}'
-    padding: 14px
-    backgroundColor: '{colors.canvas}'
-    rounded: '{rounded.entry}'
-  result-selected:
-    backgroundColor: '{colors.canvas}'
-    textColor: '{colors.ink}'
-    rounded: '{rounded.entry}'
-    padding: 16px 14px
-    typography: '{typography.index-title}'
-  reading-sheet:
-    backgroundColor: '{colors.canvas}'
-    textColor: '{colors.ink}'
-    rounded: '{rounded.sheet}'
-  preview-tabs:
-    backgroundColor: '{colors.canvas}'
-    textColor: '{colors.muted}'
-    typography: '{typography.tab}'
-    padding: 0 18px
-    height: 48px
-  preview-header:
-    textColor: '{colors.muted}'
-    padding: 0 20px
-    height: 56px
-  support-surface:
-    backgroundColor: '{colors.canvas}'
-    textColor: '{colors.ink}'
-    rounded: '{rounded.sheet}'
-    padding: 24px 36px 40px
-    width: min(1040px, 100%)
-  settings-tab:
-    textColor: '{colors.secondary-ink}'
-    typography: '{typography.tab}'
-    rounded: '{rounded.pill}'
-    padding: 10px 16px
-    height: 44px
+    rounded: '{rounded.card}'
+    padding: 18px
   settings-tab-active:
-    backgroundColor: '{colors.selected}'
+    backgroundColor: '{colors.canvas}'
     textColor: '{colors.accent}'
-    typography: '{typography.tab}'
-    rounded: '{rounded.pill}'
-    padding: 10px 16px
-    height: 44px
-  apply-panel:
-    backgroundColor: '{colors.canvas}'
-    textColor: '{colors.ink}'
-    rounded: '{rounded.panel}'
-    padding: 24px
-  model-field:
-    backgroundColor: '{colors.canvas}'
-    textColor: '{colors.ink}'
+    typography: '{typography.button}'
     rounded: '{rounded.control}'
-    padding: 9px 12px
-    height: 44px
-    typography: '{typography.form-input}'
-  reader-tab-active:
-    backgroundColor: '{colors.soft}'
-    textColor: '{colors.accent}'
-    typography: '{typography.tab}'
-    rounded: '{rounded.pill}'
-    padding: 0 13px
-    height: 36px
-  model-channels:
-    textColor: '{colors.ink}'
-    typography: '{typography.body}'
-  search-field-index:
-    backgroundColor: '{colors.canvas}'
-    textColor: '{colors.ink}'
-    typography: '{typography.index-search}'
-    rounded: '{rounded.pill}'
-    padding: 7px 18px
-    height: 44px
-  category-option-active:
-    backgroundColor: '{colors.selection-neutral}'
-    textColor: '{colors.ink}'
-    typography: '{typography.category-selected}'
-    rounded: 10px
-    padding: 9px 10px
-    height: 40px
-  query-suggestion-active:
-    backgroundColor: '{colors.soft}'
-    textColor: '{colors.accent}'
-    rounded: '{rounded.field}'
-    padding: 10px
-    height: 58px
-  reader-outline:
-    textColor: '{colors.muted}'
-    typography: '{typography.outline}'
-    width: 170px
-    padding: 3px 7px 7px 3px
-  reader-outline-link:
-    textColor: '{colors.muted}'
-    typography: '{typography.outline}'
-    rounded: '{rounded.field}'
-    padding: 8px 8px 8px 32px
-    height: 36px
-  reading-position-surface:
-    textColor: '{colors.secondary-ink}'
-    rounded: '{rounded.pill}'
-    padding: 8px 12px 10px 18px
-    height: 56px
+    padding: 10px 16px
+    height: 42px
   folder-picker-trigger:
     backgroundColor: '{colors.inset}'
     textColor: '{colors.ink}'
-    typography: '{typography.folder-control}'
+    typography: '{typography.directory}'
     rounded: '{rounded.control}'
     padding: 11px 14px
     height: 48px
   folder-picker-option-selected:
     backgroundColor: '{colors.selection-neutral}'
     textColor: '{colors.ink}'
-    typography: '{typography.category-selected}'
-    rounded: 10px
+    typography: '{typography.directory-selected}'
+    rounded: '{rounded.control}'
     padding: 10px 12px
     height: 48px
+  model-field:
+    backgroundColor: '{colors.canvas}'
+    textColor: '{colors.ink}'
+    typography: '{typography.body}'
+    rounded: '{rounded.control}'
+    padding: 9px 12px
+    height: 44px
+  support-surface:
+    backgroundColor: '{colors.canvas}'
+    textColor: '{colors.ink}'
+    rounded: '{rounded.sheet}'
+    padding: 28px 36px 36px
+    width: min(1080px, 100%)
+  library-dialog:
+    backgroundColor: '{colors.canvas}'
+    textColor: '{colors.ink}'
+    rounded: '{rounded.sheet}'
+    padding: 28px
+    width: min(560px, calc(100vw - 32px))
+  reading-sheet:
+    backgroundColor: '{colors.canvas}'
+    textColor: '{colors.ink}'
+    rounded: '{rounded.reader}'
+  reading-position-surface:
+    textColor: '{colors.secondary-ink}'
+    rounded: '{rounded.pill}'
+    padding: 8px 12px 10px 18px
+    height: 56px
 ---
 
-# Design System: Facetmark collection workbench
+# Design System: Facetmark tonal collection workbench
 
 ## Overview
 
-**Creative North Star: "Collection workbench — Operate"**
+**Creative North Star: "Tonal collection workbench"**
 
-Facetmark is a compact, readable workspace for returning to saved pages. Neutral light and dark
-surfaces, charcoal text and blue action accents keep content and controls clear.
-The layered mark, system typography and Chinese fallbacks preserve continuity
-across desktop and Web.
+Facetmark uses a stable application rail, a separate collection directory and a
+flexible content area. Pale lavender surfaces, white content cards, deep plum text
+and violet selection create a Material-inspired hierarchy. Bundled Inter and Noto
+Sans SC keep Latin and Chinese text consistent across desktop and Web.
 
-The system preserves capsule navigation, rounded support surfaces, nearby labels
-and feedback, and bounded temporary overlays. Collection cards retain their content
-grouping; preview retains its reading measure. Apply the current neutral palette and shared typography consistently across
-collection, settings and reader surfaces.
+The 2026-10-19 replacement changes composition, typography, component shape and
+interaction feedback together. It supersedes the rejected 10/18 blue-grey system.
+Navigation, classification, settings tabs, content changes and overlays now show
+visible continuity; original links, processing scope and saved task state retain
+their independent semantics. The reference projects informed the implementation,
+not a user-approved pixel comp.
 
 **Key Characteristics:**
 
-- Compact semibold collection titles and readable descriptions in both card and list views.
-- Capsule actions and navigation, circular icon actions and soft surface depth.
-- Rounded full-width support surfaces with adjacent fields, actions and feedback.
-- Blue action and focus accents; neutral folder selection with an explicit blue check.
-- Content-driven height, responsive fields and independent interaction targets.
-- State and recovery expressed with truthful text as well as color.
+- Stable application navigation and a separate searchable collection directory.
+- Tonal surfaces with violet selected state and readable plum text.
+- Local Latin and Chinese variable fonts; compact titles and visible summaries.
+- Small rounded controls, rounded cards and larger modal surfaces.
+- Immediate actions with bounded press, ink, selection and content feedback.
+- Live reduced-motion handling, keyboard access and truthful application state.
 
-On 2026-10-18 the user retained the correction restoring rounded controls, soft
-depth and visual effects, then explicitly rejected Manrope and the lake-blue
-palette. The latest direction uses GithubStarsManager and FlClash as references
-for compact system typography, neutral surfaces and legible selection. These
-current instructions supersede the earlier white/lake-blue commitment.
-
-This document and `.impeccable/design.json` describe the current working-tree
-source. The sidecar contains source-derived specimens, not verified screenshots.
-No build or browser render of these changes has run; GitHub Actions verification
-and visual review are pending. Reference project images are reference material,
-not evidence of the current Facetmark result.
-
-At historical source `4c6383a`, an independent review returned **ship** after inspecting
-17 named Web/installed captures and resolving all eight original findings. The
-verdict covers the reviewed improvement scope, not user aesthetic approval. Current
-workflow composition belongs in the [frontend surface brief](.impeccable/surfaces/frontend.md);
-source-matched verification and the generic-reviewer substitution are recorded in
-[desktop validation](docs/desktop-validation.md). Historical screenshots and review
-passes apply only to their recorded revisions.
+This source-derived system was recorded against `ac90d24805e346ba974a197da72a59cdac11231f`.
+Cloud checks and a fresh visual/motion review are pending for the replacement.
+The sidecar contains source specimens, not screenshots or approval evidence.
+See [the surface brief](.impeccable/surfaces/frontend.md) for acceptance scope and
+[PR #44 checks](https://github.com/88lin/facetmark/pull/44/checks) for run status.
 
 ## Colors
 
-Frontmatter is normative. Base names map to semantic runtime roles; each
-`-dark` entry provides the corresponding dark-theme role. Sidecar tonal ramps
-are preview swatches, not additional runtime tokens.
+The frontmatter is normative; base names are light-theme roles and `-dark` names
+are their dark-theme counterparts. Sidecar ramps are generated preview swatches,
+not extra runtime tokens.
 
 ### Primary
 
-- **Action Blue** (`accent`): explicit actions, links, active navigation, focus and reading position.
-- **Soft Blue** (`soft`): quiet hover, chips, notices and reader-tab state.
-- **Selected Blue / Selected Edge** (`selected`, `selected-edge`): selected results,
-  model/status state and selected/hover boundaries. Collection cards retain a
-  canvas fill with a selected edge.
-- **On Action Blue** (`on-accent`): text and mark strokes on filled primary actions.
+- **Violet Action** (`accent`, `on-accent`): explicit actions, links, active navigation
+  and focus; dark mode uses a brighter violet with a dark on-accent foreground.
+- **Soft Violet** (`soft`): hover and quiet supporting emphasis.
+- **Selected Violet** (`selected`, `selected-edge`): moving selection surfaces,
+  directory state and boundaries. The compatibility name `selection-neutral` maps
+  to this same tonal selection family; it no longer describes a neutral-grey fill.
 
 ### Neutral
 
-- **Pure White** (`canvas`): cards, header, fields, reader and supporting content.
-- **Neutral Workspace** (`desk`): the surrounding workspace.
-- **Neutral Rail** (`rail`): secondary navigation surfaces.
-- **Neutral Selection** (`selection-neutral`): folder/directory selected rows with
-  semibold ink and a blue check.
-- **Neutral Inset** (`inset`): subdued secondary surfaces, diagnostics and hover state.
-- **Charcoal Ink** (`ink`): titles, input and main content.
-- **Secondary Ink** (`secondary-ink`): readable descriptions and explanations.
-- **Muted Ink** (`muted`): metadata, placeholder text and secondary controls.
-- **Neutral Rule / Navigation Scrim** (`rule`, `overlay`): thin divisions and modal backdrop.
+- **Canvas / Lavender Workspace / Tonal Rail** (`canvas`, `desk`, `rail`): content,
+  surrounding workspace and navigation/group surfaces respectively.
+- **Inset** (`inset`): secondary fields and recessed content.
+- **Plum Ink / Secondary Ink / Muted Ink** (`ink`, `secondary-ink`, `muted`): title,
+  summary and metadata hierarchy. Dark counterparts retain the same roles.
+- **Rule / Scrim** (`rule`, `overlay`): boundaries and modal separation.
 
-Error Red (`danger`) accompanies failure and destructive-action text. Dark mode
-retains the same hierarchy with brighter blue accents on charcoal surfaces.
+`danger` remains reserved for failures and destructive operations.
 
-**The Explicit Selection Rule.** Use blue for actions, focus and selection markers.
-Folder selection combines a neutral fill, semibold text and a blue check; ordinary
-content stays in ink. Reserve danger color for failures and destructive actions.
+**The Tonal Selection Rule.** Keep ordinary content on its canvas. Selection is
+expressed through a moving tonal surface, an explicit mark or an accent boundary;
+text and semantics must identify the same selected item.
 
 ## Typography
 
-Use Segoe UI Variable / Segoe UI, platform system faces, then the explicit Chinese
-fallbacks recorded in the frontmatter. The interface does not load Manrope.
-`font-synthesis: weight` allows emphasis when a local face lacks the exact weight.
-Preserve the root at `font-size: 100%`: global body and principal text inputs remain
-1rem (16px at the default root); collection descriptions use their separate 15px
-role. Diagnostics alone use monospace.
+Use the bundled `Facetmark Inter` and `Facetmark CJK` families, backed by Inter and
+Noto Sans SC variable WOFF2 files. Segoe UI and Microsoft YaHei UI are fallback
+coverage. The font files use `font-display: swap`, support weights 100–900 and
+require no external font service. Sources, subsets and OFL notices are recorded in
+[the font README](frontend/src/assets/fonts/README.md).
 
-- **Collection headings:** compact `collection-heading` and `workspace-heading` roles.
-- **Card/list titles:** the same `collection-title` role in both views
-  (1rem / 600; 16px at a 16px root).
-- **Descriptions:** `collection-summary` / `list-summary` use 0.9375rem
-  (15px at the default root) with desktop line-height 1.75. At widths up to
-  720px, collection descriptions use line-height 1.6 and three collapsed lines.
-  Expanded content remains content-driven.
-- **Support text:** `support-copy` gives purpose and operation explanations a
-  readable scale; model section headings retain their existing 18px / 700 role.
-- **Support headings:** `page-title` changes to `page-title-mobile` at 720px.
-- **Labels and actions:** `label`, `button` and `tab` preserve weight 600;
-  inputs use the body-sized `form-input` role at weight 400.
-- **Metadata:** `meta` covers source/date, with smaller `caption` and
-  `category-parent` roles for provenance and hierarchy.
-- **Optional reader:** retain article-title, section and reading roles and the
-  bounded article measure. Chinese headings use zero tracking where specified.
+- **Workspace titles:** the 24px/600 title role; compact desktop uses 22px and
+  mobile collection headings use 20px. Support-page headings remain 24px.
+- **Collection titles:** 16px/600 in both card and list views, with two visible
+  lines; Chinese titles remove negative tracking.
+- **Summaries:** 15px/400 with 1.7 leading and three collapsed lines. At widths up
+  to 719px, use 1.65 leading and two lines; measured expansion reveals the rest.
+- **Controls:** 14px/500 for main actions; labels use 600 when needed. Principal
+  inputs and global body retain 16px. Navigation labels are 12px below their icons.
+- **Metadata:** 13px and 12px roles; small directory counts and parent paths have
+  local 11px treatments. Counts use tabular numerals where observed.
+- **Reader:** article titles use 36px/600, focused titles 38px; body prose uses
+  18px with 1.85 leading, reducing to 17px on mobile. Narrow article titles use 27px.
 
-**The Shared Reading Scale Rule.** Switching card/list view must preserve title
-size and weight. Keep descriptions visible on mobile and use actual clipping to
-decide when expansion is needed.
+**The Shared Collection Scale Rule.** Card/list switching preserves the title and
+summary hierarchy. Expansion depends on measured clipping, not a guessed character
+count; smaller metadata must not replace the visible summary.
 
 ## Layout
 
-The app uses a compact header and a content-led collection. The desktop directory
-occupies 232px from 960px; narrower windows use a temporary filter drawer.
-Collection cards retain 14px internal padding, 12px gaps and content-driven height.
-Keep action groups distinct from result status, sorting and display preferences.
-Exact current composition and density acceptance targets belong in the surface brief.
+The desktop rail is 96px wide. The collection directory is 13.5rem beside the
+results, with a 24px gutter. An 80px workspace row holds the title and 44px search.
+The next rows contain maintenance actions, card/list switching, summary status,
+sorting and display preferences. Filters remain a separate removable-chip row.
 
-Support pages use `min(1040px, 100%)`, a 20px top margin and
-`24px 36px 40px` padding. Their surface uses 20px corners and the sheet shadow. At widths up to
-720px, use an 8px top margin and `18px 14px 32px` padding.
+At widths 960–1300px, the rail becomes 84px, the directory 200px and the gutter
+18px. At 1600px and above, directory/index widths become 232px/332px. Below 960px,
+the rail becomes a 56px horizontal header and the directory moves to the existing
+focus-managed drawer. Below 720px, title and search stack, header utilities move
+out of the first row, and principal actions retain at least 44px height.
 
-AI connections use full-width stacked sections. Essential fields use two equal
-columns with 14px row and 20px column gaps; at 720px and below they use one column
-with 12px gaps. Model choice and Agent detection span the grid. Place purpose/status
-before fields, test/save and full-row feedback immediately after them, and optional
-details afterward. Section separators and spacing supply hierarchy.
+Cards use an auto-fill grid with a 288px minimum and 14px gaps; compact desktop
+uses 270px and wide desktop 310px. List view uses one column with 10px gaps and a
+210px metadata/action area. Mobile uses a single content column. Default card
+padding is 18px; list padding is 16px 20px; mobile cards use 14px. Card heights follow
+content. Results and the complete directory have independent bounded scrollers.
 
-Settings tabs form a capsule group with soft-blue selected fill and scroll when
-needed. Tasks uses a current-operation section followed
-by new-work shortcuts; shortcuts become one column on mobile. Action rows wrap
-without concealing their feedback or changing their target scope.
+Support pages use a canvas surface up to 1080px wide with a 24px top margin and
+28px 36px 36px padding. At 719px and below they use an 8px top margin, 18px corners
+and 18px 14px 28px padding. Connection fields retain two columns until their
+responsive breakpoint, then one; model choice and feedback span the section.
 
-The optional desktop preview retains a separate 56px return/action header and 48px
-tab row. Narrow preview retains its own return/action row and modal focus handling.
-Persistent navigation and progress stay outside the article scroller. The reading
-position capsule floats 16px above the reader edge (12px or the safe-area inset on
-mobile); the scroller reserves 96px below the article so its final text stays clear.
+Opening a desktop preview replaces the directory with a compact index beside the
+reader. Its header is 56px and tabs 48px. Focus mode expands the reader inside the
+workspace while retaining application navigation. Narrow preview is a modal;
+mobile preview fills the viewport. The floating reading control reserves clearance
+below the article. Its outline is available beside the wide focused reader only.
 
 ## Elevation & Depth
 
-Collection cards have a soft resting shadow over the neutral workspace. Hover
-retains the canvas fill and adds a selected edge plus sheet shadow; selection
-uses a selected-edge inset and the card shadow. Support pages and the reading sheet share soft elevation and 20px corners.
-Menus and drawers retain their existing shadows. Fields use a fine border and
-visible focus feedback. Preserve these effects when improving workflow density.
+Tonal separation provides the resting hierarchy. Cards carry the small card shadow,
+and hover strengthens the edge and soft elevation. Selected and batch-selected
+cards keep canvas fill with an accent border and inset ring. Support pages are flat
+canvas surfaces; reader, menus and dialogs use the sheet shadow. The reading capsule
+alone retains its bounded glass treatment with an opaque fallback. Exact shadows,
+material values and animation parameters live in the sidecar.
+
+**The Stable Target Rule.** Feedback may animate a paint layer, indicator or content
+container, but focus, selection and data changes never wait for animation. Closing
+overlays become inert and noninteractive while their visual exit completes.
 
 ## Shapes
 
-Primary, secondary and text actions, main search, navigation and reader tabs use
-`rounded.pill` (999px). Model fields and other compact controls use
-`rounded.control` (12px). Icon actions retain circles. Collection cards and list
-entries use `rounded.entry` (16px); support surfaces and the reader use
-`rounded.sheet` (20px). Brand/detail exceptions remain scoped to their components.
-
-Model picker and Display popovers retain a 10px floating container; picker options
-use small 6px corners. Keep field and capsule tokens separate so form fields and
-large notices do not acquire oversized capsule ends.
+The shared control radius is 10px, with 8–9px smaller tabs/chips/status controls,
+14px search fields and menus, 16px cards, 18px rail targets, 24px support/dialog
+surfaces and a 20px reader. Folder-picker panels use 16px corners. Circular icon
+actions remain component-specific. The 999px pill token remains for the reading
+capsule and reader tabs; it is not the default shape for all application controls.
 
 ## Components
 
-### Buttons and icon actions
+### Navigation and selection groups
 
-Primary actions use Action Blue and on-accent text. Secondary actions use a canvas
-surface and fine border; text actions remain quiet until hover. Shared controls
-use their frontmatter radius and typography, with visible focus and disabled state.
-Routine desktop actions are at least 40px; main mobile actions are at least 44px.
-Circular icon actions use accessible names and visible pressed state.
+Rail items stack a 22px icon and 12px label inside a 66px target. Low-height desktop
+windows compact the targets to 54px. Selected items use a shared Motion selection
+surface. The same pattern connects directory types/options, summary status,
+card/list controls and settings tabs, with separate layout groups per control set.
+The semantic pressed/current/selected state belongs to the actual control.
 
-Test connection and Test and save are separate actions. Their feedback occupies a
-full row nearby; a save failure must remain visibly unsaved. Advanced options follow
-the main actions. A loading spinner identifies actual work only.
+### Buttons, chips and search
 
-### Navigation and status tabs
+Primary and secondary buttons use 10px corners and 14px/500 labels. Collection
+maintenance controls use 38px height with 8px 12px padding; mobile uses 44px.
+Text actions and filter chips use smaller corners. Search uses a 44px white field,
+14px corners and a fine focus boundary. Category search remains local to the
+directory. Query suggestions keep loading, retry, no-match and keyboard behavior.
 
-Header navigation is a capsule group with an active Action Blue fill, on-accent
-text and weight 600. Inactive hover uses Soft Blue. Settings tabs use rounded
-selected fill, at least 44px targets and readable labels. Hidden linked
-panels remain mounted so switching categories preserves drafts.
+CSS press feedback scales ordinary buttons to .965 and directory options to .98;
+a noninteractive ink layer acknowledges primary-pointer and Enter/Space actions.
+Disabled or inert targets do not produce ink. Focus rings remain visible.
 
-Collection status uses rounded selected fill and hover feedback. Status counts,
-sort and Display remain visible without expanding the generation controls.
-Temporary menus close on Escape, outside interaction or focus leaving, and
-Escape returns focus to the trigger.
+### Collection cards and list rows
 
-### Search, inputs and model choice
+Source identity, title, description, folder and actions form a stable sequence.
+Original links, checkboxes, direct editing, summary actions and Preview remain
+independent. Selected cards use an edge/ring rather than a full tinted body.
+Motion owns card position reflow and bounded entry; CSS owns hover and border state.
 
-Search retains its body-sized text and 44px field. Labels are explicit, fields use
-a fine border, and focus has an accent boundary/outline. AI model inputs are
-at least 44px, with `9px 12px` padding, white surface and the shared control radius.
+### Folder and model pickers
 
-The model picker is a first-class essential field. The Agent trigger shows the selected
-model or default; the API variant combines an editable input and catalog arrow
-in one field. The menu combines search, bounded scrolling options,
-selected state and manual entry. Model IDs can wrap within options; the trigger
-may ellipsize. A visible refresh action and adjacent error/source note explain
-loading, cached/configured catalogs, aliases, empty results and failures.
+Folder triggers are 48px high; their 16px panel contains search and a bounded
+option list. Options use 10px corners, tonal selection, a check and an inset edge;
+leaf names lead with parent paths beneath. The complete directory loads in 50-item
+pages. Typing changes only the search draft; choosing an exact folder commits the
+field. Unfiled and new folders are explicit choices. New paths are created on save.
+Arrow keys, Home/End, Escape, native button activation and focus return remain.
 
-Keyboard search supports arrows, Enter and Escape with focus return. Selection
-does not imply authorization: the nearby connection test establishes whether the
-chosen model can be called. Keep catalog, test and save states distinct.
+Model choice remains next to essential configuration, test/save and actionable
+feedback. Preserve Agent defaults, catalog provenance, manual entry, refresh,
+per-Agent drafts and independent embedding state. A catalog does not prove access;
+a passed test does not prove a failed save persisted. Both picker menus use the
+shared overlay entrance/exit treatment, and closing content becomes inert.
 
-### Chips and category directory
+### Dialogs, settings and task recovery
 
-Active filter chips name the dimension and value and expose individual removal.
-Category names use ink, with semibold selected type, a neutral fill and a blue check;
-parent paths, counts and full accessible labels preserve hierarchy. Search,
-native vertical scrolling and explicit load-more controls keep large directories
-reachable with a mouse and keyboard.
+Library dialogs use a 24px surface, 28px padding and width bounded to 560px. Settings
+use rounded tabs with a moving selected surface and an animated incoming panel;
+hidden panels remain mounted to preserve drafts. Scope review and consent remain
+in the processing dialog. Task recovery retains its original snapshot and completed
+entries; displayed scope and state must match the operation. Feedback stays next
+to its initiating control.
 
+### Reading and application motion
 
-### Folder selection and organization
+The reader retains the Rare UI-derived glass position capsule, native chapter
+selector, animated chapter label and measured paper-plane outline. Progress and
+headings derive from saved article content. GSAP continues to own reader focus
+translation and tab-marker geometry. Motion owns reader presence, progress and
+outline springs. These effects remain part of the reader rather than the sole
+interaction feedback in the application.
 
-Add, edit and move dialogs use an explicit folder picker with a 48px trigger,
-12px field corners and a 16px expanded panel. Its bounded option list uses 10px
-corners, 48px rows (52px on mobile), neutral selected fill and a blue check.
-Leaf names lead; full parent paths and counts retain hierarchy.
-
-The picker reads the full paginated directory in 50-item pages. Search is a
-draft: typing never changes the saved folder or submits the surrounding form.
-An exact folder click or keyboard activation commits the draft selection.
-Unfiled and a new folder are explicit choices; a new path is created only when
-the bookmark is saved. Keep loading, no-match and retry feedback local. Escape
-and selection return focus; arrow keys and Home/End move among option buttons.
-The category directory exposes Organize folders and tags directly beside its heading.
-
-### Collection entries and action groups
-
-Cards and list rows retain source, title, description and metadata hierarchy.
-Original links, checkboxes, edit, summary and Preview controls are independent.
-Description expansion follows actual clipping, resets when content changes and
-does not hide mobile excerpts. Empty and failed content have specific next steps.
-
-Add / Manage / Summarize form the maintenance/action row. Display only changes
-visible content; processing scope, eligible count, reprocessing and consent belong
-to the processing dialog. Cross-page summary selection is explicitly named.
-
-### Support sections, tasks and optional preview
-
-Full-width model sections use purpose/status beside their own essential fields
-and feedback. Optional embedding configuration remains separate from summaries.
-Plain current-task sections show scope, truthful state, progress, errors and recovery
-before new-work shortcuts. A saved task resumes its original snapshot; retry wording
-must not suggest broader processing than the action performs.
-
-Preview retains its return control, independent tabs, measured position and real-heading
-outline. Only actual headings produce chapter links and only actual saved-body scroll
-extent produces a progress measure. Import retains an explicit drop target, file
-validation, same-file retry and a direct return after success.
-
-The reading-position capsule restores the Rare UI glass treatment with bounded
-16px backdrop blur, an opaque fallback and a short entrance. Its native chapter
-selector retains keyboard access beneath a visible animated label. The focused
-reader's paper plane follows measured heading positions, including after resize,
-and remains decorative beside the semantic current-section buttons.
-
-CSS owns ordinary state changes and a 220ms collection entrance with delays capped
-at 126ms. GSAP owns the existing reader tab marker and focus translation; Motion
-owns the modal reader, floating capsule, chapter label, measured progress and paper
-plane. Do not assign the same animated property to multiple engines. Reduced motion
-removes travel and stagger while preserving all controls and selected states.
+`InteractionMotion.tsx` owns shared selection surfaces and WAAPI content entry
+for navigation, classification and loaded result contexts. Theme changes use an
+interruptible circular View Transition from the clicked control, with immediate
+fallback when unsupported or reduced motion is active. `OverlayMotion` owns menu,
+dialog and scrim presence; native details menus retain their CSS path. Live reduced
+motion disables ink, travel and reflow while preserving state and all controls.
+Detailed ownership and timings are in [UI motion tools](docs/ui-motion-tools.md).
 
 ## Do's and Don'ts
 
 ### Do:
 
-- Do preserve readable card/list titles, visible descriptions and local Chinese weight differences.
-- Do preserve capsule actions/navigation, rounded cards and support surfaces, and soft shadows.
-- Do keep form fields at 12px and support settings in full-width sections.
-- Do distinguish folder search drafts from explicit selection and keep the complete directory reachable.
-- Do place model choice, test/save and actionable feedback together.
-- Do distinguish model discovery, selection, successful testing, saving and actual use.
-- Do keep display preferences separate from processing scope and consent.
-- Do preserve independent original links, checkboxes, editing and optional preview.
-- Do place exact task scope and recovery before new-work shortcuts.
-- Do preserve keyboard access, focus return, responsive layouts and reduced motion.
+- Do keep the navigation rail, directory and content responsibilities distinct.
+- Do use the bundled Latin and Chinese font families and shared collection scale.
+- Do retain explicit pressed/current/selected semantics beside visual feedback.
+- Do preserve full directory pagination, exact folder choice and separate search drafts.
+- Do keep original links, checkboxes, editing and optional preview independent.
+- Do preserve processing consent, exact task snapshots and truthful recovery state.
+- Do keep animations interruptible and respect the live reduced-motion preference.
+- Do verify both static composition and actual click sequences in GitHub Actions.
 
 ### Don't:
 
-- Don't restore Manrope, the rejected lake-blue palette, oversized masthead or permanent three-column management shell.
-- Don't restore single-line summaries, hidden mobile excerpts or automatic reader entry on title activation.
-- Don't remove established roundness, selected fills or visual feedback as a workflow cleanup.
-- Don't bury model selection under advanced settings or label a returned catalog as verified access.
-- Don't claim a configuration was saved when only its test succeeded.
-- Don't broaden a task-specific retry to unrelated failed bookmarks.
-- Don't invent headings, progress, successful task states or user aesthetic approval.
-- Don't let CSS, GSAP and Motion animate the same property on the same element.
+- Don't restore the rejected 10/18 composition, blue-grey palette or system-font-only direction.
+- Don't apply the reader's pill shape to every navigation, input and action.
+- Don't make content, focus or data updates wait for a decorative transition.
+- Don't let CSS, GSAP, Motion or WAAPI own the same animated property on the same element.
+- Don't broaden a task-specific retry or mistake model discovery for successful access.
+- Don't present reference screenshots, source specimens or historical runs as current visual approval.

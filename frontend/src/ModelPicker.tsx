@@ -92,7 +92,7 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
     {!agent && <input id={`${id}-input`} name={name} value={value} aria-label={t("自定义模型名称", "Custom model name")}
       disabled={disabled} spellCheck={false} autoComplete="off" placeholder={t("输入模型名称，或从右侧目录选择", "Enter a model name or browse the catalog")}
       onChange={event => onChange(event.target.value)}/>}
-    <motion.button ref={trigger} id={`${id}-trigger`} type="button" className="model-picker-trigger" disabled={disabled}
+    <motion.button data-overlay-motion ref={trigger} id={`${id}-trigger`} type="button" className="model-picker-trigger" disabled={disabled}
       whileTap={reduced || disabled ? undefined : { scale: 0.985 }} transition={{ duration: 0.12 }}
       aria-haspopup="listbox" aria-expanded={open} aria-controls={`${id}-list`} aria-labelledby={`${id}-label ${id}-value`}
       onClick={() => { setSearch(""); setActive(0); setOpen(!open); if (!catalog && !busy && !agent) void load(); }}>
@@ -118,7 +118,7 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
         aria-label={t("搜索模型", "Search models")} placeholder={t("搜索模型名称…", "Search model names…")}
         onChange={event => { setSearch(event.target.value); setActive(0); }}/></div>
       <div ref={list} id={`${id}-list`} role="listbox" aria-label={label} className="model-picker-list">
-        {shown.map((choice, index) => <motion.button key={choice.id} type="button" role="option" tabIndex={-1} id={`${id}-option-${index}`}
+        {shown.map((choice, index) => <motion.button data-overlay-motion key={choice.id} type="button" role="option" tabIndex={-1} id={`${id}-option-${index}`}
           whileTap={reduced ? undefined : { scale: 0.98 }}
           animate={{ backgroundColor: value === choice.id ? "var(--selected)" : active === index ? "var(--inset)" : "rgba(0, 0, 0, 0)" }}
           transition={{ duration: reduced ? 0 : 0.18 }}

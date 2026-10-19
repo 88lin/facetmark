@@ -1,134 +1,113 @@
 # UI and motion tools
 
-Updated on 2026-10-18 for the restoration of the rounded workbench and reading effects. Impeccable owns
-the visual system. Runtime dependencies are selected for specific interactions:
-`gsap` 3.13.0, `@gsap/react` 2.1.2 and `motion` 12.23.24.
+Updated on 2026-10-19 for the replacement collection workbench. The rejected
+10/18 appearance is superseded. [DESIGN.md](../DESIGN.md) owns the current visual
+system; [the surface brief](../.impeccable/surfaces/frontend.md) owns acceptance.
+This document records animation ownership and supporting dependencies from source.
 
-The collection keeps a compact header, searchable categories and source-first cards.
-The supporting index contracts when a page opens.
-The GSAP tab indicator remains a capsule selection behind icon-labeled tabs;
-its existing interruptible position/width tween is preserved. CSS provides pill
-actions, circular icon buttons, natural card heights and the stronger reading scale.
-Each model channel's test follows its own fields, before optional settings.
+The application uses a vertical rail, separate searchable directory and tonal
+collection surfaces. Clicks, keyboard activation, selection changes, content
+changes and overlays now have application-wide feedback. The existing reading
+effects remain. Runtime dependencies are `motion` 12.23.24, `gsap` 3.13.0,
+`@gsap/react` 2.1.2, `@radix-ui/react-dialog` 1.1.6 and `cmdk` 1.1.1.
 
-`cmdk` 1.1.1 provides the query suggestion list's arrow-key selection and Enter
-activation, using the existing API and main search input. Suggestions include
-real descriptions, loading, retry and empty states. Filtering stays server-side
-(`shouldFilter={false}`); whitespace in inserted field values is quoted.
-The MIT license ships at `frontend/public/licenses/cmdk.txt`.
+## Fonts and search
 
-Manrope is bundled as an unmodified variable font for Latin/interface text,
-followed by the existing local Chinese fallback stack. Its source is
-`google/fonts/ofl/manrope/Manrope[wght].ttf`, blob
-`75274da58537d6123b14f2cd0c355ad4681fc2b3`; SIL OFL 1.1 is distributed at
-`frontend/public/licenses/Manrope-OFL.txt`. Font loading needs no external service.
-Current validation evidence is recorded in `docs/desktop-validation.md`.
+The interface bundles Inter and Noto Sans SC variable WOFF2 subsets as
+`Facetmark Inter` and `Facetmark CJK`. Both faces use weights 100–900 and
+`font-display: swap`; Segoe UI and Microsoft YaHei UI provide fallback coverage.
+The application serves the fonts locally. Sources, subset coverage, fontTools
+version and adjacent OFL notices are documented in
+[the font README](../frontend/src/assets/fonts/README.md).
 
-## Rare UI
+`cmdk` provides the query suggestion list's arrow-key selection and Enter
+activation in [SearchTools.tsx](../frontend/src/SearchTools.tsx). It uses the
+existing API and main search input, with real descriptions, loading, retry and
+no-match states. Filtering remains server-side (`shouldFilter={false}`), and
+inserted field values containing whitespace are quoted. The MIT license ships in
+[the cmdk notice](../frontend/public/licenses/cmdk.txt).
 
-`frontend/components.json` registers `@rare-ui` for this React/Vite application.
-The TypeScript and Vite `@/` aliases both resolve to `frontend/src`.
+## Animation ownership
 
-After selecting a component for a concrete design, run from `frontend`:
+Keep one owner per animated property. Application state, focus and controls update
+without waiting for motion. Static sidecar specimens illustrate appearance and
+CSS states; they do not implement or verify the Motion, GSAP or WAAPI behavior.
 
-```powershell
-npx -y shadcn@latest add @rare-ui/component-name
-```
+| Interaction | Owner and source | Source parameters and behavior |
+| --- | --- | --- |
+| Navigation, directory, status, layout and settings selection | Motion `SelectionPill`, [InteractionMotion.tsx](../frontend/src/InteractionMotion.tsx) | Shared `layoutId` in separate groups; spring stiffness 430, damping 35. The control keeps its pressed/current/selected semantics. |
+| Page, category type, settings panel and loaded result-context changes | WAAPI `useContentMotion`, [InteractionMotion.tsx](../frontend/src/InteractionMotion.tsx) | Existing container enters from opacity .45 and 12px x/y translation in 280ms, `cubic-bezier(.16,1,.3,1)`. Runs only after an actual value change, cancels the previous animation and skips initial mount. |
+| Pointer and keyboard ink | React portal plus CSS, [InteractionMotion.tsx](../frontend/src/InteractionMotion.tsx) and [workbench.css](../frontend/src/workbench.css) | Primary pointer-down or nonrepeated Enter/Space creates a noninteractive clipped paint layer. At most six ink records; 520ms `cubic-bezier(.16,1,.3,1)`, scale 0 to 1 and opacity .18/.12/0. Disabled, inert, hidden and `data-no-ink` targets are skipped. |
+| Control press and hover | CSS, [workbench.css](../frontend/src/workbench.css) | Ordinary buttons/summary press to .965; directory options to .98. Scale uses 160ms; background, color and shadow use 180ms. Focus rings remain visible. |
+| Collection entry and card/list reflow | Motion, [BookmarkCard.tsx](../frontend/src/BookmarkCard.tsx) | `layout="position"`; entry starts at opacity 0 and y 8px. Opacity takes 220ms with 25ms spacing capped at 125ms; y takes 280ms. Reflow uses stiffness 400, damping 36. CSS card entry is disabled; CSS retains 200ms edge/background/shadow feedback. |
+| Folder/model menus and library dialog/scrim | Motion presence, [overlay-motion.tsx](../frontend/src/overlay-motion.tsx) | Enter 280ms `cubic-bezier(.22,1,.36,1)`; dialog y 20px, menu y -8px, scale .97. Exit 160ms `cubic-bezier(.4,0,1,1)` with half travel and scale .985. Scrims animate opacity only. Closing content immediately becomes inert, aria-hidden and noninteractive. |
+| Folder/model trigger and choice feedback | Motion, [FolderPicker.tsx](../frontend/src/FolderPicker.tsx) and [ModelPicker.tsx](../frontend/src/ModelPicker.tsx) | Trigger press .985 over 120ms; selected-label entry 180ms and chevron turn 200ms. Picker options also use Motion press scale .98; check their press treatment together with the global CSS scale rule. |
+| Native disclosure menus and navigation drawer | CSS, [workbench.css](../frontend/src/workbench.css) | Manage/Display and related disclosure surfaces enter in 240ms from y -6px/scale .97; discrete opacity exit is 160ms where supported. Navigation drawer translation is 320ms; its scrim enters in 220ms. |
+| Theme reveal | View Transition API plus WAAPI, [App.tsx](../frontend/src/App.tsx) | A circle grows from the clicked control to cover the viewport in 460ms, `cubic-bezier(.16,1,.3,1)`, on `::view-transition-new(root)`. Repeated changes skip the preceding transition. Unsupported browsers switch immediately. |
+| Desktop reader focus and tab marker | GSAP, [App.tsx](../frontend/src/App.tsx) and [motion.ts](../frontend/src/motion.ts) | Focus translation uses 220ms; marker x/width uses 180ms. Both use `power3.out` and `overwrite: auto`; interrupted timelines/frames are cancelled and lifecycle cleanup is scoped through `useGSAP`. |
+| Narrow reader presence | Motion with Radix Dialog, [App.tsx](../frontend/src/App.tsx) | Reader x transition 220ms `cubic-bezier(.22,1,.36,1)` and overlay opacity 180ms, with `AnimatePresence`. Preserve focus containment and return through rapid close/open. |
+| Reading capsule, chapter label and progress | Motion, [scroll-progress.tsx](../frontend/src/components/ui/scroll-progress.tsx) | Capsule entry 240ms from opacity .65/y 10px/scale .97; label 180ms from opacity .45/y 5px/blur 3px. Progress spring stiffness 180, damping 35, mass .25 follows measured article scroll. |
+| Outline paper plane | Motion, [reader-outline.tsx](../frontend/src/components/ui/reader-outline.tsx) | Spring stiffness 380, damping 32, mass .65; rotation clamped to ±18 degrees. Position follows the measured center of the active real heading and is remeasured on resize or label wrapping. |
 
-Replace `component-name` with a verified name from
-[the component catalog](https://rareui.com/components). Registry components and
-their dependencies are added on demand. Facetmark now adapts **ScrollProgress**
-in `frontend/src/components/ui/scroll-progress.tsx`: a floating glass capsule with
-a native chapter selector, animated chapter label and back-to-top button. It reads
-actual scroll position and does not claim that the user has read the article.
-The capsule enters in 240ms; chapter labels settle in 180ms with a small blur and
-vertical transition. Backdrop blur is confined to this small surface, with an opaque
-fallback. Reader bottom padding keeps final paragraphs clear of the floating controls.
-The wide focused reader also adapts **RailToc** in
-`frontend/src/components/ui/reader-outline.tsx`, from the fixed upstream registry
-revision `b4de46efe4eb2613e22bb8134b482ed4e0c7736a/public/r/rail-toc.json`.
-It tracks actual saved-text headings, scrolls only the article container and
-restores scroll tracking after keyboard paging. It appears only when more than
-one real heading is available. Its paper-plane marker follows the measured center
-of the active heading with a spring and a slight turn based on travel direction.
-Resizing and wrapped labels remeasure the target. Reduced motion positions the plane
-immediately; narrower layouts retain the native chapter selector in the capsule.
-The configured `utils` alias is the future destination for the
-component registry's utility dependency, not an existing application import.
-Do not install the upstream Next.js demo application into this Vite project.
+[useReducedMotion.ts](../frontend/src/useReducedMotion.ts) subscribes to live
+`matchMedia` changes through `useSyncExternalStore`. Reduced motion removes ink,
+press scale, spatial entry/reflow, theme reveal and reader travel. Indicators and
+progress resolve immediately while selected state and all controls remain usable.
+A preference change also cancels the current content/theme transition. Verify the
+preference changing while the application is open, as well as initial reduced mode.
 
-Inspect component dependencies and imports before adding them. Preserve the
-existing design tokens and adapt copied components to the workbench. Components
-using Motion can keep Motion; GSAP skills do not require converting them.
+[reader-shell.css](../frontend/src/reader-shell.css) owns reading internals.
+[workbench.css](../frontend/src/workbench.css) is imported last and owns the final
+application composition and responsive placement. Check that final cascade when
+changing dimensions or animation ownership.
 
-Rare UI uses **MIT + Commons Clause + attribution**, not unrestricted MIT.
-When shipping a component, retain its copyright/license notices and add a visible
-Rare UI link in the application credits or project README. The license prohibits
-selling or redistributing the components as a component library or bundle.
-See [the upstream license](https://github.com/swamimalode07/rare-ui/blob/main/LICENSE).
-The adapted source retains its copyright header. The complete notice ships in
-`THIRD_PARTY_NOTICES.md` and `frontend/public/third-party-notices.txt`; Settings
-includes a visible Rare UI credit.
+## Adapted Rare UI reader
 
-## GSAP skills
+`frontend/components.json` registers `@rare-ui`; TypeScript and Vite resolve `@/`
+to `frontend/src`. Add registry components only for a concrete component need,
+after inspecting their imports, dependencies and notices. Adapt copied source to
+Facetmark's tokens and Vite application; keep the owner of each animated property
+explicit.
 
-The user's global tool installation contains the eight official GSAP skills.
-The redesign used core, React, timeline and performance guidance. GSAP owns the
-interruptible desktop reader expansion and tab indicator in `App.tsx` and
-`motion.ts`. Timelines and queued frames are cancelled before reversal; unmount
-cleanup is scoped through `useGSAP`.
-The new focus composition removes the search row and reduces the app header;
-the pane transition accounts for both horizontal and vertical displacement.
+The adapted **ScrollProgress** is a floating glass capsule with a native chapter
+selector, animated chapter label and back-to-top control. It measures actual saved
+article scroll; it does not infer that the user has read the text. Glass is confined
+to this bounded surface: canvas at 82%, rule at 72%, `blur(16px) saturate(1.3)`.
+An opaque fallback and reduced-transparency override remain. Article bottom
+clearance keeps the final paragraph above the controls.
 
-Motion owns the Radix reading drawer's horizontal position and overlay opacity,
-plus the adapted Rare UI capsule, chapter label, scroll indicator and paper-plane
-marker. The drawer uses `AnimatePresence`
-so rapid close/open continues from its current position. No property on the
-same element is controlled by both engines. CSS handles hover, focus and color
-feedback plus collection entry: a 220ms fade/8px rise, with 18ms spacing capped at
-126ms. Entries stay interactive throughout, the full entrance finishes within 346ms,
-and checking or previewing a mounted card does not replay it. Reduced motion removes
-the entrance, plane travel and chapter-label movement while keeping selected state.
+The wide focused reader adapts **RailToc** from the fixed upstream revision
+[`b4de46e…/public/r/rail-toc.json`](https://github.com/swamimalode07/rare-ui/blob/b4de46efe4eb2613e22bb8134b482ed4e0c7736a/public/r/rail-toc.json).
+It uses actual saved-text headings, scrolls the article container and restores
+tracking after keyboard paging. It appears only when more than one real heading
+is available; narrow layouts retain the capsule's native selector. Reduced motion
+positions the plane directly.
 
-Use the core skill and the relevant specialist skill as needed. Generic visual
-redesign continues through Impeccable. Simple transitions can use CSS, and
-existing animation engines should be preserved. Respect reduced-motion settings
-and clean up animations on navigation or component unmount.
-The common panel/indicator rhythm is 180–220 ms with an ease-out curve. Reduced
-motion removes travel; content and controls never wait for an animation.
+Rare UI uses **MIT + Commons Clause + attribution**. Preserve the adapted-source
+copyright headers, complete notices and visible Rare UI credit in Settings. The
+license restricts selling or redistributing the components as a component library
+or bundle. The complete terms are in [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)
+and [the shipped notice](../frontend/public/third-party-notices.txt); see also
+[the upstream license](https://github.com/swamimalode07/rare-ui/blob/main/LICENSE).
 
-## Oil Motion
+## Verification status
 
-Oil Motion is available globally for converting generated or existing videos and
-frame sequences into interactive web assets. It is intended for subject motion,
-product transformations and scene transitions. Ordinary workbench panels and
-button feedback do not require this media pipeline.
-It was therefore **not used** for this redesign; no generated images, video,
-paid generation calls or credential changes were needed.
+The source recorded for this replacement pass is
+`ac90d24805e346ba974a197da72a59cdac11231f`. Initial runs are
+[Experience 39193153703](https://github.com/88lin/facetmark/actions/runs/39193153703),
+[Windows 39193153702](https://github.com/88lin/facetmark/actions/runs/39193153702) and
+[CI 39193157986](https://github.com/88lin/facetmark/actions/runs/39193157986). A complete
+final verification set, fresh capture/interaction review and visual acceptance
+remain pending.
+Use [PR #44 checks](https://github.com/88lin/facetmark/pull/44/checks) for current
+source and outcomes. Earlier results remain in [validation history](desktop-validation.md).
 
-Local media processing has a separate Python environment and uses the installed
-FFmpeg tools. AI image/video generation requires a ZenMux key configured through
-the skill's local credential page at first use; installation does not call the
-generation service.
-
-The machine-specific entry points and maintenance commands are documented at
-`C:\Users\Computer\.agents\external\UI-MOTION-TOOLS.md`.
-
-## Verification
-
-The restored effects have targeted coverage in `frontend/tests/visual-restoration.spec.ts`:
-desktop/light and mobile/dark floating controls, keyboard chapter selection,
-container-local scrolling, unobscured final paragraphs, rapid chapter changes,
-resized plane alignment and reduced motion. These browser cases require GitHub
-Actions; adding them is not evidence that the current revision has passed them.
-
-`frontend/tests/redesign.spec.ts` exercises rapid selection, delayed responses,
-tab scroll restoration, expansion reversal, drawer focus return, reduced motion,
-chapter jumps and explicit loading/error states. Collection/toolbar alignment,
-natural result-row height and visible narrow-reader
-return are also checked. GitHub Actions creates the
-screenshots and short recording from the actual shared frontend. The small
-`facetmark-visual-evidence` artifact includes PNG source metadata, capture hashes,
-font diagnostics, contact sheets and MP4/WEBM. See `desktop-validation.md` for
-the exact validated revision and results; tools being available is not evidence
-that their interactions passed.
+The authored browser cases are
+[interaction-motion.spec.ts](../frontend/tests/interaction-motion.spec.ts),
+[visual-restoration.spec.ts](../frontend/tests/visual-restoration.spec.ts) and
+[redesign.spec.ts](../frontend/tests/redesign.spec.ts). They cover everyday switching,
+reader controls, rapid changes, drafts/focus, keyboard operation and reduced motion.
+Their presence is not evidence that this replacement revision passed. Review the
+built application's still captures and actual interaction sequences, including
+installed Windows, both themes and narrow layouts. Source inspection, dependency
+availability and historical run success do not establish current visual approval.

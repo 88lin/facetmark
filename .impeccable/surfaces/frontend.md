@@ -1,191 +1,150 @@
 ---
 version: 1
-slug: "frontend"
-primary_target: "frontend"
+slug: frontend
+primary_target: frontend
 related_targets:
-  - "frontend/src/App.tsx"
-  - "frontend/src/Settings.tsx"
-  - "frontend/src/SettingsWorkspace.tsx"
-  - "frontend/src/ModelPicker.tsx"
-  - "frontend/src/Setup.tsx"
-  - "frontend/src/CollectionTools.tsx"
-  - "frontend/src/LibraryTools.tsx"
-  - "frontend/src/BookmarkCard.tsx"
-  - "frontend/src/FacetBrowser.tsx"
-  - "frontend/src/FolderPicker.tsx"
-  - "frontend/src/folder-picker.css"
-  - "frontend/src/Tasks.tsx"
-  - "frontend/src/Reader.tsx"
-  - "frontend/src/styles.css"
-  - "frontend/src/workbench.css"
-  - "frontend/src/collection-tools.css"
-  - "frontend/src/support.css"
+- frontend/src/App.tsx
+- frontend/src/Settings.tsx
+- frontend/src/SettingsWorkspace.tsx
+- frontend/src/ModelPicker.tsx
+- frontend/src/Setup.tsx
+- frontend/src/CollectionTools.tsx
+- frontend/src/LibraryTools.tsx
+- frontend/src/BookmarkCard.tsx
+- frontend/src/FacetBrowser.tsx
+- frontend/src/FolderPicker.tsx
+- frontend/src/folder-picker.css
+- frontend/src/Tasks.tsx
+- frontend/src/Reader.tsx
+- frontend/src/styles.css
+- frontend/src/workbench.css
+- frontend/src/collection-tools.css
+- frontend/src/support.css
+- frontend/src/InteractionMotion.tsx
+- frontend/src/overlay-motion.tsx
+- frontend/src/reader-shell.css
+- frontend/src/useReducedMotion.ts
 ---
 
-# Collection, connection settings and exact task recovery — Operate
+# Collection workbench, connection settings and task recovery — Operate
 
 ## Direction contract — 2026-10-19 replacement
 
-THESIS: A desktop collection app with one stable navigation rail and a clearly
-separated collection directory; moving between collections, settings and tasks
-has visible continuity. The user rejected the previous implementation, including
-its neutral palette, typography, composition and reader-only motion coverage.
+THESIS: A desktop collection app with stable application navigation and a separate
+searchable directory. The user rejected the earlier PR #44 appearance and the lack
+of click/switch feedback. This replacement changes the entire working composition;
+the former 10/18 visual contract is superseded.
 
-OWN-WORLD: FlClash-informed tonal Material surfaces: pale lavender shell, white
-work area, deep plum text, violet selection, rounded 16px cards and 24px overlays.
-Bundled Inter and Noto Sans SC establish consistent Latin and Chinese typography.
-GithubStarsManager informs compact source/title/description/action hierarchy and
-the separated collection directory, search and management controls.
+OWN-WORLD: FlClash-informed tonal Material surfaces: lavender workspace and rail,
+white content surfaces, plum text and violet selection. Bundled Inter and Noto Sans
+SC establish Latin/Chinese consistency. GithubStarsManager informs the distinct
+directory, compact search/management rows and source/title/description/action
+hierarchy. The implementation uses 10px controls, 16px cards and 24px support/dialog
+surfaces, with reader-specific shape exceptions in DESIGN.md.
 
-STORY: Pick a collection, scan readable summaries, open the original or preview,
-and organize selected entries. Navigation keeps its place. Search, drafts, selected
-items, task snapshots and original browser data retain their existing contracts.
+STORY: Pick a collection, scan useful summaries, open the original or preview,
+and organize selected entries. Navigation keeps its place. Search drafts, selected
+items, model configuration, task snapshots and original browser data retain their
+existing contracts.
 
-FIRST VIEWPORT: A slim vertical application rail, a searchable 216px directory,
-and a flexible collection area. The collection title and search occupy one 64px
-header; compact maintenance and status controls sit immediately over the results.
-The user sees readable 16px titles and 15px descriptions, without a dashboard hero.
-Narrow screens collapse navigation and categories into the existing focus-managed drawer.
+FIRST VIEWPORT: A 96px vertical rail, a separate 13.5rem directory and flexible
+results. Title and search occupy an 80px workspace row; maintenance and status
+controls sit immediately above results. Compact desktop uses an 84px rail and 200px
+directory. Titles are 16px/600 and descriptions 15px. Below 960px, navigation becomes
+a 56px header and categories move into the focus-managed drawer; mobile stacks title
+and search and keeps principal actions at least 44px high.
 
-FORM: Competitor-informed canon, pinned by the user's repeated explicit references
-to GithubStarsManager and FlClash; this instruction takes precedence over the seed's
-candidate 4. Seed reference: seed:18a549514c513706. This records an implementation
-direction, not user approval of its eventual appearance.
+FORM: Concept seed `seed:18a549514c513706` assigned candidate 4. The user's repeated
+GithubStarsManager and FlClash references pin the competitor-informed canon and
+override that random direction. They are structural and behavioral references,
+not approved Facetmark mockups or aesthetic approval. Exact implementation tokens
+live in [DESIGN.md](../../DESIGN.md).
 
-MOTION: A moving selection capsule connects successive choices; a bounded ink
-response acknowledges clicks; content transitions follow navigation and filtering;
-card/list changes animate positions; overlays enter and exit from their origin.
-Transitions remain interruptible, never delay data changes, and stop spatial motion
-when the live system preference requests it. Windows installation is the primary
-delivery under review; verify actual sequences in cloud recordings, not stills alone.
+MOTION: Shared selection surfaces connect successive choices; bounded ink responds
+to clicks and keyboard activation; content transitions follow navigation and filter
+results; card/list changes animate positions; overlays enter and exit. Theme changes
+reveal the new palette from the clicked control. Existing reading effects remain.
+State and focus update immediately. Live reduced motion disables spatial effects.
 
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+FINISH: Verify composition and actual interaction sequences on the built application,
+including installed Windows. A source-matched capture set and fresh visual review
+are required before claiming completion or user acceptance.
 
-## Current refinement — 2026-10-18
+## Collection and directory
 
-Implement the complete discovery → model selection → test/save → scoped summary →
-recovery journey. The latest user correction rejects Manrope and the lake-blue
-palette and names GithubStarsManager and FlClash as references. Use neutral
-light/dark surfaces, system typography, 16px/600 collection titles, 15px descriptions
-and 14px controls. Global body and principal inputs remain 16px. Preserve the
-previously restored capsule actions/navigation, 16px collection cards, 20px support
-surfaces and soft shadows; form fields retain a separate 12px radius. Folder
-selection uses neutral fill plus a blue check; actions and focus use blue.
-The authoritative direction is [workbench-direction.md](../workbench-direction.md),
-with visual tokens in [DESIGN.md](../../DESIGN.md).
+Keep Add / Manage / Summarize distinct from summary status, sort and Display.
+Display changes summaries/excerpts; processing scope and consent belong in the
+processing dialog. The card/list selector changes layout while preserving the
+same title/summary hierarchy. Original links, checkboxes, editing and Preview are
+independent. Summary expansion uses actual clipping; loading, missing text and
+failed summaries have specific next actions.
 
-Restore the Rare UI reading effects as well as shape: a floating glass progress
-capsule, animated chapter label and a paper plane following the actual current
-heading. Collection entries use a short bounded stagger. Preserve native keyboard
-controls, actual scroll measurements, rapid reversal and reduced-motion behavior.
+The directory provides folder/tag/site modes, local search, vertical scrolling,
+counts, full paths and explicit pagination. Organize folders and tags is directly
+available. Add/edit/move use the shared FolderPicker: 50-item pages, exact choice,
+separate search draft, explicit Unfiled/new-folder choices, local loading/retry,
+keyboard navigation and focus return. A new folder is created only on save.
 
-## Collection composition
+Maintain server-side paging and scoped selection for 200,000-record libraries.
+Context changes clear incompatible selection; stale result contexts cannot drive
+scoped actions. Card reflow, filter changes and rapid repeated choices must preserve
+scroll position, focus and the final selected state. On mobile, confirm readable
+content, no horizontal document overflow and unobscured action targets; prior
+first-viewport measurements do not certify this replacement composition.
 
-The first action row contains Add, Manage and Summarize plus the card/list choice.
-Manage exposes maintenance commands in a compact menu. The next row contains
-summary-status counts, visible sorting and Display. Display switches Summaries /
-Excerpts only; processing scope belongs in the summary dialog.
+## Connection settings and processing
 
-The desktop category directory remains searchable and vertically scrollable.
-Narrow windows use a filter drawer. An Organize folders and tags action sits beside the
-directory heading. Add, edit and move dialogs use the searchable FolderPicker:
-50-item pages from the complete directory, separate search drafts, exact selection,
-explicit Unfiled and new-folder choices, and local loading/no-match/retry states.
-Typing never commits a path. New folders are created when the bookmark is saved.
-Arrow keys, Home/End, Escape, button activation and focus return remain available.
-Original links, selection, direct editing and
-Preview stay independent. Multiline content remains visible in both collection views;
-expansion responds to actual clipping. Cross-page selection appears only while
-selecting or when a selection exists, and it names its summary-processing scope.
+Summary and optional embedding channels use separate full-width sections with
+purpose/status, essential fields, model choice, test/save and adjacent feedback.
+Fields become one column on narrow screens. Settings tabs remain mounted while
+hidden so their animated switch preserves drafts and results. Advanced paths and
+timeouts follow the main actions.
 
-Acceptance targets: results viewport/list top at or before 210px on desktop and 270px on mobile,
-two complete cards at 390 × 844, no horizontal document overflow, and at least 44px
-main mobile actions. Previous measurements are historical; the restored styling
-still needs fresh browser validation in GitHub Actions.
+Discovery identifies the actual available Agent. Catalog source, configured default,
+manual model entry and retry remain visible. Per-Agent drafts stay independent;
+installation/provider/credential changes invalidate stale catalogs or tests. Model
+changes require a fresh test. Test connection is separate from Test and save; save
+failure remains visibly unsaved. Successful chat saving offers summary generation,
+whose dialog still requires scope review and content-processing consent.
 
-## Connection settings composition
+Zero eligible items disables Start. Library changes invalidate scope previews.
+Explicit IDs or server scope with exclusions define processing targets without
+changing management/export scope. Pause finishes the current batch. Resume/retry
+uses the original durable snapshot, keeps completed entries and retries only its
+unfinished/failed targets. Tasks presents scope, truthful state, progress, errors
+and recovery before new-work shortcuts. Settings and Tasks provide return controls.
 
-Use a full-width summary section followed by a separate optional embedding section.
-Each has purpose and status, a two-column field grid, its full-width model picker,
-test/save actions and local feedback. At 720px and below, the grid becomes one column.
-Keep the primary test/save action in the first 390 × 844 Agent settings viewport.
-Timeout and installation paths follow the actions in a disclosure.
+## Reading and motion acceptance
 
-The four settings categories use keyboard-operable capsule tabs with selected fill. Inactive panels
-stay mounted and hidden, preserving drafts and results. The tab row scrolls
-horizontally on narrow screens. Settings, Tasks and preview provide explicit return.
+Desktop preview pairs a compact index with an independent reading surface. Focus
+mode expands it without removing application navigation. Narrow preview contains
+focus and restores the initiating control. Retain real-heading navigation, measured
+saved-body scroll progress, the glass capsule, native chapter selection and the
+spring outline plane. The final paragraph and current chapter must remain correct
+through resize, rapid selection and a live reduced-motion preference change.
 
-## Model states and transitions
+Check navigation pill movement, directory/status/layout/settings switches, content
+entry, keyboard ink, theme reversal, menu/dialog close and immediate inertness.
+Check model and folder search during fast open/close and delayed responses. A still
+screenshot cannot establish these behaviors. [UI motion tools](../../docs/ui-motion-tools.md)
+records animation ownership and timing.
 
-- Detection identifies executable availability and the actual automatic Agent.
-  Detection failure and no installation are different states.
-- The picker is visible beside essential configuration, with search, configured
-  default, model ID, manual input and refresh. The API variant combines an editable
-  model input and catalog arrow in one field. Agent catalogs can be live, cached,
-  configured or aliases; each must explain its limits. API catalogs do not establish
-  model access either.
-- Changing the actual installation or connection identity clears stale catalogs.
-  Agent changes preserve independent model drafts. A changed model invalidates its
-  test; draft editing does not immediately rewrite saved settings.
-- Test connection reports the tested model. Test and save persists only after a
-  successful test. A failed save remains visibly unsaved. The optional embedding
-  channel keeps independent state.
-- A saved chat connection offers Start generating summaries. The next dialog still
-  requires scope review and content-processing consent.
+## Verification and references
 
-Search, arrow navigation, Enter selection, Escape dismissal, outside/Tab dismissal
-and return focus belong to the picker/menu contract. Loading, no match, unavailable
-catalog, stale identity and connection/save failures remain actionable.
+This source-derived pass targets `ac90d24805e346ba974a197da72a59cdac11231f`.
+Initial replacement runs are [Experience](https://github.com/88lin/facetmark/actions/runs/39193153703),
+[Windows](https://github.com/88lin/facetmark/actions/runs/39193153702) and
+[CI](https://github.com/88lin/facetmark/actions/runs/39193157986). A complete final
+verification set and fresh visual review remain pending. These links record the
+initial source snapshot; use [PR #44 checks](https://github.com/88lin/facetmark/pull/44/checks)
+for current source and outcomes. The sidecar examples are source specimens, not
+rendered proof or visual approval.
+Earlier results belong only to [validation history](../../docs/desktop-validation.md).
 
-## Processing and recovery
-
-The dialog previews scope and eligible count, explains reprocessing, and requires
-a saved tested connection plus consent. A changed library invalidates the preview.
-Selections use either explicit IDs or server scope with exclusions; they do not
-silently change management/export targets.
-
-Partial, failed, paused, cancelled and interrupted non-index tasks can retain a
-durable snapshot. Resume/retry carries the original task ID and snapshot, preserves
-completed entries and retries only its failed/unfinished targets. Distinguish this
-from deliberately starting a new task for all failed bookmarks in current filters.
-
-Tasks places scope, state, progress, relevant errors and recovery above new-work
-shortcuts. Only running describes background execution. Saved recovery must remain
-visible in the first mobile viewport.
-
-## Verification and boundaries
-
-Use [PR #44 checks](https://github.com/88lin/facetmark/pull/44/checks) for the
-latest pushed source and Actions outcomes. At historical source `3a9c49a`, run
-[39127258266](https://github.com/88lin/facetmark/actions/runs/39127258266) built and
-rendered the UI: 66 browser tests passed, including folder creation, editing, bulk
-moves and keyboard cases; three reader-motion cases failed on the footer's
-last-chapter label and live reduced-motion behavior. Six captures matched provenance.
-Independent visual review found typography, palette, depth and folder layout
-consistent with the direction, with no new visual fixes; the reader mismatch
-remained. Reader corrections were pushed at `29ed015`; their verification is
-recorded in the linked checks, not inferred from the initial run or review.
-
-GithubStarsManager `repo.png` and FlClash `preview.png` remain external references,
-not Facetmark evidence. Sidecar specimens are source-derived examples. All results
-below remain scoped to their named historical revisions; no user aesthetic approval
-is implied.
-
-At source `0993020882434593932d3d50ad5ad25594b0531f`, Experience 39089551750,
-all ten CI jobs and Windows installation checks passed. That revision fixes
-delivery and state defects rather than changing the visual contract: the served
-page is the React build again, pagination keeps the current rows, list-view rules
-no longer contradict each other, the grid uses a 310px minimum card, mobile row
-actions meet 44px, and that revision's splash used its then-current white/lake-blue tokens. The
-current record lives in [desktop validation](../../docs/desktop-validation.md).
-
-The `ship` verdict below belongs to `4c6383ad0537bccb85ce32f76fc11fe3f9e139e8`
-only; no fresh independent visual review or user aesthetic approval is claimed
-for the newer revision. At that earlier source, all 80 final Web PNG hashes match
-provenance, five source-review corrections are resolved, and the independent
-review inspected 15 Web captures and two installed captures: all eight original
-findings resolved, no remaining material findings in the reviewed scope. A generic
-reviewer substituted for the unavailable specialist; it did not inspect all 80
-Web captures or run a browser. Prior passes apply only to their recorded
-revisions. Use synthetic data and isolated HTTP model fixtures, never personal
-libraries or browser profiles.
+[GithubStarsManager](https://github.com/AmintaCCCP/GithubStarsManager) contributes
+separated browsing regions, compact content hierarchy, explicit category selection
+and local press/menu feedback. [FlClash](https://github.com/chen08209/FlClash)
+contributes the application rail, tonal surface hierarchy and Material selection
+continuity. Reference images establish neither implementation correctness nor user
+acceptance. Use synthetic libraries and isolated fixtures; never personal browser
+profiles or bookmarks for verification.

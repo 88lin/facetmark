@@ -276,6 +276,9 @@ with sync_playwright() as playwright:
         assert page.locator('.interaction-ink').count() == 0
         header.get_by_role('button', name='全部书签', exact=True).click()
         page.get_by_role('textbox', name='搜索书签').fill('合成示例')
+        page.locator('.result-row').nth(1).wait_for(timeout=15000)
+        page.wait_for_function("document.querySelector('.result-count')?.textContent === '2'")
+        page.evaluate('() => document.fonts.ready')
         page.screenshot(path=str(output / 'installed-interactions.png'))
         assert not link_errors, f'Installed interaction steps raised WebView errors: {link_errors}'
         assert not interaction_writes, f'Installed interaction steps unexpectedly saved data: {interaction_writes}'

@@ -93,7 +93,7 @@ export function FolderPicker({ value, onChange, label, allowCreate = true, allow
   return <div className="folder-picker field" ref={root} data-open={open} onKeyDown={onKeyDown}
     onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
     <span id={`${id}-label`}>{label}</span>
-    <motion.button type="button" className="folder-picker-trigger" ref={trigger} aria-expanded={open}
+    <motion.button data-overlay-motion type="button" className="folder-picker-trigger" ref={trigger} aria-expanded={open}
       whileTap={reduced ? undefined : { scale: 0.985 }} transition={{ duration: 0.12 }}
       aria-controls={`${id}-panel`} aria-labelledby={`${id}-label ${id}-value`}
       onClick={() => {
@@ -115,15 +115,15 @@ export function FolderPicker({ value, onChange, label, allowCreate = true, allow
           onChange={event => { setRequest({ q: event.target.value, offset: 0 }); setPage({ items: [], total: 0, has_more: false }); setLoading(true); setError(false); }} />
       </label>
       <div className="folder-picker-options" aria-busy={loading}>
-        {allowUnfiled && <motion.button type="button" data-folder-option aria-pressed={value === ""} onClick={() => choose("")}
+        {allowUnfiled && <motion.button data-overlay-motion type="button" data-folder-option aria-pressed={value === ""} onClick={() => choose("")}
           whileTap={reduced ? undefined : { scale: 0.98 }}>
           <Inbox size={17}/><span>{t("未分类", "Unfiled")}</span>{value === "" && <Check size={16}/>}
         </motion.button>}
-        {selectedMissing && <motion.button type="button" data-folder-option title={value} aria-pressed="true" onClick={() => choose(value)}
+        {selectedMissing && <motion.button data-overlay-motion type="button" data-folder-option title={value} aria-pressed="true" onClick={() => choose(value)}
           whileTap={reduced ? undefined : { scale: 0.98 }}>
           <FolderOpen size={17}/><FolderPath value={value}/><Check size={16}/>
         </motion.button>}
-        {page.items.map(item => <motion.button type="button" key={item.value} data-folder-option title={item.value}
+        {page.items.map(item => <motion.button data-overlay-motion type="button" key={item.value} data-folder-option title={item.value}
           whileTap={reduced ? undefined : { scale: 0.98 }}
           aria-pressed={value === item.value} onClick={() => choose(item.value)}>
           <Folder size={17}/><FolderPath value={item.value}/>
@@ -138,7 +138,7 @@ export function FolderPicker({ value, onChange, label, allowCreate = true, allow
           onClick={() => setRequest(old => ({ ...old, offset: page.items.length }))}>
           {t(`加载更多（${page.items.length} / ${page.total}）`, `Load more (${page.items.length} / ${page.total})`)}
         </button>}
-        {canCreate && <motion.button type="button" data-folder-option className="folder-picker-create" onClick={() => choose(draft)}
+        {canCreate && <motion.button data-overlay-motion type="button" data-folder-option className="folder-picker-create" onClick={() => choose(draft)}
           whileTap={reduced ? undefined : { scale: 0.98 }}>
           <FolderPlus size={18}/><span>{t(`使用新文件夹「${draft}」`, `Use new folder “${draft}”`)}</span>
         </motion.button>}
