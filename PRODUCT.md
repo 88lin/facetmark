@@ -64,6 +64,16 @@ contracts remain.
 
 ## Brand Commitments
 
+Latest user evidence (2026-10-19, after `bed41ee`): the user rejected the capsule
+workspace screenshots as visually flat, monotonous and lifeless, explicitly saying
+that changing the accent colour cannot fix the composition. The neutral surfaces
+and repeated card treatment below are a superseded design, not an approved brand
+commitment. The next direction must address material, light, content hierarchy and
+spatial continuity together, with fresh visual studies before implementation.
+Capsule controls, readable Chinese, direct folder selection, the referenced
+products' quality bar and functional safety remain required. The user has already
+delegated broad redesign choices; do not restart a preference interview.
+
 Preserve Facetmark's layered mark, direct access to original pages, readable
 Chinese/English content and tactile rounded controls. Card and list views share
 a clear title/description hierarchy. Searchable categories remain usable with a
