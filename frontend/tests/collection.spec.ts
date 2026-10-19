@@ -38,7 +38,7 @@ test("a large collection leaves useful browsing space in short desktop and mobil
     // Layout coordinates may contain subpixels from rem line heights.
     expect(size.top).toBeLessThanOrEqual((viewport.width < 720 ? 270 : 210) + 1);
     expect(size.height / size.viewport).toBeGreaterThanOrEqual(.5);
-    expect(size.fullyVisible, JSON.stringify({ viewport, ...size })).toBeGreaterThanOrEqual(viewport.width < 1120 ? 2 : 3);
+    expect(size.fullyVisible, JSON.stringify({ viewportSize: viewport, ...size })).toBeGreaterThanOrEqual(viewport.width < 1120 ? 2 : 3);
     await expect(page.locator(".result-summary").first()).toBeVisible();
     if (viewport.width >= 960) {
       const directory = await page.locator(".collection-sidebar").boundingBox();
