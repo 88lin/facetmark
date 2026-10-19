@@ -1,3 +1,4 @@
+import { settleVisualLayout } from "./visual-layout";
 import { test, expect } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 
@@ -134,6 +135,7 @@ test("narrow reader reverses, contains focus and supports reduced motion", async
   await expect
     .poll(() => page.locator(".preview-drawer").evaluate((el) => getComputedStyle(el).transform))
     .toBe("none");
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/reader-zh-1024.png", animations: "disabled" });
   await page.getByRole("button", { name: "返回收藏" }).click();
   await expect(page.locator(".result-row").first().locator(".bookmark-preview")).toBeFocused();
@@ -164,6 +166,7 @@ test("narrow reader reverses, contains focus and supports reduced motion", async
     .poll(() => page.locator(".preview-scroll").evaluate((el) => el.scrollTop))
     .toBeGreaterThan(0);
   await page.getByRole("button", { name: "回到顶部", exact: true }).click();
+  await settleVisualLayout(page);
   await page.screenshot({
     path: "screenshots/focus-reading-reduced-motion.png",
     animations: "disabled",
@@ -183,6 +186,7 @@ test("loading, empty, failure and long-title states have real rendered evidence"
   });
   await page.goto("/app");
   await expect(page.locator(".skeleton-list")).toBeVisible();
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/state-loading.png", animations: "disabled" });
   release();
   await expect(page.locator(".result-row")).toHaveCount(30);
@@ -198,9 +202,11 @@ test("loading, empty, failure and long-title states have real rendered evidence"
   await page.locator(".result-row").first().locator(".bookmark-preview").click();
   await expect(page.locator(".preview-title h1")).toHaveText(title);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/state-long-title.png", animations: "disabled" });
   await page.getByRole("textbox", { name: "搜索书签" }).fill("zzfacetmarknonexistent987654321");
   await expect(page.getByText("换一点线索试试")).toBeVisible();
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/state-empty.png", animations: "disabled" });
   await page.route("**/bookmarks?**", (route) =>
     route.fulfill({
@@ -210,6 +216,7 @@ test("loading, empty, failure and long-title states have real rendered evidence"
   );
   await page.getByRole("textbox", { name: "搜索书签" }).fill("controlled failure");
   await expect(page.locator(".search-error")).toBeVisible();
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/state-failure.png", animations: "disabled" });
   await page.unroute("**/bookmarks?**");
   await page.getByRole("button", { name: "重试", exact: true }).click();
@@ -224,8 +231,8 @@ test("supporting views and small-window reader share the same system", async ({ 
   const toolbar = await page.locator(".workspace-toolbar").boundingBox();
   const collection = await page.locator(".results-column").boundingBox();
   const categories = await page.locator(".collection-sidebar").boundingBox();
-  expect(toolbar!.x).toBe(categories!.x);
-  expect(categories!.y).toBe(collection!.y);
+  expect(toolbar!.x).toBe(collection!.x);
+  expect(categories!.y).toBeLessThan(collection!.y);
   expect(categories!.x + categories!.width).toBeLessThan(collection!.x);
   expect(toolbar!.x + toolbar!.width).toBe(collection!.x + collection!.width);
   const rows = await page.locator(".result-row").all();
@@ -234,20 +241,25 @@ test("supporting views and small-window reader share the same system", async ({ 
     const meta = await row.locator(".result-meta").boundingBox();
     expect(meta!.y + meta!.height).toBeLessThanOrEqual(bounds!.y + bounds!.height);
   }
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/collection-zh-light.png", animations: "disabled" });
   await page.locator(".result-row").first().locator(".bookmark-preview").focus();
+  await settleVisualLayout(page);
   await page.screenshot({
     path: "screenshots/collection-keyboard-focus.png",
     animations: "disabled",
   });
   await page.locator(".app-header").getByRole("button", { name: "导入书签", exact: true }).click();
   await expect(page.locator(".dropzone")).toBeVisible();
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/import-zh-light.png", animations: "disabled" });
   await page.getByRole("button", { name: "设置", exact: true }).click();
   await expect(page.locator("input[name=chat_model]")).toBeVisible();
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/settings-zh-light.png", animations: "disabled" });
   await page.getByRole("button", { name: "任务", exact: true }).click();
   await expect(page.locator(".tasks")).toBeVisible();
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/tasks-zh-light.png", animations: "disabled" });
   await page.getByRole("button", { name: "全部书签", exact: false }).click();
   await page.setViewportSize({ width: 390, height: 844 });
@@ -256,12 +268,14 @@ test("supporting views and small-window reader share the same system", async ({ 
   await expect
     .poll(() => page.locator(".preview-drawer").evaluate((el) => getComputedStyle(el).transform))
     .toBe("none");
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/reader-zh-390.png", animations: "disabled" });
   await page.getByRole("button", { name: "返回收藏" }).click();
   await expect(page.locator(".result-row").first().locator(".bookmark-preview")).toBeFocused();
   await page.getByRole("button", { name: "打开导航", exact: true }).click();
   await page.getByRole("button", { name: "设置", exact: true }).click();
   await expect(page.locator("input[name=chat_model]")).toBeVisible();
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/settings-zh-390.png", animations: "disabled" });
 });
 

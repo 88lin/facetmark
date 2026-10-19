@@ -1,3 +1,4 @@
+import { CapsuleButton } from "./ui/controls";
 import { useEffect, useId, useRef, useState } from "react";
 import { Command } from "cmdk";
 import {
@@ -180,7 +181,7 @@ export function QuerySuggestions({
             {failed && (
               <div className="query-suggestions-state query-suggestions-error" role="alert">
                 <span>{t("暂时无法获取建议。", "Suggestions could not be loaded.")}</span>
-                <button
+                <CapsuleButton
                   className="secondary"
                   onClick={() => {
                     list.current?.focus({ preventScroll: true });
@@ -188,7 +189,7 @@ export function QuerySuggestions({
                   }}
                 >
                   {t("重试", "Retry")}
-                </button>
+                </CapsuleButton>
               </div>
             )}
             {!busy && !failed && !items.length && (
@@ -245,7 +246,7 @@ export function SearchAnswer({
           "Generating sends your question and up to 8 matching titles, URLs and excerpts to your configured models. Follow citations to check the source.",
         )}
       </p>
-      <button
+      <CapsuleButton
         className="secondary"
         disabled={!available || busy}
         onClick={async () => {
@@ -264,7 +265,7 @@ export function SearchAnswer({
       >
         {busy ? <LoaderCircle className="spin" /> : <Sparkles />}
         {t("确认并生成回答", "Confirm and generate answer")}
-      </button>
+      </CapsuleButton>
       {!available && (
         <p className="hint">
           {t("请先在设置中配置模型并完成索引。", "Configure models and index your library first.")}
@@ -289,7 +290,7 @@ export function SearchAnswer({
             <p key={i}>
               {claim.text}{" "}
               {claim.sources.map((n) => (
-                <button
+                <CapsuleButton
                   className="citation"
                   key={n}
                   aria-label={t(`查看来源 ${n}`, `Read source ${n}`)}
@@ -299,19 +300,19 @@ export function SearchAnswer({
                   }}
                 >
                   [{n}]
-                </button>
+                </CapsuleButton>
               ))}
             </p>
           ))}
           {answer.sources.map((source) => (
-            <button
+            <CapsuleButton
               className="related-item"
               key={source.n}
               onClick={() => onSelect(source.bookmark_id)}
             >
               [{source.n}] {source.title}
               {source.basis === "title" && <small>{t("仅基于标题", "Based on title only")}</small>}
-            </button>
+            </CapsuleButton>
           ))}
           {!!answer.gaps.length && (
             <details>

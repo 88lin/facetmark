@@ -1,3 +1,4 @@
+import { CapsuleButton } from "./ui/controls";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -668,13 +669,13 @@ function Workbench({
     <div className={`app-shell ${focusReading ? "is-reading-focused" : ""}`}>
       <InteractionFeedback />
       <header className="app-header" inert={navOpen} aria-hidden={navOpen}>
-        <button
+        <CapsuleButton
           className="icon-button nav-trigger"
           aria-label={t("打开导航", "Open navigation")}
           onClick={() => setNavOpen(true)}
         >
           <Menu />
-        </button>
+        </CapsuleButton>
         <a
           className="brand app-brand"
           href="/app"
@@ -689,7 +690,7 @@ function Workbench({
           <span>Facetmark</span>
         </a>
         <nav className="header-navigation" aria-label={t("主要导航", "Main navigation")}>
-          <button
+          <CapsuleButton
             className={view === "library" ? "active" : ""}
             onClick={() => {
               openView("library");
@@ -700,22 +701,26 @@ function Workbench({
             <SelectionPill active={view === "library"} group="app-navigation" />
             <BookmarkIcon size={22} aria-hidden="true" />
             <span>{t("全部书签", "All bookmarks")}</span>
-          </button>
-          <button
+          </CapsuleButton>
+          <CapsuleButton
             className={view === "sessions" ? "active" : ""}
             onClick={() => openView("sessions")}
           >
             <SelectionPill active={view === "sessions"} group="app-navigation" />
             <Clock3 size={22} aria-hidden="true" />
             <span>{t("浏览批次", "Saving sessions")}</span>
-          </button>
+          </CapsuleButton>
         </nav>
+        {paired && view === "library" && <aside className="collection-sidebar" aria-label={t("收藏目录", "Collection directory")}>
+          <FacetBrowser filters={filters} enabled={!navOpen} revision={requestRevision} onSelect={selectFilter}
+            onManage={adminAvailable && job.state !== "running" ? () => setLibraryAction({ kind: "taxonomy" }) : undefined} />
+        </aside>}
         <div className="header-utilities">
           {setup?.demo && <span className="demo-label">{t("合成演示数据", "Synthetic demo")}</span>}
           <div className="utility-cluster">
             {adminAvailable && (
               <>
-                <button
+                <CapsuleButton
                   className="icon-button utility-label"
                   aria-label={t("任务", "Tasks")}
                   aria-pressed={view === "tasks"}
@@ -725,8 +730,8 @@ function Workbench({
                   <SelectionPill active={view === "tasks"} group="app-navigation" />
                   {job.state === "running" ? <LoaderCircle className="spin" /> : <Layers3 />}
                   <span>{t("任务", "Tasks")}</span>
-                </button>
-                <button
+                </CapsuleButton>
+                <CapsuleButton
                   className="icon-button utility-label"
                   aria-label={t("设置", "Settings")}
                   aria-pressed={view === "settings"}
@@ -736,29 +741,29 @@ function Workbench({
                   <SelectionPill active={view === "settings"} group="app-navigation" />
                   <Settings2 />
                   <span>{t("设置", "Settings")}</span>
-                </button>
+                </CapsuleButton>
               </>
             )}
-            <button
+            <CapsuleButton
               className="icon-button"
               aria-label={t("切换主题", "Toggle theme")}
               onClick={event => changeTheme(event.currentTarget)}
             >
               {theme === "light" ? <Moon /> : <Sun />}
-            </button>
-            <button
+            </CapsuleButton>
+            <CapsuleButton
               className="language"
               aria-label={t("切换语言", "Switch language")}
               onClick={() => setLanguage(language === "zh" ? "en" : "zh")}
             >
               {language === "zh" ? "EN" : "中文"}
-            </button>
+            </CapsuleButton>
           </div>
           {adminAvailable && (
-            <button className="header-import" onClick={() => openView("import")}>
+            <CapsuleButton className="header-import" onClick={() => openView("import")}>
               <Import size={16} />
               <span>{t("导入书签", "Import bookmarks")}</span>
-            </button>
+            </CapsuleButton>
           )}
         </div>
       </header>
@@ -786,7 +791,7 @@ function Workbench({
         </a>
         <div className="nav-section-label">{t("书库与筛选", "Library & filters")}</div>
         <nav className="main-nav" aria-label={t("工作区", "Workspace")}>
-          <button
+          <CapsuleButton
             className={
               view === "library" && !Object.values(filters).some((v) => v !== undefined)
                 ? "active"
@@ -801,14 +806,14 @@ function Workbench({
             <BookmarkIcon />
             {t("全部书签", "All bookmarks")}
             <span className="count">{setup?.bookmarks ?? "—"}</span>
-          </button>
-          <button
+          </CapsuleButton>
+          <CapsuleButton
             className={view === "sessions" ? "active" : ""}
             onClick={() => openView("sessions")}
           >
             <Clock3 />
             {t("浏览批次", "Saving sessions")}
-          </button>
+          </CapsuleButton>
         </nav>
         <div className="facet-nav">
           {/* The collection sidebar below repeats this directory at ≥960px.
@@ -819,45 +824,45 @@ function Workbench({
         <div className="sidebar-bottom">
           {adminAvailable && (
             <>
-              <button
+              <CapsuleButton
                 className={view === "import" ? "active" : ""}
                 onClick={() => openView("import")}
               >
                 <Import />
                 {t("导入书签", "Import bookmarks")}
-              </button>
-              <button
+              </CapsuleButton>
+              <CapsuleButton
                 className={view === "tasks" ? "active" : ""}
                 onClick={() => openView("tasks")}
               >
                 {job.state === "running" ? <LoaderCircle className="spin" /> : <Layers3 />}
                 {t("任务", "Tasks")}
                 {job.state === "running" && <span className="activity-dot" />}
-              </button>
-              <button
+              </CapsuleButton>
+              <CapsuleButton
                 className={view === "settings" ? "active" : ""}
                 onClick={() => openView("settings")}
               >
                 <Settings2 />
                 {t("设置", "Settings")}
-              </button>
+              </CapsuleButton>
             </>
           )}
           <div className="appearance">
-            <button
+            <CapsuleButton
               className="icon-button"
               aria-label={t("切换主题", "Toggle theme")}
               onClick={event => changeTheme(event.currentTarget)}
             >
               {theme === "light" ? <Moon /> : <Sun />}
-            </button>
-            <button
+            </CapsuleButton>
+            <CapsuleButton
               className="language"
               aria-label={t("切换语言", "Switch language")}
               onClick={() => setLanguage(language === "zh" ? "en" : "zh")}
             >
               {language === "zh" ? "EN" : "中文"}
-            </button>
+            </CapsuleButton>
             <span className="local-status">
               {connectionError ? (
                 <WifiOff size={13} />
@@ -898,7 +903,7 @@ function Workbench({
               )}{" "}
               <small>{connectionError}</small>
             </span>
-            <button
+            <CapsuleButton
               className="secondary"
               onClick={() => {
                 if (paired) {
@@ -908,7 +913,7 @@ function Workbench({
               }}
             >
               {t("重新连接", "Reconnect")}
-            </button>
+            </CapsuleButton>
           </div>
         )}
         {pairingRequired && !paired ? (
@@ -928,7 +933,7 @@ function Workbench({
                 onChange={(e) => setManualToken(e.target.value)}
               />
             </label>
-            <button
+            <CapsuleButton
               className="primary"
               onClick={async () => {
                 setToken(manualToken);
@@ -942,7 +947,7 @@ function Workbench({
               }}
             >
               {t("连接", "Connect")}
-            </button>
+            </CapsuleButton>
           </section>
         ) : !paired ? (
           <div className="empty">
@@ -987,13 +992,13 @@ function Workbench({
                     }}
                   />
                   {input ? (
-                    <button
+                    <CapsuleButton
                       className="icon-button"
                       aria-label={t("清空搜索", "Clear search")}
                       onClick={() => changeQuery("")}
                     >
                       <X size={16} />
-                    </button>
+                    </CapsuleButton>
                   ) : (
                     <kbd>Ctrl K</kbd>
                   )}
@@ -1009,7 +1014,7 @@ function Workbench({
                     }}
                   />
                 </div>
-                <button
+                <CapsuleButton
                   className="filter-trigger"
                   onClick={() => setNavOpen(true)}
                   aria-label={t("筛选收藏", "Filter collection")}
@@ -1021,13 +1026,9 @@ function Workbench({
                     <span className="filter-indicator" aria-hidden="true">{activeFilters.length}</span>
                     <span id="active-filter-count" className="sr-only">{t(`已启用 ${activeFilters.length} 项筛选`, `${activeFilters.length} active filters`)}</span>
                   </>}
-                </button>
+                </CapsuleButton>
               </div>
             </header>
-            <aside className="collection-sidebar" hidden={selected !== null}>
-              <FacetBrowser filters={filters} enabled={selected === null && !navOpen} revision={requestRevision} onSelect={selectFilter}
-                onManage={adminAvailable && job.state !== "running" ? () => setLibraryAction({ kind: "taxonomy" }) : undefined} />
-            </aside>
             <section className="results-column" inert={focusReading}>
               <header className="search-header">
                 {adminAvailable && selected === null && <LibraryToolbar
@@ -1065,22 +1066,22 @@ function Workbench({
                     {selected === null && <div className="collection-view-switch" role="group" aria-label={t("收藏显示方式", "Collection layout")}>
                       {[{ value: "grid", label: t("卡片视图", "Card view"), Icon: LayoutGrid },
                         { value: "list", label: t("列表视图", "List view"), Icon: List }].map(({ value, label, Icon }) =>
-                        <button key={value} type="button" aria-label={label} title={label} aria-pressed={collectionLayout === value}
-                          onClick={() => { setCollectionLayout(value); remember("fm-collection-layout", value); }}><SelectionPill active={collectionLayout === value} group="collection-layout" /><Icon size={16} /></button>)}
-                      <button className="collection-view-toggle" type="button"
+                        <CapsuleButton key={value} type="button" aria-label={label} title={label} aria-pressed={collectionLayout === value}
+                          onClick={() => { setCollectionLayout(value); remember("fm-collection-layout", value); }}><SelectionPill active={collectionLayout === value} group="collection-layout" /><Icon size={16} /></CapsuleButton>)}
+                      <CapsuleButton className="collection-view-toggle" type="button"
                         aria-label={collectionLayout === "grid" ? t("列表视图", "List view") : t("卡片视图", "Card view")}
                         title={collectionLayout === "grid" ? t("列表视图", "List view") : t("卡片视图", "Card view")}
                         onClick={() => {
                           const value = collectionLayout === "grid" ? "list" : "grid";
                           setCollectionLayout(value); remember("fm-collection-layout", value);
-                        }}>{collectionLayout === "grid" ? <List size={16} /> : <LayoutGrid size={16} />}</button>
+                        }}>{collectionLayout === "grid" ? <List size={16} /> : <LayoutGrid size={16} />}</CapsuleButton>
                     </div>}
                   </div>
                 </div>
                 {activeFilters.length > 0 && (
                   <div className="filter-chips" aria-label={t("当前筛选", "Active filters")}>
                     {activeFilters.map(([key, value]) => (
-                        <button
+                        <CapsuleButton
                           key={key}
                           title={`${filterName(key)}: ${value === "" ? t("未分类", "Unfiled") : value}`}
                           aria-label={t(`移除${filterName(key)}筛选：${value === "" ? "未分类" : value}`, `Remove ${filterName(key)} filter: ${value === "" ? "Unfiled" : value}`)}
@@ -1089,9 +1090,9 @@ function Workbench({
                           <span className="filter-kind">{filterName(key)}</span>
                           <span className="filter-value">{value === "" ? t("未分类", "Unfiled") : value}</span>
                           <X size={14} aria-hidden="true" />
-                        </button>
+                        </CapsuleButton>
                       ))}
-                    <button className="clear-filters" onClick={clearFilters}>{t("清除筛选", "Clear filters")}</button>
+                    <CapsuleButton className="clear-filters" onClick={clearFilters}>{t("清除筛选", "Clear filters")}</CapsuleButton>
                   </div>
                 )}
               </header>
@@ -1104,9 +1105,9 @@ function Workbench({
                     )}
                   </strong>
                   <p className="error-detail">{error}</p>
-                  <button className="text-button" onClick={() => setRequestRevision((v) => v + 1)}>
+                  <CapsuleButton className="text-button" onClick={() => setRequestRevision((v) => v + 1)}>
                     {t("重试", "Retry")}
-                  </button>
+                  </CapsuleButton>
                 </div>
               )}
               <div
@@ -1152,7 +1153,7 @@ function Workbench({
                           )}
                     </p>
                     {hasSearchContext && (
-                      <button
+                      <CapsuleButton
                         className="secondary"
                         onClick={() => {
                           setFilters({});
@@ -1161,13 +1162,13 @@ function Workbench({
                         }}
                       >
                         {t("清除条件，查看全部", "Clear filters and show all")}
-                      </button>
+                      </CapsuleButton>
                     )}
                     {!hasSearchContext && adminAvailable && (
-                      <button className="primary" onClick={() => openView("import")}>
+                      <CapsuleButton className="primary" onClick={() => openView("import")}>
                         <Import />
                         {t("导入书签", "Import bookmarks")}
-                      </button>
+                      </CapsuleButton>
                     )}
                   </div>
                 ) : (
@@ -1203,24 +1204,24 @@ function Workbench({
                       aria-label={t("跳转页码", "Page to jump to")} value={pageInput} disabled={scopePending}
                       onChange={event => setPageInput(event.target.value)} />
                     <span aria-label={t(`共 ${pageCount} 页`, `${pageCount} pages`)}>/ {pageCount}</span>
-                    <button type="submit" disabled={scopePending}>{t("跳转", "Go")}</button>
+                    <CapsuleButton type="submit" disabled={scopePending}>{t("跳转", "Go")}</CapsuleButton>
                   </form>}
-                  <button
+                  <CapsuleButton
                     className="icon-button"
                     disabled={!page?.offset || loading}
                     aria-label={t("上一页", "Previous page")}
                     onClick={() => paginate(Math.max(0, (page?.offset || 0) - (page?.limit || 30)))}
                   >
                     <ArrowLeft />
-                  </button>
-                  <button
+                  </CapsuleButton>
+                  <CapsuleButton
                     className="icon-button"
                     disabled={!page?.has_more || loading || page.depth_capped}
                     aria-label={t("下一页", "Next page")}
                     onClick={() => paginate((page?.offset || 0) + (page?.limit || 30))}
                   >
                     <ArrowRight />
-                  </button>
+                  </CapsuleButton>
                 </div>
               </footer>
             </section>
@@ -1299,10 +1300,10 @@ function Workbench({
               <>
                 <header className="page-heading">
                   <h1>{t("导入书签", "Import bookmarks")}</h1>
-                  <button className="text-button" onClick={() => openView("setup")}>
+                  <CapsuleButton className="text-button" onClick={() => openView("setup")}>
                     {t("打开完整向导", "Open setup guide")}
                     <ArrowRight size={14} />
-                  </button>
+                  </CapsuleButton>
                 </header>
                 <Importer refresh={refresh} onDone={() => openView("library")} />
               </>
@@ -1312,7 +1313,7 @@ function Workbench({
               <>
                 <header className="page-heading">
                   <div><h1>{t("任务与诊断", "Tasks and diagnostics")}</h1><p>{t("查看进度，继续处理未完成的收藏。", "Follow progress and resume unfinished work.")}</p></div>
-                  <button className="text-button support-back" onClick={() => openView("library")}><ArrowLeft size={16}/>{t("返回收藏", "Back to collection")}</button>
+                  <CapsuleButton className="text-button support-back" onClick={() => openView("library")}><ArrowLeft size={16}/>{t("返回收藏", "Back to collection")}</CapsuleButton>
                 </header>
                 <Tasks job={job} setup={setup} refresh={refresh} onBack={() => openView("library")} onProcess={(mode) => setLibraryAction({ kind: "process", mode })} />
                 <HealthTools />
@@ -1335,16 +1336,16 @@ function Workbench({
                   <div role="alert">
                     <h3>{t("暂时无法读取浏览批次", "Saving sessions could not be loaded")}</h3>
                     <p className="error">{sessionsError}</p>
-                    <button className="secondary" onClick={() => setSessionsRevision((v) => v + 1)}>
+                    <CapsuleButton className="secondary" onClick={() => setSessionsRevision((v) => v + 1)}>
                       {t("重试浏览批次", "Retry saving sessions")}
-                    </button>
+                    </CapsuleButton>
                   </div>
                 )}
                 {sessionsLoading ? (
                   <p role="status">{t("正在读取浏览批次…", "Loading saving sessions…")}</p>
                 ) : sessions.length ? (
                   sessions.map((session) => (
-                    <button
+                    <CapsuleButton
                       className="session-row"
                       key={session.session_id}
                       onClick={() => {
@@ -1366,7 +1367,7 @@ function Workbench({
                         </small>
                       </span>
                       <ArrowRight />
-                    </button>
+                    </CapsuleButton>
                   ))
                 ) : (
                   !sessionsError && (
@@ -1383,7 +1384,7 @@ function Workbench({
                   )
                 )}
                 {sessionsMore && (
-                  <button
+                  <CapsuleButton
                     className="secondary"
                     disabled={sessionsLoading}
                     onClick={async () => {
@@ -1407,7 +1408,7 @@ function Workbench({
                   >
                     {sessionsLoading ? <LoaderCircle className="spin" /> : <ArrowDown />}
                     {t("加载更多", "Load more")}
-                  </button>
+                  </CapsuleButton>
                 )}
               </>
             )}
@@ -1446,7 +1447,7 @@ function HealthTools() {
           "This visits up to 20 original URLs to check availability. Bookmarks are preserved.",
         )}
       </p>
-      <button
+      <CapsuleButton
         className="secondary"
         disabled={busy}
         onClick={async () => {
@@ -1461,7 +1462,7 @@ function HealthTools() {
         }}
       >
         {t("确认并检查链接", "Confirm and check links")}
-      </button>
+      </CapsuleButton>
       <pre role="status">{message}</pre>
     </details>
   );

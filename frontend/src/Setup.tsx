@@ -1,3 +1,4 @@
+import { CapsuleButton } from "./ui/controls";
 import { useRef, useState } from "react";
 import { ArrowRight, Check, FolderOpen, LoaderCircle, Upload } from "lucide-react";
 import { api, post, type Job, type Setup } from "./api";
@@ -80,16 +81,16 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
           hidden
           onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; upload(file); }}
         />
-        <button className="primary" disabled={busy} onClick={() => input.current?.click()}>
+        <CapsuleButton className="primary" disabled={busy} onClick={() => input.current?.click()}>
           {busy ? <LoaderCircle className="spin"/> : <FolderOpen />}
           {busy ? t("正在导入…", "Importing…") : t("选择文件", "Choose a file")}
-        </button>
+        </CapsuleButton>
       </div>
       <details className="import-help">
         <summary>{t("如何导出浏览器书签？", "How do I export my bookmarks?")}</summary>
         <p>{t("在 Chrome 或 Edge 中打开书签管理器，选择菜单中的「导出书签」，再将保存的 HTML 文件拖到这里。也可导入 Facetmark 导出的 JSON。", "Open the bookmark manager in Chrome or Edge, choose Export bookmarks from its menu, then drop the saved HTML file here. Facetmark JSON exports are also supported.")}</p>
       </details>
-      <button
+      <CapsuleButton
         className="text-button"
         disabled={busy || finding}
         onClick={async () => {
@@ -108,7 +109,7 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
         }}
       >
         {finding ? t("正在查找书签来源…", "Finding bookmark sources…") : t("查找本机 Chromium 浏览器的书签来源", "Find local Chromium bookmark sources")}
-      </button>
+      </CapsuleButton>
       {sources && (
         <div className="source-list">
           {sources.length === 0 ? (
@@ -120,7 +121,7 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
             </p>
           ) : (
             sources.map((source) => (
-              <button
+              <CapsuleButton
                 disabled={busy}
                 className="source"
                 key={source.id}
@@ -132,7 +133,7 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
                   <small>{source.profile}</small>
                 </span>
                 <span>{t("导入此来源", "Import this source")}</span>
-              </button>
+              </CapsuleButton>
             ))
           )}
         </div>
@@ -142,7 +143,7 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
           <Check size={16} />
           {message}
         </p><p>{t("现在就可以搜索和整理收藏，AI 摘要可稍后配置。", "Your bookmarks are ready to search and organize. AI summaries can be set up later.")}</p>
-        {onDone && <button className="primary" onClick={onDone}>{t("查看已导入的收藏", "View imported bookmarks")}<ArrowRight size={16}/></button>}</div>
+        {onDone && <CapsuleButton className="primary" onClick={onDone}>{t("查看已导入的收藏", "View imported bookmarks")}<ArrowRight size={16}/></CapsuleButton>}</div>
       )}
       {error && (
         <p className="error" role="alert">
@@ -183,13 +184,13 @@ export default function SetupFlow({
             {t("几步准备，建立属于你的检索空间。", "A few steps to your own searchable library.")}
           </p>
         </div>
-        <button className="text-button" onClick={onDone}>
+        <CapsuleButton className="text-button" onClick={onDone}>
           {t("先用关键词检索", "Use keyword search for now")}
-        </button>
+        </CapsuleButton>
       </header>
       <nav className="setup-steps" aria-label={t("设置步骤", "Setup steps")}>
         {labels.map((label, index) => (
-          <button
+          <CapsuleButton
             key={label}
             aria-current={step === index ? "step" : undefined}
             disabled={index > step + 1}
@@ -197,7 +198,7 @@ export default function SetupFlow({
           >
             <span>{index < step ? <Check size={14} /> : index + 1}</span>
             {label}
-          </button>
+          </CapsuleButton>
         ))}
       </nav>
       {step === 0 ? (
@@ -216,10 +217,10 @@ export default function SetupFlow({
               "A word, a description, or the folder you saved it in. Results and page text stay side by side.",
             )}
           </p>
-          <button className="primary" onClick={onDone}>
+          <CapsuleButton className="primary" onClick={onDone}>
             {t("进入工作台", "Open workbench")}
             <ArrowRight />
-          </button>
+          </CapsuleButton>
         </section>
       )}
       {step < 3 && (
@@ -227,7 +228,7 @@ export default function SetupFlow({
           <span>
             {setup?.bookmarks ?? 0} {t("条书签已在库中", "bookmarks in your library")}
           </span>
-          <button
+          <CapsuleButton
             className="secondary"
             disabled={step === 0 && !setup?.bookmarks}
             onClick={() => setStep(step + 1)}
@@ -236,7 +237,7 @@ export default function SetupFlow({
               ? t("继续查看索引确认", "Continue to index confirmation")
               : t("下一步", "Continue")}
             <ArrowRight />
-          </button>
+          </CapsuleButton>
         </footer>
       )}
     </div>

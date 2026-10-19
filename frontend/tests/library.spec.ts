@@ -1,3 +1,4 @@
+import { settleVisualLayout } from "./visual-layout";
 import { expect, test as base, type APIRequestContext, type Locator, type Page } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile } from "node:fs/promises";
@@ -184,6 +185,7 @@ test("create and edit preserve literal folder names and tags after reload", asyn
   await chooseFolder(edit, "收藏文件夹", updated.folder);
   await edit.getByRole("button", { name: `移除标签 ${original.tags[0]}`, exact: true }).click();
   await addTag(edit, updated.tags[1]);
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/library-edit-zh-1440.png", animations: "disabled" });
   await save(edit);
   expect(await library.read(record.bookmark_id)).toMatchObject(updated);
@@ -261,6 +263,7 @@ test("mobile folder selection recovers from errors and Escape cancels only the s
   await expect(trigger).toBeFocused();
   await expect(trigger).toContainText(nested);
   await trigger.click();
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/library-folder-picker-mobile.png", animations: "disabled" });
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)).toBe(false);
   const optionBox = await picker.getByTitle(nested).boundingBox();
@@ -431,6 +434,7 @@ test("creation, organization and export start in the category the user is browsi
   await expect(dialog.getByRole("button", { name: `移除标签 ${tag}`, exact: true })).toBeVisible();
   await dialog.getByLabel("收藏网址", { exact: true }).fill(`https://library-ui.example/${token}/context`);
   await dialog.getByLabel("收藏标题", { exact: true }).fill("在当前分类里保存一条新收藏");
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/library-context-create.png", animations: "disabled" });
   const response = page.waitForResponse(res => new URL(res.url()).pathname === "/admin/library/bookmarks" && res.request().method() === "POST");
   await save(dialog);
@@ -603,6 +607,7 @@ test("mobile action dialogs trap focus, fit the screen and restore the underlyin
   expect(box!.x).toBeGreaterThanOrEqual(0);
   expect(box!.x + box!.width).toBeLessThanOrEqual(390);
   expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBeTruthy();
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/library-edit-zh-390.png", animations: "disabled" });
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);

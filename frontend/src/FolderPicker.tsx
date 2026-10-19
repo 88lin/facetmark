@@ -1,10 +1,12 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { Input } from "@heroui/react";
 import { Check, ChevronDown, Folder, FolderOpen, FolderPlus, Inbox, LoaderCircle, Search } from "lucide-react";
 import { api, query } from "./api";
 import { useText } from "./locale";
 import { OverlayMotion } from "./overlay-motion";
 import { useReducedMotion } from "./useReducedMotion";
+import { CapsuleButton as Button } from "./ui/controls";
 import "./folder-picker.css";
 
 type FolderPage = { items: { value: string; count: number }[]; total: number; has_more: boolean };
@@ -93,8 +95,7 @@ export function FolderPicker({ value, onChange, label, allowCreate = true, allow
   return <div className="folder-picker field" ref={root} data-open={open} onKeyDown={onKeyDown}
     onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
     <span id={`${id}-label`}>{label}</span>
-    <motion.button data-overlay-motion type="button" className="folder-picker-trigger" ref={trigger} aria-expanded={open}
-      whileTap={reduced ? undefined : { scale: 0.985 }} transition={{ duration: 0.12 }}
+    <Button data-overlay-motion type="button" className="folder-picker-trigger" ref={trigger} aria-expanded={open}
       aria-controls={`${id}-panel`} aria-labelledby={`${id}-label ${id}-value`}
       onClick={() => {
         if (!open) { setRequest({ q: "", offset: 0 }); setPage({ items: [], total: 0, has_more: false }); setLoading(true); }
@@ -106,42 +107,38 @@ export function FolderPicker({ value, onChange, label, allowCreate = true, allow
         {value || (allowUnfiled ? t("未分类", "Unfiled") : t("选择文件夹", "Choose a folder"))}
       </motion.span>
       <ChevronDown size={16} className="folder-picker-chevron" />
-    </motion.button>
+    </Button>
     <AnimatePresence>
     {open && <OverlayMotion key="folder-menu" id={`${id}-panel`} className="folder-picker-panel" role="region" aria-labelledby={`${id}-label`}>
       <label className="folder-picker-search"><Search size={17} aria-hidden="true" />
-        <input ref={search} value={request.q} aria-label={t("搜索文件夹", "Search folders")}
+        <Input ref={search} value={request.q} aria-label={t("搜索文件夹", "Search folders")}
           maxLength={2048} placeholder={allowCreate ? t("搜索或输入新文件夹名称…", "Search or enter a new folder name…") : t("搜索文件夹…", "Search folders…")}
           onChange={event => { setRequest({ q: event.target.value, offset: 0 }); setPage({ items: [], total: 0, has_more: false }); setLoading(true); setError(false); }} />
       </label>
       <div className="folder-picker-options" aria-busy={loading}>
-        {allowUnfiled && <motion.button data-overlay-motion type="button" data-folder-option aria-pressed={value === ""} onClick={() => choose("")}
-          whileTap={reduced ? undefined : { scale: 0.98 }}>
+        {allowUnfiled && <Button data-overlay-motion type="button" data-folder-option aria-pressed={value === ""} onClick={() => choose("")}>
           <Inbox size={17}/><span>{t("未分类", "Unfiled")}</span>{value === "" && <Check size={16}/>}
-        </motion.button>}
-        {selectedMissing && <motion.button data-overlay-motion type="button" data-folder-option title={value} aria-pressed="true" onClick={() => choose(value)}
-          whileTap={reduced ? undefined : { scale: 0.98 }}>
+        </Button>}
+        {selectedMissing && <Button data-overlay-motion type="button" data-folder-option title={value} aria-pressed="true" onClick={() => choose(value)}>
           <FolderOpen size={17}/><FolderPath value={value}/><Check size={16}/>
-        </motion.button>}
-        {page.items.map(item => <motion.button data-overlay-motion type="button" key={item.value} data-folder-option title={item.value}
-          whileTap={reduced ? undefined : { scale: 0.98 }}
+        </Button>}
+        {page.items.map(item => <Button data-overlay-motion type="button" key={item.value} data-folder-option title={item.value}
           aria-pressed={value === item.value} onClick={() => choose(item.value)}>
           <Folder size={17}/><FolderPath value={item.value}/>
           {value === item.value ? <Check size={16}/> : <small className="folder-picker-count">{item.count.toLocaleString()}</small>}
-        </motion.button>)}
+        </Button>)}
         {error ? <div className="folder-picker-feedback" role="alert">
           <span>{t("无法加载文件夹。", "Could not load folders.")}</span>
-          <button type="button" className="text-button" onClick={() => setRetry(old => old + 1)}>{t("重试", "Retry")}</button>
+          <Button type="button" className="text-button" onClick={() => setRetry(old => old + 1)}>{t("重试", "Retry")}</Button>
         </div> : loading ? <p className="folder-picker-feedback" role="status"><LoaderCircle size={16} className="spin"/>{t("正在加载…", "Loading…")}</p>
           : !page.items.length ? <p className="folder-picker-feedback">{draft ? t("没有匹配的文件夹", "No matching folders") : t("还没有文件夹", "No folders yet")}</p> : null}
-        {!error && page.has_more && <button type="button" className="folder-picker-more" disabled={loading}
+        {!error && page.has_more && <Button type="button" className="folder-picker-more" disabled={loading}
           onClick={() => setRequest(old => ({ ...old, offset: page.items.length }))}>
           {t(`加载更多（${page.items.length} / ${page.total}）`, `Load more (${page.items.length} / ${page.total})`)}
-        </button>}
-        {canCreate && <motion.button data-overlay-motion type="button" data-folder-option className="folder-picker-create" onClick={() => choose(draft)}
-          whileTap={reduced ? undefined : { scale: 0.98 }}>
+        </Button>}
+        {canCreate && <Button data-overlay-motion type="button" data-folder-option className="folder-picker-create" onClick={() => choose(draft)}>
           <FolderPlus size={18}/><span>{t(`使用新文件夹「${draft}」`, `Use new folder “${draft}”`)}</span>
-        </motion.button>}
+        </Button>}
       </div>
       {allowCreate && <p className="folder-picker-note">{t("新文件夹会在保存收藏时创建；用「 / 」分隔层级。", "New folders are created when you save. Use “ / ” for nested paths.")}</p>}
     </OverlayMotion>}

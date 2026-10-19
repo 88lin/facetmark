@@ -1,3 +1,4 @@
+import { settleVisualLayout } from "./visual-layout";
 import { expect, test } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 
@@ -19,16 +20,19 @@ test("settings categories preserve drafts and support keyboard and narrow layout
   await expect(page.getByRole("tab", { name: "设备同步", exact: true })).toBeFocused();
   await expect(page.locator(".sync-settings")).toBeVisible();
   await expect(model).toBeHidden();
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/support-sync-desktop.png", animations: "disabled" });
   await page.keyboard.press("Home");
   await expect(ai).toBeFocused();
   await expect(model).toHaveValue("unsaved-model-draft");
   await expect(page.getByRole("tabpanel")).toHaveCount(1);
   await page.setViewportSize({ width: 390, height: 844 });
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/support-settings-mobile.png", animations: "disabled" });
   await page.getByRole("tab", { name: "浏览器扩展", exact: true }).click();
   await expect(page.getByRole("heading", { name: "连接浏览器扩展" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/support-extension-mobile.png", animations: "disabled" });
   await ai.click();
   await expect(model).toHaveValue("unsaved-model-draft");
@@ -50,6 +54,7 @@ test("idle and paused tasks show truthful status and recover failed saved-task r
   failed = false;
   await page.getByRole("button", { name: "重试读取任务", exact: true }).click();
   await expect(page.getByRole("alert")).toHaveCount(0);
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/support-tasks-idle.png", animations: "disabled" });
   current = { id: "synthetic-paused", state: "paused", resumable: true, current: "enrich", planned: ["enrich"], params: { mode: "summarize" }, items: { done: 24, total: 80, failed: 2 } };
   await expect(page.locator(".tasks h2")).toHaveText("任务已暂停", { timeout: 10000 });
@@ -65,6 +70,7 @@ test("idle and paused tasks show truthful status and recover failed saved-task r
   const resumeBounds = await resume.boundingBox();
   const newWorkBounds = await page.locator(".task-shortcuts").boundingBox();
   expect(resumeBounds!.y + resumeBounds!.height).toBeLessThanOrEqual(newWorkBounds!.y);
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/support-tasks-paused-mobile.png", animations: "disabled" });
   current = { ...current, params: { mode: "fetch" }, current: "fetch", planned: ["fetch"] };
   await expect(page.locator(".task-progress")).toContainText("2 条正文抓取失败", { timeout: 10000 });
@@ -83,6 +89,7 @@ test("partial task recovery resumes the saved scope without starting broad work"
   await page.getByRole("button", { name: "任务", exact: true }).click();
   await expect(page.locator(".task-scope")).toContainText("Research");
   await page.setViewportSize({ width: 390, height: 844 });
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/support-tasks-partial-mobile.png", animations: "disabled" });
   await page.getByRole("button", { name: "重试此任务失败项", exact: true }).click();
   await expect.poll(() => resumed).toEqual({ resume_id: current.id, confirmed: true });
@@ -130,6 +137,7 @@ test("desktop reader return and tabs have separate space in English dark mode", 
   await page.getByRole("tab", { name: "Related", exact: true }).click();
   await page.getByRole("tab", { name: "Page text", exact: true }).click();
   await expect(page.locator(".body-text")).toBeVisible();
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/support-reader-en-dark-1120.png", animations: "disabled" });
   await back.click();
   await expect(page.locator(".result-row").first().locator(".bookmark-preview")).toBeFocused();
@@ -149,6 +157,7 @@ test("an import can retry the same file and returns directly to the collection",
   await upload.setInputFiles(file);
   await expect(page.locator(".import-result")).toContainText("新增 2");
   expect(attempts).toBe(2);
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/support-import-success.png", animations: "disabled" });
   await page.getByRole("button", { name: "查看已导入的收藏", exact: true }).click();
   await expect(page.locator(".result-row")).toHaveCount(30);

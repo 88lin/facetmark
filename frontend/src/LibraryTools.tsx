@@ -1,3 +1,4 @@
+import { CapsuleButton } from "./ui/controls";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence } from "motion/react";
@@ -38,24 +39,24 @@ export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch
   return <div className={`library-tools ${batch ? "selecting" : ""}`}>
     {batch ? <>
       <span className="selection-total" role="status">{t(`已选择 ${ids.length} 条`, `${ids.length} selected`)}</span>
-      <button className="text-button" aria-pressed={pageSelected} disabled={!pageIds.length || pending}
+      <CapsuleButton className="text-button" aria-pressed={pageSelected} disabled={!pageIds.length || pending}
         onClick={() => onIds(pageSelected ? ids.filter(id => !pageIds.includes(id)) : [...new Set([...ids, ...pageIds])].slice(0, 1000))}>
-        {pageSelected ? t("取消本页选择", "Deselect this page") : t("选择本页", "Select this page")}</button>
-      <button className="secondary" disabled={!ids.length || disabled || pending} onClick={() => onAction({ kind: "bulk", ids })}><ListChecks size={15}/>{t("批量操作", "Actions")}</button>
-      <button className="secondary" disabled={!ids.length || pending} onClick={() => onAction({ kind: "export" })}><Download size={15}/>{t("导出所选", "Export selected")}</button>
-      <button className="text-button" onClick={() => onBatch(false)}>{t("完成选择", "Done")}</button>
+        {pageSelected ? t("取消本页选择", "Deselect this page") : t("选择本页", "Select this page")}</CapsuleButton>
+      <CapsuleButton className="secondary" disabled={!ids.length || disabled || pending} onClick={() => onAction({ kind: "bulk", ids })}><ListChecks size={15}/>{t("批量操作", "Actions")}</CapsuleButton>
+      <CapsuleButton className="secondary" disabled={!ids.length || pending} onClick={() => onAction({ kind: "export" })}><Download size={15}/>{t("导出所选", "Export selected")}</CapsuleButton>
+      <CapsuleButton className="text-button" onClick={() => onBatch(false)}>{t("完成选择", "Done")}</CapsuleButton>
       {ids.length >= 1000 && <span className="selection-limit" role="status">{t("一次最多选择 1000 条", "Select up to 1,000 at a time")}</span>}
     </> : <>
-      <button className="secondary" aria-label={t("新增收藏", "Add bookmark")} disabled={disabled} onClick={() => onAction({ kind: "create" })}><Plus size={15}/><span className="action-full">{t("新增收藏", "Add bookmark")}</span><span className="action-short" aria-hidden="true">{t("新增", "Add")}</span></button>
+      <CapsuleButton className="secondary" aria-label={t("新增收藏", "Add bookmark")} disabled={disabled} onClick={() => onAction({ kind: "create" })}><Plus size={15}/><span className="action-full">{t("新增收藏", "Add bookmark")}</span><span className="action-short" aria-hidden="true">{t("新增", "Add")}</span></CapsuleButton>
       <details ref={manage} className="library-manage" onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }} onKeyDown={event => { if (event.key === "Escape") { event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }}>
         <summary>{t("管理收藏", "Manage")}<ChevronDown size={14}/></summary>
         <div className="library-manage-menu" onClick={event => { if ((event.target as HTMLElement).closest("button:not(:disabled)")) event.currentTarget.closest("details")!.open = false; }}>
-          <button type="button" disabled={!pageIds.length || disabled || pending} onClick={() => onBatch(true)}><ListChecks size={16}/>{t("批量管理", "Select")}</button>
-          <button type="button" disabled={disabled} onClick={() => onAction({ kind: "taxonomy" })}><Folder size={16}/>{t("整理分类", "Organize")}</button>
-          <button type="button" disabled={pending} onClick={() => onAction({ kind: "export" })}><Download size={16}/>{t("导出", "Export")}</button>
+          <CapsuleButton type="button" disabled={!pageIds.length || disabled || pending} onClick={() => onBatch(true)}><ListChecks size={16}/>{t("批量管理", "Select")}</CapsuleButton>
+          <CapsuleButton type="button" disabled={disabled} onClick={() => onAction({ kind: "taxonomy" })}><Folder size={16}/>{t("整理分类", "Organize")}</CapsuleButton>
+          <CapsuleButton type="button" disabled={pending} onClick={() => onAction({ kind: "export" })}><Download size={16}/>{t("导出", "Export")}</CapsuleButton>
         </div>
       </details>
-      <button className="primary" disabled={disabled || pending || !pageIds.length} onClick={onSummarize}><Sparkles size={15}/>{t("生成摘要", "Summarize")}</button>
+      <CapsuleButton className="primary" disabled={disabled || pending || !pageIds.length} onClick={onSummarize}><Sparkles size={15}/>{t("生成摘要", "Summarize")}</CapsuleButton>
     </>}
   </div>;
 }
@@ -72,10 +73,10 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (tags: string
   return <div className="tag-editor">
     <div className="tag-entry">
       <input aria-label={t("输入标签", "Enter a tag")} aria-describedby={hintId} value={draft} maxLength={128} placeholder={t("输入标签后按 Enter", "Add a tag, then Enter")} onChange={e => setDraft(e.target.value)} onBlur={append} onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); append(); } }}/>
-      <button type="button" className="icon-button" aria-label={t("添加标签", "Add tag")} onClick={append}><Plus size={16}/></button>
+      <CapsuleButton type="button" className="icon-button" aria-label={t("添加标签", "Add tag")} onClick={append}><Plus size={16}/></CapsuleButton>
     </div>
     <p id={hintId} className="hint tag-hint">{t("标签可包含空格或逗号。", "Tags can include spaces or commas.")}</p>
-    {!!tags.length && <div className="editing-tags">{tags.map(tag => <button type="button" key={tag} onClick={() => onChange(tags.filter(value => value !== tag))} aria-label={t(`移除标签 ${tag}`, `Remove tag ${tag}`)}><Tag size={12}/>{tag}<X size={12}/></button>)}</div>}
+    {!!tags.length && <div className="editing-tags">{tags.map(tag => <CapsuleButton type="button" key={tag} onClick={() => onChange(tags.filter(value => value !== tag))} aria-label={t(`移除标签 ${tag}`, `Remove tag ${tag}`)}><Tag size={12}/>{tag}<X size={12}/></CapsuleButton>)}</div>}
   </div>;
 }
 
@@ -240,9 +241,9 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
         </fieldset>
         {error && <p className="error" role="alert">{error}</p>}
         {running && action.kind !== "export" && <p className="notice">{t("请等待当前任务完成，再修改收藏或启动新任务。", "Wait for the current task before editing or starting another task.")}</p>}
-        <div className="library-dialog-footer"><button type="button" className="secondary" disabled={busy} onClick={() => setOpen(false)}>{t("取消", "Cancel")}</button><button className={`primary ${deleting ? "danger-action" : ""}`} disabled={busy || (running && action.kind !== "export") || (needsConsent && !confirmed) || (action.kind === "taxonomy" && !name.trim()) || (processing && ((mode === "summarize" && !chatReady) || targetCount === null || targetCount === 0 || !!countError)) || (action.kind === "bulk" && ["tag-add", "tag-remove"].includes(operation) && !tags.length)}>
+        <div className="library-dialog-footer"><CapsuleButton type="button" className="secondary" disabled={busy} onClick={() => setOpen(false)}>{t("取消", "Cancel")}</CapsuleButton><CapsuleButton className={`primary ${deleting ? "danger-action" : ""}`} disabled={busy || (running && action.kind !== "export") || (needsConsent && !confirmed) || (action.kind === "taxonomy" && !name.trim()) || (processing && ((mode === "summarize" && !chatReady) || targetCount === null || targetCount === 0 || !!countError)) || (action.kind === "bulk" && ["tag-add", "tag-remove"].includes(operation) && !tags.length)}>
           {busy ? <LoaderCircle size={16} className="spin"/> : deleting ? <Trash2 size={16}/> : <Check size={16}/>}{busy ? t("正在处理…", "Working…") : action.kind === "export" ? t("下载导出文件", "Download export") : processing ? t("开始任务", "Start task") : deleting ? t("确认删除", "Delete bookmarks") : t("保存", "Save")}
-        </button></div>
+        </CapsuleButton></div>
       </form>
       </OverlayMotion>
     </Dialog.Content>}

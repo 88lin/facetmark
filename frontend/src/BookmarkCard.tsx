@@ -1,5 +1,6 @@
+import { CapsuleButton } from "./ui/controls";
 import { useEffect, useRef, useState } from "react";
-import { ExternalLink, Eye, Folder, Pencil, Sparkles } from "lucide-react";
+import { ExternalLink, Eye, Folder, Pencil, Sparkles, Maximize2, Minimize2 } from "lucide-react";
 import { post, safeUrl, type Bookmark } from "./api";
 import { useText } from "./locale";
 import { motion } from "motion/react";
@@ -55,7 +56,6 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
           }}/>
         <span className="site-letter" aria-hidden="true">{(record.domain || "F").slice(0, 1).toUpperCase()}</span>
         <span className="source-domain">{record.domain}</span>
-        <span className="summary-basis">{label}</span>
         {href && <a className="bookmark-external" href={href} target="_blank" rel="noreferrer" onClick={trackOpen}
           aria-label={t(`打开原网页：${record.title || record.url}`, `Open original: ${record.title || record.url}`)}><ExternalLink size={15}/></a>}
       </div>
@@ -63,27 +63,29 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
         onClick={trackOpen} onAuxClick={event => { if (event.button === 1) trackOpen(); }}>{record.title || record.url}</a>
         : <span className="result-title">{record.title || record.url}</span>}
       <div className={`bookmark-description ${expanded ? "expanded" : ""}`}>
-        <p ref={summary} className="result-summary">{text || (display === "original" ? t("预览中可抓取正文，或直接打开原网页。", "Fetch page text in Preview, or open the original website.") : t("可生成摘要，在收藏中直接浏览。", "Generate a summary to read it here."))}</p>
-        {!!text && (clipped || expanded) && <button className="text-button summary-expand" aria-expanded={expanded}
-          onClick={() => setExpanded(!expanded)}>{expanded ? t("收起", "Collapse") : t("展开全文", "Show full text")}</button>}
+        <p ref={summary} className="result-summary"><span className="summary-basis">{label} · </span>{text || (display === "original" ? t("预览中可抓取正文，或直接打开原网页。", "Fetch page text in Preview, or open the original website.") : t("可生成摘要，在收藏中直接浏览。", "Generate a summary to read it here."))}</p>
       </div>
       {record.summary_status === "failed" && <p className="summary-failure">{t("上次生成失败", "Last attempt failed")}
-        {onSummarize && <button className="text-button" disabled={disabled} onClick={onSummarize}>{t("重试", "Retry")}</button>}</p>}
+        {onSummarize && <CapsuleButton className="text-button" disabled={disabled} onClick={onSummarize}>{t("重试", "Retry")}</CapsuleButton>}</p>}
       <div className="result-meta">
         <span className="result-folder" title={record.folder}><Folder size={12}/><span>{record.folder || t("未分类", "Unfiled")}</span></span>
         <div className="bookmark-actions">
-          {onEdit && <button className="icon-button" disabled={disabled} onClick={onEdit}
-            aria-label={t(`编辑：${record.title || record.url}`, `Edit: ${record.title || record.url}`)} title={t("编辑收藏", "Edit bookmark")}><Pencil size={15}/></button>}
-          {onSummarize && <button className="icon-button" disabled={disabled} onClick={onSummarize}
-            aria-label={t("生成此条摘要", "Summarize this bookmark")} title={t("生成摘要", "Summarize")}><Sparkles size={15}/></button>}
-          <button className="bookmark-preview" disabled={disabled} onClick={event => onPreview(event.currentTarget)}
+          {!!text && (clipped || expanded) && <CapsuleButton className="icon-button summary-expand" aria-expanded={expanded}
+            aria-label={expanded ? t("收起", "Collapse") : t("展开全文", "Show full text")}
+            title={expanded ? t("收起", "Collapse") : t("展开全文", "Show full text")}
+            onClick={() => setExpanded(!expanded)}>{expanded ? <Minimize2 size={15}/> : <Maximize2 size={15}/>}</CapsuleButton>}
+          {onEdit && <CapsuleButton className="icon-button" disabled={disabled} onClick={onEdit}
+            aria-label={t(`编辑：${record.title || record.url}`, `Edit: ${record.title || record.url}`)} title={t("编辑收藏", "Edit bookmark")}><Pencil size={15}/></CapsuleButton>}
+          {onSummarize && <CapsuleButton className="icon-button" disabled={disabled} onClick={onSummarize}
+            aria-label={t("生成此条摘要", "Summarize this bookmark")} title={t("生成摘要", "Summarize")}><Sparkles size={15}/></CapsuleButton>}
+          <CapsuleButton className="bookmark-preview" disabled={disabled} onClick={event => onPreview(event.currentTarget)}
             onKeyDown={event => {
               if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
               event.preventDefault();
               const controls = [...(event.currentTarget.closest(".result-list")?.querySelectorAll<HTMLButtonElement>(".bookmark-preview") || [])];
               controls[controls.indexOf(event.currentTarget) + (event.key === "ArrowDown" ? 1 : -1)]?.focus();
             }}
-            aria-label={t(`预览：${record.title || record.url}`, `Preview: ${record.title || record.url}`)} aria-pressed={selected}><Eye size={15}/>{t("预览", "Preview")}</button>
+            aria-label={t(`预览：${record.title || record.url}`, `Preview: ${record.title || record.url}`)} aria-pressed={selected}><Eye size={15}/>{t("预览", "Preview")}</CapsuleButton>
         </div>
       </div>
     </div>

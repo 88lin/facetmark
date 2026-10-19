@@ -2,7 +2,9 @@ import { expect, test, type Page } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 
 type MotionNode = {
-  key: string; transform: string; opacity: string; x: number; y: number;
+  key: string; transform: string; opacity: string; filter: string; x: number; y: number;
+  translateX: number; translateY: number;
+  inline: { transform: string; opacity: string; filter: string; willChange: string };
   inert: boolean; hidden: string | null; pointerEvents: string; phase: string | null;
   animations: { state: string; progress: number | null; properties: string[] }[];
 };
@@ -16,9 +18,11 @@ declare global {
 }
 
 // Start before the real input, so a fast animation cannot finish between click()
-// and an assertion. WAAPI/CSS activity and painted Motion geometry are both kept.
+// and an assertion. Capture painted GSAP/Motion states as well as WAAPI/CSS.
 function installMotionProbe() {
   let frame = 0;
+  let nextNode = 0;
+  const identities = new WeakMap<Element, string>();
   let samples: MotionFrame[] = [];
   window.__interactionProbe = {
     start(selectors) {
@@ -28,12 +32,17 @@ function installMotionProbe() {
       const sample = () => {
         const targets: MotionFrame["targets"] = {};
         for (const selector of selectors) {
-          targets[selector] = [...document.querySelectorAll<HTMLElement>(selector)].slice(0, 4).map((element, index) => {
+          targets[selector] = [...document.querySelectorAll<HTMLElement>(selector)].slice(0, 4).map(element => {
             const style = getComputedStyle(element);
             const rect = element.getBoundingClientRect();
+            const matrix = new DOMMatrixReadOnly(style.transform === "none" ? undefined : style.transform);
+            if (!identities.has(element)) identities.set(element, `node-${++nextNode}`);
             return {
-              key: element.dataset.bookmarkId || element.id || String(index),
-              transform: style.transform, opacity: style.opacity,
+              key: identities.get(element)!,
+              transform: style.transform, opacity: style.opacity, filter: style.filter,
+              translateX: matrix.m41, translateY: matrix.m42,
+              inline: { transform: element.style.transform, opacity: element.style.opacity,
+                filter: element.style.filter, willChange: element.style.willChange },
               x: Math.round(rect.x * 100) / 100, y: Math.round(rect.y * 100) / 100,
               inert: element.inert, hidden: element.getAttribute("aria-hidden"),
               pointerEvents: style.pointerEvents, phase: element.dataset.overlayPhase || null,
@@ -87,13 +96,33 @@ function expectPaintedMotion(step: MotionEvidence, selector: string, layout = fa
   const statesByNode = new Map<string, Set<string>>();
   for (const node of nodes(step, selector)) {
     const states = statesByNode.get(node.key) || new Set<string>();
-    states.add(layout ? `${node.x},${node.y}` : `${node.transform},${node.opacity}`);
+    states.add(layout ? `${node.x},${node.y}` : `${node.transform},${node.opacity},${node.filter}`);
     statesByNode.set(node.key, states);
   }
   // More than the before/after states demonstrates an intermediate painted frame.
   // Positions from distinct, stationary cards must never satisfy this check.
   expect([...statesByNode.values()].some(states => states.size > 2),
     `${step.action}: one node has intermediate ${layout ? "positions" : "painted states"}`).toBe(true);
+}
+
+function expectContentMotion(step: MotionEvidence, selector: string, direction?: 1 | -1) {
+  const samples = nodes(step, selector);
+  const grouped = new Map<string, MotionNode[]>();
+  for (const node of samples) grouped.set(node.key, [...(grouped.get(node.key) || []), node]);
+  // GSAP writes inline styles and does not appear in getAnimations(). Require
+  // multiple intermediate values for all three properties on one actual node.
+  expect([...grouped.values()].some(values =>
+    new Set(values.map(node => node.transform)).size > 2 &&
+    new Set(values.filter(node => +node.opacity > 0 && +node.opacity < 1).map(node => node.opacity)).size > 2 &&
+    new Set(values.filter(node => node.filter !== "none" && node.filter !== "blur(0px)").map(node => node.filter)).size > 2),
+  `${step.action}: same node paints travel, opacity and bounded focus`).toBe(true);
+  if (direction) expect(samples.some(node => node.translateX * direction > 1),
+    `${step.action}: travel follows destination order`).toBe(true);
+  for (const node of step.frames.at(-1)?.targets[selector] || []) {
+    expect(node.inline, `${step.action}: settled content releases owned inline styles`).toEqual({
+      transform: "", opacity: "", filter: "", willChange: "",
+    });
+  }
 }
 
 function expectInertExit(step: MotionEvidence, selector: string) {
@@ -138,10 +167,16 @@ test("everyday navigation has visible motion without losing drafts, focus or inp
     const header = page.locator(".app-header");
     let step = await record(page, evidence, "收藏 → 任务", [".page-scroll", ".app-header .selection-pill"],
       () => header.getByRole("button", { name: "任务", exact: true }).click());
-    expectAnimation(step, ".page-scroll");
-    step = await record(page, evidence, "任务 → 设置", [".page-scroll", ".app-header .selection-pill"],
-      () => header.getByRole("button", { name: "设置", exact: true }).click());
-    expectAnimation(step, ".page-scroll");
+    expectContentMotion(step, ".page-scroll", 1);
+    step = await record(page, evidence, "任务 → 设置，快速往返后停在设置", [".page-scroll", ".app-header .selection-pill"], async () => {
+      await header.getByRole("button", { name: "设置", exact: true }).click();
+      await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+      await header.getByRole("button", { name: "任务", exact: true }).click();
+      await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+      await header.getByRole("button", { name: "设置", exact: true }).click();
+    });
+    expectContentMotion(step, ".page-scroll");
+    await expect(page.getByRole("heading", { name: "设置", exact: true })).toBeVisible();
 
     // The summary input can become an Agent picker after local discovery. The
     // embedding input remains available without changing the selected provider.
@@ -152,11 +187,11 @@ test("everyday navigation has visible motion without losing drafts, focus or inp
       await page.getByRole("tab", { name: "AI 连接", exact: true }).focus();
       await page.keyboard.press("ArrowRight");
     });
-    expectAnimation(step, visiblePanel);
+    expectContentMotion(step, visiblePanel, 1);
     await expect(page.getByRole("tab", { name: "设备同步", exact: true })).toBeFocused();
     await expect(draft).toBeHidden();
     step = await record(page, evidence, "键盘返回 AI 连接", [visiblePanel], () => page.keyboard.press("Home"));
-    expectAnimation(step, visiblePanel);
+    expectContentMotion(step, visiblePanel, -1);
     await expect(draft).toHaveValue("synthetic-unsaved-motion-draft");
     await expect(page.getByRole("tabpanel")).toHaveCount(1);
 
@@ -171,12 +206,12 @@ test("everyday navigation has visible motion without losing drafts, focus or inp
 
     step = await record(page, evidence, "设置 → 收藏", [".results-column"],
       () => header.getByRole("button", { name: "全部书签", exact: true }).click());
-    expectAnimation(step, ".results-column");
+    expectContentMotion(step, ".results-column", -1);
     const categories = page.locator(".collection-sidebar");
     for (const name of ["标签", "文件夹"]) {
       step = await record(page, evidence, `分类切换：${name}`, [".collection-sidebar .facet-options"],
         () => categories.getByRole("button", { name, exact: true }).click());
-      expectAnimation(step, ".collection-sidebar .facet-options");
+      expectContentMotion(step, ".collection-sidebar .facet-options", name === "标签" ? 1 : -1);
       await expect(categories.locator(".facet-options")).toHaveAttribute("aria-busy", "false");
     }
     const bookmark = await page.locator(".result-row").nth(2).getAttribute("data-bookmark-id");
@@ -229,13 +264,14 @@ test("everyday navigation has visible motion without losing drafts, focus or inp
     step = await record(page, evidence, "实时减少动态效果", [".page-scroll", ".interaction-ink"],
       () => header.getByRole("button", { name: "设置", exact: true }).click());
     expect(nodes(step, ".page-scroll").flatMap(node => node.animations).some(animation => animation.state === "running")).toBe(false);
+    expect(nodes(step, ".page-scroll").every(node => node.transform === "none" && node.filter === "none" && +node.opacity === 1)).toBe(true);
     await expect(page.locator(".interaction-ink")).toHaveCount(0);
     await page.getByRole("tab", { name: "设备同步", exact: true }).click();
     await expect(page.getByRole("tabpanel")).toHaveCount(1);
     await page.emulateMedia({ reducedMotion: "no-preference" });
     step = await record(page, evidence, "实时恢复动态效果", [visiblePanel, ".interaction-ink"],
       () => page.getByRole("tab", { name: "AI 连接", exact: true }).click());
-    expectAnimation(step, visiblePanel);
+    expectContentMotion(step, visiblePanel, -1);
     expectAnimation(step, ".interaction-ink");
     await header.getByRole("button", { name: "全部书签", exact: true }).click();
     expect(errors).toEqual([]);

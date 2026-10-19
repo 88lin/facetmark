@@ -1,3 +1,4 @@
+import { CapsuleButton } from "./ui/controls";
 import { useRef, useState } from "react";
 import { ArrowLeft, Cloud, MessageCircle, Monitor, Puzzle } from "lucide-react";
 import { type Setup } from "./api";
@@ -24,10 +25,10 @@ export function SettingsWorkspace({ setup, refresh, onChanged, onBack, onSummari
   return <div className="settings-workspace" ref={root}>
     <header className="page-heading">
       <div><h1>{t("设置", "Settings")}</h1><p>{t("按需连接服务，关键词搜索无需配置。", "Connect services as needed. Keyword search works without setup.")}</p></div>
-      <button className="text-button support-back" onClick={onBack}><ArrowLeft size={16}/>{t("返回收藏", "Back to collection")}</button>
+      <CapsuleButton className="text-button support-back" onClick={onBack}><ArrowLeft size={16}/>{t("返回收藏", "Back to collection")}</CapsuleButton>
     </header>
     <div className="settings-tabs" role="tablist" aria-label={t("设置分类", "Settings categories")}>
-      {sections.map(({ id, label, Icon }, index) => <button key={id} type="button" role="tab"
+      {sections.map(({ id, label, Icon }, index) => <CapsuleButton key={id} type="button" role="tab"
         id={`settings-tab-${id}`} aria-controls={`settings-panel-${id}`} aria-selected={active === id}
         tabIndex={active === id ? 0 : -1} onClick={() => setActive(id)}
         onKeyDown={event => {
@@ -37,7 +38,7 @@ export function SettingsWorkspace({ setup, refresh, onChanged, onBack, onSummari
             (index + (event.key === "ArrowRight" ? 1 : -1) + sections.length) % sections.length;
           setActive(sections[next].id);
           document.getElementById(`settings-tab-${sections[next].id}`)?.focus();
-        }}><SelectionPill active={active === id} group="settings-section" /><Icon size={17}/><span>{label}</span></button>)}
+        }}><SelectionPill active={active === id} group="settings-section" /><Icon size={17}/><span>{label}</span></CapsuleButton>)}
     </div>
     {/* Keep forms mounted so switching categories preserves unsaved drafts and test results. */}
     {sections.map(({ id }) => <div key={id} role="tabpanel" id={`settings-panel-${id}`}

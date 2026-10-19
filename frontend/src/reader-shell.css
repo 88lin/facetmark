@@ -89,7 +89,7 @@
   padding: 40px var(--reader-gutter) 0;
 }
 .article-source {
-  font-size: 12px;
+  font-size: var(--type-caption);
   margin-bottom: 16px;
   gap: 6px;
 }
@@ -124,10 +124,10 @@
 }
 .article-context {
   gap: 8px;
-  font-size: 11px;
+  font-size: var(--type-caption);
 }
 .article-details {
-  font-size: 12px;
+  font-size: var(--type-caption);
   color: var(--muted);
 }
 .article-details > summary {
@@ -160,7 +160,7 @@
 }
 .article-details .query-help {
   margin-top: 12px;
-  font-size: 12px;
+  font-size: var(--type-caption);
 }
 .article-details[open] {
   padding-bottom: 10px;
@@ -169,7 +169,7 @@
   background: var(--inset);
   min-height: 28px;
   padding: 3px 9px;
-  font-size: 12px;
+  font-size: var(--type-caption);
 }
 .preview-tags button svg {
   display: none;
@@ -179,7 +179,7 @@
   opacity: 0.6;
 }
 .reader-article > .query-help {
-  font-size: 11px;
+  font-size: var(--type-caption);
   margin-top: 2px;
 }
 .reading {

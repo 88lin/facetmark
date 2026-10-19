@@ -1,3 +1,4 @@
+import { settleVisualLayout } from "./visual-layout";
 import { test, expect } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 
@@ -177,6 +178,7 @@ test("query menu supports keyboard insertion, Escape and a readable narrow layou
   await expect(second).toHaveAccessibleDescription("8 saved");
   await page.keyboard.press("ArrowDown");
   await expect(second).toHaveAttribute("aria-selected", "true");
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/query-menu-zh-1440.png", animations: "disabled" });
   await page.keyboard.press("Enter");
   await expect(input).toHaveValue('SQLite folder:"Reading Queue"');
@@ -199,6 +201,7 @@ test("query menu supports keyboard insertion, Escape and a readable narrow layou
   expect(box!.x).toBeGreaterThanOrEqual(0);
   expect(box!.x + box!.width).toBeLessThanOrEqual(390);
   expect(await menu.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/query-menu-zh-390.png", animations: "disabled" });
   await page.keyboard.press("Escape");
   await expect(trigger).toBeFocused();
@@ -331,6 +334,7 @@ test("mobile navigation traps focus and restores it on Escape", async ({ page })
   await expect(page.locator(".sidebar .language")).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(page.locator(".sidebar .brand")).toBeFocused();
+  await settleVisualLayout(page);
   await page.screenshot({
     path: "screenshots/fix-mobile-navigation.png",
     fullPage: true,
@@ -358,6 +362,7 @@ test("draft status, filtered emptiness and contextual request recovery", async (
   await expect(page.locator(".model-panel").first().locator("header")).toContainText("尚未保存");
   await page.getByLabel("我确认备份并在需要时重建向量").check();
   await expect(page.getByRole("button", { name: "应用已测试的配置" })).toBeDisabled();
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/fix-model-draft.png", fullPage: true });
   await page.getByRole("button", { name: "全部书签", exact: false }).click();
   await page.route("**/bookmarks?**", (route) =>
@@ -367,6 +372,7 @@ test("draft status, filtered emptiness and contextual request recovery", async (
   await page.locator(".facet-nav .facet-option[title]").first().click();
   await expect(page.getByRole("button", { name: "清除条件，查看全部" })).toBeVisible();
   await expect(page.getByText("收藏，从这里汇合")).toHaveCount(0);
+  await settleVisualLayout(page);
   await page.screenshot({
     path: "screenshots/fix-filter-empty.png",
     fullPage: true,
@@ -382,6 +388,7 @@ test("draft status, filtered emptiness and contextual request recovery", async (
   await expect(page.getByRole("button", { name: "重试相关书签" })).toBeVisible();
   await expect(page.getByText("暂时无法读取相关书签", { exact: true })).toBeVisible();
   await expect(page.locator(".reading-progress-track")).toHaveCount(0);
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/fix-related-error.png", fullPage: true });
   await page.unroute("**/bookmark/*/related");
   await page.getByRole("button", { name: "重试相关书签" }).click();
@@ -392,6 +399,7 @@ test("draft status, filtered emptiness and contextual request recovery", async (
   await page.getByRole("button", { name: "浏览批次", exact: true }).click();
   await expect(page.getByRole("button", { name: "重试浏览批次" })).toBeVisible();
   await expect(page.getByText("还没有浏览批次")).toHaveCount(0);
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/fix-sessions-error.png", fullPage: true });
   await page.unroute("**/sessions?**");
   await page.getByRole("button", { name: "重试浏览批次" }).click();
@@ -399,6 +407,7 @@ test("draft status, filtered emptiness and contextual request recovery", async (
 });
 
 test("render matrix: Chinese, English, light, dark, desktop and narrow", async ({ page }) => {
+  test.setTimeout(90_000);
   await mkdir("screenshots", { recursive: true });
   for (const language of ["zh", "en"])
     for (const theme of ["light", "dark"])
@@ -413,9 +422,14 @@ test("render matrix: Chinese, English, light, dark, desktop and narrow", async (
         );
         await page.goto("/app");
         await expect(page.locator(".result-row").first()).toBeVisible();
+        const queryResponse = page.waitForResponse(response => {
+          const url = new URL(response.url());
+          return url.pathname.endsWith("/bookmarks") && url.searchParams.get("q") === "tag:demo";
+        });
         await page
           .getByRole("textbox", { name: language === "zh" ? "搜索书签" : "Search bookmarks" })
           .fill("tag:demo");
+        await queryResponse;
         await expect(page.locator(".result-row").first()).not.toContainText("CI imported bookmark");
         if (width >= 1120)
           await page
@@ -424,6 +438,7 @@ test("render matrix: Chinese, English, light, dark, desktop and narrow", async (
             .locator(".bookmark-preview")
             .click();
         if (width >= 1120) await expect(page.locator(".body-text")).toBeVisible();
+        await settleVisualLayout(page);
         if (language === "zh" && theme === "light" && width === 1440) {
           const cdp = await page.context().newCDPSession(page);
           await cdp.send("DOM.enable");
@@ -464,6 +479,7 @@ test("render matrix: Chinese, English, light, dark, desktop and narrow", async (
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
           true,
         );
+        await settleVisualLayout(page);
         await page.screenshot({
           path: `screenshots/${language}-${theme}-${width}.png`,
           fullPage: true,
@@ -481,6 +497,8 @@ test("render matrix: Chinese, English, light, dark, desktop and narrow", async (
   await page.goto("/app");
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await expect(page.locator("input[name=chat_model]")).toBeVisible();
+  await settleVisualLayout(page);
+  await settleVisualLayout(page);
   await page.screenshot({
     path: "screenshots/settings-en-dark.png",
     fullPage: true,

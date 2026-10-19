@@ -1,3 +1,4 @@
+import { CapsuleButton } from "./ui/controls";
 import { useEffect, useState } from "react";
 import { Check, Circle, Download, LoaderCircle, Pause, Play, RefreshCw, Sparkles, X } from "lucide-react";
 import { api, post, type Job, type Setup } from "./api";
@@ -120,8 +121,8 @@ export function Tasks({
       )}
       {running ? (
         <div className="task-current-actions">
-          {mode !== "index" && <button className="secondary" disabled={busy || job.pause_requested}
-            onClick={() => action("/admin/jobs/pause", {})}><Pause/>{job.pause_requested ? t("正在暂停…", "Pausing…") : t("暂停任务", "Pause task")}</button>}
+          {mode !== "index" && <CapsuleButton className="secondary" disabled={busy || job.pause_requested}
+            onClick={() => action("/admin/jobs/pause", {})}><Pause/>{job.pause_requested ? t("正在暂停…", "Pausing…") : t("暂停任务", "Pause task")}</CapsuleButton>}
           <p role="status">
             {job.cancel_requested
               ? t(
@@ -133,20 +134,20 @@ export function Tasks({
                   "Processing this stage. Time depends on the pages and model service.",
                 )}
           </p>
-          <button
+          <CapsuleButton
             className="secondary"
             disabled={busy || job.cancel_requested}
             onClick={() => action("/admin/job/cancel", {})}
           >
             <X />
             {t("取消任务", "Cancel task")}
-          </button>
+          </CapsuleButton>
         </div>
       ) : (
         <div className="task-current-actions">
-          {job.resumable && <button className="primary" disabled={busy}
-            onClick={() => action("/admin/jobs/resume", { resume_id: job.id, confirmed: true })}><Play/>{job.state === "partial" ? t("重试此任务失败项", "Retry this task's failures") : t("继续上次任务", "Resume saved task")}</button>}
-          {job.state !== "idle" && <button className="secondary" onClick={onBack}>{t("返回收藏查看内容", "Return to collection")}</button>}
+          {job.resumable && <CapsuleButton className="primary" disabled={busy}
+            onClick={() => action("/admin/jobs/resume", { resume_id: job.id, confirmed: true })}><Play/>{job.state === "partial" ? t("重试此任务失败项", "Retry this task's failures") : t("继续上次任务", "Resume saved task")}</CapsuleButton>}
+          {job.state !== "idle" && <CapsuleButton className="secondary" onClick={onBack}>{t("返回收藏查看内容", "Return to collection")}</CapsuleButton>}
         </div>
       )}
       {(error || job.error) && (
@@ -156,26 +157,26 @@ export function Tasks({
       )}
       <div className="task-shortcuts" aria-label={t("处理操作", "Processing actions")}>
         <div className="task-operation">
-        <button className="secondary" disabled={busy || running} onClick={() => onProcess("fetch")}>
+        <CapsuleButton className="secondary" disabled={busy || running} onClick={() => onProcess("fetch")}>
           <Download />
           {t("抓取网页正文", "Fetch page text")}
-        </button>
+        </CapsuleButton>
         <p>{t("读取原网页，保存可供阅读和生成摘要的正文。无需模型。", "Save original page text for reading and summaries. No model needed.")}</p>
         </div>
         <div className="task-operation">
-        <button className="secondary" disabled={busy || running} onClick={() => onProcess("summarize")}>
+        <CapsuleButton className="secondary" disabled={busy || running} onClick={() => onProcess("summarize")}>
           <Sparkles />
           {t("生成阅读摘要", "Generate summaries")}
-        </button>
+        </CapsuleButton>
         <p>{t("用已连接的 AI 生成摘要，可在确认前选择处理范围。", "Generate summaries with your connected AI. Review the scope before starting.")}</p>
         </div>
       </div>
       {savedError && <div className="error" role="alert"><p>{t("无法读取已保存的任务，请重试。", "Saved tasks could not be loaded. Please retry.")}</p>
-        <button className="text-button" onClick={() => setSavedRevision(value => value + 1)}>{t("重试读取任务", "Retry saved tasks")}</button></div>}
+        <CapsuleButton className="text-button" onClick={() => setSavedRevision(value => value + 1)}>{t("重试读取任务", "Retry saved tasks")}</CapsuleButton></div>}
       {saved.filter(item => item.id !== job.id).map(item => <div className="collection-job" key={item.id}>
         <span>{item.params?.mode === "summarize" ? t("已保存的摘要任务", "Saved summary task") : t("已保存的抓取任务", "Saved fetch task")} · {item.items?.done ?? 0} / {item.items?.total ?? 0}
           {!!item.items?.failed && t(` · ${item.items.failed} 条失败`, ` · ${item.items.failed} failed`)}</span>
-        <button className="secondary" disabled={busy || running} onClick={() => action("/admin/jobs/resume", { resume_id: item.id, confirmed: true })}><Play/>{t("继续", "Resume")}</button>
+        <CapsuleButton className="secondary" disabled={busy || running} onClick={() => action("/admin/jobs/resume", { resume_id: item.id, confirmed: true })}><Play/>{t("继续", "Resume")}</CapsuleButton>
       </div>)}
       {job.state !== "idle" && mode === "index" && (
         <p className="hint">
@@ -244,14 +245,14 @@ export function Tasks({
               )}
             </p>
           )}
-          <button
+          <CapsuleButton
             className="primary"
             disabled={!consent || !canIndex || busy}
             onClick={() => action("/admin/index", { fetch: fetchPages, confirmed: true })}
           >
             {job.state === "idle" ? <Play /> : <RefreshCw />}
             {t("开始索引", "Start indexing")}
-          </button>
+          </CapsuleButton>
           </details>
         </div>
       )}

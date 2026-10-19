@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
+import { settleVisualLayout } from "./visual-layout";
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
@@ -20,6 +21,7 @@ test("a large collection leaves useful browsing space in short desktop and mobil
     await page.goto("/app");
     await expect(page.locator(".result-row")).toHaveCount(30);
     await expect(page.locator(".result-count")).toHaveText("1892");
+    await settleVisualLayout(page);
     const size = await page.locator(".result-list").evaluate(el => {
       const bounds = el.getBoundingClientRect();
       const fullyVisible = [...el.querySelectorAll(".result-row")].filter(row => {
@@ -42,11 +44,17 @@ test("a large collection leaves useful browsing space in short desktop and mobil
       const directory = await page.locator(".collection-sidebar").boundingBox();
       const results = await page.locator(".result-list").boundingBox();
       expect(directory!.x + directory!.width).toBeLessThan(results!.x);
-      expect(directory!.height).toBeGreaterThan(viewport.height * .65);
+      const sidebar = await page.locator(".app-header").boundingBox();
+      const options = await page.locator(".collection-sidebar .facet-options").boundingBox();
+      expect(sidebar!.height).toBeGreaterThan(viewport.height * .9);
+      expect(directory!.x).toBeGreaterThan(sidebar!.x);
+      expect(directory!.x + directory!.width).toBeLessThan(sidebar!.x + sidebar!.width);
+      expect(options!.height).toBeGreaterThan(viewport.height * .3);
     }
     measurements.push({ width: viewport.width, viewportHeight: viewport.height,
       listTop: size.top, firstCardTop: size.firstCardTop, listHeight: size.height,
       fullyVisible: size.fullyVisible, horizontalOverflow: size.overflow });
+    await settleVisualLayout(page);
     await page.screenshot({ path: `screenshots/collection-${viewport.width}x${viewport.height}.png`, animations: "disabled" });
   }
   expect(errors).toEqual([]);
@@ -59,6 +67,7 @@ test("a large collection leaves useful browsing space in short desktop and mobil
   await expect(page.locator(".result-row")).toHaveCount(30);
   expect((await page.locator(".result-list").boundingBox())!.y).toBeLessThanOrEqual(321);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)).toBe(false);
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/collection-en-mobile.png", animations: "disabled" });
 });
 
@@ -88,6 +97,7 @@ test("a mouse can scroll and page the category directory, then search beyond the
   const folders = await page.locator(".result-folder").allTextContents();
   expect(folders.length).toBeGreaterThan(0);
   expect(folders.every(value => value.trim() === name)).toBe(true);
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/collection-category-search.png", animations: "disabled" });
 
   // The same directory is usable without a pointer or a horizontal gesture.
@@ -126,6 +136,7 @@ test("a large library can jump to its last page without stepping through every p
   await jump.press("Enter");
   await expect(page.locator(".result-row")).toHaveCount(30);
   await expect(page.locator(".results-footer")).toContainText("1–30");
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/collection-page-jump.png", animations: "disabled" });
 });
 
@@ -208,13 +219,14 @@ test("collection typography stays readable across views and larger user text set
       search: size(".search-box input"), weight: getComputedStyle(document.querySelector(".result-title")!).fontWeight,
       tracking: getComputedStyle(document.querySelector(".toolbar-location h1")!).letterSpacing };
   });
-  expect(typography.title).toBeGreaterThanOrEqual(16);
-  expect(typography.summary).toBeGreaterThanOrEqual(14);
-  expect(typography.source).toBeGreaterThanOrEqual(12);
+  expect(typography.title).toBeGreaterThanOrEqual(18);
+  expect(typography.summary).toBeGreaterThanOrEqual(16);
+  expect(typography.source).toBeGreaterThanOrEqual(13);
   expect(typography.category).toBeGreaterThanOrEqual(14);
   expect(typography.action).toBeGreaterThanOrEqual(14);
   expect(typography.search).toBeGreaterThanOrEqual(16);
-  expect(Number(typography.weight)).toBeGreaterThanOrEqual(600);
+  expect(Number(typography.weight)).toBeGreaterThanOrEqual(500);
+  expect(Number(typography.weight)).toBeLessThanOrEqual(600);
   expect(["normal", "0px"]).toContain(typography.tracking);
   const categoryLabelsStayOnOneLine = () => page.locator(".collection-sidebar .facet-types button span").evaluateAll(labels =>
     labels.every(label => label.getBoundingClientRect().height <= parseFloat(getComputedStyle(label).lineHeight) + 1));
@@ -225,10 +237,12 @@ test("collection typography stays readable across views and larger user text set
   expect(await page.locator(".result-title").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(20);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)).toBe(false);
   expect(await categoryLabelsStayOnOneLine()).toBe(true);
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/collection-text-125.png", animations: "disabled" });
   await page.evaluate(() => { document.documentElement.style.fontSize = ""; });
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.locator(".result-title").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/collection-readable-mobile-list.png", animations: "disabled" });
   await page.getByRole("button", { name: "筛选收藏", exact: true }).click();
   const option = page.locator(".sidebar .facet-option").first();
@@ -334,18 +348,21 @@ test("mobile category errors recover and list view is a persistent alternative",
   await expect(menu.locator(".facet-option[title]")).toHaveCount(50);
   await menu.getByRole("textbox", { name: "查找分类" }).fill("知识管理");
   await expect(menu.getByTitle("知识管理", { exact: true })).toBeVisible();
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/collection-mobile-categories.png", animations: "disabled" });
   await menu.getByTitle("知识管理", { exact: true }).click();
   await expect(menu).toHaveAttribute("inert", "");
   await expect(page.locator(".result-row").first()).toBeVisible();
   await page.getByRole("button", { name: "列表视图", exact: true }).click();
   await expect(page.locator(".main-workspace")).toHaveClass(/list-mode/);
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/collection-list-390.png", animations: "disabled" });
   expect(await page.evaluate(() => localStorage.getItem("fm-collection-layout"))).toBe("list");
   await page.reload();
   await expect(page.locator(".main-workspace")).toHaveClass(/list-mode/);
   await expect(page.locator(".result-row")).toHaveCount(30);
   await page.setViewportSize({ width: 1366, height: 768 });
+  await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/collection-list-1366.png", animations: "disabled" });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 });

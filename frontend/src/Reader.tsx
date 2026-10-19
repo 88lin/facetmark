@@ -1,3 +1,4 @@
+import { CapsuleButton } from "./ui/controls";
 import { useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import {
   ArrowDown,
@@ -151,9 +152,9 @@ export default function Reader({
         <p className="error" role="alert">
           {error}
         </p>
-        <button className="secondary" onClick={onRetry}>
+        <CapsuleButton className="secondary" onClick={onRetry}>
           {t("重试", "Retry")}
-        </button>
+        </CapsuleButton>
       </div>
     );
   else if (tab === "body")
@@ -179,7 +180,7 @@ export default function Reader({
             "Search still works on titles and URLs. Fetch the page to keep reading here.",
           )}
         </p>
-        {canProcess && <button className="secondary" disabled={running} onClick={() => onAction?.({ kind: "process", mode: "fetch", ids: [selected!] })}><FileText size={15}/>{t("提取这篇正文", "Fetch this page")}</button>}
+        {canProcess && <CapsuleButton className="secondary" disabled={running} onClick={() => onAction?.({ kind: "process", mode: "fetch", ids: [selected!] })}><FileText size={15}/>{t("提取这篇正文", "Fetch this page")}</CapsuleButton>}
       </div>
     );
   else if (tab === "summary")
@@ -199,7 +200,7 @@ export default function Reader({
                 "No AI summary yet. Connect a chat model to summarize this bookmark.",
               )}
         </p>
-        {!record?.indexed?.enriched_by && canProcess && <button className="secondary" disabled={running} onClick={() => onAction?.({ kind: "process", mode: "summarize", ids: [selected!] })}><Sparkles size={15}/>{t("生成这篇摘要", "Summarize this page")}</button>}
+        {!record?.indexed?.enriched_by && canProcess && <CapsuleButton className="secondary" disabled={running} onClick={() => onAction?.({ kind: "process", mode: "summarize", ids: [selected!] })}><Sparkles size={15}/>{t("生成这篇摘要", "Summarize this page")}</CapsuleButton>}
         {!!record?.key_points?.length && (
           <ul>
             {record.key_points.map((p) => (
@@ -211,10 +212,10 @@ export default function Reader({
           <>
             <h3>{t("这些问题也能找到它", "Questions that lead here")}</h3>
             {record.intent_queries.map((q) => (
-              <button className="suggested-query" key={q} onClick={() => onQuery(q)}>
+              <CapsuleButton className="suggested-query" key={q} onClick={() => onQuery(q)}>
                 {q}
                 <ArrowUpRight size={14} />
-              </button>
+              </CapsuleButton>
             ))}
           </>
         )}
@@ -230,14 +231,14 @@ export default function Reader({
       <div role="alert">
         <h3>{t("暂时无法读取相关书签", "Related pages could not be loaded")}</h3>
         <p className="error">{relatedError}</p>
-        <button className="secondary" onClick={onRetry}>
+        <CapsuleButton className="secondary" onClick={onRetry}>
           {t("重试相关书签", "Retry related pages")}
-        </button>
+        </CapsuleButton>
       </div>
     ) : related.length ? (
       <div className="related-list">
         {related.map((r) => (
-          <button
+          <CapsuleButton
             className="related-item"
             key={r.bookmark_id}
             onClick={() => onSelect(r.bookmark_id)}
@@ -245,7 +246,7 @@ export default function Reader({
             <small>{r.domain}</small>
             <span>{r.title || r.url}</span>
             <ArrowUpRight size={14} />
-          </button>
+          </CapsuleButton>
         ))}
       </div>
     ) : (
@@ -264,10 +265,10 @@ export default function Reader({
     <>
       <header className="preview-heading">
         {selected !== null && (
-          <button className="reader-back" onClick={onClose}>
+          <CapsuleButton className="reader-back" onClick={onClose}>
             <ArrowLeft size={17} />
             <span>{t("返回收藏", "Back to collection")}</span>
-          </button>
+          </CapsuleButton>
         )}
         <div className="reader-actions">
           {position >= 0 && (
@@ -277,7 +278,7 @@ export default function Reader({
           )}
           {selected !== null && (
             <>
-              <button
+              <CapsuleButton
                 className="icon-button"
                 title={t("上一条收藏", "Previous bookmark")}
                 aria-label={t("上一条收藏", "Previous bookmark")}
@@ -285,8 +286,8 @@ export default function Reader({
                 onClick={onPrevious}
               >
                 <ArrowUp />
-              </button>
-              <button
+              </CapsuleButton>
+              <CapsuleButton
                 className="icon-button"
                 title={t("下一条收藏", "Next bookmark")}
                 aria-label={t("下一条收藏", "Next bookmark")}
@@ -294,10 +295,10 @@ export default function Reader({
                 onClick={onNext}
               >
                 <ArrowDown />
-              </button>
+              </CapsuleButton>
               <span className="toolbar-divider" />
               {canFocus && (
-                <button
+                <CapsuleButton
                   className="icon-button focus-reading"
                   title={
                     focus ? t("收起阅读", "Restore split view") : t("展开阅读", "Expand reading")
@@ -310,17 +311,17 @@ export default function Reader({
                 >
                   {focus ? <Minimize2 /> : <Maximize2 />}
                   <span>{focus ? t("收起", "Restore") : t("专注阅读", "Focus")}</span>
-                </button>
+                </CapsuleButton>
               )}
               {canFocus && (
-                <button
+                <CapsuleButton
                   className="icon-button"
                   title={t("关闭预览", "Close preview")}
                   aria-label={t("关闭预览", "Close preview")}
                   onClick={onClose}
                 >
                   <PanelRightClose />
-                </button>
+                </CapsuleButton>
               )}
             </>
           )}
@@ -357,7 +358,7 @@ export default function Reader({
               ["summary", t("AI 摘要", "AI summary")],
               ["related", t("相关书签", "Related")],
             ].map(([id, label]) => (
-              <button
+              <CapsuleButton
                 role="tab"
                 id={`preview-tab-${id}`}
                 aria-controls="preview-tabpanel"
@@ -387,7 +388,7 @@ export default function Reader({
                   <BookOpen size={14} aria-hidden="true" />
                 )}
                 {label}
-              </button>
+              </CapsuleButton>
             ))}
             <span className="tab-indicator" aria-hidden="true" />
           </div>
@@ -442,10 +443,10 @@ export default function Reader({
                       {!!record?.tags?.length && (
                         <div className="preview-tags">
                           {record.tags.map((tag) => (
-                            <button key={tag} onClick={() => onTag(tag)}>
+                            <CapsuleButton key={tag} onClick={() => onTag(tag)}>
                               <Tags size={11} />
                               {tag}
-                            </button>
+                            </CapsuleButton>
                           ))}
                         </div>
                       )}
@@ -453,14 +454,14 @@ export default function Reader({
                     {search.trim() && <SearchExplanation hit={hit} />}
                     {record && onAction && <div className="reader-manage-actions">
                       {canProcess && <>
-                        <button className="secondary" disabled={running} onClick={() => onAction({ kind: "process", mode: "fetch", ids: [record.bookmark_id] })}><FileText size={14}/>{t("提取正文", "Fetch text")}</button>
-                        <button className="secondary" disabled={running} onClick={() => onAction({ kind: "process", mode: "summarize", ids: [record.bookmark_id] })}><Sparkles size={14}/>{t("生成摘要", "Summarize")}</button>
+                        <CapsuleButton className="secondary" disabled={running} onClick={() => onAction({ kind: "process", mode: "fetch", ids: [record.bookmark_id] })}><FileText size={14}/>{t("提取正文", "Fetch text")}</CapsuleButton>
+                        <CapsuleButton className="secondary" disabled={running} onClick={() => onAction({ kind: "process", mode: "summarize", ids: [record.bookmark_id] })}><Sparkles size={14}/>{t("生成摘要", "Summarize")}</CapsuleButton>
                       </>}
-                      {!managed && <button className="text-button delete-bookmark" disabled={running} onClick={() => onAction({ kind: "delete", ids: [record.bookmark_id] })}><Trash2 size={14}/>{t("删除收藏", "Delete bookmark")}</button>}
+                      {!managed && <CapsuleButton className="text-button delete-bookmark" disabled={running} onClick={() => onAction({ kind: "delete", ids: [record.bookmark_id] })}><Trash2 size={14}/>{t("删除收藏", "Delete bookmark")}</CapsuleButton>}
                       {managed && <p className="hint">{t("这条收藏由 Karakeep 管理，请在来源端编辑或删除。", "This bookmark is managed by Karakeep. Edit or delete it there.")}</p>}
                     </div>}
                   </details>
-                  {record && onAction && !managed && <button className="secondary reader-edit" disabled={running} onClick={() => onAction({ kind: "edit", record })}><Pencil size={14}/>{t("编辑", "Edit")}</button>}
+                  {record && onAction && !managed && <CapsuleButton className="secondary reader-edit" disabled={running} onClick={() => onAction({ kind: "edit", record })}><Pencil size={14}/>{t("编辑", "Edit")}</CapsuleButton>}
                   </div>
                 </div>
                 <div

@@ -14,7 +14,7 @@
 .result-source .batch-check{width:22px;height:22px;display:grid;place-items:center;border:1px solid var(--selected-edge);border-radius:7px;color:var(--on-accent);background:var(--canvas);margin-left:auto;flex-shrink:0}
 .result-row.batch-selected{border-color:var(--accent);background:var(--canvas)}
 .result-row.batch-selected .batch-check{background:var(--accent);border-color:var(--accent)}
-.library-dialog-overlay{position:fixed;inset:0;background:var(--overlay);z-index:80}
+.library-dialog-overlay{position:fixed;inset:0;background:var(--scrim);z-index:80}
 .library-dialog{position:fixed;z-index:81;top:50%;left:50%;translate:-50% -50%;width:min(560px,calc(100vw - 32px));max-height:calc(100dvh - 40px);overflow:auto;background:var(--canvas);color:var(--ink);border-radius:20px;padding:28px;box-shadow:var(--sheet-shadow)}
 .library-dialog-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:8px}
 .library-dialog-heading h2{font-size:24px;line-height:1.4;margin:0;letter-spacing:-.02em}
@@ -34,7 +34,7 @@
 .tag-entry{display:flex;align-items:center;gap:8px}.tag-entry .icon-button{flex-shrink:0}
 .tag-entry input::placeholder{color:var(--muted);opacity:1}
 .library-dialog .tag-hint{margin:8px 0 0}
-.editing-tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.editing-tags button{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;background:var(--soft);color:var(--accent);border-radius:var(--radius-control);max-width:100%;overflow-wrap:anywhere;font-size:12px}
+.editing-tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.editing-tags button{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;background:var(--soft);color:var(--accent);border-radius:var(--radius-control);max-width:100%;overflow-wrap:anywhere;font-size: var(--type-caption)}
 .reader-manage-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 2px}.reader-manage-actions button{display:inline-flex;align-items:center;gap:6px;border-radius:var(--radius-control);font-size:var(--type-ui);font-weight:600;padding:7px 11px;background:var(--inset);color:var(--accent);min-height:36px}
 .task-shortcuts{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 24px}.task-shortcuts button{min-height:40px}
 .article-options{display:flex;align-items:flex-start;gap:16px;margin-top:8px}

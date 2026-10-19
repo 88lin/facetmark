@@ -162,19 +162,27 @@ with sync_playwright() as playwright:
 
     page.on('request', record_interaction_write)
 
-    def motion_step(label, selectors, action, *, running=False, moving=False, exiting=False):
+    def motion_step(label, selectors, action, *, running=False, content=False, direction=None,
+                    moving=False, exiting=False):
         page.evaluate('''selectors => {
             const started = performance.now();
             const probe = window.__installedMotion = { frames: [], request: 0 };
+            const identities = new WeakMap();
+            let nextNode = 0;
             const sample = () => {
                 const targets = {};
                 for (const selector of selectors) {
-                    targets[selector] = [...document.querySelectorAll(selector)].slice(0, 4).map((element, index) => {
+                    targets[selector] = [...document.querySelectorAll(selector)].slice(0, 4).map(element => {
                         const style = getComputedStyle(element);
                         const rect = element.getBoundingClientRect();
+                        const matrix = new DOMMatrixReadOnly(style.transform === 'none' ? undefined : style.transform);
+                        if (!identities.has(element)) identities.set(element, `node-${++nextNode}`);
                         return {
-                            key: element.dataset.bookmarkId || element.id || String(index),
-                            transform: style.transform, opacity: style.opacity,
+                            key: identities.get(element),
+                            transform: style.transform, opacity: style.opacity, filter: style.filter,
+                            translateX: matrix.m41, translateY: matrix.m42,
+                            inline: { transform: element.style.transform, opacity: element.style.opacity,
+                                      filter: element.style.filter, willChange: element.style.willChange },
                             x: Math.round(rect.x * 100) / 100, y: Math.round(rect.y * 100) / 100,
                             inert: element.inert, hidden: element.getAttribute('aria-hidden'),
                             phase: element.dataset.overlayPhase, pointerEvents: style.pointerEvents,
@@ -208,6 +216,22 @@ with sync_playwright() as playwright:
         if running:
             assert any(animation['state'] == 'running' and animation.get('progress') is not None
                        for node in samples for animation in node['animations']), f'{label}: no running DOM animation'
+        if content:
+            # GSAP is sampled from its actual painted properties, independently
+            # of WAAPI. Never combine different nodes or selectors as evidence.
+            for selector in selectors:
+                selector_samples = [node for frame in frames for node in frame['targets'][selector]]
+                by_node = {}
+                for node in selector_samples:
+                    by_node.setdefault(node['key'], []).append(node)
+                assert any(len({node['transform'] for node in values}) > 2
+                           and len({node['opacity'] for node in values if 0 < float(node['opacity']) < 1}) > 2
+                           and len({node['filter'] for node in values if node['filter'] not in ('none', 'blur(0px)')}) > 2
+                           for values in by_node.values()), f'{label}: {selector} has no same-node travel/opacity/focus sequence'
+                if direction:
+                    assert any(node['translateX'] * direction > 1 for node in selector_samples), f'{label}: incorrect travel direction'
+                assert all(node['inline'] == {'transform': '', 'opacity': '', 'filter': '', 'willChange': ''}
+                           for node in frames[-1]['targets'][selector]), f'{label}: content retained animated inline styles'
         if moving:
             positions = {}
             for node in samples:
@@ -226,29 +250,36 @@ with sync_playwright() as playwright:
     try:
         header = page.locator('.app-header')
         motion_step('收藏 → 任务', ['.page-scroll'],
-                    lambda: header.get_by_role('button', name='任务', exact=True).click(), running=True)
-        motion_step('任务 → 设置', ['.page-scroll'],
-                    lambda: header.get_by_role('button', name='设置', exact=True).click(), running=True)
+                    lambda: header.get_by_role('button', name='任务', exact=True).click(), content=True, direction=1)
+
+        def reverse_navigation():
+            for destination in ('设置', '任务', '设置'):
+                header.get_by_role('button', name=destination, exact=True).click()
+                page.evaluate('() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
+
+        motion_step('任务 → 设置，快速往返后停在设置', ['.page-scroll'],
+                    reverse_navigation, content=True)
+        assert page.get_by_role('heading', name='设置', exact=True).is_visible()
         # Local Agent discovery may replace the summary input. Embeddings keep
         # an editable model draft regardless of the detected summary provider.
         model = page.locator('input[name="embed_model"]')
         original_model = model.input_value()
         model.fill('synthetic-unsaved-installed-motion-draft')
         motion_step('设置 → 设备同步', ['.settings-panel:not([hidden])'],
-                    lambda: page.get_by_role('tab', name='设备同步', exact=True).click(), running=True)
+                    lambda: page.get_by_role('tab', name='设备同步', exact=True).click(), content=True, direction=1)
         assert not model.is_visible()
         motion_step('设置 → AI 连接', ['.settings-panel:not([hidden])'],
-                    lambda: page.get_by_role('tab', name='AI 连接', exact=True).click(), running=True)
+                    lambda: page.get_by_role('tab', name='AI 连接', exact=True).click(), content=True, direction=-1)
         assert model.input_value() == 'synthetic-unsaved-installed-motion-draft'
         model.fill(original_model)
         motion_step('设置 → 收藏', ['.results-column'],
-                    lambda: header.get_by_role('button', name='全部书签', exact=True).click(), running=True)
+                    lambda: header.get_by_role('button', name='全部书签', exact=True).click(), content=True, direction=-1)
         page.locator('.result-row').nth(1).wait_for(timeout=15000)
         categories = page.locator('.collection-sidebar')
         for category in ('标签', '文件夹'):
             motion_step(f'分类：{category}', ['.collection-sidebar .facet-options'],
                         lambda category=category: categories.get_by_role('button', name=category, exact=True).click(),
-                        running=True)
+                        content=True, direction=1 if category == '标签' else -1)
         second_id = page.locator('.result-row').nth(1).get_attribute('data-bookmark-id')
         layout_label = '列表视图' if initial_layout == 'grid' else '卡片视图'
         motion_step('切换收藏布局', [f'.result-row[data-bookmark-id="{second_id}"]'],
@@ -273,6 +304,8 @@ with sync_playwright() as playwright:
         reduced_samples = [node for frame in interaction_evidence[-1]['frames']
                            for nodes in frame['targets'].values() for node in nodes]
         assert not any(animation['state'] == 'running' for node in reduced_samples for animation in node['animations'])
+        assert all(node['transform'] == 'none' and node['filter'] == 'none' and float(node['opacity']) == 1
+                   for node in reduced_samples), 'Reduced motion retained travel or focus effects'
         assert page.locator('.interaction-ink').count() == 0
         header.get_by_role('button', name='全部书签', exact=True).click()
         page.get_by_role('textbox', name='搜索书签').fill('合成示例')

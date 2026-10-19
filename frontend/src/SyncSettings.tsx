@@ -1,3 +1,4 @@
+import { CapsuleButton } from "./ui/controls";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowDownToLine, ArrowUpFromLine, Check, LoaderCircle, Pause, RefreshCw, Save } from "lucide-react";
 import { api, ApiError, post } from "./api";
@@ -244,10 +245,10 @@ export function SyncSettings({ onChanged }: { onChanged: () => void | Promise<vo
     </header>
 
     {loading && <p className="sync-loading" role="status"><LoaderCircle className="spin" size={18} />{t("正在读取同步设置…", "Loading sync settings…")}</p>}
-    {!loading && !status && <button className="secondary" disabled={!!busy} onClick={() => run("load", async () => {
+    {!loading && !status && <CapsuleButton className="secondary" disabled={!!busy} onClick={() => run("load", async () => {
       const next = await api<SyncStatus>(`${endpoint}/status`);
       acceptStatus(next); setDraft(draftOf(next));
-    })}><RefreshCw size={16} />{t("重试读取设置", "Retry loading settings")}</button>}
+    })}><RefreshCw size={16} />{t("重试读取设置", "Retry loading settings")}</CapsuleButton>}
 
     {status && <>
       <form className="sync-config" onSubmit={(event) => { event.preventDefault(); void saveConfig(); }}>
@@ -265,15 +266,15 @@ export function SyncSettings({ onChanged }: { onChanged: () => void | Promise<vo
         </div>
         <p className="hint">{t("自动同步仅在应用运行时执行。出现冲突会暂停，等待你选择版本。", "Automatic sync runs while the app is open. Conflicts pause it until you choose a version.")}</p>
         <div className="form-actions sync-actions">
-          <button type="submit" className="secondary" disabled={!!busy || !dirty}>{busy === "save" ? <LoaderCircle className="spin" /> : <Save />}{t("保存同步设置", "Save sync settings")}</button>
-          {status.enabled && <button type="button" className="secondary" disabled={!!busy} onClick={disableSync}>{busy === "disable" ? <LoaderCircle className="spin" /> : <Pause />}{t("停用同步", "Disable sync")}</button>}
+          <CapsuleButton type="submit" className="secondary" disabled={!!busy || !dirty}>{busy === "save" ? <LoaderCircle className="spin" /> : <Save />}{t("保存同步设置", "Save sync settings")}</CapsuleButton>
+          {status.enabled && <CapsuleButton type="button" className="secondary" disabled={!!busy} onClick={disableSync}>{busy === "disable" ? <LoaderCircle className="spin" /> : <Pause />}{t("停用同步", "Disable sync")}</CapsuleButton>}
           {dirty && <span className="hint">{t("有未保存的设置", "Unsaved settings")}</span>}
         </div>
       </form>
 
       <div className="sync-review-heading">
         <div><h3>{t("先看变更，再同步", "Review changes before syncing")}</h3><p className="hint">{status.last_sync_at ? <>{t("最近同步", "Last synced")} · {new Date(status.last_sync_at * 1000).toLocaleString(t("zh-CN", "en-US"))}</> : t("尚未完成过同步", "No completed sync yet")}</p></div>
-        <button type="button" className={preview ? "secondary" : "primary"} disabled={!!busy || !status.enabled || dirty} onClick={loadPreview}>{busy === "preview" ? <LoaderCircle className="spin" /> : <RefreshCw />}{preview ? t("重新预览", "Refresh preview") : t("预览同步变更", "Preview sync changes")}</button>
+        <CapsuleButton type="button" className={preview ? "secondary" : "primary"} disabled={!!busy || !status.enabled || dirty} onClick={loadPreview}>{busy === "preview" ? <LoaderCircle className="spin" /> : <RefreshCw />}{preview ? t("重新预览", "Refresh preview") : t("预览同步变更", "Preview sync changes")}</CapsuleButton>
       </div>
       {!status.enabled && <p className="hint">{t("填写路径并保存启用后，即可查看两端的变化。", "Save an enabled shared-folder configuration to inspect changes on both sides.")}</p>}
 
@@ -312,12 +313,12 @@ export function SyncSettings({ onChanged }: { onChanged: () => void | Promise<vo
         {expired ? <p className="notice" role="status">{t("这次预览已过期，请重新预览后再应用。", "This preview expired. Refresh it before applying.")}</p> : <div className="sync-apply">
           <p className="hint">{t("接收新增、修改或删除前，Facetmark 会先在本机备份当前书签库。共享文件夹只保存书签信息。", "Before receiving additions, edits or deletions, Facetmark backs up the current library locally. The shared folder contains bookmark metadata only.")}</p>
           <label className="check"><input type="checkbox" checked={confirmed} disabled={!!busy || !allResolved} onChange={(event) => setConfirmed(event.target.checked)} />{t("我已核对以上变更，并确认应用", "I reviewed these changes and confirm applying them")}</label>
-          <div className="form-actions sync-actions"><button type="button" className="primary" disabled={!!busy || !allResolved || !confirmed || dirty} onClick={applyPreview}>{busy === "apply" ? <LoaderCircle className="spin" /> : <Check />}{t("应用本次同步", "Apply this sync")}</button>{!allResolved && <span className="hint">{t("请先为每条冲突选择版本。", "Choose a version for every conflict first.")}</span>}</div>
+          <div className="form-actions sync-actions"><CapsuleButton type="button" className="primary" disabled={!!busy || !allResolved || !confirmed || dirty} onClick={applyPreview}>{busy === "apply" ? <LoaderCircle className="spin" /> : <Check />}{t("应用本次同步", "Apply this sync")}</CapsuleButton>{!allResolved && <span className="hint">{t("请先为每条冲突选择版本。", "Choose a version for every conflict first.")}</span>}</div>
         </div>}
       </div>}
     </>}
 
-    {displayError && <div className="error sync-error" role="alert"><span>{displayError}</span><p>{t("检查共享文件夹是否可用；若两端内容发生变化，请重新预览。", "Check that the shared folder is available. If either side changed, refresh the preview.")}</p>{status && <button type="button" className="secondary" disabled={!!busy} onClick={() => run("status", async () => acceptStatus(await api<SyncStatus>(`${endpoint}/status`)))}><RefreshCw size={16} />{t("重试读取状态", "Retry status")}</button>}</div>}
+    {displayError && <div className="error sync-error" role="alert"><span>{displayError}</span><p>{t("检查共享文件夹是否可用；若两端内容发生变化，请重新预览。", "Check that the shared folder is available. If either side changed, refresh the preview.")}</p>{status && <CapsuleButton type="button" className="secondary" disabled={!!busy} onClick={() => run("status", async () => acceptStatus(await api<SyncStatus>(`${endpoint}/status`)))}><RefreshCw size={16} />{t("重试读取状态", "Retry status")}</CapsuleButton>}</div>}
     {notice && <p className="notice" role="status">{notice}</p>}
     {applied && <div className="sync-applied"><CountTable counts={applied.counts} />{applied.backup_path && <p className="sync-backup"><span>{t("本次本机备份", "Local backup for this sync")}</span><code>{applied.backup_path}</code></p>}</div>}
   </section>;

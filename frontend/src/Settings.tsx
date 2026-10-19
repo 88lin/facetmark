@@ -1,3 +1,4 @@
+import { CapsuleButton } from "./ui/controls";
 import { useEffect, useRef, useState } from "react";
 import {
   Check,
@@ -230,14 +231,14 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
         }}
       />
       {type === "password" && row(key)?.set && !row(key)?.locked && (
-        <button
+        <CapsuleButton
           className="text-button"
           disabled={!!busy}
           onClick={() => change(key, "")}
           type="button"
         >
           {t("清除已保存的密钥", "Clear saved key")}
-        </button>
+        </CapsuleButton>
       )}
     </label>
   );
@@ -253,7 +254,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
   };
   if (!rows.length) return <section className="models settings-loading" aria-busy={loadingSettings}>
     {loadingSettings ? <p role="status"><LoaderCircle className="spin" size={18}/>{t("正在读取连接设置…", "Loading connection settings…")}</p>
-      : <><p className="error" role="alert">{loadError}</p><button className="secondary" onClick={() => load(true)}><RefreshCw size={16}/>{t("重新读取设置", "Reload settings")}</button></>}
+      : <><p className="error" role="alert">{loadError}</p><CapsuleButton className="secondary" onClick={() => load(true)}><RefreshCw size={16}/>{t("重新读取设置", "Reload settings")}</CapsuleButton></>}
   </section>;
   return (
     <section className="models">
@@ -266,7 +267,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
           )}
         </p>
       </div>}
-      {loadError && <div className="error" role="alert">{loadError}<button className="text-button" onClick={() => load()}>{t("重新读取设置", "Reload settings")}</button></div>}
+      {loadError && <div className="error" role="alert">{loadError}<CapsuleButton className="text-button" onClick={() => load()}>{t("重新读取设置", "Reload settings")}</CapsuleButton></div>}
       <div className="model-columns">
         {["chat", "embed"].map((channel) => (
           <section className={`model-panel model-${channel}`} key={channel}>
@@ -306,11 +307,11 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
                     ? t(`将使用 ${selectedAgent.name}，连接状态以测试结果为准。`, `Will use ${selectedAgent.name}. Test the connection to verify access.`)
                     : agentPreference === "auto" ? t("未检测到 CLI。支持 Codex、Claude Code 和 OpenCode。安装并登录后重新检测。", "No CLI detected. Codex, Claude Code and OpenCode are supported. Install, sign in and retry detection.")
                     : t("未检测到所选 Agent，请安装后重试，或选择其他 Agent。", "Selected agent not detected. Install it or choose another agent."))}</p>
-                  <button className="text-button" disabled={!!busy || detecting} onClick={async () => {
+                  <CapsuleButton className="text-button" disabled={!!busy || detecting} onClick={async () => {
                     setResults(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== "chat")));
                     setChannelFeedback(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== "chat")));
                     await detect(); await refresh();
-                  }}><RefreshCw size={14} className={detecting ? "spin" : ""}/>{t("重新检测", "Detect again")}</button>
+                  }}><RefreshCw size={14} className={detecting ? "spin" : ""}/>{t("重新检测", "Detect again")}</CapsuleButton>
                 </div>
                 {modelPicker("chat", true)}
               </> : <>
@@ -321,11 +322,11 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
               </>}
             </div>
             <div className="model-test">
-              <button className="secondary" disabled={!!busy || !rows.length || (channel === "chat" && agentUnavailable)} onClick={() => test(channel)}>
+              <CapsuleButton className="secondary" disabled={!!busy || !rows.length || (channel === "chat" && agentUnavailable)} onClick={() => test(channel)}>
                 {busy === channel && !testingAndSaving ? <LoaderCircle className="spin" /> : <FlaskConical />}
                 {t("测试连接", "Test connection")}
-              </button>
-              <button className="primary" disabled={!!busy || !rows.length || (channel === "chat" && agentUnavailable)} onClick={() => test(channel, true)}>{busy === channel && testingAndSaving ? <LoaderCircle size={16} className="spin"/> : <Check size={16}/>} {t("测试并保存", "Test and save")}</button>
+              </CapsuleButton>
+              <CapsuleButton className="primary" disabled={!!busy || !rows.length || (channel === "chat" && agentUnavailable)} onClick={() => test(channel, true)}>{busy === channel && testingAndSaving ? <LoaderCircle size={16} className="spin"/> : <Check size={16}/>} {t("测试并保存", "Test and save")}</CapsuleButton>
               {results[channel] && (
                 <div
                   role="status"
@@ -356,19 +357,19 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
                         "实测维度与配置不一致，请修改后重新测试。",
                         "Measured dimensions differ. Update the value and test again.",
                       )}{" "}
-                      <button
+                      <CapsuleButton
                         className="text-button"
                         onClick={() => change("embed_dim", results[channel].dim)}
                       >
                         {t("采用实测维度", "Use measured dimensions")}
-                      </button>
+                      </CapsuleButton>
                     </p>
                   )}
                 </div>
               )}
               {channelFeedback[channel] && <div className={channelFeedback[channel].saved ? "notice connection-feedback" : "error connection-feedback"} role={channelFeedback[channel].saved ? "status" : "alert"}>
                 <p>{channelFeedback[channel].text}</p>
-                {channel === "chat" && channelFeedback[channel].saved && onSummarize && <button type="button" className="text-button" onClick={onSummarize}>{t("前往生成摘要", "Start generating summaries")}</button>}
+                {channel === "chat" && channelFeedback[channel].saved && onSummarize && <CapsuleButton type="button" className="text-button" onClick={onSummarize}>{t("前往生成摘要", "Start generating summaries")}</CapsuleButton>}
               </div>}
             </div>
             {channel === "chat" && value("chat_backend") === "agent" && <div className="model-options">
@@ -441,11 +442,11 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
         </p>
       )}
       <div className="form-actions">
-        <button className="primary" disabled={!!busy || !Object.keys(draft).length} onClick={save}>
+        <CapsuleButton className="primary" disabled={!!busy || !Object.keys(draft).length} onClick={save}>
           <Save />
           {t("保存配置", "Save settings")}
-        </button>
-        {hasDraft && <button className="secondary" disabled={!!busy} onClick={() => { setDraft({}); setResults({}); setChannelFeedback({}); setError(""); setNotice(""); setConsent(false); agentModels.current = {}; }}>{t("放弃修改", "Discard changes")}</button>}
+        </CapsuleButton>
+        {hasDraft && <CapsuleButton className="secondary" disabled={!!busy} onClick={() => { setDraft({}); setResults({}); setChannelFeedback({}); setError(""); setNotice(""); setConsent(false); agentModels.current = {}; }}>{t("放弃修改", "Discard changes")}</CapsuleButton>}
         <span className="hint">
           {t(
             "测试只发送固定测试句，不发送书签。",
@@ -478,7 +479,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
             />
             {t("我确认备份并在需要时重建向量", "I confirm backup and vector rebuild when needed")}
           </label>
-          <button
+          <CapsuleButton
             className="secondary"
             disabled={!!busy || hasDraft || !consent || !setup.channels.embed.tested}
             onClick={() =>
@@ -497,7 +498,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
             }
           >
             {t("应用已测试的配置", "Apply tested settings")}
-          </button>
+          </CapsuleButton>
         </section>
       )}
     </section>
@@ -548,20 +549,20 @@ export function ExtensionSettings() {
       </a>
       <div className="pairing-row">
         <code>{location.origin}</code>
-        <button
+        <CapsuleButton
           className="secondary"
           onClick={() => copy(location.origin, t("地址已复制", "URL copied"))}
         >
           <Copy />
           {t("复制地址", "Copy URL")}
-        </button>
-        <button
+        </CapsuleButton>
+        <CapsuleButton
           className="secondary"
           onClick={() => copy(getToken(), t("配对令牌已复制", "Pairing token copied"))}
         >
           <Copy />
           {t("复制配对令牌", "Copy pairing token")}
-        </button>
+        </CapsuleButton>
       </div>
       <p className="hint">
         {t(
@@ -594,7 +595,7 @@ export function UpdateSettings() {
         )}
       </p>
       <div className="form-actions">
-        <button
+        <CapsuleButton
           className="secondary"
           disabled={busy}
           onClick={async () => {
@@ -630,7 +631,7 @@ export function UpdateSettings() {
         >
           {busy ? <LoaderCircle className="spin" /> : <ExternalLink />}
           {t("检查更新", "Check for updates")}
-        </button>
+        </CapsuleButton>
         <a
           href="https://github.com/88lin/facetmark/actions/workflows/desktop.yml"
           target="_blank"
