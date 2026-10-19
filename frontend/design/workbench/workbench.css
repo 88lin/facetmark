@@ -15,7 +15,7 @@
   --surface:#fff;
   --surface-soft:#f4f7f6;
   --ink:#243e3c;
-  --muted:#627570;
+  --muted:#52685f;
   --line:#e0e9e5;
   --brand:#09695c;
   --brand-hover:#075548;
@@ -431,7 +431,7 @@ input[type=search]::-webkit-search-cancel-button {
   margin-top:9px;
   font-size:11px;
   font-weight:450;
-  opacity:.87;
+  opacity:1;
   white-space:nowrap;
 }
 
@@ -460,7 +460,7 @@ input[type=search]::-webkit-search-cancel-button {
 }
 
 .collection-tile.is-current {
-  background:linear-gradient(115deg,#176f5e,#2b8570);
+  background:linear-gradient(115deg,#176f5e,#267762);
   color:#fff;
   border-color:#398c78;
   box-shadow:inset 0 1px 0 #78b4a480,0 10px 21px -13px #0a5b4280;
@@ -530,7 +530,7 @@ input[type=search]::-webkit-search-cancel-button {
 }
 
 [data-theme=dark] .collection-tile.is-current {
-  background:linear-gradient(115deg,#3c856b,#2a654e);
+  background:linear-gradient(115deg,#30745c,#255c46);
 }
 
 [data-theme=dark] .collection-tile:after {
@@ -903,7 +903,7 @@ input[type=search]::-webkit-search-cancel-button {
   letter-spacing:-.15px;
   font-weight:570;
   display:block;
-  min-height:55px;
+  min-height:0;
   overflow-wrap:anywhere;
 }
 
