@@ -79,9 +79,10 @@ with sync_playwright() as playwright:
         'mimeType': 'text/html',
         'buffer': (
             '<!DOCTYPE NETSCAPE-Bookmark-file-1><DL>'
+            '<DT><H3>合成演示文件夹</H3><DL>'
             '<DT><A HREF="https://notes.example/reading">合成示例：为收藏留下可以找回的线索</A>'
             '<DT><A HREF="https://design.example/context">合成示例：保持阅读与检索的上下文</A>'
-            '</DL>'
+            '</DL></DL>'
         ).encode(),
     })
     page.get_by_role('status').filter(has_text='导入完成').wait_for(timeout=15000)
@@ -189,7 +190,7 @@ with sync_playwright() as playwright:
     page.on('request', record_interaction_write)
 
     def motion_step(label, selectors, action, *, running=False, content=False, direction=None,
-                    moving=False, exiting=False):
+                    moving=False, exiting=False, painted=False):
         page.evaluate('''selectors => {
             const started = performance.now();
             const probe = window.__installedMotion = { frames: [], request: 0 };
@@ -263,6 +264,13 @@ with sync_playwright() as playwright:
             for node in samples:
                 positions.setdefault(node['key'], set()).add((node['x'], node['y']))
             assert any(len(values) > 2 for values in positions.values()), f'{label}: no intermediate layout positions'
+        if painted:
+            for selector in selectors:
+                transforms = {}
+                for frame in frames:
+                    for node in frame['targets'][selector]:
+                        transforms.setdefault(node['key'], set()).add(node['transform'])
+                assert any(len(values) > 2 for values in transforms.values()), f'{label}: {selector} never painted intermediate transforms'
         if exiting:
             for selector in selectors:
                 closing = [node for frame in frames for node in frame['targets'][selector]
@@ -306,6 +314,24 @@ with sync_playwright() as playwright:
             motion_step(f'分类：{category}', ['.collection-sidebar .facet-options'],
                         lambda category=category: categories.get_by_role('button', name=category, exact=True).click(),
                         content=True, direction=1 if category == '标签' else -1)
+        folder = categories.get_by_title('合成演示文件夹', exact=True)
+        folder.wait_for()
+        folder_layers = ['.collection-sidebar .facet-option[title] .folder-glyph__front',
+                         '.collection-sidebar .facet-option[title] .folder-glyph__paper']
+        motion_step('立体文件夹悬停展开', folder_layers, folder.hover, painted=True)
+        capture_still('installed-folder-hover.png')
+        motion_step('立体文件夹移开收回', folder_layers,
+                    lambda: page.mouse.move(600, 40), painted=True)
+
+        def select_folder():
+            folder.focus()
+            folder.press('Enter')
+
+        motion_step('键盘选择立体文件夹', folder_layers, select_folder, painted=True)
+        assert folder.get_attribute('aria-pressed') == 'true'
+        page.wait_for_function("document.querySelector('.result-list')?.getAttribute('aria-busy') === 'false'")
+        assert all(value.strip() == '合成演示文件夹' for value in page.locator('.result-folder').all_text_contents())
+        categories.get_by_role('button', name='全部文件夹', exact=True).click()
         second_id = page.locator('.result-row').nth(1).get_attribute('data-bookmark-id')
         layout_label = '列表视图' if initial_layout == 'grid' else '卡片视图'
         motion_step('切换收藏布局', [f'.result-row[data-bookmark-id="{second_id}"]'],
@@ -320,6 +346,15 @@ with sync_playwright() as playwright:
         dialog = page.get_by_role('dialog', name='新增收藏', exact=True)
         dialog.locator('.folder-picker-trigger').click()
         folder_search = dialog.get_by_role('textbox', name='搜索文件夹', exact=True)
+        folder_search.wait_for()
+        folder_search.fill('合成演示文件夹')
+        folder_choice = dialog.get_by_title('合成演示文件夹', exact=True)
+        folder_choice.wait_for()
+        motion_step('安装版选择器文件夹展开', ['.folder-picker-options .folder-glyph__front',
+                    '.folder-picker-options .folder-glyph__paper'], folder_choice.hover, painted=True)
+        folder_choice.click()
+        assert '合成演示文件夹' in dialog.locator('.folder-picker-trigger').inner_text()
+        dialog.locator('.folder-picker-trigger').click()
         folder_search.wait_for()
         motion_step('Escape 只关闭目录', ['.folder-picker-panel'],
                     lambda: folder_search.press('Escape'), exiting=True)
