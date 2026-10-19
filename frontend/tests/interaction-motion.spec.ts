@@ -222,10 +222,10 @@ test("everyday navigation has visible motion without losing drafts, focus or inp
       expectPaintedMotion(step, movingCard, true);
     }
 
-    step = await record(page, evidence, "按压反馈与打开新增收藏", [".interaction-ink", ".library-dialog"],
+    step = await record(page, evidence, "打开新增收藏并清理原按钮波纹", [".interaction-ink", ".library-dialog"],
       () => page.getByRole("button", { name: "新增收藏", exact: true }).click());
-    expectAnimation(step, ".interaction-ink");
     expectPaintedMotion(step, ".library-dialog");
+    await expect(page.locator(".interaction-ink")).toHaveCount(0);
     await expect(page.locator(".interaction-paint")).toHaveCSS("pointer-events", "none");
     const dialog = page.getByRole("dialog", { name: "新增收藏", exact: true });
     await dialog.getByRole("textbox", { name: "收藏网址", exact: true }).fill("https://motion-fixture.example/never-saved");

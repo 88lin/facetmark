@@ -63,7 +63,7 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
         onClick={trackOpen} onAuxClick={event => { if (event.button === 1) trackOpen(); }}>{record.title || record.url}</a>
         : <span className="result-title">{record.title || record.url}</span>}
       <div className={`bookmark-description ${expanded ? "expanded" : ""}`}>
-        <p ref={summary} className="result-summary"><span className="summary-basis">{label} · </span>{text || (display === "original" ? t("预览中可抓取正文，或直接打开原网页。", "Fetch page text in Preview, or open the original website.") : t("可生成摘要，在收藏中直接浏览。", "Generate a summary to read it here."))}</p>
+        <p ref={summary} className="result-summary"><span className="summary-basis">{label}</span>{text || (display === "original" ? t("预览中可抓取正文，或直接打开原网页。", "Fetch page text in Preview, or open the original website.") : t("可生成摘要，在收藏中直接浏览。", "Generate a summary to read it here."))}</p>
       </div>
       {record.summary_status === "failed" && <p className="summary-failure">{t("上次生成失败", "Last attempt failed")}
         {onSummarize && <CapsuleButton className="text-button" disabled={disabled} onClick={onSummarize}>{t("重试", "Retry")}</CapsuleButton>}</p>}

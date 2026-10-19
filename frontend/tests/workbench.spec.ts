@@ -335,6 +335,9 @@ test("mobile navigation traps focus and restores it on Escape", async ({ page })
   await page.keyboard.press("Tab");
   await expect(page.locator(".sidebar .brand")).toBeFocused();
   await settleVisualLayout(page);
+  const scrim = page.locator(".nav-scrim");
+  await expect(scrim).toHaveCSS("border-radius", "0px");
+  expect(await scrim.boundingBox()).toEqual({ x: 0, y: 0, width: 390, height: 960 });
   await page.screenshot({
     path: "screenshots/fix-mobile-navigation.png",
     fullPage: true,
@@ -342,6 +345,15 @@ test("mobile navigation traps focus and restores it on Escape", async ({ page })
   });
   await page.keyboard.press("Escape");
   await expect(trigger).toBeFocused();
+  await expect(page.locator(".sidebar")).toHaveAttribute("inert", "");
+  await trigger.click();
+  await expect(page.getByRole("dialog", { name: "导航" })).toBeVisible();
+  await settleVisualLayout(page);
+  await page.mouse.move(380, 20);
+  await page.mouse.down();
+  await expect(scrim).toHaveCSS("scale", "none");
+  expect(await page.locator(".interaction-ink").count()).toBe(0);
+  await page.mouse.up();
   await expect(page.locator(".sidebar")).toHaveAttribute("inert", "");
 });
 
@@ -422,14 +434,16 @@ test("render matrix: Chinese, English, light, dark, desktop and narrow", async (
         );
         await page.goto("/app");
         await expect(page.locator(".result-row").first()).toBeVisible();
-        const queryResponse = page.waitForResponse(response => {
-          const url = new URL(response.url());
-          return url.pathname.endsWith("/bookmarks") && url.searchParams.get("q") === "tag:demo";
-        });
-        await page
-          .getByRole("textbox", { name: language === "zh" ? "搜索书签" : "Search bookmarks" })
-          .fill("tag:demo");
-        await queryResponse;
+        const search = page.getByRole("textbox", { name: language === "zh" ? "搜索书签" : "Search bookmarks" });
+        if (await search.inputValue() !== "tag:demo") {
+          const queryResponse = page.waitForResponse(response => {
+            const url = new URL(response.url());
+            return url.pathname.endsWith("/bookmarks") && url.searchParams.get("q") === "tag:demo";
+          });
+          await search.fill("tag:demo");
+          await queryResponse;
+        }
+        await expect(page.locator(".result-list")).toHaveAttribute("aria-busy", "false");
         await expect(page.locator(".result-row").first()).not.toContainText("CI imported bookmark");
         if (width >= 1120)
           await page

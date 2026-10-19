@@ -11,7 +11,7 @@ colors:
   ink: '#232631'
   muted: '#687080'
   rule: '#e7e9ef'
-  accent: '#6254e8'
+  accent: '#5c4ddb'
   soft: '#efedff'
   selected: '#e9e5ff'
   selected-edge: '#c2bafa'
@@ -277,10 +277,11 @@ FlClash informs selection continuity. These are references, not approved mockups
 - HeroUI control states and interruptible, layered GSAP content transitions.
 - Immediate state and focus, native semantics and live reduced-motion support.
 
-This document records rebuild base `1f2a4ce8037c41c7dc279954cecc1a8de527ba0d` and
-the subsequent navigation-fit corrections in the working tree. The final correction
-revision, fresh cloud evidence and independent visual/motion review remain pending. Historical passes do not establish current acceptance. Component
-specimens are source-derived illustrations, not rendered or approval evidence.
+This document records source `50f89dfc2c454318dca3d4a393717cb3aa2e1a07` and the
+subsequent accent-contrast and folder-parent layout corrections in the working tree.
+The final correction revision, fresh cloud evidence and independent visual/motion
+review remain pending. Historical passes do not establish current acceptance.
+Component specimens are source-derived illustrations, not rendered or approval evidence.
 The [workbench contract](.impeccable/workbench-direction.md) is the direction authority;
 [the surface brief](.impeccable/surfaces/frontend.md) defines acceptance scope.
 
@@ -401,19 +402,30 @@ instead of applying a pill outline to large content panels.
 
 ### HeroUI controls and inputs
 
-`@heroui/react` and `@heroui/styles` are pinned to 3.2.6. The shared `CapsuleButton`
-wraps the real HeroUI Button; folder/model search uses HeroUI Input. HeroUI supplies
-control state and press/focus behavior. The wrapper retains a native button,
-its click `currentTarget` and form submission semantics. Application key handlers
-run first, then HeroUI handlers when the event was not prevented. Pending
-or disabled controls block activation. A library dependency alone does not prove
-those journeys pass; exercise native clicks, Enter/Space and form submission.
+`@heroui/react` and `@heroui/styles` are pinned to 3.2.6. Official granular imports
+load base, default theme, utilities, variants and Button/Input styles, keeping the
+real controls without unrelated component styles. Final bundle size and build
+time remain subject to the new cloud build.
+
+The shared `CapsuleButton` wraps HeroUI Button; folder/model search uses HeroUI
+Input. HeroUI supplies press/focus state. The wrapper retains a native button and
+its click `currentTarget`. Application key handlers run first; unhandled keys then
+reach HeroUI. A ref records whether HeroUI prevented the Enter/Space default, and
+only that case supplements a keyboard press with one real DOM click for
+`type="button"`. Submit/reset keep browser form activation. This conditional bridge
+preserves platforms where Enter already produces a native click. Pending/disabled
+controls block activation; verify click counts, keyboard behavior and submission.
+
+The shipped [HeroUI notice](frontend/public/licenses/HeroUI.txt) contains Apache 2.0
+terms, and Settings credits HeroUI alongside Rare UI. Retain both the notice and
+visible credit when changing the integration.
 
 Primary actions use indigo/on-accent; secondary actions use a canvas capsule and
 fine boundary; text actions use a quiet transparent capsule. Main controls use
 15px/500 labels and the 44px shared height. Source-specific toolbar and navigation
 controls retain their documented compact heights. Native fallback CSS press scaling
-excludes HeroUI `.button` elements and `data-overlay-motion` controls.
+excludes HeroUI `.button` elements and `data-overlay-motion` controls. The global `.fm-button` reduced-motion rule also removes press transform from
+portaled dialog controls when the preference changes.
 
 ### Unified sidebar and selection
 
@@ -423,7 +435,7 @@ types use text-only segmented capsules so English labels fit the compact sidebar
 These controls share the sidebar with search and the vertically scrollable category
 list; the narrow header remains horizontal.
 Directory options retain full accessible paths, pagination, counts and explicit
-selected state. Selection capsules use independent Motion layout groups so each
+selected state. Parent paths occupy their own line beneath folder leaf names. Selection capsules use independent Motion layout groups so each
 control group moves its own indicator. Semantic current/pressed/selected state
 belongs to the actual control.
 
@@ -465,7 +477,9 @@ Motion 12.23.24 owns selection capsules (stiffness 480, damping 29, mass .8),
 card position/entry and overlay presence. The portal ink is a noninteractive paint
 layer, cleared on scrolling or resize; its higher-specificity CSS uses a 480ms
 capsule ripple. Theme reveal remains an interruptible 460ms circular View Transition
-from the activating control, with immediate fallback. Detailed values are in the
+from the activating control, with immediate fallback. The application explicitly
+restores `view-transition-name: root` after HeroUI base styles so the root snapshot
+remains available to the circle reveal. Detailed values are in the
 sidecar and [UI motion tools](docs/ui-motion-tools.md); static specimens do not
 implement those runtime engines.
 

@@ -231,8 +231,10 @@ test("supporting views and small-window reader share the same system", async ({ 
   const toolbar = await page.locator(".workspace-toolbar").boundingBox();
   const collection = await page.locator(".results-column").boundingBox();
   const categories = await page.locator(".collection-sidebar").boundingBox();
+  const sidebar = await page.locator(".app-header").boundingBox();
   expect(toolbar!.x).toBe(collection!.x);
-  expect(categories!.y).toBeLessThan(collection!.y);
+  expect(categories!.y).toBeGreaterThan(sidebar!.y);
+  expect(categories!.y + categories!.height).toBeLessThan(sidebar!.y + sidebar!.height);
   expect(categories!.x + categories!.width).toBeLessThan(collection!.x);
   expect(toolbar!.x + toolbar!.width).toBe(collection!.x + collection!.width);
   const rows = await page.locator(".result-row").all();

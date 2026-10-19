@@ -18,7 +18,7 @@ export async function settleVisualLayout(page: Page) {
           return [...[rect.x, rect.y, rect.width, rect.height].map(n => Math.round(n * 10) / 10),
             style.opacity, style.transform, style.filter];
         }));
-        const active = document.querySelector("[data-content-motion]") ||
+        const active = document.querySelector("[data-content-motion], .interaction-ink") ||
           elements.some(element => element.getAnimations().some(animation => animation.playState === "running"));
         if (snapshot !== previous || active) stableSince = performance.now();
         previous = snapshot;

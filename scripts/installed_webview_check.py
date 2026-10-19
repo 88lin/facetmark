@@ -39,7 +39,33 @@ with sync_playwright() as playwright:
     assert page is not None, 'Installed app did not navigate to the local workbench'
     page.locator('#root .app-shell').wait_for(timeout=30000)
     page.locator('.setup-flow').wait_for(timeout=30000)
-    page.screenshot(path=str(output / 'installed-workbench.png'))
+    def capture_still(name):
+        page.evaluate('''async () => {
+            await document.fonts.ready;
+            const deadline = performance.now() + 5000;
+            let previous = '', stable = performance.now();
+            await new Promise((resolve, reject) => {
+                const sample = () => {
+                    const elements = [...document.querySelectorAll(
+                        '.result-row, .preview-drawer, .preview-pane, .page-scroll, .workspace-toolbar, .setup-flow')];
+                    const snapshot = JSON.stringify(elements.map(element => {
+                        const box = element.getBoundingClientRect(), style = getComputedStyle(element);
+                        return [box.x, box.y, box.width, box.height, style.transform, style.opacity, style.filter];
+                    }));
+                    if (snapshot !== previous || document.querySelector('[data-content-motion], .interaction-ink') ||
+                        elements.some(element => element.getAnimations().some(a => a.playState === 'running')))
+                        stable = performance.now();
+                    previous = snapshot;
+                    if (performance.now() - stable >= 250) return resolve();
+                    if (performance.now() > deadline) return reject(new Error('Installed layout did not settle'));
+                    requestAnimationFrame(sample);
+                };
+                requestAnimationFrame(sample);
+            });
+        }''')
+        page.screenshot(path=str(output / name))
+
+    capture_still('installed-workbench.png')
     (output / 'installed-webview.json').write_text(json.dumps({
         'url': page.url, 'react_root_rendered': True,
         'setup_rendered': True, 'title': page.title(),
@@ -130,12 +156,12 @@ with sync_playwright() as playwright:
             original_server.shutdown()
     page.locator('.bookmark-preview').first.click()
     page.get_by_text('正文还未保存', exact=True).wait_for(timeout=15000)
-    page.screenshot(path=str(output / 'installed-reader.png'))
+    capture_still('installed-reader.png')
     narrow_reader = page.locator('.preview-drawer').is_visible()
     return_label = '返回收藏' if narrow_reader else '关闭预览'
     page.get_by_role('button', name=return_label, exact=True).click()
     assert page.get_by_role('textbox', name='搜索书签').input_value() == '合成示例'
-    page.screenshot(path=str(output / 'installed-collection.png'))
+    capture_still('installed-collection.png')
     (output / 'installed-reader.json').write_text(json.dumps({
         'commit': os.environ.get('GITHUB_SHA'), 'data': 'synthetic HTML import only',
         'import_rendered': True, 'keyword_search': True,
@@ -286,8 +312,11 @@ with sync_playwright() as playwright:
                     lambda: page.get_by_role('button', name=layout_label, exact=True).first.click(), moving=True)
         restore_label = '卡片视图' if initial_layout == 'grid' else '列表视图'
         page.get_by_role('button', name=restore_label, exact=True).first.click()
-        motion_step('按压与打开新增收藏', ['.interaction-ink', '.library-dialog'],
-                    lambda: page.get_by_role('button', name='新增收藏', exact=True).click(), running=True)
+        motion_step('胶囊按压波纹', ['.interaction-ink'],
+                    lambda: categories.get_by_role('button', name='文件夹', exact=True).click(), running=True)
+        motion_step('打开新增收藏并清理原按钮波纹', ['.library-dialog'],
+                    lambda: page.get_by_role('button', name='新增收藏', exact=True).click(), moving=True)
+        assert page.locator('.interaction-ink').count() == 0
         dialog = page.get_by_role('dialog', name='新增收藏', exact=True)
         dialog.locator('.folder-picker-trigger').click()
         folder_search = dialog.get_by_role('textbox', name='搜索文件夹', exact=True)
@@ -311,8 +340,7 @@ with sync_playwright() as playwright:
         page.get_by_role('textbox', name='搜索书签').fill('合成示例')
         page.locator('.result-row').nth(1).wait_for(timeout=15000)
         page.wait_for_function("document.querySelector('.result-count')?.textContent === '2'")
-        page.evaluate('() => document.fonts.ready')
-        page.screenshot(path=str(output / 'installed-interactions.png'))
+        capture_still('installed-interactions.png')
         assert not link_errors, f'Installed interaction steps raised WebView errors: {link_errors}'
         assert not interaction_writes, f'Installed interaction steps unexpectedly saved data: {interaction_writes}'
     finally:

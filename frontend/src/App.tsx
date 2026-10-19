@@ -883,6 +883,7 @@ function Workbench({
       {navOpen && (
         <button
           className="nav-scrim"
+          data-no-ink
           aria-label={t("关闭导航", "Close navigation")}
           onClick={() => setNavOpen(false)}
         />

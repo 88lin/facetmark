@@ -1,5 +1,25 @@
 import { test, expect } from "@playwright/test";
 
+test("press ink is discarded when the reader makes its originating surface inactive", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 860 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/app");
+  // Extend the paint lifetime so waiting for animationend cannot mask leakage.
+  await page.addStyleTag({ content: ".interaction-paint .interaction-ink { animation-duration: 10s; }" });
+  const preview = page.locator(".bookmark-preview").first();
+  await preview.hover();
+  await page.mouse.down();
+  await expect(page.locator(".interaction-ink")).toHaveCount(1);
+  await page.mouse.up();
+  await expect.poll(() => preview.evaluate(element => !!element.closest('[inert], [aria-hidden="true"]'))).toBe(true);
+  const remaining = await page.evaluate(async () => {
+    for (let frame = 0; frame < 3; frame++) await new Promise(requestAnimationFrame);
+    return document.querySelectorAll(".interaction-ink").length;
+  });
+  expect(remaining).toBe(0);
+  await expect(page.getByRole("dialog", { name: "书签预览" })).toBeVisible();
+});
+
 test("HeroUI capsules retain keyboard press, native click and preview focus", async ({ page }) => {
   await page.goto("/app");
   const tasks = page.locator(".app-header").getByRole("button", { name: "任务", exact: true });

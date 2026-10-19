@@ -129,7 +129,7 @@ export function useContentMotion<T extends HTMLElement>(ref: RefObject<T | null>
   }, { scope: ref, dependencies: [value, selector, axis, reduced], revertOnUpdate: true });
 }
 
-type Ink = { id: number; left: number; top: number; width: number; height: number;
+type Ink = { id: number; target: HTMLElement; createdAt: number; left: number; top: number; width: number; height: number;
   radius: string; color: string; x: number; y: number; diameter: number };
 
 /** The ink is a noninteractive paint layer, leaving every real hit target stable. */
@@ -147,7 +147,7 @@ export function InteractionFeedback() {
       const rect = control.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
       const style = getComputedStyle(control);
-      const ink: Ink = { id: nextId.current++, left: rect.left, top: rect.top,
+      const ink: Ink = { id: nextId.current++, target: control, createdAt: performance.now(), left: rect.left, top: rect.top,
         width: rect.width, height: rect.height, radius: style.borderRadius, color: style.color,
         x: point ? point.x - rect.left : rect.width / 2,
         y: point ? point.y - rect.top : rect.height / 2,
@@ -168,6 +168,36 @@ export function InteractionFeedback() {
       window.removeEventListener("resize", clear);
     };
   }, [reduced]);
+  useEffect(() => {
+    if (!inks.length) return;
+    let frame = 0;
+    // The portal must never paint feedback over the next surface. Inspect only
+    // the few live presses, and stop as soon as their short animation ends.
+    const inspect = () => {
+      const expired = new Set<number>();
+      for (const ink of inks) {
+        const target = ink.target;
+        if (!target.isConnected || target.closest('[inert], [hidden], [aria-hidden="true"], [data-overlay-phase="closing"]') ||
+          performance.now() - ink.createdAt > 600) {
+          expired.add(ink.id);
+          continue;
+        }
+        const rect = target.getBoundingClientRect();
+        const style = getComputedStyle(target);
+        // Tolerate a button's press scale, but cancel when navigation or layout
+        // moves its surface away from the captured coordinates.
+        if (!rect.width || !rect.height || style.visibility !== "visible" ||
+          Math.abs(rect.left + rect.width / 2 - ink.left - ink.width / 2) > 8 ||
+          Math.abs(rect.top + rect.height / 2 - ink.top - ink.height / 2) > 8 ||
+          Math.abs(rect.width - ink.width) > Math.max(16, ink.width * 0.1) ||
+          Math.abs(rect.height - ink.height) > Math.max(16, ink.height * 0.1)) expired.add(ink.id);
+      }
+      if (expired.size) setInks(current => current.filter(ink => !expired.has(ink.id)));
+      else frame = requestAnimationFrame(inspect);
+    };
+    frame = requestAnimationFrame(inspect);
+    return () => cancelAnimationFrame(frame);
+  }, [inks]);
   return createPortal(<div className="interaction-paint" aria-hidden="true">
     {inks.map(ink => <span className="interaction-clip" key={ink.id} style={{ left: ink.left, top: ink.top,
       width: ink.width, height: ink.height, borderRadius: ink.radius, color: ink.color }}>

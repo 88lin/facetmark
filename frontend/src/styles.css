@@ -39,7 +39,7 @@
   --ink: #232631;
   --muted: #687080;
   --rule: #e7e9ef;
-  --accent: #6254e8;
+  --accent: #5c4ddb;
   --soft: #efedff;
   --selected: #e9e5ff;
   --selected-edge: #c2bafa;
@@ -111,6 +111,7 @@ button {
 }
 .fm-button { height: auto; min-width: 0; white-space: normal; }
 .fm-button.button { border-radius: 9999px; }
+.fm-button.button svg { margin: 0; }
 button:disabled {
   cursor: not-allowed;
   opacity: 0.42;
