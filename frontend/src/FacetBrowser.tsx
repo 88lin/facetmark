@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Check, Folder, FolderOpen, Globe2, Inbox, LoaderCircle, Search, Settings2, Tags, X } from "lucide-react";
 import { api, query } from "./api";
 import { useText } from "./locale";
+import { SelectionPill, useContentMotion } from "./InteractionMotion";
 
 type Field = "folder" | "tag" | "domain";
 type Group = "folders" | "tags" | "domains";
@@ -26,6 +27,8 @@ export function FacetBrowser({ filters, enabled = true, revision, onSelect, onMa
   const [error, setError] = useState(false);
   const [retry, setRetry] = useState(0);
   const scroller = useRef<HTMLElement>(null);
+  const motionGroup = useId();
+  useContentMotion(scroller, group, undefined, "x");
   const field: Field = group === "folders" ? "folder" : group === "tags" ? "tag" : "domain";
   const groups = [
     { key: "folders" as const, label: t("文件夹", "Folders"), Icon: Folder },
@@ -76,7 +79,7 @@ export function FacetBrowser({ filters, enabled = true, revision, onSelect, onMa
         aria-pressed={group === key} onClick={() => {
           if (group === key) return;
           resetList(); setText(""); setGroup(key);
-        }}><Icon size={14} /><span>{label}</span></button>)}
+        }}><SelectionPill active={group === key} group={`${motionGroup}-types`} /><Icon size={14} /><span>{label}</span></button>)}
     </div>
     <label className="facet-search">
       <Search size={15} aria-hidden="true" />
@@ -96,6 +99,7 @@ export function FacetBrowser({ filters, enabled = true, revision, onSelect, onMa
       aria-busy={loading}>
       <button className="facet-option facet-any" type="button" aria-pressed={filters[field] === undefined}
         onClick={() => onSelect(field, undefined)}>
+        <SelectionPill active={filters[field] === undefined} group={`${motionGroup}-folder`} />
         {group === "folders" ? <FolderOpen size={16}/> : group === "tags" ? <Tags size={16}/> : <Globe2 size={16}/>}
         <span>{group === "folders" ? t("全部文件夹", "All folders") :
           group === "tags" ? t("不限标签", "Any tag") : t("不限站点", "Any site")}</span>
@@ -103,6 +107,7 @@ export function FacetBrowser({ filters, enabled = true, revision, onSelect, onMa
       </button>
       {group === "folders" && !text && <button className="facet-option" type="button"
         aria-pressed={filters.folder === ""} onClick={() => onSelect("folder", "")}>
+        <SelectionPill active={filters.folder === ""} group={`${motionGroup}-folder`} />
         <Inbox size={16}/>
         <span>{t("未分类", "Unfiled")}</span>
         {filters.folder === "" && <Check size={14} aria-hidden="true" />}
@@ -112,6 +117,7 @@ export function FacetBrowser({ filters, enabled = true, revision, onSelect, onMa
         return <button className="facet-option" key={item.value} type="button"
           title={item.value} aria-label={`${item.value} ${item.count}`} aria-pressed={filters[field] === item.value}
           onClick={() => onSelect(field, item.value)}>
+          <SelectionPill active={filters[field] === item.value} group={`${motionGroup}-folder`} />
           {group === "folders" ? <Folder size={16}/> : group === "tags" ? <Tags size={16}/> : <Globe2 size={16}/>}
           <span>{split >= 0 ? <><span>{item.value.slice(split + 3)}</span><small className="facet-parent">{item.value.slice(0, split)}</small></> : item.value}</span>
           <small>{item.count.toLocaleString()}</small>{filters[field] === item.value && <Check size={14}/>}

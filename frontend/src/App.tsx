@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   ArrowDown,
@@ -48,6 +49,7 @@ import { useGSAP } from "@gsap/react";
 import { motionTiming } from "./motion";
 import { AnimatePresence, motion } from "motion/react";
 import { useReducedMotion } from "./useReducedMotion";
+import { InteractionFeedback, SelectionPill, useContentMotion } from "./InteractionMotion";
 
 type View = "library" | "sessions" | "tasks" | "settings" | "setup" | "import";
 type Facet = { value: string; count: number };
@@ -95,6 +97,24 @@ function Workbench({
 }) {
   const t = useText();
   const reduceMotion = useReducedMotion();
+  const themeTransition = useRef<ViewTransition | null>(null);
+  const changeTheme = (control: HTMLElement) => {
+    const next = theme === "light" ? "dark" : "light";
+    themeTransition.current?.skipTransition();
+    if (reduceMotion || !document.startViewTransition) { setTheme(next); return; }
+    const box = control.getBoundingClientRect();
+    const x = box.left + box.width / 2;
+    const y = box.top + box.height / 2;
+    const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    const transition = document.startViewTransition(() => flushSync(() => setTheme(next)));
+    themeTransition.current = transition;
+    transition.ready.then(() => {
+      if (themeTransition.current !== transition || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      document.documentElement.animate({ clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
+        { duration: 460, easing: "cubic-bezier(.16,1,.3,1)", pseudoElement: "::view-transition-new(root)" });
+    }).catch(() => {});
+  };
+  useEffect(() => { if (reduceMotion) themeTransition.current?.skipTransition(); }, [reduceMotion]);
   const [paired, setPaired] = useState(false);
   const [pairingRequired, setPairingRequired] = useState(false);
   const [manualToken, setManualToken] = useState("");
@@ -197,6 +217,8 @@ function Workbench({
   const composing = useRef(false);
   const firstRefresh = useRef(true);
   const list = useRef<HTMLDivElement>(null);
+  useContentMotion(workspace, view, view === "library" ? ".results-column" : ".page-scroll", "x");
+  useContentMotion(list, loadedContext);
   const browseScroll = useRef(0);
   const lastRow = useRef<HTMLButtonElement | null>(null);
   const [requestRevision, setRequestRevision] = useState(0);
@@ -644,6 +666,7 @@ function Workbench({
   );
   return (
     <div className={`app-shell ${focusReading ? "is-reading-focused" : ""}`}>
+      <InteractionFeedback />
       <header className="app-header" inert={navOpen} aria-hidden={navOpen}>
         <button
           className="icon-button nav-trigger"
@@ -674,15 +697,17 @@ function Workbench({
               changeQuery("");
             }}
           >
-            <BookmarkIcon size={15} aria-hidden="true" />
-            {t("全部书签", "All bookmarks")}
+            <SelectionPill active={view === "library"} group="app-navigation" />
+            <BookmarkIcon size={22} aria-hidden="true" />
+            <span>{t("全部书签", "All bookmarks")}</span>
           </button>
           <button
             className={view === "sessions" ? "active" : ""}
             onClick={() => openView("sessions")}
           >
-            <Clock3 size={15} aria-hidden="true" />
-            {t("浏览批次", "Saving sessions")}
+            <SelectionPill active={view === "sessions"} group="app-navigation" />
+            <Clock3 size={22} aria-hidden="true" />
+            <span>{t("浏览批次", "Saving sessions")}</span>
           </button>
         </nav>
         <div className="header-utilities">
@@ -697,6 +722,7 @@ function Workbench({
                   title={t("任务", "Tasks")}
                   onClick={() => openView("tasks")}
                 >
+                  <SelectionPill active={view === "tasks"} group="app-navigation" />
                   {job.state === "running" ? <LoaderCircle className="spin" /> : <Layers3 />}
                   <span>{t("任务", "Tasks")}</span>
                 </button>
@@ -707,6 +733,7 @@ function Workbench({
                   title={t("设置", "Settings")}
                   onClick={() => openView("settings")}
                 >
+                  <SelectionPill active={view === "settings"} group="app-navigation" />
                   <Settings2 />
                   <span>{t("设置", "Settings")}</span>
                 </button>
@@ -715,7 +742,7 @@ function Workbench({
             <button
               className="icon-button"
               aria-label={t("切换主题", "Toggle theme")}
-              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+              onClick={event => changeTheme(event.currentTarget)}
             >
               {theme === "light" ? <Moon /> : <Sun />}
             </button>
@@ -730,7 +757,7 @@ function Workbench({
           {adminAvailable && (
             <button className="header-import" onClick={() => openView("import")}>
               <Import size={16} />
-              {t("导入书签", "Import bookmarks")}
+              <span>{t("导入书签", "Import bookmarks")}</span>
             </button>
           )}
         </div>
@@ -820,7 +847,7 @@ function Workbench({
             <button
               className="icon-button"
               aria-label={t("切换主题", "Toggle theme")}
-              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+              onClick={event => changeTheme(event.currentTarget)}
             >
               {theme === "light" ? <Moon /> : <Sun />}
             </button>
@@ -859,7 +886,7 @@ function Workbench({
         ref={workspace}
         inert={navOpen}
         aria-hidden={navOpen}
-        className={`main-workspace ${view === "library" ? "with-preview" : ""} ${selected !== null ? "has-selection" : "browse-mode"} ${collectionLayout === "list" ? "list-mode" : ""} ${focusReading && view === "library" ? "focus-mode" : ""}`}
+        className={`main-workspace ${paired && view === "library" ? "with-preview" : ""} ${selected !== null ? "has-selection" : "browse-mode"} ${collectionLayout === "list" ? "list-mode" : ""} ${focusReading && view === "library" ? "focus-mode" : ""}`}
       >
         {connectionError && (
           <div className="connection-error" role="alert">
@@ -1039,7 +1066,7 @@ function Workbench({
                       {[{ value: "grid", label: t("卡片视图", "Card view"), Icon: LayoutGrid },
                         { value: "list", label: t("列表视图", "List view"), Icon: List }].map(({ value, label, Icon }) =>
                         <button key={value} type="button" aria-label={label} title={label} aria-pressed={collectionLayout === value}
-                          onClick={() => { setCollectionLayout(value); remember("fm-collection-layout", value); }}><Icon size={16} /></button>)}
+                          onClick={() => { setCollectionLayout(value); remember("fm-collection-layout", value); }}><SelectionPill active={collectionLayout === value} group="collection-layout" /><Icon size={16} /></button>)}
                       <button className="collection-view-toggle" type="button"
                         aria-label={collectionLayout === "grid" ? t("列表视图", "List view") : t("卡片视图", "Card view")}
                         title={collectionLayout === "grid" ? t("列表视图", "List view") : t("卡片视图", "Card view")}

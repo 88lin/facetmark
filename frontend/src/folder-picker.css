@@ -5,17 +5,17 @@
 .folder-picker-trigger:hover, .folder-picker-trigger[aria-expanded="true"] { border-color: var(--accent); background: var(--canvas); }
 .folder-picker-chevron { color: var(--muted); transition: transform 180ms var(--ease); }
 [data-open="true"] .folder-picker-chevron { transform: rotate(180deg); }
-.folder-picker-panel { padding: 8px; border: 1px solid var(--rule); border-radius: 16px; background: var(--canvas); animation: folder-reveal 180ms var(--ease) both; }
+.folder-picker-panel { padding: 8px; border: 1px solid var(--rule); border-radius: 16px; background: var(--canvas); }
 .folder-picker-search { display: flex; align-items: center; gap: 9px; padding: 0 10px; border-radius: 10px; background: var(--inset); color: var(--muted); }
 .folder-picker-search:focus-within { outline: 2px solid var(--accent); outline-offset: -2px; }
 .library-dialog .folder-picker .folder-picker-search input { flex: 1; width: 100%; min-width: 0; height: 44px; min-height: 44px; padding: 10px 0; border: 0; border-radius: 0; background: transparent; font-size: var(--type-ui); outline: none; box-shadow: none; }
 .folder-picker-search input::placeholder { color: var(--muted); opacity: 1; }
 .folder-picker-options { max-height: min(264px, 32dvh); overflow-y: auto; overscroll-behavior: contain; margin-top: 8px; padding: 2px; scroll-padding: 6px; }
-.folder-picker-options > button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; margin: 2px 0; padding: 10px 12px; border-radius: 10px; text-align: left; font-size: var(--type-ui); font-weight: 400; }
+.folder-picker-options > button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; margin: 2px 0; padding: 10px 12px; border-radius: 10px; text-align: left; font-size: var(--type-ui); font-weight: 400; transition: background 180ms var(--ease), color 180ms var(--ease), box-shadow 180ms var(--ease); }
 .folder-picker-options > button > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .folder-picker-options > button > svg { color: var(--muted); }
 .folder-picker-options > button:hover { background: var(--inset); }
-.folder-picker-options > button[aria-pressed="true"] { background: var(--selection-neutral); font-weight: 600; }
+.folder-picker-options > button[aria-pressed="true"] { background: var(--selection-neutral); box-shadow: inset 0 0 0 1px var(--selected-edge); font-weight: 600; }
 .folder-picker-options > button[aria-pressed="true"] > svg:last-child { color: var(--accent); }
 .folder-path { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .folder-path small { color: var(--muted); font-size: var(--type-caption); font-weight: 400; overflow-wrap: anywhere; }
@@ -25,6 +25,5 @@
 .folder-picker-options > .folder-picker-create > svg { color: inherit; }
 .folder-picker-options > .folder-picker-more { justify-content: center; color: var(--accent); }
 .folder-picker-note { margin: 8px 8px 4px; color: var(--muted); font-size: var(--type-caption); font-weight: 400; line-height: 1.6; }
-@keyframes folder-reveal { from { opacity: .65; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 @media (max-width: 719px) { .library-dialog .folder-picker .folder-picker-search input { font-size: 16px; } .folder-picker-options > button { min-height: 52px; } }
 @media (prefers-reduced-motion: reduce) { .folder-picker-panel { animation: none; } .folder-picker-chevron { transition: none; } }

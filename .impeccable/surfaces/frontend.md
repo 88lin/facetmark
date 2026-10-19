@@ -24,6 +24,43 @@ related_targets:
 
 # Collection, connection settings and exact task recovery — Operate
 
+## Direction contract — 2026-10-19 replacement
+
+THESIS: A desktop collection app with one stable navigation rail and a clearly
+separated collection directory; moving between collections, settings and tasks
+has visible continuity. The user rejected the previous implementation, including
+its neutral palette, typography, composition and reader-only motion coverage.
+
+OWN-WORLD: FlClash-informed tonal Material surfaces: pale lavender shell, white
+work area, deep plum text, violet selection, rounded 16px cards and 24px overlays.
+Bundled Inter and Noto Sans SC establish consistent Latin and Chinese typography.
+GithubStarsManager informs compact source/title/description/action hierarchy and
+the separated collection directory, search and management controls.
+
+STORY: Pick a collection, scan readable summaries, open the original or preview,
+and organize selected entries. Navigation keeps its place. Search, drafts, selected
+items, task snapshots and original browser data retain their existing contracts.
+
+FIRST VIEWPORT: A slim vertical application rail, a searchable 216px directory,
+and a flexible collection area. The collection title and search occupy one 64px
+header; compact maintenance and status controls sit immediately over the results.
+The user sees readable 16px titles and 15px descriptions, without a dashboard hero.
+Narrow screens collapse navigation and categories into the existing focus-managed drawer.
+
+FORM: Competitor-informed canon, pinned by the user's repeated explicit references
+to GithubStarsManager and FlClash; this instruction takes precedence over the seed's
+candidate 4. Seed reference: seed:18a549514c513706. This records an implementation
+direction, not user approval of its eventual appearance.
+
+MOTION: A moving selection capsule connects successive choices; a bounded ink
+response acknowledges clicks; content transitions follow navigation and filtering;
+card/list changes animate positions; overlays enter and exit from their origin.
+Transitions remain interruptible, never delay data changes, and stop spatial motion
+when the live system preference requests it. Windows installation is the primary
+delivery under review; verify actual sequences in cloud recordings, not stills alone.
+
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+
 ## Current refinement — 2026-10-18
 
 Implement the complete discovery → model selection → test/save → scoped summary →

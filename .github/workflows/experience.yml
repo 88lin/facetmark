@@ -77,11 +77,15 @@ jobs:
         if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
         run: |
           pip install pillow
-          python scripts/experience_evidence.py
+          mkdir -p frontend/visual-evidence
           if test -f frontend/recordings/facetmark-reading.webm; then
             ffmpeg -y -i frontend/recordings/facetmark-reading.webm -vf scale=1280:-2 -c:v libx264 -crf 25 -pix_fmt yuv420p -movflags +faststart frontend/visual-evidence/facetmark-reading.mp4
             ffmpeg -y -i frontend/recordings/facetmark-reading.webm -vf 'fps=1,scale=480:-2,tile=3x4' -frames:v 1 frontend/visual-evidence/interaction-storyboard.jpg
           fi
+          if test -f frontend/recordings/facetmark-interactions.webm; then
+            ffmpeg -y -i frontend/recordings/facetmark-interactions.webm -vf scale=1280:-2 -c:v libx264 -crf 25 -pix_fmt yuv420p -movflags +faststart frontend/visual-evidence/facetmark-interactions.mp4
+          fi
+          python scripts/experience_evidence.py
       - name: Upload small visual evidence separately
         if: always()
         uses: actions/upload-artifact@v4

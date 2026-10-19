@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { ExternalLink, Eye, Folder, Pencil, Sparkles } from "lucide-react";
 import { post, safeUrl, type Bookmark } from "./api";
 import { useText } from "./locale";
+import { motion } from "motion/react";
+import { useReducedMotion } from "./useReducedMotion";
 
 export function BookmarkCard({ record, selected, checked, disabled, display, entranceOrder = 0, onCheck, onPreview, onSummarize, onEdit }: {
   record: Bookmark; selected: boolean; checked: boolean; disabled: boolean;
@@ -10,6 +12,7 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
   onPreview: (button: HTMLButtonElement) => void; onSummarize?: () => void; onEdit?: () => void;
 }) {
   const t = useText();
+  const reduced = useReducedMotion();
   const [expanded, setExpanded] = useState(false);
   const [clipped, setClipped] = useState(false);
   const summary = useRef<HTMLParagraphElement>(null);
@@ -34,8 +37,11 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
   const label = display === "summary" && record.summary
     ? record.summary_basis === "title" ? t("标题推断", "Inferred from title") : t("AI 摘要", "AI summary")
     : text ? t("正文摘录", "Page excerpt") : display === "original" ? t("暂无正文", "No page text yet") : t("暂无摘要", "No summary yet");
-  return <article data-bookmark-id={record.bookmark_id}
-    style={{ animationDelay: `${Math.min(entranceOrder, 7) * 18}ms` }}
+  return <motion.article data-bookmark-id={record.bookmark_id}
+    layout={reduced ? false : "position"}
+    initial={reduced ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+    transition={{ opacity: { duration: reduced ? 0 : 0.22, delay: reduced ? 0 : Math.min(entranceOrder, 5) * 0.025 },
+      y: { duration: reduced ? 0 : 0.28 }, layout: { type: "spring", stiffness: 400, damping: 36 } }}
     className={`result-row ${selected ? "selected" : ""} ${checked ? "batch-selected" : ""}`}>
     <div className="result-copy">
       <div className="result-source">
@@ -81,5 +87,5 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
         </div>
       </div>
     </div>
-  </article>;
+  </motion.article>;
 }

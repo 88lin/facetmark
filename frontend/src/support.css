@@ -1,4 +1,4 @@
-/* Supporting workflows retain the collection's rounded, lake-blue surfaces. */
+/* Workflow-specific controls inherit the workbench's shared semantic tokens. */
 .utility-cluster .utility-label { width: auto; gap: 6px; padding: 0 11px; border-radius: var(--radius-pill); font-size: var(--type-ui); font-weight: 600; }
 .utility-cluster .utility-label[aria-pressed="true"] { background: var(--selected); box-shadow: var(--card-shadow); }
 .page-scroll { width: min(1040px, 100%); margin-top: 20px; padding: 24px 36px 40px; border-radius: 20px; box-shadow: var(--sheet-shadow); }

@@ -45,11 +45,15 @@ def main():
     recording = Path("frontend/recordings/facetmark-reading.webm")
     for diagnostics in Path("frontend/screenshots").glob("*.json"):
         shutil.copy2(diagnostics, target / diagnostics.name)
+    for diagnostics in Path("frontend/recordings").glob("*.json"):
+        shutil.copy2(diagnostics, target / diagnostics.name)
     if recording.exists():
         shutil.copy2(recording, target / recording.name)
     (target / "provenance.json").write_text(json.dumps({
         "commit": sha, "run": run, "data": "synthetic only", "captures": captures,
         "recording": recording.name if recording.exists() else None,
+        "videos": [{"file": video.name, "sha256": hashlib.sha256(video.read_bytes()).hexdigest()}
+                   for video in sorted(target.glob("*.mp4"))],
         "workflow": f"https://github.com/88lin/facetmark/actions/runs/{run}",
     }, ensure_ascii=False, indent=2), encoding="utf-8")
 

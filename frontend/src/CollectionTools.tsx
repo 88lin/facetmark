@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowDownWideNarrow, ChevronDown, SlidersHorizontal, Sparkles, Pause, Play, CheckCheck, X } from "lucide-react";
 import { post, type CollectionScope, type Job, type Page } from "./api";
 import { useText } from "./locale";
+import { SelectionPill } from "./InteractionMotion";
 
 export function CollectionTools({ scope, page, display, onDisplay, sort, onSort, onStatus, disabled,
   selecting, allMatching, selectedCount, onAll, onClear, onSummarizeSelection, job, refresh, admin }: {
@@ -32,7 +33,7 @@ export function CollectionTools({ scope, page, display, onDisplay, sort, onSort,
   return <div className="collection-tools">
     <div className="collection-status" role="group" aria-label={t("摘要状态", "Summary status")}>
       {(["all", "pending", "done", "failed"] as const).map((status, i) => <button key={status} aria-pressed={(scope.status || "all") === status}
-        onClick={() => onStatus(status)}>{[t("全部", "All"), t("待生成", "Pending"), t("有摘要", "Summarized"), t("失败", "Failed")][i]}
+        onClick={() => onStatus(status)}><SelectionPill active={(scope.status || "all") === status} group="summary-status" />{[t("全部", "All"), t("待生成", "Pending"), t("有摘要", "Summarized"), t("失败", "Failed")][i]}
         <span>{disabled || !counts ? "…" : counts[status === "all" ? "total" : status].toLocaleString()}</span></button>)}
     </div>
     <label className="collection-sort"><ArrowDownWideNarrow size={16} aria-hidden="true"/><span className="sr-only">{t("排序", "Sort")}</span><select aria-label={t("排序", "Sort")} value={sort} onChange={e => onSort(e.target.value)}>

@@ -1,34 +1,49 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Facetmark Inter";
+  src: url("./assets/fonts/inter-latin.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Facetmark CJK";
+  src: url("./assets/fonts/noto-sans-sc.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 :root {
-  --font-ui: "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+  --font-ui: "Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif;
   --type-body: 1rem;
   --type-ui: 0.875rem;
   --type-meta: 0.8125rem;
   --type-caption: 0.75rem;
   --type-card-title: 1rem;
-  --secondary-ink: #494d57;
+  --secondary-ink: #585361;
   font-family: var(--font-ui);
   color-scheme: light;
   --canvas: #ffffff;
-  --desk: #f5f5f7;
-  --rail: #edeef1;
-  --inset: #f2f3f5;
-  --ink: #23252b;
-  --muted: #626774;
-  --rule: #dfe1e6;
-  --accent: #1860db;
-  --soft: #eaf1ff;
-  --selected: #e8effd;
-  --selected-edge: #98b8f5;
-  --selection-neutral: #e7e8ed;
-  --card-shadow: 0 2px 4px #20253206, 0 6px 18px #20253208;
-  --sheet-shadow: 0 14px 40px #20253214;
+  --desk: #f5f2fa;
+  --rail: #ece6f4;
+  --inset: #f0edf5;
+  --ink: #292431;
+  --muted: #716a7d;
+  --rule: #e4deeb;
+  --accent: #7252ad;
+  --soft: #f0e9fa;
+  --selected: #e6daf6;
+  --selected-edge: #b9a4d5;
+  --selection-neutral: #e6daf6;
+  --card-shadow: 0 3px 12px #35214508;
+  --sheet-shadow: 0 12px 32px #35214518;
   --on-accent: #fff;
-  --danger: #ad3448;
-  --overlay: #17192355;
+  --danger: #b13e52;
+  --overlay: #24182d66;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --radius-control: 12px;
+  --radius-control: 10px;
   --radius-pill: 999px;
   --control-height: 40px;
   --reader-gutter: 48px;
@@ -42,23 +57,23 @@
   -webkit-font-smoothing: antialiased;
 }
 :root[data-theme="dark"] {
-  --secondary-ink: #c7c9d0;
+  --secondary-ink: #cec6d9;
   color-scheme: dark;
-  --desk: #141518;
-  --canvas: #212226;
-  --rail: #1b1c20;
-  --inset: #2a2c32;
-  --ink: #f0f0f3;
-  --muted: #a7abb6;
-  --rule: #383b44;
-  --accent: #8bb5ff;
-  --soft: #27344b;
-  --selected: #2b3a53;
-  --selected-edge: #577eb7;
-  --selection-neutral: #33353d;
+  --desk: #1b1821;
+  --canvas: #25212c;
+  --rail: #201b29;
+  --inset: #312b3b;
+  --ink: #f0eaf7;
+  --muted: #b3a9c0;
+  --rule: #3c3448;
+  --accent: #cfb4ff;
+  --soft: #382c4d;
+  --selected: #483463;
+  --selected-edge: #82649f;
+  --selection-neutral: #483463;
   --card-shadow: 0 3px 14px #00000020;
   --sheet-shadow: 0 14px 40px #00000038;
-  --on-accent: #102448;
+  --on-accent: #302047;
   --danger: #f7a0ae;
   --overlay: #06070a99;
 }

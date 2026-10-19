@@ -147,4 +147,147 @@ with sync_playwright() as playwright:
         'viewport': page.evaluate('({ width: innerWidth, height: innerHeight })'),
         'real_provider_used': False,
     }, indent=2), encoding='utf-8')
+
+    # Inspect actual running frames in the installed WebView, not just final
+    # screenshots. These steps use only the synthetic library above and never
+    # save a settings draft or contact a model provider.
+    interaction_evidence = []
+    interaction_writes = []
+    initial_layout = page.evaluate("localStorage.getItem('fm-collection-layout') === 'list' ? 'list' : 'grid'")
+
+    def record_interaction_write(request):
+        if request.method != 'GET' and ('/admin/library/' in request.url
+                                       or request.url.split('?')[0].endswith('/admin/settings')):
+            interaction_writes.append({'method': request.method, 'url': request.url})
+
+    page.on('request', record_interaction_write)
+
+    def motion_step(label, selectors, action, *, running=False, moving=False, exiting=False):
+        page.evaluate('''selectors => {
+            const started = performance.now();
+            const probe = window.__installedMotion = { frames: [], request: 0 };
+            const sample = () => {
+                const targets = {};
+                for (const selector of selectors) {
+                    targets[selector] = [...document.querySelectorAll(selector)].slice(0, 4).map((element, index) => {
+                        const style = getComputedStyle(element);
+                        const rect = element.getBoundingClientRect();
+                        return {
+                            key: element.dataset.bookmarkId || element.id || String(index),
+                            transform: style.transform, opacity: style.opacity,
+                            x: Math.round(rect.x * 100) / 100, y: Math.round(rect.y * 100) / 100,
+                            inert: element.inert, hidden: element.getAttribute('aria-hidden'),
+                            phase: element.dataset.overlayPhase, pointerEvents: style.pointerEvents,
+                            animations: element.getAnimations().filter(animation =>
+                                animation.effect?.getComputedTiming().iterations !== Infinity
+                            ).map(animation => ({
+                                state: animation.playState,
+                                progress: animation.effect?.getComputedTiming().progress,
+                                properties: Object.keys(animation.effect?.getKeyframes()[0] || {}),
+                            })),
+                        };
+                    });
+                }
+                probe.frames.push({ time: Math.round(performance.now() - started), targets });
+                probe.request = requestAnimationFrame(sample);
+            };
+            sample();
+        }''', selectors)
+        try:
+            action()
+            # Bounded sampling includes active and settled frames without
+            # asserting an implementation's exact duration or transform value.
+            page.wait_for_timeout(650)
+        finally:
+            frames = page.evaluate('''() => {
+                cancelAnimationFrame(window.__installedMotion.request);
+                return window.__installedMotion.frames;
+            }''')
+            interaction_evidence.append({'action': label, 'frames': frames})
+        samples = [node for frame in frames for nodes in frame['targets'].values() for node in nodes]
+        if running:
+            assert any(animation['state'] == 'running' and animation.get('progress') is not None
+                       for node in samples for animation in node['animations']), f'{label}: no running DOM animation'
+        if moving:
+            positions = {}
+            for node in samples:
+                positions.setdefault(node['key'], set()).add((node['x'], node['y']))
+            assert any(len(values) > 2 for values in positions.values()), f'{label}: no intermediate layout positions'
+        if exiting:
+            for selector in selectors:
+                closing = [node for frame in frames for node in frame['targets'][selector]
+                           if node.get('phase') == 'closing']
+                assert closing, f'{label}: {selector} has no recorded exit phase'
+                assert all(node['inert'] and node['hidden'] == 'true' and node['pointerEvents'] == 'none'
+                           for node in closing), f'{label}: {selector} still accepts input during exit'
+
+    page.emulate_media(reduced_motion='no-preference')
+    page.evaluate('() => document.fonts.ready')
+    try:
+        header = page.locator('.app-header')
+        motion_step('收藏 → 任务', ['.page-scroll'],
+                    lambda: header.get_by_role('button', name='任务', exact=True).click(), running=True)
+        motion_step('任务 → 设置', ['.page-scroll'],
+                    lambda: header.get_by_role('button', name='设置', exact=True).click(), running=True)
+        # Local Agent discovery may replace the summary input. Embeddings keep
+        # an editable model draft regardless of the detected summary provider.
+        model = page.locator('input[name="embed_model"]')
+        original_model = model.input_value()
+        model.fill('synthetic-unsaved-installed-motion-draft')
+        motion_step('设置 → 设备同步', ['.settings-panel:not([hidden])'],
+                    lambda: page.get_by_role('tab', name='设备同步', exact=True).click(), running=True)
+        assert not model.is_visible()
+        motion_step('设置 → AI 连接', ['.settings-panel:not([hidden])'],
+                    lambda: page.get_by_role('tab', name='AI 连接', exact=True).click(), running=True)
+        assert model.input_value() == 'synthetic-unsaved-installed-motion-draft'
+        model.fill(original_model)
+        motion_step('设置 → 收藏', ['.results-column'],
+                    lambda: header.get_by_role('button', name='全部书签', exact=True).click(), running=True)
+        page.locator('.result-row').nth(1).wait_for(timeout=15000)
+        categories = page.locator('.collection-sidebar')
+        for category in ('标签', '文件夹'):
+            motion_step(f'分类：{category}', ['.collection-sidebar .facet-options'],
+                        lambda category=category: categories.get_by_role('button', name=category, exact=True).click(),
+                        running=True)
+        second_id = page.locator('.result-row').nth(1).get_attribute('data-bookmark-id')
+        layout_label = '列表视图' if initial_layout == 'grid' else '卡片视图'
+        motion_step('切换收藏布局', [f'.result-row[data-bookmark-id="{second_id}"]'],
+                    lambda: page.get_by_role('button', name=layout_label, exact=True).first.click(), moving=True)
+        restore_label = '卡片视图' if initial_layout == 'grid' else '列表视图'
+        page.get_by_role('button', name=restore_label, exact=True).first.click()
+        motion_step('按压与打开新增收藏', ['.interaction-ink', '.library-dialog'],
+                    lambda: page.get_by_role('button', name='新增收藏', exact=True).click(), running=True)
+        dialog = page.get_by_role('dialog', name='新增收藏', exact=True)
+        dialog.locator('.folder-picker-trigger').click()
+        folder_search = dialog.get_by_role('textbox', name='搜索文件夹', exact=True)
+        folder_search.wait_for()
+        motion_step('Escape 只关闭目录', ['.folder-picker-panel'],
+                    lambda: folder_search.press('Escape'), exiting=True)
+        assert dialog.is_visible()
+        motion_step('关闭新增窗口', ['.library-dialog', '.library-dialog-overlay'],
+                    lambda: dialog.locator('.folder-picker-trigger').press('Escape'), exiting=True)
+        assert page.locator('.library-dialog, .library-dialog-overlay').count() == 0
+        page.emulate_media(reduced_motion='reduce')
+        motion_step('实时减少动态效果', ['.page-scroll', '.interaction-ink'],
+                    lambda: header.get_by_role('button', name='设置', exact=True).click())
+        reduced_samples = [node for frame in interaction_evidence[-1]['frames']
+                           for nodes in frame['targets'].values() for node in nodes]
+        assert not any(animation['state'] == 'running' for node in reduced_samples for animation in node['animations'])
+        assert page.locator('.interaction-ink').count() == 0
+        header.get_by_role('button', name='全部书签', exact=True).click()
+        page.get_by_role('textbox', name='搜索书签').fill('合成示例')
+        page.screenshot(path=str(output / 'installed-interactions.png'))
+        assert not link_errors, f'Installed interaction steps raised WebView errors: {link_errors}'
+        assert not interaction_writes, f'Installed interaction steps unexpectedly saved data: {interaction_writes}'
+    finally:
+        # Python None omits the parameter; the explicit "null" value removes
+        # Playwright's temporary media override and returns to the OS setting.
+        page.emulate_media(reduced_motion='null')
+        page.remove_listener('request', record_interaction_write)
+        (output / 'installed-interactions.json').write_text(json.dumps({
+            'commit': os.environ.get('GITHUB_SHA'),
+            'data': 'synthetic installed-library interactions; no saved settings changes',
+            'viewport': page.evaluate('({ width: innerWidth, height: innerHeight })'),
+            'page_errors': link_errors, 'writes': interaction_writes, 'evidence': interaction_evidence,
+        }, ensure_ascii=False, indent=2), encoding='utf-8')
     # Stop the CDP connection with Playwright; do not close the user's app.

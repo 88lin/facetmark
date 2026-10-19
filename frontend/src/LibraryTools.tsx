@@ -1,9 +1,11 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
+import { AnimatePresence } from "motion/react";
 import { Check, ChevronDown, Download, Folder, ListChecks, LoaderCircle, Plus, Sparkles, Tag, Trash2, X } from "lucide-react";
 import { api, downloadExport, post, type Bookmark, type CollectionScope, type Setup } from "./api";
 import { useText } from "./locale";
 import { FolderPicker } from "./FolderPicker";
+import { OverlayMotion } from "./overlay-motion";
 import "./library-tools.css";
 
 type Facet = { value: string; count: number };
@@ -84,6 +86,7 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
   pageIds: number[]; selectedIds: number[]; filters: Filters; searching: boolean;
 }) {
   const t = useText();
+  const [open, setOpen] = useState(true);
   const source = action.kind === "edit" ? action.record : null;
   const [url, setUrl] = useState(source?.url || "");
   const [title, setTitle] = useState(source?.title || "");
@@ -139,7 +142,7 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (busy || (running && action.kind !== "export") || (needsConsent && !confirmed) || (action.kind === "taxonomy" && !name.trim())) return;
+    if (!open || busy || (running && action.kind !== "export") || (needsConsent && !confirmed) || (action.kind === "taxonomy" && !name.trim())) return;
     setBusy(true); setError("");
     try {
       if (action.kind === "export") {
@@ -165,13 +168,15 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
         await post("/admin/library/taxonomy", { kind: taxonomy, action: taxonomyAction, name, ...(taxonomyAction === "rename" ? { new_name: newName } : {}) });
         await onChanged();
       }
-      onClose();
+      setOpen(false);
     } catch (e) { setError(String(e)); } finally { setBusy(false); }
   }
 
-  return <Dialog.Root open onOpenChange={value => { if (!value && !busy) onClose(); }}><Dialog.Portal>
-    <Dialog.Overlay className="library-dialog-overlay"/>
-    <Dialog.Content className="library-dialog" onCloseAutoFocus={e => { e.preventDefault(); requestAnimationFrame(() => { const target = returnFocus.current?.isConnected && !(returnFocus.current as HTMLButtonElement).disabled ? returnFocus.current : document.querySelector<HTMLElement>(".library-tools button:not(:disabled), .app-header button:not(:disabled), .workspace-search input"); target?.focus({ preventScroll: true }); }); }} onEscapeKeyDown={e => { if (e.target instanceof Element && e.target.closest('.folder-picker[data-open="true"]')) { e.preventDefault(); return; } e.stopPropagation(); if (busy) e.preventDefault(); }} onInteractOutside={e => { if (busy) e.preventDefault(); }}>
+  return <Dialog.Root open={open} onOpenChange={value => { if (!value && !busy) setOpen(false); }}><Dialog.Portal forceMount>
+    <AnimatePresence onExitComplete={onClose}>
+    {open && <Dialog.Overlay forceMount asChild key="overlay"><OverlayMotion kind="scrim" className="library-dialog-overlay"/></Dialog.Overlay>}
+    {open && <Dialog.Content forceMount asChild key="content" onCloseAutoFocus={e => { e.preventDefault(); requestAnimationFrame(() => { const target = returnFocus.current?.isConnected && !(returnFocus.current as HTMLButtonElement).disabled ? returnFocus.current : document.querySelector<HTMLElement>(".library-tools button:not(:disabled), .app-header button:not(:disabled), .workspace-search input"); target?.focus({ preventScroll: true }); }); }} onEscapeKeyDown={e => { if (e.target instanceof Element && e.target.closest('.folder-picker[data-open="true"]')) { e.preventDefault(); return; } e.stopPropagation(); if (busy) e.preventDefault(); }} onInteractOutside={e => { if (busy) e.preventDefault(); }}>
+      <OverlayMotion kind="dialog" className="library-dialog">
       <div className="library-dialog-heading"><Dialog.Title>{heading}</Dialog.Title><Dialog.Close className="icon-button" disabled={busy} aria-label={t("关闭操作窗口", "Close actions")}><X size={18}/></Dialog.Close></div>
       <Dialog.Description className="library-dialog-description">{action.kind === "export" ? t("保存一份可带走的副本。JSON 可完整保留分类、标签和已保存正文。", "Keep a portable copy. JSON preserves folders, tags and saved page text.") : t("管理 Facetmark 中的收藏，浏览器中的原始书签保持原样。", "Manage your Facetmark collection. Original browser bookmarks stay untouched.")}</Dialog.Description>
       <form onSubmit={submit}>
@@ -235,10 +240,12 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
         </fieldset>
         {error && <p className="error" role="alert">{error}</p>}
         {running && action.kind !== "export" && <p className="notice">{t("请等待当前任务完成，再修改收藏或启动新任务。", "Wait for the current task before editing or starting another task.")}</p>}
-        <div className="library-dialog-footer"><button type="button" className="secondary" disabled={busy} onClick={onClose}>{t("取消", "Cancel")}</button><button className={`primary ${deleting ? "danger-action" : ""}`} disabled={busy || (running && action.kind !== "export") || (needsConsent && !confirmed) || (action.kind === "taxonomy" && !name.trim()) || (processing && ((mode === "summarize" && !chatReady) || targetCount === null || targetCount === 0 || !!countError)) || (action.kind === "bulk" && ["tag-add", "tag-remove"].includes(operation) && !tags.length)}>
+        <div className="library-dialog-footer"><button type="button" className="secondary" disabled={busy} onClick={() => setOpen(false)}>{t("取消", "Cancel")}</button><button className={`primary ${deleting ? "danger-action" : ""}`} disabled={busy || (running && action.kind !== "export") || (needsConsent && !confirmed) || (action.kind === "taxonomy" && !name.trim()) || (processing && ((mode === "summarize" && !chatReady) || targetCount === null || targetCount === 0 || !!countError)) || (action.kind === "bulk" && ["tag-add", "tag-remove"].includes(operation) && !tags.length)}>
           {busy ? <LoaderCircle size={16} className="spin"/> : deleting ? <Trash2 size={16}/> : <Check size={16}/>}{busy ? t("正在处理…", "Working…") : action.kind === "export" ? t("下载导出文件", "Download export") : processing ? t("开始任务", "Start task") : deleting ? t("确认删除", "Delete bookmarks") : t("保存", "Save")}
         </button></div>
       </form>
-    </Dialog.Content>
+      </OverlayMotion>
+    </Dialog.Content>}
+    </AnimatePresence>
   </Dialog.Portal></Dialog.Root>;
 }

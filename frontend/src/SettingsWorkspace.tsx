@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowLeft, Cloud, MessageCircle, Monitor, Puzzle } from "lucide-react";
 import { type Setup } from "./api";
 import { Models, ExtensionSettings, UpdateSettings } from "./Settings";
 import { SyncSettings } from "./SyncSettings";
 import { useText } from "./locale";
+import { SelectionPill, useContentMotion } from "./InteractionMotion";
 
 export function SettingsWorkspace({ setup, refresh, onChanged, onBack, onSummarize }: {
   setup: Setup | null; refresh: () => Promise<void>;
@@ -12,13 +13,15 @@ export function SettingsWorkspace({ setup, refresh, onChanged, onBack, onSummari
 }) {
   const t = useText();
   const [active, setActive] = useState("models");
+  const root = useRef<HTMLDivElement>(null);
+  useContentMotion(root, active, ".settings-panel:not([hidden])", "x");
   const sections = [
     { id: "models", label: t("AI 连接", "AI connections"), Icon: MessageCircle },
     { id: "sync", label: t("设备同步", "Device sync"), Icon: Cloud },
     { id: "extension", label: t("浏览器扩展", "Browser extension"), Icon: Puzzle },
     { id: "desktop", label: t("桌面与更新", "Desktop & updates"), Icon: Monitor },
   ];
-  return <div className="settings-workspace">
+  return <div className="settings-workspace" ref={root}>
     <header className="page-heading">
       <div><h1>{t("设置", "Settings")}</h1><p>{t("按需连接服务，关键词搜索无需配置。", "Connect services as needed. Keyword search works without setup.")}</p></div>
       <button className="text-button support-back" onClick={onBack}><ArrowLeft size={16}/>{t("返回收藏", "Back to collection")}</button>
@@ -34,7 +37,7 @@ export function SettingsWorkspace({ setup, refresh, onChanged, onBack, onSummari
             (index + (event.key === "ArrowRight" ? 1 : -1) + sections.length) % sections.length;
           setActive(sections[next].id);
           document.getElementById(`settings-tab-${sections[next].id}`)?.focus();
-        }}><Icon size={17}/><span>{label}</span></button>)}
+        }}><SelectionPill active={active === id} group="settings-section" /><Icon size={17}/><span>{label}</span></button>)}
     </div>
     {/* Keep forms mounted so switching categories preserves unsaved drafts and test results. */}
     {sections.map(({ id }) => <div key={id} role="tabpanel" id={`settings-panel-${id}`}

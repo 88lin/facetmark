@@ -75,8 +75,14 @@ visual effects. A later explicit correction rejected Manrope and the lake-blue
 palette and named GithubStarsManager and FlClash as optimization references.
 This latest correction supersedes the earlier white/lake-blue commitment while
 retaining rounded cards, capsule controls, soft shadows and purposeful motion.
-Use neutral light/dark surfaces, system typography with Chinese fallbacks and a
-blue action accent. Exact tokens belong in [DESIGN.md](DESIGN.md); composition
+On 2026-10-19 the user again rejected the palette, typography, layout and missing
+everyday click transitions in the Windows installer, and explicitly requested a
+whole-interface refactor using both references beyond their colors. The current
+replacement uses a tonal Material navigation shell, an independently searchable
+collection directory, bundled Inter and Noto Sans SC, and an interruptible shared
+motion system for navigation, filtering, layouts, controls and overlays. This
+supersedes the 2026-10-18 neutral/blue system; it is not aesthetic user approval.
+Exact tokens belong in [DESIGN.md](DESIGN.md); composition
 and interaction details belong in the [frontend surface brief](.impeccable/surfaces/frontend.md).
 
 The reference projects inform compact, legible desktop controls and explicit
