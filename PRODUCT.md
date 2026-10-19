@@ -64,31 +64,36 @@ contracts remain.
 
 ## Brand Commitments
 
-Preserve Facetmark's layered mark, compact navigation, rounded controls and
-readable content. The user rejected a permanent three-column management layout,
-oversized collection masthead, mouse-inaccessible categories, small/thin type and
-reader-first workflow. Card and list views share readable title and description
-hierarchy; searchable vertical categories support ordinary mouse use.
+Preserve Facetmark's layered mark, direct access to original pages, readable
+Chinese/English content and tactile rounded controls. Card and list views share
+a clear title/description hierarchy. Searchable categories remain usable with a
+mouse, while preview stays an optional inspection tool.
 
-On 2026-10-18 the user rejected PR #44's loss of roundness, surface depth and
-visual effects. A later explicit correction rejected Manrope and the lake-blue
-palette and named GithubStarsManager and FlClash as optimization references.
-This latest correction supersedes the earlier white/lake-blue commitment while
-retaining rounded cards, capsule controls, soft shadows and purposeful motion.
-On 2026-10-19 the user again rejected the palette, typography, layout and missing
-everyday click transitions in the Windows installer, and explicitly requested a
-whole-interface refactor using both references beyond their colors. The current
-replacement uses a tonal Material navigation shell, an independently searchable
-collection directory, bundled Inter and Noto Sans SC, and an interruptible shared
-motion system for navigation, filtering, layouts, controls and overlays. This
-supersedes the 2026-10-18 neutral/blue system; it is not aesthetic user approval.
-Exact tokens belong in [DESIGN.md](DESIGN.md); composition
-and interaction details belong in the [frontend surface brief](.impeccable/surfaces/frontend.md).
+On 2026-10-19 the user explicitly rejected the lavender surfaces, 10px controls,
+typography and sparse motion of revision `082e36d`, after earlier rejections of
+PR #44's visual direction. They required full capsule buttons, added HeroUI as a
+concrete reference, requested the installed GSAP capabilities and authorized a
+whole-interface rebuild. This instruction supersedes the earlier palette,
+separate rail/directory composition and random concept seed.
 
-The reference projects inform compact, legible desktop controls and explicit
-selection. Their source and images do not establish an approved Facetmark pixel
-comp or acceptance of the current implementation. Do not introduce hand-drawn
-borders or candy-colored dashboards.
+The current direction is a fluid capsule workspace: one sidebar combining
+application navigation and searchable categories, a spacious neutral content
+canvas, indigo accents, complete capsule controls, circular icon buttons and
+proportionately rounded content panels. Inter and Noto Sans SC remain bundled.
+HeroUI supplies real controls and their interaction states; GSAP composes
+interruptible page and section motion. Keep focus, native button/link semantics,
+search drafts and actual data state independent of decorative motion.
+
+HeroUI leads component construction, GithubStarsManager informs collection
+organization, and FlClash informs selection continuity and layered transitions.
+These sources are references, not approved Facetmark mockups. Do not restore the
+rejected lavender wash, compact rail beside a second category column, rigid
+controls or undersized content typography. Fresh verification and independent
+review are required; no current user aesthetic approval is recorded.
+
+Exact tokens belong in [DESIGN.md](DESIGN.md). The authoritative direction is
+[the workbench contract](.impeccable/workbench-direction.md); composition and
+interaction acceptance belong in [the frontend surface brief](.impeccable/surfaces/frontend.md).
 
 ## Evidence on Hand
 

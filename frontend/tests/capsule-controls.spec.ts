@@ -19,6 +19,16 @@ test("HeroUI capsules retain keyboard press, native click and preview focus", as
   await page.keyboard.press("Enter");
   await expect(tasks).toHaveAttribute("data-click-count", "2");
   await page.locator(".app-header").getByRole("button", { name: "全部书签", exact: true }).click();
+  const tags = page.locator(".collection-sidebar .facet-types").getByRole("button", { name: "标签", exact: true });
+  await expect(tags).toHaveAttribute("type", "button");
+  await tags.focus();
+  await page.keyboard.down("Space");
+  await expect(tags).toHaveAttribute("data-pressed", "true");
+  await page.keyboard.up("Space");
+  await expect(tags).toHaveAttribute("aria-pressed", "true");
+  const folders = page.locator(".collection-sidebar .facet-types").getByRole("button", { name: "文件夹", exact: true });
+  await folders.press("Enter");
+  await expect(folders).toHaveAttribute("aria-pressed", "true");
   const preview = page.locator(".bookmark-preview").first();
   await preview.focus();
   await page.keyboard.press("Enter");
@@ -48,4 +58,21 @@ test("capsules preserve disabled controls, submit exactly once and stay rounded"
     }));
   expect(shapes.length).toBeGreaterThan(8);
   for (const shape of shapes) expect(shape.radius).toBeGreaterThanOrEqual(shape.height / 2 - 1);
+});
+
+test("portal buttons honor live reduced motion and retain keyboard cancellation", async ({ page }) => {
+  await page.goto("/app");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const trigger = page.getByRole("button", { name: "新增收藏", exact: true });
+  await trigger.click();
+  const dialog = page.getByRole("dialog", { name: "新增收藏", exact: true });
+  const cancel = dialog.getByRole("button", { name: "取消", exact: true });
+  await cancel.focus();
+  await page.keyboard.down("Space");
+  await expect(cancel).toHaveAttribute("data-pressed", "true");
+  await expect(cancel).toHaveCSS("transform", "none");
+  expect(await cancel.evaluate(el => parseFloat(getComputedStyle(el).borderTopLeftRadius))).toBeGreaterThan(100);
+  await page.keyboard.up("Space");
+  await expect(dialog).toHaveCount(0);
+  await expect(trigger).toBeFocused();
 });

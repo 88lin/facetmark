@@ -1,63 +1,63 @@
 ---
-name: Facetmark tonal collection workbench
-description: A Material-inspired collection workspace with a stable navigation rail, separate directory, bundled
-  Latin and Chinese fonts, and visible interaction continuity.
+name: Facetmark capsule workspace
+description: A neutral collection canvas with one searchable sidebar, indigo selection, real HeroUI capsule controls
+  and interruptible GSAP composition.
 colors:
-  secondary-ink: '#585361'
+  secondary-ink: '#555d6b'
   canvas: '#ffffff'
-  desk: '#f5f2fa'
-  rail: '#ece6f4'
-  inset: '#f0edf5'
-  ink: '#292431'
-  muted: '#716a7d'
-  rule: '#e4deeb'
-  accent: '#7252ad'
-  soft: '#f0e9fa'
-  selected: '#e6daf6'
-  selected-edge: '#b9a4d5'
-  selection-neutral: '#e6daf6'
+  desk: '#f4f5f8'
+  rail: '#fbfbfd'
+  inset: '#f1f2f6'
+  ink: '#232631'
+  muted: '#687080'
+  rule: '#e7e9ef'
+  accent: '#6254e8'
+  soft: '#efedff'
+  selected: '#e9e5ff'
+  selected-edge: '#c2bafa'
+  selection-neutral: '#eeedf7'
   on-accent: '#fff'
   danger: '#b13e52'
-  overlay: '#24182d66'
-  secondary-ink-dark: '#cec6d9'
-  desk-dark: '#1b1821'
-  canvas-dark: '#25212c'
-  rail-dark: '#201b29'
-  inset-dark: '#312b3b'
-  ink-dark: '#f0eaf7'
-  muted-dark: '#b3a9c0'
-  rule-dark: '#3c3448'
-  accent-dark: '#cfb4ff'
-  soft-dark: '#382c4d'
-  selected-dark: '#483463'
-  selected-edge-dark: '#82649f'
-  selection-neutral-dark: '#483463'
+  scrim: '#181b304f'
+  secondary-ink-dark: '#c5c8d4'
+  desk-dark: '#15161c'
+  canvas-dark: '#202129'
+  rail-dark: '#1a1b23'
+  inset-dark: '#2a2b36'
+  ink-dark: '#f0f1f6'
+  muted-dark: '#a7adbd'
+  rule-dark: '#333642'
+  accent-dark: '#b3a6ff'
+  soft-dark: '#302b47'
+  selected-dark: '#3a3158'
+  selected-edge-dark: '#756597'
+  selection-neutral-dark: '#33303e'
   on-accent-dark: '#302047'
   danger-dark: '#f7a0ae'
-  overlay-dark: '#06070a99'
+  scrim-dark: '#06070a99'
 typography:
   workspace-title:
     fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
-    fontSize: 1.5rem
+    fontSize: 1.75rem
     fontWeight: 600
-    lineHeight: 1.4
-    letterSpacing: -0.025em
+    lineHeight: 1.3
+    letterSpacing: -0.015em
   section-title:
     fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
     fontSize: 1.125rem
-    fontWeight: 600
+    fontWeight: 550
     lineHeight: 1.5
   collection-title:
     fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
-    fontSize: 1rem
-    fontWeight: 600
+    fontSize: 1.125rem
+    fontWeight: 550
     lineHeight: 1.5
-    letterSpacing: -0.015em
+    letterSpacing: -0.01em
   collection-summary:
     fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
-    fontSize: 0.9375rem
+    fontSize: 1rem
     fontWeight: 400
-    lineHeight: 1.7
+    lineHeight: 1.6875
   body:
     fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
     fontSize: 1rem
@@ -65,29 +65,34 @@ typography:
     lineHeight: 1.6
   button:
     fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
-    fontSize: 0.875rem
+    fontSize: 0.9375rem
     fontWeight: 500
     lineHeight: 1.5
   field-label:
     fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
-    fontSize: 0.875rem
-    fontWeight: 600
+    fontSize: 0.9375rem
+    fontWeight: 500
     lineHeight: 1.6
   directory:
     fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
-    fontSize: 0.875rem
+    fontSize: 0.9375rem
     fontWeight: 400
     lineHeight: 1.45
   directory-selected:
     fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
-    fontSize: 0.875rem
-    fontWeight: 600
+    fontSize: 0.9375rem
+    fontWeight: 500
     lineHeight: 1.45
   navigation:
     fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
-    fontSize: 0.75rem
+    fontSize: 14px
     fontWeight: 500
-    lineHeight: 1.35
+    lineHeight: 1.4
+  navigation-active:
+    fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
+    fontSize: 14px
+    fontWeight: 600
+    lineHeight: 1.4
   meta:
     fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
     fontSize: 0.8125rem
@@ -95,7 +100,7 @@ typography:
     lineHeight: 1.6
   caption:
     fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
-    fontSize: 0.75rem
+    fontSize: 0.8125rem
     fontWeight: 400
     lineHeight: 1.6
   article-title:
@@ -109,32 +114,24 @@ typography:
     fontSize: 1.125rem
     fontWeight: 400
     lineHeight: 1.85
-  navigation-active:
-    fontFamily: '"Facetmark Inter", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif'
-    fontSize: 0.75rem
-    fontWeight: 600
-    lineHeight: 1.35
 rounded:
-  small: 8px
-  status: 9px
-  control: 10px
-  search: 14px
-  card: 16px
-  navigation: 18px
-  reader: 20px
-  sheet: 24px
+  control: 9999px
   pill: 999px
   circle: 50%
+  card: 22px
+  menu: 24px
+  panel: 28px
+  reader: 20px
 spacing:
   compact: 8px
   control: 10px
   small: 12px
-  grid-gap: 14px
-  card-padding: 18px
-  content: 20px
+  content: 16px
+  card-padding: 22px
   section: 24px
   dialog-padding: 28px
-  page-gutter: 36px
+  panel-top: 32px
+  panel-gutter: 40px
   reader-gutter: 44px
 components:
   button-primary:
@@ -143,57 +140,57 @@ components:
     typography: '{typography.button}'
     rounded: '{rounded.control}'
     padding: 10px 20px
-    height: 40px
+    height: 44px
   button-secondary:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.ink}'
     typography: '{typography.button}'
     rounded: '{rounded.control}'
     padding: 9px 18px
-    height: 40px
+    height: 44px
   button-text:
     textColor: '{colors.accent}'
     typography: '{typography.button}'
-    rounded: '{rounded.small}'
+    rounded: '{rounded.control}'
     padding: 5px 10px
     height: 32px
   button-icon:
     textColor: '{colors.ink}'
     rounded: '{rounded.circle}'
-    width: 36px
     height: 36px
+    width: 36px
   navigation-item:
     textColor: '{colors.secondary-ink}'
     typography: '{typography.navigation}'
-    rounded: '{rounded.navigation}'
-    padding: 10px 4px
-    height: 66px
+    rounded: '{rounded.control}'
+    padding: 8px 10px
+    height: 40px
   navigation-item-active:
     backgroundColor: '{colors.selected}'
     textColor: '{colors.accent}'
     typography: '{typography.navigation-active}'
-    rounded: '{rounded.navigation}'
-    padding: 10px 4px
-    height: 66px
+    rounded: '{rounded.control}'
+    padding: 8px 10px
+    height: 40px
   search-field:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.ink}'
     typography: '{typography.body}'
-    rounded: '{rounded.search}'
-    padding: 8px 14px
-    height: 44px
+    rounded: '{rounded.control}'
+    padding: 8px 16px
+    height: 46px
   directory-option-selected:
     backgroundColor: '{colors.selected}'
     textColor: '{colors.accent}'
     typography: '{typography.directory-selected}'
     rounded: '{rounded.control}'
-    padding: 9px 10px
+    padding: 9px 12px
     height: 40px
   filter-chip:
     backgroundColor: '{colors.soft}'
     textColor: '{colors.accent}'
     typography: '{typography.caption}'
-    rounded: '{rounded.small}'
+    rounded: '{rounded.control}'
     padding: 4px 10px
     height: 30px
   collection-entry:
@@ -201,7 +198,7 @@ components:
     textColor: '{colors.ink}'
     typography: '{typography.collection-title}'
     rounded: '{rounded.card}'
-    padding: 18px
+    padding: 22px
   settings-tab-active:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.accent}'
@@ -210,36 +207,36 @@ components:
     padding: 10px 16px
     height: 42px
   folder-picker-trigger:
-    backgroundColor: '{colors.inset}'
-    textColor: '{colors.ink}'
-    typography: '{typography.directory}'
-    rounded: '{rounded.control}'
-    padding: 11px 14px
-    height: 48px
-  folder-picker-option-selected:
-    backgroundColor: '{colors.selection-neutral}'
-    textColor: '{colors.ink}'
-    typography: '{typography.directory-selected}'
-    rounded: '{rounded.control}'
-    padding: 10px 12px
-    height: 48px
-  model-field:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.ink}'
     typography: '{typography.body}'
     rounded: '{rounded.control}'
-    padding: 9px 12px
-    height: 44px
+    padding: 11px 18px
+    height: 48px
+  folder-picker-option-selected:
+    backgroundColor: '{colors.selected}'
+    textColor: '{colors.accent}'
+    typography: '{typography.button}'
+    rounded: '{rounded.control}'
+    padding: 10px 16px
+    height: 48px
+  model-field:
+    backgroundColor: '{colors.inset}'
+    textColor: '{colors.ink}'
+    typography: '{typography.body}'
+    rounded: '{rounded.control}'
+    padding: 11px 16px
+    height: 46px
   support-surface:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.ink}'
-    rounded: '{rounded.sheet}'
-    padding: 28px 36px 36px
-    width: min(1080px, 100%)
+    rounded: '{rounded.panel}'
+    padding: 32px 40px 40px
+    width: min(1120px, 100%)
   library-dialog:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.ink}'
-    rounded: '{rounded.sheet}'
+    rounded: '{rounded.menu}'
     padding: 28px
     width: min(560px, calc(100vw - 32px))
   reading-sheet:
@@ -253,233 +250,252 @@ components:
     height: 56px
 ---
 
-# Design System: Facetmark tonal collection workbench
+# Design System: Facetmark capsule workspace
 
 ## Overview
 
-**Creative North Star: "Tonal collection workbench"**
+**Creative North Star: "Fluid capsule workspace"**
 
-Facetmark uses a stable application rail, a separate collection directory and a
-flexible content area. Pale lavender surfaces, white content cards, deep plum text
-and violet selection create a Material-inspired hierarchy. Bundled Inter and Noto
-Sans SC keep Latin and Chinese text consistent across desktop and Web.
+Facetmark combines application navigation and searchable categories in one sidebar,
+leaving a spacious content canvas for the collection. Neutral white and softly
+shaded surfaces carry readable text; indigo identifies actions, focus and selection.
+Complete capsule controls, circular icon actions and rounded content surfaces make
+the interface tactile without tinting the entire workspace.
 
-The 2026-10-19 replacement changes composition, typography, component shape and
-interaction feedback together. It supersedes the rejected 10/18 blue-grey system.
-Navigation, classification, settings tabs, content changes and overlays now show
-visible continuity; original links, processing scope and saved task state retain
-their independent semantics. The reference projects informed the implementation,
-not a user-approved pixel comp.
+This direction follows the user's second 2026-10-19 rejection. The lavender/10px
+replacement at `082e36d` is superseded. HeroUI now leads real control construction,
+GSAP composes page and section transitions, and Motion retains shared selection,
+card reflow and overlay presence. GithubStarsManager informs collection organization;
+FlClash informs selection continuity. These are references, not approved mockups.
 
 **Key Characteristics:**
 
-- Stable application navigation and a separate searchable collection directory.
-- Tonal surfaces with violet selected state and readable plum text.
-- Local Latin and Chinese variable fonts; compact titles and visible summaries.
-- Small rounded controls, rounded cards and larger modal surfaces.
-- Immediate actions with bounded press, ink, selection and content feedback.
-- Live reduced-motion handling, keyboard access and truthful application state.
+- One sidebar for navigation, searchable categories and supporting utilities.
+- Neutral content surfaces with focused indigo action and selection states.
+- Bundled Inter and Noto Sans SC with a readable 28/18/16/15/13 type hierarchy.
+- Full capsule controls, circular icon buttons and proportional rounded panels.
+- HeroUI control states and interruptible, layered GSAP content transitions.
+- Immediate state and focus, native semantics and live reduced-motion support.
 
-This source-derived system was recorded against `ac90d24805e346ba974a197da72a59cdac11231f`.
-Cloud checks and a fresh visual/motion review are pending for the replacement.
-The sidecar contains source specimens, not screenshots or approval evidence.
-See [the surface brief](.impeccable/surfaces/frontend.md) for acceptance scope and
-[PR #44 checks](https://github.com/88lin/facetmark/pull/44/checks) for run status.
+This document records rebuild base `1f2a4ce8037c41c7dc279954cecc1a8de527ba0d` and
+the subsequent navigation-fit corrections in the working tree. The final correction
+revision, fresh cloud evidence and independent visual/motion review remain pending. Historical passes do not establish current acceptance. Component
+specimens are source-derived illustrations, not rendered or approval evidence.
+The [workbench contract](.impeccable/workbench-direction.md) is the direction authority;
+[the surface brief](.impeccable/surfaces/frontend.md) defines acceptance scope.
 
 ## Colors
 
-The frontmatter is normative; base names are light-theme roles and `-dark` names
-are their dark-theme counterparts. Sidecar ramps are generated preview swatches,
-not extra runtime tokens.
+The frontmatter is normative. Base names describe light mode and `-dark` names
+its dark counterpart. Sidecar ramps are generated preview swatches, not runtime
+palette additions.
 
 ### Primary
 
-- **Violet Action** (`accent`, `on-accent`): explicit actions, links, active navigation
-  and focus; dark mode uses a brighter violet with a dark on-accent foreground.
-- **Soft Violet** (`soft`): hover and quiet supporting emphasis.
-- **Selected Violet** (`selected`, `selected-edge`): moving selection surfaces,
-  directory state and boundaries. The compatibility name `selection-neutral` maps
-  to this same tonal selection family; it no longer describes a neutral-grey fill.
+- **Indigo Action** (`accent`, `on-accent`): primary actions, links, focus and current
+  destinations. Dark mode uses a lighter indigo with a dark foreground.
+- **Soft Indigo** (`soft`): local hover or supporting emphasis.
+- **Selected Indigo** (`selected`, `selected-edge`): shared selection capsules,
+  picker choice and selected boundaries. `selection-neutral` remains a separate,
+  quieter compatibility token; it is not the primary selected fill.
 
 ### Neutral
 
-- **Canvas / Lavender Workspace / Tonal Rail** (`canvas`, `desk`, `rail`): content,
-  surrounding workspace and navigation/group surfaces respectively.
-- **Inset** (`inset`): secondary fields and recessed content.
-- **Plum Ink / Secondary Ink / Muted Ink** (`ink`, `secondary-ink`, `muted`): title,
-  summary and metadata hierarchy. Dark counterparts retain the same roles.
-- **Rule / Scrim** (`rule`, `overlay`): boundaries and modal separation.
+- **Canvas / Mist Workspace / Sidebar White** (`canvas`, `desk`, `rail`): content,
+  surrounding workspace and unified navigation surface.
+- **Inset** (`inset`): search groups, fields and recessed control backgrounds.
+- **Graphite / Secondary Ink / Muted Ink** (`ink`, `secondary-ink`, `muted`): titles,
+  descriptions and supporting metadata.
+- **Rule / Scrim** (`rule`, `scrim`): subtle boundaries and modal separation.
 
-`danger` remains reserved for failures and destructive operations.
+`danger` remains reserved for errors and destructive operations.
 
-**The Tonal Selection Rule.** Keep ordinary content on its canvas. Selection is
-expressed through a moving tonal surface, an explicit mark or an accent boundary;
-text and semantics must identify the same selected item.
+**The Local Accent Rule.** Keep the workspace neutral. Apply indigo to a meaningful
+action, focus or selected state; do not restore the rejected blanket lavender wash.
 
 ## Typography
 
-Use the bundled `Facetmark Inter` and `Facetmark CJK` families, backed by Inter and
-Noto Sans SC variable WOFF2 files. Segoe UI and Microsoft YaHei UI are fallback
-coverage. The font files use `font-display: swap`, support weights 100–900 and
-require no external font service. Sources, subsets and OFL notices are recorded in
-[the font README](frontend/src/assets/fonts/README.md).
+The local `Facetmark Inter` and `Facetmark CJK` aliases load Inter and Noto Sans SC
+variable WOFF2 files. Both support weights 100–900 with `font-display: swap`; Segoe
+UI and Microsoft YaHei UI provide fallback coverage. Font loading requires no CDN.
+Sources, subset coverage and OFL notices are in [the font README](frontend/src/assets/fonts/README.md).
 
-- **Workspace titles:** the 24px/600 title role; compact desktop uses 22px and
-  mobile collection headings use 20px. Support-page headings remain 24px.
-- **Collection titles:** 16px/600 in both card and list views, with two visible
-  lines; Chinese titles remove negative tracking.
-- **Summaries:** 15px/400 with 1.7 leading and three collapsed lines. At widths up
-  to 719px, use 1.65 leading and two lines; measured expansion reveals the rest.
-- **Controls:** 14px/500 for main actions; labels use 600 when needed. Principal
-  inputs and global body retain 16px. Navigation labels are 12px below their icons.
-- **Metadata:** 13px and 12px roles; small directory counts and parent paths have
-  local 11px treatments. Counts use tabular numerals where observed.
-- **Reader:** article titles use 36px/600, focused titles 38px; body prose uses
-  18px with 1.85 leading, reducing to 17px on mobile. Narrow article titles use 27px.
+- **Page title:** 28px/600 with 1.3 leading. Compact desktop collection titles use
+  24px; mobile collection titles use 20px and support-page headings use 24px.
+- **Item and section titles:** 18px/550 with 1.5 leading. Collection titles retain
+  two lines in both card and list layouts, including mobile.
+- **Summary:** 16px/400 with 27px leading; three collapsed lines on desktop and two
+  on mobile. Actual clipping determines whether expansion is offered.
+- **Controls and directory:** the main role is 15px, regular for directory names
+  and 500 for actions/selected names. Navigation uses a local 14px role, 13px on
+  compact desktop; current destinations use 600.
+- **Metadata:** 13px regular text with tabular counts where applicable. Use spacing
+  and grouping for hierarchy instead of shrinking content metadata to 10–11px.
+- **Reader:** article titles 36px/600, 38px in focused composition and 27px narrow;
+  article prose 18px/1.85, reducing to 17px on mobile.
 
-**The Shared Collection Scale Rule.** Card/list switching preserves the title and
-summary hierarchy. Expansion depends on measured clipping, not a guessed character
-count; smaller metadata must not replace the visible summary.
+Chinese headings and collection titles remove negative tracking. Labels remain
+mixed-case as written; do not force uppercase or synthetic condensed typography.
+
+**The Shared Reading Scale Rule.** Preserve the same title and summary hierarchy
+when changing card/list layout. Metadata supports the description; it never takes
+its place or justifies reducing the readable content scale.
 
 ## Layout
 
-The desktop rail is 96px wide. The collection directory is 13.5rem beside the
-results, with a 24px gutter. An 80px workspace row holds the title and 44px search.
-The next rows contain maintenance actions, card/list switching, summary status,
-sorting and display preferences. Filters remain a separate removable-chip row.
+The desktop shell has 12px outer padding and a 12px gap. A single 244px sidebar
+contains the brand, application navigation, searchable category list and utilities.
+At widths 960–1300px it is 224px; at 1600px and above it is 260px. The collection
+occupies the remaining canvas. The category list is part of this sidebar, not a
+second permanent column beside a narrow rail.
 
-At widths 960–1300px, the rail becomes 84px, the directory 200px and the gutter
-18px. At 1600px and above, directory/index widths become 232px/332px. Below 960px,
-the rail becomes a 56px horizontal header and the directory moves to the existing
-focus-managed drawer. Below 720px, title and search stack, header utilities move
-out of the first row, and principal actions retain at least 44px height.
+A 76px workspace row aligns the destination title and 46px capsule search. Below
+it, maintenance actions, layout choice, status/sort/display and removable filters
+keep separate responsibilities. The grid starts at a 280px minimum card width
+with 16px gaps, changes to 268px on compact desktop and 320px on wide desktop.
+List mode uses 10px gaps and a 240px metadata/action area. Card padding is 22px;
+list padding is 16px 20px. Result and directory scrollers remain bounded.
 
-Cards use an auto-fill grid with a 288px minimum and 14px gaps; compact desktop
-uses 270px and wide desktop 310px. List view uses one column with 10px gaps and a
-210px metadata/action area. Mobile uses a single content column. Default card
-padding is 18px; list padding is 16px 20px; mobile cards use 14px. Card heights follow
-content. Results and the complete directory have independent bounded scrollers.
+Below 960px the sidebar becomes a 56px horizontal header and the directory opens
+in the focus-managed drawer. Below 720px the title/search stack, results become
+one column, cards retain 22px corners with 16px padding and principal actions use
+44px targets. Short desktop windows compact sidebar spacing and navigation heights.
+Keep full directory access and utilities reachable at those sizes.
 
-Support pages use a canvas surface up to 1080px wide with a 24px top margin and
-28px 36px 36px padding. At 719px and below they use an 8px top margin, 18px corners
-and 18px 14px 28px padding. Connection fields retain two columns until their
-responsive breakpoint, then one; model choice and feedback span the section.
+Opening desktop preview adds a 304px collection index beside the reader; wide
+layouts use 332px. The unified sidebar retains its location. Focus mode expands
+the reader within the content area. At widths below 1120px preview uses the modal
+composition; mobile preview fills the viewport. The real article scroller and
+clearance above the floating reading control remain intact.
 
-Opening a desktop preview replaces the directory with a compact index beside the
-reader. Its header is 56px and tabs 48px. Focus mode expands the reader inside the
-workspace while retaining application navigation. Narrow preview is a modal;
-mobile preview fills the viewport. The floating reading control reserves clearance
-below the article. Its outline is available beside the wide focused reader only.
+Support pages use a canvas panel up to 1120px wide with 32px 40px 40px padding.
+Below 960px padding becomes 24px; below 720px it is 18px 14px 28px with 24px corners.
+Connection fields remain grouped with their test/save controls and feedback.
 
 ## Elevation & Depth
 
-Tonal separation provides the resting hierarchy. Cards carry the small card shadow,
-and hover strengthens the edge and soft elevation. Selected and batch-selected
-cards keep canvas fill with an accent border and inset ring. Support pages are flat
-canvas surfaces; reader, menus and dialogs use the sheet shadow. The reading capsule
-alone retains its bounded glass treatment with an opaque fallback. Exact shadows,
-material values and animation parameters live in the sidecar.
+Use a light card shadow for content and support panels, stronger local elevation
+for menus, dialogs and the reader, and soft action shadows for primary/secondary
+capsules. Selected collection cards keep the canvas fill with an accent boundary
+and inset ring. Hover strengthens the edge and elevation. Exact shadows and
+material values live in the sidecar. The reading capsule alone keeps its bounded
+glass effect with an opaque fallback and reduced-transparency override.
 
-**The Stable Target Rule.** Feedback may animate a paint layer, indicator or content
-container, but focus, selection and data changes never wait for animation. Closing
-overlays become inert and noninteractive while their visual exit completes.
+**The Immediate State Rule.** State, data and focus never wait for an animation.
+One engine owns each animated property on an element. Closing overlays become
+inert and noninteractive while their visual exit finishes.
 
 ## Shapes
 
-The shared control radius is 10px, with 8–9px smaller tabs/chips/status controls,
-14px search fields and menus, 16px cards, 18px rail targets, 24px support/dialog
-surfaces and a 20px reader. Folder-picker panels use 16px corners. Circular icon
-actions remain component-specific. The 999px pill token remains for the reading
-capsule and reader tabs; it is not the default shape for all application controls.
+Buttons, disclosure summaries, single-line inputs, native selects and segmented
+choices use complete capsule ends (9999px). Square icon controls become circles.
+Checkboxes/radios keep their native forms; textareas and floating menus use 24px
+corners. Cards use 22px, the unified sidebar and support panels 28px, library dialogs
+24px and the reader sheet 20px. The reading capsule retains its 999px pill token.
+
+The final application cascade enforces capsule controls even when earlier
+component rules contain smaller radii. Preserve proportional surface corners
+instead of applying a pill outline to large content panels.
 
 ## Components
 
-### Navigation and selection groups
+### HeroUI controls and inputs
 
-Rail items stack a 22px icon and 12px label inside a 66px target. Low-height desktop
-windows compact the targets to 54px. Selected items use a shared Motion selection
-surface. The same pattern connects directory types/options, summary status,
-card/list controls and settings tabs, with separate layout groups per control set.
-The semantic pressed/current/selected state belongs to the actual control.
+`@heroui/react` and `@heroui/styles` are pinned to 3.2.6. The shared `CapsuleButton`
+wraps the real HeroUI Button; folder/model search uses HeroUI Input. HeroUI supplies
+control state and press/focus behavior. The wrapper retains a native button,
+its click `currentTarget` and form submission semantics. Application key handlers
+run first, then HeroUI handlers when the event was not prevented. Pending
+or disabled controls block activation. A library dependency alone does not prove
+those journeys pass; exercise native clicks, Enter/Space and form submission.
 
-### Buttons, chips and search
+Primary actions use indigo/on-accent; secondary actions use a canvas capsule and
+fine boundary; text actions use a quiet transparent capsule. Main controls use
+15px/500 labels and the 44px shared height. Source-specific toolbar and navigation
+controls retain their documented compact heights. Native fallback CSS press scaling
+excludes HeroUI `.button` elements and `data-overlay-motion` controls.
 
-Primary and secondary buttons use 10px corners and 14px/500 labels. Collection
-maintenance controls use 38px height with 8px 12px padding; mobile uses 44px.
-Text actions and filter chips use smaller corners. Search uses a 44px white field,
-14px corners and a fine focus boundary. Category search remains local to the
-directory. Query suggestions keep loading, retry, no-match and keyboard behavior.
+### Unified sidebar and selection
 
-CSS press feedback scales ordinary buttons to .965 and directory options to .98;
-a noninteractive ink layer acknowledges primary-pointer and Enter/Space actions.
-Disabled or inert targets do not produce ink. Focus rings remain visible.
+Application destinations stack as full-width capsules in the desktop sidebar.
+Utility actions use 40px circular icons with accessible labels and tooltips. Category
+types use text-only segmented capsules so English labels fit the compact sidebar.
+These controls share the sidebar with search and the vertically scrollable category
+list; the narrow header remains horizontal.
+Directory options retain full accessible paths, pagination, counts and explicit
+selected state. Selection capsules use independent Motion layout groups so each
+control group moves its own indicator. Semantic current/pressed/selected state
+belongs to the actual control.
 
 ### Collection cards and list rows
 
-Source identity, title, description, folder and actions form a stable sequence.
-Original links, checkboxes, direct editing, summary actions and Preview remain
-independent. Selected cards use an edge/ring rather than a full tinted body.
-Motion owns card position reflow and bounded entry; CSS owns hover and border state.
+Source, title, visible description, folder and actions form the content hierarchy.
+A 13px provenance label leads the summary; the accessible expansion action sits as
+an icon in the card footer and still depends on measured clipping. Original links stay native anchors; selection, editing, summary actions and Preview
+remain independent. Selected/batch-selected cards preserve their canvas background.
+Motion owns card entry and position reflow; CSS owns hover borders and shadows.
+Measured clipping controls expansion, and changes to data context must preserve
+correct selection, focus and paging semantics.
 
-### Folder and model pickers
+### Folder/model choice and settings
 
-Folder triggers are 48px high; their 16px panel contains search and a bounded
-option list. Options use 10px corners, tonal selection, a check and an inset edge;
-leaf names lead with parent paths beneath. The complete directory loads in 50-item
-pages. Typing changes only the search draft; choosing an exact folder commits the
-field. Unfiled and new folders are explicit choices. New paths are created on save.
-Arrow keys, Home/End, Escape, native button activation and focus return remain.
+Folder and model pickers use capsule triggers, 24px floating panels and capsule
+search/options. Selected options use indigo text, selected fill and an inset edge.
+Folder pages load 50 items; model rendering starts at 100 items with explicit more.
+Search drafts do not commit a folder/model choice. Unfiled, defaults, manual entry,
+new paths, loading, retry and unavailable choices remain explicit.
 
-Model choice remains next to essential configuration, test/save and actionable
-feedback. Preserve Agent defaults, catalog provenance, manual entry, refresh,
-per-Agent drafts and independent embedding state. A catalog does not prove access;
-a passed test does not prove a failed save persisted. Both picker menus use the
-shared overlay entrance/exit treatment, and closing content becomes inert.
+Settings use capsule tabs with a moving selected surface. Hidden panels stay
+mounted to preserve drafts and results. Keep Agent identity, catalog source,
+selected model, tested state, saved state and actual summary use distinct. Optional
+embedding has its own state. Scope review and content-processing consent stay in
+the processing dialog; task recovery retains its original durable snapshot.
 
-### Dialogs, settings and task recovery
+### Content and control motion
 
-Library dialogs use a 24px surface, 28px padding and width bounded to 560px. Settings
-use rounded tabs with a moving selected surface and an animated incoming panel;
-hidden panels remain mounted to preserve drafts. Scope review and consent remain
-in the processing dialog. Task recovery retains its original snapshot and completed
-entries; displayed scope and state must match the operation. Feedback stays next
-to its initiating control.
+`InteractionMotion.tsx` uses GSAP 3.13.0 with `@gsap/react` 2.1.2. Named heading and
+content timeline positions separate their arrival by 40ms. Page, settings-section,
+category, pagination and filter changes use different directional recipes; rapid
+reversal resumes from captured painted values. `useGSAP` scopes cleanup, removes
+temporary transform/opacity/filter/will-change values and responds to live reduced
+motion. Settings page arrival targets the inner body while the section hook owns
+the panel, avoiding a shared transform owner.
 
-### Reading and application motion
+Motion 12.23.24 owns selection capsules (stiffness 480, damping 29, mass .8),
+card position/entry and overlay presence. The portal ink is a noninteractive paint
+layer, cleared on scrolling or resize; its higher-specificity CSS uses a 480ms
+capsule ripple. Theme reveal remains an interruptible 460ms circular View Transition
+from the activating control, with immediate fallback. Detailed values are in the
+sidecar and [UI motion tools](docs/ui-motion-tools.md); static specimens do not
+implement those runtime engines.
 
-The reader retains the Rare UI-derived glass position capsule, native chapter
-selector, animated chapter label and measured paper-plane outline. Progress and
-headings derive from saved article content. GSAP continues to own reader focus
-translation and tab-marker geometry. Motion owns reader presence, progress and
-outline springs. These effects remain part of the reader rather than the sole
-interaction feedback in the application.
+### Reading
 
-`InteractionMotion.tsx` owns shared selection surfaces and WAAPI content entry
-for navigation, classification and loaded result contexts. Theme changes use an
-interruptible circular View Transition from the clicked control, with immediate
-fallback when unsupported or reduced motion is active. `OverlayMotion` owns menu,
-dialog and scrim presence; native details menus retain their CSS path. Live reduced
-motion disables ink, travel and reflow while preserving state and all controls.
-Detailed ownership and timings are in [UI motion tools](docs/ui-motion-tools.md).
+The reader retains the Rare UI-derived glass progress capsule, native chapter
+selector and measured paper-plane outline. Progress and headings come from saved
+article content. GSAP owns reader focus translation and tab-marker geometry;
+Motion owns reader presence, progress and outline springs. Retain final-text
+clearance, container-local scrolling and focus return. Rare UI notices and visible
+attribution remain required by the shipped license.
 
 ## Do's and Don'ts
 
 ### Do:
 
-- Do keep the navigation rail, directory and content responsibilities distinct.
-- Do use the bundled Latin and Chinese font families and shared collection scale.
-- Do retain explicit pressed/current/selected semantics beside visual feedback.
-- Do preserve full directory pagination, exact folder choice and separate search drafts.
-- Do keep original links, checkboxes, editing and optional preview independent.
-- Do preserve processing consent, exact task snapshots and truthful recovery state.
-- Do keep animations interruptible and respect the live reduced-motion preference.
-- Do verify both static composition and actual click sequences in GitHub Actions.
+- Do keep application navigation and searchable categories in one sidebar.
+- Do use complete capsules for controls and circles for icon-only actions.
+- Do preserve the bundled fonts and shared 28/18/16/15/13 content hierarchy.
+- Do retain native links, button/form semantics and explicit selection states.
+- Do keep search drafts, Agent drafts, task snapshots and processing consent intact.
+- Do give each animated property one owner and clean up interrupted timelines.
+- Do verify rapid switching, keyboard activation and live reduced motion.
+- Do inspect fresh Web and installed Windows captures and continuous interactions.
 
 ### Don't:
 
-- Don't restore the rejected 10/18 composition, blue-grey palette or system-font-only direction.
-- Don't apply the reader's pill shape to every navigation, input and action.
-- Don't make content, focus or data updates wait for a decorative transition.
-- Don't let CSS, GSAP, Motion or WAAPI own the same animated property on the same element.
-- Don't broaden a task-specific retry or mistake model discovery for successful access.
-- Don't present reference screenshots, source specimens or historical runs as current visual approval.
+- Don't restore the rejected lavender wash, 10px controls or split rail/category layout.
+- Don't reduce readable metadata to 10–11px or make summaries visually secondary to it.
+- Don't let a control library change native click, keyboard or form behavior unnoticed.
+- Don't make data or focus wait for decorative motion.
+- Don't infer account access, saved configuration or completed work from discovery alone.
+- Don't reuse historical green runs, specimens or reviewer verdicts as current visual approval.
