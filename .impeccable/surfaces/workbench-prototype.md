@@ -8,7 +8,10 @@ related_targets:
 
 # Facetmark collection prototype
 
-Status: working visual proposal, not approved and not integrated into the application.
+Status: REJECTED by the user during the current 2026-10-19 session ("你这个更加难看了").
+The user requires source-level analysis of this project and reference implementations.
+The direction below is rejected-prototype history, not authority for the next design.
+See docs/redesign-source-audit.md. This prototype remains outside the application.
 The user asked to begin the planned complete main-interface proposal on 2026-10-19.
 This surface uses six synthetic bookmarks and existing field semantics. It does not
 change a database, call an AI service, or claim working model settings or task execution.

@@ -27,11 +27,9 @@ components here and update `.impeccable/design.json` together. Keep implementati
 status, technical checks and user visual acceptance distinct. Current source and
 installed previews still use the rejected UI until that implementation is done.
 
-## Working proposal — 2026-10-19
+## Latest rejected prototype — 2026-10-19
 
-A complete interactive collection proposal now lives in
-[frontend/design/workbench](frontend/design/workbench/index.html). Its working direction
-and limited behavior are in the [prototype brief](.impeccable/surfaces/workbench-prototype.md).
-It is an isolated synthetic-data prototype, not an approved system and not integrated
-into the application. Production tokens remain pending. Cloud evidence is recorded
-in [the proposal handoff](docs/workbench-prototype.md).
+The user rejected the standalone teal collection prototype too. It is not a new
+visual authority or an accepted system. The application remains unchanged.
+[Source-level findings](docs/redesign-source-audit.md) now document the current
+implementation and pinned reference code. A replacement design remains pending.

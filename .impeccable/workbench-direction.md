@@ -68,10 +68,12 @@ actual implemented system and evidence. Do not invent a completed replacement no
 The [rejected archive](history/2026-10-19-rejected-ui/README.md) is migration evidence
 only and should not be loaded as the new design's starting specification.
 
-## Current proposal
+## Latest feedback: prototype rejected
 
-The user asked to start the planned complete main-interface proposal. Continue the
-[workbench prototype](surfaces/workbench-prototype.md): top navigation, broad collection
-canvas, teal actions, softly coloured collection destinations and on-demand directory.
-This is a concrete working proposal for review, not aesthetic acceptance. The standalone
-prototype does not yet migrate production settings, tasks or collection workflows.
+The 2026-10-19 teal collection prototype was also rejected: “你这个更加难看了”.
+The user challenged repeated screenshot-led changes and asked to inspect code.
+Its top navigation, pastel tiles, typography and card composition are not accepted
+replacement requirements. Do not continue polishing or promote this proposal.
+Read [the source audit](../docs/redesign-source-audit.md) before further implementation.
+Reference implementations must be examined at known commits; cloud renders can
+verify the resulting implementation, but cannot substitute for that source analysis.

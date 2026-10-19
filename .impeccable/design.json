@@ -16,11 +16,12 @@
       "history": ".impeccable/history/2026-10-19-rejected-ui/README.md",
       "verification": "Rules and authority corrected only; runtime evidence remains in docs/desktop-validation.md.",
       "workingProposal": {
-        "status": "interactive-prototype-awaiting-review",
+        "status": "rejected-by-user",
         "entrypoint": "frontend/design/workbench/index.html",
         "brief": ".impeccable/surfaces/workbench-prototype.md",
         "handoff": "docs/workbench-prototype.md",
-        "productionIntegrated": false
+        "productionIntegrated": false,
+        "sourceAudit": "docs/redesign-source-audit.md"
       }
     }
   },
