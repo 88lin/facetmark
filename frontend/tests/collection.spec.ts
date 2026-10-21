@@ -343,8 +343,7 @@ test("changing a category closes the old reader and fails closed until the new s
   await expect(page.locator(".results-footer")).toContainText("31–60");
   await page.locator(".result-row").first().locator(".bookmark-preview").click();
   await expect(page.locator(".body-text")).toBeVisible();
-  await page.getByRole("button", { name: "筛选收藏", exact: true }).click();
-  const menu = page.locator(".sidebar");
+  const menu = page.locator(".collection-sidebar");
   await menu.getByRole("textbox", { name: "查找分类" }).fill("知识管理");
   await expect(menu.getByTitle("知识管理", { exact: true })).toBeVisible();
   await page.route("**/bookmarks?**", route => route.fulfill({ status: 503, json: { detail: "Synthetic delayed collection failure" } }));

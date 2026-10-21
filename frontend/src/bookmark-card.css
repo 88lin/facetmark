@@ -128,7 +128,6 @@
   font-size: .8125rem;
   font-weight: 500;
   line-height: 1.5;
-  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease;
 }
 .result-row .bookmark-action { width: 34px; min-width: 34px; padding: 0; }
 .result-row .bookmark-preview { margin-left: auto; padding: 6px 11px; border-color: var(--rule); background: var(--inset); }

@@ -2,7 +2,10 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { settleVisualLayout } from "./visual-layout";
 
-type Frame = { front: string | null; open: string | null; reduced: boolean; width: number; height: number };
+type Frame = {
+  front: string | null; open: string | null; reduced: boolean;
+  width: number; height: number; layoutWidth: number; layoutHeight: number;
+};
 
 async function observe(page: Page, button: Locator, action: () => Promise<unknown>) {
   // Record the path before activation so a short morph cannot finish before
@@ -16,7 +19,8 @@ async function observe(page: Page, button: Locator, action: () => Promise<unknow
       const bounds = button.getBoundingClientRect();
       frames.push({ front: icon.querySelector(".collection-folder-front")!.getAttribute("d"),
         open: icon.getAttribute("data-open"), reduced: matchMedia("(prefers-reduced-motion: reduce)").matches,
-        width: bounds.width, height: bounds.height });
+        width: bounds.width, height: bounds.height,
+        layoutWidth: (button as HTMLElement).offsetWidth, layoutHeight: (button as HTMLElement).offsetHeight });
       state.__folderRAF = requestAnimationFrame(sample);
     };
     sample();
@@ -35,8 +39,16 @@ function expectMotion(frames: Frame[]) {
 }
 
 function expectStableTarget(frames: Frame[]) {
-  expect(Math.max(...frames.map(frame => frame.width)) - Math.min(...frames.map(frame => frame.width))).toBeLessThan(1);
-  expect(Math.max(...frames.map(frame => frame.height)) - Math.min(...frames.map(frame => frame.height))).toBeLessThan(1);
+  // HeroUI gives the pressed button a .97 visual scale. The folder path must
+  // preserve layout size while that independent feedback remains available.
+  expect(Math.max(...frames.map(frame => frame.layoutWidth)) - Math.min(...frames.map(frame => frame.layoutWidth))).toBeLessThan(1);
+  expect(Math.max(...frames.map(frame => frame.layoutHeight)) - Math.min(...frames.map(frame => frame.layoutHeight))).toBeLessThan(1);
+  for (const frame of frames) {
+    expect(frame.width).toBeGreaterThanOrEqual(frame.layoutWidth * .97 - 1);
+    expect(frame.width).toBeLessThanOrEqual(frame.layoutWidth + 1);
+    expect(frame.height).toBeGreaterThanOrEqual(frame.layoutHeight * .97 - 1);
+    expect(frame.height).toBeLessThanOrEqual(frame.layoutHeight + 1);
+  }
 }
 
 test("folder selection morphs locally and preserves exact paths, keyboard activation and reduced motion", async ({ browser, baseURL }, testInfo) => {

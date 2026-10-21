@@ -4,6 +4,8 @@
 .library-manage>summary::-webkit-details-marker{display:none}
 .library-manage>summary:hover{background:var(--inset)}
 .library-manage-menu{position:absolute;top:calc(100% + 4px);left:0;min-width:180px;padding:6px;background:var(--canvas);border:1px solid var(--rule);border-radius:10px;z-index:16;box-shadow:var(--sheet-shadow)}
+.library-manage[open] > .library-manage-menu { transform-origin: top left; animation: library-menu-enter 180ms var(--ease); }
+@keyframes library-menu-enter { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .library-manage-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;min-height:44px;text-align:left;font-size:var(--type-ui);border-radius:6px}
 .library-manage-menu button:hover:not(:disabled){background:var(--inset);color:var(--accent)}
 .library-tools .primary,.library-tools .secondary{min-height:40px;padding:8px 14px;font-size:var(--type-ui);gap:6px}

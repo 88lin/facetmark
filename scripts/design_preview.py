@@ -13,7 +13,6 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-
 SOURCE = Path("frontend/design/workbench/index.html")
 OUTPUT = Path("design-evidence")
 

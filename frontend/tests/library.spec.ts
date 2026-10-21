@@ -396,9 +396,9 @@ test("export downloads honor search-page, selected and category scopes", async (
   await page.getByRole("button", { name: "完成选择", exact: true }).click();
 
   await page.getByRole("textbox", { name: "搜索书签", exact: true }).fill("");
-  await page.getByRole("button", { name: "筛选收藏", exact: true }).click();
-  await page.locator(".facet-nav").getByRole("textbox", { name: "查找分类" }).fill(folder);
-  await page.locator(".facet-nav").getByTitle(folder, { exact: true }).click();
+  const directory = page.locator(".collection-sidebar");
+  await directory.getByRole("textbox", { name: "查找分类" }).fill(folder);
+  await directory.getByTitle(folder, { exact: true }).click();
   await expect(page.locator(".result-row")).toHaveCount(2);
   await page.locator(".library-manage > summary").click();
   await page.getByRole("button", { name: "导出", exact: true }).click();
