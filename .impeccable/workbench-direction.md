@@ -84,5 +84,5 @@ verify the resulting implementation, but cannot substitute for that source analy
 The replacement now exists in the real application: horizontal app navigation,
 independent paged directory, collection sheet, redesigned records and local
 selection/folder feedback. DESIGN.md and its sidecar describe the implemented
-working direction. Cloud validation and the user's collection-screen review are
-pending. The rejected standalone prototype is not the preview entrypoint.
+working direction. Cloud validation at d40471f has passed; the user's collection-screen
+review is pending. The rejected standalone prototype is not the preview entrypoint.

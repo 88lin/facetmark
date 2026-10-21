@@ -62,9 +62,13 @@ or branded assets were copied.
 
 ## Verification status
 
-Local CSS/TSX syntax and diff checks are separate from full type checking and
-runtime behavior. Builds, browser testing and Windows installation run only in
-GitHub Actions against isolated synthetic data. Current run IDs and source hashes
-are recorded in [desktop validation](docs/desktop-validation.md) after completion.
-Technical passes establish their listed scope; the user has not accepted this
-visual direction.
+Source `d40471f` passed all 10 CI jobs, all 5 experience jobs and Windows preview
+installation. Browser: 76 passed / 1 skipped, plus the separate 200k collection
+case. Backend: 2050 passed / 1 skipped. The installed WebView completed 24 actions
+with no page errors or unexpected writes. Source, runtime asset and selected
+capture hashes were checked; exact runs/artifacts are in
+[desktop validation](docs/desktop-validation.md).
+
+Builds, browser testing and Windows installation ran only in GitHub Actions with
+isolated synthetic data. These results establish the stated technical scope. The
+collection design remains awaiting the user's review.

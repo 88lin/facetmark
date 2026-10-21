@@ -2,20 +2,52 @@
 
 <!-- current-experience-evidence:start -->
 
-## 2026-10-21: real collection rebuild, cloud verification pending
+## 2026-10-21: production collection rebuild, verified for review
 
-Production source now replaces the collection shell, directory, bookmark cards,
-folder picker icons and global press paint. Search/IME, exact folders, paging,
-selection and reading return controllers are retained. The current working
-visual direction is documented in DESIGN.md; user acceptance is pending.
+Verified application and test source: `d40471fe789f9b57e4d04d8440a8faafc1f327aa`.
+The real collection screen now has horizontal navigation, an independent paged
+directory, a collection content sheet and records with persistent status/tags.
+HeroUI owns button press state; folder/checkbox feedback is local to its component.
+The old global ink portal and FolderGlyph are removed. Search/IME, exact folder
+selection, cross-page scope, create/edit and reading return remain real app flows.
 
-Local CSS/TSX parsing and diff checks passed. Full local TypeScript checking was
-not available because this checkout's node_modules lacks the locked HeroUI and
-React Aria dependencies; dependencies were not installed locally. Full type/build,
-synthetic browser flows and installed WebView checks will run in Actions.
-The historical runs below do not validate these new source changes.
+**This is the collection-screen review point. User visual acceptance is pending.**
+It does not claim that settings/task interiors received a full visual rebuild.
+All previous rejected styles/prototypes remain historical evidence only.
 
+| Evidence at this source | Result |
+| --- | --- |
+| [CI 39531664175](https://github.com/88lin/facetmark/actions/runs/39531664175) | All 10 jobs passed. |
+| [Experience 39531658962](https://github.com/88lin/facetmark/actions/runs/39531658962) | All 5 jobs passed. Backend 2050 passed / 1 skipped; browser 76 passed / 1 skipped; separate 200k browser case 1 passed. |
+| [Windows 39531658960](https://github.com/88lin/facetmark/actions/runs/39531658960) | Offline installer, frozen service, installation, native links and lifecycle checks passed. Installed WebView completed 24 interaction steps with 0 page errors and 0 unexpected writes. |
+| Source and runtime provenance | 40 frontend source SHA-256 values compared with git blobs at this commit. Downloaded runtime HTML, CSS and JS matched the build manifest. 23 downloaded collection PNGs matched media hashes; the cloud artifact contains 94 captures in total. |
+| Interaction evidence | Web sequence: 18 actions. Folder/selection sequence: 9 actions. Both record 0 page errors and 0 unexpected writes. Installed folder/check transitions include intermediate values, rapid reversal, reduced-motion endpoints and preference restoration. |
 
+[Windows x64 preview installer](https://github.com/88lin/facetmark/actions/runs/39531658960/artifacts/12316019453):
+287,370,222-byte artifact; contained installer reports 286,924,080 bytes.
+[Small installation evidence](https://github.com/88lin/facetmark/actions/runs/39531658960/artifacts/12315739745):
+378,430 bytes. [Web visual evidence](https://github.com/88lin/facetmark/actions/runs/39531658962/artifacts/12315593725):
+20,950,965 bytes. Only small evidence was downloaded; no local browser, package
+installation, application build or installer execution occurred.
+
+The first new-source pass found an actual overlap: reading progress was anchored
+to the workspace and intercepted result pagination. The reader pane now establishes
+its own positioning context; the same real pointer-click regression passes.
+Other failures were stale desktop drawer selectors, a test confusing HeroUI's .97
+press scale with layout movement, and import formatting in the historical prototype
+script. They were fixed without removing scope, keyboard, focus or form checks.
+
+Local verification used existing syntax parsers and Ruff; the checkout's stale
+node_modules could not provide complete HeroUI type checking, so full TypeScript,
+build and runtime checks came from Actions. Synthetic libraries/models were used.
+The unsigned preview is validated on hosted Windows, not certified across every
+Windows 10/11 device. PR44 remains draft; no merge or release is part of this delivery.
+
+<!-- current-experience-evidence:end -->
+
+## Superseded 2026-10-19 application evidence
+
+The following is the previous recorded state, retained for migration history.
 
 ## 2026-10-19: visual direction rejected; redesign continues
 
@@ -113,7 +145,7 @@ browser profiles. Hosted Windows Server does not certify every Windows 10/11
 machine, cross-version upgrades or ordinary non-administrator use. Changes remain
 on the existing PR; no merge, formal release or Pages deployment is part of this work.
 
-<!-- current-experience-evidence:end -->
+
 
 ## Historical validation
 

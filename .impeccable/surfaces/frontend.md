@@ -25,24 +25,28 @@ related_targets:
 - frontend/src/reader-shell.css
 - frontend/src/useReducedMotion.ts
 - frontend/src/ui/controls.tsx
-- frontend/src/interaction-motion.css
+- frontend/src/bookmark-card.css
+- frontend/src/facet-browser.css
+- frontend/src/CollectionFolderIcon.tsx
+- frontend/src/collection-folder-icon.css
+- frontend/src/ui/controls.css
 ---
 
 # Facetmark frontend — Operate
 
 ## Direction status
 
-**Replacement pending. The current icons, layout, styling and colours are rejected
-in full, including the earlier folder-glyph exception.** The sole active visual
-brief is [the current redesign requirements](../workbench-direction.md); the product
-contract is [PRODUCT.md](../../PRODUCT.md). Existing screenshots, code and the
-history directory describe the rejected implementation, not a desired appearance.
+**The production collection replacement is implemented and awaits user visual
+review.** The old complete appearance, Orbit-folder exception and subsequent
+teal prototype remain rejected. The active implementation is described in
+[DESIGN.md](../../DESIGN.md) and [the current redesign requirements](../workbench-direction.md);
+[PRODUCT.md](../../PRODUCT.md) preserves the functional contract.
 
-The user has delegated the redesign. Choose and implement a coherent replacement
-without restarting settled preference questions. A full working first viewport
-must establish a different composition and interaction treatment before expansion
-to the other routes. There is no prescribed sidebar width, grid, palette, icon set,
-font family, control radius or number of effects in this pending brief.
+Horizontal navigation, a separate paged directory and a collection content sheet
+now replace the previous shell. Cards retain visible metadata in grid/list and
+reading-context layouts; native links and controls remain independent. Component
+styles and animations have explicit owners. Settings and task interiors remain
+outside this collection-screen review boundary.
 
 ## Collection and navigation behavior
 

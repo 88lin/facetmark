@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-21",
+  "generatedAt": "2026-10-21T02:39:22.038967+00:00",
   "title": "Facetmark production collection workspace",
   "extensions": {
     "colorMeta": {
@@ -51,12 +51,12 @@
       }
     ],
     "evidence": {
-      "status": "production-collection-implemented-awaiting-validation",
+      "status": "production-collection-verified-for-review",
       "visualAcceptance": "awaiting-user-review",
       "sourceState": "Production collection rebuilt in App, BookmarkCard, FacetBrowser, shared controls and component styles.",
       "brief": ".impeccable/workbench-direction.md",
       "history": ".impeccable/history/2026-10-19-rejected-ui/README.md",
-      "verification": "Cloud build, behavior and installation pending; see docs/desktop-validation.md.",
+      "verification": "Source d40471f: CI39531664175, Experience39531658962 and Windows39531658960 passed. Browser76+separate200k1; backend2050; installed24steps. See docs/desktop-validation.md.",
       "workingProposal": {
         "status": "rejected-by-user",
         "entrypoint": "frontend/design/workbench/index.html",
@@ -64,7 +64,8 @@
         "handoff": "docs/workbench-prototype.md",
         "productionIntegrated": false,
         "sourceAudit": "docs/redesign-source-audit.md"
-      }
+      },
+      "verifiedCommit": "d40471fe789f9b57e4d04d8440a8faafc1f327aa"
     }
   },
   "components": [

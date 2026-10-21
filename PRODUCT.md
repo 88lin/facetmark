@@ -90,7 +90,7 @@ the current brief, not from dependency defaults.
 The [current redesign requirements](.impeccable/workbench-direction.md) are the
 active visual brief; the [frontend surface brief](.impeccable/surfaces/frontend.md)
 records behavior and verification boundaries. DESIGN.md and its sidecar record the implemented production collection direction,
-awaiting cloud validation and user review; they do not inherit rejected tokens. Rejected specifications
+with cloud validation complete and user review pending; they do not inherit rejected tokens. Rejected specifications
 are archived under `.impeccable/history/` for migration, not design authority.
 
 ## Evidence on Hand
