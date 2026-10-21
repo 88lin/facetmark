@@ -51,6 +51,14 @@ def main():
         shutil.copy2(recording, target / recording.name)
     (target / "provenance.json").write_text(json.dumps({
         "commit": sha, "run": run, "data": "synthetic only", "captures": captures,
+        "sources": [{"file": source.as_posix(),
+                     "sha256": hashlib.sha256(source.read_bytes()).hexdigest()}
+                    for source in sorted(Path("frontend/src").rglob("*"))
+                    if source.suffix in {".ts", ".tsx", ".css"}],
+        "built_assets": [{"file": asset.as_posix(),
+                          "sha256": hashlib.sha256(asset.read_bytes()).hexdigest()}
+                         for asset in sorted(Path("src/facetmark/web/dist").rglob("*"))
+                         if asset.is_file()],
         "recording": recording.name if recording.exists() else None,
         "videos": [{"file": video.name, "sha256": hashlib.sha256(video.read_bytes()).hexdigest()}
                    for video in sorted(target.glob("*.mp4"))],

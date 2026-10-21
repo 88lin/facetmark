@@ -2,6 +2,21 @@
 
 <!-- current-experience-evidence:start -->
 
+## 2026-10-21: real collection rebuild, cloud verification pending
+
+Production source now replaces the collection shell, directory, bookmark cards,
+folder picker icons and global press paint. Search/IME, exact folders, paging,
+selection and reading return controllers are retained. The current working
+visual direction is documented in DESIGN.md; user acceptance is pending.
+
+Local CSS/TSX parsing and diff checks passed. Full local TypeScript checking was
+not available because this checkout's node_modules lacks the locked HeroUI and
+React Aria dependencies; dependencies were not installed locally. Full type/build,
+synthetic browser flows and installed WebView checks will run in Actions.
+The historical runs below do not validate these new source changes.
+
+
+
 ## 2026-10-19: visual direction rejected; redesign continues
 
 **After seeing the screenshots on 2026-10-19, the user rejected the entire visual
@@ -14,7 +29,7 @@ exception. All current visuals are rejected; a replacement whole UI is unfinishe
 The results below remain technical evidence for the existing application, not
 retained visual requirements. Active rules are in the current redesign brief.
 
-### Current verified application: `f145470`
+### Historical verified application: `f145470`
 
 Application and test source: `f1454704f15d89f9fd6aa74889e984280410e425`.
 

@@ -76,9 +76,14 @@ test("reader tabs, expansion reversal and keyboard preserve query and scroll con
   const header = await page.locator(".app-header").boundingBox();
   const workspace = await page.locator(".main-workspace").boundingBox();
   await expect
-    .poll(async () => (await page.locator(".preview-pane").boundingBox())?.y)
-    .toBe(workspace!.y + 20);
-  expect((await page.locator(".preview-pane").boundingBox())!.x).toBeGreaterThanOrEqual(header!.x + header!.width);
+    .poll(() => page.locator(".preview-pane").evaluate(element => getComputedStyle(element).transform))
+    .toBe("none");
+  const focusedReader = await page.locator(".preview-pane").boundingBox();
+  expect(focusedReader!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
+  expect(focusedReader!.x).toBeGreaterThanOrEqual(workspace!.x - 1);
+  expect(focusedReader!.x + focusedReader!.width).toBeLessThanOrEqual(workspace!.x + workspace!.width + 1);
+  expect(focusedReader!.height).toBeGreaterThan(workspace!.height * .8);
+  await expect(page.locator(".results-column")).toHaveAttribute("inert", "");
   // The focused button moves with the pane. Use real keyboard activation to
   // reverse mid-flight; a forced coordinate click can miss a moving target.
   await page.locator(".focus-reading").press("Enter");
@@ -231,10 +236,11 @@ test("supporting views and small-window reader share the same system", async ({ 
   const toolbar = await page.locator(".workspace-toolbar").boundingBox();
   const collection = await page.locator(".results-column").boundingBox();
   const categories = await page.locator(".collection-sidebar").boundingBox();
-  const sidebar = await page.locator(".app-header").boundingBox();
+  const header = await page.locator(".app-header").boundingBox();
   expect(toolbar!.x).toBe(collection!.x);
-  expect(categories!.y).toBeGreaterThan(sidebar!.y);
-  expect(categories!.y + categories!.height).toBeLessThan(sidebar!.y + sidebar!.height);
+  expect(categories!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
+  expect(toolbar!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
+  await expect(page.locator(".app-header .collection-sidebar")).toHaveCount(0);
   expect(categories!.x + categories!.width).toBeLessThan(collection!.x);
   expect(toolbar!.x + toolbar!.width).toBe(collection!.x + collection!.width);
   const rows = await page.locator(".result-row").all();

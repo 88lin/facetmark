@@ -1,35 +1,70 @@
 ---
-name: Facetmark replacement design pending
-description: The current visual system is rejected. This file records active constraints, not a replacement palette or component specification.
+name: Facetmark collection workspace
+description: Production collection rebuild; implemented working direction awaiting user review.
 ---
 
-# Facetmark design status
+# Facetmark collection workspace
 
-The user rejected the current icons, layout, styling and colours on 2026-10-19.
-Earlier partial acceptance of the Orbit folder glyph is superseded. No replacement
-visual direction or implemented design system is claimed by this document.
+The collection screen is rebuilt in the real React application. This is an
+implemented working direction, not user aesthetic approval. The old purple
+capsule UI, Orbit folders and teal standalone prototype remain rejected. The
+current review boundary is the complete collection screen and its reading return
+flow; settings/task interiors retain their functional implementation.
 
-[Current redesign requirements](.impeccable/workbench-direction.md) govern the work;
-[PRODUCT.md](PRODUCT.md) preserves product truth, and the
-[frontend brief](.impeccable/surfaces/frontend.md) preserves functional behavior.
-The user has authorized the rebuild. Proceed from these requirements without a
-new preference interview or inheriting the rejected palette, icon set, fonts,
-sidebar, card arrangement or control styling.
+## Composition and material
 
-There are deliberately no active colour, typography, spacing, radius or component
-tokens here. The previous token-bearing document and specimens are preserved in
-the [rejected archive](.impeccable/history/2026-10-19-rejected-ui/README.md) for
-migration only. A missing token group is not permission to recover it from that
-archive or promote the current code into a desired visual standard.
+A horizontal application bar separates navigation from a full-height directory.
+The directory sits on a warm limestone desk; the collection occupies a raised
+white sheet with a title/search band, action and status controls, independently
+scrolling results, and a stable pagination footer. A selected item opens beside
+the result index on wide screens and in the existing focus-managed drawer below
+1120px. Below 960px, the directory moves into the navigation drawer.
 
-When the replacement is implemented, document its actual reusable tokens and
-components here and update `.impeccable/design.json` together. Keep implementation
-status, technical checks and user visual acceptance distinct. Current source and
-installed previews still use the rejected UI until that implementation is done.
+Light: desk `#f1efeb`, surface `#ffffff`, text `#28282c`, secondary text `#55534f`,
+accent `#b94726`. Dark: desk `#191a1d`, surface `#252628`, text `#f2eee7`, secondary
+text `#d0c9bf`, accent `#ffac8c`. Components use semantic tokens for both themes.
+Cards have 18px corners, the collection sheet 24px, controls 10px, small metadata
+labels 5px. These are role-specific values, not blanket button/input overrides.
 
-## Latest rejected prototype — 2026-10-19
+The UI font follows Windows Segoe UI Variable/Segoe UI, Microsoft YaHei UI,
+PingFang SC and bundled Noto Sans SC fallbacks. Chinese does not inherit Latin
+negative tracking. Collection titles use 27px/650, bookmark titles 19px/650,
+summary text 15px/1.75, metadata at least 13px. Short windows reduce surrounding
+chrome rather than remove record metadata.
 
-The user rejected the standalone teal collection prototype too. It is not a new
-visual authority or an accepted system. The application remains unchanged.
-[Source-level findings](docs/redesign-source-audit.md) now document the current
-implementation and pinned reference code. A replacement design remains pending.
+## Ownership and interaction
+
+- `workbench.css`: application bar, directory placement, collection grid, search,
+  footer, responsive layout and reader pane geometry.
+- `BookmarkCard.tsx` / `bookmark-card.css`: original links, measured summary
+  expansion, summary status, all tags, path, selection and entry actions.
+- `FacetBrowser.tsx` / `facet-browser.css`: real paged folder/tag/domain controls;
+  displayed leaf names keep their full literal API path.
+- `CollectionFolderIcon.tsx` / `collection-folder-icon.css`: restrained folder
+  front morph driven by actual active/open state in directory and folder picker.
+- `ui/controls.tsx` / `ui/controls.css`: native event/form bridge and semantic
+  HeroUI tokens. HeroUI owns pressed state and press transform.
+- `reader-shell.css`: reading typography and controls. Existing App refs retain
+  result scroll position and return focus.
+
+The document-wide ink portal and old FolderGlyph are removed. Bookmark mount and
+layout animations use stable bookmark IDs; checkbox fill/check drawing are local
+decorations over a stable native input. Each target update interrupts its previous
+animation. Reduced-motion preference updates immediately apply without movement.
+
+## Source references
+
+[Source audit](docs/redesign-source-audit.md) records the pinned HeroUI, FlClash,
+GithubStarsManager and Bencho implementations. Bencho supplies motion mechanisms,
+not app data or an additional dependency. Its showcase resets, mobile keyboard
+suppression and incomplete focus behavior are excluded. No Bencho component code
+or branded assets were copied.
+
+## Verification status
+
+Local CSS/TSX syntax and diff checks are separate from full type checking and
+runtime behavior. Builds, browser testing and Windows installation run only in
+GitHub Actions against isolated synthetic data. Current run IDs and source hashes
+are recorded in [desktop validation](docs/desktop-validation.md) after completion.
+Technical passes establish their listed scope; the user has not accepted this
+visual direction.

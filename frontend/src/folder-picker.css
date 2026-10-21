@@ -11,7 +11,7 @@
   min-height: 48px;
   padding: 11px 18px;
   border: 1px solid var(--rule);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: var(--canvas);
   color: var(--ink);
   text-align: left;
@@ -20,8 +20,7 @@
   line-height: 1.5;
   white-space: normal;
 }
-.folder-picker-trigger > span:not(.folder-glyph) { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.folder-picker .folder-glyph { --folder-glyph-size: 28px; }
+.folder-picker-trigger > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .folder-picker-trigger > svg:first-child { color: var(--muted); }
 .folder-picker .folder-picker-trigger:hover,
 .folder-picker .folder-picker-trigger[aria-expanded="true"],
@@ -46,7 +45,7 @@
   gap: 9px;
   padding: 0 16px;
   border: 1px solid var(--rule);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: var(--inset);
   color: var(--muted);
   transition: border-color 180ms var(--ease), background 180ms var(--ease), box-shadow 180ms var(--ease);
@@ -67,7 +66,7 @@
   min-height: 44px;
   padding: 10px 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--ink);
   font-size: 1rem;
@@ -102,7 +101,7 @@
   margin: 3px 0;
   padding: 10px 16px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--ink);
   text-align: left;
@@ -112,7 +111,7 @@
   white-space: normal;
   transition: background 180ms var(--ease), color 180ms var(--ease), box-shadow 180ms var(--ease), transform 180ms var(--ease);
 }
-.folder-picker-options > .fm-button > span:not(.folder-glyph),
+.folder-picker-options > .fm-button > span,
 .model-picker-choice { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .folder-picker-options > .fm-button > svg { color: var(--muted); }
 .folder-picker-options > .fm-button:hover,
@@ -138,14 +137,14 @@
 .folder-picker-options > .folder-picker-create { color: var(--accent); font-weight: 500; }
 .folder-picker-options > .folder-picker-create > svg { color: inherit; }
 .folder-picker-options > .folder-picker-more,
-.model-picker .model-picker-more { width: 100%; justify-content: center; border-radius: 999px; color: var(--accent); }
+.model-picker .model-picker-more { width: 100%; justify-content: center; border-radius: var(--radius-control); color: var(--accent); }
 .folder-picker-note { margin: 10px 12px 6px; color: var(--muted); font-size: 0.8125rem; font-weight: 400; line-height: 1.6; }
-.model-picker .model-picker-control.is-editable { gap: 4px; padding: 3px; border-radius: 999px; background: var(--canvas); }
+.model-picker .model-picker-control.is-editable { gap: 4px; padding: 3px; border-radius: var(--radius-control); background: var(--canvas); }
 .model-picker .model-picker-control.is-editable:focus-within { border-color: var(--accent); }
-.model-picker .model-picker-control.is-editable > .input { height: 44px; min-height: 44px; padding: 10px 14px; border: 0; border-radius: 999px; background: transparent; font-size: 1rem; }
-.model-picker .model-picker-control.is-editable > .model-picker-trigger { width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 999px; background: var(--inset); }
+.model-picker .model-picker-control.is-editable > .input { height: 44px; min-height: 44px; padding: 10px 14px; border: 0; border-radius: var(--radius-control); background: transparent; font-size: 1rem; }
+.model-picker .model-picker-control.is-editable > .model-picker-trigger { width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: var(--radius-control); background: var(--inset); }
 .model-picker .model-picker-label .text-button,
-.model-picker .model-manual { height: auto; min-height: 36px; padding: 6px 12px; border-radius: 999px; font-size: 0.8125rem; font-weight: 500; }
+.model-picker .model-manual { height: auto; min-height: 36px; padding: 6px 12px; border-radius: var(--radius-control); font-size: 0.8125rem; font-weight: 500; }
 .model-picker .model-picker-menu > .model-manual { width: 100%; min-height: 42px; margin-top: 6px; padding: 9px 14px; border: 0; background: var(--soft); text-align: center; }
 .model-picker .model-picker-menu > .hint { margin: 12px; font-size: 0.8125rem; line-height: 1.6; }
 @media (max-width: 719px) {

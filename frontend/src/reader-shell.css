@@ -1,20 +1,13 @@
 /* Reading surfaces; collection and navigation live in workbench.css. */
-.preview-pane {
-  position: relative;
-  grid-row: 2;
-  border: 0;
-  background: var(--canvas);
-  border-radius: 20px;
-  box-shadow: var(--sheet-shadow);
-}
 .preview-heading {
-  position: absolute;
+  position: static;
   z-index: 2;
-  right: 18px;
-  top: 10px;
-  height: 36px;
-  padding: 0;
-  border: 0;
+  width: 100%;
+  height: 52px;
+  min-height: 52px;
+  padding: 0 18px;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--rule);
 }
 .preview-heading > span {
   display: none;
@@ -294,10 +287,6 @@
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
-}
-.focus-mode .preview-pane {
-  inset: 16px 36px 24px;
-  grid-area: auto;
 }
 .is-reading-focused .app-header {
   height: 56px;

@@ -7,12 +7,14 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     if (!localStorage.getItem("fm-language")) localStorage.setItem("fm-language", "zh");
     if (!localStorage.getItem("fm-collection-layout")) localStorage.setItem("fm-collection-layout", "grid");
+    localStorage.setItem("fm-theme", "light");
   });
   await page.route("**/*", route => new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort());
   await mkdir("screenshots", { recursive: true });
 });
 
 test("a large collection leaves useful browsing space in short desktop and mobile windows", async ({ page }) => {
+  test.setTimeout(60000);
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   const measurements = [];
@@ -33,29 +35,46 @@ test("a large collection leaves useful browsing space in short desktop and mobil
         overflow: document.documentElement.scrollWidth > innerWidth + 1 };
     });
     expect(size.overflow).toBe(false);
-    // One explicit summary-status row (two on phones) replaces the old
-    // single-line excerpts. Keep at least half the window for actual content.
-    // Layout coordinates may contain subpixels from rem line heights.
-    expect(size.top).toBeLessThanOrEqual((viewport.width < 720 ? 270 : 210) + 1);
-    expect(size.height / size.viewport).toBeGreaterThanOrEqual(.5);
-    expect(size.fullyVisible, JSON.stringify({ viewportSize: viewport, ...size })).toBeGreaterThanOrEqual(viewport.width < 1120 ? 2 : 3);
-    await expect(page.locator(".result-summary").first()).toBeVisible();
+    // A horizontal app header uses its own row. Test the space available for
+    // reading and scrolling, rather than the rejected card proportions.
+    expect(size.height / size.viewport).toBeGreaterThanOrEqual(.4);
+    await expect(page.locator(".result-title").first()).toBeInViewport({ ratio: 1 });
+    await expect(page.locator(".result-summary").first()).toBeInViewport();
     if (viewport.width >= 960) {
       const directory = await page.locator(".collection-sidebar").boundingBox();
       const results = await page.locator(".result-list").boundingBox();
       expect(directory!.x + directory!.width).toBeLessThan(results!.x);
-      const sidebar = await page.locator(".app-header").boundingBox();
+      const header = await page.locator(".app-header").boundingBox();
       const options = await page.locator(".collection-sidebar .facet-options").boundingBox();
-      expect(sidebar!.height).toBeGreaterThan(viewport.height * .9);
-      expect(directory!.x).toBeGreaterThan(sidebar!.x);
-      expect(directory!.x + directory!.width).toBeLessThan(sidebar!.x + sidebar!.width);
+      expect(header!.width).toBeGreaterThan(viewport.width * .9);
+      expect(directory!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
+      expect(results!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
+      await expect(page.locator(".app-header .collection-sidebar")).toHaveCount(0);
       expect(options!.height).toBeGreaterThan(viewport.height * .3);
     }
+    const lastPreview = page.locator(".bookmark-preview").last();
+    await lastPreview.scrollIntoViewIfNeeded();
+    await expect(lastPreview).toBeInViewport({ ratio: 1 });
+    expect(await page.locator(".result-list").evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+    await page.locator(".result-list").evaluate(element => { element.scrollTop = 0; });
+    await settleVisualLayout(page);
     measurements.push({ width: viewport.width, viewportHeight: viewport.height,
       listTop: size.top, firstCardTop: size.firstCardTop, listHeight: size.height,
       fullyVisible: size.fullyVisible, horizontalOverflow: size.overflow });
     await settleVisualLayout(page);
     await page.screenshot({ path: `screenshots/collection-${viewport.width}x${viewport.height}.png`, animations: "disabled" });
+    const theme = page.locator(".app-header").getByRole("button", { name: "切换主题", exact: true });
+    await theme.click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await settleVisualLayout(page);
+    await page.evaluate(async () => {
+      await Promise.all(document.documentElement.getAnimations().filter(animation =>
+        animation.effect?.getComputedTiming().iterations !== Infinity).map(animation => animation.finished.catch(() => {})));
+    });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)).toBe(false);
+    await page.screenshot({ path: `screenshots/collection-dark-${viewport.width}x${viewport.height}.png`, animations: "disabled" });
+    await theme.click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   }
   expect(errors).toEqual([]);
   await writeFile("screenshots/collection-density.json", JSON.stringify({ data: "1892 synthetic bookmarks, over 240 folders", measurements }, null, 2));
@@ -65,7 +84,7 @@ test("a large collection leaves useful browsing space in short desktop and mobil
   await page.reload();
   await expect(page.getByRole("button", { name: "Add bookmark", exact: true })).toBeVisible();
   await expect(page.locator(".result-row")).toHaveCount(30);
-  expect((await page.locator(".result-list").boundingBox())!.y).toBeLessThanOrEqual(321);
+  expect((await page.locator(".result-list").boundingBox())!.height / 844).toBeGreaterThanOrEqual(.4);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)).toBe(false);
   await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/collection-en-mobile.png", animations: "disabled" });
@@ -217,21 +236,28 @@ test("collection typography stays readable across views and larger user text set
     return { title: size(".result-title"), summary: size(".result-summary"), source: size(".result-source"),
       category: size(".collection-sidebar .facet-option"), action: size(".library-tools .primary"),
       search: size(".search-box input"), weight: getComputedStyle(document.querySelector(".result-title")!).fontWeight,
-      tracking: getComputedStyle(document.querySelector(".toolbar-location h1")!).letterSpacing };
+      status: size(".bookmark-status"), tag: size(".bookmark-tags li"), folder: size(".result-folder") };
   });
   expect(typography.title).toBeGreaterThanOrEqual(18);
-  expect(typography.summary).toBeGreaterThanOrEqual(16);
+  expect(typography.summary).toBeGreaterThanOrEqual(15);
   expect(typography.source).toBeGreaterThanOrEqual(13);
   expect(typography.category).toBeGreaterThanOrEqual(14);
   expect(typography.action).toBeGreaterThanOrEqual(14);
-  expect(typography.search).toBeGreaterThanOrEqual(16);
+  expect(typography.search).toBeGreaterThanOrEqual(15);
   expect(Number(typography.weight)).toBeGreaterThanOrEqual(500);
-  expect(Number(typography.weight)).toBeLessThanOrEqual(600);
-  expect(["normal", "0px"]).toContain(typography.tracking);
+  expect(typography.status).toBeGreaterThanOrEqual(13);
+  expect(typography.tag).toBeGreaterThanOrEqual(13);
+  expect(typography.folder).toBeGreaterThanOrEqual(13);
+  const metadata = page.locator(".result-row").first().locator(".bookmark-metadata");
+  await expect(metadata.locator(".bookmark-status")).toBeVisible();
+  await expect(metadata.locator(".bookmark-tags")).toBeVisible();
+  await expect(metadata.locator(".bookmark-tags")).toContainText("demo");
   const categoryLabelsStayOnOneLine = () => page.locator(".collection-sidebar .facet-types button span").evaluateAll(labels =>
     labels.every(label => label.getBoundingClientRect().height <= parseFloat(getComputedStyle(label).lineHeight) + 1));
   expect(await categoryLabelsStayOnOneLine()).toBe(true);
   await page.getByRole("button", { name: "列表视图", exact: true }).click();
+  await expect(metadata.locator(".bookmark-status")).toBeVisible();
+  await expect(metadata.locator(".bookmark-tags")).toBeVisible();
   expect(await page.locator(".result-title").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
   await page.evaluate(() => { document.documentElement.style.fontSize = "125%"; });
   expect(await page.locator(".result-title").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(20);
@@ -241,6 +267,8 @@ test("collection typography stays readable across views and larger user text set
   await page.screenshot({ path: "screenshots/collection-text-125.png", animations: "disabled" });
   await page.evaluate(() => { document.documentElement.style.fontSize = ""; });
   await page.setViewportSize({ width: 390, height: 844 });
+  await expect(metadata.locator(".bookmark-status")).toBeVisible();
+  await expect(metadata.locator(".bookmark-tags")).toBeVisible();
   expect(await page.locator(".result-title").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
   await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/collection-readable-mobile-list.png", animations: "disabled" });

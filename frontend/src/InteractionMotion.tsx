@@ -1,10 +1,8 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
-import { createPortal } from "react-dom";
+import { useRef, type RefObject } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { motion } from "motion/react";
 import { useReducedMotion } from "./useReducedMotion";
-import "./interaction-motion.css";
 
 gsap.registerPlugin(useGSAP);
 
@@ -127,82 +125,4 @@ export function useContentMotion<T extends HTMLElement>(ref: RefObject<T | null>
     follow.forEach(target => arrive(target, 6, 0.34, "content", 0.78, 0.5));
     return () => { delete element.dataset.contentMotion; };
   }, { scope: ref, dependencies: [value, selector, axis, reduced], revertOnUpdate: true });
-}
-
-type Ink = { id: number; target: HTMLElement; createdAt: number; left: number; top: number; width: number; height: number;
-  radius: string; color: string; x: number; y: number; diameter: number };
-
-/** The ink is a noninteractive paint layer, leaving every real hit target stable. */
-export function InteractionFeedback() {
-  const reduced = useReducedMotion();
-  const [inks, setInks] = useState<Ink[]>([]);
-  const nextId = useRef(0);
-  useEffect(() => {
-    if (reduced) { setInks([]); return; }
-    function paint(target: EventTarget | null, point?: { x: number; y: number }) {
-      if (!(target instanceof Element)) return;
-      const control = target.closest<HTMLElement>("button, summary, .result-title");
-      if (!control || control.closest('[inert], [aria-hidden="true"]') ||
-        control.matches(':disabled, [aria-disabled="true"], [data-no-ink]')) return;
-      const rect = control.getBoundingClientRect();
-      if (!rect.width || !rect.height) return;
-      const style = getComputedStyle(control);
-      const ink: Ink = { id: nextId.current++, target: control, createdAt: performance.now(), left: rect.left, top: rect.top,
-        width: rect.width, height: rect.height, radius: style.borderRadius, color: style.color,
-        x: point ? point.x - rect.left : rect.width / 2,
-        y: point ? point.y - rect.top : rect.height / 2,
-        diameter: Math.hypot(rect.width, rect.height) * 2 };
-      setInks(old => [...old.slice(-5), ink]);
-    }
-    const pointer = (event: PointerEvent) => { if (event.button === 0) paint(event.target, { x: event.clientX, y: event.clientY }); };
-    const keyboard = (event: KeyboardEvent) => { if (!event.repeat && (event.key === "Enter" || event.key === " ")) paint(event.target); };
-    const clear = () => setInks([]);
-    document.addEventListener("pointerdown", pointer, true);
-    document.addEventListener("keydown", keyboard, true);
-    document.addEventListener("scroll", clear, true);
-    window.addEventListener("resize", clear);
-    return () => {
-      document.removeEventListener("pointerdown", pointer, true);
-      document.removeEventListener("keydown", keyboard, true);
-      document.removeEventListener("scroll", clear, true);
-      window.removeEventListener("resize", clear);
-    };
-  }, [reduced]);
-  useEffect(() => {
-    if (!inks.length) return;
-    let frame = 0;
-    // The portal must never paint feedback over the next surface. Inspect only
-    // the few live presses, and stop as soon as their short animation ends.
-    const inspect = () => {
-      const expired = new Set<number>();
-      for (const ink of inks) {
-        const target = ink.target;
-        if (!target.isConnected || target.closest('[inert], [hidden], [aria-hidden="true"], [data-overlay-phase="closing"]') ||
-          performance.now() - ink.createdAt > 600) {
-          expired.add(ink.id);
-          continue;
-        }
-        const rect = target.getBoundingClientRect();
-        const style = getComputedStyle(target);
-        // Tolerate a button's press scale, but cancel when navigation or layout
-        // moves its surface away from the captured coordinates.
-        if (!rect.width || !rect.height || style.visibility !== "visible" ||
-          Math.abs(rect.left + rect.width / 2 - ink.left - ink.width / 2) > 8 ||
-          Math.abs(rect.top + rect.height / 2 - ink.top - ink.height / 2) > 8 ||
-          Math.abs(rect.width - ink.width) > Math.max(16, ink.width * 0.1) ||
-          Math.abs(rect.height - ink.height) > Math.max(16, ink.height * 0.1)) expired.add(ink.id);
-      }
-      if (expired.size) setInks(current => current.filter(ink => !expired.has(ink.id)));
-      else frame = requestAnimationFrame(inspect);
-    };
-    frame = requestAnimationFrame(inspect);
-    return () => cancelAnimationFrame(frame);
-  }, [inks]);
-  return createPortal(<div className="interaction-paint" aria-hidden="true">
-    {inks.map(ink => <span className="interaction-clip" key={ink.id} style={{ left: ink.left, top: ink.top,
-      width: ink.width, height: ink.height, borderRadius: ink.radius, color: ink.color }}>
-      <span className="interaction-ink" onAnimationEnd={() => setInks(old => old.filter(item => item.id !== ink.id))}
-        style={{ width: ink.diameter, height: ink.diameter, left: ink.x - ink.diameter / 2, top: ink.y - ink.diameter / 2 }} />
-    </span>)}
-  </div>, document.body);
 }

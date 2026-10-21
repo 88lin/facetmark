@@ -77,3 +77,12 @@ replacement requirements. Do not continue polishing or promote this proposal.
 Read [the source audit](../docs/redesign-source-audit.md) before further implementation.
 Reference implementations must be examined at known commits; cloud renders can
 verify the resulting implementation, but cannot substitute for that source analysis.
+
+
+## Production collection implementation — 2026-10-21
+
+The replacement now exists in the real application: horizontal app navigation,
+independent paged directory, collection sheet, redesigned records and local
+selection/folder feedback. DESIGN.md and its sidecar describe the implemented
+working direction. Cloud validation and the user's collection-screen review are
+pending. The rejected standalone prototype is not the preview entrypoint.

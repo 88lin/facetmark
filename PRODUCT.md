@@ -9,7 +9,7 @@ web
 ## Stack
 
 Tauri 2 desktop shell, Python sidecar, React + TypeScript + Vite + Tailwind CSS,
-Radix primitives and Lucide icons. One interface ships in the desktop installer,
+HeroUI/React Aria controls, Radix dialog primitives, Motion/GSAP and Lucide icons. One interface ships in the desktop installer,
 Python distribution and Docker image.
 
 ## Users and Purpose
@@ -89,8 +89,8 @@ the current brief, not from dependency defaults.
 
 The [current redesign requirements](.impeccable/workbench-direction.md) are the
 active visual brief; the [frontend surface brief](.impeccable/surfaces/frontend.md)
-records behavior and verification boundaries. DESIGN.md and its sidecar explicitly
-mark the replacement pending and carry no inherited tokens. Rejected specifications
+records behavior and verification boundaries. DESIGN.md and its sidecar record the implemented production collection direction,
+awaiting cloud validation and user review; they do not inherit rejected tokens. Rejected specifications
 are archived under `.impeccable/history/` for migration, not design authority.
 
 ## Evidence on Hand

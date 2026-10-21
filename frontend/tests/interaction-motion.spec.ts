@@ -87,11 +87,6 @@ function nodes(step: MotionEvidence, selector: string) {
   return step.frames.flatMap(frame => frame.targets[selector] || []);
 }
 
-function expectAnimation(step: MotionEvidence, selector: string) {
-  expect(nodes(step, selector).some(node => node.animations.some(animation =>
-    animation.state === "running" && animation.progress !== null)), `${step.action}: running DOM animation`).toBe(true);
-}
-
 function expectPaintedMotion(step: MotionEvidence, selector: string, layout = false) {
   const statesByNode = new Map<string, Set<string>>();
   for (const node of nodes(step, selector)) {
@@ -222,12 +217,12 @@ test("everyday navigation has visible motion without losing drafts, focus or inp
       expectPaintedMotion(step, movingCard, true);
     }
 
-    step = await record(page, evidence, "打开新增收藏并清理原按钮波纹", [".interaction-ink", ".library-dialog"],
+    step = await record(page, evidence, "打开新增收藏并将焦点交给操作窗口", [".library-dialog"],
       () => page.getByRole("button", { name: "新增收藏", exact: true }).click());
     expectPaintedMotion(step, ".library-dialog");
-    await expect(page.locator(".interaction-ink")).toHaveCount(0);
-    await expect(page.locator(".interaction-paint")).toHaveCSS("pointer-events", "none");
     const dialog = page.getByRole("dialog", { name: "新增收藏", exact: true });
+    await expect.poll(() => dialog.evaluate(element => element.contains(document.activeElement))).toBe(true);
+    await expect(page.locator(".interaction-paint, .interaction-ink")).toHaveCount(0);
     await dialog.getByRole("textbox", { name: "收藏网址", exact: true }).fill("https://motion-fixture.example/never-saved");
     const folderTrigger = dialog.locator(".folder-picker-trigger");
     step = await record(page, evidence, "打开完整文件夹目录", [".folder-picker-panel"], () => folderTrigger.click());
@@ -261,18 +256,16 @@ test("everyday navigation has visible motion without losing drafts, focus or inp
     await expect(page.getByRole("button", { name: "新增收藏", exact: true })).toBeFocused();
 
     await page.emulateMedia({ reducedMotion: "reduce" });
-    step = await record(page, evidence, "实时减少动态效果", [".page-scroll", ".interaction-ink"],
+    step = await record(page, evidence, "实时减少动态效果", [".page-scroll"],
       () => header.getByRole("button", { name: "设置", exact: true }).click());
     expect(nodes(step, ".page-scroll").flatMap(node => node.animations).some(animation => animation.state === "running")).toBe(false);
     expect(nodes(step, ".page-scroll").every(node => node.transform === "none" && node.filter === "none" && +node.opacity === 1)).toBe(true);
-    await expect(page.locator(".interaction-ink")).toHaveCount(0);
     await page.getByRole("tab", { name: "设备同步", exact: true }).click();
     await expect(page.getByRole("tabpanel")).toHaveCount(1);
     await page.emulateMedia({ reducedMotion: "no-preference" });
-    step = await record(page, evidence, "实时恢复动态效果", [visiblePanel, ".interaction-ink"],
+    step = await record(page, evidence, "实时恢复动态效果", [visiblePanel],
       () => page.getByRole("tab", { name: "AI 连接", exact: true }).click());
     expectContentMotion(step, visiblePanel, -1);
-    expectAnimation(step, ".interaction-ink");
     await header.getByRole("button", { name: "全部书签", exact: true }).click();
     expect(errors).toEqual([]);
     expect(writes).toEqual([]);

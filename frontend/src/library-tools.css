@@ -11,9 +11,6 @@
 .library-tools .selection-total{font-size:var(--type-ui);font-weight:600;margin-right:4px;color:var(--accent);font-variant-numeric:tabular-nums}
 .library-tools .selection-limit{font-size:var(--type-caption);color:var(--muted);width:100%}
 .library-tools.selecting{padding:10px 12px;background:var(--soft);border-radius:16px}
-.result-source .batch-check{width:22px;height:22px;display:grid;place-items:center;border:1px solid var(--selected-edge);border-radius:7px;color:var(--on-accent);background:var(--canvas);margin-left:auto;flex-shrink:0}
-.result-row.batch-selected{border-color:var(--accent);background:var(--canvas)}
-.result-row.batch-selected .batch-check{background:var(--accent);border-color:var(--accent)}
 .library-dialog-overlay{position:fixed;inset:0;background:var(--scrim);z-index:80}
 .library-dialog{position:fixed;z-index:81;top:50%;left:50%;translate:-50% -50%;width:min(560px,calc(100vw - 32px));max-height:calc(100dvh - 40px);overflow:auto;background:var(--canvas);color:var(--ink);border-radius:20px;padding:28px;box-shadow:var(--sheet-shadow)}
 .library-dialog-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:8px}

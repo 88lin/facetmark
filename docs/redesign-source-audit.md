@@ -1,7 +1,7 @@
 # 重构源码核查：2026-10-19
 
 用户再次拒绝本轮浅绿收藏原型，并要求检查代码，指出反复看图没有改善结果。
-这份记录检查当前源码和参考项目的明确提交，不把截图、测试通过或依赖已安装
+这份记录检查下列时间点的源码和参考项目的明确提交，不把截图、测试通过或依赖已安装
 当作设计已达到要求的证据。未逐条审计用户提到的近百轮改动。
 
 ## 核查范围与版本
@@ -112,7 +112,7 @@ workbench 五份 CSS。以 `.page-scroll` 为例，同一属性在三个文件�
 
 ## 后续实施约束
 
-本轮浅绿原型已拒绝。当前阶段停止视觉改动，以本核查结果约束下一次实际重构：
+本轮浅绿原型已拒绝。以下是10月19日核查确定的后续实施约束：
 
 1. 先明确现有组件与功能边界、样式属性与动画的唯一所有者，再改布局。
 2. 对参考的具体组件读取同一提交下的实现，记录采用的机制及不适用的部分。
@@ -120,3 +120,34 @@ workbench 五份 CSS。以 `.page-scroll` 为例，同一属性在三个文件�
 4. 每替换组件同时删除它的旧覆盖；避免全控件半径与 document 级外观补丁。
 5. 核对状态、字号、主题、窄屏与键盘实现后，再用源码对应的云端运行检查呈现。
 6. 截图用于验证已实现的结果；技术通过不替代用户的视觉判断。
+
+
+## 2026-10-21：Bencho 与实际收藏页迁移
+
+读取 [Bencho 官方免费组件仓库](https://github.com/cabralorenzo/bencho/tree/2bfebcfc2b5acf029862b99494a5fa825ba6dedc)，
+固定版本 `2bfebcfc2b5acf029862b99494a5fa825ba6dedc`（2026-10-18）。
+官网部署脚本的官方链接指向该仓库，但没有官网部署与提交的一一映射，
+不把这份免费组件源码声称为全部线上画廊源码。
+
+- `package.json` 的 `bencho-free` 为 private，README 要求按目录复制；它不是需要安装的动画引擎。
+- 免费仓库41个组件采用MIT；网站133个展示还包含Pro，品牌、照片不属于可复制资产。
+- [Checklist.tsx](https://github.com/cabralorenzo/bencho/blob/2bfebcfc2b5acf029862b99494a5fa825ba6dedc/blocks/checklist/Checklist.tsx#L678)
+  用实际选择进度驱动填充和SVG勾线。本次在原生checkbox旁独立实现装饰层，
+  绑定真实checked状态，保留固定点击区域、焦点和方向键，不复制全选三秒后重置种子数据的展示逻辑。
+- [MagneticSelect.tsx](https://github.com/cabralorenzo/bencho/blob/2bfebcfc2b5acf029862b99494a5fa825ba6dedc/blocks/magnet-select/MagneticSelect.tsx#L501)
+  将CSS hover和Motion状态transform分配给不同节点。本次保留HeroUI的按钮按压归属，
+  去掉document级InteractionFeedback浮层；动画不接管真实表单事件。
+- Picker展示中省略外部点击关闭，Seek用inputMode=none禁用手机软键盘；没有引入这些行为。
+  多个免费示例的动态效果偏好处理不完整，本项目沿用实时偏好订阅并单独验证切换期间状态。
+
+没有复制Bencho组件代码或资产，没有增加依赖；使用项目已锁定的Motion12。
+HeroUI提供状态/按压，FlClash的命名字号和可用空间布局机制、GithubStarsManager的
+持续可见状态区分别用于本次组件归属、字体层级和元数据布局。
+
+实际改动在`frontend/src`：水平导航、独立目录、收藏内容面板；BookmarkCard和FacetBrowser
+拥有独立样式文件；旧样式族从styles、workbench、collection-tools和library-tools移除，
+旧FolderGlyph被目录及编辑选择器共同替换。搜索/IME、分页、跨页选择和Reader返回控制器保留在App。
+本记录前面的10月19日问题是迁移前快照，不代表这些覆盖仍存在于当前代码。
+
+验证改为真正/app界面；不再使用被拒绝的独立HTML原型作为本轮完成证据。
+云端证据记录源文件、构建资源与媒体哈希；行为通过与用户视觉接受仍分别报告。

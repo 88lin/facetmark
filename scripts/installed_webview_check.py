@@ -52,7 +52,7 @@ with sync_playwright() as playwright:
                         const box = element.getBoundingClientRect(), style = getComputedStyle(element);
                         return [box.x, box.y, box.width, box.height, style.transform, style.opacity, style.filter];
                     }));
-                    if (snapshot !== previous || document.querySelector('[data-content-motion], .interaction-ink') ||
+                    if (snapshot !== previous || document.querySelector('[data-content-motion]') ||
                         elements.some(element => element.getAnimations().some(a => a.playState === 'running')))
                         stable = performance.now();
                     previous = snapshot;
@@ -189,8 +189,8 @@ with sync_playwright() as playwright:
 
     page.on('request', record_interaction_write)
 
-    def motion_step(label, selectors, action, *, running=False, content=False, direction=None,
-                    moving=False, exiting=False, painted=False):
+    def motion_step(label, selectors, action, *, content=False, direction=None,
+                    moving=False, exiting=False, painted=None, instant=False):
         page.evaluate('''selectors => {
             const started = performance.now();
             const probe = window.__installedMotion = { frames: [], request: 0 };
@@ -207,10 +207,14 @@ with sync_playwright() as playwright:
                         return {
                             key: identities.get(element),
                             transform: style.transform, opacity: style.opacity, filter: style.filter,
+                            path: element.getAttribute('d'),
+                            strokeDasharray: style.strokeDasharray, strokeDashoffset: style.strokeDashoffset,
                             translateX: matrix.m41, translateY: matrix.m42,
                             inline: { transform: element.style.transform, opacity: element.style.opacity,
                                       filter: element.style.filter, willChange: element.style.willChange },
                             x: Math.round(rect.x * 100) / 100, y: Math.round(rect.y * 100) / 100,
+                            width: Math.round(rect.width * 100) / 100,
+                            height: Math.round(rect.height * 100) / 100,
                             inert: element.inert, hidden: element.getAttribute('aria-hidden'),
                             phase: element.dataset.overlayPhase, pointerEvents: style.pointerEvents,
                             animations: element.getAnimations().filter(animation =>
@@ -240,9 +244,6 @@ with sync_playwright() as playwright:
             }''')
             interaction_evidence.append({'action': label, 'frames': frames})
         samples = [node for frame in frames for nodes in frame['targets'].values() for node in nodes]
-        if running:
-            assert any(animation['state'] == 'running' and animation.get('progress') is not None
-                       for node in samples for animation in node['animations']), f'{label}: no running DOM animation'
         if content:
             # GSAP is sampled from its actual painted properties, independently
             # of WAAPI. Never combine different nodes or selectors as evidence.
@@ -265,12 +266,29 @@ with sync_playwright() as playwright:
                 positions.setdefault(node['key'], set()).add((node['x'], node['y']))
             assert any(len(values) > 2 for values in positions.values()), f'{label}: no intermediate layout positions'
         if painted:
-            for selector in selectors:
-                transforms = {}
+            # SVG path morphs and stroke drawing are not transform animations.
+            # Sample each property's real painted values on the same DOM node.
+            for selector, property_name in painted.items():
+                values_by_node = {}
                 for frame in frames:
                     for node in frame['targets'][selector]:
-                        transforms.setdefault(node['key'], set()).add(node['transform'])
-                assert any(len(values) > 2 for values in transforms.values()), f'{label}: {selector} never painted intermediate transforms'
+                        values_by_node.setdefault(node['key'], set()).add(node[property_name])
+                assert any(len(values) > 2 for values in values_by_node.values()), \
+                    f'{label}: {selector} never painted intermediate {property_name} values'
+        if instant:
+            assert samples, f'{label}: no reduced-motion targets were sampled'
+            assert not any(animation['state'] == 'running' for node in samples for animation in node['animations']), \
+                f'{label}: reduced motion retained a running DOM animation'
+            for selector in selectors:
+                by_node = {}
+                for frame in frames:
+                    for node in frame['targets'][selector]:
+                        by_node.setdefault(node['key'], []).append(node)
+                assert by_node, f'{label}: missing reduced-motion target {selector}'
+                for values in by_node.values():
+                    for property_name in ('path', 'transform', 'opacity', 'filter', 'strokeDasharray', 'strokeDashoffset'):
+                        assert len({node[property_name] for node in values}) <= 2, \
+                            f'{label}: {selector} painted intermediate {property_name} values with reduced motion'
         if exiting:
             for selector in selectors:
                 closing = [node for frame in frames for node in frame['targets'][selector]
@@ -278,6 +296,18 @@ with sync_playwright() as playwright:
                 assert closing, f'{label}: {selector} has no recorded exit phase'
                 assert all(node['inert'] and node['hidden'] == 'true' and node['pointerEvents'] == 'none'
                            for node in closing), f'{label}: {selector} still accepts input during exit'
+
+    def assert_bookmark_checked(checkbox, checked):
+        assert checkbox.is_checked() is checked
+        state = checkbox.evaluate('''input => {
+            const label = input.closest('.bookmark-select');
+            const fill = getComputedStyle(label.querySelector('.bookmark-check-fill'));
+            const path = getComputedStyle(label.querySelector('.bookmark-check-frame path'));
+            return { scale: new DOMMatrixReadOnly(fill.transform === 'none' ? undefined : fill.transform).m11,
+                     opacity: Number(path.opacity) };
+        }''')
+        assert abs(state['scale'] - int(checked)) < .001 and state['opacity'] == int(checked), \
+            f'Checkbox decoration disagrees with its native checked state: {state}'
 
     page.emulate_media(reduced_motion='no-preference')
     page.evaluate('() => document.fonts.ready')
@@ -316,65 +346,155 @@ with sync_playwright() as playwright:
                         content=True, direction=1 if category == '标签' else -1)
         folder = categories.get_by_title('合成演示文件夹', exact=True)
         folder.wait_for()
-        folder_layers = ['.collection-sidebar .facet-option[title] .folder-glyph__front',
-                         '.collection-sidebar .facet-option[title] .folder-glyph__paper']
-        motion_step('立体文件夹悬停展开', folder_layers, folder.hover, painted=True)
-        capture_still('installed-folder-hover.png')
-        motion_step('立体文件夹移开收回', folder_layers,
-                    lambda: page.mouse.move(600, 40), painted=True)
+        folder_front = '.collection-sidebar .facet-option[title="合成演示文件夹"] .collection-folder-front'
+        folder_icon = folder.locator('.collection-folder-icon')
+        closed_path = folder.locator('.collection-folder-front').get_attribute('d')
+        folder_box = folder.bounding_box()
+        motion_step('文件夹悬停保持未选中状态', [folder_front], folder.hover)
+        folder.focus()
+        assert folder.evaluate('element => element === document.activeElement')
+        assert folder_icon.get_attribute('data-open') == 'false'
+        assert folder.locator('.collection-folder-front').get_attribute('d') == closed_path
 
         def select_folder():
             folder.focus()
             folder.press('Enter')
 
-        motion_step('键盘选择立体文件夹', folder_layers, select_folder, painted=True)
+        motion_step('Enter 选择文件夹并展开路径图标', [folder_front], select_folder,
+                    painted={folder_front: 'path'})
         assert folder.get_attribute('aria-pressed') == 'true'
+        assert folder_icon.get_attribute('data-open') == 'true'
+        assert folder.evaluate('element => element === document.activeElement')
+        selected_box = folder.bounding_box()
+        assert all(abs(folder_box[key] - selected_box[key]) < .1 for key in ('width', 'height')), \
+            'Folder morph changed the button hit area'
         page.wait_for_function("document.querySelector('.result-list')?.getAttribute('aria-busy') === 'false'")
         assert all(value.strip() == '合成演示文件夹' for value in page.locator('.result-folder').all_text_contents())
-        categories.get_by_role('button', name='全部文件夹', exact=True).click()
+        capture_still('installed-folder-selected.png')
+        all_folders = categories.get_by_role('button', name='全部文件夹', exact=True)
+        motion_step('Space 返回全部文件夹并收起路径图标', [folder_front],
+                    lambda: all_folders.press('Space'), painted={folder_front: 'path'})
+        assert folder_icon.get_attribute('data-open') == 'false'
+
+        def reverse_folder_selection():
+            for target in (folder, all_folders, folder):
+                target.click()
+                page.evaluate('() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
+
+        motion_step('快速切换目录后停在目标文件夹', [folder_front], reverse_folder_selection,
+                    painted={folder_front: 'path'})
+        assert folder.get_attribute('aria-pressed') == 'true'
+        assert folder_icon.get_attribute('data-open') == 'true'
+        all_folders.click()
+        page.wait_for_function("document.querySelector('.result-list')?.getAttribute('aria-busy') === 'false'")
+        first_id = page.locator('.result-row').first.get_attribute('data-bookmark-id')
+        checkbox = page.locator(f'.result-row[data-bookmark-id="{first_id}"] .bookmark-check')
+        check_fill = f'.result-row[data-bookmark-id="{first_id}"] .bookmark-check-fill'
+        check_path = f'.result-row[data-bookmark-id="{first_id}"] .bookmark-check-frame path'
+        link_click_count = page.evaluate('window.__linkClicks.length')
+        motion_step('点击原生复选框绘制收藏选中标记', [check_fill, check_path], checkbox.click,
+                    painted={check_fill: 'transform', check_path: 'strokeDasharray'})
+        assert_bookmark_checked(checkbox, True)
+        assert checkbox.evaluate('element => element === document.activeElement')
+        motion_step('Space 取消收藏选中标记', [check_fill, check_path],
+                    lambda: checkbox.press('Space'), painted={check_fill: 'transform', check_path: 'strokeDasharray'})
+        assert_bookmark_checked(checkbox, False)
+        checkbox.press('ArrowDown')
+        assert page.locator('.bookmark-check').nth(1).evaluate('element => element === document.activeElement')
+        page.locator('.bookmark-check').nth(1).press('ArrowUp')
+        assert checkbox.evaluate('element => element === document.activeElement')
+        assert page.evaluate('window.__linkClicks.length') == link_click_count, 'Selection activated an original-page link'
+        page.get_by_role('button', name='完成选择', exact=True).click()
         second_id = page.locator('.result-row').nth(1).get_attribute('data-bookmark-id')
         layout_label = '列表视图' if initial_layout == 'grid' else '卡片视图'
         motion_step('切换收藏布局', [f'.result-row[data-bookmark-id="{second_id}"]'],
                     lambda: page.get_by_role('button', name=layout_label, exact=True).first.click(), moving=True)
         restore_label = '卡片视图' if initial_layout == 'grid' else '列表视图'
         page.get_by_role('button', name=restore_label, exact=True).first.click()
-        motion_step('胶囊按压波纹', ['.interaction-ink'],
-                    lambda: categories.get_by_role('button', name='文件夹', exact=True).click(), running=True)
-        motion_step('打开新增收藏并清理原按钮波纹', ['.library-dialog'],
-                    lambda: page.get_by_role('button', name='新增收藏', exact=True).click(), moving=True)
-        assert page.locator('.interaction-ink').count() == 0
+        add_bookmark = page.get_by_role('button', name='新增收藏', exact=True)
+        motion_step('打开新增收藏', ['.library-dialog'], add_bookmark.click, moving=True)
         dialog = page.get_by_role('dialog', name='新增收藏', exact=True)
-        dialog.locator('.folder-picker-trigger').click()
+        dialog.evaluate('''dialog => {
+            window.__installedDraftSubmits = 0;
+            window.__installedDraftInvalid = 0;
+            const form = dialog.querySelector('form');
+            form.addEventListener('submit', () => window.__installedDraftSubmits++);
+            form.addEventListener('invalid', () => window.__installedDraftInvalid++, true);
+        }''')
+        picker_trigger = dialog.locator('.folder-picker-trigger')
+        picker_front = '.library-dialog .folder-picker-trigger .collection-folder-front'
+        motion_step('Enter 打开目录并展开触发器图标', [picker_front],
+                    lambda: picker_trigger.press('Enter'), painted={picker_front: 'path'})
+        assert picker_trigger.get_attribute('aria-expanded') == 'true'
+        assert picker_trigger.locator('.collection-folder-icon').get_attribute('data-open') == 'true'
         folder_search = dialog.get_by_role('textbox', name='搜索文件夹', exact=True)
         folder_search.wait_for()
+        assert folder_search.evaluate('element => element === document.activeElement')
         folder_search.fill('合成演示文件夹')
         folder_choice = dialog.get_by_title('合成演示文件夹', exact=True)
         folder_choice.wait_for()
-        motion_step('安装版选择器文件夹展开', ['.folder-picker-options .folder-glyph__front',
-                    '.folder-picker-options .folder-glyph__paper'], folder_choice.hover, painted=True)
-        folder_choice.click()
-        assert '合成演示文件夹' in dialog.locator('.folder-picker-trigger').inner_text()
-        dialog.locator('.folder-picker-trigger').click()
+        folder_search.press('Enter')
+        assert page.evaluate('window.__installedDraftSubmits + window.__installedDraftInvalid') == 0, \
+            'Folder search Enter activated the bookmark form'
+        assert dialog.is_visible() and folder_search.evaluate('element => element === document.activeElement')
+        folder_search.press('ArrowDown')
+        assert page.evaluate("document.activeElement?.matches('[data-folder-option]')"), \
+            'ArrowDown did not move from folder search to a choice'
+        page.keyboard.press('End')
+        assert folder_choice.evaluate('element => element === document.activeElement')
+        motion_step('Space 选择完整路径并收起目录触发器', [picker_front],
+                    lambda: folder_choice.press('Space'), painted={picker_front: 'path'})
+        assert '合成演示文件夹' in picker_trigger.inner_text()
+        assert picker_trigger.get_attribute('aria-expanded') == 'false'
+        assert picker_trigger.evaluate('element => element === document.activeElement')
+        assert page.evaluate('window.__installedDraftSubmits + window.__installedDraftInvalid') == 0, \
+            'Folder choice activated the bookmark form'
+        picker_trigger.click()
         folder_search.wait_for()
+        folder_choice.wait_for()
+        assert folder_choice.get_attribute('aria-pressed') == 'true'
+        assert folder_choice.locator('.collection-folder-icon').get_attribute('data-open') == 'true'
         motion_step('Escape 只关闭目录', ['.folder-picker-panel'],
                     lambda: folder_search.press('Escape'), exiting=True)
         assert dialog.is_visible()
+        assert picker_trigger.evaluate('element => element === document.activeElement')
+        assert picker_trigger.locator('.collection-folder-icon').get_attribute('data-open') == 'false'
         motion_step('关闭新增窗口', ['.library-dialog', '.library-dialog-overlay'],
-                    lambda: dialog.locator('.folder-picker-trigger').press('Escape'), exiting=True)
+                    lambda: picker_trigger.press('Escape'), exiting=True)
         assert page.locator('.library-dialog, .library-dialog-overlay').count() == 0
+        assert add_bookmark.evaluate('element => element === document.activeElement')
         page.emulate_media(reduced_motion='reduce')
-        motion_step('实时减少动态效果', ['.page-scroll', '.interaction-ink'],
-                    lambda: header.get_by_role('button', name='设置', exact=True).click())
+        page.evaluate('() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
+        motion_step('实时减少页面动态效果', ['.page-scroll'],
+                    lambda: header.get_by_role('button', name='设置', exact=True).click(), instant=True)
         reduced_samples = [node for frame in interaction_evidence[-1]['frames']
                            for nodes in frame['targets'].values() for node in nodes]
         assert not any(animation['state'] == 'running' for node in reduced_samples for animation in node['animations'])
         assert all(node['transform'] == 'none' and node['filter'] == 'none' and float(node['opacity']) == 1
                    for node in reduced_samples), 'Reduced motion retained travel or focus effects'
-        assert page.locator('.interaction-ink').count() == 0
         header.get_by_role('button', name='全部书签', exact=True).click()
         page.get_by_role('textbox', name='搜索书签').fill('合成示例')
         page.locator('.result-row').nth(1).wait_for(timeout=15000)
-        page.wait_for_function("document.querySelector('.result-count')?.textContent === '2'")
+        page.wait_for_function("document.querySelector('.result-list')?.getAttribute('aria-busy') === 'false'")
+        assert page.locator('.result-row').count() == 2
+        folder.wait_for()
+        motion_step('减少动态效果时目录形状立即切换', [folder_front], select_folder, instant=True)
+        assert folder.get_attribute('aria-pressed') == 'true'
+        assert folder_icon.get_attribute('data-open') == 'true'
+        page.wait_for_function("document.querySelector('.result-list')?.getAttribute('aria-busy') === 'false'")
+        motion_step('减少动态效果时收藏选中标记立即切换', [check_fill, check_path], checkbox.click, instant=True)
+        assert_bookmark_checked(checkbox, True)
+        motion_step('减少动态效果时 Space 取消选中', [check_fill, check_path],
+                    lambda: checkbox.press('Space'), instant=True)
+        assert_bookmark_checked(checkbox, False)
+        page.get_by_role('button', name='完成选择', exact=True).click()
+        all_folders.click()
+        page.emulate_media(reduced_motion='no-preference')
+        page.evaluate('() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
+        motion_step('恢复动态效果后目录形变重新运行', [folder_front], select_folder,
+                    painted={folder_front: 'path'})
+        all_folders.click()
+        page.wait_for_function("document.querySelector('.result-list')?.getAttribute('aria-busy') === 'false'")
         capture_still('installed-interactions.png')
         assert not link_errors, f'Installed interaction steps raised WebView errors: {link_errors}'
         assert not interaction_writes, f'Installed interaction steps unexpectedly saved data: {interaction_writes}'

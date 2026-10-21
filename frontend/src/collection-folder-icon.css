@@ -1,0 +1,18 @@
+.collection-folder-icon {
+  display: block;
+  flex: none;
+  overflow: visible;
+}
+
+.collection-folder-icon .collection-folder-front {
+  fill: var(--canvas);
+  transition: fill 180ms ease;
+}
+
+.collection-folder-icon[data-open="true"] .collection-folder-front {
+  fill: var(--selected);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collection-folder-icon .collection-folder-front { transition: none; }
+}

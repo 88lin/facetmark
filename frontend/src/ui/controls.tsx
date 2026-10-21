@@ -1,6 +1,7 @@
 import { Button as HeroButton, type ButtonProps as HeroButtonProps } from "@heroui/react";
 import { mergeProps } from "@react-aria/utils";
 import { forwardRef, useRef, type ComponentPropsWithoutRef, type ComponentPropsWithRef } from "react";
+import "./controls.css";
 
 export type CapsuleButtonProps = ComponentPropsWithoutRef<"button"> & Pick<HeroButtonProps,
   "variant" | "size" | "fullWidth" | "isIconOnly" | "isPending" | "isDisabled"

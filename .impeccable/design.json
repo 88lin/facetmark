@@ -1,20 +1,62 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-19T11:26:03.555803+00:00",
-  "title": "Facetmark replacement design pending",
+  "generatedAt": "2026-10-21",
+  "title": "Facetmark production collection workspace",
   "extensions": {
-    "colorMeta": {},
-    "typographyMeta": {},
+    "colorMeta": {
+      "desk": {
+        "light": "#f1efeb",
+        "dark": "#191a1d"
+      },
+      "surface": {
+        "light": "#ffffff",
+        "dark": "#252628"
+      },
+      "text": {
+        "light": "#28282c",
+        "dark": "#f2eee7"
+      },
+      "accent": {
+        "light": "#b94726",
+        "dark": "#ffac8c"
+      }
+    },
+    "typographyMeta": {
+      "interface": "Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI, PingFang SC, bundled Noto Sans SC",
+      "collectionTitle": "27px / 650",
+      "bookmarkTitle": "19px / 650",
+      "summary": "15px / 1.75",
+      "metadata": "13px"
+    },
     "shadows": [],
-    "motion": [],
-    "breakpoints": [],
+    "motion": [
+      "Local checkbox fill/check state",
+      "Local folder active path morph",
+      "Keyed card layout/mount",
+      "HeroUI pressed transform",
+      "Existing interrupted content/reader transitions"
+    ],
+    "breakpoints": [
+      {
+        "width": 1120,
+        "behavior": "Reader beside collection above; focus-managed drawer below"
+      },
+      {
+        "width": 960,
+        "behavior": "Directory drawer below"
+      },
+      {
+        "width": 720,
+        "behavior": "Single-column touch layout below"
+      }
+    ],
     "evidence": {
-      "status": "replacement-pending",
-      "visualAcceptance": "current-system-rejected",
-      "sourceState": "Current application still uses the rejected UI; no replacement implementation is claimed.",
+      "status": "production-collection-implemented-awaiting-validation",
+      "visualAcceptance": "awaiting-user-review",
+      "sourceState": "Production collection rebuilt in App, BookmarkCard, FacetBrowser, shared controls and component styles.",
       "brief": ".impeccable/workbench-direction.md",
       "history": ".impeccable/history/2026-10-19-rejected-ui/README.md",
-      "verification": "Rules and authority corrected only; runtime evidence remains in docs/desktop-validation.md.",
+      "verification": "Cloud build, behavior and installation pending; see docs/desktop-validation.md.",
       "workingProposal": {
         "status": "rejected-by-user",
         "entrypoint": "frontend/design/workbench/index.html",
@@ -25,19 +67,46 @@
       }
     }
   },
-  "components": [],
+  "components": [
+    {
+      "name": "Collection shell",
+      "source": "frontend/src/workbench.css"
+    },
+    {
+      "name": "Bookmark card",
+      "source": "frontend/src/BookmarkCard.tsx"
+    },
+    {
+      "name": "Directory",
+      "source": "frontend/src/FacetBrowser.tsx"
+    },
+    {
+      "name": "Folder icon",
+      "source": "frontend/src/CollectionFolderIcon.tsx"
+    },
+    {
+      "name": "Controls",
+      "source": "frontend/src/ui/controls.tsx"
+    }
+  ],
   "narrative": {
-    "northStar": "Replacement pending; current visual system rejected",
-    "overview": "The user rejects the current icons, layout, styling and colours. Earlier folder-glyph acceptance is superseded. Follow the current redesign brief; no historical visual token or specimen is active.",
-    "keyCharacteristics": [],
-    "rules": [],
+    "northStar": "Retrieve and read a saved page without losing collection context",
+    "overview": "Horizontal navigation, separate directory, raised collection sheet and readable record metadata. Production implementation awaiting user visual review.",
+    "keyCharacteristics": [
+      "Warm desk and terracotta accents",
+      "Readable Chinese and English hierarchy",
+      "Local state-owned feedback"
+    ],
+    "rules": [
+      "Preserve real query, paging, selection and task contracts",
+      "Remove superseded styles during migration"
+    ],
     "dos": [
-      "Preserve product behavior while replacing the whole visual system.",
-      "Document actual replacement tokens and components after implementation."
+      "Verify actual app with source provenance and synthetic records"
     ],
     "donts": [
-      "Do not promote archived tokens or current implementation into visual authority.",
-      "Do not infer aesthetic approval from technical tests."
+      "Do not treat runtime passes as aesthetic approval",
+      "Do not revive rejected prototypes"
     ]
   }
 }

@@ -1,10 +1,11 @@
 import { CapsuleButton } from "./ui/controls";
-import { useEffect, useId, useRef, useState } from "react";
-import { Check, Folder, Globe2, Inbox, LoaderCircle, Search, Settings2, Tags, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, Globe2, Inbox, LoaderCircle, Search, Settings2, Tags, X } from "lucide-react";
 import { api, query } from "./api";
 import { useText } from "./locale";
-import { SelectionPill, useContentMotion } from "./InteractionMotion";
-import { FolderGlyph, folderTone } from "./FolderGlyph";
+import { useContentMotion } from "./InteractionMotion";
+import { CollectionFolderIcon } from "./CollectionFolderIcon";
+import "./facet-browser.css";
 
 type Field = "folder" | "tag" | "domain";
 type Group = "folders" | "tags" | "domains";
@@ -29,13 +30,12 @@ export function FacetBrowser({ filters, enabled = true, revision, onSelect, onMa
   const [error, setError] = useState(false);
   const [retry, setRetry] = useState(0);
   const scroller = useRef<HTMLElement>(null);
-  const motionGroup = useId();
   useContentMotion(scroller, group, undefined, "x");
   const field: Field = group === "folders" ? "folder" : group === "tags" ? "tag" : "domain";
   const groups = [
-    { key: "folders" as const, label: t("文件夹", "Folders"), Icon: Folder },
-    { key: "tags" as const, label: t("标签", "Tags"), Icon: Tags },
-    { key: "domains" as const, label: t("站点", "Sites"), Icon: Globe2 },
+    { key: "folders" as const, label: t("文件夹", "Folders") },
+    { key: "tags" as const, label: t("标签", "Tags") },
+    { key: "domains" as const, label: t("站点", "Sites") },
   ];
 
   useEffect(() => { setOffset(0); }, [revision]);
@@ -72,23 +72,23 @@ export function FacetBrowser({ filters, enabled = true, revision, onSelect, onMa
 
   return <section className="facet-browser" aria-label={t("分类与筛选", "Categories and filters")}>
     <div className="facet-browser-heading">
-      <h2>{t("收藏分类", "Categories")}</h2>
-      {onManage && <CapsuleButton type="button" className="icon-button" onClick={onManage}
+      <h2>{t("收藏目录", "Directory")}</h2>
+      {onManage && <CapsuleButton type="button" className="facet-manage" onClick={onManage}
         title={t("整理文件夹与标签", "Organize folders and tags")} aria-label={t("整理文件夹与标签", "Organize folders and tags")}><Settings2 size={16}/></CapsuleButton>}
     </div>
     <div className="facet-types" role="group" aria-label={t("分类类型", "Category type")}>
-      {groups.map(({ key, label, Icon }) => <CapsuleButton key={key} type="button"
+      {groups.map(({ key, label }) => <CapsuleButton key={key} type="button" className="facet-type"
         aria-pressed={group === key} onClick={() => {
           if (group === key) return;
           resetList(); setText(""); setGroup(key);
-        }}><SelectionPill active={group === key} group={`${motionGroup}-types`} /><Icon size={14} /><span>{label}</span></CapsuleButton>)}
+        }}><span>{label}</span></CapsuleButton>)}
     </div>
     <label className="facet-search">
       <Search size={15} aria-hidden="true" />
       <input aria-label={t("查找分类", "Find a category")} value={text}
         placeholder={group === "folders" ? t("搜索文件夹…", "Search folders…") : group === "tags" ? t("搜索标签…", "Search tags…") : t("搜索站点…", "Search sites…")} maxLength={2048}
         onChange={e => { resetList(); setText(e.target.value); }} />
-      {text && <CapsuleButton type="button" aria-label={t("清空分类搜索", "Clear category search")}
+      {text && <CapsuleButton type="button" className="facet-search-clear" aria-label={t("清空分类搜索", "Clear category search")}
         onClick={() => { resetList(); setText(""); }}><X size={14} /></CapsuleButton>}
     </label>
     {filters[field] && !items.some(item => item.value === filters[field]) && <CapsuleButton type="button" className="facet-current"
@@ -101,33 +101,33 @@ export function FacetBrowser({ filters, enabled = true, revision, onSelect, onMa
       aria-busy={loading}>
       <CapsuleButton className="facet-option facet-any" type="button" aria-pressed={filters[field] === undefined}
         onClick={() => onSelect(field, undefined)}>
-        <SelectionPill active={filters[field] === undefined} group={`${motionGroup}-folder`} />
-        {group === "folders" ? <FolderGlyph tone="sage" active={filters.folder === undefined}/> : group === "tags" ? <Tags size={16}/> : <Globe2 size={16}/>}
-        <span>{group === "folders" ? t("全部文件夹", "All folders") :
+        {group === "folders" ? <CollectionFolderIcon active={filters.folder === undefined}/> : group === "tags" ? <Tags size={18}/> : <Globe2 size={18}/>}
+        <span className="facet-label">{group === "folders" ? t("全部文件夹", "All folders") :
           group === "tags" ? t("不限标签", "Any tag") : t("不限站点", "Any site")}</span>
-        {filters[field] === undefined && <Check size={14} aria-hidden="true" />}
+        <span className="facet-count"/>
+        <Check className="facet-selected-mark" size={14} aria-hidden="true" />
       </CapsuleButton>
       {group === "folders" && !text && <CapsuleButton className="facet-option" type="button"
         aria-pressed={filters.folder === ""} onClick={() => onSelect("folder", "")}>
-        <SelectionPill active={filters.folder === ""} group={`${motionGroup}-folder`} />
-        <Inbox size={16}/>
-        <span>{t("未分类", "Unfiled")}</span>
-        {filters.folder === "" && <Check size={14} aria-hidden="true" />}
+        <Inbox size={18}/>
+        <span className="facet-label">{t("未分类", "Unfiled")}</span>
+        <span className="facet-count"/>
+        <Check className="facet-selected-mark" size={14} aria-hidden="true" />
       </CapsuleButton>}
       {items.map(item => {
         const split = group === "folders" ? item.value.lastIndexOf(" / ") : -1;
         return <CapsuleButton className="facet-option" key={item.value} type="button"
           title={item.value} aria-label={`${item.value} ${item.count}`} aria-pressed={filters[field] === item.value}
           onClick={() => onSelect(field, item.value)}>
-          <SelectionPill active={filters[field] === item.value} group={`${motionGroup}-folder`} />
-          {group === "folders" ? <FolderGlyph tone={folderTone(item.value)} active={filters.folder === item.value}/> : group === "tags" ? <Tags size={16}/> : <Globe2 size={16}/>}
-          <span>{split >= 0 ? <><span>{item.value.slice(split + 3)}</span><small className="facet-parent">{item.value.slice(0, split)}</small></> : item.value}</span>
-          <small>{item.count.toLocaleString()}</small>{filters[field] === item.value && <Check size={14}/>}
+          {group === "folders" ? <CollectionFolderIcon active={filters.folder === item.value}/> : group === "tags" ? <Tags size={18}/> : <Globe2 size={18}/>}
+          <span className="facet-label">{split >= 0 ? <><span>{item.value.slice(split + 3)}</span><small className="facet-parent">{item.value.slice(0, split)}</small></> : item.value}</span>
+          <small className="facet-count">{item.count.toLocaleString()}</small>
+          <Check className="facet-selected-mark" size={14} aria-hidden="true"/>
         </CapsuleButton>;
       })}
       {error ? <div className="facet-feedback" role="alert">
         <p>{t("分类暂时无法加载。", "Categories could not be loaded.")}</p>
-        <CapsuleButton className="text-button" onClick={() => setRetry(value => value + 1)}>{t("重试", "Retry")}</CapsuleButton>
+        <CapsuleButton type="button" className="facet-retry" onClick={() => setRetry(value => value + 1)}>{t("重试", "Retry")}</CapsuleButton>
       </div> : loading ? <div className="facet-feedback" role="status">
         <LoaderCircle size={15} className="spin" />{t("正在加载…", "Loading…")}
       </div> : !items.length ? <p className="facet-feedback">{t("没有匹配的分类", "No matching categories")}</p> : null}

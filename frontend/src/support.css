@@ -1,7 +1,4 @@
 /* Workflow-specific controls inherit the workbench's shared semantic tokens. */
-.utility-cluster .utility-label { width: auto; gap: 6px; padding: 0 11px; border-radius: var(--radius-pill); font-size: var(--type-ui); font-weight: 600; }
-.utility-cluster .utility-label[aria-pressed="true"] { background: var(--selected); box-shadow: var(--card-shadow); }
-.page-scroll { width: min(1040px, 100%); margin-top: 20px; padding: 24px 36px 40px; border-radius: 20px; box-shadow: var(--sheet-shadow); }
 .page-heading { align-items: flex-start; margin-bottom: 20px; }
 .page-heading h1 { font-size: 1.75rem; font-weight: 700; }
 .page-heading p { font-size: var(--type-ui); line-height: 1.6; }
@@ -95,15 +92,7 @@
 .import-help p, .import-result > p { font-size: .9375rem; color: var(--secondary-ink); line-height: 1.75; }
 .import-result { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--rule); }
 .preview-heading .reader-back { flex-shrink: 0; }
-.preview-pane > .preview-heading { position: static; width: 100%; height: 56px; min-height: 56px; padding: 0 20px; justify-content: space-between; border-bottom: 1px solid var(--rule); }
-.preview-pane > .preview-tabs { height: 48px; flex-shrink: 0; }
-.preview-pane > .preview-tabs .tab-indicator { top: 6px; }
-@media (max-width: 1119px) {
-  .utility-label span { display: none; }
-  .utility-cluster .utility-label { width: 36px; padding: 0; }
-}
 @media (max-width: 720px) {
-  .page-scroll { margin-top: 8px; padding: 18px 14px 32px; }
   .page-heading { flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
   .page-heading h1 { font-size: 1.5rem; }
   .page-heading p { margin-top: 2px; }

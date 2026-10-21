@@ -1,15 +1,5 @@
-name: design-directions
+name: historical-design-studies
 on:
-  push:
-    branches: ['desktop/**']
-    paths:
-      - 'scripts/design_preview.py'
-      - '.github/workflows/design-preview.yml'
-      - 'frontend/design/**'
-      - 'frontend/src/FolderGlyph.tsx'
-      - 'frontend/src/folder-glyph.css'
-      - 'frontend/vite.folder-preview.config.ts'
-      - 'scripts/folder_preview.py'
   workflow_dispatch:
     inputs:
       include_legacy_folder:
@@ -51,6 +41,9 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
+        with:
+          # This sample was rejected and removed from production.
+          ref: f1454704f15d89f9fd6aa74889e984280410e425
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

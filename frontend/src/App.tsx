@@ -50,7 +50,7 @@ import { useGSAP } from "@gsap/react";
 import { motionTiming } from "./motion";
 import { AnimatePresence, motion } from "motion/react";
 import { useReducedMotion } from "./useReducedMotion";
-import { InteractionFeedback, SelectionPill, useContentMotion } from "./InteractionMotion";
+import { SelectionPill, useContentMotion } from "./InteractionMotion";
 
 type View = "library" | "sessions" | "tasks" | "settings" | "setup" | "import";
 type Facet = { value: string; count: number };
@@ -666,8 +666,7 @@ function Workbench({
     />
   );
   return (
-    <div className={`app-shell ${focusReading ? "is-reading-focused" : ""}`}>
-      <InteractionFeedback />
+    <div className={`app-shell ${paired && view === "library" ? "has-collection" : ""} ${focusReading ? "is-reading-focused" : ""}`}>
       <header className="app-header" inert={navOpen} aria-hidden={navOpen}>
         <CapsuleButton
           className="icon-button nav-trigger"
@@ -684,9 +683,7 @@ function Workbench({
             openView("library");
           }}
         >
-          <span className="brand-mark">
-            <Layers3 size={25} />
-          </span>
+          <span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 5h17v7H15v5h8v6h-8v6H8z" fill="currentColor"/><path d="M19 5h6v7h-6z" fill="currentColor" opacity=".5"/></svg></span>
           <span>Facetmark</span>
         </a>
         <nav className="header-navigation" aria-label={t("主要导航", "Main navigation")}>
@@ -711,10 +708,6 @@ function Workbench({
             <span>{t("浏览批次", "Saving sessions")}</span>
           </CapsuleButton>
         </nav>
-        {paired && view === "library" && <aside className="collection-sidebar" aria-label={t("收藏目录", "Collection directory")}>
-          <FacetBrowser filters={filters} enabled={!navOpen} revision={requestRevision} onSelect={selectFilter}
-            onManage={adminAvailable && job.state !== "running" ? () => setLibraryAction({ kind: "taxonomy" }) : undefined} />
-        </aside>}
         <div className="header-utilities">
           {setup?.demo && <span className="demo-label">{t("合成演示数据", "Synthetic demo")}</span>}
           <div className="utility-cluster">
@@ -784,9 +777,7 @@ function Workbench({
             openView("library");
           }}
         >
-          <span className="brand-mark">
-            <Layers3 size={24} />
-          </span>
+          <span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 5h17v7H15v5h8v6h-8v6H8z" fill="currentColor"/></svg></span>
           <span>Facetmark</span>
         </a>
         <div className="nav-section-label">{t("书库与筛选", "Library & filters")}</div>
@@ -888,6 +879,13 @@ function Workbench({
           onClick={() => setNavOpen(false)}
         />
       )}
+      {paired && view === "library" && <aside className="collection-sidebar" inert={navOpen || focusReading}
+        aria-hidden={navOpen || focusReading} aria-label={t("收藏目录", "Collection directory")}>
+        <div className="directory-title"><span>{t("书库", "Library")}</span><span className="directory-total">{setup?.bookmarks?.toLocaleString() ?? "—"}</span></div>
+        <FacetBrowser filters={filters} enabled={!navOpen} revision={requestRevision} onSelect={selectFilter}
+          onManage={adminAvailable && job.state !== "running" ? () => setLibraryAction({ kind: "taxonomy" }) : undefined} />
+        <div className="directory-footer"><span className="connection-light" aria-hidden="true"/>{t("你的书库", "Your library")}<span>{t("原网页直接访问", "Original links")}</span></div>
+      </aside>}
       <main
         ref={workspace}
         inert={navOpen}

@@ -1,26 +1,33 @@
 import { test, expect } from "@playwright/test";
 
-test("press ink is discarded when the reader makes its originating surface inactive", async ({ page }) => {
+test("pointer activation opens one reader and returns focus from its inactive collection", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 860 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/app");
-  // Extend the paint lifetime so waiting for animationend cannot mask leakage.
-  await page.addStyleTag({ content: ".interaction-paint .interaction-ink { animation-duration: 10s; }" });
   const preview = page.locator(".bookmark-preview").first();
+  await preview.evaluate(element => {
+    element.dataset.clickCount = "0";
+    element.addEventListener("click", () => {
+      element.dataset.clickCount = String(Number(element.dataset.clickCount) + 1);
+    });
+  });
   await preview.hover();
   await page.mouse.down();
-  await expect(page.locator(".interaction-ink")).toHaveCount(1);
+  await expect(preview).toHaveAttribute("data-pressed", "true");
   await page.mouse.up();
+  await expect(preview).toHaveAttribute("data-click-count", "1");
   await expect.poll(() => preview.evaluate(element => !!element.closest('[inert], [aria-hidden="true"]'))).toBe(true);
-  const remaining = await page.evaluate(async () => {
-    for (let frame = 0; frame < 3; frame++) await new Promise(requestAnimationFrame);
-    return document.querySelectorAll(".interaction-ink").length;
-  });
-  expect(remaining).toBe(0);
-  await expect(page.getByRole("dialog", { name: "书签预览" })).toBeVisible();
+  const reader = page.getByRole("dialog", { name: "书签预览" });
+  await expect(reader).toHaveCount(1);
+  await expect(reader).toBeVisible();
+  await expect.poll(() => reader.evaluate(element => element.contains(document.activeElement))).toBe(true);
+  await expect(page.locator(".interaction-paint, .interaction-ink")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(reader).toHaveCount(0);
+  await expect(preview).toBeFocused();
 });
 
-test("HeroUI capsules retain keyboard press, native click and preview focus", async ({ page }) => {
+test("shared controls retain keyboard press, native click and preview focus", async ({ page }) => {
   await page.goto("/app");
   const tasks = page.locator(".app-header").getByRole("button", { name: "任务", exact: true });
   await expect(tasks).toHaveClass(/\bbutton\b/);
@@ -57,7 +64,7 @@ test("HeroUI capsules retain keyboard press, native click and preview focus", as
   await expect(preview).toBeFocused();
 });
 
-test("capsules preserve disabled controls, submit exactly once and stay rounded", async ({ page }) => {
+test("shared controls preserve disabled state and submit a page jump exactly once", async ({ page }) => {
   await page.goto("/app");
   await expect(page.locator(".result-row")).toHaveCount(30);
   const previous = page.getByRole("button", { name: "上一页", exact: true });
@@ -71,13 +78,8 @@ test("capsules preserve disabled controls, submit exactly once and stay rounded"
   await page.getByRole("button", { name: "跳转", exact: true }).press("Enter");
   await expect(page.locator(".results-footer")).toContainText("31–60");
   expect(requests).toBe(1);
-  const shapes = await page.locator(".app-header button, .library-tools button, .collection-status button, .bookmark-preview").evaluateAll(elements =>
-    elements.filter(element => element.getBoundingClientRect().width > 0).map(element => {
-      const box = element.getBoundingClientRect();
-      return { radius: parseFloat(getComputedStyle(element).borderTopLeftRadius), height: box.height };
-    }));
-  expect(shapes.length).toBeGreaterThan(8);
-  for (const shape of shapes) expect(shape.radius).toBeGreaterThanOrEqual(shape.height / 2 - 1);
+  await expect(previous).toBeEnabled();
+  await expect(page.getByRole("spinbutton", { name: "跳转页码" })).toHaveValue("2");
 });
 
 test("portal buttons honor live reduced motion and retain keyboard cancellation", async ({ page }) => {
@@ -91,7 +93,6 @@ test("portal buttons honor live reduced motion and retain keyboard cancellation"
   await page.keyboard.down("Space");
   await expect(cancel).toHaveAttribute("data-pressed", "true");
   await expect(cancel).toHaveCSS("transform", "none");
-  expect(await cancel.evaluate(el => parseFloat(getComputedStyle(el).borderTopLeftRadius))).toBeGreaterThan(100);
   await page.keyboard.up("Space");
   await expect(dialog).toHaveCount(0);
   await expect(trigger).toBeFocused();
