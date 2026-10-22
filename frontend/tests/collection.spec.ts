@@ -35,8 +35,7 @@ test("a large collection leaves useful browsing space in short desktop and mobil
         overflow: document.documentElement.scrollWidth > innerWidth + 1 };
     });
     expect(size.overflow).toBe(false);
-    // The unified navigation owns the left column. Test useful content and
-    // scroll space rather than requiring the incumbent horizontal header.
+    // Test useful content and scroll space independently of the visual layout.
     expect(size.height / size.viewport).toBeGreaterThanOrEqual(.4);
     await expect(page.locator(".result-title").first()).toBeInViewport({ ratio: 1 });
     await expect(page.locator(".result-summary").first()).toBeInViewport();
@@ -46,7 +45,6 @@ test("a large collection leaves useful browsing space in short desktop and mobil
       expect(directory!.x + directory!.width).toBeLessThan(results!.x);
       const header = await page.locator(".app-header").boundingBox();
       const options = await page.locator(".collection-sidebar .facet-options").boundingBox();
-      expect(header!.x + header!.width).toBeLessThan(results!.x);
       expect(directory!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
       expect(results!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
       await expect(page.locator(".app-header .collection-sidebar")).toHaveCount(0);

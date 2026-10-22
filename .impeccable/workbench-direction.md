@@ -61,10 +61,9 @@ No main merge, formal release or deployment is newly authorized by this brief.
 
 ## Design records
 
-[DESIGN.md](../DESIGN.md) and [design.json](design.json) explicitly mark the
-replacement as pending; they contain no inherited tokens or component specimens.
-Record a concrete working direction when implementation begins, then document the
-actual implemented system and evidence. Do not invent a completed replacement now.
+[DESIGN.md](../DESIGN.md) and [design.json](design.json) record the actual working
+replacement, its tokens and current validation status. Update them with the
+implemented system and evidence; do not promote rejected tokens or invent acceptance.
 The [rejected archive](history/2026-10-19-rejected-ui/README.md) is migration evidence
 only and should not be loaded as the new design's starting specification.
 

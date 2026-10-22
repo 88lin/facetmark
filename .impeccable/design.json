@@ -1,185 +1,1371 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-22T20:52:40.058308+00:00",
-  "title": "Facetmark collection workspace — 2026-10-23",
+  "generatedAt": "2026-10-22T22:58:30.233Z",
+  "title": "Design System: Facetmark collection workspace",
   "extensions": {
     "colorMeta": {
       "secondary-ink": {
-        "light": "#605c76",
-        "dark": "#c3bdd9"
+        "role": "neutral",
+        "displayName": "Secondary ink",
+        "cssVariable": "--secondary-ink",
+        "theme": "light",
+        "darkToken": "secondary-ink-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0411 255.02)",
+          "oklch(26.43% 0.0411 255.02)",
+          "oklch(37.86% 0.0411 255.02)",
+          "oklch(49.29% 0.0411 255.02)",
+          "oklch(60.71% 0.0411 255.02)",
+          "oklch(72.14% 0.0411 255.02)",
+          "oklch(83.57% 0.0411 255.02)",
+          "oklch(95.00% 0.0411 255.02)"
+        ]
       },
       "canvas": {
-        "light": "#ffffff",
-        "dark": "#211e2d"
+        "role": "neutral",
+        "displayName": "Porcelain content",
+        "cssVariable": "--canvas",
+        "theme": "light",
+        "darkToken": "canvas-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0000 0.00)",
+          "oklch(26.43% 0.0000 0.00)",
+          "oklch(37.86% 0.0000 0.00)",
+          "oklch(49.29% 0.0000 0.00)",
+          "oklch(60.71% 0.0000 0.00)",
+          "oklch(72.14% 0.0000 0.00)",
+          "oklch(83.57% 0.0000 0.00)",
+          "oklch(95.00% 0.0000 0.00)"
+        ]
       },
       "desk": {
-        "light": "#f5f4fa",
-        "dark": "#191724"
+        "role": "neutral",
+        "displayName": "Mist desk",
+        "cssVariable": "--desk",
+        "theme": "light",
+        "darkToken": "desk-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0103 247.94)",
+          "oklch(26.43% 0.0103 247.94)",
+          "oklch(37.86% 0.0103 247.94)",
+          "oklch(49.29% 0.0103 247.94)",
+          "oklch(60.71% 0.0103 247.94)",
+          "oklch(72.14% 0.0103 247.94)",
+          "oklch(83.57% 0.0103 247.94)",
+          "oklch(95.00% 0.0103 247.94)"
+        ]
       },
       "rail": {
-        "light": "#eeebf8",
-        "dark": "#282238"
+        "role": "neutral",
+        "displayName": "Mist rail",
+        "cssVariable": "--rail",
+        "theme": "light",
+        "darkToken": "rail-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0079 253.85)",
+          "oklch(26.43% 0.0079 253.85)",
+          "oklch(37.86% 0.0079 253.85)",
+          "oklch(49.29% 0.0079 253.85)",
+          "oklch(60.71% 0.0079 253.85)",
+          "oklch(72.14% 0.0079 253.85)",
+          "oklch(83.57% 0.0079 253.85)",
+          "oklch(95.00% 0.0079 253.85)"
+        ]
       },
       "inset": {
-        "light": "#f5f4fa",
-        "dark": "#2b273b"
+        "role": "neutral",
+        "displayName": "Inset surface",
+        "cssVariable": "--inset",
+        "theme": "light",
+        "darkToken": "inset-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0103 247.93)",
+          "oklch(26.43% 0.0103 247.93)",
+          "oklch(37.86% 0.0103 247.93)",
+          "oklch(49.29% 0.0103 247.93)",
+          "oklch(60.71% 0.0103 247.93)",
+          "oklch(72.14% 0.0103 247.93)",
+          "oklch(83.57% 0.0103 247.93)",
+          "oklch(95.00% 0.0103 247.93)"
+        ]
       },
       "ink": {
-        "light": "#28243d",
-        "dark": "#f0ecfb"
+        "role": "neutral",
+        "displayName": "Deep ink",
+        "cssVariable": "--ink",
+        "theme": "light",
+        "darkToken": "ink-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0521 252.93)",
+          "oklch(26.43% 0.0521 252.93)",
+          "oklch(37.86% 0.0521 252.93)",
+          "oklch(49.29% 0.0521 252.93)",
+          "oklch(60.71% 0.0521 252.93)",
+          "oklch(72.14% 0.0521 252.93)",
+          "oklch(83.57% 0.0521 252.93)",
+          "oklch(95.00% 0.0521 252.93)"
+        ]
       },
       "muted": {
-        "light": "#706b83",
-        "dark": "#b1a9c6"
+        "role": "neutral",
+        "displayName": "Quiet metadata",
+        "cssVariable": "--muted",
+        "theme": "light",
+        "darkToken": "muted-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0405 253.62)",
+          "oklch(26.43% 0.0405 253.62)",
+          "oklch(37.86% 0.0405 253.62)",
+          "oklch(49.29% 0.0405 253.62)",
+          "oklch(60.71% 0.0405 253.62)",
+          "oklch(72.14% 0.0405 253.62)",
+          "oklch(83.57% 0.0405 253.62)",
+          "oklch(95.00% 0.0405 253.62)"
+        ]
       },
       "rule": {
-        "light": "#e7e4ef",
-        "dark": "#3c354e"
+        "role": "neutral",
+        "displayName": "Boundary",
+        "cssVariable": "--rule",
+        "theme": "light",
+        "darkToken": "rule-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0196 252.89)",
+          "oklch(26.43% 0.0196 252.89)",
+          "oklch(37.86% 0.0196 252.89)",
+          "oklch(49.29% 0.0196 252.89)",
+          "oklch(60.71% 0.0196 252.89)",
+          "oklch(72.14% 0.0196 252.89)",
+          "oklch(83.57% 0.0196 252.89)",
+          "oklch(95.00% 0.0196 252.89)"
+        ]
       },
       "accent": {
-        "light": "#6544bb",
-        "dark": "#c3a8ff"
+        "role": "primary",
+        "displayName": "Electric blue",
+        "cssVariable": "--accent",
+        "theme": "light",
+        "darkToken": "accent-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.2127 263.01)",
+          "oklch(26.43% 0.2127 263.01)",
+          "oklch(37.86% 0.2127 263.01)",
+          "oklch(49.29% 0.2127 263.01)",
+          "oklch(60.71% 0.2127 263.01)",
+          "oklch(72.14% 0.2127 263.01)",
+          "oklch(83.57% 0.2127 263.01)",
+          "oklch(95.00% 0.2127 263.01)"
+        ]
+      },
+      "accent-hover": {
+        "role": "primary",
+        "displayName": "Electric blue hover",
+        "cssVariable": "--accent-hover",
+        "theme": "light",
+        "darkToken": "accent-hover-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.1941 262.98)",
+          "oklch(26.43% 0.1941 262.98)",
+          "oklch(37.86% 0.1941 262.98)",
+          "oklch(49.29% 0.1941 262.98)",
+          "oklch(60.71% 0.1941 262.98)",
+          "oklch(72.14% 0.1941 262.98)",
+          "oklch(83.57% 0.1941 262.98)",
+          "oklch(95.00% 0.1941 262.98)"
+        ]
       },
       "soft": {
-        "light": "#f0eafb",
-        "dark": "#352b4c"
+        "role": "neutral",
+        "displayName": "Soft action",
+        "cssVariable": "--soft",
+        "theme": "light",
+        "darkToken": "soft-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0219 263.19)",
+          "oklch(26.43% 0.0219 263.19)",
+          "oklch(37.86% 0.0219 263.19)",
+          "oklch(49.29% 0.0219 263.19)",
+          "oklch(60.71% 0.0219 263.19)",
+          "oklch(72.14% 0.0219 263.19)",
+          "oklch(83.57% 0.0219 263.19)",
+          "oklch(95.00% 0.0219 263.19)"
+        ]
       },
       "selected": {
-        "light": "#e9e0fb",
-        "dark": "#413257"
+        "role": "neutral",
+        "displayName": "Selection surface",
+        "cssVariable": "--selected",
+        "theme": "light",
+        "darkToken": "selected-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0305 258.94)",
+          "oklch(26.43% 0.0305 258.94)",
+          "oklch(37.86% 0.0305 258.94)",
+          "oklch(49.29% 0.0305 258.94)",
+          "oklch(60.71% 0.0305 258.94)",
+          "oklch(72.14% 0.0305 258.94)",
+          "oklch(83.57% 0.0305 258.94)",
+          "oklch(95.00% 0.0305 258.94)"
+        ]
       },
       "selected-edge": {
-        "light": "#a28acb",
-        "dark": "#947ab9"
+        "role": "neutral",
+        "displayName": "Selection edge",
+        "cssVariable": "--selected-edge",
+        "theme": "light",
+        "darkToken": "selected-edge-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.1073 263.36)",
+          "oklch(26.43% 0.1073 263.36)",
+          "oklch(37.86% 0.1073 263.36)",
+          "oklch(49.29% 0.1073 263.36)",
+          "oklch(60.71% 0.1073 263.36)",
+          "oklch(72.14% 0.1073 263.36)",
+          "oklch(83.57% 0.1073 263.36)",
+          "oklch(95.00% 0.1073 263.36)"
+        ]
       },
       "selection-neutral": {
-        "light": "#efedf5",
-        "dark": "#352f44"
+        "role": "neutral",
+        "displayName": "Quiet selection",
+        "cssVariable": "--selection-neutral",
+        "theme": "light",
+        "darkToken": "selection-neutral-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0143 254.61)",
+          "oklch(26.43% 0.0143 254.61)",
+          "oklch(37.86% 0.0143 254.61)",
+          "oklch(49.29% 0.0143 254.61)",
+          "oklch(60.71% 0.0143 254.61)",
+          "oklch(72.14% 0.0143 254.61)",
+          "oklch(83.57% 0.0143 254.61)",
+          "oklch(95.00% 0.0143 254.61)"
+        ]
+      },
+      "glass": {
+        "role": "neutral",
+        "displayName": "Frosted surface",
+        "cssVariable": "--glass",
+        "theme": "light",
+        "darkToken": "glass-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0000 0.00 / 0.702)",
+          "oklch(26.43% 0.0000 0.00 / 0.702)",
+          "oklch(37.86% 0.0000 0.00 / 0.702)",
+          "oklch(49.29% 0.0000 0.00 / 0.702)",
+          "oklch(60.71% 0.0000 0.00 / 0.702)",
+          "oklch(72.14% 0.0000 0.00 / 0.702)",
+          "oklch(83.57% 0.0000 0.00 / 0.702)",
+          "oklch(95.00% 0.0000 0.00 / 0.702)"
+        ]
+      },
+      "glass-edge": {
+        "role": "neutral",
+        "displayName": "Glass edge",
+        "cssVariable": "--glass-edge",
+        "theme": "light",
+        "darkToken": "glass-edge-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0000 0.00 / 0.851)",
+          "oklch(26.43% 0.0000 0.00 / 0.851)",
+          "oklch(37.86% 0.0000 0.00 / 0.851)",
+          "oklch(49.29% 0.0000 0.00 / 0.851)",
+          "oklch(60.71% 0.0000 0.00 / 0.851)",
+          "oklch(72.14% 0.0000 0.00 / 0.851)",
+          "oklch(83.57% 0.0000 0.00 / 0.851)",
+          "oklch(95.00% 0.0000 0.00 / 0.851)"
+        ]
+      },
+      "light": {
+        "role": "neutral",
+        "displayName": "Surface light",
+        "cssVariable": "--light",
+        "theme": "light",
+        "darkToken": "light-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0000 0.00)",
+          "oklch(26.43% 0.0000 0.00)",
+          "oklch(37.86% 0.0000 0.00)",
+          "oklch(49.29% 0.0000 0.00)",
+          "oklch(60.71% 0.0000 0.00)",
+          "oklch(72.14% 0.0000 0.00)",
+          "oklch(83.57% 0.0000 0.00)",
+          "oklch(95.00% 0.0000 0.00)"
+        ]
+      },
+      "ambient-blue": {
+        "role": "neutral",
+        "displayName": "Blue ambient light",
+        "cssVariable": "--ambient-blue",
+        "theme": "light",
+        "darkToken": "ambient-blue-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.1096 253.65 / 0.314)",
+          "oklch(26.43% 0.1096 253.65 / 0.314)",
+          "oklch(37.86% 0.1096 253.65 / 0.314)",
+          "oklch(49.29% 0.1096 253.65 / 0.314)",
+          "oklch(60.71% 0.1096 253.65 / 0.314)",
+          "oklch(72.14% 0.1096 253.65 / 0.314)",
+          "oklch(83.57% 0.1096 253.65 / 0.314)",
+          "oklch(95.00% 0.1096 253.65 / 0.314)"
+        ]
+      },
+      "ambient-mint": {
+        "role": "neutral",
+        "displayName": "Mint ambient light",
+        "cssVariable": "--ambient-mint",
+        "theme": "light",
+        "darkToken": "ambient-mint-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0477 201.26 / 0.282)",
+          "oklch(26.43% 0.0477 201.26 / 0.282)",
+          "oklch(37.86% 0.0477 201.26 / 0.282)",
+          "oklch(49.29% 0.0477 201.26 / 0.282)",
+          "oklch(60.71% 0.0477 201.26 / 0.282)",
+          "oklch(72.14% 0.0477 201.26 / 0.282)",
+          "oklch(83.57% 0.0477 201.26 / 0.282)",
+          "oklch(95.00% 0.0477 201.26 / 0.282)"
+        ]
       },
       "on-accent": {
-        "light": "#fff",
-        "dark": "#241637"
+        "role": "primary",
+        "displayName": "Action foreground",
+        "cssVariable": "--on-accent",
+        "theme": "light",
+        "darkToken": "on-accent-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0000 0.00)",
+          "oklch(26.43% 0.0000 0.00)",
+          "oklch(37.86% 0.0000 0.00)",
+          "oklch(49.29% 0.0000 0.00)",
+          "oklch(60.71% 0.0000 0.00)",
+          "oklch(72.14% 0.0000 0.00)",
+          "oklch(83.57% 0.0000 0.00)",
+          "oklch(95.00% 0.0000 0.00)"
+        ]
       },
       "danger": {
-        "light": "#b33b58",
-        "dark": "#ffa6bc"
+        "role": "semantic",
+        "displayName": "Failure",
+        "cssVariable": "--danger",
+        "theme": "light",
+        "darkToken": "danger-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.1641 11.40)",
+          "oklch(26.43% 0.1641 11.40)",
+          "oklch(37.86% 0.1641 11.40)",
+          "oklch(49.29% 0.1641 11.40)",
+          "oklch(60.71% 0.1641 11.40)",
+          "oklch(72.14% 0.1641 11.40)",
+          "oklch(83.57% 0.1641 11.40)",
+          "oklch(95.00% 0.1641 11.40)"
+        ]
       },
       "danger-soft": {
-        "light": "#fff0f3",
-        "dark": "#412635"
+        "role": "semantic",
+        "displayName": "Failure surface",
+        "cssVariable": "--danger-soft",
+        "theme": "light",
+        "darkToken": "danger-soft-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0166 3.65)",
+          "oklch(26.43% 0.0166 3.65)",
+          "oklch(37.86% 0.0166 3.65)",
+          "oklch(49.29% 0.0166 3.65)",
+          "oklch(60.71% 0.0166 3.65)",
+          "oklch(72.14% 0.0166 3.65)",
+          "oklch(83.57% 0.0166 3.65)",
+          "oklch(95.00% 0.0166 3.65)"
+        ]
       },
       "success": {
-        "light": "#246c62",
-        "dark": "#9bd7c9"
+        "role": "semantic",
+        "displayName": "Complete",
+        "cssVariable": "--success",
+        "theme": "light",
+        "darkToken": "success-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0823 176.11)",
+          "oklch(26.43% 0.0823 176.11)",
+          "oklch(37.86% 0.0823 176.11)",
+          "oklch(49.29% 0.0823 176.11)",
+          "oklch(60.71% 0.0823 176.11)",
+          "oklch(72.14% 0.0823 176.11)",
+          "oklch(83.57% 0.0823 176.11)",
+          "oklch(95.00% 0.0823 176.11)"
+        ]
       },
       "success-soft": {
-        "light": "#eaf5f1",
-        "dark": "#233c38"
+        "role": "semantic",
+        "displayName": "Complete surface",
+        "cssVariable": "--success-soft",
+        "theme": "light",
+        "darkToken": "success-soft-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0128 172.37)",
+          "oklch(26.43% 0.0128 172.37)",
+          "oklch(37.86% 0.0128 172.37)",
+          "oklch(49.29% 0.0128 172.37)",
+          "oklch(60.71% 0.0128 172.37)",
+          "oklch(72.14% 0.0128 172.37)",
+          "oklch(83.57% 0.0128 172.37)",
+          "oklch(95.00% 0.0128 172.37)"
+        ]
       },
       "warning": {
-        "light": "#88651e",
-        "dark": "#ebca8c"
+        "role": "semantic",
+        "displayName": "Attention",
+        "cssVariable": "--warning",
+        "theme": "light",
+        "darkToken": "warning-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0964 80.99)",
+          "oklch(26.43% 0.0964 80.99)",
+          "oklch(37.86% 0.0964 80.99)",
+          "oklch(49.29% 0.0964 80.99)",
+          "oklch(60.71% 0.0964 80.99)",
+          "oklch(72.14% 0.0964 80.99)",
+          "oklch(83.57% 0.0964 80.99)",
+          "oklch(95.00% 0.0964 80.99)"
+        ]
       },
       "warning-soft": {
-        "light": "#fff5dc",
-        "dark": "#3c3221"
+        "role": "semantic",
+        "displayName": "Attention surface",
+        "cssVariable": "--warning-soft",
+        "theme": "light",
+        "darkToken": "warning-soft-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0344 88.77)",
+          "oklch(26.43% 0.0344 88.77)",
+          "oklch(37.86% 0.0344 88.77)",
+          "oklch(49.29% 0.0344 88.77)",
+          "oklch(60.71% 0.0344 88.77)",
+          "oklch(72.14% 0.0344 88.77)",
+          "oklch(83.57% 0.0344 88.77)",
+          "oklch(95.00% 0.0344 88.77)"
+        ]
       },
       "brand-detail": {
-        "light": "#e49298",
-        "dark": "#e7a4aa"
+        "role": "secondary",
+        "displayName": "Sky detail",
+        "cssVariable": "--brand-detail",
+        "theme": "light",
+        "darkToken": "brand-detail-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.1116 243.14)",
+          "oklch(26.43% 0.1116 243.14)",
+          "oklch(37.86% 0.1116 243.14)",
+          "oklch(49.29% 0.1116 243.14)",
+          "oklch(60.71% 0.1116 243.14)",
+          "oklch(72.14% 0.1116 243.14)",
+          "oklch(83.57% 0.1116 243.14)",
+          "oklch(95.00% 0.1116 243.14)"
+        ]
       },
       "scrim": {
-        "light": "#211d3780",
-        "dark": "#06070a99"
+        "role": "neutral",
+        "displayName": "Modal scrim",
+        "cssVariable": "--scrim",
+        "theme": "light",
+        "darkToken": "scrim-dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.0608 259.19 / 0.380)",
+          "oklch(26.43% 0.0608 259.19 / 0.380)",
+          "oklch(37.86% 0.0608 259.19 / 0.380)",
+          "oklch(49.29% 0.0608 259.19 / 0.380)",
+          "oklch(60.71% 0.0608 259.19 / 0.380)",
+          "oklch(72.14% 0.0608 259.19 / 0.380)",
+          "oklch(83.57% 0.0608 259.19 / 0.380)",
+          "oklch(95.00% 0.0608 259.19 / 0.380)"
+        ]
+      },
+      "secondary-ink-dark": {
+        "role": "neutral",
+        "displayName": "Secondary ink — dark",
+        "cssVariable": "--secondary-ink",
+        "theme": "dark",
+        "lightToken": "secondary-ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.0373 255.97)",
+          "oklch(26.43% 0.0373 255.97)",
+          "oklch(37.86% 0.0373 255.97)",
+          "oklch(49.29% 0.0373 255.97)",
+          "oklch(60.71% 0.0373 255.97)",
+          "oklch(72.14% 0.0373 255.97)",
+          "oklch(83.57% 0.0373 255.97)",
+          "oklch(95.00% 0.0373 255.97)"
+        ]
+      },
+      "canvas-dark": {
+        "role": "neutral",
+        "displayName": "Porcelain content — dark",
+        "cssVariable": "--canvas",
+        "theme": "dark",
+        "lightToken": "canvas",
+        "tonalRamp": [
+          "oklch(15.00% 0.0423 258.76)",
+          "oklch(26.43% 0.0423 258.76)",
+          "oklch(37.86% 0.0423 258.76)",
+          "oklch(49.29% 0.0423 258.76)",
+          "oklch(60.71% 0.0423 258.76)",
+          "oklch(72.14% 0.0423 258.76)",
+          "oklch(83.57% 0.0423 258.76)",
+          "oklch(95.00% 0.0423 258.76)"
+        ]
+      },
+      "desk-dark": {
+        "role": "neutral",
+        "displayName": "Mist desk — dark",
+        "cssVariable": "--desk",
+        "theme": "dark",
+        "lightToken": "desk",
+        "tonalRamp": [
+          "oklch(15.00% 0.0274 258.29)",
+          "oklch(26.43% 0.0274 258.29)",
+          "oklch(37.86% 0.0274 258.29)",
+          "oklch(49.29% 0.0274 258.29)",
+          "oklch(60.71% 0.0274 258.29)",
+          "oklch(72.14% 0.0274 258.29)",
+          "oklch(83.57% 0.0274 258.29)",
+          "oklch(95.00% 0.0274 258.29)"
+        ]
+      },
+      "rail-dark": {
+        "role": "neutral",
+        "displayName": "Mist rail — dark",
+        "cssVariable": "--rail",
+        "theme": "dark",
+        "lightToken": "rail",
+        "tonalRamp": [
+          "oklch(15.00% 0.0432 255.96)",
+          "oklch(26.43% 0.0432 255.96)",
+          "oklch(37.86% 0.0432 255.96)",
+          "oklch(49.29% 0.0432 255.96)",
+          "oklch(60.71% 0.0432 255.96)",
+          "oklch(72.14% 0.0432 255.96)",
+          "oklch(83.57% 0.0432 255.96)",
+          "oklch(95.00% 0.0432 255.96)"
+        ]
+      },
+      "inset-dark": {
+        "role": "neutral",
+        "displayName": "Inset surface — dark",
+        "cssVariable": "--inset",
+        "theme": "dark",
+        "lightToken": "inset",
+        "tonalRamp": [
+          "oklch(15.00% 0.0500 255.96)",
+          "oklch(26.43% 0.0500 255.96)",
+          "oklch(37.86% 0.0500 255.96)",
+          "oklch(49.29% 0.0500 255.96)",
+          "oklch(60.71% 0.0500 255.96)",
+          "oklch(72.14% 0.0500 255.96)",
+          "oklch(83.57% 0.0500 255.96)",
+          "oklch(95.00% 0.0500 255.96)"
+        ]
+      },
+      "ink-dark": {
+        "role": "neutral",
+        "displayName": "Deep ink — dark",
+        "cssVariable": "--ink",
+        "theme": "dark",
+        "lightToken": "ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.0142 254.60)",
+          "oklch(26.43% 0.0142 254.60)",
+          "oklch(37.86% 0.0142 254.60)",
+          "oklch(49.29% 0.0142 254.60)",
+          "oklch(60.71% 0.0142 254.60)",
+          "oklch(72.14% 0.0142 254.60)",
+          "oklch(83.57% 0.0142 254.60)",
+          "oklch(95.00% 0.0142 254.60)"
+        ]
+      },
+      "muted-dark": {
+        "role": "neutral",
+        "displayName": "Quiet metadata — dark",
+        "cssVariable": "--muted",
+        "theme": "dark",
+        "lightToken": "muted",
+        "tonalRamp": [
+          "oklch(15.00% 0.0414 256.61)",
+          "oklch(26.43% 0.0414 256.61)",
+          "oklch(37.86% 0.0414 256.61)",
+          "oklch(49.29% 0.0414 256.61)",
+          "oklch(60.71% 0.0414 256.61)",
+          "oklch(72.14% 0.0414 256.61)",
+          "oklch(83.57% 0.0414 256.61)",
+          "oklch(95.00% 0.0414 256.61)"
+        ]
+      },
+      "rule-dark": {
+        "role": "neutral",
+        "displayName": "Boundary — dark",
+        "cssVariable": "--rule",
+        "theme": "dark",
+        "lightToken": "rule",
+        "tonalRamp": [
+          "oklch(15.00% 0.0549 255.87)",
+          "oklch(26.43% 0.0549 255.87)",
+          "oklch(37.86% 0.0549 255.87)",
+          "oklch(49.29% 0.0549 255.87)",
+          "oklch(60.71% 0.0549 255.87)",
+          "oklch(72.14% 0.0549 255.87)",
+          "oklch(83.57% 0.0549 255.87)",
+          "oklch(95.00% 0.0549 255.87)"
+        ]
+      },
+      "accent-dark": {
+        "role": "primary",
+        "displayName": "Electric blue — dark",
+        "cssVariable": "--accent",
+        "theme": "dark",
+        "lightToken": "accent",
+        "tonalRamp": [
+          "oklch(15.00% 0.1062 259.53)",
+          "oklch(26.43% 0.1062 259.53)",
+          "oklch(37.86% 0.1062 259.53)",
+          "oklch(49.29% 0.1062 259.53)",
+          "oklch(60.71% 0.1062 259.53)",
+          "oklch(72.14% 0.1062 259.53)",
+          "oklch(83.57% 0.1062 259.53)",
+          "oklch(95.00% 0.1062 259.53)"
+        ]
+      },
+      "accent-hover-dark": {
+        "role": "primary",
+        "displayName": "Electric blue hover — dark",
+        "cssVariable": "--accent-hover",
+        "theme": "dark",
+        "lightToken": "accent-hover",
+        "tonalRamp": [
+          "oklch(15.00% 0.0721 258.83)",
+          "oklch(26.43% 0.0721 258.83)",
+          "oklch(37.86% 0.0721 258.83)",
+          "oklch(49.29% 0.0721 258.83)",
+          "oklch(60.71% 0.0721 258.83)",
+          "oklch(72.14% 0.0721 258.83)",
+          "oklch(83.57% 0.0721 258.83)",
+          "oklch(95.00% 0.0721 258.83)"
+        ]
+      },
+      "soft-dark": {
+        "role": "neutral",
+        "displayName": "Soft action — dark",
+        "cssVariable": "--soft",
+        "theme": "dark",
+        "lightToken": "soft",
+        "tonalRamp": [
+          "oklch(15.00% 0.0728 256.66)",
+          "oklch(26.43% 0.0728 256.66)",
+          "oklch(37.86% 0.0728 256.66)",
+          "oklch(49.29% 0.0728 256.66)",
+          "oklch(60.71% 0.0728 256.66)",
+          "oklch(72.14% 0.0728 256.66)",
+          "oklch(83.57% 0.0728 256.66)",
+          "oklch(95.00% 0.0728 256.66)"
+        ]
+      },
+      "selected-dark": {
+        "role": "neutral",
+        "displayName": "Selection surface — dark",
+        "cssVariable": "--selected",
+        "theme": "dark",
+        "lightToken": "selected",
+        "tonalRamp": [
+          "oklch(15.00% 0.0858 256.05)",
+          "oklch(26.43% 0.0858 256.05)",
+          "oklch(37.86% 0.0858 256.05)",
+          "oklch(49.29% 0.0858 256.05)",
+          "oklch(60.71% 0.0858 256.05)",
+          "oklch(72.14% 0.0858 256.05)",
+          "oklch(83.57% 0.0858 256.05)",
+          "oklch(95.00% 0.0858 256.05)"
+        ]
+      },
+      "selected-edge-dark": {
+        "role": "neutral",
+        "displayName": "Selection edge — dark",
+        "cssVariable": "--selected-edge",
+        "theme": "dark",
+        "lightToken": "selected-edge",
+        "tonalRamp": [
+          "oklch(15.00% 0.0846 256.28)",
+          "oklch(26.43% 0.0846 256.28)",
+          "oklch(37.86% 0.0846 256.28)",
+          "oklch(49.29% 0.0846 256.28)",
+          "oklch(60.71% 0.0846 256.28)",
+          "oklch(72.14% 0.0846 256.28)",
+          "oklch(83.57% 0.0846 256.28)",
+          "oklch(95.00% 0.0846 256.28)"
+        ]
+      },
+      "selection-neutral-dark": {
+        "role": "neutral",
+        "displayName": "Quiet selection — dark",
+        "cssVariable": "--selection-neutral",
+        "theme": "dark",
+        "lightToken": "selection-neutral",
+        "tonalRamp": [
+          "oklch(15.00% 0.0544 252.42)",
+          "oklch(26.43% 0.0544 252.42)",
+          "oklch(37.86% 0.0544 252.42)",
+          "oklch(49.29% 0.0544 252.42)",
+          "oklch(60.71% 0.0544 252.42)",
+          "oklch(72.14% 0.0544 252.42)",
+          "oklch(83.57% 0.0544 252.42)",
+          "oklch(95.00% 0.0544 252.42)"
+        ]
+      },
+      "glass-dark": {
+        "role": "neutral",
+        "displayName": "Frosted surface — dark",
+        "cssVariable": "--glass",
+        "theme": "dark",
+        "lightToken": "glass",
+        "tonalRamp": [
+          "oklch(15.00% 0.0446 258.28 / 0.788)",
+          "oklch(26.43% 0.0446 258.28 / 0.788)",
+          "oklch(37.86% 0.0446 258.28 / 0.788)",
+          "oklch(49.29% 0.0446 258.28 / 0.788)",
+          "oklch(60.71% 0.0446 258.28 / 0.788)",
+          "oklch(72.14% 0.0446 258.28 / 0.788)",
+          "oklch(83.57% 0.0446 258.28 / 0.788)",
+          "oklch(95.00% 0.0446 258.28 / 0.788)"
+        ]
+      },
+      "glass-edge-dark": {
+        "role": "neutral",
+        "displayName": "Glass edge — dark",
+        "cssVariable": "--glass-edge",
+        "theme": "dark",
+        "lightToken": "glass-edge",
+        "tonalRamp": [
+          "oklch(15.00% 0.0747 252.74 / 0.200)",
+          "oklch(26.43% 0.0747 252.74 / 0.200)",
+          "oklch(37.86% 0.0747 252.74 / 0.200)",
+          "oklch(49.29% 0.0747 252.74 / 0.200)",
+          "oklch(60.71% 0.0747 252.74 / 0.200)",
+          "oklch(72.14% 0.0747 252.74 / 0.200)",
+          "oklch(83.57% 0.0747 252.74 / 0.200)",
+          "oklch(95.00% 0.0747 252.74 / 0.200)"
+        ]
+      },
+      "light-dark": {
+        "role": "neutral",
+        "displayName": "Surface light — dark",
+        "cssVariable": "--light",
+        "theme": "dark",
+        "lightToken": "light",
+        "tonalRamp": [
+          "oklch(15.00% 0.0463 255.36)",
+          "oklch(26.43% 0.0463 255.36)",
+          "oklch(37.86% 0.0463 255.36)",
+          "oklch(49.29% 0.0463 255.36)",
+          "oklch(60.71% 0.0463 255.36)",
+          "oklch(72.14% 0.0463 255.36)",
+          "oklch(83.57% 0.0463 255.36)",
+          "oklch(95.00% 0.0463 255.36)"
+        ]
+      },
+      "ambient-blue-dark": {
+        "role": "neutral",
+        "displayName": "Blue ambient light — dark",
+        "cssVariable": "--ambient-blue",
+        "theme": "dark",
+        "lightToken": "ambient-blue",
+        "tonalRamp": [
+          "oklch(15.00% 0.1367 254.67 / 0.161)",
+          "oklch(26.43% 0.1367 254.67 / 0.161)",
+          "oklch(37.86% 0.1367 254.67 / 0.161)",
+          "oklch(49.29% 0.1367 254.67 / 0.161)",
+          "oklch(60.71% 0.1367 254.67 / 0.161)",
+          "oklch(72.14% 0.1367 254.67 / 0.161)",
+          "oklch(83.57% 0.1367 254.67 / 0.161)",
+          "oklch(95.00% 0.1367 254.67 / 0.161)"
+        ]
+      },
+      "ambient-mint-dark": {
+        "role": "neutral",
+        "displayName": "Mint ambient light — dark",
+        "cssVariable": "--ambient-mint",
+        "theme": "dark",
+        "lightToken": "ambient-mint",
+        "tonalRamp": [
+          "oklch(15.00% 0.0636 214.43 / 0.188)",
+          "oklch(26.43% 0.0636 214.43 / 0.188)",
+          "oklch(37.86% 0.0636 214.43 / 0.188)",
+          "oklch(49.29% 0.0636 214.43 / 0.188)",
+          "oklch(60.71% 0.0636 214.43 / 0.188)",
+          "oklch(72.14% 0.0636 214.43 / 0.188)",
+          "oklch(83.57% 0.0636 214.43 / 0.188)",
+          "oklch(95.00% 0.0636 214.43 / 0.188)"
+        ]
+      },
+      "on-accent-dark": {
+        "role": "primary",
+        "displayName": "Action foreground — dark",
+        "cssVariable": "--on-accent",
+        "theme": "dark",
+        "lightToken": "on-accent",
+        "tonalRamp": [
+          "oklch(15.00% 0.0567 258.32)",
+          "oklch(26.43% 0.0567 258.32)",
+          "oklch(37.86% 0.0567 258.32)",
+          "oklch(49.29% 0.0567 258.32)",
+          "oklch(60.71% 0.0567 258.32)",
+          "oklch(72.14% 0.0567 258.32)",
+          "oklch(83.57% 0.0567 258.32)",
+          "oklch(95.00% 0.0567 258.32)"
+        ]
+      },
+      "danger-dark": {
+        "role": "semantic",
+        "displayName": "Failure — dark",
+        "cssVariable": "--danger",
+        "theme": "dark",
+        "lightToken": "danger",
+        "tonalRamp": [
+          "oklch(15.00% 0.1079 3.64)",
+          "oklch(26.43% 0.1079 3.64)",
+          "oklch(37.86% 0.1079 3.64)",
+          "oklch(49.29% 0.1079 3.64)",
+          "oklch(60.71% 0.1079 3.64)",
+          "oklch(72.14% 0.1079 3.64)",
+          "oklch(83.57% 0.1079 3.64)",
+          "oklch(95.00% 0.1079 3.64)"
+        ]
+      },
+      "danger-soft-dark": {
+        "role": "semantic",
+        "displayName": "Failure surface — dark",
+        "cssVariable": "--danger-soft",
+        "theme": "dark",
+        "lightToken": "danger-soft",
+        "tonalRamp": [
+          "oklch(15.00% 0.0468 345.77)",
+          "oklch(26.43% 0.0468 345.77)",
+          "oklch(37.86% 0.0468 345.77)",
+          "oklch(49.29% 0.0468 345.77)",
+          "oklch(60.71% 0.0468 345.77)",
+          "oklch(72.14% 0.0468 345.77)",
+          "oklch(83.57% 0.0468 345.77)",
+          "oklch(95.00% 0.0468 345.77)"
+        ]
+      },
+      "success-dark": {
+        "role": "semantic",
+        "displayName": "Complete — dark",
+        "cssVariable": "--success",
+        "theme": "dark",
+        "lightToken": "success",
+        "tonalRamp": [
+          "oklch(15.00% 0.0645 178.55)",
+          "oklch(26.43% 0.0645 178.55)",
+          "oklch(37.86% 0.0645 178.55)",
+          "oklch(49.29% 0.0645 178.55)",
+          "oklch(60.71% 0.0645 178.55)",
+          "oklch(72.14% 0.0645 178.55)",
+          "oklch(83.57% 0.0645 178.55)",
+          "oklch(95.00% 0.0645 178.55)"
+        ]
+      },
+      "success-soft-dark": {
+        "role": "semantic",
+        "displayName": "Complete surface — dark",
+        "cssVariable": "--success-soft",
+        "theme": "dark",
+        "lightToken": "success-soft",
+        "tonalRamp": [
+          "oklch(15.00% 0.0319 183.13)",
+          "oklch(26.43% 0.0319 183.13)",
+          "oklch(37.86% 0.0319 183.13)",
+          "oklch(49.29% 0.0319 183.13)",
+          "oklch(60.71% 0.0319 183.13)",
+          "oklch(72.14% 0.0319 183.13)",
+          "oklch(83.57% 0.0319 183.13)",
+          "oklch(95.00% 0.0319 183.13)"
+        ]
+      },
+      "warning-dark": {
+        "role": "semantic",
+        "displayName": "Attention — dark",
+        "cssVariable": "--warning",
+        "theme": "dark",
+        "lightToken": "warning",
+        "tonalRamp": [
+          "oklch(15.00% 0.0876 82.73)",
+          "oklch(26.43% 0.0876 82.73)",
+          "oklch(37.86% 0.0876 82.73)",
+          "oklch(49.29% 0.0876 82.73)",
+          "oklch(60.71% 0.0876 82.73)",
+          "oklch(72.14% 0.0876 82.73)",
+          "oklch(83.57% 0.0876 82.73)",
+          "oklch(95.00% 0.0876 82.73)"
+        ]
+      },
+      "warning-soft-dark": {
+        "role": "semantic",
+        "displayName": "Attention surface — dark",
+        "cssVariable": "--warning-soft",
+        "theme": "dark",
+        "lightToken": "warning-soft",
+        "tonalRamp": [
+          "oklch(15.00% 0.0314 80.49)",
+          "oklch(26.43% 0.0314 80.49)",
+          "oklch(37.86% 0.0314 80.49)",
+          "oklch(49.29% 0.0314 80.49)",
+          "oklch(60.71% 0.0314 80.49)",
+          "oklch(72.14% 0.0314 80.49)",
+          "oklch(83.57% 0.0314 80.49)",
+          "oklch(95.00% 0.0314 80.49)"
+        ]
+      },
+      "brand-detail-dark": {
+        "role": "secondary",
+        "displayName": "Sky detail — dark",
+        "cssVariable": "--brand-detail",
+        "theme": "dark",
+        "lightToken": "brand-detail",
+        "tonalRamp": [
+          "oklch(15.00% 0.0902 225.47)",
+          "oklch(26.43% 0.0902 225.47)",
+          "oklch(37.86% 0.0902 225.47)",
+          "oklch(49.29% 0.0902 225.47)",
+          "oklch(60.71% 0.0902 225.47)",
+          "oklch(72.14% 0.0902 225.47)",
+          "oklch(83.57% 0.0902 225.47)",
+          "oklch(95.00% 0.0902 225.47)"
+        ]
+      },
+      "scrim-dark": {
+        "role": "neutral",
+        "displayName": "Modal scrim — dark",
+        "cssVariable": "--scrim",
+        "theme": "dark",
+        "lightToken": "scrim",
+        "tonalRamp": [
+          "oklch(15.00% 0.0078 268.54 / 0.600)",
+          "oklch(26.43% 0.0078 268.54 / 0.600)",
+          "oklch(37.86% 0.0078 268.54 / 0.600)",
+          "oklch(49.29% 0.0078 268.54 / 0.600)",
+          "oklch(60.71% 0.0078 268.54 / 0.600)",
+          "oklch(72.14% 0.0078 268.54 / 0.600)",
+          "oklch(83.57% 0.0078 268.54 / 0.600)",
+          "oklch(95.00% 0.0078 268.54 / 0.600)"
+        ]
       }
     },
     "typographyMeta": {
-      "interface": "Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI, PingFang SC, bundled Noto Sans SC",
-      "collectionTitle": "Smiley Sans 34px / 400; compact 30px",
-      "bookmarkTitle": "18px / 650",
-      "summary": "15px / 1.75; wide list 1.7",
-      "metadata": "13px; compact secondary labels 11px"
+      "display": {
+        "displayName": "Collection heading",
+        "purpose": "Upright Inter/Noto title: 32px default, 30px below 1300px and 26px below 720px.",
+        "source": "frontend/src/workbench.css"
+      },
+      "title": {
+        "displayName": "Record title",
+        "purpose": "19px/680 default; 17px mobile; 15px retained reading index. Native original-page link.",
+        "source": "frontend/src/bookmark-card.css"
+      },
+      "body": {
+        "displayName": "Base text",
+        "purpose": "Default interface body scale and bundled variable font stack.",
+        "source": "frontend/src/styles.css"
+      },
+      "summary": {
+        "displayName": "Record summary",
+        "purpose": "15px/1.8 desktop summary, 14px on mobile; measured expansion, two lines; 13px in the reading index.",
+        "source": "frontend/src/bookmark-card.css"
+      },
+      "control": {
+        "displayName": "Shared control label",
+        "purpose": "15px/600 primary and secondary controls; local collection variants define their own sizes.",
+        "source": "frontend/src/ui/controls.css"
+      },
+      "source": {
+        "displayName": "Domain label",
+        "purpose": "13px/500 source identity, independent from the title and record actions.",
+        "source": "frontend/src/bookmark-card.css"
+      },
+      "tag": {
+        "displayName": "Compact metadata",
+        "purpose": "13px/1.5 record tags, status and folder paths. Dates and summary-basis captions remain 11px.",
+        "source": "frontend/src/bookmark-card.css"
+      },
+      "reader-title": {
+        "displayName": "Reader title",
+        "purpose": "36px article heading, 38px in focus mode.",
+        "source": "frontend/src/reader-shell.css"
+      },
+      "reading": {
+        "displayName": "Reading body",
+        "purpose": "18px/1.85 article text on an opaque content surface.",
+        "source": "frontend/src/reader-shell.css"
+      }
     },
-    "shadows": [],
+    "shadows": [
+      {
+        "name": "card",
+        "value": "0 2px 4px #233d5810, 0 12px 26px -18px #294e7840",
+        "purpose": "Resting bookmark card, light theme.",
+        "source": "frontend/src/styles.css"
+      },
+      {
+        "name": "card-dark",
+        "value": "0 3px 8px #00000020, 0 18px 30px -20px #00000080",
+        "purpose": "Resting bookmark card, dark theme.",
+        "source": "frontend/src/styles.css"
+      },
+      {
+        "name": "sheet",
+        "value": "0 28px 80px -24px #1d426c40, 0 8px 24px -12px #1d426c26, inset 0 1px 0 #ffffffc9",
+        "purpose": "Reader, dialogs and raised menus, light theme.",
+        "source": "frontend/src/styles.css"
+      },
+      {
+        "name": "sheet-dark",
+        "value": "0 28px 80px -24px #00000099, inset 0 1px 0 #ffffff14",
+        "purpose": "Reader, dialogs and raised menus, dark theme.",
+        "source": "frontend/src/styles.css"
+      },
+      {
+        "name": "card-hover",
+        "value": "0 5px 10px -8px #294e7840, 0 18px 36px -22px #245da04d, inset 0 1px 0 var(--glass-edge)",
+        "purpose": "Local record hover depth; the record itself is not translated.",
+        "source": "frontend/src/bookmark-card.css"
+      }
+    ],
     "motion": [
-      "Local selected-tab highlight",
-      "Native checkbox with local animated fill",
-      "Folder front follows actual state",
-      "HeroUI pressed transform",
-      "Interruptible reader/content transitions with reduced-motion endpoints"
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Shared CSS easing for light, controls and drawer movement.",
+        "source": "frontend/src/styles.css"
+      },
+      {
+        "name": "capsule-sweep",
+        "value": "background-position 650ms var(--ease); opacity 180ms ease",
+        "purpose": "Primary/secondary hover highlight; no transition for reduced motion.",
+        "source": "frontend/src/ui/controls.css"
+      },
+      {
+        "name": "source-medallion",
+        "value": "transform 400ms var(--ease); rotate(-4deg) → rotate(0deg) translateY(-2px)",
+        "purpose": "Local source emblem feedback; no reduced-motion transform.",
+        "source": "frontend/src/bookmark-card.css"
+      },
+      {
+        "name": "record-glint",
+        "value": "opacity 280ms ease; radial-gradient at --glint-x / --glint-y",
+        "purpose": "Mouse-only pointer light owned by BookmarkCard; absent under reduced motion.",
+        "source": "frontend/src/BookmarkCard.tsx + frontend/src/bookmark-card.css"
+      },
+      {
+        "name": "selection-spring",
+        "value": "spring(stiffness: 480, damping: 29, mass: 0.8)",
+        "purpose": "Shared selection markers; duration 0 under reduced motion.",
+        "source": "frontend/src/InteractionMotion.tsx"
+      },
+      {
+        "name": "record-layout",
+        "value": "spring(stiffness: 340, damping: 32)",
+        "purpose": "Motion position layout for cards; layout disabled under reduced motion.",
+        "source": "frontend/src/BookmarkCard.tsx"
+      },
+      {
+        "name": "record-arrival",
+        "value": "y: 12px → 0 in 380ms; opacity: 260ms, delay min(order, 5) × 25ms",
+        "purpose": "Initial card arrival; immediate visible endpoint under reduced motion.",
+        "source": "frontend/src/BookmarkCard.tsx"
+      },
+      {
+        "name": "checkbox-fill",
+        "value": "scale 0 → 1; 160ms cubic-bezier(0.2,0.7,0.3,1)",
+        "purpose": "Native checkbox's local fill. Checkmark uses opacity 150ms and scale 240ms; it does not draw a stroke.",
+        "source": "frontend/src/BookmarkCard.tsx + frontend/src/bookmark-card.css"
+      },
+      {
+        "name": "folder-face",
+        "value": "d: matching SVG path topology; 200ms cubic-bezier(0.2,0.7,0.3,1)",
+        "purpose": "Folder follows its active state; plain endpoint path under reduced motion.",
+        "source": "frontend/src/CollectionFolderIcon.tsx"
+      },
+      {
+        "name": "overlay-enter",
+        "value": "opacity 200ms; y/scale spring(stiffness: 380, damping: 30); dialog y 28px, scale 0.94; menu y -10px, scale 0.97",
+        "purpose": "Presence-owned dialog/menu arrival; no spatial entrance under reduced motion.",
+        "source": "frontend/src/overlay-motion.tsx"
+      },
+      {
+        "name": "overlay-exit",
+        "value": "160ms cubic-bezier(0.4,0,1,1)",
+        "purpose": "Visual exit only; OverlayMotion marks closing content inert and blocks pointer input immediately.",
+        "source": "frontend/src/overlay-motion.tsx"
+      },
+      {
+        "name": "content-arrival",
+        "value": "page 340ms/18px; settings section 320ms/20px; directory category 280ms/18px; pagination 340ms/22px; filter 250ms/8px; power3.out",
+        "purpose": "Existing GSAP controller resumes interrupted painted state and clears transform/opacity/filter after completion.",
+        "source": "frontend/src/InteractionMotion.tsx"
+      },
+      {
+        "name": "navigation-drawer",
+        "value": "transform 420ms var(--ease); scrim opacity 220ms ease",
+        "purpose": "Navigation layer opening; transitions/animation removed under reduced motion.",
+        "source": "frontend/src/workbench.css"
+      },
+      {
+        "name": "reader-drawer",
+        "value": "x: 100% → 0; 220ms cubic-bezier(0.22,1,0.36,1)",
+        "purpose": "Narrow-layout reader; x is 0 and duration 0 under reduced motion.",
+        "source": "frontend/src/App.tsx"
+      },
+      {
+        "name": "theme-reveal",
+        "value": "460ms cubic-bezier(0.16,1,0.3,1)",
+        "purpose": "Native view transition when supported and motion is allowed; no default root crossfade.",
+        "source": "frontend/src/App.tsx + frontend/src/workbench.css"
+      }
     ],
     "breakpoints": [
       {
-        "width": 1120,
-        "behavior": "Reader beside collection above; focus-managed drawer below"
+        "name": "wide",
+        "value": "1660px",
+        "query": "(min-width: 1660px)",
+        "purpose": "264px directory, 340px index, 360px card minimum and wider shell.",
+        "source": "frontend/src/workbench.css"
       },
       {
-        "width": 960,
-        "behavior": "Directory drawer below"
+        "name": "compact-desktop",
+        "value": "1300px",
+        "query": "(max-width: 1299px)",
+        "purpose": "218px directory, 280px index, 22px workspace padding and 30px collection title.",
+        "source": "frontend/src/workbench.css"
       },
       {
-        "width": 720,
-        "behavior": "Single-column touch layout below"
+        "name": "reader",
+        "value": "1120px",
+        "query": "(max-width: 1119px)",
+        "purpose": "Full-viewport reader drawer below; retained index and optional article outline above.",
+        "source": "frontend/src/workbench.css + frontend/src/App.tsx"
+      },
+      {
+        "name": "navigation",
+        "value": "960px",
+        "query": "(max-width: 959px)",
+        "purpose": "Hide top navigation/fixed directory and expose the navigation drawer.",
+        "source": "frontend/src/workbench.css"
+      },
+      {
+        "name": "mobile",
+        "value": "720px",
+        "query": "(max-width: 719px)",
+        "purpose": "58px header row; stacked search; separate action/status/display rows and compact records.",
+        "source": "frontend/src/workbench.css + frontend/src/bookmark-card.css"
+      },
+      {
+        "name": "narrow-mobile",
+        "value": "360px",
+        "query": "(max-width: 359px)",
+        "purpose": "Reduce workspace padding and compact footer/subtitle width.",
+        "source": "frontend/src/workbench.css"
+      },
+      {
+        "name": "short-desktop",
+        "value": "820px height",
+        "query": "(max-height: 820px) and (min-width: 960px)",
+        "purpose": "76px top row and 98px toolbar to preserve directory and record space.",
+        "source": "frontend/src/workbench.css"
+      },
+      {
+        "name": "very-short-desktop",
+        "value": "650px height",
+        "query": "(max-height: 650px) and (min-width: 960px)",
+        "purpose": "68px top row, 86px toolbar and hidden directory footer.",
+        "source": "frontend/src/workbench.css"
+      },
+      {
+        "name": "compact-directory",
+        "value": "700px height",
+        "query": "(max-height: 700px) and (min-width: 720px)",
+        "purpose": "Smaller directory heading, category and search spacing.",
+        "source": "frontend/src/facet-browser.css"
       }
     ],
-    "evidence": {
-      "status": "current-collection-cloud-validation-pending",
-      "visualAcceptance": "awaiting-user-review",
-      "sourceState": "Pale-iris unified navigation and continuous collection implemented in the production React app.",
-      "brief": ".impeccable/workbench-direction.md",
-      "history": ".impeccable/history/2026-10-19-rejected-ui/README.md",
-      "verification": "Current-source cloud results pending. Prior d40471f checks apply only to the rejected 2026-10-21 screen.",
-      "workingProposal": {
-        "status": "rejected-by-user",
-        "entrypoint": "frontend/design/workbench/index.html",
-        "brief": ".impeccable/surfaces/workbench-prototype.md",
-        "handoff": "docs/workbench-prototype.md",
-        "productionIntegrated": false,
-        "sourceAudit": "docs/redesign-source-audit.md"
+    "materials": [
+      {
+        "name": "workspace",
+        "value": "radial-gradient(ellipse at 65% -10%, var(--ambient-blue), transparent 60%), radial-gradient(ellipse at 0 100%, var(--ambient-mint), transparent 55%), var(--desk)",
+        "source": "frontend/src/workbench.css"
       },
+      {
+        "name": "navigation-glass",
+        "value": "var(--glass); backdrop-filter: blur(18px)",
+        "source": "frontend/src/workbench.css"
+      },
+      {
+        "name": "directory-glass",
+        "value": "var(--glass); backdrop-filter: blur(24px)",
+        "source": "frontend/src/workbench.css"
+      },
+      {
+        "name": "navigation-scrim",
+        "value": "var(--scrim); backdrop-filter: blur(8px)",
+        "source": "frontend/src/workbench.css"
+      },
+      {
+        "name": "dialog-scrim",
+        "value": "var(--scrim); backdrop-filter: blur(10px)",
+        "source": "frontend/src/library-tools.css"
+      }
+    ],
+    "tonalRampProvenance": "Generated 8-step OKLCH strips for the design panel only. They are not shipped palette tokens or verified contrast combinations.",
+    "specimenScope": "Static, self-contained HTML/CSS visual states with inline SVG and root-token fallbacks. Runtime controls, springs, focus management and data behavior remain in the React application. The bundled font aliases use platform fallbacks if the host has not loaded those fonts.",
+    "evidence": {
+      "status": "new-source-cloud-review-pending",
+      "visualAcceptance": "awaiting-user-review",
+      "sourceState": "Replacement after the user rejected 46cf2f3: top capsule navigation, frosted directory, mist-blue layered cards and upright Inter/Noto typography.",
+      "sourceBasis": "Current frontend/src files; this generation is a static source extraction, not a runtime or visual test.",
+      "brief": ".impeccable/workbench-direction.md",
+      "surface": ".impeccable/surfaces/frontend.md",
+      "history": ".impeccable/history/2026-10-23-rejected-iris/",
+      "verification": "New source cloud review pending. Earlier green runs and captures are historical and do not certify this replacement.",
       "roundRecord": "docs/collection-workspace-2026-10-23.md"
+    },
+    "componentSources": {
+      "button-primary": "frontend/src/ui/controls.css",
+      "add-bookmark": "frontend/src/library-tools.css",
+      "button-secondary": "frontend/src/ui/controls.css",
+      "button-text": "frontend/src/ui/controls.css",
+      "search": "frontend/src/workbench.css",
+      "form-input": "frontend/src/library-tools.css",
+      "navigation-active": "frontend/src/workbench.css",
+      "directory-entry": "frontend/src/facet-browser.css + frontend/src/CollectionFolderIcon.tsx",
+      "tag": "frontend/src/bookmark-card.css",
+      "bookmark-card": "frontend/src/bookmark-card.css + frontend/src/BookmarkCard.tsx"
     }
   },
   "components": [
     {
-      "name": "Collection shell",
-      "source": "frontend/src/workbench.css"
+      "name": "Primary capsule",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Shared primary action with molded edge and source-defined hover sweep. Press semantics remain in the application adapter.",
+      "html": "<button class=\"ds-primary\" type=\"button\">保存设置</button>",
+      "css": ".ds-primary{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--radius-pill,999px);font-size:.9375rem;font-weight:600;line-height:1.5;cursor:pointer;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);min-height:44px;padding:10px 20px;color:var(--on-accent, #fff);background-color:var(--accent, #235fe5);background-image:linear-gradient(180deg,#ffffff24,#ffffff00 65%);border:1px solid color-mix(in srgb,var(--accent, #235fe5) 75%,var(--light, #ffffff));box-shadow:inset 0 1px 0 #ffffff40,0 4px 8px -4px #15468a50,0 10px 22px -12px #235fe589}.ds-primary:hover,.ds-primary:active{background-color:var(--accent-hover, #164bc2)}.ds-primary::after{content:\"\";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,transparent 20%,#ffffff26 45%,transparent 65%);background-size:240% 100%;background-position:100% 0;opacity:0;transition:background-position 650ms var(--ease,cubic-bezier(.22,1,.36,1)),opacity 180ms ease}.ds-primary:hover::after{background-position:0 0;opacity:1}.ds-primary:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}.ds-primary:disabled{cursor:not-allowed;opacity:.42}@media(prefers-reduced-motion:reduce){.ds-primary::after,.ds-add::after,.ds-secondary::after{transition:none}}"
+    },
+    {
+      "name": "Add bookmark",
+      "kind": "button",
+      "refersTo": "add-bookmark",
+      "description": "Collection-local blue Add action, including its actual 40px desktop minimum and 44px mobile minimum.",
+      "html": "<button class=\"ds-add\" type=\"button\"><svg aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg><span>新增收藏</span></button>",
+      "css": ".ds-add{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--radius-pill,999px);font-size:.9375rem;font-weight:600;line-height:1.5;cursor:pointer;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);gap:7px;min-height:40px;padding:9px 14px;font-size:.875rem;color:var(--on-accent, #fff);background-color:var(--accent, #235fe5);background-image:linear-gradient(180deg,#ffffff2b,transparent 65%);border:1px solid color-mix(in srgb,var(--accent, #235fe5) 80%,var(--light, #ffffff));box-shadow:inset 0 1px 0 #ffffff40,0 5px 10px -5px #235fe559,0 10px 22px -14px #235fe580}.ds-add:hover,.ds-add:active{background-color:var(--accent-hover, #164bc2)}.ds-add::after{content:\"\";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,transparent 20%,#ffffff26 45%,transparent 65%);background-size:240% 100%;background-position:100% 0;opacity:0;transition:background-position 650ms var(--ease,cubic-bezier(.22,1,.36,1)),opacity 180ms ease}.ds-add:hover::after{background-position:0 0;opacity:1}.ds-add:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}.ds-add:disabled{cursor:not-allowed;opacity:.42}@media(max-width:719px){.ds-add{min-height:44px;padding:9px 11px;font-size:.8125rem}}@media(prefers-reduced-motion:reduce){.ds-primary::after,.ds-add::after,.ds-secondary::after{transition:none}}"
+    },
+    {
+      "name": "Secondary capsule",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Porcelain secondary action with an outlined edge and inset highlight.",
+      "html": "<button class=\"ds-secondary\" type=\"button\">取消</button>",
+      "css": ".ds-secondary{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--radius-pill,999px);font-size:.9375rem;font-weight:600;line-height:1.5;cursor:pointer;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);min-height:44px;padding:9px 18px;color:var(--ink, #162b43);background-color:var(--canvas, #ffffff);background-image:linear-gradient(180deg,color-mix(in srgb,var(--light, #ffffff) 10%,transparent),transparent);border:1px solid var(--rule, #d9e3ef);box-shadow:inset 0 1px 0 var(--glass-edge, #ffffffd9),0 4px 8px -6px #213e6833}.ds-secondary:hover{background-color:var(--inset, #edf3f9)}.ds-secondary:active{background-color:var(--soft, #e8f0ff)}.ds-secondary::after{content:\"\";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,transparent 20%,#ffffff26 45%,transparent 65%);background-size:240% 100%;background-position:100% 0;opacity:0;transition:background-position 650ms var(--ease,cubic-bezier(.22,1,.36,1)),opacity 180ms ease}.ds-secondary:hover::after{background-position:0 0;opacity:1}.ds-secondary:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}.ds-secondary:disabled{cursor:not-allowed;opacity:.42}@media(prefers-reduced-motion:reduce){.ds-primary::after,.ds-add::after,.ds-secondary::after{transition:none}}"
+    },
+    {
+      "name": "Text capsule",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "Quiet accent action from the shared text-button variant.",
+      "html": "<button class=\"ds-text\" type=\"button\">清除选择</button>",
+      "css": ".ds-text{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--radius-pill,999px);font-size:.9375rem;font-weight:600;line-height:1.5;cursor:pointer;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);gap:7px;min-height:32px;padding:5px 10px;border:0;background:transparent;color:var(--accent, #235fe5);font-weight:550}.ds-text:hover{background:var(--soft, #e8f0ff)}.ds-text:active{background:var(--selected, #deebff)}.ds-text:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}.ds-text:disabled{cursor:not-allowed;opacity:.42}"
+    },
+    {
+      "name": "Collection search",
+      "kind": "input",
+      "refersTo": "search",
+      "description": "Main search's wrapper owns the capsule, inset depth and focus ring; the actual input remains native.",
+      "html": "<label class=\"ds-search\"><svg aria-hidden=\"true\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input aria-label=\"搜索书签\" placeholder=\"搜索标题、网址…\"></label>",
+      "css": ".ds-search{display:flex;align-items:center;gap:11px;min-width:0;min-height:50px;padding:11px 16px;border:1px solid var(--glass-edge, #ffffffd9);border-radius:var(--radius-pill,999px);color:var(--secondary-ink, #526379);background:var(--canvas, #ffffff);box-shadow:inset 0 2px 4px #28507806,0 5px 16px -10px #294e7826;transition:box-shadow 300ms var(--ease,cubic-bezier(.22,1,.36,1)),border-color 220ms ease;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);}.ds-search>svg{flex:none;color:var(--accent, #235fe5)}.ds-search input{width:100%;min-width:0;padding:0;border:0;outline:0;background:transparent;color:var(--ink, #162b43);font:inherit;font-size:.9375rem;caret-color:var(--accent, #235fe5)}.ds-search input::placeholder{color:var(--muted, #62748a);opacity:1}.ds-search:focus-within{border-color:var(--selected-edge, #8baef3);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent, #235fe5) 12%,transparent),0 10px 28px -18px #235fe570}@media(max-width:719px){.ds-search{min-height:44px;gap:7px;padding:8px 12px}.ds-search input{font-size:1rem}}@media(prefers-reduced-motion:reduce){.ds-search{transition:none}}"
+    },
+    {
+      "name": "Form field",
+      "kind": "input",
+      "refersTo": "form-input",
+      "description": "Labeled inset capsule field used by the library dialog. Native input focus and disabled state remain visible.",
+      "html": "<label class=\"ds-field\">标题<input class=\"ds-field-input\" value=\"重新找到一篇文章\"></label>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:8px;color:var(--ink, #162b43);font-size:.9375rem;font-weight:600;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);}.ds-field-input{min-width:0;min-height:44px;padding:10px 16px;border:1px solid var(--rule, #d9e3ef);border-radius:var(--radius-control,999px);background:var(--inset, #edf3f9);color:var(--ink, #162b43);font:400 1rem/1.6 var(--font-ui,\"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);caret-color:var(--accent, #235fe5)}.ds-field-input:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}.ds-field-input:disabled{opacity:.42;cursor:not-allowed}"
+    },
+    {
+      "name": "Top navigation",
+      "kind": "nav",
+      "refersTo": "navigation-active",
+      "description": "Frosted top capsule with an ink active segment. The application moves its shared selection marker with a spring; this is its static endpoint.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"工作区\"><button type=\"button\" class=\"ds-nav-item\" aria-pressed=\"true\">收藏</button><button type=\"button\" class=\"ds-nav-item\" aria-pressed=\"false\">任务</button><button type=\"button\" class=\"ds-nav-item\" aria-pressed=\"false\">设置</button></nav>",
+      "css": ".ds-nav{display:inline-flex;gap:4px;padding:5px;border:1px solid var(--glass-edge, #ffffffd9);border-radius:var(--radius-pill,999px);background:var(--glass, #ffffffb3);box-shadow:inset 0 1px 0 var(--glass-edge, #ffffffd9),0 6px 16px -12px #284b8040;backdrop-filter:blur(18px)}.ds-nav-item{position:relative;min-height:40px;padding:9px 19px;border:0;border-radius:var(--radius-pill,999px);background:transparent;color:var(--secondary-ink, #526379);font-size:.875rem;line-height:1.6;white-space:nowrap;cursor:pointer;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);}.ds-nav-item[aria-pressed=\"true\"]{color:var(--canvas, #ffffff);background:var(--ink, #162b43);font-weight:650;box-shadow:inset 0 1px 0 #ffffff24,0 4px 9px -4px #14284459}.ds-nav-item:not([aria-pressed=\"true\"]):hover{background:var(--inset, #edf3f9)}.ds-nav-item:not([aria-pressed=\"true\"]):active{background:var(--soft, #e8f0ff)}.ds-nav-item:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}"
+    },
+    {
+      "name": "Selected directory entry",
+      "kind": "nav",
+      "refersTo": "directory-entry",
+      "description": "Selected capsule row with the source-authored open folder path, exact label space and count. The full directory supplies bounded scrolling and search.",
+      "html": "<button type=\"button\" class=\"ds-directory\" aria-pressed=\"true\"><svg class=\"ds-folder\" aria-hidden=\"true\" width=\"25\" height=\"25\" viewBox=\"0 0 24 24\" fill=\"none\" stroke-width=\"1.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path class=\"ds-folder-back\" d=\"M3 18V6a2 2 0 0 1 2-2H9l2 2h8a2 2 0 0 1 2 2v10H3Z\"/><path class=\"ds-folder-paper\" d=\"M6 8h12v9H6z\"/><path class=\"ds-folder-front\" d=\"M6 10L21 10Q22 10 21.7 11L19.6 19Q19.4 20 18.4 20L4 20Q3 20 3.2 19L5 11Q5.2 10 6 10Z\"/></svg><span class=\"ds-directory-label\">中文排版</span><span class=\"ds-directory-count\">24</span></button>",
+      "css": ".ds-directory{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:8px;min-height:48px;width:100%;padding:10px 12px;border:1px solid color-mix(in srgb,var(--accent, #235fe5) 13%,var(--canvas, #ffffff));border-radius:var(--radius-pill,999px);background:linear-gradient(110deg,var(--selected, #deebff),var(--soft, #e8f0ff));color:var(--accent, #235fe5);box-shadow:inset 0 1px 0 var(--glass-edge, #ffffffd9),0 5px 10px -9px #235fe570;font-size:.875rem;font-weight:600;line-height:1.5;text-align:left;cursor:pointer;transition:color 160ms ease,background-color 160ms ease;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);}.ds-directory:hover,.ds-directory:active{background:var(--selected, #deebff)}.ds-directory-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ds-directory-count{font-size:.75rem;font-weight:400;font-variant-numeric:tabular-nums}.ds-directory:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}.ds-folder{flex:none;filter:drop-shadow(0 2px 2px #235fe514)}.ds-folder-back{fill:color-mix(in srgb,var(--accent, #235fe5) 45%,var(--canvas, #ffffff));stroke:var(--accent, #235fe5)}.ds-folder-paper{fill:var(--canvas, #ffffff);stroke:none}.ds-folder-front{fill:color-mix(in srgb,var(--accent, #235fe5) 65%,var(--canvas, #ffffff));stroke:color-mix(in srgb,var(--accent, #235fe5) 55%,var(--canvas, #ffffff))}@media(max-width:719px){.ds-directory{min-height:44px}}@media(prefers-reduced-motion:reduce){.ds-directory{transition:none}}"
+    },
+    {
+      "name": "Record tag",
+      "kind": "chip",
+      "refersTo": "tag",
+      "description": "Passive record metadata tag; interactive filter and editing tags use separate capsule controls.",
+      "html": "<span class=\"ds-tag\">阅读体验</span>",
+      "css": ".ds-tag{display:inline-block;max-width:100%;padding:3px 8px;border-radius:7px;background:var(--inset, #edf3f9);color:var(--secondary-ink, #526379);font-size:.8125rem;font-weight:400;line-height:1.5;overflow-wrap:anywhere;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);}"
     },
     {
       "name": "Bookmark card",
-      "source": "frontend/src/BookmarkCard.tsx"
-    },
-    {
-      "name": "Directory",
-      "source": "frontend/src/FacetBrowser.tsx"
-    },
-    {
-      "name": "Folder icon",
-      "source": "frontend/src/CollectionFolderIcon.tsx"
-    },
-    {
-      "name": "Controls",
-      "source": "frontend/src/ui/controls.tsx"
+      "kind": "card",
+      "refersTo": "bookmark-card",
+      "description": "Layered record with source medallion, native title link, summary, tag and preview. The specimen shows CSS hover endpoints; runtime pointer tracking and layout springs remain in BookmarkCard.",
+      "html": "<article class=\"ds-card\"><header class=\"ds-card-source\"><span class=\"ds-card-symbol\" aria-hidden=\"true\">E</span><span>example.com</span></header><a class=\"ds-card-title\" href=\"https://example.com/\" target=\"_blank\" rel=\"noreferrer\">让一段思考再次被找到</a><p class=\"ds-card-summary\"><span class=\"ds-card-basis\">正文摘录</span> 为收藏留下短而准确的线索，保留原网页与阅读上下文。</p><span class=\"ds-card-tag\">阅读体验</span><footer class=\"ds-card-footer\"><span>资料 / 设计</span><button class=\"ds-card-preview\" type=\"button\">预览</button></footer></article>",
+      "css": ".ds-card{position:relative;isolation:isolate;display:flex;flex-direction:column;gap:15px;min-width:0;padding:23px;border:1px solid var(--glass-edge, #ffffffd9);border-radius:25px;background:var(--canvas, #ffffff);color:var(--ink, #162b43);box-shadow:var(--card-shadow,0 2px 4px #233d5810, 0 12px 26px -18px #294e7840);transition:border-color 220ms ease,box-shadow 340ms var(--ease,cubic-bezier(.22,1,.36,1)),background-color 220ms ease;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);}.ds-card::before{content:\"\";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;opacity:0;background:radial-gradient(360px circle at var(--glint-x,50%) var(--glint-y,0%),color-mix(in srgb,var(--brand-detail, #7ac5ff) 15%,transparent),transparent 75%);transition:opacity 280ms ease}.ds-card:hover{border-color:color-mix(in srgb,var(--accent, #235fe5) 25%,var(--rule, #d9e3ef));box-shadow:0 5px 10px -8px #294e7840,0 18px 36px -22px #245da04d,inset 0 1px 0 var(--glass-edge, #ffffffd9)}.ds-card:hover::before{opacity:1}.ds-card-source{display:flex;align-items:center;gap:9px;color:var(--secondary-ink, #526379);font-size:.8125rem;font-weight:500;line-height:1.6}.ds-card-symbol{display:grid;place-items:center;flex:none;width:38px;height:38px;border:1px solid #aac9f455;border-radius:13px;background:linear-gradient(145deg,#f1f7ff,#dceaff);color:#275da2;box-shadow:inset 0 1px 1px #ffffff,0 4px 7px -5px #24569359;font-size:1.125rem;font-weight:750;transform:rotate(-4deg);transition:transform 400ms var(--ease,cubic-bezier(.22,1,.36,1))}.ds-card:hover .ds-card-symbol{transform:rotate(0deg) translateY(-2px)}.ds-card-title{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;color:var(--ink, #162b43);font-size:1.1875rem;font-weight:680;line-height:1.6;letter-spacing:0;text-decoration:none;text-underline-offset:.2em}.ds-card-title:hover{color:var(--accent, #235fe5);text-decoration:underline}.ds-card-summary{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;max-width:72ch;margin:0;overflow:hidden;overflow-wrap:anywhere;color:var(--secondary-ink, #526379);font-size:.9375rem;line-height:1.8}.ds-card-basis{margin-right:4px;color:var(--accent, #235fe5);font-size:.6875rem;font-weight:600;line-height:1.5}.ds-card-tag{align-self:flex-start;padding:3px 8px;border-radius:7px;background:var(--inset, #edf3f9);color:var(--secondary-ink, #526379);font-size:.8125rem;line-height:1.5}.ds-card-footer{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:13px;border-top:1px solid var(--rule, #d9e3ef);color:var(--secondary-ink, #526379);font-size:.8125rem;line-height:1.5}.ds-card-preview{margin-left:auto;min-height:34px;padding:7px 13px;border:1px solid var(--rule, #d9e3ef);border-radius:var(--radius-pill,999px);background:linear-gradient(180deg,var(--canvas, #ffffff),var(--inset, #edf3f9));color:var(--secondary-ink, #526379);box-shadow:inset 0 1px 0 var(--glass-edge, #ffffffd9),0 3px 6px -4px #294e7833;font:550 .75rem/1.5 var(--font-ui,\"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);cursor:pointer}.ds-card-preview:hover{background:var(--soft, #e8f0ff);color:var(--accent, #235fe5)}.ds-card-preview:active{background:var(--selected, #deebff)}.ds-card-title:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}.ds-card-preview:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}@media(max-width:719px){.ds-card{padding:16px;gap:10px;border-radius:20px}.ds-card-title{font-size:1.0625rem;line-height:1.65}.ds-card-summary{-webkit-line-clamp:2;font-size:.875rem}.ds-card-symbol{width:30px;height:32px;border-radius:10px;font-size:1rem}.ds-card-preview{min-width:40px;min-height:44px}}@media(prefers-reduced-motion:reduce){.ds-card,.ds-card::before,.ds-card-symbol{transition:none}.ds-card::before{display:none}.ds-card:hover .ds-card-symbol{transform:none}}"
     }
   ],
   "narrative": {
-    "northStar": "Retrieve and read a saved page without losing collection context",
-    "overview": "Unified left navigation and searchable directory; continuous collection list, explicit operation scopes and context-preserving right reader.",
+    "northStar": "The Layered Collection Table",
+    "overview": "An upright, tactile collection system uses mist-blue surroundings, porcelain reading surfaces and deep ink, with electric-blue actions. Translucent navigation and directory layers, rounded cards and molded capsule controls carry the current implementation's visual character. This is a working implementation description, not a user-approved visual identity.\n\nThe user rejected the pale-iris revision 46cf2f3 and explicitly requested capsule buttons, richer material and sophisticated continuous motion. The replacement is implemented in the React application. New source cloud review is pending; earlier captures and passing checks describe their own historical revisions.",
     "keyCharacteristics": [
-      "Pale iris surfaces with blueberry ink and coral brand fold",
-      "Chinese display/body typography separation",
-      "Stable list alignments and local state-owned feedback"
+      "Mist-blue ambient light, translucent supporting layers and opaque content surfaces.",
+      "Bundled Inter and Noto Sans SC with upright headings and readable mixed-language records.",
+      "Capsule controls, layered cards and motion tied to actual navigation, selection and reading state.",
+      "Independent original links, record actions and scope controls remain visible."
     ],
     "rules": [
-      "Preserve real query, paging, selection and task contracts",
-      "Remove superseded styles during migration"
+      {
+        "name": "Content Surface",
+        "body": "Keep reading text on an opaque content surface; ambient gradients and frosted layers belong to the surrounding workspace and controls.",
+        "section": "colors"
+      },
+      {
+        "name": "Motion Ownership",
+        "body": "Assign each animated property to its existing component or motion controller; local hover light must not translate the whole record hit area.",
+        "section": "elevation"
+      },
+      {
+        "name": "Evidence Boundary",
+        "body": "Describe source and runtime evidence at their actual scope. A passing test or a design record never establishes user visual acceptance.",
+        "section": "components"
+      }
     ],
     "dos": [
-      "Verify actual app with source provenance and synthetic records"
+      "Do use the current paired light and dark tokens and component-owned capsule styles.",
+      "Do preserve native links, keyboard activation, form behavior, focus return and explicit action scopes.",
+      "Do keep long Chinese and English content readable, with measured summary expansion and independent directory scrolling.",
+      "Do remove replaced styles at their owner and keep reduced-motion states usable.",
+      "Do review the new source in cloud renders and recordings with isolated synthetic data."
     ],
     "donts": [
-      "Do not treat runtime passes as aesthetic approval",
-      "Do not revive rejected prototypes"
+      "Don't restore rejected pale-iris, limestone or pale-green layouts and tokens from historical records.",
+      "Don't use a blanket button/input appearance rule or a document-wide event patch to create local effects.",
+      "Don't merge record hover movement with the layout controller or hide metadata until hover.",
+      "Don't treat old evidence, generated tonal ramps or static component specimens as current runtime or aesthetic approval."
     ]
   }
 }

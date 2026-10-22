@@ -79,7 +79,7 @@ test("reader tabs, expansion reversal and keyboard preserve query and scroll con
     .poll(() => page.locator(".preview-pane").evaluate(element => getComputedStyle(element).transform))
     .toBe("none");
   const focusedReader = await page.locator(".preview-pane").boundingBox();
-  expect(focusedReader!.x).toBeGreaterThanOrEqual(header!.x + header!.width - 1);
+  expect(focusedReader!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
   expect(focusedReader!.x).toBeGreaterThanOrEqual(workspace!.x - 1);
   expect(focusedReader!.x + focusedReader!.width).toBeLessThanOrEqual(workspace!.x + workspace!.width + 1);
   expect(focusedReader!.height).toBeGreaterThan(workspace!.height * .8);
@@ -239,7 +239,7 @@ test("supporting views and small-window reader share the same system", async ({ 
   const header = await page.locator(".app-header").boundingBox();
   expect(toolbar!.x).toBe(collection!.x);
   expect(categories!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
-  expect(toolbar!.x).toBeGreaterThanOrEqual(header!.x + header!.width - 1);
+  expect(toolbar!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
   await expect(page.locator(".app-header .collection-sidebar")).toHaveCount(0);
   expect(categories!.x + categories!.width).toBeLessThan(collection!.x);
   expect(toolbar!.x + toolbar!.width).toBe(collection!.x + collection!.width);
