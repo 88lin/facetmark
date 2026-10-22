@@ -302,9 +302,9 @@ with sync_playwright() as playwright:
         state = checkbox.evaluate('''input => {
             const label = input.closest('.bookmark-select');
             const fill = getComputedStyle(label.querySelector('.bookmark-check-fill'));
-            const path = getComputedStyle(label.querySelector('.bookmark-check-frame path'));
+            const mark = getComputedStyle(label.querySelector('.bookmark-check-frame > svg'));
             return { scale: new DOMMatrixReadOnly(fill.transform === 'none' ? undefined : fill.transform).m11,
-                     opacity: Number(path.opacity) };
+                     opacity: Number(mark.opacity) };
         }''')
         assert abs(state['scale'] - int(checked)) < .001 and state['opacity'] == int(checked), \
             f'Checkbox decoration disagrees with its native checked state: {state}'

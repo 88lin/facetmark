@@ -1,4 +1,7 @@
 /* Reading surfaces; collection and navigation live in workbench.css. */
+.preview-heading, .preview-tabs { background: linear-gradient(120deg, var(--canvas), var(--rail)); }
+.preview-drawer { box-shadow: var(--sheet-shadow); }
+
 .preview-heading {
   position: static;
   z-index: 2;

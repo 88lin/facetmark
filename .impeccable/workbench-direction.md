@@ -86,10 +86,23 @@ replacement. The 2026-10-21 limestone/orange production collection is historical
 implementation evidence, not a retained visual brief. Its d40471f checks do not
 validate this round. No part of that direction was retained by the latest feedback.
 
-The supplied startup prompt and design handbook v0.11 govern this round. Their
-historical product record was checked against the current branch and PR head
-eda094d. The selected working direction is a unified pale-iris navigation and
-continuous collection list with blueberry text, distinct operation scopes and
-context-preserving reading. See the frontend surface contract for the complete
-composition, material and motion choices. Implementation and cloud verification
-remain separate from user visual acceptance, which is pending.
+The supplied startup prompt and design handbook govern the product and reference
+method. The user has now rejected pale-iris revision 46cf2f3 across palette, fonts,
+layout and styling. It is archived, not retained.
+
+## Latest direction — capsule controls and expressive material
+
+User: “按钮等这些要圆角胶囊，高级感的动画，动效，视觉效果拉满…全面的优化和细节打磨”.
+
+Replace the composition with floating top capsule navigation, an independent frosted
+directory and a layered collection worktable. Use mist-blue ambient light, porcelain
+content, deep ink and electric-blue actions. Inter and Noto Sans SC replace slanted
+display type; weight, proportion and spacing carry hierarchy. Capsules have molded
+edges, specular hover sweeps and stable hit areas. Record cards have local pointer
+light, source medallions and soft elevation.
+
+Default to cards with an optional horizontal list. Preserve saved preferences, actual
+content and original links/scopes. Reader transitions, tab highlights, folder opening,
+layout rearrangement and spring dialogs form one interruptible motion language.
+Reduced motion retains endpoints. This working implementation is not user-approved;
+old green runs do not validate the replacement.

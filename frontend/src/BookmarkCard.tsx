@@ -54,9 +54,19 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
 
   return <motion.article data-bookmark-id={record.bookmark_id} data-source-tone={sourceTone} aria-labelledby={`${id}-title`}
     layout={reduced ? false : "position"}
-    initial={false} animate={{ opacity: 1, y: 0 }}
-    transition={{ opacity: { duration: reduced ? 0 : 0.22, delay: reduced ? 0 : Math.min(entranceOrder, 5) * 0.025 },
-      y: { duration: reduced ? 0 : 0.28 }, layout: { type: "spring", stiffness: 400, damping: 36 } }}
+    initial={reduced ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+    transition={{ opacity: { duration: reduced ? 0 : 0.26, delay: reduced ? 0 : Math.min(entranceOrder, 5) * 0.025 },
+      y: { duration: reduced ? 0 : 0.38, ease: [0.22, 1, 0.36, 1] }, layout: { type: "spring", stiffness: 340, damping: 32 } }}
+    onPointerMove={event => {
+      if (reduced || event.pointerType !== "mouse") return;
+      const bounds = event.currentTarget.getBoundingClientRect();
+      event.currentTarget.style.setProperty("--glint-x", `${event.clientX - bounds.left}px`);
+      event.currentTarget.style.setProperty("--glint-y", `${event.clientY - bounds.top}px`);
+    }}
+    onPointerLeave={event => {
+      event.currentTarget.style.removeProperty("--glint-x");
+      event.currentTarget.style.removeProperty("--glint-y");
+    }}
     className={`result-row ${selected ? "selected" : ""} ${checked ? "batch-selected" : ""}`}>
     <header className="result-source">
       <span className="source-symbol" aria-hidden="true">{sourceLetter}</span>

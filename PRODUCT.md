@@ -64,7 +64,14 @@ contracts remain.
 
 ## Brand Commitments
 
-Latest user instruction (2026-10-23): **“之前做了100轮都做的很难看，现在重新做吧”**。
+Latest feedback on 2026-10-23 rejects the pale-iris implementation at 46cf2f3:
+colour, typography, layout and styling were too ordinary. The user explicitly asks
+for capsule buttons, sophisticated animation and much richer visual effects.
+The mist-blue layered replacement is pending visual review. The capsule requirement
+overrides earlier rejection of a particular capsule implementation, without
+restoring that old system.
+
+Earlier user instruction (2026-10-23): **“之前做了100轮都做的很难看，现在重新做吧”**。
 The incumbent PR #44 collection screen is rejected again. Build one complete
 collection workspace and its related states using the supplied startup prompt and
 `E:\design\design-reference-handbook.md` (v0.11 at this round's start). Impeccable

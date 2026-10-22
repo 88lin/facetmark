@@ -40,9 +40,9 @@ def main():
                         f'<a href="{html.escape(p.name)}"><img src="{html.escape(p.name)}" alt="{html.escape(p.stem)}"></a></figure>'
                         for p in sorted(destination.glob("*.png")))
     page = '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width">'
-    page += '<title>Facetmark 收藏工作区 · 本轮实际渲染</title><style>body{margin:0;padding:32px;background:#eeebf8;color:#28243d;'
+    page += '<title>Facetmark 收藏工作区 · 本轮实际渲染</title><style>body{margin:0;padding:32px;background:#e9eff5;color:#162b43;'
     page += 'font:16px/1.7 system-ui,sans-serif}main{max-width:1440px;margin:auto}h1{font-size:28px}figure{margin:32px 0}'
-    page += 'figcaption{margin-bottom:10px}img,video{max-width:100%;height:auto;border-radius:12px}a{color:#6544bb}</style><main>'
+    page += 'figcaption{margin-bottom:10px}img,video{max-width:100%;height:auto;border-radius:24px}a{color:#235fe5}</style><main>'
     page += '<h1>Facetmark 收藏工作区</h1><p>本轮实际 React 页面，GitHub Actions 渲染；全部为隔离合成收藏。视觉仍待用户评价。</p>'
     page += f'<p>Source: <code>{html.escape(os.environ.get("GITHUB_SHA", ""))}</code></p>'
     if video.exists():

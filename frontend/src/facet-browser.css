@@ -2,38 +2,38 @@
 .facet-browser { display: flex; flex-direction: column; width: 100%; min-width: 0; min-height: 0; }
 .facet-browser .facet-browser-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .facet-browser .facet-browser-heading h2 { margin: 0; color: var(--secondary-ink); font-size: 0.8125rem; font-weight: 600; line-height: 1.5; }
-.facet-browser .facet-manage { display: grid; place-items: center; flex: none; width: 30px; min-width: 30px; height: 30px; padding: 0; border: 1px solid transparent; border-radius: 9px; color: var(--secondary-ink); background: transparent; }
-.facet-browser .facet-types { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; margin-bottom: 12px; padding: 3px; border: 1px solid color-mix(in srgb, var(--accent) 10%, var(--rail)); border-radius: 11px; background: color-mix(in srgb, var(--rail) 50%, var(--canvas)); }
-.facet-browser .facet-type { position: relative; isolation: isolate; display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 32px; padding: 5px 1px; border: 0; border-radius: 8px; background: transparent; color: var(--secondary-ink); font-size: 0.75rem; line-height: 1.5; white-space: nowrap; }
+.facet-browser .facet-manage { display: grid; place-items: center; flex: none; width: 30px; min-width: 30px; height: 30px; padding: 0; border: 1px solid transparent; border-radius: var(--radius-pill); color: var(--secondary-ink); background: transparent; }
+.facet-browser .facet-types { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; margin-bottom: 12px; padding: 3px; border: 1px solid color-mix(in srgb, var(--accent) 10%, var(--rail)); border-radius: var(--radius-pill); background: var(--inset); }
+.facet-browser .facet-type { position: relative; isolation: isolate; display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 32px; padding: 5px 1px; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--secondary-ink); font-size: 0.75rem; line-height: 1.5; white-space: nowrap; }
 .facet-browser .facet-type[aria-pressed="true"] { color: var(--accent); font-weight: 650; }
-.facet-browser .facet-type .selection-pill { background: var(--canvas); box-shadow: 0 1px 3px #28243d08; }
-.facet-browser .facet-search { display: flex; align-items: center; gap: 7px; flex: none; min-width: 0; min-height: 36px; margin-bottom: 12px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 11px; color: var(--secondary-ink); background: var(--canvas); }
+.facet-browser .facet-type .selection-pill { background: var(--canvas); box-shadow: 0 2px 5px -2px #294e7833; }
+.facet-browser .facet-search { display: flex; align-items: center; gap: 7px; flex: none; min-width: 0; min-height: 36px; margin-bottom: 12px; padding: 0 10px; border: 1px solid var(--rule); border-radius: var(--radius-pill); color: var(--secondary-ink); background: var(--canvas); }
 .facet-browser .facet-search > svg { flex: none; }
 .facet-browser .facet-search input { width: 100%; min-width: 0; height: 36px; padding: 0; border: 0; outline: none; color: var(--ink); background: transparent; font: inherit; font-size: 0.75rem; line-height: 1.5; caret-color: var(--accent); }
 .facet-browser .facet-search input::placeholder { color: var(--muted); opacity: 1; }
 .facet-browser .facet-search:focus-within { border-color: var(--accent); outline: 2px solid var(--canvas); outline-offset: 2px; }
-.facet-browser .facet-search-clear { display: grid; place-items: center; flex: none; width: 28px; min-width: 28px; min-height: 28px; padding: 0; border: 0; border-radius: 7px; color: var(--secondary-ink); background: transparent; }
-.facet-browser .facet-current { display: grid; grid-template-columns: 15px minmax(0, 1fr) 14px; align-items: center; gap: 8px; min-height: 40px; margin-bottom: 9px; padding: 9px 10px; border: 1px solid var(--selected-edge); border-radius: 11px; color: var(--accent); background: var(--selected); font-size: 0.8125rem; line-height: 1.5; text-align: left; }
+.facet-browser .facet-search-clear { display: grid; place-items: center; flex: none; width: 28px; min-width: 28px; min-height: 28px; padding: 0; border: 0; border-radius: var(--radius-pill); color: var(--secondary-ink); background: transparent; }
+.facet-browser .facet-current { display: grid; grid-template-columns: 15px minmax(0, 1fr) 14px; align-items: center; gap: 8px; min-height: 40px; margin-bottom: 9px; padding: 9px 10px; border: 1px solid var(--selected-edge); border-radius: var(--radius-pill); color: var(--accent); background: var(--selected); font-size: 0.8125rem; line-height: 1.5; text-align: left; }
 .facet-browser .facet-current > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.facet-browser .facet-options { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; min-height: 0; margin: 0 -5px; padding: 3px 5px 8px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scroll-padding: 8px; }
-.facet-browser .facet-option { position: relative; display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; gap: 8px; flex: none; width: 100%; min-height: 43px; padding: 9px 8px; border: 1px solid transparent; border-radius: 11px; color: var(--secondary-ink); background: transparent; font-size: 0.875rem; font-weight: 450; line-height: 1.5; text-align: left; transition: color 160ms ease, background-color 160ms ease; }
-.facet-browser .facet-option > svg { flex: none; }
+.facet-browser .facet-options { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0; min-height: 0; margin: 0 -5px; padding: 3px 5px 8px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scroll-padding: 8px; }
+.facet-browser .facet-option { position: relative; display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 8px; flex: none; width: 100%; min-height: 48px; padding: 10px 12px; border: 1px solid transparent; border-radius: var(--radius-pill); color: var(--secondary-ink); background: transparent; font-size: 0.875rem; font-weight: 450; line-height: 1.5; text-align: left; transition: color 160ms ease, background-color 160ms ease; }
+.facet-browser .facet-option > svg { flex: none; width: 25px; height: 25px; filter: drop-shadow(0 2px 2px #235fe514); }
 .facet-browser .facet-option .facet-label { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .facet-browser .facet-option .facet-label > span { display: block; overflow: hidden; text-overflow: ellipsis; }
-.facet-browser .facet-parent { display: block; overflow: hidden; margin-top: 1px; color: var(--secondary-ink); font-size: 0.6875rem; font-weight: 400; line-height: 1.5; text-overflow: ellipsis; }
-.facet-browser .facet-count { color: var(--secondary-ink); font-size: 0.6875rem; font-weight: 400; font-variant-numeric: tabular-nums; }
+.facet-browser .facet-parent { display: block; overflow: hidden; margin-top: 1px; color: var(--secondary-ink); font-size: 0.75rem; font-weight: 400; line-height: 1.5; text-overflow: ellipsis; }
+.facet-browser .facet-count { color: var(--secondary-ink); font-size: 0.75rem; font-weight: 400; font-variant-numeric: tabular-nums; }
 .facet-browser .facet-selected-mark { display: none; }
-.facet-browser .facet-option[aria-pressed="true"] { color: var(--accent); background: var(--selected); font-weight: 600; }
+.facet-browser .facet-option[aria-pressed="true"] { color: var(--accent); background: linear-gradient(110deg, var(--selected), var(--soft)); border-color: color-mix(in srgb, var(--accent) 13%, var(--canvas)); box-shadow: inset 0 1px 0 var(--glass-edge), 0 5px 10px -9px #235fe570; font-weight: 600; }
 .facet-browser .facet-option[aria-pressed="true"] :is(.facet-parent, .facet-count) { color: var(--accent); }
 .facet-browser .facet-option:hover { background: var(--canvas); color: var(--ink); }
 .facet-browser .facet-option[aria-pressed="true"]:hover { background: var(--selected); color: var(--accent); }
 .facet-browser .facet-any { margin-bottom: 3px; }
 .facet-browser .facet-feedback { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 0; padding: 19px 8px; color: var(--secondary-ink); font-size: 0.75rem; line-height: 1.6; text-align: center; }
 .facet-browser .facet-feedback p { width: 100%; margin: 0; }
-.facet-browser .facet-retry { min-width: 0; min-height: 32px; padding: 5px 12px; border: 1px solid var(--rule); border-radius: 9px; background: var(--canvas); color: var(--accent); font-size: 0.8125rem; }
-.facet-browser .facet-load-more { flex: none; min-height: 38px; margin: 8px 0 4px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 11px; color: var(--secondary-ink); background: var(--canvas); font-size: 0.75rem; font-weight: 500; }
+.facet-browser .facet-retry { min-width: 0; min-height: 32px; padding: 5px 12px; border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--canvas); color: var(--accent); font-size: 0.8125rem; }
+.facet-browser .facet-load-more { flex: none; min-height: 38px; margin: 8px 0 4px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: var(--radius-pill); color: var(--secondary-ink); background: var(--canvas); font-size: 0.75rem; font-weight: 500; }
 .facet-browser .facet-load-more:disabled { opacity: .5; cursor: wait; }
-.facet-browser .facet-range { flex: none; min-height: 30px; padding: 10px 0 0; border-top: 1px solid color-mix(in srgb, var(--accent) 10%, var(--rail)); color: var(--secondary-ink); font-size: 0.6875rem; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.facet-browser .facet-range { flex: none; min-height: 30px; padding: 10px 0 0; border-top: 1px solid color-mix(in srgb, var(--accent) 10%, var(--rail)); color: var(--secondary-ink); font-size: 0.75rem; line-height: 1.5; font-variant-numeric: tabular-nums; }
 .facet-browser :is(.facet-manage, .facet-search-clear, .facet-retry, .facet-load-more):hover { background: var(--canvas); color: var(--accent); }
 .facet-browser :is(button, nav):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (max-width: 719px) { .facet-browser :is(.facet-manage, .facet-type, .facet-load-more, .facet-search-clear, .facet-retry) { min-height: 44px; } .facet-browser .facet-search { min-height: 44px; } .facet-browser .facet-search input { height: 42px; font-size: 1rem; } .facet-browser .facet-manage { width: 44px; min-width: 44px; } .facet-browser .facet-search-clear { width: 36px; min-width: 36px; } .facet-browser .facet-option { min-height: 44px; font-size: 0.875rem; } }

@@ -2,9 +2,12 @@
 export function FacetmarkMark() {
   return <span className="brand-mark" aria-hidden="true">
     <svg viewBox="0 0 40 40" fill="none">
-      <path d="M11 9c0-1.1.9-2 2-2h14v26l-8-5-8 5V9Z" fill="currentColor"/>
-      <path d="M19 7h8v8h-8V7Z" fill="var(--brand-detail)"/>
-      <path d="M15 17h8M15 21h6" stroke="var(--rail)" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M7 10a5 5 0 0 1 5-5h17a4 4 0 0 1 4 4v22a4 4 0 0 1-4 4H12a5 5 0 0 1-5-5Z" fill="var(--brand-detail)" opacity=".55"/>
+      <g className="mark-front">
+        <path d="M10 6a4 4 0 0 1 4-4h14a4 4 0 0 1 4 4v29l-11-6-11 6Z" fill="currentColor"/>
+        <path d="M14 3h14a3 3 0 0 1 3 3v9L11 24V6a3 3 0 0 1 3-3Z" fill="var(--brand-detail)" opacity=".45"/>
+        <path d="M17 12h9M17 17h6" stroke="var(--canvas)" strokeWidth="2.5" strokeLinecap="round"/>
+      </g>
     </svg>
   </span>;
 }

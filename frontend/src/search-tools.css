@@ -52,10 +52,11 @@
   width: min(368px, calc(100vw - 36px));
   overflow: hidden;
   padding: 16px 8px 0;
-  border-radius: 14px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 22px;
   color: var(--ink);
   background: var(--canvas);
-  box-shadow: 0 12px 36px color-mix(in srgb, var(--ink) 16%, transparent);
+  box-shadow: var(--sheet-shadow);
 }
 
 .query-suggestions .query-suggestions-heading {

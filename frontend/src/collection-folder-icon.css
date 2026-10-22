@@ -5,19 +5,21 @@
 }
 
 .collection-folder-icon .collection-folder-back {
-  fill: color-mix(in srgb, var(--accent) 16%, var(--canvas));
+  fill: color-mix(in srgb, var(--accent) 45%, var(--canvas));
   stroke: var(--accent);
 }
 
 .collection-folder-icon .collection-folder-front {
-  fill: var(--canvas);
-  stroke: var(--accent);
+  fill: color-mix(in srgb, var(--brand-detail) 32%, var(--canvas));
+  stroke: color-mix(in srgb, var(--accent) 55%, var(--canvas));
   transition: fill 180ms ease;
 }
 
 .collection-folder-icon[data-open="true"] .collection-folder-front {
-  fill: var(--selected);
+  fill: color-mix(in srgb, var(--accent) 65%, var(--canvas));
 }
+
+.collection-folder-icon .collection-folder-paper { fill: var(--canvas); stroke: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .collection-folder-icon .collection-folder-front { transition: none; }

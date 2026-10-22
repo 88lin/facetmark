@@ -36,49 +36,43 @@ related_targets:
 
 ## Direction status
 
-The user rejected PR #44's incumbent collection screen and requested a complete
-replacement on 2026-10-23. The limestone/orange collection, earlier capsule UI,
-Orbit-folder exception and teal prototype have no visual authority. The current
-round is implementation in progress; user visual review is pending.
+The user rejected pale-iris revision 46cf2f3 on 2026-10-23 in full. Capsule buttons,
+sophisticated motion and rich material are explicit requirements. This replacement
+is implemented for cloud review; aesthetic acceptance is pending.
 
-Long-term reference: `E:\design\design-reference-handbook.md`, v0.11, sections
-1, 5, 6.2 and 7. Its historical project claims were checked against PR #44 at
-`eda094d3a7ba40a46dd47d67988d109ee335723d`. S17–S20 inform relationships, not
-approved components. The supplied startup prompt is the task authority.
+Long-term reference: the supplied design handbook, S17–S20 and its latest feedback
+record. Source-inspected relationships inform the work; no reference is a template.
 
 ## Direction contract
 
-THESIS: A collection for returning to ideas. A continuous reading list gives
-Chinese titles and useful excerpts the main visual weight, with navigation and
-processing scopes fixed around it. Uniform dashboard tiles do not organize it.
+THESIS: A personal collection with a clear reading surface and tactile controls.
+Actual saved content carries the composition.
 
-OWN-WORLD: Pale iris navigation, blueberry ink, soft white content and a coral
-brand detail. A compact folded-bookmark mark, gently molded controls and shallow
-raised overlays distinguish navigation, collection and protected operations.
-Smiley Sans is restricted to the collection heading; body and controls use the
-bundled CJK sans and platform fallbacks.
+OWN-WORLD: Mist-blue surroundings, porcelain cards, deep ink navigation and electric
+blue primary actions. Frosted directory and toolbar layers establish depth; capsule
+controls have molded edges and moving highlights. Inter and Noto Sans SC provide
+firm, upright type with distinct display, title and description scales.
 
-STORY: Choose a directory or search a remembered phrase, scan sources and text,
-open an original or inspect the saved page. Select continuously across pages;
-management IDs and summary scopes remain distinct and explicit.
+STORY: Enter through floating navigation, choose an exact directory, search or scan
+the collection. Read beside a retained index. Selection and summary scopes remain
+visible and separate through paging and failure recovery.
 
-FIRST VIEWPORT: At 1440px, a 248px unified left navigation/directory faces a broad
-white reading workspace. Title/count and search occupy its top band; add/manage/
-summary actions, status tabs and view controls sit above records. Source badges,
-Chinese titles, excerpts, tags and actions share stable alignments. A selected
-record opens a right reader beside the retained index. At narrow widths navigation
-opens as a drawer and reading becomes a focus-managed layer.
+FIRST VIEWPORT: At 1440px an 88px top band holds identity, capsule navigation and
+utilities. A 244px frosted directory faces the rounded collection surface. Title
+and capsule search lead to actions/status and substantial two-column reading cards.
+Source medallions, mixed-language titles and summaries stay visible. Short windows
+compact the chrome; narrow screens retain focus-managed directory and reader layers.
 
-FORM: Direct, delegated working choice based on the current brief and inspected
-S17/S18 source snapshots. Operate, code-led. seed: none (not run).
+FORM: Delegated code-led replacement based on explicit feedback and inspected
+S17/S19 source relationships. No generated mock comp or concept tournament.
 
-SIGNATURE: A shared selection highlight slides within each local tab group;
-record selection and the fixed action strip echo the same real selection.
-Reader opening preserves the index and animates the incoming pane. Interruptible
-160–320ms motion follows state; reduced motion reaches the same visible endpoint.
+SIGNATURE: Local light follows the pointer on a record without moving its hit area;
+the source medallion settles on hover. Selection highlights spring between states.
+Cards rearrange continuously, folders unfold when selected and dialogs spring into
+protected focus. Reduced motion retains each usable endpoint.
 
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish
-review, the verdict, DESIGN.md, and every shipping raster carrying its provenance.
+FINISH: Inspect source-matched cloud renders and video, obtain a fresh finish review
+and document the actual implementation. None confers user aesthetic approval.
 
 ## Collection and navigation behavior
 

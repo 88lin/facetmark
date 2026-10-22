@@ -1,29 +1,29 @@
 /* CollectionTools owns status, display, summary selection and task feedback. */
 .collection-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; width: 100%; order: 2; }
 .collection-status, .collection-options, .collection-selection, .collection-job { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.collection-status { gap: 3px; }
-.collection-status .fm-button { position: relative; isolation: isolate; display: inline-flex; align-items: center; gap: 7px; min-height: 35px; padding: 7px 11px; border: 0; border-radius: 10px; background: transparent; color: var(--secondary-ink); font-size: 0.8125rem; }
+.collection-status { gap: 3px; padding: 4px; border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--inset); box-shadow: inset 0 2px 4px #23456106; }
+.collection-status .fm-button { position: relative; isolation: isolate; display: inline-flex; align-items: center; gap: 7px; min-height: 35px; padding: 7px 11px; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--secondary-ink); font-size: 0.8125rem; }
 .collection-status .fm-button:hover { background: var(--inset); }
 .collection-status .fm-button[aria-pressed="true"] { color: var(--accent); font-weight: 650; }
-.collection-status .fm-button .selection-pill { background: var(--soft); }
+.collection-status .fm-button .selection-pill { background: var(--canvas); box-shadow: 0 3px 8px -4px #294e7845; }
 .collection-status .fm-button > span { min-width: 18px; color: inherit; font-size: 0.6875rem; font-variant-numeric: tabular-nums; }
 .collection-status .fm-button[data-status="failed"] > span { color: var(--danger); }
 .collection-sort { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; color: var(--secondary-ink); }
-.collection-sort select { min-width: 0; width: auto; max-width: 100%; min-height: 35px; padding: 7px 24px 7px 8px; border: 0; border-radius: 9px; background-color: var(--canvas); color: var(--secondary-ink); font-size: 0.8125rem; }
+.collection-sort select { min-width: 0; width: auto; max-width: 100%; min-height: 35px; padding: 7px 24px 7px 8px; border: 0; border-radius: var(--radius-pill); background-color: transparent; color: var(--secondary-ink); font-size: 0.8125rem; }
 .collection-options-menu { position: relative; }
-.collection-options-menu > summary { display: inline-flex; align-items: center; gap: 6px; min-height: 35px; padding: 7px 8px; border: 0; border-radius: 9px; color: var(--secondary-ink); background: var(--canvas); font-size: 0.8125rem; font-weight: 500; white-space: nowrap; list-style: none; cursor: pointer; }
+.collection-options-menu > summary { display: inline-flex; align-items: center; gap: 6px; min-height: 35px; padding: 7px 8px; border: 0; border-radius: var(--radius-pill); color: var(--secondary-ink); background: transparent; font-size: 0.8125rem; font-weight: 500; white-space: nowrap; list-style: none; cursor: pointer; }
 .collection-options-menu > summary::-webkit-details-marker { display: none; }
 .collection-options-menu > summary:hover { background: var(--inset); }
 .collection-options-menu[open] .disclosure-chevron { transform: rotate(180deg); }
-.collection-options { position: absolute; z-index: 15; right: 0; top: 100%; min-width: 230px; gap: 10px; padding: 10px; margin-top: 6px; border: 1px solid var(--rule); border-radius: 14px; background: var(--canvas); box-shadow: var(--sheet-shadow); }
-.summary-display { display: flex; gap: 3px; padding: 3px; background: var(--inset); border-radius: 10px; }
-.summary-display .fm-button { min-height: 34px; padding: 6px 12px; border: 0; border-radius: 8px; background: transparent; color: var(--secondary-ink); font-size: 0.8125rem; }
+.collection-options { position: absolute; z-index: 15; right: 0; top: 100%; min-width: 230px; gap: 10px; padding: 10px; margin-top: 6px; border: 1px solid var(--rule); border-radius: 22px; background: var(--canvas); box-shadow: var(--sheet-shadow); }
+.summary-display { display: flex; gap: 3px; padding: 3px; background: var(--inset); border-radius: var(--radius-pill); }
+.summary-display .fm-button { min-height: 34px; padding: 6px 12px; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--secondary-ink); font-size: 0.8125rem; }
 .summary-display .fm-button[aria-pressed="true"] { background: var(--canvas); color: var(--accent); }
 .search-mode-select { width: auto; max-width: 150px; border: 0; background: transparent; color: var(--secondary-ink); padding: 3px; font-size: 0.8125rem; }
-.collection-selection { width: 100%; justify-content: flex-start; gap: 6px 12px; padding: 10px 12px; border: 1px solid var(--selected-edge); border-radius: 13px; background: var(--soft); color: var(--accent); font-size: 0.8125rem; }
+.collection-selection { width: 100%; justify-content: flex-start; gap: 6px 12px; padding: 10px 12px; border: 1px solid var(--selected-edge); border-radius: 20px; background: var(--soft); color: var(--accent); font-size: 0.8125rem; }
 .collection-selection .text-button { min-height: 32px; padding: 5px 7px; font-size: 0.8125rem; }
 .collection-selection > span { font-weight: 600; font-variant-numeric: tabular-nums; }
-.collection-job { width: 100%; justify-content: space-between; padding: 12px 14px; border: 1px solid var(--selected-edge); border-radius: 13px; background: var(--soft); color: var(--accent); font-size: 0.8125rem; }
+.collection-job { width: 100%; justify-content: space-between; padding: 12px 14px; border: 1px solid var(--selected-edge); border-radius: 20px; background: var(--soft); color: var(--accent); font-size: 0.8125rem; }
 .collection-job .secondary { min-height: 34px; padding: 6px 12px; }
 .processing-count { font-weight: 650; color: var(--ink); }
 .collection-options-menu[open] > .collection-options, .collection-selection { animation: collection-controls-enter 180ms var(--ease); }
@@ -31,8 +31,8 @@
 @keyframes collection-controls-enter { from { opacity: .6; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 719px) {
   .collection-tools { gap: 8px 4px; }
-  .collection-status { flex: 1 0 100%; justify-content: space-between; gap: 0; min-width: 0; }
-  .collection-status .fm-button { min-width: 0; gap: 4px; padding: 6px 7px; }
+  .collection-status { flex: 1 0 100%; justify-content: space-between; gap: 0; min-width: 0; padding: 3px; }
+  .collection-status .fm-button { min-width: 0; gap: 3px; padding: 6px 6px; }
   .collection-options-menu { margin-left: auto; }
   .collection-sort { margin-left: 0; }
   .collection-sort select { max-width: 132px; padding-left: 0; padding-right: 10px; font-size: 0.8125rem; }

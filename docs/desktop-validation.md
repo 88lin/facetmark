@@ -1,6 +1,6 @@
 # Desktop experience validation
 
-> 2026-10-23: 用户已否定下述旧收藏页视觉。本轮重新制作的浅鸢尾工作区正在云端验证；新结果见 [本轮记录](collection-workspace-2026-10-23.md)。下述 d40471f 安装和测试结果仅对应旧版本。
+> 2026-10-23：用户已否定旧石灰色收藏页及 46cf2f3 浅鸢尾版。当前按胶囊按钮、丰富材质与连续动效重新制作；见 [本轮记录](collection-workspace-2026-10-23.md)。以下全部为历史技术证据，不代表新界面或用户认可。
 
 <!-- current-experience-evidence:start -->
 

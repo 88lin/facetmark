@@ -135,7 +135,7 @@ function Workbench({
   const [loadedPage, setPage] = useState<Page | null>(null);
   const [loadedContext, setLoadedContext] = useState("");
   const [loadedScope, setLoadedScope] = useState("");
-  const [collectionLayout, setCollectionLayout] = useState(() => remember("fm-collection-layout") === "grid" ? "grid" : "list");
+  const [collectionLayout, setCollectionLayout] = useState(() => remember("fm-collection-layout") === "list" ? "list" : "grid");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [connectionError, setConnectionError] = useState("");

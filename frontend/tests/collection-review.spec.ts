@@ -25,7 +25,7 @@ test("representative collection, responsive states, exact scopes, save recovery 
     recordVideo: { dir: "recordings/collection-review", size: { width: 1440, height: 960 } } });
   await context.addInitScript(() => {
     localStorage.setItem("fm-language", "zh"); localStorage.setItem("fm-theme", "light");
-    localStorage.setItem("fm-collection-layout", "list");
+    localStorage.setItem("fm-collection-layout", "grid");
   });
   await context.route("**/*", route => new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort());
   const page = await context.newPage();
@@ -38,8 +38,11 @@ test("representative collection, responsive states, exact scopes, save recovery 
     await expect(page.locator(".result-row")).toHaveCount(30);
     await expect(page.locator(".bookmark-status[data-summary-status='failed']").first()).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
-    expect(await page.evaluate(() => document.fonts.check('34px "Facetmark Display"'))).toBe(true);
-    await capture(page, evidence, "desktop", "Default continuous collection, real isolated API, Chinese/mixed titles");
+    expect(await page.evaluate(() => document.fonts.check('32px "Facetmark CJK"') && document.fonts.check('19px "Facetmark Latin"'))).toBe(true);
+    await capture(page, evidence, "desktop", "Floating capsule navigation and layered collection, real isolated API, Chinese/mixed titles");
+    await page.locator(".result-row").first().hover({ position: { x: 180, y: 100 } });
+    await capture(page, evidence, "desktop-hover", "Local pointer light and source badge feedback on the actual record");
+    await page.mouse.move(4, 4);
     await page.getByRole("button", { name: "切换主题", exact: true }).first().click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await capture(page, evidence, "desktop-dark", "Dark theme, same content");
@@ -55,9 +58,10 @@ test("representative collection, responsive states, exact scopes, save recovery 
     await englishSummary.getByRole("button", { name: "Collapse", exact: true }).click();
     await page.getByRole("button", { name: "Switch language", exact: true }).first().click();
 
-    await page.getByRole("button", { name: "卡片视图", exact: true }).click();
-    await capture(page, evidence, "desktop-cards", "Alternate card view retains state and metadata");
     await page.getByRole("button", { name: "列表视图", exact: true }).click();
+    await capture(page, evidence, "desktop-list", "Alternate horizontal reading list retains state and metadata");
+    await page.getByRole("button", { name: "卡片视图", exact: true }).click();
+    await capture(page, evidence, "desktop-cards", "Card layout restored through an interruptible layout transition");
     for (const viewport of [{ width: 1280, height: 600 }, { width: 1024, height: 768 }, { width: 390, height: 844 }, { width: 320, height: 760 }]) {
       await page.setViewportSize(viewport);
       await capture(page, evidence, `collection-${viewport.width}`, "Responsive collection with full operations and long Chinese text");
