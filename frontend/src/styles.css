@@ -14,6 +14,14 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "Facetmark Display";
+  src: url("./assets/fonts/smiley-sans.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 :root {
   view-transition-name: root;
   --font-ui: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "PingFang SC", "Facetmark CJK", sans-serif;
@@ -22,29 +30,36 @@
   --type-meta: 0.875rem;
   --type-caption: 0.8125rem;
   --type-card-title: 1.125rem;
-  --secondary-ink: #55534f;
+  --font-display: "Facetmark Display", "Facetmark CJK", "Microsoft YaHei UI", sans-serif;
+  --secondary-ink: #605c76;
   font-family: var(--font-ui);
   color-scheme: light;
   --canvas: #ffffff;
-  --desk: #f1efeb;
-  --rail: #eae7e1;
-  --inset: #f5f3ef;
-  --ink: #28282c;
-  --muted: #716b63;
-  --rule: #e2ded7;
-  --accent: #b94726;
-  --soft: #fff1e9;
-  --selected: #fbe5d8;
-  --selected-edge: #c57957;
-  --selection-neutral: #ebe6dd;
-  --card-shadow: 0 2px 3px #3e2c1905, 0 8px 22px #3e2c1908;
-  --sheet-shadow: 0 12px 40px #382e2114, 0 2px 6px #382e2108;
+  --desk: #f5f4fa;
+  --rail: #eeebf8;
+  --inset: #f5f4fa;
+  --ink: #28243d;
+  --muted: #706b83;
+  --rule: #e7e4ef;
+  --accent: #6544bb;
+  --soft: #f0eafb;
+  --selected: #e9e0fb;
+  --selected-edge: #a28acb;
+  --selection-neutral: #efedf5;
+  --card-shadow: 0 2px 3px #28243d04, 0 8px 24px #28243d07;
+  --sheet-shadow: 0 16px 48px #28243d14, 0 3px 10px #28243d09;
   --on-accent: #fff;
-  --danger: #ae3438;
-  --scrim: #201d1a80;
+  --danger: #b33b58;
+  --danger-soft: #fff0f3;
+  --success: #246c62;
+  --success-soft: #eaf5f1;
+  --warning: #88651e;
+  --warning-soft: #fff5dc;
+  --brand-detail: #e49298;
+  --scrim: #211d3780;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --radius-control: 10px;
-  --radius-pill: 10px;
+  --radius-control: 12px;
+  --radius-pill: 12px;
   --control-height: 44px;
   font-size: 100%;
   line-height: 1.6;
@@ -55,24 +70,30 @@
   -webkit-font-smoothing: antialiased;
 }
 :root[data-theme="dark"] {
-  --secondary-ink: #d0c9bf;
+  --secondary-ink: #c3bdd9;
   color-scheme: dark;
-  --desk: #191a1d;
-  --canvas: #252628;
-  --rail: #202123;
-  --inset: #303133;
-  --ink: #f2eee7;
-  --muted: #b3aca2;
-  --rule: #3e3d3a;
-  --accent: #ffac8c;
-  --soft: #3c2f29;
-  --selected: #51382c;
-  --selected-edge: #bc7e60;
-  --selection-neutral: #37332e;
+  --desk: #191724;
+  --canvas: #211e2d;
+  --rail: #282238;
+  --inset: #2b273b;
+  --ink: #f0ecfb;
+  --muted: #b1a9c6;
+  --rule: #3c354e;
+  --accent: #c3a8ff;
+  --soft: #352b4c;
+  --selected: #413257;
+  --selected-edge: #947ab9;
+  --selection-neutral: #352f44;
   --card-shadow: 0 3px 14px #00000020;
   --sheet-shadow: 0 14px 40px #00000038;
-  --on-accent: #3c2117;
-  --danger: #f7a0ae;
+  --on-accent: #241637;
+  --danger: #ffa6bc;
+  --danger-soft: #412635;
+  --success: #9bd7c9;
+  --success-soft: #233c38;
+  --warning: #ebca8c;
+  --warning-soft: #3c3221;
+  --brand-detail: #e7a4aa;
   --scrim: #06070a99;
 }
 * {

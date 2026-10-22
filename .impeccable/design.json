@@ -1,40 +1,112 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-21T02:39:22.038967+00:00",
-  "title": "Facetmark production collection workspace",
+  "generatedAt": "2026-10-22T20:52:40.058308+00:00",
+  "title": "Facetmark collection workspace — 2026-10-23",
   "extensions": {
     "colorMeta": {
-      "desk": {
-        "light": "#f1efeb",
-        "dark": "#191a1d"
+      "secondary-ink": {
+        "light": "#605c76",
+        "dark": "#c3bdd9"
       },
-      "surface": {
+      "canvas": {
         "light": "#ffffff",
-        "dark": "#252628"
+        "dark": "#211e2d"
       },
-      "text": {
-        "light": "#28282c",
-        "dark": "#f2eee7"
+      "desk": {
+        "light": "#f5f4fa",
+        "dark": "#191724"
+      },
+      "rail": {
+        "light": "#eeebf8",
+        "dark": "#282238"
+      },
+      "inset": {
+        "light": "#f5f4fa",
+        "dark": "#2b273b"
+      },
+      "ink": {
+        "light": "#28243d",
+        "dark": "#f0ecfb"
+      },
+      "muted": {
+        "light": "#706b83",
+        "dark": "#b1a9c6"
+      },
+      "rule": {
+        "light": "#e7e4ef",
+        "dark": "#3c354e"
       },
       "accent": {
-        "light": "#b94726",
-        "dark": "#ffac8c"
+        "light": "#6544bb",
+        "dark": "#c3a8ff"
+      },
+      "soft": {
+        "light": "#f0eafb",
+        "dark": "#352b4c"
+      },
+      "selected": {
+        "light": "#e9e0fb",
+        "dark": "#413257"
+      },
+      "selected-edge": {
+        "light": "#a28acb",
+        "dark": "#947ab9"
+      },
+      "selection-neutral": {
+        "light": "#efedf5",
+        "dark": "#352f44"
+      },
+      "on-accent": {
+        "light": "#fff",
+        "dark": "#241637"
+      },
+      "danger": {
+        "light": "#b33b58",
+        "dark": "#ffa6bc"
+      },
+      "danger-soft": {
+        "light": "#fff0f3",
+        "dark": "#412635"
+      },
+      "success": {
+        "light": "#246c62",
+        "dark": "#9bd7c9"
+      },
+      "success-soft": {
+        "light": "#eaf5f1",
+        "dark": "#233c38"
+      },
+      "warning": {
+        "light": "#88651e",
+        "dark": "#ebca8c"
+      },
+      "warning-soft": {
+        "light": "#fff5dc",
+        "dark": "#3c3221"
+      },
+      "brand-detail": {
+        "light": "#e49298",
+        "dark": "#e7a4aa"
+      },
+      "scrim": {
+        "light": "#211d3780",
+        "dark": "#06070a99"
       }
     },
     "typographyMeta": {
       "interface": "Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI, PingFang SC, bundled Noto Sans SC",
-      "collectionTitle": "27px / 650",
-      "bookmarkTitle": "19px / 650",
-      "summary": "15px / 1.75",
-      "metadata": "13px"
+      "collectionTitle": "Smiley Sans 34px / 400; compact 30px",
+      "bookmarkTitle": "18px / 650",
+      "summary": "15px / 1.75; wide list 1.7",
+      "metadata": "13px; compact secondary labels 11px"
     },
     "shadows": [],
     "motion": [
-      "Local checkbox fill/check state",
-      "Local folder active path morph",
-      "Keyed card layout/mount",
+      "Local selected-tab highlight",
+      "Native checkbox with local animated fill",
+      "Folder front follows actual state",
       "HeroUI pressed transform",
-      "Existing interrupted content/reader transitions"
+      "Interruptible reader/content transitions with reduced-motion endpoints"
     ],
     "breakpoints": [
       {
@@ -51,12 +123,12 @@
       }
     ],
     "evidence": {
-      "status": "production-collection-verified-for-review",
+      "status": "current-collection-cloud-validation-pending",
       "visualAcceptance": "awaiting-user-review",
-      "sourceState": "Production collection rebuilt in App, BookmarkCard, FacetBrowser, shared controls and component styles.",
+      "sourceState": "Pale-iris unified navigation and continuous collection implemented in the production React app.",
       "brief": ".impeccable/workbench-direction.md",
       "history": ".impeccable/history/2026-10-19-rejected-ui/README.md",
-      "verification": "Source d40471f: CI39531664175, Experience39531658962 and Windows39531658960 passed. Browser76+separate200k1; backend2050; installed24steps. See docs/desktop-validation.md.",
+      "verification": "Current-source cloud results pending. Prior d40471f checks apply only to the rejected 2026-10-21 screen.",
       "workingProposal": {
         "status": "rejected-by-user",
         "entrypoint": "frontend/design/workbench/index.html",
@@ -65,7 +137,7 @@
         "productionIntegrated": false,
         "sourceAudit": "docs/redesign-source-audit.md"
       },
-      "verifiedCommit": "d40471fe789f9b57e4d04d8440a8faafc1f327aa"
+      "roundRecord": "docs/collection-workspace-2026-10-23.md"
     }
   },
   "components": [
@@ -92,11 +164,11 @@
   ],
   "narrative": {
     "northStar": "Retrieve and read a saved page without losing collection context",
-    "overview": "Horizontal navigation, separate directory, raised collection sheet and readable record metadata. Production implementation awaiting user visual review.",
+    "overview": "Unified left navigation and searchable directory; continuous collection list, explicit operation scopes and context-preserving right reader.",
     "keyCharacteristics": [
-      "Warm desk and terracotta accents",
-      "Readable Chinese and English hierarchy",
-      "Local state-owned feedback"
+      "Pale iris surfaces with blueberry ink and coral brand fold",
+      "Chinese display/body typography separation",
+      "Stable list alignments and local state-owned feedback"
     ],
     "rules": [
       "Preserve real query, paging, selection and task contracts",

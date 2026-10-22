@@ -64,7 +64,13 @@ contracts remain.
 
 ## Brand Commitments
 
-Latest user instruction (2026-10-19): **“现在这种图标布局样式颜色等都不要。”**
+Latest user instruction (2026-10-23): **“之前做了100轮都做的很难看，现在重新做吧”**。
+The incumbent PR #44 collection screen is rejected again. Build one complete
+collection workspace and its related states using the supplied startup prompt and
+`E:\design\design-reference-handbook.md` (v0.11 at this round's start). Impeccable
+owns the working system; S17–S20 are permitted references for improvement, not
+approved Facetmark components. The earlier 2026-10-19 instruction remains relevant:
+**“现在这种图标布局样式颜色等都不要。”**
 The whole current visual system is rejected: icons and mark treatment, composition,
 layout, styling, palette and typography are open for replacement. This supersedes
 all earlier partial visual acceptance, including the Orbit folder glyph and the
@@ -89,8 +95,9 @@ the current brief, not from dependency defaults.
 
 The [current redesign requirements](.impeccable/workbench-direction.md) are the
 active visual brief; the [frontend surface brief](.impeccable/surfaces/frontend.md)
-records behavior and verification boundaries. DESIGN.md and its sidecar record the implemented production collection direction,
-with cloud validation complete and user review pending; they do not inherit rejected tokens. Rejected specifications
+records behavior and verification boundaries. DESIGN.md and its sidecar record the current
+collection implementation and its actual validation status; the 2026-10-21 limestone/orange
+direction is rejected, and its green cloud checks certify only that historical revision. Rejected specifications
 are archived under `.impeccable/history/` for migration, not design authority.
 
 ## Evidence on Hand

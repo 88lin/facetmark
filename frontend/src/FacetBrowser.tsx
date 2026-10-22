@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Globe2, Inbox, LoaderCircle, Search, Settings2, Tags, X } from "lucide-react";
 import { api, query } from "./api";
 import { useText } from "./locale";
-import { useContentMotion } from "./InteractionMotion";
+import { SelectionPill, useContentMotion } from "./InteractionMotion";
 import { CollectionFolderIcon } from "./CollectionFolderIcon";
 import "./facet-browser.css";
 
@@ -72,7 +72,7 @@ export function FacetBrowser({ filters, enabled = true, revision, onSelect, onMa
 
   return <section className="facet-browser" aria-label={t("分类与筛选", "Categories and filters")}>
     <div className="facet-browser-heading">
-      <h2>{t("收藏目录", "Directory")}</h2>
+      <h2>{t("分类浏览", "Browse categories")}</h2>
       {onManage && <CapsuleButton type="button" className="facet-manage" onClick={onManage}
         title={t("整理文件夹与标签", "Organize folders and tags")} aria-label={t("整理文件夹与标签", "Organize folders and tags")}><Settings2 size={16}/></CapsuleButton>}
     </div>
@@ -81,7 +81,7 @@ export function FacetBrowser({ filters, enabled = true, revision, onSelect, onMa
         aria-pressed={group === key} onClick={() => {
           if (group === key) return;
           resetList(); setText(""); setGroup(key);
-        }}><span>{label}</span></CapsuleButton>)}
+        }}><SelectionPill active={group === key} group={`directory-type-${enabled ? "active" : "inactive"}`} /><span>{label}</span></CapsuleButton>)}
     </div>
     <label className="facet-search">
       <Search size={15} aria-hidden="true" />

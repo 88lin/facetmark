@@ -1,5 +1,7 @@
 # Desktop experience validation
 
+> 2026-10-23: 用户已否定下述旧收藏页视觉。本轮重新制作的浅鸢尾工作区正在云端验证；新结果见 [本轮记录](collection-workspace-2026-10-23.md)。下述 d40471f 安装和测试结果仅对应旧版本。
+
 <!-- current-experience-evidence:start -->
 
 ## 2026-10-21: production collection rebuild, verified for review

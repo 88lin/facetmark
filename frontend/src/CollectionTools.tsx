@@ -33,7 +33,7 @@ export function CollectionTools({ scope, page, display, onDisplay, sort, onSort,
   }
   return <div className="collection-tools">
     <div className="collection-status" role="group" aria-label={t("摘要状态", "Summary status")}>
-      {(["all", "pending", "done", "failed"] as const).map((status, i) => <CapsuleButton key={status} aria-pressed={(scope.status || "all") === status}
+      {(["all", "pending", "done", "failed"] as const).map((status, i) => <CapsuleButton key={status} data-status={status} aria-pressed={(scope.status || "all") === status}
         onClick={() => onStatus(status)}><SelectionPill active={(scope.status || "all") === status} group="summary-status" />{[t("全部", "All"), t("待生成", "Pending"), t("有摘要", "Summarized"), t("失败", "Failed")][i]}
         <span>{disabled || !counts ? "…" : counts[status === "all" ? "total" : status].toLocaleString()}</span></CapsuleButton>)}
     </div>

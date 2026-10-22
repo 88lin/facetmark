@@ -43,6 +43,7 @@ import { CollectionTools } from "./CollectionTools";
 import type { CollectionScope } from "./api";
 import { LibraryDialog, LibraryToolbar, type LibraryAction } from "./LibraryTools";
 import { FacetBrowser } from "./FacetBrowser";
+import { FacetmarkMark } from "./FacetmarkMark";
 import { QuerySuggestions, SearchAnswer } from "./SearchTools";
 import Reader, { Skeleton } from "./Reader";
 import { gsap } from "gsap";
@@ -134,7 +135,7 @@ function Workbench({
   const [loadedPage, setPage] = useState<Page | null>(null);
   const [loadedContext, setLoadedContext] = useState("");
   const [loadedScope, setLoadedScope] = useState("");
-  const [collectionLayout, setCollectionLayout] = useState(() => remember("fm-collection-layout") === "list" ? "list" : "grid");
+  const [collectionLayout, setCollectionLayout] = useState(() => remember("fm-collection-layout") === "grid" ? "grid" : "list");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [connectionError, setConnectionError] = useState("");
@@ -683,7 +684,7 @@ function Workbench({
             openView("library");
           }}
         >
-          <span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 5h17v7H15v5h8v6h-8v6H8z" fill="currentColor"/><path d="M19 5h6v7h-6z" fill="currentColor" opacity=".5"/></svg></span>
+          <FacetmarkMark />
           <span>Facetmark</span>
         </a>
         <nav className="header-navigation" aria-label={t("主要导航", "Main navigation")}>
@@ -777,7 +778,7 @@ function Workbench({
             openView("library");
           }}
         >
-          <span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 5h17v7H15v5h8v6h-8v6H8z" fill="currentColor"/></svg></span>
+          <FacetmarkMark />
           <span>Facetmark</span>
         </a>
         <div className="nav-section-label">{t("书库与筛选", "Library & filters")}</div>
@@ -881,7 +882,6 @@ function Workbench({
       )}
       {paired && view === "library" && <aside className="collection-sidebar" inert={navOpen || focusReading}
         aria-hidden={navOpen || focusReading} aria-label={t("收藏目录", "Collection directory")}>
-        <div className="directory-title"><span>{t("书库", "Library")}</span><span className="directory-total">{setup?.bookmarks?.toLocaleString() ?? "—"}</span></div>
         <FacetBrowser filters={filters} enabled={!navOpen} revision={requestRevision} onSelect={selectFilter}
           onManage={adminAvailable && job.state !== "running" ? () => setLibraryAction({ kind: "taxonomy" }) : undefined} />
         <div className="directory-footer"><span className="connection-light" aria-hidden="true"/>{t("你的书库", "Your library")}<span>{t("原网页直接访问", "Original links")}</span></div>
@@ -962,8 +962,10 @@ function Workbench({
                     filters.folder !== undefined ? filters.folder || t("未分类", "Unfiled") :
                     filters.tag || filters.domain || (filters.session !== undefined ? t("浏览批次", "Saving session") : t("我的收藏", "Your collection"))}
                 </h1>
-                <span>
+                <span className="collection-subtitle">
                   <span className="result-count" aria-live="polite">{loading || !page ? "…" : page.total}{page?.depth_capped ? "+" : ""}</span> {t("条收藏", "saved pages")}
+                  <span className="collection-subtitle-separator" aria-hidden="true">·</span>
+                  {t("每一个值得再回来的地方", "Places worth coming back to")}
                 </span>
               </div>
               <div className="workspace-search">
@@ -972,7 +974,7 @@ function Workbench({
                   <input
                     ref={searchInput}
                     aria-label={t("搜索书签", "Search bookmarks")}
-                    placeholder={t("你想找回什么？", "What would you like to find again?")}
+                    placeholder={t("搜索标题、网址或一段记忆…", "Search a title, URL, or remembered phrase…")}
                     value={input}
                     onChange={(e) => changeQuery(e.target.value)}
                     onCompositionStart={() => {

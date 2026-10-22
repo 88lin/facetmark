@@ -1,74 +1,59 @@
 ---
 name: Facetmark collection workspace
-description: Production collection rebuild; implemented working direction awaiting user review.
+description: Pale-iris collection workspace; current implementation awaiting cloud verification and user review.
 ---
 
 # Facetmark collection workspace
 
-The collection screen is rebuilt in the real React application. This is an
-implemented working direction, not user aesthetic approval. The old purple
-capsule UI, Orbit folders and teal standalone prototype remain rejected. The
-current review boundary is the complete collection screen and its reading return
-flow; settings/task interiors retain their functional implementation.
+The 2026-10-23 round replaces the rejected PR #44 collection direction. This is
+an implemented working choice, awaiting current-source cloud verification and
+user visual review. Historical d40471f checks apply only to the rejected revision.
 
 ## Composition and material
 
-A horizontal application bar separates navigation from a full-height directory.
-The directory sits on a warm limestone desk; the collection occupies a raised
-white sheet with a title/search band, action and status controls, independently
-scrolling results, and a stable pagination footer. A selected item opens beside
-the result index on wide screens and in the existing focus-managed drawer below
-1120px. Below 960px, the directory moves into the navigation drawer.
+A 248px pale-iris column combines navigation and the searchable directory. The
+white collection workspace has a title/search band, separate add/manage/summary
+actions, status and display controls, a continuous reading list and fixed paging.
+Sources, titles, excerpts, tags and entry actions align across records. Card view
+is optional. The right reader retains a narrow collection index at 1120px and
+above; below that it uses a focus-managed drawer. Navigation becomes a drawer
+below 960px. Short windows compact utility controls to preserve directory space.
 
-Light: desk `#f1efeb`, surface `#ffffff`, text `#28282c`, secondary text `#55534f`,
-accent `#b94726`. Dark: desk `#191a1d`, surface `#252628`, text `#f2eee7`, secondary
-text `#d0c9bf`, accent `#ffac8c`. Components use semantic tokens for both themes.
-Cards have 18px corners, the collection sheet 24px, controls 10px, small metadata
-labels 5px. These are role-specific values, not blanket button/input overrides.
+Light: navigation `#eeebf8`, surface `#ffffff`, text `#28243d`, secondary text
+`#605c76`, accent `#6544bb`. Dark: navigation `#282238`, surface `#211e2d`, text
+`#f0ecfb`, secondary text `#c3bdd9`, accent `#c3a8ff`. Semantic success, warning and
+failure colors are separate from the accent. A coral fold marks the brand.
+Subtle inset search and raised overlays distinguish content and actions.
 
-The UI font follows Windows Segoe UI Variable/Segoe UI, Microsoft YaHei UI,
-PingFang SC and bundled Noto Sans SC fallbacks. Chinese does not inherit Latin
-negative tracking. Collection titles use 27px/650, bookmark titles 19px/650,
-summary text 15px/1.75, metadata at least 13px. Short windows reduce surrounding
-chrome rather than remove record metadata.
+Smiley Sans is bundled under OFL and used only for the collection heading
+(34px/400, 30px on compact layouts). Body and controls use platform sans with
+bundled Noto Sans SC fallback. Record titles use 18px/650, summaries 15px/1.75.
+Chinese headings have no negative letter spacing. Radius follows component role:
+12px standard controls, 14px search, 20px reader, 10px local selection tabs.
 
 ## Ownership and interaction
 
-- `workbench.css`: application bar, directory placement, collection grid, search,
-  footer, responsive layout and reader pane geometry.
-- `BookmarkCard.tsx` / `bookmark-card.css`: original links, measured summary
-  expansion, summary status, all tags, path, selection and entry actions.
-- `FacetBrowser.tsx` / `facet-browser.css`: real paged folder/tag/domain controls;
-  displayed leaf names keep their full literal API path.
-- `CollectionFolderIcon.tsx` / `collection-folder-icon.css`: restrained folder
-  front morph driven by actual active/open state in directory and folder picker.
-- `ui/controls.tsx` / `ui/controls.css`: native event/form bridge and semantic
-  HeroUI tokens. HeroUI owns pressed state and press transform.
-- `reader-shell.css`: reading typography and controls. Existing App refs retain
-  result scroll position and return focus.
+- `workbench.css`: application navigation, directory placement, collection geometry,
+  search, footer, responsive layouts and focus-mode geometry.
+- `bookmark-card.css`: source badge, native original links, summaries, status,
+  tags, checkboxes and local record actions. Metadata remains visible.
+- `facet-browser.css`: bounded searchable directory; literal API paths stay exact.
+- `collection-tools.css` / `library-tools.css`: distinct status, processing scope,
+  cross-page selection, management and create/edit flows.
+- `reader-shell.css`: reading typography, controls and progress positioning.
+- `ui/controls.tsx`: existing HeroUI native event/form bridge; unchanged this round.
 
-The document-wide ink portal and old FolderGlyph are removed. Bookmark mount and
-layout animations use stable bookmark IDs; checkbox fill/check drawing are local
-decorations over a stable native input. Each target update interrupts its previous
-animation. Reduced-motion preference updates immediately apply without movement.
+Local selection highlights, checkbox fills, folder fronts and reader transitions
+follow real state and support rapid reversal. Reduced motion reaches the same
+usable endpoint. Styles superseded by this round are removed at their owner.
 
-## Source references
+## References and verification
 
-[Source audit](docs/redesign-source-audit.md) records the pinned HeroUI, FlClash,
-GithubStarsManager and Bencho implementations. Bencho supplies motion mechanisms,
-not app data or an additional dependency. Its showcase resets, mobile keyboard
-suppression and incomplete focus behavior are excluded. No Bencho component code
-or branded assets were copied.
+The supplied handbook v0.11 and S17/S18 source snapshots inform soft-surface/dark-ink
+pairing and Chinese display/body hierarchy. S20 informs semantic color roles;
+oil-ui/Taste contribute selected interaction and composition methods. None is an
+approved Facetmark template. See [round record](docs/collection-workspace-2026-10-23.md).
 
-## Verification status
-
-Source `d40471f` passed all 10 CI jobs, all 5 experience jobs and Windows preview
-installation. Browser: 76 passed / 1 skipped, plus the separate 200k collection
-case. Backend: 2050 passed / 1 skipped. The installed WebView completed 24 actions
-with no page errors or unexpected writes. Source, runtime asset and selected
-capture hashes were checked; exact runs/artifacts are in
-[desktop validation](docs/desktop-validation.md).
-
-Builds, browser testing and Windows installation ran only in GitHub Actions with
-isolated synthetic data. These results establish the stated technical scope. The
-collection design remains awaiting the user's review.
+Cloud review uses a temporary synthetic SQLite library, current-source captures and
+an interaction recording. Current results are pending; local checks are lightweight
+source/static checks only. No real browser profile is used. User review is pending.

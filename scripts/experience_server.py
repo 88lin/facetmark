@@ -116,6 +116,9 @@ def main():
             if index < 72 or index % 3 != 0:
                 store_body(conn, record["bookmark_id"], body=body)
         asyncio.run(service.index_all(conn, settings=settings, fetch=False))
+        if os.environ.get("FACETMARK_REVIEW_CORPUS") == "1":
+            from collection_review_fixture import prepare
+            prepare(conn)
         if os.environ.get("FACETMARK_LARGE_VALIDATION") == "1":
             from large_collection_fixture import populate
             populate(conn)

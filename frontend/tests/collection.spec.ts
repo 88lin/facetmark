@@ -35,8 +35,8 @@ test("a large collection leaves useful browsing space in short desktop and mobil
         overflow: document.documentElement.scrollWidth > innerWidth + 1 };
     });
     expect(size.overflow).toBe(false);
-    // A horizontal app header uses its own row. Test the space available for
-    // reading and scrolling, rather than the rejected card proportions.
+    // The unified navigation owns the left column. Test useful content and
+    // scroll space rather than requiring the incumbent horizontal header.
     expect(size.height / size.viewport).toBeGreaterThanOrEqual(.4);
     await expect(page.locator(".result-title").first()).toBeInViewport({ ratio: 1 });
     await expect(page.locator(".result-summary").first()).toBeInViewport();
@@ -46,11 +46,11 @@ test("a large collection leaves useful browsing space in short desktop and mobil
       expect(directory!.x + directory!.width).toBeLessThan(results!.x);
       const header = await page.locator(".app-header").boundingBox();
       const options = await page.locator(".collection-sidebar .facet-options").boundingBox();
-      expect(header!.width).toBeGreaterThan(viewport.width * .9);
+      expect(header!.x + header!.width).toBeLessThan(results!.x);
       expect(directory!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
       expect(results!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
       await expect(page.locator(".app-header .collection-sidebar")).toHaveCount(0);
-      expect(options!.height).toBeGreaterThan(viewport.height * .3);
+      expect(options!.height).toBeGreaterThan(viewport.height * .2);
     }
     const lastPreview = page.locator(".bookmark-preview").last();
     await lastPreview.scrollIntoViewIfNeeded();

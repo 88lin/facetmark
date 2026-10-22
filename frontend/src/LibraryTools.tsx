@@ -47,7 +47,7 @@ export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch
       <CapsuleButton className="text-button" onClick={() => onBatch(false)}>{t("完成选择", "Done")}</CapsuleButton>
       {ids.length >= 1000 && <span className="selection-limit" role="status">{t("一次最多选择 1000 条", "Select up to 1,000 at a time")}</span>}
     </> : <>
-      <CapsuleButton className="secondary" aria-label={t("新增收藏", "Add bookmark")} disabled={disabled} onClick={() => onAction({ kind: "create" })}><Plus size={15}/><span className="action-full">{t("新增收藏", "Add bookmark")}</span><span className="action-short" aria-hidden="true">{t("新增", "Add")}</span></CapsuleButton>
+      <CapsuleButton className="secondary library-add" aria-label={t("新增收藏", "Add bookmark")} disabled={disabled} onClick={() => onAction({ kind: "create" })}><Plus size={15}/><span className="action-full">{t("新增收藏", "Add bookmark")}</span><span className="action-short" aria-hidden="true">{t("新增", "Add")}</span></CapsuleButton>
       <details ref={manage} className="library-manage" onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }} onKeyDown={event => { if (event.key === "Escape") { event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }}>
         <summary>{t("管理收藏", "Manage")}<ChevronDown size={14}/></summary>
         <div className="library-manage-menu" onClick={event => { if ((event.target as HTMLElement).closest("button:not(:disabled)")) event.currentTarget.closest("details")!.open = false; }}>

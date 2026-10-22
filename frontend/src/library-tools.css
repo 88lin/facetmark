@@ -1,20 +1,23 @@
-.library-tools{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 4px 16px;flex-shrink:0}
+.library-tools{display:flex;align-items:center;flex-wrap:wrap;gap:8px;flex-shrink:0}
+.library-tools .action-short{display:none}
+.library-tools .library-add{--button-bg:var(--ink);--button-fg:var(--canvas);--button-bg-hover:color-mix(in srgb,var(--ink) 88%,var(--canvas));--button-bg-pressed:var(--ink);border-color:var(--ink)}
 .library-manage{position:relative}
-.library-manage>summary{display:flex;align-items:center;gap:6px;min-height:40px;padding:6px 10px;cursor:pointer;list-style:none;font-size:var(--type-ui);font-weight:600;color:var(--secondary-ink);border-radius:var(--radius-control)}
+.library-manage>summary{display:flex;align-items:center;gap:6px;min-height:40px;padding:8px 12px;cursor:pointer;list-style:none;font-size:var(--type-ui);font-weight:600;color:var(--secondary-ink);border-radius:var(--radius-control)}
 .library-manage>summary::-webkit-details-marker{display:none}
 .library-manage>summary:hover{background:var(--inset)}
-.library-manage-menu{position:absolute;top:calc(100% + 4px);left:0;min-width:180px;padding:6px;background:var(--canvas);border:1px solid var(--rule);border-radius:10px;z-index:16;box-shadow:var(--sheet-shadow)}
+.library-manage-menu{position:absolute;top:calc(100% + 4px);left:0;min-width:180px;padding:6px;background:var(--canvas);border:1px solid var(--rule);border-radius:14px;z-index:16;box-shadow:var(--sheet-shadow)}
 .library-manage[open] > .library-manage-menu { transform-origin: top left; animation: library-menu-enter 180ms var(--ease); }
 @keyframes library-menu-enter { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .library-manage-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;min-height:44px;text-align:left;font-size:var(--type-ui);border-radius:6px}
 .library-manage-menu button:hover:not(:disabled){background:var(--inset);color:var(--accent)}
-.library-tools .primary,.library-tools .secondary{min-height:40px;padding:8px 14px;font-size:var(--type-ui);gap:6px}
+.library-tools .primary,.library-tools .secondary{min-height:40px;padding:9px 14px;font-size:.875rem;gap:7px}
+.library-tools .primary{--button-bg:var(--soft);--button-fg:var(--accent);--button-bg-hover:var(--selected);--button-bg-pressed:var(--selected);border:1px solid var(--selected-edge);box-shadow:none}
 .library-tools .text-button{font-size:var(--type-ui);font-weight:600;min-height:40px}
 .library-tools .selection-total{font-size:var(--type-ui);font-weight:600;margin-right:4px;color:var(--accent);font-variant-numeric:tabular-nums}
 .library-tools .selection-limit{font-size:var(--type-caption);color:var(--muted);width:100%}
-.library-tools.selecting{padding:10px 12px;background:var(--soft);border-radius:16px}
+.library-tools.selecting{padding:10px 12px;background:var(--soft);border-radius:14px}
 .library-dialog-overlay{position:fixed;inset:0;background:var(--scrim);z-index:80}
-.library-dialog{position:fixed;z-index:81;top:50%;left:50%;translate:-50% -50%;width:min(560px,calc(100vw - 32px));max-height:calc(100dvh - 40px);overflow:auto;background:var(--canvas);color:var(--ink);border-radius:20px;padding:28px;box-shadow:var(--sheet-shadow)}
+.library-dialog{position:fixed;z-index:81;top:50%;left:50%;translate:-50% -50%;width:min(560px,calc(100vw - 32px));max-height:calc(100dvh - 40px);overflow:auto;background:var(--canvas);color:var(--ink);border-radius:24px;padding:28px;box-shadow:var(--sheet-shadow)}
 .library-dialog-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:8px}
 .library-dialog-heading h2{font-size:24px;line-height:1.4;margin:0;letter-spacing:-.02em}
 .library-dialog-description{font-size:var(--type-ui);color:var(--secondary-ink);line-height:1.7;margin:0 0 20px}
@@ -28,7 +31,7 @@
 .library-form-pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .library-dialog-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:24px;padding-top:20px;border-top:1px solid var(--rule)}
 .library-dialog-footer .primary,.library-dialog-footer .secondary{min-height:44px}
-.library-dialog .danger-action{background:var(--danger);color:var(--canvas)}
+.library-dialog .danger-action{--button-bg:var(--danger);--button-fg:var(--canvas);--button-bg-hover:var(--danger);--button-bg-pressed:var(--danger)}
 .library-dialog .deletion-note{display:flex;align-items:flex-start;gap:10px;color:var(--danger);font-size:14px;line-height:1.8}
 .tag-entry{display:flex;align-items:center;gap:8px}.tag-entry .icon-button{flex-shrink:0}
 .tag-entry input::placeholder{color:var(--muted);opacity:1}
@@ -50,5 +53,5 @@
 .task-progress progress::-moz-progress-bar{background:var(--accent);border-radius:var(--radius-control)}
 .library-dialog-description,.library-dialog .error{overflow-wrap:anywhere}
 @media(max-width:719px){.article-options{gap:10px}.reader-edit{min-height:44px}.library-dialog .field select{font-size:16px}.library-dialog-footer{flex-wrap:wrap}.library-toast{bottom:16px}.library-tools .text-button{min-height:44px}}
-@media(max-width:719px){.library-tools{gap:7px;margin:0 0 14px}.library-tools .primary,.library-tools .secondary{min-height:44px;padding:9px 12px}.library-tools.selecting{padding:10px}.library-dialog{padding:22px;width:calc(100vw - 24px);max-height:calc(100dvh - 24px)}.library-dialog-heading h2{font-size:22px}.library-form-pair{gap:12px}.reader-manage-actions button{min-height:44px}.library-dialog .field input,.tag-entry input{font-size:16px}}
+@media(max-width:719px){.library-tools{gap:5px;margin:0}.library-tools .action-full{display:none}.library-tools .action-short{display:inline}.library-tools .primary,.library-tools .secondary{min-height:44px;padding:9px 11px;font-size:.8125rem}.library-manage>summary{padding:8px 7px;font-size:.8125rem}.library-tools.selecting{padding:10px}.library-dialog{padding:22px;width:calc(100vw - 24px);max-height:calc(100dvh - 24px)}.library-dialog-heading h2{font-size:22px}.library-form-pair{gap:12px}.reader-manage-actions button{min-height:44px}.library-dialog .field input,.tag-entry input{font-size:16px}}
 @media(prefers-reduced-motion:reduce){.library-dialog,.library-dialog-overlay{animation:none;transition:none}}

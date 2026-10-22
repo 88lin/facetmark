@@ -4,8 +4,14 @@
   overflow: visible;
 }
 
+.collection-folder-icon .collection-folder-back {
+  fill: color-mix(in srgb, var(--accent) 16%, var(--canvas));
+  stroke: var(--accent);
+}
+
 .collection-folder-icon .collection-folder-front {
   fill: var(--canvas);
+  stroke: var(--accent);
   transition: fill 180ms ease;
 }
 

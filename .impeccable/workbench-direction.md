@@ -79,10 +79,17 @@ Reference implementations must be examined at known commits; cloud renders can
 verify the resulting implementation, but cannot substitute for that source analysis.
 
 
-## Production collection implementation — 2026-10-21
+## Current collection round — 2026-10-23
 
-The replacement now exists in the real application: horizontal app navigation,
-independent paged directory, collection sheet, redesigned records and local
-selection/folder feedback. DESIGN.md and its sidecar describe the implemented
-working direction. Cloud validation at d40471f has passed; the user's collection-screen
-review is pending. The rejected standalone prototype is not the preview entrypoint.
+The user rejected the incumbent PR #44 screen and requested another whole-direction
+replacement. The 2026-10-21 limestone/orange production collection is historical
+implementation evidence, not a retained visual brief. Its d40471f checks do not
+validate this round. No part of that direction was retained by the latest feedback.
+
+The supplied startup prompt and design handbook v0.11 govern this round. Their
+historical product record was checked against the current branch and PR head
+eda094d. The selected working direction is a unified pale-iris navigation and
+continuous collection list with blueberry text, distinct operation scopes and
+context-preserving reading. See the frontend surface contract for the complete
+composition, material and motion choices. Implementation and cloud verification
+remain separate from user visual acceptance, which is pending.

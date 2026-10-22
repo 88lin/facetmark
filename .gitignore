@@ -64,3 +64,4 @@ pairing-token.txt
 # Isolated redesign proposal and generated cloud evidence
 !frontend/design/workbench/index.html
 design-evidence/
+collection-review-evidence/

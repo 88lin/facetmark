@@ -288,27 +288,6 @@
     -webkit-backdrop-filter: none;
   }
 }
-.is-reading-focused .app-header {
-  height: 56px;
-  background: var(--desk);
-}
-.is-reading-focused .app-header .brand {
-  font-size: 18px;
-}
-.focus-mode .workspace-toolbar {
-  visibility: hidden;
-  pointer-events: none;
-}
-.is-reading-focused .header-navigation,
-.is-reading-focused .header-utilities {
-  visibility: hidden;
-}
-.focus-mode .results-column {
-  visibility: hidden;
-}
-.focus-mode .toolbar-location {
-  visibility: hidden;
-}
 .focus-mode .reader-article {
   max-width: 780px;
 }

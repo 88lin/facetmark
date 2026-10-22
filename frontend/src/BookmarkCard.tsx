@@ -1,6 +1,6 @@
 import { CapsuleButton as Button } from "./ui/controls";
 import { useEffect, useId, useRef, useState } from "react";
-import { AlertCircle, ArrowUpRight, CheckCircle2, ChevronDown, Clock3, Eye, Globe2, Pencil, Sparkles } from "lucide-react";
+import { AlertCircle, ArrowUpRight, Check, CheckCircle2, ChevronDown, Clock3, Eye, Pencil, Sparkles } from "lucide-react";
 import { post, safeUrl, type Bookmark } from "./api";
 import { useText } from "./locale";
 import { motion } from "motion/react";
@@ -47,15 +47,21 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
     : status === "failed" ? t("上次生成失败", "Last attempt failed")
       : status === "done" ? t("摘要已生成", "Summary ready") : t("待生成摘要", "Awaiting summary");
 
-  return <motion.article data-bookmark-id={record.bookmark_id} aria-labelledby={`${id}-title`}
+  const sourceLetter = (record.domain || "F").replace(/^www\./, "").slice(0, 1).toUpperCase();
+  const sourceTone = [...(record.domain || "")].reduce((sum, letter) => sum + letter.charCodeAt(0), 0) % 4;
+  const savedDate = record.date_added ? new Intl.DateTimeFormat("zh-CN", { month: "numeric", day: "numeric" })
+    .format(new Date(record.date_added * 1000)) : "";
+
+  return <motion.article data-bookmark-id={record.bookmark_id} data-source-tone={sourceTone} aria-labelledby={`${id}-title`}
     layout={reduced ? false : "position"}
-    initial={reduced ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+    initial={false} animate={{ opacity: 1, y: 0 }}
     transition={{ opacity: { duration: reduced ? 0 : 0.22, delay: reduced ? 0 : Math.min(entranceOrder, 5) * 0.025 },
       y: { duration: reduced ? 0 : 0.28 }, layout: { type: "spring", stiffness: 400, damping: 36 } }}
     className={`result-row ${selected ? "selected" : ""} ${checked ? "batch-selected" : ""}`}>
     <header className="result-source">
-      <span className="source-symbol" aria-hidden="true"><Globe2 size={17}/></span>
+      <span className="source-symbol" aria-hidden="true">{sourceLetter}</span>
       <span className="source-domain" title={record.domain || record.url}>{record.domain || t("已存网页", "Saved page")}</span>
+      {savedDate && <time className="bookmark-date" dateTime={new Date(record.date_added! * 1000).toISOString()}>{savedDate}</time>}
       {href && <a className="bookmark-external" href={href} target="_blank" rel="noreferrer" onClick={trackOpen}
         onAuxClick={event => { if (event.button === 1) trackOpen(); }}
         title={t("打开原网页", "Open original")}
@@ -73,13 +79,7 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
           {reduced ? <span className="bookmark-check-fill" style={{ transform: checked ? "scale(1)" : "scale(0)" }}/> :
             <motion.span className="bookmark-check-fill" initial={false} animate={{ scale: checked ? 1 : 0 }}
               transition={{ duration: 0.16, ease: [0.2, 0.7, 0.3, 1] }}/>}
-          <svg viewBox="0 0 16 16" fill="none">
-            {reduced ? <path d="m4 8 3 3 5-6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" opacity={checked ? 1 : 0}/> :
-              <motion.path d="m4 8 3 3 5-6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"
-                initial={false} animate={{ pathLength: checked ? 1 : 0, opacity: checked ? 1 : 0 }}
-                transition={{ duration: 0.18 }}/>
-            }
-          </svg>
+          <Check size={15} className={checked ? "is-checked" : ""}/>
         </span>
       </label>
     </header>
@@ -92,7 +92,6 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
 
     <div className={`bookmark-description ${expanded ? "expanded" : ""}`}>
       <div className="bookmark-description-heading">
-        <span className="summary-basis">{label}</span>
         {!!text && (clipped || expanded) && <Button type="button" className="summary-expand" aria-expanded={expanded}
           aria-controls={`${id}-summary`} aria-label={expanded ? t("收起", "Collapse") : t("展开全文", "Show full text")}
           title={expanded ? t("收起", "Collapse") : t("展开全文", "Show full text")}
@@ -101,6 +100,7 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
         </Button>}
       </div>
       <p id={`${id}-summary`} ref={summary} className={`result-summary ${text ? "" : "is-empty"}`}>
+        <span className="summary-basis">{label}</span>{" "}
         {text || (display === "original" ? t("预览中可抓取正文，或直接打开原网页。", "Fetch page text in Preview, or open the original website.") : t("可生成摘要，在收藏中直接浏览。", "Generate a summary to read it here."))}
       </p>
     </div>

@@ -1,0 +1,53 @@
+name: collection-workspace-review
+on:
+  push:
+    branches: ['desktop/**']
+    paths:
+      - 'frontend/**'
+      - 'scripts/collection_review_*.py'
+      - 'scripts/experience_server.py'
+      - '.github/workflows/collection-review.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: collection-review-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  collection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: pip install -e '.[dev]'
+      - working-directory: frontend
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - working-directory: frontend
+        run: npm run build
+      - run: ruff check scripts/collection_review_fixture.py scripts/collection_review_evidence.py
+      - working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - run: sudo apt-get install -y fonts-noto-cjk ffmpeg
+      - name: Representative page and interaction review
+        working-directory: frontend
+        env:
+          FACETMARK_REVIEW_CORPUS: '1'
+        run: npx playwright test collection-review.spec.ts
+      - name: Package viewable source-matched evidence
+        if: always()
+        run: python scripts/collection_review_evidence.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: facetmark-collection-workspace-review
+          path: |
+            collection-review-evidence/
+            frontend/playwright-report/
+            frontend/test-results/
+          retention-days: 14
