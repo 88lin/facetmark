@@ -5,7 +5,8 @@ import "./collection-folder-icon.css";
 /** A two-tone folder; the face lifts with the represented path's active state. */
 export function CollectionFolderIcon({ active = false, size = 20 }: { active?: boolean; size?: number }) {
   const reduced = useReducedMotion();
-  const front = active ? "M5 10H21L19 19H3L5 10Z" : "M3 9H20V19H3V9Z";
+  // Matching commands and point counts allow interpolation through every frame.
+  const front = active ? "M5 10L21 10L19 19L3 19Z" : "M3 9L20 9L20 19L3 19Z";
   return <svg className="collection-folder-icon" data-open={active} width={size} height={size}
     viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
     aria-hidden="true" focusable="false">

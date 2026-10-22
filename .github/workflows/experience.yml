@@ -64,6 +64,12 @@ jobs:
       - name: Real 200k collection API and bounded snapshot benchmark
         if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
         run: python scripts/bench_collection.py
+      - name: Preserve the primary browser report before the separate large-library run
+        if: always()
+        working-directory: frontend
+        run: |
+          if test -d test-results; then mv test-results test-results-matrix; fi
+          if test -d playwright-report; then mv playwright-report playwright-report-matrix; fi
       - name: Real 200k browser paging and scoped selection
         if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
         working-directory: frontend
@@ -108,6 +114,8 @@ jobs:
             frontend/screenshots/
             frontend/playwright-report/
             frontend/test-results/
+            frontend/test-results-matrix/
+            frontend/playwright-report-matrix/
             frontend/package-lock.json
             frontend/src/
             frontend/tests/

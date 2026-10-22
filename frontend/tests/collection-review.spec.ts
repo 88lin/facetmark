@@ -4,7 +4,7 @@ import { settleVisualLayout } from "./visual-layout";
 
 test.skip(process.env.FACETMARK_REVIEW_CORPUS !== "1", "Representative review corpus is a separate isolated cloud run");
 
-type Evidence = { captures: { file: string; state: string; width: number; height: number }[]; actions: string[]; errors: string[]; animationFrames?: unknown[] };
+type Evidence = { captures: { file: string; state: string; width: number; height: number }[]; actions: string[]; errors: string[]; animationFrames?: unknown[]; failure?: string; recordingError?: string };
 const output = "screenshots/collection-review";
 
 async function capture(page: Page, evidence: Evidence, name: string, state: string) {
@@ -13,6 +13,7 @@ async function capture(page: Page, evidence: Evidence, name: string, state: stri
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await page.screenshot({ path: `${output}/${name}.png`, fullPage: true, animations: "disabled" });
   evidence.captures.push({ file: `${name}.png`, state, ...viewport });
+  console.info(`[collection review] captured ${name}`);
 }
 
 test("representative collection, responsive states, exact scopes, save recovery and reading continuity", async ({ browser, baseURL }) => {
@@ -28,6 +29,7 @@ test("representative collection, responsive states, exact scopes, save recovery 
   });
   await context.route("**/*", route => new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort());
   const page = await context.newPage();
+  page.setDefaultTimeout(15000);
   const video = page.video();
   const evidence: Evidence = { captures: [], actions: [], errors: [] };
   page.on("pageerror", error => evidence.errors.push(error.message));
@@ -73,7 +75,10 @@ test("representative collection, responsive states, exact scopes, save recovery 
 
     await page.setViewportSize({ width: 1440, height: 960 });
     const search = page.getByRole("textbox", { name: "搜索书签", exact: true });
-    await search.fill("没有匹配的合成收藏检索词");
+    await search.fill("qzxvreviewnomatch728461zz");
+    // Loading temporarily clears rows; wait for the completed empty result.
+    await expect(page.locator(".result-count")).toHaveText("0");
+    await expect(page.getByRole("button", { name: "清除条件，查看全部", exact: true })).toBeVisible();
     await expect(page.locator(".result-row")).toHaveCount(0);
     await capture(page, evidence, "empty-search", "Empty search retains query and clear-condition recovery");
     await page.getByRole("button", { name: "清除条件，查看全部", exact: true }).click();
@@ -200,9 +205,17 @@ test("representative collection, responsive states, exact scopes, save recovery 
     await capture(page, evidence, "reduced-motion", "Live reduced-motion preference leaves same usable final state");
     evidence.actions.push("Live reduced-motion change ends finite animation; keyboard and final state remain usable");
     expect(evidence.errors).toEqual([]);
+  } catch (error) {
+    evidence.failure = error instanceof Error ? error.stack : String(error);
+    throw error;
   } finally {
+    try {
+      await context.close();
+      if (video) await video.saveAs("recordings/facetmark-collection-review.webm");
+    } catch (error) {
+      // Recording cleanup must not replace the original failing action.
+      evidence.recordingError = String(error);
+    }
     await writeFile(`${output}/review.json`, JSON.stringify(evidence, null, 2));
-    await context.close();
-    if (video) await video.saveAs("recordings/facetmark-collection-review.webm");
   }
 });

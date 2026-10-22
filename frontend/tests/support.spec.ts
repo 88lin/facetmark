@@ -9,6 +9,26 @@ test.beforeEach(async ({ page }) => {
   await mkdir("screenshots", { recursive: true });
 });
 
+test("late setup status does not move a navigation target during a click", async ({ page }) => {
+  let releaseStatus!: () => void;
+  const statusReady = new Promise<void>(resolve => { releaseStatus = resolve; });
+  await page.route("**/admin/setup-status", async route => {
+    const response = await route.fetch();
+    await statusReady;
+    await route.fulfill({ response });
+  });
+  await page.goto("/app");
+  const tasks = page.locator(".app-header").getByRole("button", { name: "任务", exact: true });
+  const bounds = await tasks.boundingBox();
+  expect(bounds).not.toBeNull();
+  await page.mouse.move(bounds!.x + bounds!.width / 2, bounds!.y + bounds!.height / 2);
+  await page.mouse.down();
+  releaseStatus();
+  await expect(page.locator(".app-header .demo-label")).toBeVisible();
+  await page.mouse.up();
+  await expect(page.locator(".tasks")).toBeVisible();
+});
+
 test("settings categories preserve drafts and support keyboard and narrow layouts", async ({ page }) => {
   await page.goto("/app#settings");
   const model = page.locator("input[name=chat_model]");
