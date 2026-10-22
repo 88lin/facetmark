@@ -390,14 +390,14 @@ with sync_playwright() as playwright:
         first_id = page.locator('.result-row').first.get_attribute('data-bookmark-id')
         checkbox = page.locator(f'.result-row[data-bookmark-id="{first_id}"] .bookmark-check')
         check_fill = f'.result-row[data-bookmark-id="{first_id}"] .bookmark-check-fill'
-        check_path = f'.result-row[data-bookmark-id="{first_id}"] .bookmark-check-frame path'
+        check_path = f'.result-row[data-bookmark-id="{first_id}"] .bookmark-check-frame > svg'
         link_click_count = page.evaluate('window.__linkClicks.length')
         motion_step('点击原生复选框绘制收藏选中标记', [check_fill, check_path], checkbox.click,
-                    painted={check_fill: 'transform', check_path: 'strokeDasharray'})
+                    painted={check_fill: 'transform', check_path: 'opacity'})
         assert_bookmark_checked(checkbox, True)
         assert checkbox.evaluate('element => element === document.activeElement')
         motion_step('Space 取消收藏选中标记', [check_fill, check_path],
-                    lambda: checkbox.press('Space'), painted={check_fill: 'transform', check_path: 'strokeDasharray'})
+                    lambda: checkbox.press('Space'), painted={check_fill: 'transform', check_path: 'opacity'})
         assert_bookmark_checked(checkbox, False)
         checkbox.press('ArrowDown')
         assert page.locator('.bookmark-check').nth(1).evaluate('element => element === document.activeElement')

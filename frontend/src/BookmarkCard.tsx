@@ -28,6 +28,9 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
     post("/open", { bookmark_id: record.bookmark_id }).catch(() => {});
   };
   const text = display === "summary" ? record.summary || record.snippet : record.snippet;
+  const label = display === "summary" && record.summary
+    ? record.summary_basis === "title" ? t("标题推断", "Inferred from title") : t("AI 摘要", "AI summary")
+    : text ? t("正文摘录", "Page excerpt") : display === "original" ? t("暂无正文", "No page text yet") : t("暂无摘要", "No summary yet");
   useEffect(() => { setExpanded(false); setClipped(false); }, [record.bookmark_id, display, text]);
   useEffect(() => {
     const element = summary.current;
@@ -37,10 +40,7 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [text, expanded, display, record.bookmark_id]);
-  const label = display === "summary" && record.summary
-    ? record.summary_basis === "title" ? t("标题推断", "Inferred from title") : t("AI 摘要", "AI summary")
-    : text ? t("正文摘录", "Page excerpt") : display === "original" ? t("暂无正文", "No page text yet") : t("暂无摘要", "No summary yet");
+  }, [text, expanded, display, record.bookmark_id, label]);
   const status = record.summary_status || (record.summary ? "done" : "pending");
   const StatusIcon = status === "failed" ? AlertCircle : status === "done" ? CheckCircle2 : Clock3;
   const statusLabel = record.privacy_skipped ? t("已跳过摘要", "Summary skipped")

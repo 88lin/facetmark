@@ -48,6 +48,11 @@ test("representative collection, responsive states, exact scopes, save recovery 
     await page.getByRole("button", { name: "切换语言", exact: true }).first().click();
     await expect(page.locator(".toolbar-location h1")).toHaveText("Your collection");
     await capture(page, evidence, "desktop-english", "English controls and mixed-language collection content");
+    const englishSummary = page.locator(".result-row").first().locator(".bookmark-description");
+    await englishSummary.getByRole("button", { name: "Show full text", exact: true }).click();
+    await expect(englishSummary).toHaveClass(/expanded/);
+    await capture(page, evidence, "desktop-english-expanded", "Locale change remeasures summary clipping and retains full-text access");
+    await englishSummary.getByRole("button", { name: "Collapse", exact: true }).click();
     await page.getByRole("button", { name: "Switch language", exact: true }).first().click();
 
     await page.getByRole("button", { name: "卡片视图", exact: true }).click();
@@ -68,6 +73,15 @@ test("representative collection, responsive states, exact scopes, save recovery 
     await expect(page.locator(".sidebar")).toHaveAttribute("inert", "");
     await page.locator(".bookmark-preview").first().click();
     await expect(page.locator(".preview-drawer .body-text")).toBeVisible();
+    expect(await page.locator(".preview-drawer").evaluate(reader => {
+      const heading = reader.querySelector(".preview-heading")!;
+      const box = heading.getBoundingClientRect();
+      // Check painting order too: modal pointer suppression can hide an overlap
+      // from hit-testing alone while the application header still paints above it.
+      const header = document.querySelector(".app-header")!;
+      return Number(getComputedStyle(reader).zIndex) > Number(getComputedStyle(header).zIndex) &&
+        reader.contains(document.elementFromPoint(box.x + 40, box.y + box.height / 2));
+    })).toBe(true);
     await capture(page, evidence, "mobile-reader", "Reading drawer with saved page text and return action");
     await page.keyboard.press("Escape");
     await expect(page.locator(".bookmark-preview").first()).toBeFocused();

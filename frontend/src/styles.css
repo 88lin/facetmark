@@ -653,24 +653,6 @@ kbd {
 .skeleton-article .skeleton-group span:last-child {
   width: 72%;
 }
-.drawer-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  background: var(--scrim);
-}
-.preview-drawer {
-  position: fixed;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  z-index: 21;
-  width: min(650px, 94vw);
-  background: var(--canvas);
-  display: flex;
-  flex-direction: column;
-  outline: none;
-}
 .page-heading {
   display: flex;
   align-items: center;
