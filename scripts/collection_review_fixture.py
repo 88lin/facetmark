@@ -6,7 +6,7 @@ import json
 from facetmark.fetch.store import store_body
 
 RECORDS = [
-    ("中文界面的阅读节奏：从字阶、行距到长标题的完整排版实践", "sspai.example", "设计与体验 / 中文排版", ["中文排版", "阅读体验"],
+    ("中文界面的阅读节奏：从字阶、行距到长标题的完整排版实践", "sspai.example", "设计与体验 / 中文排版 / 界面规范 / 长标题与中英混排", ["中文排版", "阅读体验"],
      "中文界面需要把标题、正文与工具标签分开处理。通过真实长文案比较字阶和行距，再让次要信息退到合适的位置；留白的作用是建立阅读关系，而不是减少内容。"),
     ("Building local-first software：让数据、离线体验与恢复真正属于用户", "github.example", "开发工具 / 本地优先", ["Local-first", "SQLite"],
      "Local-first 的核心是明确的数据归属。本文整理离线读取、SQLite 迁移与任务恢复的设计边界，并给出能够逐步上线的实施顺序。"),
@@ -36,10 +36,13 @@ def prepare(conn):
     for index, row in enumerate(rows):
         bookmark_id = row[0]
         title, host, folder, tags, summary = RECORDS[index % len(RECORDS)]
+        # These authored fixture strings describe known hierarchy, rather than
+        # attempting to decode an arbitrary stored user's folder name.
+        folder_parts = folder.split(" / ")
         if index >= len(RECORDS):
             title += f" · 研究笔记 {index // len(RECORDS) + 1}"
-        conn.execute("UPDATE bookmark SET title=?,url=?,domain=?,folder=?,tags=? WHERE id=?",
-                     (title, f"https://{host}/synthetic-review/{index}", host, folder,
+        conn.execute("UPDATE bookmark SET title=?,url=?,domain=?,folder=?,folder_depth=?,tags=? WHERE id=?",
+                     (title, f"https://{host}/synthetic-review/{index}", host, "/".join(folder_parts), len(folder_parts),
                       json.dumps(["demo", *tags], ensure_ascii=False), bookmark_id))
         conn.execute("UPDATE enrichment SET summary=?,basis='body' WHERE bookmark_id=?", (summary, bookmark_id))
         store_body(conn, bookmark_id, body=title + "\n\n" + summary + "\n\n"

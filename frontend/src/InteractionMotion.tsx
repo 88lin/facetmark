@@ -1,17 +1,77 @@
 import { useRef, type RefObject } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
-import { motion } from "motion/react";
 import { useReducedMotion } from "./useReducedMotion";
 
 gsap.registerPlugin(useGSAP);
 
+type PillPosition = { left: number; top: number; width: number; height: number };
+type PillPaint = { owner: HTMLElement; position: PillPosition; origin: PillPosition };
+const pillGroups = new WeakMap<Node, Map<string, PillPaint>>();
+
+/** Animate the plate's actual dimensions, never a scale-projected rounded box.
+ * Its last painted bounds survive rapid changes; text and button hit areas stay
+ * stationary. The enclosing application scopes otherwise identical group names. */
 export function SelectionPill({ active, group }: { active: boolean; group: string }) {
   const reduced = useReducedMotion();
-  return active ? <motion.i aria-hidden="true" className="selection-pill"
-    layoutId={group} transition={reduced ? { duration: 0 } : {
-      type: "spring", stiffness: 480, damping: 29, mass: 0.8,
-    }} /> : null;
+  const ref = useRef<HTMLElement>(null);
+  // Observer callbacks and their tweens share this dependency-owned context;
+  // switching controls must also dispose animations on the departed marker.
+  const { contextSafe } = useGSAP(() => {
+    const marker = ref.current;
+    const owner = marker?.parentElement;
+    if (!active || !marker || !owner) return;
+    const scope = owner.closest(".app-shell") || owner.getRootNode();
+    let groups = pillGroups.get(scope);
+    if (!groups) { groups = new Map(); pillGroups.set(scope, groups); }
+    const previous = groups.get(group);
+    const paint: PillPaint = { owner, position: owner.getBoundingClientRect(), origin: owner.getBoundingClientRect() };
+    groups.set(group, paint);
+    let target: PillPosition | undefined;
+    const update = contextSafe((from?: PillPosition) => {
+      gsap.killTweensOf(marker);
+      gsap.set(marker, { x: 0, y: 0, width: "100%", height: "100%" });
+      target = marker.getBoundingClientRect();
+      paint.position = target;
+      paint.origin = owner.getBoundingClientRect();
+      if (!from || reduced) return;
+      gsap.fromTo(marker, {
+        x: from.left - target.left, y: from.top - target.top,
+        width: from.width, height: from.height,
+      }, {
+        x: 0, y: 0, width: target.width, height: target.height,
+        duration: 0.34, ease: "power3.out", overwrite: "auto",
+        onUpdate: () => {
+          // Context reversion can invoke onUpdate after React removes this
+          // marker. Preserve its last visible frame for the next selection.
+          if (ref.current !== marker) return;
+          paint.position = marker.getBoundingClientRect(); paint.origin = owner.getBoundingClientRect();
+        },
+        onComplete: contextSafe(() => {
+          if (ref.current !== marker) return;
+          gsap.set(marker, { width: "100%", height: "100%", clearProps: "transform" });
+          paint.position = marker.getBoundingClientRect();
+        }),
+      });
+    });
+    const previousBox = previous?.owner.isConnected ? previous.owner.getBoundingClientRect() : undefined;
+    update(previous && previousBox?.width && previousBox.height ? {
+      ...previous.position, left: previous.position.left + previousBox.left - previous.origin.left,
+      top: previous.position.top + previousBox.top - previous.origin.top,
+    } : undefined);
+    const resize = new ResizeObserver(() => {
+      const bounds = owner.getBoundingClientRect();
+      if (!bounds.width || !bounds.height) return;
+      if (target &&
+        Math.abs(owner.clientWidth - target.width) < 0.5 && Math.abs(owner.clientHeight - target.height) < 0.5) return;
+      // Responsive resizing changes the control itself; reveal its correct
+      // geometry immediately rather than replaying an off-screen entrance.
+      update();
+    });
+    resize.observe(owner);
+    return () => resize.disconnect();
+  }, { scope: ref, dependencies: [active, group, reduced], revertOnUpdate: true });
+  return active ? <i ref={ref} aria-hidden="true" className="selection-pill" /> : null;
 }
 
 type MotionPaint = { x: number; y: number; opacity: number; filter: string };
@@ -32,8 +92,9 @@ function contentRecipe(element: HTMLElement, previous: string, value: string, ax
     kind: "page", axis, direction: orderedDirection(previous, value, ["library", "sessions", "tasks", "settings", "import", "setup"]),
     distance: 18, duration: 0.34, opacity: 0.76, blur: 0.7,
   };
-  if (element.matches(".settings-panel")) return {
-    kind: "section", axis, direction: orderedDirection(previous, value, ["models", "sync", "extension", "desktop"]),
+  if (element.matches(".settings-panel, .setup-panel")) return {
+    kind: "section", axis, direction: orderedDirection(previous, value, element.matches(".setup-panel") ?
+      ["0", "1", "2", "3"] : ["models", "sync", "extension", "desktop"]),
     distance: 20, duration: 0.32, opacity: 0.66, blur: 1,
   };
   if (element.matches(".facet-options")) return {

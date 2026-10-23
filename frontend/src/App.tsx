@@ -52,6 +52,7 @@ import { motionTiming } from "./motion";
 import { AnimatePresence, motion } from "motion/react";
 import { useReducedMotion } from "./useReducedMotion";
 import { SelectionPill, useContentMotion } from "./InteractionMotion";
+import "./startup.css";
 
 type View = "library" | "sessions" | "tasks" | "settings" | "setup" | "import";
 type Facet = { value: string; count: number };
@@ -120,6 +121,13 @@ function Workbench({
   const [paired, setPaired] = useState(false);
   const [pairingRequired, setPairingRequired] = useState(false);
   const [manualToken, setManualToken] = useState("");
+  const [pairingBusy, setPairingBusy] = useState(false);
+  const [pairingError, setPairingError] = useState("");
+  const pairingInFlight = useRef(false);
+  const pairingInput = useRef<HTMLInputElement>(null);
+  const bootInFlight = useRef(false);
+  const connectionRetry = useRef<HTMLButtonElement>(null);
+  const [bootBusy, setBootBusy] = useState(false);
   const [view, setView] = useState<View>("library");
   const [navOpen, setNavOpen] = useState(false);
   const [setup, setSetup] = useState<Setup | null>(null);
@@ -127,6 +135,8 @@ function Workbench({
   const [adminAvailable, setAdminAvailable] = useState(true);
   const [facets, setFacets] = useState<Record<string, Facet[]>>({});
   const [filters, setFilters] = useState<Filters>({});
+  const [folderPath, setFolderPath] = useState<{ value: string; parts: string[] } | null>(null);
+  const selectedFolderParts = folderPath && folderPath.value === filters.folder ? folderPath.parts : undefined;
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
   const [offset, setOffset] = useState(0);
@@ -224,6 +234,19 @@ function Workbench({
   const browseScroll = useRef(0);
   const lastRow = useRef<HTMLButtonElement | null>(null);
   const [requestRevision, setRequestRevision] = useState(0);
+  useEffect(() => {
+    const folder = filters.folder;
+    if (!paired || !folder) { setFolderPath(null); return; }
+    const controller = new AbortController();
+    api<{ value: string; parts: string[] }>(`/bookmarks/folders/path?${query({ folder })}`, { signal: controller.signal })
+      .then(path => { if (!controller.signal.aborted) setFolderPath(path); })
+      .catch(() => {
+        // Path metadata is supplemental. Keep exact filtering and the complete
+        // saved name usable even if its hierarchy could not be read.
+        if (!controller.signal.aborted) setFolderPath({ value: folder, parts: [folder] });
+      });
+    return () => controller.abort();
+  }, [paired, filters.folder, requestRevision]);
   const requestId = useRef(0);
   const previewId = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
@@ -297,6 +320,10 @@ function Workbench({
     return () => clearTimeout(timer);
   }, [libraryNotice]);
   const boot = useCallback(async () => {
+    if (bootInFlight.current) return;
+    bootInFlight.current = true;
+    setBootBusy(true);
+    setConnectionError("");
     try {
       const data = await api<{ paired: boolean; token: string }>("/app/boot");
       if (data.paired) {
@@ -307,6 +334,10 @@ function Workbench({
       setConnectionError("");
     } catch (e) {
       setConnectionError(String(e));
+      requestAnimationFrame(() => connectionRetry.current?.focus({ preventScroll: true }));
+    } finally {
+      bootInFlight.current = false;
+      setBootBusy(false);
     }
   }, []);
   useEffect(() => {
@@ -690,6 +721,7 @@ function Workbench({
         <nav className="header-navigation" aria-label={t("主要导航", "Main navigation")}>
           <CapsuleButton
             className={view === "library" ? "active" : ""}
+            aria-current={view === "library" ? "page" : undefined}
             onClick={() => {
               openView("library");
               setFilters({});
@@ -702,6 +734,7 @@ function Workbench({
           </CapsuleButton>
           <CapsuleButton
             className={view === "sessions" ? "active" : ""}
+            aria-current={view === "sessions" ? "page" : undefined}
             onClick={() => openView("sessions")}
           >
             <SelectionPill active={view === "sessions"} group="app-navigation" />
@@ -810,7 +843,7 @@ function Workbench({
         <div className="facet-nav">
           {/* The collection sidebar below repeats this directory at ≥960px.
               Mount only while the drawer is open so both copies do not fetch. */}
-          {navOpen && <FacetBrowser filters={filters} enabled={paired && navOpen} revision={requestRevision} onSelect={selectFilter}
+          {navOpen && <FacetBrowser filters={filters} folderPath={selectedFolderParts} enabled={paired && navOpen} revision={requestRevision} onSelect={selectFilter}
             onManage={adminAvailable && job.state !== "running" ? () => { setNavOpen(false); setLibraryAction({ kind: "taxonomy" }); } : undefined} />}
         </div>
         <div className="sidebar-bottom">
@@ -882,7 +915,7 @@ function Workbench({
       )}
       {paired && view === "library" && <aside className="collection-sidebar" inert={navOpen || focusReading}
         aria-hidden={navOpen || focusReading} aria-label={t("收藏目录", "Collection directory")}>
-        <FacetBrowser filters={filters} enabled={!navOpen} revision={requestRevision} onSelect={selectFilter}
+        <FacetBrowser filters={filters} folderPath={selectedFolderParts} enabled={!navOpen} revision={requestRevision} onSelect={selectFilter}
           onManage={adminAvailable && job.state !== "running" ? () => setLibraryAction({ kind: "taxonomy" }) : undefined} />
         <div className="directory-footer"><span className="connection-light" aria-hidden="true"/>{t("你的书库", "Your library")}<span>{t("原网页直接访问", "Original links")}</span></div>
       </aside>}
@@ -903,7 +936,9 @@ function Workbench({
               <small>{connectionError}</small>
             </span>
             <CapsuleButton
+              ref={connectionRetry}
               className="secondary"
+              disabled={!paired && bootBusy}
               onClick={() => {
                 if (paired) {
                   refresh();
@@ -916,9 +951,23 @@ function Workbench({
           </div>
         )}
         {pairingRequired && !paired ? (
-          <section className="pairing-screen">
+          <form className="pairing-screen startup-screen" onSubmit={async event => {
+            event.preventDefault();
+            if (pairingInFlight.current || !manualToken.trim()) return;
+            pairingInFlight.current = true;
+            setPairingBusy(true); setPairingError("");
+            setToken(manualToken.trim());
+            try {
+              await api("/stats");
+              setPaired(true); setPairingRequired(false); setManualToken(""); setConnectionError("");
+            } catch (error) {
+              setToken(""); setPairingError(String(error));
+              requestAnimationFrame(() => pairingInput.current?.focus({ preventScroll: true }));
+            } finally { pairingInFlight.current = false; setPairingBusy(false); }
+          }}>
+            <div className="startup-identity"><FacetmarkMark /></div>
             <h1>{t("连接你的书库", "Connect your library")}</h1>
-            <p>
+            <p id="pairing-description">
               {t(
                 "请输入服务生成的配对令牌。远程访问不会自动提供令牌。",
                 "Enter the pairing token generated by your service. Remote access does not disclose it automatically.",
@@ -927,41 +976,49 @@ function Workbench({
             <label className="field">
               {t("配对令牌", "Pairing token")}
               <input
+                ref={pairingInput}
                 type="password"
+                required
+                autoComplete="off"
+                spellCheck={false}
+                maxLength={4096}
+                aria-describedby={`pairing-description${pairingError ? " pairing-error" : ""}`}
+                aria-invalid={Boolean(pairingError)}
                 value={manualToken}
+                disabled={pairingBusy}
                 onChange={(e) => setManualToken(e.target.value)}
               />
             </label>
             <CapsuleButton
+              type="submit"
               className="primary"
-              onClick={async () => {
-                setToken(manualToken);
-                try {
-                  await api("/stats");
-                  setPaired(true);
-                  setManualToken("");
-                } catch (e) {
-                  setConnectionError(String(e));
-                }
-              }}
+              disabled={pairingBusy || !manualToken.trim()}
             >
-              {t("连接", "Connect")}
+              {pairingBusy && <LoaderCircle size={16} className="spin" />}
+              {pairingBusy ? t("正在连接…", "Connecting…") : t("连接", "Connect")}
             </CapsuleButton>
-          </section>
+            {pairingError && <p id="pairing-error" className="pairing-error" role="alert">{pairingError}</p>}
+          </form>
         ) : !paired ? (
-          <div className="empty">
-            <LoaderCircle className="spin" />
-            <p>{t("正在打开书库…", "Opening your library…")}</p>
-          </div>
+          <section className="startup-screen" data-phase={connectionError ? "error" : "connecting"}>
+            <div className="startup-identity"><FacetmarkMark /></div>
+            <h1>{connectionError ? t("暂时无法打开书库", "Your library is unavailable") : t("正在打开你的书库", "Opening your library")}</h1>
+            <p role="status">{connectionError ? t("请确认服务正在运行，再重新连接。", "Check that the service is running, then reconnect.") :
+              t("让收藏回到眼前，接着上次的思考。", "Bring your saved pages back into view.")}</p>
+            {!connectionError && <div className="startup-track" aria-hidden="true"><span /></div>}
+          </section>
         ) : view === "library" ? (
           <>
             <header className="workspace-toolbar">
               <div className="toolbar-location">
                 <h1 title={filters.folder}>
                   {search.trim() ? t("搜索结果", "Search results") :
-                    filters.folder !== undefined ? filters.folder || t("未分类", "Unfiled") :
+                    filters.folder !== undefined ? selectedFolderParts?.at(-1) || filters.folder || t("未分类", "Unfiled") :
                     filters.tag || filters.domain || (filters.session !== undefined ? t("浏览批次", "Saving session") : t("我的收藏", "Your collection"))}
                 </h1>
+                {!search.trim() && selectedFolderParts && selectedFolderParts.length > 1 && <p className="toolbar-folder-path" title={filters.folder}>
+                  {selectedFolderParts.slice(0, -1).join(" / ")}
+                </p>}
                 <span className="collection-subtitle">
                   <span className="result-count" aria-live="polite">{loading || !page ? "…" : page.total}{page?.depth_capped ? "+" : ""}</span> {t("条收藏", "saved pages")}
                   <span className="collection-subtitle-separator" aria-hidden="true">·</span>

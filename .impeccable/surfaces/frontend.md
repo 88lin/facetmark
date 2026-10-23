@@ -30,28 +30,34 @@ related_targets:
 - frontend/src/CollectionFolderIcon.tsx
 - frontend/src/collection-folder-icon.css
 - frontend/src/ui/controls.css
+- frontend/src/FolderTree.tsx
+- frontend/src/folder-tree.css
+- frontend/src/startup.css
+- frontend/src/setup.css
+- desktop/splash/index.html
+- desktop/splash/loading.js
 ---
 
 # Facetmark frontend — Operate
 
 ## Direction status
 
-The user rejected pale-iris revision 46cf2f3 on 2026-10-23 in full. Capsule buttons,
-sophisticated motion and rich material are explicit requirements. This replacement
-is implemented and cloud-verified at application revision 04ecc11, with final
-capture-only revision 7d2abd0. All six independent review corrections are resolved;
-user aesthetic acceptance is pending. Exact evidence and review scope are recorded
-in docs/collection-workspace-2026-10-23.md.
+On 2026-10-24 the user described PR #44's mist-blue workspace as a substantial
+improvement and requested refinement. Preserve this identity while fixing selected
+capsules, control colors, motion, nested folders and startup/setup paths. The new
+changes await cloud validation and user review; no individual visual choice is
+newly approved. The 04ecc11 / 7d2abd0 cloud results are the historical baseline.
+Current scope is in docs/collection-workspace-polish-2026-10-24.md.
 
-Long-term reference: the supplied design handbook, S17–S20 and its latest feedback
-record. Source-inspected relationships inform the work; no reference is a template.
+Long-term reference: the supplied handbook and its latest D04 feedback record.
+Impeccable owns one system; oil-ui / Taste and S17-S20 supply selected relationships.
 
 ## Direction contract
 
 THESIS: A personal collection with a clear reading surface and tactile controls.
 Actual saved content carries the composition.
 
-OWN-WORLD: Mist-blue surroundings, porcelain cards, deep ink navigation and electric
+OWN-WORLD: Mist-blue surroundings, porcelain cards, deep ink text, blue navigation plates and electric
 blue primary actions. Frosted directory and toolbar layers establish depth; capsule
 controls have molded edges and moving highlights. Inter and Noto Sans SC provide
 firm, upright type with distinct display, title and description scales.
@@ -67,16 +73,16 @@ and capsule search lead to actions/status and reading cards in an adaptive grid
 Source medallions, mixed-language titles and summaries stay visible. Short windows
 compact the chrome; narrow screens retain focus-managed directory and reader layers.
 
-FORM: Delegated code-led replacement based on explicit feedback and inspected
-S17/S19 source relationships. No generated mock comp or concept tournament.
+FORM: Code-led refinement of the mist-blue identity after explicit positive
+feedback. Source-inspected S17/S19 relationships remain supporting references.
 
 SIGNATURE: Local light follows the pointer on a record without moving its hit area;
-the source medallion settles on hover. Selection highlights spring between states.
-Cards rearrange continuously, folders unfold when selected and dialogs spring into
+the source medallion settles on hover. Selection plates move through their actual dimensions without scaling corners.
+Cards rearrange continuously, folders disclose their children and dialogs spring into
 protected focus. Reduced motion retains each usable endpoint.
 
-FINISH: Inspect source-matched cloud renders and video, obtain a fresh finish review
-and document the actual implementation. None confers user aesthetic approval.
+FINISH: Inspect source-matched cloud renders, intermediate motion and relevant
+operations. Report actual coverage and remaining defects; user review stays separate.
 
 ## Collection and navigation behavior
 
@@ -85,6 +91,14 @@ Original links, selection, editing, summary actions and preview remain independe
 Descriptions must remain readable; measured clipping determines expansion.
 Searchable access to the full folder/tag/site directory, parent paths, counts and
 pagination must remain available at narrow and short viewport sizes.
+The sidebar now uses a bounded direct-child folder tree. Disclosure never changes
+selection; counts exclude descendants. Virtual ancestors expand, full-path search
+remains available, and loaded branches survive closing/category changes until a
+library revision invalidates them. Arrow keys traverse visible rows and ancestors.
+Recover hierarchy from stored depth and the importers' `/` display path. A literal
+slash name or ambiguous legacy path remains one exact entry; do not infer ancestors
+from separators alone. Two-line rows keep capsule proportions; path details reveal
+the complete name and recoverable ancestry.
 
 Add/edit/move retain the shared complete folder-selection flow: bounded pages,
 exact choice, separate search draft, explicit unfiled/new-folder states, retry and
@@ -119,6 +133,16 @@ Reader layouts may change. Keep actual heading navigation, article progress,
 chapter selection and an unobscured final paragraph. Resizing and closing preview
 must preserve meaningful reading/search context. Existing glass/plane artwork and
 layout are not mandatory; their underlying progress and navigation behavior is.
+
+## Startup and first use
+
+The native splash and React boot/pairing/setup/import path share the identity and
+material roles. A restart failure received during its promise must remain visible.
+Native retry supports Enter/Space and long error reading. Pairing uses a native
+form, retains failed token drafts and blocks duplicate submissions. Visited setup
+panels stay mounted; completion comes from actual setup facts, not visitation.
+Source discovery and import remain explicit read-only actions on selected sources.
+Browser-rendered splash HTML with a synthetic bridge does not certify installation.
 
 ## Implementation and verification
 

@@ -31,10 +31,10 @@
 .folder-picker .folder-picker-panel,
 .model-picker .model-picker-menu {
   padding: 10px;
-  border: 0;
+  border: 1px solid var(--glass-edge);
   border-radius: 24px;
   background: var(--canvas);
-  box-shadow: var(--overlay-shadow, 0 12px 36px color-mix(in srgb, var(--ink) 16%, transparent));
+  box-shadow: var(--sheet-shadow);
 }
 .folder-picker .folder-picker-panel { margin-top: 4px; }
 .model-picker .model-picker-menu { top: calc(100% + 8px); z-index: 30; }
@@ -109,7 +109,7 @@
   font-weight: 400;
   line-height: 1.5;
   white-space: normal;
-  transition: background 180ms var(--ease), color 180ms var(--ease), box-shadow 180ms var(--ease), transform 180ms var(--ease);
+  transition: background-color 160ms ease, color 160ms ease, box-shadow 200ms var(--ease);
 }
 .folder-picker-options > .fm-button > span,
 .model-picker-choice { flex: 1; min-width: 0; overflow-wrap: anywhere; }

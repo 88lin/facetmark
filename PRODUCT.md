@@ -64,48 +64,35 @@ contracts remain.
 
 ## Brand Commitments
 
-Latest feedback on 2026-10-23 rejects the pale-iris implementation at 46cf2f3:
-colour, typography, layout and styling were too ordinary. The user explicitly asks
-for capsule buttons, sophisticated animation and much richer visual effects.
-The mist-blue layered replacement is pending visual review. The capsule requirement
-overrides earlier rejection of a particular capsule implementation, without
-restoring that old system.
+On 2026-10-24 the user described PR #44's mist-blue workspace as a substantial
+improvement and asked for comprehensive refinement. Keep the current composition,
+upright Inter / Noto Sans SC typography and layered material direction while
+improving the full arrival and operation path. This is permission to refine the
+incumbent identity; it does not approve every token, component or new change.
 
-Earlier user instruction (2026-10-23): **“之前做了100轮都做的很难看，现在重新做吧”**。
-The incumbent PR #44 collection screen is rejected again. Build one complete
-collection workspace and its related states using the supplied startup prompt and
-`E:\design\design-reference-handbook.md` (v0.11 at this round's start). Impeccable
-owns the working system; S17–S20 are permitted references for improvement, not
-approved Facetmark components. The earlier 2026-10-19 instruction remains relevant:
-**“现在这种图标布局样式颜色等都不要。”**
-The whole current visual system is rejected: icons and mark treatment, composition,
-layout, styling, palette and typography are open for replacement. This supersedes
-all earlier partial visual acceptance, including the Orbit folder glyph and the
-old capsule/neutral/indigo implementation. No current visual asset or token is pinned.
+Capsule controls, rich material and continuous, interruptible motion remain
+explicit requirements. Fix elliptical selected states, black control fills,
+unsteady click transitions, inaccessible nested folders and unfinished startup,
+pairing and setup surfaces. Preserve stable hit areas, native controls, readable
+Chinese/English, exact data scopes and high-frequency operation.
 
-The user has already delegated a whole-interface redesign and authorized correction
-of conflicting rules. Do not restart a preference interview, ask whether to rebuild
-again or make a random concept tournament a prerequisite. Establish a concrete
-working direction, implement it and show actual results. Existing product behavior,
-data protection, accessible controls and readable Chinese/English remain required.
+The supplied startup prompt and long-term design handbook govern the reference
+method. Impeccable owns one working system; oil-ui and Taste provide selected
+methods rather than competing skins or complete review workflows. S17-S20 remain
+permitted references for improvement, without making their components Facetmark
+requirements. Current handbook version and feedback are recorded in the
+[current round](docs/collection-workspace-polish-2026-10-24.md).
 
-Replace composition, icons, typography, colour, material and motion together.
-Another accent swap, radius adjustment or isolated animated icon does not satisfy
-the request. Rounded forms, depth, light, texture and expressive transitions are
-available when they support the replacement direction and remain usable. The
-Operate mode does not force a neutral shell, small radii or sparse effects.
+Earlier pale-iris 46cf2f3, limestone/orange, pale-green and Orbit-era designs were
+rejected. They remain migration evidence in `.impeccable/history/` and historical
+round records. The latest positive assessment of the mist-blue version takes
+precedence; do not restart a whole-direction redesign or preference interview.
 
-HeroUI, GithubStarsManager and FlClash remain quality and interaction references,
-not approved Facetmark mockups or compulsory component replacements. Preserve
-library/license obligations for code that remains; choose visual treatments from
-the current brief, not from dependency defaults.
-
-The [current redesign requirements](.impeccable/workbench-direction.md) are the
-active visual brief; the [frontend surface brief](.impeccable/surfaces/frontend.md)
-records behavior and verification boundaries. DESIGN.md and its sidecar record the current
-collection implementation and its actual validation status; the 2026-10-21 limestone/orange
-direction is rejected, and its green cloud checks certify only that historical revision. Rejected specifications
-are archived under `.impeccable/history/` for migration, not design authority.
+The [active work requirements](.impeccable/workbench-direction.md) and
+[frontend surface brief](.impeccable/surfaces/frontend.md) describe this refinement.
+DESIGN.md and its sidecar describe actual source values and verification status.
+Current local edits await source-matched cloud rendering and user review. Older
+cloud checks establish their recorded revision and scope only.
 
 ## Evidence on Hand
 

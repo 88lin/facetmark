@@ -142,6 +142,90 @@ def test_folder_picker_can_search_a_full_length_literal_path(client):
     assert client.get("/bookmarks/facets/folders", params={"q": "x" * 2049}).status_code == 422
 
 
+def test_folder_tree_discloses_virtual_ancestors_without_expanding_selection(client):
+    state = client.app.state.fm
+    paths = [("研究", 1), ("研究/中文排版", 2), ("研究/中文排版/长标题与中英混排", 3),
+             ("研究/中文排版/长标题与中英混排", 3), ("研究/Motion", 2), ("研究资料/原文", 2), ("a/b", 1)]
+    for index, (folder, depth) in enumerate(paths):
+        record = service.save_bookmark(state.conn, f"https://tree.example/{index}",
+                                       folder=folder, settings=state.settings)
+        state.conn.execute("UPDATE bookmark SET folder_depth=? WHERE id=?", (depth, record["bookmark_id"]))
+    state.conn.commit()
+    roots = client.get("/bookmarks/folders/tree").json()
+    assert roots["items"] == [
+        {"value": "a/b", "label": "a/b", "count": 1, "has_children": False},
+        {"value": "研究", "label": "研究", "count": 1, "has_children": True},
+        {"value": "研究资料", "label": "研究资料", "count": 0, "has_children": True},
+    ]
+    children = client.get("/bookmarks/folders/tree", params={"parent": "研究"}).json()
+    assert children["items"] == [
+        {"value": "研究/Motion", "label": "Motion", "count": 1, "has_children": False},
+        {"value": "研究/中文排版", "label": "中文排版", "count": 1, "has_children": True},
+    ]
+    deep = client.get("/bookmarks/folders/tree", params={"parent": "研究/中文排版"}).json()
+    assert deep["items"] == [{"value": "研究/中文排版/长标题与中英混排",
+                             "label": "长标题与中英混排", "count": 2, "has_children": False}]
+    assert client.get("/bookmarks", params={"folder": "研究"}).json()["total"] == 1
+    assert client.get("/bookmarks/folders/tree", params={"parent": "不存在"}).json()["items"] == []
+
+
+def test_folder_tree_pages_every_child_and_matches_literal_parents(client):
+    state = client.app.state.fm
+    parent = '资料 50%_ "one"'
+    for index in range(207):
+        record = service.save_bookmark(state.conn, f"https://tree-pages.example/{index}",
+                                       folder=f"{parent}/项目 {index:03}", settings=state.settings)
+        state.conn.execute("UPDATE bookmark SET folder_depth=2 WHERE id=?", (record["bookmark_id"],))
+    other = service.save_bookmark(state.conn, "https://tree-pages.example/other",
+                                  folder='资料 500xx "one"/其他', settings=state.settings)
+    state.conn.execute("UPDATE bookmark SET folder_depth=2 WHERE id=?", (other["bookmark_id"],))
+    state.conn.commit()
+    first = client.get("/bookmarks/folders/tree", params={"parent": parent, "limit": 200}).json()
+    last = client.get("/bookmarks/folders/tree", params={"parent": parent, "limit": 200, "offset": 200}).json()
+    assert first["total"] == last["total"] == 207
+    assert len(first["items"]) == 200 and first["has_more"]
+    assert len(last["items"]) == 7 and not last["has_more"]
+    assert len({item["value"] for item in first["items"] + last["items"]}) == 207
+    # Flat search remains available, including a full path outside the first page.
+    target = f"{parent}/项目 206"
+    assert client.get("/bookmarks/facets/folders", params={"q": target}).json()["items"] == [
+        {"value": target, "count": 1}]
+
+
+def test_folder_tree_is_authenticated_and_bounds_requests(client):
+    assert client.get("/bookmarks/folders/tree?limit=201").status_code == 422
+    assert client.get("/bookmarks/folders/tree?offset=-1").status_code == 422
+    assert client.get("/bookmarks/folders/tree", params={"parent": "x" * 2049}).status_code == 422
+    assert client.get("/bookmarks/folders/path", params={"folder": "x" * 2049}).status_code == 422
+    client.headers.pop("Authorization")
+    assert client.get("/bookmarks/folders/tree").status_code == 401
+    assert client.get("/bookmarks/folders/path").status_code == 401
+
+
+def test_folder_tree_follows_real_import_depth_and_keeps_slash_names_literal(client):
+    state = client.app.state.fm
+    service.import_content(state.conn, """<!DOCTYPE NETSCAPE-Bookmark-file-1>
+        <DL><DT><H3>资料</H3><DL><DT><H3>中文排版</H3><DL>
+        <DT><A HREF="https://imported-tree.example/clear">Imported nested bookmark</A></DL>
+        <DT><H3>AI/ML</H3><DL>
+        <DT><A HREF="https://imported-tree.example/ambiguous">A slash in an ancestor name</A></DL>
+        </DL></DL>""", settings=state.settings)
+    for index, folder in enumerate(["read/write ratio", "带空格 / 单一名称", "/"]):
+        service.save_bookmark(state.conn, f"https://literal-tree.example/{index}",
+                              folder=folder, settings=state.settings)
+    children = client.get("/bookmarks/folders/tree", params={"parent": "资料"}).json()
+    assert children["items"] == [
+        {"value": "资料/中文排版", "label": "中文排版", "count": 1, "has_children": False},
+    ]
+    roots = {row["value"]: row for row in client.get("/bookmarks/folders/tree").json()["items"]}
+    for folder in ["read/write ratio", "带空格 / 单一名称", "/", "资料/AI/ML"]:
+        assert roots[folder] == {"value": folder, "label": folder, "count": 1, "has_children": False}
+        assert client.get("/bookmarks/folders/path", params={"folder": folder}).json()["parts"] == [folder]
+        assert client.get("/bookmarks", params={"folder": folder}).json()["total"] == 1
+    assert roots["资料"] == {"value": "资料", "label": "资料", "count": 0, "has_children": True}
+    assert client.get("/bookmarks/folders/path", params={"folder": "资料/中文排版"}).json()["parts"] == ["资料", "中文排版"]
+
+
 def test_channel_override_does_not_inherit_lower_source_key(monkeypatch):
     write_config({"chat_base_url": "https://a.example/v1", "chat_api_key": "a-secret"})
     monkeypatch.setenv("FACETMARK_CHAT_BASE_URL", "https://b.example/v1")

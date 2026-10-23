@@ -106,6 +106,62 @@ def browse_facets(conn, group, *, q="", limit=50, offset=0):
             "has_more": offset + len(items) < total}
 
 
+def stored_folder_parts(folder, minimum_depth, maximum_depth):
+    """Recover only the hierarchy established by the existing import metadata.
+
+    Imports render ancestors with '/', while API-created folders remain literal
+    names even when they contain slashes. Depth disagreements or slash-containing
+    ancestor names cannot be reconstructed from the legacy display string alone.
+    Preserve those exact identities as one readable entry rather than guessing.
+    """
+    if not folder:
+        return []
+    parts = folder.split("/")
+    if minimum_depth == maximum_depth == len(parts) and all(parts):
+        return parts
+    return [folder]
+
+
+def folder_path(conn, *, folder):
+    depths = conn.execute(
+        "SELECT min(folder_depth),max(folder_depth) FROM bookmark WHERE folder=?", (folder,),
+    ).fetchone()
+    return {"value": folder, "parts": stored_folder_parts(folder, *depths)}
+
+
+def browse_folder_children(conn, *, parent="", limit=50, offset=0):
+    """Page one recoverable directory level without widening exact selection."""
+    prefix = f"{parent}/" if parent else ""
+    rows = conn.execute(
+        "SELECT folder,min(folder_depth),max(folder_depth),count(*) FROM bookmark "
+        "WHERE folder != '' AND substr(folder,1,?)=? GROUP BY folder",
+        (len(prefix), prefix),
+    ).fetchall()
+    counts = {row[0]: row[3] for row in rows}
+    directory = {}
+    for folder, minimum, maximum, _count in rows:
+        parts = stored_folder_parts(folder, minimum, maximum)
+        values = ["/".join(parts[:index + 1]) for index in range(len(parts))]
+        if parent:
+            if parent not in values[:-1]:
+                continue
+            index = values.index(parent) + 1
+        else:
+            index = 0
+        value = values[index]
+        child = directory.setdefault(value, {
+            "value": value, "label": parts[index], "count": counts.get(value, 0),
+            "has_children": False,
+        })
+        child["has_children"] |= index < len(parts) - 1
+    ordered = sorted(directory.values(), key=lambda item: (
+        not item["count"], item["label"].casefold(), item["label"],
+    ))
+    items = ordered[offset:offset + limit]
+    return {"items": items, "total": len(ordered), "offset": offset, "limit": limit,
+            "has_more": offset + len(items) < len(ordered)}
+
+
 class SourceRequest(BaseModel):
     source_id: str
 
@@ -217,6 +273,19 @@ def register(app: FastAPI, auth: list) -> None:
         offset: int = Query(0, ge=0),
     ):
         return browse_facets(request.app.state.fm.conn, group, q=q, limit=limit, offset=offset)
+
+    @app.get("/bookmarks/folders/tree", dependencies=auth)
+    async def folder_children(
+        request: Request,
+        parent: str = Query("", max_length=2048),
+        limit: int = Query(50, ge=1, le=200),
+        offset: int = Query(0, ge=0),
+    ):
+        return browse_folder_children(request.app.state.fm.conn, parent=parent, limit=limit, offset=offset)
+
+    @app.get("/bookmarks/folders/path", dependencies=auth)
+    async def selected_folder_path(request: Request, folder: str = Query("", max_length=2048)):
+        return folder_path(request.app.state.fm.conn, folder=folder)
 
     def sources(state):
         return [

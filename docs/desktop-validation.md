@@ -1,10 +1,10 @@
 # Desktop experience validation
 
-> 2026-10-23：当前雾蓝分层收藏工作区、胶囊控件及连续动效已完成本轮实现与云端验证，仍待用户视觉复评。下方当前区块对应 `04ecc11` 应用及 `7d2abd0` 补拍；更早的石灰色、浅绿和浅鸢尾界面仅留作历史。见 [本轮记录](collection-workspace-2026-10-23.md)。
+> 2026-10-24：用户认可雾蓝工作区的整体进步，当前正在完善胶囊、目录与启动流程。本轮源码改动尚未提交，云端渲染和安装验证待执行。见 [本轮打磨记录](collection-workspace-polish-2026-10-24.md)。下方 2026-10-23 区块仅为旧版本基线。
 
 <!-- current-experience-evidence:start -->
 
-## 2026-10-23: layered collection workspace, verified for review
+## Historical 2026-10-23 baseline: layered collection workspace
 
 Application source: `04ecc1133b62717cbd06f3733e40a3322cd42230`.
 Final capture/test source: `7d2abd0f52687d2192b01b2cd7557aa446995698`.

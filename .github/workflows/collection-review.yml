@@ -4,6 +4,11 @@ on:
     branches: ['desktop/**']
     paths:
       - 'frontend/**'
+      - 'desktop/splash/**'
+      - 'desktop/src-tauri/tauri.conf.json'
+      - 'src/facetmark/workbench.py'
+      - 'scripts/desktop_assets.py'
+      - 'scripts/check_workspace_polish.cjs'
       - 'scripts/collection_review_*.py'
       - 'scripts/experience_server.py'
       - '.github/workflows/collection-review.yml'
@@ -28,6 +33,8 @@ jobs:
       - run: pip install -e '.[dev]'
       - working-directory: frontend
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Selection cleanup and synthetic startup regression
+        run: node scripts/check_workspace_polish.cjs
       - working-directory: frontend
         run: npm run build
       - run: ruff check scripts/collection_review_fixture.py scripts/collection_review_evidence.py
@@ -46,7 +53,7 @@ jobs:
         working-directory: frontend
         env:
           FACETMARK_REVIEW_CORPUS: '1'
-        run: npx playwright test collection-review.spec.ts
+        run: npx playwright test collection-review.spec.ts workspace-polish.spec.ts startup.spec.ts
       - name: Package viewable source-matched evidence
         if: always()
         run: python scripts/collection_review_evidence.py

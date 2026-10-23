@@ -85,10 +85,12 @@ def main():
         # behind five folders and a few dozen uniformly short records.
         for index in range(1892):
             title, host, folder, text = titles[index % len(titles)]
+            folder_parts = [folder]
             if index >= 72:
-                folder = f"专题资料 {index % 240:03} / {folder}"
+                folder_parts.insert(0, f"专题资料 {index % 240:03}")
                 if index % 37 == 0:
-                    folder += " / 需要长期保存与反复查阅的项目研究和学习笔记"
+                    folder_parts.append("需要长期保存与反复查阅的项目研究和学习笔记")
+            folder = "/".join(folder_parts)
             suffix = f" · {index // len(titles) + 1}" if index >= len(titles) else ""
             record = service.save_bookmark(
                 conn,
@@ -99,6 +101,10 @@ def main():
                 date_added=1790985600 - index * 450,
                 settings=settings,
             )
+            # This controlled corpus represents imported ancestors. Ordinary
+            # API creation intentionally stores a newly typed folder as one name.
+            conn.execute("UPDATE bookmark SET folder_depth=? WHERE id=?",
+                         (len(folder_parts), record["bookmark_id"]))
             body = (
                 title
                 + "\n\n"

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-22T22:58:30.233Z",
+  "generatedAt": "2026-10-23T20:45:52.029Z",
   "title": "Design System: Facetmark collection workspace",
   "extensions": {
     "colorMeta": {
@@ -1062,9 +1062,9 @@
         "source": "frontend/src/BookmarkCard.tsx + frontend/src/bookmark-card.css"
       },
       {
-        "name": "selection-spring",
-        "value": "spring(stiffness: 480, damping: 29, mass: 0.8)",
-        "purpose": "Shared selection markers; duration 0 under reduced motion.",
+        "name": "selection-plate",
+        "value": "GSAP width/height/x/y; 340ms power3.out; no scale projection",
+        "purpose": "Last painted bounds resume rapid reversals within the app. Resizing and reduced motion update the endpoint immediately.",
         "source": "frontend/src/InteractionMotion.tsx"
       },
       {
@@ -1087,8 +1087,8 @@
       },
       {
         "name": "folder-face",
-        "value": "d: matching SVG path topology; 200ms cubic-bezier(0.2,0.7,0.3,1)",
-        "purpose": "Folder follows its active state; plain endpoint path under reduced motion.",
+        "value": "Matching SVG path topology and paper y: -1.5px; 240ms cubic-bezier(0.2,0.7,0.3,1)",
+        "purpose": "Selection or disclosure opens the folder; reduced motion uses immediate endpoints.",
         "source": "frontend/src/CollectionFolderIcon.tsx"
       },
       {
@@ -1126,6 +1126,18 @@
         "value": "460ms cubic-bezier(0.16,1,0.3,1)",
         "purpose": "Native view transition when supported and motion is allowed; no default root crossfade.",
         "source": "frontend/src/App.tsx + frontend/src/workbench.css"
+      },
+      {
+        "name": "folder-disclosure",
+        "value": "height 240ms cubic-bezier(0.22,1,0.36,1); opacity 160ms",
+        "purpose": "Independent nested branch disclosure. Closing content becomes inert immediately; reduced motion has zero duration.",
+        "source": "frontend/src/FolderTree.tsx"
+      },
+      {
+        "name": "startup-track",
+        "value": "160px track, 45% segment; 1.6s glide loop",
+        "purpose": "Waiting state only. Motion stops for reduced motion; native error preserves retry and error details.",
+        "source": "frontend/src/startup.css + desktop/splash/index.html"
       }
     ],
     "breakpoints": [
@@ -1221,27 +1233,45 @@
       }
     ],
     "tonalRampProvenance": "Generated 8-step OKLCH strips for the design panel only. They are not shipped palette tokens or verified contrast combinations.",
-    "specimenScope": "Static, self-contained HTML/CSS visual states with inline SVG and root-token fallbacks. Runtime controls, springs, focus management and data behavior remain in the React application. The bundled font aliases use platform fallbacks if the host has not loaded those fonts.",
+    "specimenScope": "Static, self-contained HTML/CSS visual states with inline SVG and root-token fallbacks. Runtime controls, selection geometry, layout springs, focus management and data behavior remain in the React application. The bundled font aliases use platform fallbacks if the host has not loaded those fonts.",
     "evidence": {
-      "status": "cloud-verified-awaiting-user-visual-review",
-      "visualAcceptance": "awaiting-user-review",
-      "sourceState": "Replacement after the user rejected 46cf2f3: top capsule navigation, frosted directory, mist-blue layered cards and upright Inter/Noto typography.",
-      "sourceBasis": "Static tokens and specimens extracted from frontend/src; runtime evidence is recorded separately at exact revisions below.",
+      "status": "local-refinement-awaiting-cloud-validation",
+      "visualAcceptance": "overall-progress-acknowledged-new-refinements-awaiting-review",
+      "sourceState": "Mist-blue identity retained after 2026-10-24 feedback. Real capsule dimensions, blue control states, nested folders and the complete startup/setup path are refined.",
+      "sourceBasis": "Current local source diff; static specimens describe endpoints only. Runtime verification is pending.",
       "brief": ".impeccable/workbench-direction.md",
       "surface": ".impeccable/surfaces/frontend.md",
       "history": ".impeccable/history/2026-10-23-rejected-iris/",
-      "verification": "All four 04ecc11 cloud workflows passed. Capture-only 7d2abd0 passed collection review with identical application files: 26 screenshots, 6 action groups, 0 page errors, 39 source hashes and 29 media/record hashes verified. Windows installed WebView completed 24 steps without page errors or unexpected writes.",
-      "roundRecord": "docs/collection-workspace-2026-10-23.md",
-      "applicationRevision": "04ecc1133b62717cbd06f3733e40a3322cd42230",
-      "captureRevision": "7d2abd0f52687d2192b01b2cd7557aa446995698",
-      "runs": {
-        "ci": "39878725847",
-        "experience": "39878719512",
-        "collection": "39878719511",
-        "windows": "39878719504",
-        "finalCapture": "39882197281"
+      "baseRevision": "530471ae7ae125d9b2f81fef082864638f04ad8a",
+      "roundRecord": "docs/collection-workspace-polish-2026-10-24.md",
+      "verification": "46 TS/TSX files and frontend CSS passed syntax parsing; 6 changed Python files passed AST parsing. Native JS/CSS, Tauri JSON and 10 static component styles parsed. Scoped motion/icon/reduced-motion type checking passed. AST-extracted folder queries passed recoverable import depth, exact counts, literal and ambiguous slash names and all 207 children across five in-memory pages without changing records. The small source-state regression passed interrupted paint, 60 switches, cleanup and synthetic Chinese/English native restart; both negative controls failed as expected. Full local types could not complete because two existing dependencies are absent; Ruff is unavailable. No current cloud render, browser operation or installed-app verification has run.",
+      "nativeStartupScope": "Browser tests use the native splash HTML with a synthetic Tauri restart bridge. Installed Windows startup and lifecycle remain a separate desktop workflow.",
+      "latestFeedback": {
+        "date": "2026-10-24",
+        "scope": "Facetmark PR #44",
+        "assessment": "Substantial overall improvement; comprehensive refinement requested. No individual token, component or new change is marked approved."
       },
-      "independentReview": "Generic independent reviewer substituted for the unavailable dedicated role. All six listed corrections resolved; remaining clear, disposition ship within that scope. User aesthetic acceptance remains pending. Storyboard and frame review did not include direct full-MP4 playback."
+      "historicalBaseline": {
+        "status": "cloud-verified-awaiting-user-visual-review",
+        "visualAcceptance": "awaiting-user-review",
+        "sourceState": "Replacement after the user rejected 46cf2f3: top capsule navigation, frosted directory, mist-blue layered cards and upright Inter/Noto typography.",
+        "sourceBasis": "Static tokens and specimens extracted from frontend/src; runtime evidence is recorded separately at exact revisions below.",
+        "brief": ".impeccable/workbench-direction.md",
+        "surface": ".impeccable/surfaces/frontend.md",
+        "history": ".impeccable/history/2026-10-23-rejected-iris/",
+        "verification": "All four 04ecc11 cloud workflows passed. Capture-only 7d2abd0 passed collection review with identical application files: 26 screenshots, 6 action groups, 0 page errors, 39 source hashes and 29 media/record hashes verified. Windows installed WebView completed 24 steps without page errors or unexpected writes.",
+        "roundRecord": "docs/collection-workspace-2026-10-23.md",
+        "applicationRevision": "04ecc1133b62717cbd06f3733e40a3322cd42230",
+        "captureRevision": "7d2abd0f52687d2192b01b2cd7557aa446995698",
+        "runs": {
+          "ci": "39878725847",
+          "experience": "39878719512",
+          "collection": "39878719511",
+          "windows": "39878719504",
+          "finalCapture": "39882197281"
+        },
+        "independentReview": "Generic independent reviewer substituted for the unavailable dedicated role. All six listed corrections resolved; remaining clear, disposition ship within that scope. User aesthetic acceptance remains pending. Storyboard and frame review did not include direct full-MP4 playback."
+      }
     },
     "componentSources": {
       "button-primary": "frontend/src/ui/controls.css",
@@ -1251,9 +1281,11 @@
       "search": "frontend/src/workbench.css",
       "form-input": "frontend/src/library-tools.css",
       "navigation-active": "frontend/src/workbench.css",
-      "directory-entry": "frontend/src/facet-browser.css + frontend/src/CollectionFolderIcon.tsx",
+      "directory-entry": "frontend/src/folder-tree.css + frontend/src/facet-browser.css + frontend/src/CollectionFolderIcon.tsx",
       "tag": "frontend/src/bookmark-card.css",
-      "bookmark-card": "frontend/src/bookmark-card.css + frontend/src/BookmarkCard.tsx"
+      "bookmark-card": "frontend/src/bookmark-card.css + frontend/src/BookmarkCard.tsx",
+      "startup": "frontend/src/startup.css + desktop/splash/index.html",
+      "setup": "frontend/src/setup.css + frontend/src/Setup.tsx"
     }
   },
   "components": [
@@ -1263,7 +1295,7 @@
       "refersTo": "button-primary",
       "description": "Shared primary action with molded edge and source-defined hover sweep. Press semantics remain in the application adapter.",
       "html": "<button class=\"ds-primary\" type=\"button\">保存设置</button>",
-      "css": ".ds-primary{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--radius-pill,999px);font-size:.9375rem;font-weight:600;line-height:1.5;cursor:pointer;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);min-height:44px;padding:10px 20px;color:var(--on-accent, #fff);background-color:var(--accent, #235fe5);background-image:linear-gradient(180deg,#ffffff24,#ffffff00 65%);border:1px solid color-mix(in srgb,var(--accent, #235fe5) 75%,var(--light, #ffffff));box-shadow:inset 0 1px 0 #ffffff40,0 4px 8px -4px #15468a50,0 10px 22px -12px #235fe589}.ds-primary:hover,.ds-primary:active{background-color:var(--accent-hover, #164bc2)}.ds-primary::after{content:\"\";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,transparent 20%,#ffffff26 45%,transparent 65%);background-size:240% 100%;background-position:100% 0;opacity:0;transition:background-position 650ms var(--ease,cubic-bezier(.22,1,.36,1)),opacity 180ms ease}.ds-primary:hover::after{background-position:0 0;opacity:1}.ds-primary:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}.ds-primary:disabled{cursor:not-allowed;opacity:.42}@media(prefers-reduced-motion:reduce){.ds-primary::after,.ds-add::after,.ds-secondary::after{transition:none}}"
+      "css": ".ds-primary{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--radius-pill,999px);font-size:.9375rem;font-weight:600;line-height:1.5;cursor:pointer;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);min-height:44px;padding:10px 20px;color:var(--on-accent, #fff);background-color:var(--accent, #235fe5);background-image:linear-gradient(180deg,#ffffff24,#ffffff00 65%);border:1px solid color-mix(in srgb,var(--accent, #235fe5) 75%,var(--light, #ffffff));box-shadow:inset 0 1px 0 #ffffff40,0 4px 8px -4px #15468a50,0 10px 22px -12px #235fe589}.ds-primary:hover,.ds-primary:active{background-color:var(--accent-hover, #164bc2)}.ds-primary::after{content:\"\";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,transparent 20%,#ffffff26 45%,transparent 65%);background-size:240% 100%;background-position:100% 0;opacity:0;transition:background-position 650ms var(--ease,cubic-bezier(.22,1,.36,1)),opacity 180ms ease}.ds-primary:hover::after{background-position:0 0;opacity:1}.ds-primary:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}.ds-primary:disabled{cursor:not-allowed;opacity:.42}@media(prefers-reduced-motion:reduce){.ds-primary::after,.ds-add::after,.ds-secondary::after{transition:none}}.ds-primary:active{transform:none;box-shadow:inset 0 2px 5px #102c5b33,0 2px 5px -3px #235fe559}"
     },
     {
       "name": "Add bookmark",
@@ -1279,7 +1311,7 @@
       "refersTo": "button-secondary",
       "description": "Porcelain secondary action with an outlined edge and inset highlight.",
       "html": "<button class=\"ds-secondary\" type=\"button\">取消</button>",
-      "css": ".ds-secondary{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--radius-pill,999px);font-size:.9375rem;font-weight:600;line-height:1.5;cursor:pointer;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);min-height:44px;padding:9px 18px;color:var(--ink, #162b43);background-color:var(--canvas, #ffffff);background-image:linear-gradient(180deg,color-mix(in srgb,var(--light, #ffffff) 10%,transparent),transparent);border:1px solid var(--rule, #d9e3ef);box-shadow:inset 0 1px 0 var(--glass-edge, #ffffffd9),0 4px 8px -6px #213e6833}.ds-secondary:hover{background-color:var(--inset, #edf3f9)}.ds-secondary:active{background-color:var(--soft, #e8f0ff)}.ds-secondary::after{content:\"\";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,transparent 20%,#ffffff26 45%,transparent 65%);background-size:240% 100%;background-position:100% 0;opacity:0;transition:background-position 650ms var(--ease,cubic-bezier(.22,1,.36,1)),opacity 180ms ease}.ds-secondary:hover::after{background-position:0 0;opacity:1}.ds-secondary:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}.ds-secondary:disabled{cursor:not-allowed;opacity:.42}@media(prefers-reduced-motion:reduce){.ds-primary::after,.ds-add::after,.ds-secondary::after{transition:none}}"
+      "css": ".ds-secondary{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--radius-pill,999px);font-size:.9375rem;font-weight:600;line-height:1.5;cursor:pointer;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);min-height:44px;padding:9px 18px;color:var(--ink, #162b43);background-color:var(--canvas, #ffffff);background-image:linear-gradient(180deg,color-mix(in srgb,var(--light, #ffffff) 10%,transparent),transparent);border:1px solid var(--rule, #d9e3ef);box-shadow:inset 0 1px 0 var(--glass-edge, #ffffffd9),0 4px 8px -6px #213e6833}.ds-secondary:hover{background-color:var(--inset, #edf3f9)}.ds-secondary:active{background-color:var(--soft, #e8f0ff)}.ds-secondary::after{content:\"\";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,transparent 20%,#ffffff26 45%,transparent 65%);background-size:240% 100%;background-position:100% 0;opacity:0;transition:background-position 650ms var(--ease,cubic-bezier(.22,1,.36,1)),opacity 180ms ease}.ds-secondary:hover::after{background-position:0 0;opacity:1}.ds-secondary:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}.ds-secondary:disabled{cursor:not-allowed;opacity:.42}@media(prefers-reduced-motion:reduce){.ds-primary::after,.ds-add::after,.ds-secondary::after{transition:none}}.ds-secondary:active{transform:none;box-shadow:inset 0 2px 4px #23456d14}"
     },
     {
       "name": "Text capsule",
@@ -1309,17 +1341,17 @@
       "name": "Top navigation",
       "kind": "nav",
       "refersTo": "navigation-active",
-      "description": "Frosted top capsule with an ink active segment. The application moves its shared selection marker with a spring; this is its static endpoint.",
+      "description": "Frosted top capsule with a blue active segment. The app animates actual plate dimensions over 340ms; this is its static endpoint.",
       "html": "<nav class=\"ds-nav\" aria-label=\"工作区\"><button type=\"button\" class=\"ds-nav-item\" aria-pressed=\"true\">收藏</button><button type=\"button\" class=\"ds-nav-item\" aria-pressed=\"false\">任务</button><button type=\"button\" class=\"ds-nav-item\" aria-pressed=\"false\">设置</button></nav>",
-      "css": ".ds-nav{display:inline-flex;gap:4px;padding:5px;border:1px solid var(--glass-edge, #ffffffd9);border-radius:var(--radius-pill,999px);background:var(--glass, #ffffffb3);box-shadow:inset 0 1px 0 var(--glass-edge, #ffffffd9),0 6px 16px -12px #284b8040;backdrop-filter:blur(18px)}.ds-nav-item{position:relative;min-height:40px;padding:9px 19px;border:0;border-radius:var(--radius-pill,999px);background:transparent;color:var(--secondary-ink, #526379);font-size:.875rem;line-height:1.6;white-space:nowrap;cursor:pointer;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);}.ds-nav-item[aria-pressed=\"true\"]{color:var(--canvas, #ffffff);background:var(--ink, #162b43);font-weight:650;box-shadow:inset 0 1px 0 #ffffff24,0 4px 9px -4px #14284459}.ds-nav-item:not([aria-pressed=\"true\"]):hover{background:var(--inset, #edf3f9)}.ds-nav-item:not([aria-pressed=\"true\"]):active{background:var(--soft, #e8f0ff)}.ds-nav-item:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}"
+      "css": ".ds-nav{display:inline-flex;gap:4px;padding:5px;border:1px solid var(--glass-edge, #ffffffd9);border-radius:var(--radius-pill,999px);background:var(--glass, #ffffffb3);box-shadow:inset 0 1px 0 var(--glass-edge, #ffffffd9),0 6px 16px -12px #284b8040;backdrop-filter:blur(18px)}.ds-nav-item{position:relative;min-height:40px;padding:9px 19px;border:0;border-radius:var(--radius-pill,999px);background:transparent;color:var(--secondary-ink, #526379);font-size:.875rem;line-height:1.6;white-space:nowrap;cursor:pointer;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);}.ds-nav-item[aria-pressed=\"true\"]{color:var(--on-accent, #fff);background:linear-gradient(180deg,color-mix(in srgb,var(--accent, #235fe5) 86%,var(--light, #ffffff)),var(--accent, #235fe5));font-weight:650;box-shadow:inset 0 1px 0 #ffffff4d,0 4px 10px -5px #235fe570}.ds-nav-item:not([aria-pressed=\"true\"]):hover{background:var(--inset, #edf3f9)}.ds-nav-item:not([aria-pressed=\"true\"]):active{background:var(--soft, #e8f0ff)}.ds-nav-item:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}"
     },
     {
       "name": "Selected directory entry",
       "kind": "nav",
       "refersTo": "directory-entry",
-      "description": "Selected capsule row with the source-authored open folder path, exact label space and count. The full directory supplies bounded scrolling and search.",
-      "html": "<button type=\"button\" class=\"ds-directory\" aria-pressed=\"true\"><svg class=\"ds-folder\" aria-hidden=\"true\" width=\"25\" height=\"25\" viewBox=\"0 0 24 24\" fill=\"none\" stroke-width=\"1.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path class=\"ds-folder-back\" d=\"M3 18V6a2 2 0 0 1 2-2H9l2 2h8a2 2 0 0 1 2 2v10H3Z\"/><path class=\"ds-folder-paper\" d=\"M6 8h12v9H6z\"/><path class=\"ds-folder-front\" d=\"M6 10L21 10Q22 10 21.7 11L19.6 19Q19.4 20 18.4 20L4 20Q3 20 3.2 19L5 11Q5.2 10 6 10Z\"/></svg><span class=\"ds-directory-label\">中文排版</span><span class=\"ds-directory-count\">24</span></button>",
-      "css": ".ds-directory{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:8px;min-height:48px;width:100%;padding:10px 12px;border:1px solid color-mix(in srgb,var(--accent, #235fe5) 13%,var(--canvas, #ffffff));border-radius:var(--radius-pill,999px);background:linear-gradient(110deg,var(--selected, #deebff),var(--soft, #e8f0ff));color:var(--accent, #235fe5);box-shadow:inset 0 1px 0 var(--glass-edge, #ffffffd9),0 5px 10px -9px #235fe570;font-size:.875rem;font-weight:600;line-height:1.5;text-align:left;cursor:pointer;transition:color 160ms ease,background-color 160ms ease;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);}.ds-directory:hover,.ds-directory:active{background:var(--selected, #deebff)}.ds-directory-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ds-directory-count{font-size:.75rem;font-weight:400;font-variant-numeric:tabular-nums}.ds-directory:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}.ds-folder{flex:none;filter:drop-shadow(0 2px 2px #235fe514)}.ds-folder-back{fill:color-mix(in srgb,var(--accent, #235fe5) 45%,var(--canvas, #ffffff));stroke:var(--accent, #235fe5)}.ds-folder-paper{fill:var(--canvas, #ffffff);stroke:none}.ds-folder-front{fill:color-mix(in srgb,var(--accent, #235fe5) 65%,var(--canvas, #ffffff));stroke:color-mix(in srgb,var(--accent, #235fe5) 55%,var(--canvas, #ffffff))}@media(max-width:719px){.ds-directory{min-height:44px}}@media(prefers-reduced-motion:reduce){.ds-directory{transition:none}}"
+      "description": "Selected tree leaf with layered folder material, a two-line label and exact direct count. Branch disclosure and complete path reading remain in FolderTree/FacetBrowser.",
+      "html": "<button type=\"button\" class=\"ds-directory\" aria-pressed=\"true\"><svg class=\"ds-folder\" aria-hidden=\"true\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke-width=\"1.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><defs><linearGradient id=\"ds-folder-back-gradient\" x1=\"3\" y1=\"4\" x2=\"21\" y2=\"20\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"var(--ds-folder-back-light)\"/><stop offset=\"1\" stop-color=\"var(--ds-folder-back-deep)\"/></linearGradient><linearGradient id=\"ds-folder-front-gradient\" x1=\"12\" y1=\"10\" x2=\"12\" y2=\"20\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"var(--ds-folder-front-light)\"/><stop offset=\"1\" stop-color=\"var(--ds-folder-front-deep)\"/></linearGradient></defs><path class=\"ds-folder-back\" d=\"M3 18V6a2 2 0 0 1 2-2H9l2 2h8a2 2 0 0 1 2 2v10H3Z\"/><path class=\"ds-folder-paper\" d=\"M6 6.5h12v9H6z\"/><path class=\"ds-folder-front\" d=\"M6 10L21 10Q22 10 21.7 11L19.6 19Q19.4 20 18.4 20L4 20Q3 20 3.2 19L5 11Q5.2 10 6 10Z\"/></svg><span class=\"ds-directory-label\">长标题与中英混排</span><span class=\"ds-directory-count\">24</span></button>",
+      "css": ".ds-directory{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:7px;min-height:44px;width:100%;padding:9px;border:1px solid color-mix(in srgb,var(--accent, #235fe5) 13%,var(--canvas, #ffffff));border-radius:var(--radius-pill,999px);background:linear-gradient(110deg,var(--selected, #deebff),var(--soft, #e8f0ff));color:var(--accent, #235fe5);box-shadow:inset 0 1px 0 var(--glass-edge, #ffffffd9),0 5px 10px -9px #235fe570;font-size:.875rem;font-weight:600;line-height:1.5;text-align:left;cursor:pointer;transition:color 160ms ease,background-color 160ms ease;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);}.ds-directory:hover,.ds-directory:active{background:var(--selected, #deebff)}.ds-directory-label{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;min-width:0;max-height:3.1em;overflow:hidden;text-overflow:ellipsis;white-space:normal;overflow-wrap:anywhere;line-height:1.55}.ds-directory-count{font-size:.75rem;font-weight:400;font-variant-numeric:tabular-nums}.ds-directory:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}.ds-folder{--ds-folder-back-light:color-mix(in srgb,var(--brand-detail,#7ac5ff) 70%,var(--canvas,#ffffff));--ds-folder-back-deep:color-mix(in srgb,var(--accent,#235fe5) 70%,var(--canvas,#ffffff));--ds-folder-front-light:color-mix(in srgb,var(--brand-detail,#7ac5ff) 72%,var(--canvas,#ffffff));--ds-folder-front-deep:color-mix(in srgb,var(--accent,#235fe5) 66%,var(--canvas,#ffffff));flex:none;overflow:visible;filter:drop-shadow(0 2px 2px #235fe51a)}.ds-folder-back{fill:url(#ds-folder-back-gradient);stroke:color-mix(in srgb,var(--accent,#235fe5) 70%,var(--canvas,#ffffff))}.ds-folder-paper{fill:var(--canvas,#ffffff);stroke:none}.ds-folder-front{fill:url(#ds-folder-front-gradient);stroke:color-mix(in srgb,var(--accent,#235fe5) 55%,var(--canvas,#ffffff))}@media(max-width:719px){.ds-directory{min-height:44px}}@media(prefers-reduced-motion:reduce){.ds-directory{transition:none}}"
     },
     {
       "name": "Record tag",
@@ -1340,7 +1372,7 @@
   ],
   "narrative": {
     "northStar": "The Layered Collection Table",
-    "overview": "An upright, tactile collection system uses mist-blue surroundings, porcelain reading surfaces and deep ink, with electric-blue actions. Translucent navigation and directory layers, rounded cards and molded capsule controls carry the current implementation's visual character. This is a working implementation description, not a user-approved visual identity.\n\nThe user rejected the pale-iris revision 46cf2f3 and explicitly requested capsule buttons, richer material and sophisticated continuous motion. The replacement is implemented in the React application. Application revision 04ecc11 passed CI, experience, collection review and Windows installation checks. Capture-only revision 7d2abd0 adds two summary-readiness assertions and passes the final collection review with identical application source. An independent generic reviewer confirmed all six requested corrections; user visual review remains pending.",
+    "overview": "An upright, tactile collection system uses mist-blue surroundings, porcelain reading surfaces and deep ink, with electric-blue actions. Translucent navigation and directory layers, rounded cards and molded capsule controls carry the current implementation's visual character. This is a working implementation description, not a user-approved visual identity.\n\nOn 2026-10-24 the user described PR #44's mist-blue workspace as a substantial improvement and requested comprehensive refinement. Keep its composition, typography and material direction while fixing malformed selected capsules, black control states, interrupted motion, nested-folder access and unfinished startup flows. This feedback does not approve every individual visual choice or the new refinements.\n\nThe current changes are local source edits awaiting cloud rendering and operation checks. Earlier application revision 04ecc11 and capture-only revision 7d2abd0 passed their recorded cloud checks; those runs are the historical baseline, not verification of this diff. The [current round record](docs/collection-workspace-polish-2026-10-24.md) records the implemented changes and actual check scope.",
     "keyCharacteristics": [
       "Mist-blue ambient light, translucent supporting layers and opaque content surfaces.",
       "Bundled Inter and Noto Sans SC with upright headings and readable mixed-language records.",

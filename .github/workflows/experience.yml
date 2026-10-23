@@ -43,6 +43,8 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Selection cleanup and synthetic startup regression
+        run: node scripts/check_workspace_polish.cjs
       - name: Build the shared React workbench
         id: frontend
         working-directory: frontend

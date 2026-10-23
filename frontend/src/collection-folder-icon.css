@@ -1,26 +1,36 @@
 .collection-folder-icon {
+  --folder-back-light: color-mix(in srgb, var(--brand-detail) 70%, var(--canvas));
+  --folder-back-deep: color-mix(in srgb, var(--accent) 70%, var(--canvas));
+  --folder-front-light: color-mix(in srgb, var(--brand-detail) 22%, var(--canvas));
+  --folder-front-deep: color-mix(in srgb, var(--brand-detail) 56%, var(--canvas));
   display: block;
   flex: none;
   overflow: visible;
 }
 
 .collection-folder-icon .collection-folder-back {
-  fill: color-mix(in srgb, var(--accent) 45%, var(--canvas));
-  stroke: var(--accent);
+  stroke: color-mix(in srgb, var(--accent) 70%, var(--canvas));
 }
 
 .collection-folder-icon .collection-folder-front {
-  fill: color-mix(in srgb, var(--brand-detail) 32%, var(--canvas));
   stroke: color-mix(in srgb, var(--accent) 55%, var(--canvas));
-  transition: fill 180ms ease;
+  transform-origin: 12px 20px;
+  transition: filter 180ms ease, transform 220ms var(--ease);
 }
 
-.collection-folder-icon[data-open="true"] .collection-folder-front {
-  fill: color-mix(in srgb, var(--accent) 65%, var(--canvas));
+.collection-folder-icon[data-selected="true"] {
+  --folder-front-light: color-mix(in srgb, var(--brand-detail) 72%, var(--canvas));
+  --folder-front-deep: color-mix(in srgb, var(--accent) 66%, var(--canvas));
 }
 
 .collection-folder-icon .collection-folder-paper { fill: var(--canvas); stroke: none; }
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .facet-folder-select:hover .collection-folder-front, .folder-picker-trigger:hover .collection-folder-front {
+    transform: translateY(-0.6px) skewX(-3deg);
+    filter: brightness(1.05);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .collection-folder-icon .collection-folder-front { transition: none; }
+  .collection-folder-icon .collection-folder-front { transition: none; transform: none; filter: none; }
 }

@@ -1,6 +1,6 @@
 ---
 name: "Facetmark collection workspace"
-description: "Mist-blue layered collection and capsule controls; cloud verified, awaiting user visual review."
+description: "Mist-blue workspace refinement after positive feedback; current changes await cloud verification and user review."
 colors:
   secondary-ink: "#526379"
   canvas: "#ffffff"
@@ -168,16 +168,16 @@ components:
     padding: "10px 16px"
     height: "44px"
   navigation-active:
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.canvas}"
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.on-accent}"
     rounded: "{rounded.pill}"
     padding: "9px 19px"
     height: "40px"
   directory-entry:
     textColor: "{colors.secondary-ink}"
     rounded: "{rounded.pill}"
-    padding: "10px 12px"
-    height: "48px"
+    padding: "9px"
+    height: "44px"
   tag:
     backgroundColor: "{colors.inset}"
     textColor: "{colors.secondary-ink}"
@@ -199,7 +199,9 @@ components:
 
 An upright, tactile collection system uses mist-blue surroundings, porcelain reading surfaces and deep ink, with electric-blue actions. Translucent navigation and directory layers, rounded cards and molded capsule controls carry the current implementation's visual character. This is a working implementation description, not a user-approved visual identity.
 
-The user rejected the pale-iris revision 46cf2f3 and explicitly requested capsule buttons, richer material and sophisticated continuous motion. The replacement is implemented in the React application. Application revision 04ecc11 passed CI, experience, collection review and Windows installation checks. Capture-only revision 7d2abd0 adds two summary-readiness assertions and passes the final collection review with identical application source. An independent generic reviewer confirmed all six requested corrections; user visual review remains pending.
+On 2026-10-24 the user described PR #44's mist-blue workspace as a substantial improvement and requested comprehensive refinement. Keep its composition, typography and material direction while fixing malformed selected capsules, black control states, interrupted motion, nested-folder access and unfinished startup flows. This feedback does not approve every individual visual choice or the new refinements.
+
+The current changes are local source edits awaiting cloud rendering and operation checks. Earlier application revision 04ecc11 and capture-only revision 7d2abd0 passed their recorded cloud checks; those runs are the historical baseline, not verification of this diff. The [current round record](docs/collection-workspace-polish-2026-10-24.md) records the implemented changes and actual check scope.
 
 The active product and behavior requirements remain in [PRODUCT.md](PRODUCT.md)
 and the [frontend surface brief](.impeccable/surfaces/frontend.md). The frontmatter
@@ -224,7 +226,8 @@ the corresponding dark-theme value.
 - **Electric blue** (`accent`, `accent-hover`, `on-accent`): primary actions,
   active accents and their legible foreground. Add bookmark uses this blue.
 - **Selection blue** (`soft`, `selected`, `selected-edge`): active controls,
-  chosen records and their boundaries; distinct from the ink-filled main navigation.
+  chosen records and their boundaries. Main navigation uses a blue filled plate;
+  category and settings plates use porcelain-to-blue material.
 
 ### Secondary
 
@@ -239,7 +242,8 @@ the corresponding dark-theme value.
 - **Mist desk and rail** (`desk`, `rail`, `inset`): the ambient workspace,
   navigation drawer and inset control groups.
 - **Deep ink** (`ink`, `secondary-ink`, `muted`): primary text, explanations
-  and tertiary metadata. Active top navigation reverses ink and canvas.
+  and tertiary metadata. Pressed control surfaces use their semantic blue or
+  porcelain roles; ink is not the navigation selection fill.
 - **Glass and light** (`glass`, `glass-edge`, `light`): translucent support
   surfaces and their top edges. `ambient-blue` and `ambient-mint` form the
   two workspace radial gradients; `scrim` protects modal context.
@@ -354,8 +358,9 @@ Collection Add has a local blue treatment, while Summarize has a pale outlined
 treatment. The source-owned variants determine their sizes and states.
 
 Hover sweeps move over 650ms with the shared CSS easing; opacity arrives in 180ms.
-HeroUI owns pressed transforms and state painting. Focus uses the visible accent
-outline; disabled/pending behavior stays with the actual control. The sidecar
+HeroUI owns pressed and focus state. The adapter's CSS keeps the button hit area
+stationary; pressing changes its material and inset shadow. Focus uses the visible
+accent outline; disabled/pending behavior stays with the actual control. The sidecar
 contains separate primary, Add, secondary and text visual specimens.
 
 ### Inputs / Fields
@@ -368,15 +373,27 @@ desktop dimensions and 44px mobile treatment.
 
 ### Navigation
 
-Top navigation sits inside a frosted capsule; its active segment is deep ink with
-a porcelain label and a shared spring highlight. Directory entries use capsule
-rows, exact folder/tag/site labels, counts and selected blue surfaces. The mobile
+Top navigation sits inside a frosted capsule; its active segment is blue with an
+on-accent label. The shared highlight animates real dimensions and translation
+over 340ms, without scale projection of rounded corners. Grid segments explicitly
+fill their assigned width. Directory entries use capsule rows, exact folder/tag/site
+labels, counts and selected blue surfaces. The mobile
 navigation drawer uses the rail surface and a separate scrim. Its width is the
 smaller of 380px and the viewport minus 20px, with 16px padding and a 12px gap.
 Main navigation uses two columns in a 1.2:1 ratio; bottom utilities use three
 columns in a 1.6:1:1 ratio, with appearance controls spanning the full row. Drawer
-navigation and utility buttons retain a 44px minimum height. The folder face
-interpolates matching SVG paths over 200ms when the represented state changes.
+navigation and utility buttons retain a 44px minimum height. The layered folder
+face interpolates matching SVG paths over 240ms; its paper moves with selection
+or disclosure. Fine-pointer hover detail is disabled under reduced motion.
+
+The folder tree pages direct children using the stored `folder_depth` and the
+importers' `/` display separator. API-created slash names remain literal; ambiguous
+legacy depth/path combinations remain complete exact entries rather than guessed trees.
+Disclosure and exact selection have separate buttons; ancestors without direct
+bookmarks can expand. Row counts exclude descendants. Labels wrap to two lines
+within the bounded sidebar, and the selected path has a complete-text disclosure. Loaded
+branches and their pages survive closing and category changes; library revisions
+invalidate them. Arrow keys move through visible rows and their ancestors.
 
 ### Chips
 
@@ -407,18 +424,37 @@ pacing on every target device.
 ### Reader, overlays and shared motion
 
 The reader keeps collection context on wide screens and becomes a 220ms horizontal
-drawer below the reading breakpoint. Shared selected segments use a spring
-(stiffness 480, damping 29, mass 0.8). Dialog/menu overlays use a spring
+drawer below the reading breakpoint. Shared selected segments use an interruptible
+340ms GSAP `power3.out` transition of actual width, height and position. The last
+painted bounds are scoped to the application, and responsive changes update the
+endpoint immediately. Dialog/menu overlays use a spring
 (stiffness 380, damping 30), 200ms entering opacity and 160ms exits; their exit
 wrapper immediately becomes inert. Content/category/page transitions retain the
 existing interruptible GSAP controller. Reduced motion skips spatial entrances,
 layout springs and local sweeps while preserving the usable state.
+
+### Startup and first use
+
+The native splash, React boot waiting/error screen, pairing form and setup/import
+path use the same mist, porcelain, blue and bookmark geometry. The native splash
+uses local platform fonts before the service and bundled application fonts are
+available. Its 500×360 window keeps long errors scrollable and retry reachable.
+Waiting is set before restart; a native error received during the promise stays
+visible. Reduced motion removes the loading track's movement.
+
+Boot, pairing, import and source discovery use immediate in-flight guards. Pairing
+retains a failed token draft and submits through a native form. Visited setup
+panels remain mounted, preserving model drafts; step completion reflects actual
+import, tested connection and compatible-index facts. Connection errors have a
+bounded panel rather than stretching between competing top/bottom offsets.
 
 ### Ownership and evidence
 
 `styles.css` owns theme/font primitives; `ui/controls.css` owns shared button
 paint; `workbench.css` owns shell/search/responsive geometry;
 `bookmark-card.css` owns record paint; `facet-browser.css` owns the directory;
+`folder-tree.css` owns nested disclosure; `collection-folder-icon.css` owns folder
+material; `startup.css` and `setup.css` own arrival and first-use surfaces;
 `library-tools.css` and `collection-tools.css` own their action/scoping flows;
 `reader-shell.css` owns reading surfaces. Motion controllers keep their existing
 property ownership.
@@ -447,11 +483,10 @@ not additional shipped theme colors.
 - **Don't** merge record hover movement with the layout controller or hide metadata until hover.
 - **Don't** treat old evidence, generated tonal ramps or static component specimens as current runtime or aesthetic approval.
 
-Application revision `04ecc11` passed all four cloud workflows. Final capture-only
-revision `7d2abd0` has identical application files and a successful collection
-review: 26 screenshots, 6 action groups, 0 page errors and a playable MP4.
-The 39 source-file hashes and 29 media/record hashes match that revision.
-The independent generic reviewer resolved all six listed corrections and
-returned a scoped `ship`; user visual review remains pending. See the
-[round record](docs/collection-workspace-2026-10-23.md) for exact runs, artifacts
-and the limits of the motion review.
+Current verification is limited to source and small synthetic evidence checks;
+runtime rendering, animation and installed Windows verification are pending.
+The collection workflow now includes folder disclosure, capsule geometry,
+startup/pairing and draft-recovery checks. Native splash captures use a synthetic
+restart bridge and are distinguished from installed-app evidence. See the
+[current round](docs/collection-workspace-polish-2026-10-24.md) and
+[historical baseline](docs/collection-workspace-2026-10-23.md).

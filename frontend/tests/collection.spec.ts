@@ -96,7 +96,7 @@ test("a mouse can scroll and page the category directory, then search beyond the
   await options.hover();
   await page.mouse.wheel(0, 2400);
   await expect.poll(() => options.evaluate(el => el.scrollTop)).toBeGreaterThan(100);
-  await rail.getByRole("button", { name: "显示更多分类" }).click();
+  await rail.getByRole("button", { name: /^显示更多文件夹/ }).click();
   await expect(options.locator("button[title]")).toHaveCount(100);
 
   const boot = await (await request.get("/app/boot")).json();
@@ -364,11 +364,11 @@ test("mobile category errors recover and list view is a persistent alternative",
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/app");
   await expect(page.locator(".result-row")).toHaveCount(30);
-  await page.route("**/bookmarks/facets/folders?**", route => route.fulfill({ status: 503, json: { detail: "Synthetic category failure" } }));
+  await page.route("**/bookmarks/folders/tree?**", route => route.fulfill({ status: 503, json: { detail: "Synthetic category failure" } }));
   await page.getByRole("button", { name: "筛选收藏", exact: true }).click();
   const menu = page.locator(".sidebar");
-  await expect(menu.getByRole("alert")).toContainText("分类暂时无法加载");
-  await page.unroute("**/bookmarks/facets/folders?**");
+  await expect(menu.getByRole("alert")).toContainText("文件夹暂时无法加载");
+  await page.unroute("**/bookmarks/folders/tree?**");
   await menu.getByRole("button", { name: "重试", exact: true }).click();
   await expect(menu.locator(".facet-option[title]")).toHaveCount(50);
   await menu.getByRole("textbox", { name: "查找分类" }).fill("知识管理");

@@ -2,7 +2,7 @@
 .collection-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; width: 100%; order: 2; }
 .collection-status, .collection-options, .collection-selection, .collection-job { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .collection-status { gap: 3px; padding: 4px; border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--inset); box-shadow: inset 0 2px 4px #23456106; }
-.collection-status .fm-button { position: relative; isolation: isolate; display: inline-flex; align-items: center; gap: 7px; min-height: 35px; padding: 7px 11px; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--secondary-ink); font-size: 0.8125rem; }
+.collection-status .fm-button { --button-bg-hover: transparent; --button-bg-pressed: transparent; position: relative; isolation: isolate; display: inline-flex; align-items: center; gap: 7px; min-height: 35px; padding: 7px 11px; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--secondary-ink); font-size: 0.8125rem; }
 .collection-status .fm-button:hover { background: var(--inset); }
 .collection-status .fm-button[aria-pressed="true"] { color: var(--accent); font-weight: 650; }
 .collection-status .fm-button .selection-pill { background: var(--canvas); box-shadow: 0 3px 8px -4px #294e7845; }
@@ -43,7 +43,7 @@
 }
 @media (max-width: 359px) {
   .collection-status { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .collection-status .fm-button { flex-direction: column; justify-content: center; gap: 1px; padding: 4px 2px; white-space: nowrap; }
+  .collection-status .fm-button { width: 100%; flex-direction: column; justify-content: center; gap: 1px; padding: 4px 2px; white-space: nowrap; }
   .collection-status .fm-button > span { min-width: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .collection-options-menu[open] > .collection-options, .collection-selection { animation: none; } .disclosure-chevron { transition: none; } }

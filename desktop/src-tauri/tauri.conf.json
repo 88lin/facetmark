@@ -5,7 +5,7 @@
   "identifier": "io.github.88lin.facetmark",
   "build": { "frontendDist": "../splash" },
   "app": {
-    "windows": [{ "label": "loading", "title": "Facetmark", "width": 460, "height": 320, "resizable": false, "center": true, "backgroundColor": "#f3f8fb" }],
+    "windows": [{ "label": "loading", "title": "Facetmark", "width": 500, "height": 360, "resizable": false, "center": true, "backgroundColor": "#e9eff5" }],
     "security": { "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" }
   },
   "bundle": {
