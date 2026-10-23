@@ -1,6 +1,6 @@
 ---
 name: "Facetmark collection workspace"
-description: "Mist-blue workspace refinement after positive feedback; current changes await cloud verification and user review."
+description: "Mist-blue workspace refinement after positive feedback; issue repairs have cloud evidence, final refinements await verification and user review."
 colors:
   secondary-ink: "#526379"
   canvas: "#ffffff"
@@ -483,15 +483,18 @@ not additional shipped theme colors.
 - **Don't** merge record hover movement with the layout controller or hide metadata until hover.
 - **Don't** treat old evidence, generated tonal ramps or static component specimens as current runtime or aesthetic approval.
 
-Current verification is limited to source and small synthetic evidence checks;
-the first pushed revision 87456ff produced 53 source-matched collection captures
-and a main interaction recording. The focused collection suite passed 8 of 10
-cases; CI browser failures also exposed hidden-tree locator ambiguity. Those
-locators and the reduced-motion transform residue are corrected in the follow-up,
-which still requires new cloud rendering and installed Windows verification.
+Revision 475c732 passed all 12 focused collection cases and installed Windows
+checks, including 8 Rust regressions, real 96-DPI physical-frame restoration,
+240 native events merged into one idle write, and actual keyboard retry after
+startup failure. Its 59 screenshots and 7 action groups have 64 source and 63
+media/record hashes verified. CI's synthetic-search assumption and Python zip
+lint are corrected; final short-window typography, two-line folder clipping and
+installed-executable icon extraction still require a new source-matched run.
 The collection workflow now includes folder disclosure, capsule geometry,
 startup/pairing and draft-recovery checks. Native splash captures use a synthetic
-restart bridge and are distinguished from installed-app evidence. See the
+restart bridge and are distinguished from installed-app evidence. Synthetic
+150% DPI and removed-monitor geometry are not physical device tests. The new
+icon and refinements remain pending user review. See the
 [current round](docs/collection-workspace-polish-2026-10-24.md) and
 [historical baseline](docs/collection-workspace-2026-10-23.md).
 

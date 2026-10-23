@@ -56,13 +56,15 @@ jobs:
       - name: Browser for cloud validation
         if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
         working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Prepare standalone recording encoder
+        if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
         run: |
-          npx playwright install --with-deps chromium
-          if ! command -v ffmpeg >/dev/null; then
-            sudo apt-get update
-            sudo apt-get install -y --no-install-recommends ffmpeg
-          fi
-          ffmpeg -version
+          pip install imageio-ffmpeg==0.6.0
+          mkdir -p "$RUNNER_TEMP/facetmark-encoder"
+          ln -s "$(python -c 'import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())')" "$RUNNER_TEMP/facetmark-encoder/ffmpeg"
+          echo "$RUNNER_TEMP/facetmark-encoder" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/facetmark-encoder/ffmpeg" -version
       - name: Behavior and render matrix
         if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
         working-directory: frontend

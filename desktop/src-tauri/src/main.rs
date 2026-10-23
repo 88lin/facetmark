@@ -221,8 +221,10 @@ fn focus_main(app: &tauri::AppHandle) {
 }
 fn startup_error(app: &tauri::AppHandle, message: &str) {
     let window = app.get_webview_window("loading").or_else(|| {
-        WebviewWindowBuilder::new(app, "loading", WebviewUrl::App("index.html".into()))
-            .title("Facetmark").inner_size(460., 320.).center().build().ok()
+        let mut builder = WebviewWindowBuilder::new(app, "loading", WebviewUrl::App("index.html".into()))
+            .title("Facetmark").inner_size(500., 360.).resizable(false).center();
+        if cloud_webview_inspection() { builder = builder.additional_browser_args(CI_BROWSER_ARGS); }
+        builder.build().ok()
     });
     if let Some(win) = window {
         let _ = win.show();

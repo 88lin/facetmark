@@ -1020,9 +1020,10 @@ function Workbench({
                   {selectedFolderParts.slice(0, -1).join(" / ")}
                 </p>}
                 <span className="collection-subtitle">
-                  <span className="result-count" aria-live="polite">{loading || !page ? "…" : page.total}{page?.depth_capped ? "+" : ""}</span> {t("条收藏", "saved pages")}
+                  <span className="result-count" aria-live="polite">{loading || !page ? "…" : page.total}{page?.depth_capped ? "+" : ""}</span>
+                  <span className="collection-count-label">{t("条收藏", "saved pages")}</span>
                   <span className="collection-subtitle-separator" aria-hidden="true">·</span>
-                  {t("每一个值得再回来的地方", "Places worth coming back to")}
+                  <span className="collection-note">{t("每一个值得再回来的地方", "Places worth coming back to")}</span>
                 </span>
               </div>
               <div className="workspace-search">

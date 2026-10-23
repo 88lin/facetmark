@@ -45,19 +45,23 @@ related_targets:
 On 2026-10-24 the user described PR #44's mist-blue workspace as a substantial
 improvement and requested refinement. Preserve this identity while fixing selected
 capsules, control colors, motion, nested folders and startup/setup paths. The new
-changes await cloud validation and user review; no individual visual choice is
-newly approved. The 04ecc11 / 7d2abd0 cloud results are the historical baseline.
+changes remain pending user review; no individual visual choice is newly
+approved. 475c732 has collection and installed evidence; final visual tightening
+still awaits a new run. 04ecc11 / 7d2abd0 are the historical baseline.
 Current scope is in docs/collection-workspace-polish-2026-10-24.md.
 
-Long-term reference: the supplied handbook v0.13 and D04 / D05 feedback records.
+Long-term reference: the supplied handbook v0.14 and D04 / D05 feedback records.
 Impeccable owns one system; oil-ui / Taste and S17-S20 supply selected relationships.
 
 The user additionally requested open-issue repairs and a replacement desktop app
-icon, and authorized commit/push plus cloud verification. 87456ff produced 53
-verified-source captures; collection was 8/10, CI browser 78 passed / 2 skipped /
-8 failed, and installed checks stopped at an ambiguous directory locator. Those
-failures and the issue fixes await a new run. New native icon and repairs remain
-pending user review.
+icon, and authorized commit/push plus cloud verification. 475c732 passed 12/12
+collection cases and installed Windows checks, with 59 screenshots, 7 action
+groups, 64 verified source hashes and 63 media/record hashes. Eight Rust cases,
+real 96-DPI restoration, 240 events merged into one idle write and keyboard
+startup retry passed. CI search-data assumptions and zip lint are now corrected;
+short-window typography, folder clipping, icon preview spacing and extraction
+from the installed exe await rerun. 150% DPI and monitor removal are pure geometry
+tests. New native icon and repairs remain pending user review.
 
 ## Direction contract
 

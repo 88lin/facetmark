@@ -129,6 +129,8 @@
   .app-header { padding-block: 4px; }
   .main-workspace:not(.focus-mode) { overflow-y: auto; overscroll-behavior: contain; }
   .workspace-toolbar { padding-block: 10px; gap: 8px; }
+  .collection-subtitle { white-space: nowrap; }
+  .collection-subtitle :is(.collection-subtitle-separator, .collection-note) { display: none; }
   .results-column { min-height: 320px; }
   .result-list { min-height: 160px; }
   .results-footer { min-height: 44px; }

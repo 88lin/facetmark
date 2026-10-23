@@ -28,7 +28,7 @@ def app_icon():
         draw = ImageDraw.Draw(layer)
         for y in range(canvas):
             progress = y / (canvas - 1)
-            color = tuple(round(a + (b - a) * progress) for a, b in zip(top, bottom))
+            color = tuple(round(a + (b - a) * progress) for a, b in zip(top, bottom, strict=True))
             draw.line((0, y, canvas, y), fill=(*color, 255))
         return layer
 
@@ -80,14 +80,14 @@ def app_icon():
 def icon_evidence(icon, directory):
     directory.mkdir(parents=True, exist_ok=True)
     icon.save(directory / 'app-icon.png')
-    preview = Image.new('RGB', (760, 410), '#EDF2F8')
+    preview = Image.new('RGB', (760, 434), '#EDF2F8')
     draw = ImageDraw.Draw(preview)
     font = ImageFont.load_default(size=18)
     draw.text((34, 24), 'Facetmark / porcelain folded F', font=font, fill='#18334F')
     preview.paste(icon, (35, 90), icon)
-    draw.rounded_rectangle((326, 80, 732, 217), radius=22, fill='#FFFFFF')
-    draw.rounded_rectangle((326, 230, 732, 367), radius=22, fill='#172636')
-    for surface, y, ink in [('light', 102, '#294669'), ('dark', 253, '#D8E8FA')]:
+    draw.rounded_rectangle((326, 80, 732, 229), radius=22, fill='#FFFFFF')
+    draw.rounded_rectangle((326, 246, 732, 395), radius=22, fill='#172636')
+    for surface, y, ink in [('light', 102, '#294669'), ('dark', 269, '#D8E8FA')]:
         draw.text((342, y - 8), surface, font=font, fill=ink)
         for index, size in enumerate([16, 20, 24, 32, 48, 64]):
             x = 347 + index * 61

@@ -27,24 +27,32 @@ test("a 683 by 384 window keeps readable results, scrolling controls and reader 
   await expect(page.locator(".result-row")).toHaveCount(30);
   await settleVisualLayout(page);
   const allCount = await page.locator(".result-count").textContent();
+  await expect(page.locator(".collection-count-label")).toBeVisible();
+  await expect(page.locator(".collection-note")).toBeHidden();
   const list = page.locator(".result-list");
   expect((await list.boundingBox())!.height).toBeGreaterThanOrEqual(160);
-  const title = await page.locator(".result-title").first().boundingBox();
+  const firstTitle = page.locator(".result-title").first();
+  const searchText = (await firstTitle.textContent())!.trim().match(/[\p{L}\p{N}]{3,}/u)![0];
+  const title = await firstTitle.boundingBox();
   expect(title!.y).toBeGreaterThanOrEqual(0);
   expect(title!.y + title!.height).toBeLessThanOrEqual(384);
   expect(await list.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true);
   await capture(page, "polish-short-window-683-384");
   await page.locator(".bookmark-preview").first().press("Enter");
   await expect(page.locator(".preview-drawer")).toBeVisible();
+  await settleVisualLayout(page);
+  const readerTitle = await page.locator(".preview-title h1").boundingBox();
+  expect(readerTitle!.y + readerTitle!.height).toBeLessThanOrEqual(280);
   await capture(page, "polish-short-window-reader");
   await page.getByRole("button", { name: "返回收藏", exact: true }).press("Escape");
   await expect(page.locator(".preview-drawer")).toHaveCount(0);
-  await page.getByRole("textbox", { name: "搜索书签", exact: true }).fill("中文排版");
+  await page.getByRole("textbox", { name: "搜索书签", exact: true }).fill(searchText);
   await expect(page.locator(".toolbar-location h1")).toHaveText("搜索结果");
   await expect(page.locator(".result-count")).not.toHaveText(allCount!);
   await expect(list).toHaveAttribute("aria-busy", "false");
   await expect(page.locator(".result-row").first()).toBeVisible();
   expect((await list.boundingBox())!.height).toBeGreaterThanOrEqual(160);
+  await page.locator(".result-title").first().scrollIntoViewIfNeeded();
   await capture(page, "polish-short-window-search");
 });
 
@@ -196,10 +204,12 @@ test("nested folders expand independently, retain cached branches, and select th
   expect(leafBounds!.width / leafBounds!.height).toBeGreaterThan(1.5);
   const label = await leafOption.locator(".facet-label").evaluate(element => {
     const style = getComputedStyle(element);
-    return { wrapping: style.whiteSpace, height: element.getBoundingClientRect().height, line: parseFloat(style.lineHeight) };
+    return { wrapping: style.whiteSpace, overflow: style.overflowY, height: element.getBoundingClientRect().height, line: parseFloat(style.lineHeight) };
   });
   expect(label.wrapping).toBe("normal");
   expect(label.height).toBeGreaterThan(label.line * 1.5);
+  expect(label.height).toBeLessThanOrEqual(label.line * 2 + 1);
+  expect(label.overflow).toBe("hidden");
   await expect(page.locator(".toolbar-location h1")).toHaveText(leaf.split("/").at(-1)!);
   await rail.locator(".facet-location > summary").click();
   await expect(rail.locator(".facet-location p")).toHaveText(leaf.split("/").join(" / "));

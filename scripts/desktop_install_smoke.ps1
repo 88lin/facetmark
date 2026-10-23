@@ -46,6 +46,14 @@ try {
     if ($installed.ExitCode -ne 0) { throw "Installer failed: $($installed.ExitCode)" }
     $exe = Join-Path $installTarget 'facetmark-desktop.exe'
     if (-not (Test-Path -LiteralPath $exe)) { throw "Installed application missing: $exe" }
+    Add-Type -AssemblyName System.Drawing
+    $installedIcon = [System.Drawing.Icon]::ExtractAssociatedIcon($exe)
+    if (-not $installedIcon) { throw 'Installed executable has no application icon.' }
+    $installedIconBitmap = $installedIcon.ToBitmap()
+    $installedIconBitmap.Save((Join-Path $evidenceDir 'installed-app-icon.png'), [System.Drawing.Imaging.ImageFormat]::Png)
+    @{ commit = $env:GITHUB_SHA; source = 'Icon extracted from the installed executable'; width = $installedIconBitmap.Width; height = $installedIconBitmap.Height } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidenceDir 'installed-app-icon.json') -Encoding utf8
+    $installedIconBitmap.Dispose()
+    $installedIcon.Dispose()
     $app = Start-Process -FilePath $exe -PassThru -WindowStyle Hidden
     & (Join-Path $repoRoot '.desktop-build/venv/Scripts/python.exe') (Join-Path $repoRoot 'scripts/installed_window_check.py') $evidenceDir startup $app.Id
     if ($LASTEXITCODE -ne 0) { throw 'Installed startup failure did not recover through its real keyboard retry.' }

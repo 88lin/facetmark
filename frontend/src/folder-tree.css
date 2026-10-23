@@ -9,7 +9,7 @@
 .facet-browser .facet-expand > svg { width: 14px; height: 14px; transition: transform 240ms var(--ease), color 180ms ease; }
 .facet-browser .facet-expand[aria-expanded="true"] > svg { transform: rotate(90deg); color: var(--accent); }
 .facet-browser .facet-option.facet-folder-select { grid-template-columns: 24px minmax(0, 1fr) auto; gap: 7px; min-height: 44px; padding: 9px 9px; }
-.facet-browser .facet-folder-select .facet-label { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; max-height: 3.1em; white-space: normal; overflow-wrap: anywhere; font-size: .875rem; line-height: 1.55; }
+.facet-browser .facet-folder-select .facet-label { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; min-width: 0; max-height: 3.1em; overflow: hidden; white-space: normal; overflow-wrap: anywhere; font-size: .875rem; line-height: 1.55; }
 .facet-browser .facet-folder-select .collection-folder-icon { width: 24px; height: 24px; filter: drop-shadow(0 2px 2px #235fe51a); }
 .facet-browser .facet-tree-children { overflow: hidden; }
 .facet-browser .facet-tree-children > .facet-tree-branch { padding: 3px 0 4px; }
