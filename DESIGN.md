@@ -483,19 +483,22 @@ not additional shipped theme colors.
 - **Don't** merge record hover movement with the layout controller or hide metadata until hover.
 - **Don't** treat old evidence, generated tonal ramps or static component specimens as current runtime or aesthetic approval.
 
-Revision 831dcfd passed all four cloud workflows: 12 focused collection cases,
-88 browser cases with 2 skips, a separate 200k browser case and installed Windows
-checks. Its 59 PNGs and 7 action groups have 64 source and 63 media/record hashes
-verified. Short-window typography, two-line folders and the installed exe's new
-32px icon were inspected. Frame review nevertheless found a capsule shrinking
-from 32px to 6.89px during cleanup while scale remained 1. The new lifecycle
-guard stops capture before GSAP reversion; both ref-detachment orders pass the
-small isolated check. Actual minimum-width/height browser assertions and this
-repair still require a new source-matched cloud run.
-The first lifecycle-only run, 2b4ecdb, failed the new frame-height assertion:
-DOMRect's prototype width/height getters were lost by an object spread. The
-current repair also copies all four coordinates explicitly; isolated checks now
-use non-enumerable getters and four negative controls. New cloud evidence is pending.
+Final application/capture revision f1c67fe passed all four cloud workflows: 12
+focused collection cases, 88 browser cases with 2 skips, a separate real 200k
+case and installed Windows checks. Its 59 PNGs and 7 action groups have 64 source
+and 63 media/record hashes verified. The broader experience evidence has 45
+source, 94 PNG and 3 MP4 hashes verified. Representative full light/dark pages,
+390px reflow, short-window typography, nested folders, startup/setup and system
+selection colors were inspected.
+
+Manual review at 831dcfd exposed shrinking dimensions despite scale=1. The
+lifecycle-only 2b4ecdb repair still failed: spreading DOMRect omitted prototype
+width/height getters. Final code stops capture before GSAP reversion and copies
+left/top/width/height explicitly. Both cleanup orders pass 60 isolated switches
+with non-enumerable getters and four negative controls; actual browser bounds now
+pass. All 61 category frames stay 32px high and 66.65625–67.000015px wide.
+Installed 96-DPI restore, 240 native events merged to one idle write and real
+Enter retry pass at the same final revision, with zero unexpected data writes.
 The collection workflow now includes folder disclosure, capsule geometry,
 startup/pairing and draft-recovery checks. Native splash captures use a synthetic
 restart bridge and are distinguished from installed-app evidence. Synthetic
@@ -515,8 +518,9 @@ The desktop application icon replaces the earlier bookmark asset with an authore
 blue folded F on a porcelain tile. Edge light, facet planes and soft depth retain
 the workbench's material roles at 16–256px. The CI asset script owns its PNG/ICO;
 default window, tray and package identities consume those same assets. The UI
-collection mark remains the bookmark geometry. The new desktop icon awaits render
-inspection and user review.
+collection mark remains the bookmark geometry. The final installed executable's
+extracted 32px icon matches the corresponding ICO pixels after alpha premultiplication.
+Light/dark size previews and the installed icon were inspected; user review is pending.
 
 Native persistence retains the existing physical outer-frame preference shape.
 Restoration moves to the target work area, measures physical decoration and applies

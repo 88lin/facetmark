@@ -1,13 +1,39 @@
 # Desktop experience validation
 
-> 2026-10-24：`831dcfd` 四条云端工作流全部通过；收藏 12/12、浏览器 88 通过 / 2 跳过、独立 200k 浏览器 1 通过；实际安装 exe 提取的 32px 新 F 图标与 ICO 像素一致。真实 96 DPI 窗口保存 / 重启、240 次事件合并写盘与 Enter 重试已验。帧审阅发现仅检查 scale 未覆盖的底板尺寸坍缩，当前清理生命周期补修及帧宽高断言待新运行；不以旧绿灯认证这次修改。150% DPI 和显示器移除只有纯几何测试。见 [本轮打磨记录](collection-workspace-polish-2026-10-24.md)。下方仅为 2026-10-23 基线；新视觉待用户复评。
+> 2026-10-24：最终应用与取证版本 `f1c67fe` 的收藏、CI、体验、Windows 四条云端工作流全部通过。收藏 12/12、浏览器 88 通过 / 2 跳过、独立 200k 浏览器 1 通过；61 个分类胶囊帧全为 32px 高。安装 exe 提取的 32px 新 F 图标与 ICO 像素一致；实际 96 DPI 窗口恢复、240 次事件合并写盘和 Enter 重试已验。150% DPI 与显示器移除只有纯几何测试。新图标和细节待用户复评，详见 [本轮打磨记录](collection-workspace-polish-2026-10-24.md)。
 
 <!-- current-experience-evidence:start -->
 
-The additional `2b4ecdb` lifecycle-only repair failed the new category frame-height
-check (collection 11/12). A DOMRect spread also omitted prototype dimensions;
-the current explicit-coordinate repair awaits new cloud verification. The
-successful installed icon/geometry results above remain revision-specific.
+## Current 2026-10-24 refinement: source-matched final evidence
+
+Application and capture source: `f1c67fe49282c487f9b9a664c9be0ea800ca6df2`.
+Later documentation-only commits retain this application/capture mapping.
+The lifecycle-only `2b4ecdb` run failed the new frame-height check (11/12);
+the final repair also explicitly copies DOMRect prototype coordinates.
+
+| Evidence | Verified result at f1c67fe |
+| --- | --- |
+| [Collection 40039337928](https://github.com/88lin/facetmark/actions/runs/40039337928) | 12/12; 59 PNGs, 7 action groups, 0 page errors. All 64 source and 63 media/record hashes match. All 61 sampled category frames remain 32px high and 66.65625–67.000015px wide, with scale 1. |
+| [CI 40039341275](https://github.com/88lin/facetmark/actions/runs/40039341275) | All 10 jobs pass; browser 88 passed / 2 skipped, four Python platforms and lint pass. |
+| [Experience 40039337908](https://github.com/88lin/facetmark/actions/runs/40039337908) | All 5 jobs pass; backend 2054 passed / 1 skipped, browser 88 passed / 2 skipped, independent real 200k case 1 passed. Downloaded 45 source, 94 PNG and 3 MP4 hashes match. |
+| [Windows 40039337892](https://github.com/88lin/facetmark/actions/runs/40039337892) | 8 Rust tests, offline install, native links, ready-then-failure retry, physical geometry, coalesced persistence, repair install, retained-data uninstall and parent-exit cleanup pass. |
+
+The installed executable's extracted 32px folded-F icon matches the corresponding
+ICO pixels after alpha premultiplication, with zero difference. PNG/ICO hashes and
+the Windows CRLF source hash match. The size sheet, actual icon, installed failure
+screen and restored workbench were inspected.
+
+At actual 96 DPI / scale 1.0, 240 changing native move/resize calls produce one idle
+write; close flushes the latest geometry. A saved `(1023,40,960,680)` outer frame
+restores to `(64,40,960,680)` inside the `1024×720` work area. Injected workspace
+creation failure after ready stops the old sidecar; real Enter retry recovers.
+18 Web and 24 installed interactions report zero page errors or unexpected writes.
+
+150% DPI and removed-monitor cases remain pure geometry tests. Synthetic-browser
+splash/pairing/import captures are distinguished from the installed startup checks.
+Storyboards, representative renders and frame data were inspected; complete MP4
+playback and all-device frame-rate certification were not performed. No real user
+browser profiles were used. Native icon and new refinements remain pending review.
 
 ## Historical 2026-10-23 baseline: layered collection workspace
 

@@ -46,31 +46,34 @@ On 2026-10-24 the user described PR #44's mist-blue workspace as a substantial
 improvement and requested refinement. Preserve this identity while fixing selected
 capsules, control colors, motion, nested folders and startup/setup paths. The new
 changes remain pending user review; no individual visual choice is newly
-approved. 831dcfd has four successful workflows and verified rendered/installed
-evidence. Frame review found dimension collapse despite scale=1; the cleanup
-lifecycle repair still awaits a new run. 04ecc11 / 7d2abd0 are historical.
+approved. Final application/capture f1c67fe passed all four workflows with verified
+rendered/installed evidence and actual capsule frame bounds. 04ecc11 / 7d2abd0
+and the earlier 831dcfd round remain revision-specific history.
 Current scope is in docs/collection-workspace-polish-2026-10-24.md.
 
-Long-term reference: the supplied handbook v0.16 and D04 / D05 feedback records.
+Long-term reference: the supplied handbook v0.17 and D04 / D05 feedback records.
 Impeccable owns one system; oil-ui / Taste and S17-S20 supply selected relationships.
 
 The user additionally requested open-issue repairs and a replacement desktop app
-icon, and authorized commit/push plus cloud verification. 831dcfd passed all four
+icon, and authorized commit/push plus cloud verification. f1c67fe passed all four
 workflows, with 12/12 collection, 88 browser cases/2 skips and one separate 200k
 case. Its 59 PNGs, 7 action groups, 64 source hashes and 63 media/record hashes
 are verified. The installed 32px folded-F icon matches the ICO pixels exactly.
-Short-window typography, two-line clipping and icon spacing were inspected.
-The raw category frames still revealed 32px to 6.89px collapse during context
-cleanup with the old ref attached. The current lifecycle guard and minimum-frame
-dimensions await rerun; isolated checks cover both detach orders and three
-negative controls. 150% DPI/monitor removal remain pure geometry scope.
-New native icon and repairs remain pending user review.
+Full light/dark pages, 390px reflow, short-window typography, nested folders,
+startup/setup, system selection colors and icon spacing were inspected. The
+broader experience package has 45 source, 94 PNG and 3 MP4 hashes verified.
+Actual 96-DPI installed geometry/retry passes; 240 changing move/resize calls
+produce one idle write and close flushes the final outer frame. 18 Web and 24
+installed interactions report no page errors or unexpected writes. 150% DPI and
+monitor removal remain pure geometry scope. New visuals remain pending review.
 
 The lifecycle-only 2b4ecdb run was 11/12: frame height still fell to 10.16px.
 Browser DOMRect getters were lost through an object spread, independently of
-cleanup timing. The current repair copies left/top/width/height explicitly;
-the isolated model uses non-enumerable getters and four negative controls.
-This coordinate repair still needs source-matched browser verification.
+cleanup timing. Final code copies left/top/width/height explicitly and stops
+paint sampling before reversion. Two cleanup orders each pass 60 switches with
+non-enumerable getters and four negative controls. All 61 real category frames
+remain 32px high and 66.65625–67.000015px wide; scale remains 1. Storyboards and
+frame data were inspected; full MP4 playback/all-device frame-rate testing was not.
 
 ## Direction contract
 
