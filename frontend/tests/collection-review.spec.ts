@@ -11,6 +11,14 @@ async function capture(page: Page, evidence: Evidence, name: string, state: stri
   await settleVisualLayout(page);
   const viewport = page.viewportSize()!;
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  // Visible text must not share the expansion control's painted or hit area.
+  expect(await page.locator(".bookmark-description:has(.summary-expand)").evaluateAll(descriptions => descriptions.every(description => {
+    const text = description.querySelector(".result-summary")!.getBoundingClientRect();
+    const control = description.querySelector(".summary-expand")!.getBoundingClientRect();
+    return !text.width || text.right + 6 <= control.left;
+  }))).toBe(true);
+  expect(await page.locator(".bookmark-preview > span").evaluateAll(labels => labels.every(label =>
+    label.getBoundingClientRect().height <= parseFloat(getComputedStyle(label).lineHeight) + 1))).toBe(true);
   await page.screenshot({ path: `${output}/${name}.png`, fullPage: true, animations: "disabled" });
   evidence.captures.push({ file: `${name}.png`, state, ...viewport });
   console.info(`[collection review] captured ${name}`);
@@ -67,12 +75,25 @@ test("representative collection, responsive states, exact scopes, save recovery 
       await capture(page, evidence, `collection-${viewport.width}`, "Responsive collection with full operations and long Chinese text");
       await expect(page.locator(".library-tools").getByRole("button", { name: "新增收藏", exact: true })).toBeInViewport();
       await expect(page.locator(".result-title").first()).toBeInViewport();
+      await expect(page.locator(".result-row").first()).toBeInViewport({ ratio: 1 });
+      if (viewport.width === 320) {
+        const rows = await page.locator(".collection-status .fm-button").evaluateAll(buttons =>
+          buttons.map(button => Math.round(button.getBoundingClientRect().top)));
+        expect(new Set(rows).size).toBe(1);
+      }
     }
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole("button", { name: "筛选收藏", exact: true }).click();
     await expect(page.locator(".sidebar")).toHaveAttribute("aria-modal", "true");
     await expect(page.locator(".sidebar .facet-search input")).toBeVisible();
     await capture(page, evidence, "mobile-directory", "Navigation and searchable directory drawer");
+    expect(await page.locator(".sidebar .facet-options").evaluate(directory => {
+      const bounds = directory.getBoundingClientRect();
+      return [...directory.querySelectorAll(".facet-option:not(.facet-any)")].filter(option => {
+        const box = option.getBoundingClientRect();
+        return box.top >= bounds.top && box.bottom <= bounds.bottom;
+      }).length;
+    })).toBeGreaterThanOrEqual(4);
     await page.keyboard.press("Escape");
     await expect(page.locator(".sidebar")).toHaveAttribute("inert", "");
     await page.locator(".bookmark-preview").first().click();

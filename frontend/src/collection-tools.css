@@ -41,4 +41,9 @@
   .collection-selection > .text-button { text-align: left; }
   .search-mode-select { max-width: 90px; min-height: 44px; font-size: 0.875rem; }
 }
+@media (max-width: 359px) {
+  .collection-status { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .collection-status .fm-button { flex-direction: column; justify-content: center; gap: 1px; padding: 4px 2px; white-space: nowrap; }
+  .collection-status .fm-button > span { min-width: 0; }
+}
 @media (prefers-reduced-motion: reduce) { .collection-options-menu[open] > .collection-options, .collection-selection { animation: none; } .disclosure-chevron { transition: none; } }

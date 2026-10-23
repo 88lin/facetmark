@@ -59,7 +59,8 @@ visible and separate through paging and failure recovery.
 
 FIRST VIEWPORT: At 1440px an 88px top band holds identity, capsule navigation and
 utilities. A 244px frosted directory faces the rounded collection surface. Title
-and capsule search lead to actions/status and substantial two-column reading cards.
+and capsule search lead to actions/status and reading cards in an adaptive grid
+(three columns at 1440px, two at 1280px, one in narrow windows).
 Source medallions, mixed-language titles and summaries stay visible. Short windows
 compact the chrome; narrow screens retain focus-managed directory and reader layers.
 
