@@ -1,8 +1,69 @@
 # Desktop experience validation
 
-> 2026-10-23：用户已否定旧石灰色收藏页及 46cf2f3 浅鸢尾版。当前按胶囊按钮、丰富材质与连续动效重新制作；见 [本轮记录](collection-workspace-2026-10-23.md)。以下全部为历史技术证据，不代表新界面或用户认可。
+> 2026-10-23：当前雾蓝分层收藏工作区、胶囊控件及连续动效已完成本轮实现与云端验证，仍待用户视觉复评。下方当前区块对应 `04ecc11` 应用及 `7d2abd0` 补拍；更早的石灰色、浅绿和浅鸢尾界面仅留作历史。见 [本轮记录](collection-workspace-2026-10-23.md)。
 
 <!-- current-experience-evidence:start -->
+
+## 2026-10-23: layered collection workspace, verified for review
+
+Application source: `04ecc1133b62717cbd06f3733e40a3322cd42230`.
+Final capture/test source: `7d2abd0f52687d2192b01b2cd7557aa446995698`.
+The second revision adds only two waits before the saved-summary screenshot;
+application files are identical. Later record commits update documentation only.
+
+The current screen combines floating capsule navigation, a separate frosted
+directory, a mist-blue worktable and porcelain records with upright Inter / Noto
+Sans SC. The default grid adapts to three columns at 1440px, two at 1280px and
+one at narrow widths; list mode remains available. Component-owned pointer light,
+press feedback, selection/layout springs and reader/overlay transitions retain
+native links, keyboard, form and reduced-motion behavior.
+
+| Evidence | Verified result |
+| --- | --- |
+| [CI 39878725847](https://github.com/88lin/facetmark/actions/runs/39878725847) | All 10 jobs passed at `04ecc11`. |
+| [Experience 39878719512](https://github.com/88lin/facetmark/actions/runs/39878719512) | All 5 jobs passed at `04ecc11`: backend 2050 passed / 1 skipped; browser 77 passed / 2 skipped; separate 200k browser case 1 passed. |
+| [Collection 39878719511](https://github.com/88lin/facetmark/actions/runs/39878719511) | Passed at `04ecc11`, including complete cards at short/narrow viewports, non-overlapping summary controls, non-wrapping list actions and visible mobile directory entries. |
+| [Windows 39878719504](https://github.com/88lin/facetmark/actions/runs/39878719504) | Offline installation, frozen service, native links and lifecycle passed. Installed WebView completed 24 steps, with 0 page errors and 0 unexpected writes, at `04ecc11`. |
+| [Final capture 39882197281](https://github.com/88lin/facetmark/actions/runs/39882197281) | Passed at `7d2abd0`: 26 screenshots, 6 action groups, 0 page errors and MP4 recording. All 39 source-file and 29 media/record hashes verified against this revision. |
+
+The 1280×600 browser viewport contains two complete first-row records with no
+horizontal overflow; the list starts at y=248px and has 293px of height. At
+1440×960 three records are fully visible; at 1366×768 two; at 1024×749 and
+390×844 one. Desktop summaries/search remain 15px, and status/tag/folder text
+13px. The independent 18-step web and 9-step folder sequences report no page
+errors or unexpected writes. The 41 frontend source hashes and two downloaded
+supplementary screenshots were verified against the experience manifest.
+
+The same independent reviewer inspected all 15 required corrected captures and
+confirmed all six reported defects resolved (`remaining: clear`, `disposition:
+ship`). A generic independent subagent substituted for the unavailable dedicated
+Impeccable role. This verdict covers the six corrections and their visible
+regressions; it is not user aesthetic approval. The reviewer inspected the
+storyboard and frame evidence, without directly playing the entire MP4.
+
+The optional `04ecc11` saved-summary screenshot caught a loading placeholder and
+was excluded from that verdict. The final `7d2abd0` capture waits for `aria-busy`
+to clear and the saved-summary label to appear. Its loaded content was inspected.
+
+- [Final gallery and recording artifact](https://github.com/88lin/facetmark/actions/runs/39882197281/artifacts/12471600847): 17,612,195-byte ZIP; open `collection-review-evidence/index.html` after extraction.
+- [Windows x64 preview installer](https://github.com/88lin/facetmark/actions/runs/39878719504/artifacts/12470143341): 288,921,530-byte artifact; installed-desktop evidence reports a 287,647,528-byte installer.
+- [Small Windows installation evidence](https://github.com/88lin/facetmark/actions/runs/39878719504/artifacts/12470571610): 1,206,083 bytes, downloaded and inspected.
+- [Experience evidence](https://github.com/88lin/facetmark/actions/runs/39878719512/artifacts/12470246730): 37,843,670-byte artifact; only small diagnostic records and two supplementary screenshots downloaded.
+
+Windows evidence confirms a Unicode installation path, offline runtime provision,
+system-browser original links, preserved query after reading, service shutdown
+with its parent, data retention on uninstall and same-version reinstall. All
+runtime checks used isolated synthetic data in GitHub Actions. No local browser,
+package installation, application build or installer execution occurred. The
+preview is unsigned and tested on hosted Windows, not certified for every device.
+PR #44 remains draft; user visual review is pending, with no merge or release.
+
+<!-- current-experience-evidence:end -->
+
+## Superseded 2026-10-21 application evidence
+
+The following block describes the rejected limestone revision only; it is not current visual authority.
+
 
 ## 2026-10-21: production collection rebuild, verified for review
 
@@ -45,7 +106,7 @@ build and runtime checks came from Actions. Synthetic libraries/models were used
 The unsigned preview is validated on hosted Windows, not certified across every
 Windows 10/11 device. PR44 remains draft; no merge or release is part of this delivery.
 
-<!-- current-experience-evidence:end -->
+
 
 ## Superseded 2026-10-19 application evidence
 

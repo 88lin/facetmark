@@ -960,7 +960,7 @@
     "typographyMeta": {
       "display": {
         "displayName": "Collection heading",
-        "purpose": "Upright Inter/Noto title: 32px default, 30px below 1300px and 26px below 720px.",
+        "purpose": "Upright Inter/Noto title: 32px default, 30px below 1300px, 26px below 720px and in desktop windows at or below 650px height.",
         "source": "frontend/src/workbench.css"
       },
       "title": {
@@ -975,7 +975,7 @@
       },
       "summary": {
         "displayName": "Record summary",
-        "purpose": "15px/1.8 desktop summary, 14px on mobile; measured expansion, two lines; 13px in the reading index.",
+        "purpose": "15px/1.8 desktop summary, 14px on mobile; measured expansion, two lines; 13px in the reading index. Available expansion occupies a separate control column with an 8px gap.",
         "source": "frontend/src/bookmark-card.css"
       },
       "control": {
@@ -1154,7 +1154,7 @@
         "name": "navigation",
         "value": "960px",
         "query": "(max-width: 959px)",
-        "purpose": "Hide top navigation/fixed directory and expose the navigation drawer.",
+        "purpose": "Hide top navigation/fixed directory and expose the rail drawer: width min(380px, viewport - 20px), gap 12px and padding 16px; main navigation 1.2:1 columns, bottom utilities 1.6:1:1 columns with appearance spanning the row.",
         "source": "frontend/src/workbench.css"
       },
       {
@@ -1168,8 +1168,8 @@
         "name": "narrow-mobile",
         "value": "360px",
         "query": "(max-width: 359px)",
-        "purpose": "Reduce workspace padding and compact footer/subtitle width.",
-        "source": "frontend/src/workbench.css"
+        "purpose": "Below 360px: four equal status columns with label/count stacked; toolbar gap 8px and padding 12px 0 10px; compact workspace/footer/subtitle.",
+        "source": "frontend/src/workbench.css + frontend/src/collection-tools.css"
       },
       {
         "name": "short-desktop",
@@ -1182,8 +1182,8 @@
         "name": "very-short-desktop",
         "value": "650px height",
         "query": "(max-height: 650px) and (min-width: 960px)",
-        "purpose": "68px top row, 86px toolbar and hidden directory footer.",
-        "source": "frontend/src/workbench.css"
+        "purpose": "68px top row; 72px toolbar with 6px vertical padding and 26px heading; hidden directory footer. Cards use 16px padding/8px gap, 32px source medallions and 8px footer top padding.",
+        "source": "frontend/src/workbench.css + frontend/src/bookmark-card.css"
       },
       {
         "name": "compact-directory",
@@ -1223,15 +1223,25 @@
     "tonalRampProvenance": "Generated 8-step OKLCH strips for the design panel only. They are not shipped palette tokens or verified contrast combinations.",
     "specimenScope": "Static, self-contained HTML/CSS visual states with inline SVG and root-token fallbacks. Runtime controls, springs, focus management and data behavior remain in the React application. The bundled font aliases use platform fallbacks if the host has not loaded those fonts.",
     "evidence": {
-      "status": "new-source-cloud-review-pending",
+      "status": "cloud-verified-awaiting-user-visual-review",
       "visualAcceptance": "awaiting-user-review",
       "sourceState": "Replacement after the user rejected 46cf2f3: top capsule navigation, frosted directory, mist-blue layered cards and upright Inter/Noto typography.",
-      "sourceBasis": "Current frontend/src files; this generation is a static source extraction, not a runtime or visual test.",
+      "sourceBasis": "Static tokens and specimens extracted from frontend/src; runtime evidence is recorded separately at exact revisions below.",
       "brief": ".impeccable/workbench-direction.md",
       "surface": ".impeccable/surfaces/frontend.md",
       "history": ".impeccable/history/2026-10-23-rejected-iris/",
-      "verification": "New source cloud review pending. Earlier green runs and captures are historical and do not certify this replacement.",
-      "roundRecord": "docs/collection-workspace-2026-10-23.md"
+      "verification": "All four 04ecc11 cloud workflows passed. Capture-only 7d2abd0 passed collection review with identical application files: 26 screenshots, 6 action groups, 0 page errors, 39 source hashes and 29 media/record hashes verified. Windows installed WebView completed 24 steps without page errors or unexpected writes.",
+      "roundRecord": "docs/collection-workspace-2026-10-23.md",
+      "applicationRevision": "04ecc1133b62717cbd06f3733e40a3322cd42230",
+      "captureRevision": "7d2abd0f52687d2192b01b2cd7557aa446995698",
+      "runs": {
+        "ci": "39878725847",
+        "experience": "39878719512",
+        "collection": "39878719511",
+        "windows": "39878719504",
+        "finalCapture": "39882197281"
+      },
+      "independentReview": "Generic independent reviewer substituted for the unavailable dedicated role. All six listed corrections resolved; remaining clear, disposition ship within that scope. User aesthetic acceptance remains pending. Storyboard and frame review did not include direct full-MP4 playback."
     },
     "componentSources": {
       "button-primary": "frontend/src/ui/controls.css",
@@ -1323,14 +1333,14 @@
       "name": "Bookmark card",
       "kind": "card",
       "refersTo": "bookmark-card",
-      "description": "Layered record with source medallion, native title link, summary, tag and preview. The specimen shows CSS hover endpoints; runtime pointer tracking and layout springs remain in BookmarkCard.",
-      "html": "<article class=\"ds-card\"><header class=\"ds-card-source\"><span class=\"ds-card-symbol\" aria-hidden=\"true\">E</span><span>example.com</span></header><a class=\"ds-card-title\" href=\"https://example.com/\" target=\"_blank\" rel=\"noreferrer\">让一段思考再次被找到</a><p class=\"ds-card-summary\"><span class=\"ds-card-basis\">正文摘录</span> 为收藏留下短而准确的线索，保留原网页与阅读上下文。</p><span class=\"ds-card-tag\">阅读体验</span><footer class=\"ds-card-footer\"><span>资料 / 设计</span><button class=\"ds-card-preview\" type=\"button\">预览</button></footer></article>",
-      "css": ".ds-card{position:relative;isolation:isolate;display:flex;flex-direction:column;gap:15px;min-width:0;padding:23px;border:1px solid var(--glass-edge, #ffffffd9);border-radius:25px;background:var(--canvas, #ffffff);color:var(--ink, #162b43);box-shadow:var(--card-shadow,0 2px 4px #233d5810, 0 12px 26px -18px #294e7840);transition:border-color 220ms ease,box-shadow 340ms var(--ease,cubic-bezier(.22,1,.36,1)),background-color 220ms ease;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);}.ds-card::before{content:\"\";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;opacity:0;background:radial-gradient(360px circle at var(--glint-x,50%) var(--glint-y,0%),color-mix(in srgb,var(--brand-detail, #7ac5ff) 15%,transparent),transparent 75%);transition:opacity 280ms ease}.ds-card:hover{border-color:color-mix(in srgb,var(--accent, #235fe5) 25%,var(--rule, #d9e3ef));box-shadow:0 5px 10px -8px #294e7840,0 18px 36px -22px #245da04d,inset 0 1px 0 var(--glass-edge, #ffffffd9)}.ds-card:hover::before{opacity:1}.ds-card-source{display:flex;align-items:center;gap:9px;color:var(--secondary-ink, #526379);font-size:.8125rem;font-weight:500;line-height:1.6}.ds-card-symbol{display:grid;place-items:center;flex:none;width:38px;height:38px;border:1px solid #aac9f455;border-radius:13px;background:linear-gradient(145deg,#f1f7ff,#dceaff);color:#275da2;box-shadow:inset 0 1px 1px #ffffff,0 4px 7px -5px #24569359;font-size:1.125rem;font-weight:750;transform:rotate(-4deg);transition:transform 400ms var(--ease,cubic-bezier(.22,1,.36,1))}.ds-card:hover .ds-card-symbol{transform:rotate(0deg) translateY(-2px)}.ds-card-title{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;color:var(--ink, #162b43);font-size:1.1875rem;font-weight:680;line-height:1.6;letter-spacing:0;text-decoration:none;text-underline-offset:.2em}.ds-card-title:hover{color:var(--accent, #235fe5);text-decoration:underline}.ds-card-summary{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;max-width:72ch;margin:0;overflow:hidden;overflow-wrap:anywhere;color:var(--secondary-ink, #526379);font-size:.9375rem;line-height:1.8}.ds-card-basis{margin-right:4px;color:var(--accent, #235fe5);font-size:.6875rem;font-weight:600;line-height:1.5}.ds-card-tag{align-self:flex-start;padding:3px 8px;border-radius:7px;background:var(--inset, #edf3f9);color:var(--secondary-ink, #526379);font-size:.8125rem;line-height:1.5}.ds-card-footer{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:13px;border-top:1px solid var(--rule, #d9e3ef);color:var(--secondary-ink, #526379);font-size:.8125rem;line-height:1.5}.ds-card-preview{margin-left:auto;min-height:34px;padding:7px 13px;border:1px solid var(--rule, #d9e3ef);border-radius:var(--radius-pill,999px);background:linear-gradient(180deg,var(--canvas, #ffffff),var(--inset, #edf3f9));color:var(--secondary-ink, #526379);box-shadow:inset 0 1px 0 var(--glass-edge, #ffffffd9),0 3px 6px -4px #294e7833;font:550 .75rem/1.5 var(--font-ui,\"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);cursor:pointer}.ds-card-preview:hover{background:var(--soft, #e8f0ff);color:var(--accent, #235fe5)}.ds-card-preview:active{background:var(--selected, #deebff)}.ds-card-title:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}.ds-card-preview:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}@media(max-width:719px){.ds-card{padding:16px;gap:10px;border-radius:20px}.ds-card-title{font-size:1.0625rem;line-height:1.65}.ds-card-summary{-webkit-line-clamp:2;font-size:.875rem}.ds-card-symbol{width:30px;height:32px;border-radius:10px;font-size:1rem}.ds-card-preview{min-width:40px;min-height:44px}}@media(prefers-reduced-motion:reduce){.ds-card,.ds-card::before,.ds-card-symbol{transition:none}.ds-card::before{display:none}.ds-card:hover .ds-card-symbol{transform:none}}"
+      "description": "Layered record with source medallion, native title link, separate text/expansion columns, tag and non-wrapping preview. The specimen shows collapsed expansion and CSS hover endpoints; runtime expansion, pointer tracking and layout springs remain in BookmarkCard.",
+      "html": "<article class=\"ds-card\"><header class=\"ds-card-source\"><span class=\"ds-card-symbol\" aria-hidden=\"true\">E</span><span>example.com</span></header><a class=\"ds-card-title\" href=\"https://example.com/\" target=\"_blank\" rel=\"noreferrer\">让一段思考再次被找到</a><div class=\"ds-card-description\"><div class=\"ds-card-description-heading\"><button class=\"ds-card-expand\" type=\"button\" aria-expanded=\"false\" aria-controls=\"ds-card-summary\" aria-label=\"展开全文\"><span>展开</span><svg aria-hidden=\"true\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m6 9 6 6 6-6\"/></svg></button></div><p class=\"ds-card-summary\" id=\"ds-card-summary\"><span class=\"ds-card-basis\">正文摘录</span> 为收藏留下短而准确的线索，保留原网页与阅读上下文。</p></div><span class=\"ds-card-tag\">阅读体验</span><footer class=\"ds-card-footer\"><span>资料 / 设计</span><button class=\"ds-card-preview\" type=\"button\">预览</button></footer></article>",
+      "css": ".ds-card{position:relative;isolation:isolate;display:flex;flex-direction:column;gap:15px;min-width:0;padding:23px;border:1px solid var(--glass-edge, #ffffffd9);border-radius:25px;background:var(--canvas, #ffffff);color:var(--ink, #162b43);box-shadow:var(--card-shadow,0 2px 4px #233d5810, 0 12px 26px -18px #294e7840);transition:border-color 220ms ease,box-shadow 340ms var(--ease,cubic-bezier(.22,1,.36,1)),background-color 220ms ease;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);}.ds-card::before{content:\"\";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;opacity:0;background:radial-gradient(360px circle at var(--glint-x,50%) var(--glint-y,0%),color-mix(in srgb,var(--brand-detail, #7ac5ff) 15%,transparent),transparent 75%);transition:opacity 280ms ease}.ds-card:hover{border-color:color-mix(in srgb,var(--accent, #235fe5) 25%,var(--rule, #d9e3ef));box-shadow:0 5px 10px -8px #294e7840,0 18px 36px -22px #245da04d,inset 0 1px 0 var(--glass-edge, #ffffffd9)}.ds-card:hover::before{opacity:1}.ds-card-source{display:flex;align-items:center;gap:9px;color:var(--secondary-ink, #526379);font-size:.8125rem;font-weight:500;line-height:1.6}.ds-card-symbol{display:grid;place-items:center;flex:none;width:38px;height:38px;border:1px solid #aac9f455;border-radius:13px;background:linear-gradient(145deg,#f1f7ff,#dceaff);color:#275da2;box-shadow:inset 0 1px 1px #ffffff,0 4px 7px -5px #24569359;font-size:1.125rem;font-weight:750;transform:rotate(-4deg);transition:transform 400ms var(--ease,cubic-bezier(.22,1,.36,1))}.ds-card:hover .ds-card-symbol{transform:rotate(0deg) translateY(-2px)}.ds-card-title{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;color:var(--ink, #162b43);font-size:1.1875rem;font-weight:680;line-height:1.6;letter-spacing:0;text-decoration:none;text-underline-offset:.2em}.ds-card-title:hover{color:var(--accent, #235fe5);text-decoration:underline}.ds-card-description{position:relative;min-width:0}.ds-card-description:has(.ds-card-expand){display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:8px}.ds-card-description-heading{grid-column:2;grid-row:1}.ds-card-description-heading:empty{display:none}.ds-card-description .ds-card-summary{grid-column:1;grid-row:1}.ds-card-expand{display:inline-flex;align-items:center;gap:2px;min-width:0;min-height:28px;padding:3px 6px;border:0;border-radius:var(--radius-pill,999px);background:var(--canvas,#ffffff);color:var(--accent,#235fe5);font:inherit;font-size:.75rem;line-height:1.5;white-space:nowrap;cursor:pointer}.ds-card-expand svg{transition:transform 240ms var(--ease,cubic-bezier(.22,1,.36,1))}.ds-card-expand[aria-expanded=\"true\"] svg{transform:rotate(180deg)}.ds-card-expand:hover{background:var(--soft,#e8f0ff);color:var(--accent,#235fe5)}.ds-card-expand:focus-visible{outline:2px solid var(--accent,#235fe5);outline-offset:3px}.ds-card-summary{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;max-width:72ch;margin:0;overflow:hidden;overflow-wrap:anywhere;color:var(--secondary-ink, #526379);font-size:.9375rem;line-height:1.8}.ds-card-basis{margin-right:4px;color:var(--accent, #235fe5);font-size:.6875rem;font-weight:600;line-height:1.5}.ds-card-tag{align-self:flex-start;padding:3px 8px;border-radius:7px;background:var(--inset, #edf3f9);color:var(--secondary-ink, #526379);font-size:.8125rem;line-height:1.5}.ds-card-footer{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:13px;border-top:1px solid var(--rule, #d9e3ef);color:var(--secondary-ink, #526379);font-size:.8125rem;line-height:1.5}.ds-card-preview{margin-left:auto;flex-shrink:0;white-space:nowrap;min-height:34px;padding:7px 13px;border:1px solid var(--rule, #d9e3ef);border-radius:var(--radius-pill,999px);background:linear-gradient(180deg,var(--canvas, #ffffff),var(--inset, #edf3f9));color:var(--secondary-ink, #526379);box-shadow:inset 0 1px 0 var(--glass-edge, #ffffffd9),0 3px 6px -4px #294e7833;font:550 .75rem/1.5 var(--font-ui,\"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);cursor:pointer}.ds-card-preview:hover{background:var(--soft, #e8f0ff);color:var(--accent, #235fe5)}.ds-card-preview:active{background:var(--selected, #deebff)}.ds-card-title:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}.ds-card-preview:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}@media(max-width:719px){.ds-card{padding:16px;gap:10px;border-radius:20px}.ds-card-title{font-size:1.0625rem;line-height:1.65}.ds-card-summary{-webkit-line-clamp:2;font-size:.875rem}.ds-card-symbol{width:30px;height:32px;border-radius:10px;font-size:1rem}.ds-card-preview{min-width:40px;min-height:44px}.ds-card-expand{min-height:44px}}@media(max-height:650px) and (min-width:960px){.ds-card{padding:16px;gap:8px}.ds-card-symbol{width:32px;height:32px}.ds-card-footer{padding-top:8px}}@media(prefers-reduced-motion:reduce){.ds-card,.ds-card::before,.ds-card-symbol,.ds-card-expand svg{transition:none}.ds-card::before{display:none}.ds-card:hover .ds-card-symbol{transform:none}}"
     }
   ],
   "narrative": {
     "northStar": "The Layered Collection Table",
-    "overview": "An upright, tactile collection system uses mist-blue surroundings, porcelain reading surfaces and deep ink, with electric-blue actions. Translucent navigation and directory layers, rounded cards and molded capsule controls carry the current implementation's visual character. This is a working implementation description, not a user-approved visual identity.\n\nThe user rejected the pale-iris revision 46cf2f3 and explicitly requested capsule buttons, richer material and sophisticated continuous motion. The replacement is implemented in the React application. New source cloud review is pending; earlier captures and passing checks describe their own historical revisions.",
+    "overview": "An upright, tactile collection system uses mist-blue surroundings, porcelain reading surfaces and deep ink, with electric-blue actions. Translucent navigation and directory layers, rounded cards and molded capsule controls carry the current implementation's visual character. This is a working implementation description, not a user-approved visual identity.\n\nThe user rejected the pale-iris revision 46cf2f3 and explicitly requested capsule buttons, richer material and sophisticated continuous motion. The replacement is implemented in the React application. Application revision 04ecc11 passed CI, experience, collection review and Windows installation checks. Capture-only revision 7d2abd0 adds two summary-readiness assertions and passes the final collection review with identical application source. An independent generic reviewer confirmed all six requested corrections; user visual review remains pending.",
     "keyCharacteristics": [
       "Mist-blue ambient light, translucent supporting layers and opaque content surfaces.",
       "Bundled Inter and Noto Sans SC with upright headings and readable mixed-language records.",

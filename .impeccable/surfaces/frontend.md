@@ -38,7 +38,10 @@ related_targets:
 
 The user rejected pale-iris revision 46cf2f3 on 2026-10-23 in full. Capsule buttons,
 sophisticated motion and rich material are explicit requirements. This replacement
-is implemented for cloud review; aesthetic acceptance is pending.
+is implemented and cloud-verified at application revision 04ecc11, with final
+capture-only revision 7d2abd0. All six independent review corrections are resolved;
+user aesthetic acceptance is pending. Exact evidence and review scope are recorded
+in docs/collection-workspace-2026-10-23.md.
 
 Long-term reference: the supplied design handbook, S17–S20 and its latest feedback
 record. Source-inspected relationships inform the work; no reference is a template.

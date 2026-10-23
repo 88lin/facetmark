@@ -1,6 +1,6 @@
 ---
 name: "Facetmark collection workspace"
-description: "Mist-blue layered collection and capsule controls; new source cloud review pending."
+description: "Mist-blue layered collection and capsule controls; cloud verified, awaiting user visual review."
 colors:
   secondary-ink: "#526379"
   canvas: "#ffffff"
@@ -199,7 +199,7 @@ components:
 
 An upright, tactile collection system uses mist-blue surroundings, porcelain reading surfaces and deep ink, with electric-blue actions. Translucent navigation and directory layers, rounded cards and molded capsule controls carry the current implementation's visual character. This is a working implementation description, not a user-approved visual identity.
 
-The user rejected the pale-iris revision 46cf2f3 and explicitly requested capsule buttons, richer material and sophisticated continuous motion. The replacement is implemented in the React application. New source cloud review is pending; earlier captures and passing checks describe their own historical revisions.
+The user rejected the pale-iris revision 46cf2f3 and explicitly requested capsule buttons, richer material and sophisticated continuous motion. The replacement is implemented in the React application. Application revision 04ecc11 passed CI, experience, collection review and Windows installation checks. Capture-only revision 7d2abd0 adds two summary-readiness assertions and passes the final collection review with identical application source. An independent generic reviewer confirmed all six requested corrections; user visual review remains pending.
 
 The active product and behavior requirements remain in [PRODUCT.md](PRODUCT.md)
 and the [frontend surface brief](.impeccable/surfaces/frontend.md). The frontmatter
@@ -262,7 +262,8 @@ text. Collection and record headings keep neutral letter spacing, including Chin
 ### Hierarchy
 
 - **Display:** the frontmatter display role is the collection heading; it becomes
-  30px below 1300px and 26px below 720px.
+  30px below 1300px and 26px below 720px. Desktop windows at or below 650px
+  high also use the 26px heading.
 - **Title:** the title role is the default card link, capped at two lines with the
   full title available on its native link. It becomes 17px / 1.65 on mobile and
   15px in the retained reading index.
@@ -271,7 +272,9 @@ text. Collection and record headings keep neutral letter spacing, including Chin
   and 13px mobile scale.
 - **Summary:** the summary role uses two lines and a 72ch maximum in a card,
   at 15px on desktop, 14px on mobile and 13px in the reading index.
-  Measured clipping exposes expansion; expanded text has no line clamp.
+  Measured clipping exposes expansion; expanded text has no line clamp. When
+  expansion is available, text and its control occupy separate normal-flow grid
+  columns with an 8px gap.
 - **Source and tag:** domain labels use the source role. Status, tags and folder paths
   use readable 13px metadata; dates and summary-basis captions remain 11px.
   Numeric counts use tabular figures.
@@ -297,13 +300,18 @@ Below 720px, the shell has a 58px top row, cards and list records share a compac
 single-column treatment, and title/search stack. Main actions take one row, status
 takes the next, and sorting/options/view share a third. Record actions and major
 directory controls use their mobile touch dimensions. The directory remains a
-separately scrollable bounded list rather than expanding the entire page.
+separately scrollable bounded list rather than expanding the entire page. Below
+360px, status uses four equal columns with each count below its label. The toolbar
+compacts to an 8px gap and 12px top / 10px bottom padding.
 
 On desktop widths, heights at or below 820px reduce the top row to 76px and the
-toolbar to 98px; at or below 650px these become 68px and 86px and the directory
-footer is hidden. Directory headings and search spacing compact at 700px height
-on widths of at least 720px. Settings/tasks use the full content span. Paging
-stays outside the collection's scrolling region.
+toolbar to 98px. At or below 650px these become 68px and 72px, toolbar vertical
+padding becomes 6px, the collection heading becomes 26px and the directory footer
+is hidden. In this short desktop state, cards use 16px padding and an 8px gap,
+source medallions are 32px square and record footers use 8px top padding.
+Directory headings and search spacing compact at 700px height on widths of at
+least 720px. Settings/tasks use the full content span. Paging stays outside the
+collection's scrolling region.
 
 ## Elevation & Depth
 
@@ -363,7 +371,11 @@ desktop dimensions and 44px mobile treatment.
 Top navigation sits inside a frosted capsule; its active segment is deep ink with
 a porcelain label and a shared spring highlight. Directory entries use capsule
 rows, exact folder/tag/site labels, counts and selected blue surfaces. The mobile
-navigation drawer uses the rail surface and a separate scrim. The folder face
+navigation drawer uses the rail surface and a separate scrim. Its width is the
+smaller of 380px and the viewport minus 20px, with 16px padding and a 12px gap.
+Main navigation uses two columns in a 1.2:1 ratio; bottom utilities use three
+columns in a 1.6:1:1 ratio, with appearance controls spanning the full row. Drawer
+navigation and utility buttons retain a 44px minimum height. The folder face
 interpolates matching SVG paths over 200ms when the represented state changes.
 
 ### Chips
@@ -380,12 +392,17 @@ source medallion colors; they are not page thumbnails. The card's local pointer
 light responds only to a mouse and is removed for reduced motion. Hover settles
 the source medallion over 400ms. Selected records retain an explicit edge and tint.
 List mode reuses the record with compact padding and a horizontal desktop layout.
+Its action column uses max-content width; the preview control does not shrink or
+wrap its label. Expandable descriptions use a minmax(0, 1fr) text column and an
+auto-sized control column with an 8px gap, preserving both reading width and the
+control's hit area.
 
 The card layout controller uses a spring (stiffness 340, damping 32). Its entrance
 moves 12px over 380ms with 260ms opacity and a small capped opacity stagger. Native
 selection uses a 160ms fill scale; the checkmark uses opacity/scale, not stroke
-drawing. The source describes these effects; runtime smoothness is still pending
-review.
+drawing. Cloud interaction captures include intermediate states, rapid reversals
+and reduced-motion endpoints. These samples do not certify full-session frame
+pacing on every target device.
 
 ### Reader, overlays and shared motion
 
@@ -430,6 +447,11 @@ not additional shipped theme colors.
 - **Don't** merge record hover movement with the layout controller or hide metadata until hover.
 - **Don't** treat old evidence, generated tonal ramps or static component specimens as current runtime or aesthetic approval.
 
-New source cloud review and user visual review are pending. See the
-[round record](docs/collection-workspace-2026-10-23.md) for revision-specific
-evidence; this document does not promote a historical pass to the replacement.
+Application revision `04ecc11` passed all four cloud workflows. Final capture-only
+revision `7d2abd0` has identical application files and a successful collection
+review: 26 screenshots, 6 action groups, 0 page errors and a playable MP4.
+The 39 source-file hashes and 29 media/record hashes match that revision.
+The independent generic reviewer resolved all six listed corrections and
+returned a scoped `ship`; user visual review remains pending. See the
+[round record](docs/collection-workspace-2026-10-23.md) for exact runs, artifacts
+and the limits of the motion review.
