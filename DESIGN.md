@@ -484,9 +484,35 @@ not additional shipped theme colors.
 - **Don't** treat old evidence, generated tonal ramps or static component specimens as current runtime or aesthetic approval.
 
 Current verification is limited to source and small synthetic evidence checks;
-runtime rendering, animation and installed Windows verification are pending.
+the first pushed revision 87456ff produced 53 source-matched collection captures
+and a main interaction recording. The focused collection suite passed 8 of 10
+cases; CI browser failures also exposed hidden-tree locator ambiguity. Those
+locators and the reduced-motion transform residue are corrected in the follow-up,
+which still requires new cloud rendering and installed Windows verification.
 The collection workflow now includes folder disclosure, capsule geometry,
 startup/pairing and draft-recovery checks. Native splash captures use a synthetic
 restart bridge and are distinguished from installed-app evidence. See the
 [current round](docs/collection-workspace-polish-2026-10-24.md) and
 [historical baseline](docs/collection-workspace-2026-10-23.md).
+
+### Short windows, system colors and native identity
+
+At 683×384, the title/search share a row, tools wrap compactly and the workbench
+can scroll as a whole while retaining at least 160px of results. Forced colors
+use a system Highlight outline for preview/batch selection, and the preview
+control uses HighlightText on Highlight. Native checkbox operation remains intact.
+
+The desktop application icon replaces the earlier bookmark asset with an authored
+blue folded F on a porcelain tile. Edge light, facet planes and soft depth retain
+the workbench's material roles at 16–256px. The CI asset script owns its PNG/ICO;
+default window, tray and package identities consume those same assets. The UI
+collection mark remains the bookmark geometry. The new desktop icon awaits render
+inspection and user review.
+
+Native persistence retains the existing physical outer-frame preference shape.
+Restoration moves to the target work area, measures physical decoration and applies
+an explicit physical inner size. Geometry events update memory; one worker writes
+after 900ms of quiet, and close/quit flush the final state. Minimized mode retains
+the last non-minimized maximized state. Startup failure after ready clears its child
+before exposing Retry. Actual current-DPI installed checks are separate from pure
+synthetic 100%/150% and removed-monitor regression cases.

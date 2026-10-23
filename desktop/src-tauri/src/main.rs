@@ -12,6 +12,8 @@ use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_shell::{process::{CommandChild, CommandEvent}, ShellExt};
 
 mod native_shell;
+mod window_state;
+use window_state::{Geometry, GeometryQueue, WorkArea, client_size_for_outer, visible_geometry, workspace_start_result};
 
 const SHORTCUT: &str = "Ctrl+Shift+Space";
 
@@ -21,6 +23,15 @@ fn cloud_webview_inspection() -> bool {
         && std::env::var("FACETMARK_CI_WEBVIEW_INSPECT").as_deref() == Ok("1")
 }
 const CI_BROWSER_ARGS: &str = "--remote-debugging-port=9223 --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection";
+static CI_WORKSPACE_FAILURE_INJECTED: AtomicBool = AtomicBool::new(false);
+
+fn ci_record(name: &str, record: serde_json::Value) {
+    if !cloud_webview_inspection() { return; }
+    if let Some(directory) = std::env::var_os("FACETMARK_CI_EVIDENCE_DIR") {
+        let path = std::path::PathBuf::from(directory).join(name);
+        let _ = std::fs::write(path, record.to_string());
+    }
+}
 
 fn open_original(app: &tauri::AppHandle, target: &tauri::Url, event: &str) {
     if !matches!(target.scheme(), "http" | "https") { return; }
@@ -50,10 +61,6 @@ struct Backend {
     generation: AtomicU64,
 }
 
-/// Last known main-window box. Stored so a reopen lands where the user left it.
-#[derive(Serialize, Deserialize, Clone, Copy)]
-struct Geometry { x: i32, y: i32, width: u32, height: u32 }
-
 #[derive(Serialize, Deserialize)]
 #[serde(default)]
 struct Preferences {
@@ -70,7 +77,9 @@ fn preferences(app: &tauri::AppHandle) -> Preferences {
         .and_then(|p| std::fs::read(p.join("desktop.json")).ok())
         .and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default()
 }
-fn save_preferences(app: &tauri::AppHandle, prefs: &Preferences) {
+static PREFERENCE_IO: Mutex<()> = Mutex::new(());
+
+fn write_preferences(app: &tauri::AppHandle, prefs: &Preferences) -> bool {
     let write = || -> Result<(), Box<dyn std::error::Error>> {
         let dir = app.path().app_config_dir()?;
         std::fs::create_dir_all(&dir)?;
@@ -81,48 +90,128 @@ fn save_preferences(app: &tauri::AppHandle, prefs: &Preferences) {
     };
     if let Err(error) = write() {
         app.dialog().message(format!("偏好未能保存，重启后可能恢复默认值。 / Preferences could not be saved: {error}")).title("Facetmark").show(|_| {});
+        return false;
+    }
+    true
+}
+fn update_preferences(app: &tauri::AppHandle, change: impl FnOnce(&mut Preferences)) {
+    let _io = PREFERENCE_IO.lock().unwrap();
+    let mut prefs = preferences(app);
+    change(&mut prefs);
+    write_preferences(app, &prefs);
+}
+
+struct GeometryWriter {
+    queue: Mutex<GeometryQueue>,
+    clock: std::time::Instant,
+    maximized: AtomicBool,
+}
+impl Default for GeometryWriter {
+    fn default() -> Self { Self { queue: Mutex::new(GeometryQueue::default()), clock: std::time::Instant::now(), maximized: AtomicBool::new(false) } }
+}
+
+fn flush_geometry(app: &tauri::AppHandle, force: bool) {
+    // Choose the latest candidate only after serializing all preference writes.
+    // An older worker cannot overwrite the final geometry flushed on close.
+    let _io = PREFERENCE_IO.lock().unwrap();
+    let writer = app.state::<GeometryWriter>();
+    let candidate = writer.queue.lock().unwrap().candidate(writer.clock.elapsed(), force);
+    let Some((revision, geometry)) = candidate else { return; };
+    let mut prefs = preferences(app);
+    prefs.window = Some(geometry);
+    let saved = write_preferences(app, &prefs);
+    writer.queue.lock().unwrap().acknowledge(revision);
+    if saved && cloud_webview_inspection() {
+        if let Some(directory) = std::env::var_os("FACETMARK_CI_EVIDENCE_DIR") {
+            use std::io::Write;
+            if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true)
+                .open(std::path::PathBuf::from(directory).join("geometry-writes.jsonl")) {
+                let _ = writeln!(file, "{}", serde_json::json!({ "revision": revision, "geometry": geometry,
+                    "process": std::process::id(), "forced": force }));
+            }
+        }
     }
 }
 
-/// Mutex because it is the only way to keep a throttle in a plain `static`;
-/// `Instant::now` is monotonic, so a clock change cannot freeze the writes.
-static LAST_GEOMETRY: Mutex<Option<(std::time::Instant, Geometry)>> = Mutex::new(None);
-
 fn remember_geometry(window: &tauri::Window) {
-    if window.is_maximized().unwrap_or(false) || window.is_minimized().unwrap_or(false) { return; }
+    if !window.is_visible().unwrap_or(false) || window.is_minimized().unwrap_or(true) { return; }
+    let Ok(maximized) = window.is_maximized() else { return; };
+    let writer = window.app_handle().state::<GeometryWriter>();
+    writer.maximized.store(maximized, Ordering::SeqCst);
+    if maximized { return; }
     let (Ok(position), Ok(size)) = (window.outer_position(), window.outer_size()) else { return };
     if size.width == 0 || size.height == 0 { return; }
     let geometry = Geometry {
         x: position.x, y: position.y,
         width: size.width, height: size.height,
     };
-    // Drags resize hundreds of times a second; one write per second is enough
-    // to survive a crash and keeps the config file off the hot path.
-    let mut last = LAST_GEOMETRY.lock().unwrap();
-    if let Some((at, previous)) = *last {
-        if at.elapsed() < std::time::Duration::from_millis(900) && previous.width == geometry.width
-            && previous.height == geometry.height && previous.x == geometry.x && previous.y == geometry.y { return; }
+    // Window events update memory only. One worker writes after 900ms of quiet;
+    // closing or quitting flushes the latest box regardless of the deadline.
+    let start = writer.queue.lock().unwrap().record(geometry, writer.clock.elapsed());
+    if start {
+        let handle = window.app_handle().clone();
+        std::thread::spawn(move || loop {
+            let writer = handle.state::<GeometryWriter>();
+            let wait = writer.queue.lock().unwrap().next_wait(writer.clock.elapsed());
+            match wait {
+                None => break,
+                Some(wait) if wait.is_zero() => flush_geometry(&handle, false),
+                Some(wait) => std::thread::sleep(wait),
+            }
+        });
     }
-    *last = Some((std::time::Instant::now(), geometry));
-    let mut prefs = preferences(window.app_handle());
-    prefs.window = Some(geometry);
-    prefs.maximized = false;
-    save_preferences(window.app_handle(), &prefs);
 }
 
-/// A geometry saved on a monitor that is gone would open the window offscreen.
-fn saved_geometry(app: &tauri::AppHandle) -> Option<Geometry> {
-    let geometry = preferences(app).window?;
-    let monitors = app.available_monitors().ok()?;
-    let monitor = monitors.iter().find(|m| {
-        let (origin, size) = (m.position(), m.size());
-        geometry.x < origin.x + size.width as i32 && geometry.x + geometry.width as i32 > origin.x
-            && geometry.y < origin.y + size.height as i32 && geometry.y + geometry.height as i32 > origin.y
-    })?;
-    let bounds = monitor.size();
-    if geometry.width < 780 || geometry.height < 560 || geometry.width > bounds.width.saturating_mul(2)
-        || geometry.height > bounds.height.saturating_mul(2) { return None; }
-    Some(geometry)
+fn save_window_mode(app: &tauri::AppHandle) {
+    let Some(window) = app.get_webview_window("main") else { return; };
+    let writer = app.state::<GeometryWriter>();
+    // A minimized window may report is_maximized=false even when it was
+    // maximized before minimizing. Retain its last non-minimized mode.
+    if !window.is_minimized().unwrap_or(true) {
+        if let Ok(maximized) = window.is_maximized() {
+            writer.maximized.store(maximized, Ordering::SeqCst);
+        }
+    }
+    let maximized = writer.maximized.load(Ordering::SeqCst);
+    update_preferences(app, |prefs| prefs.maximized = maximized);
+}
+
+fn work_areas(app: &tauri::AppHandle) -> Vec<WorkArea> {
+    app.available_monitors().unwrap_or_default().iter().map(|monitor| {
+        let (origin, size) = (monitor.position(), monitor.size());
+        let fallback = WorkArea { x: origin.x, y: origin.y, width: size.width, height: size.height };
+        #[cfg(windows)] {
+            use windows_sys::Win32::{Foundation::POINT, Graphics::Gdi::{GetMonitorInfoW, MonitorFromPoint, MONITORINFO, MONITOR_DEFAULTTONEAREST}};
+            let point = POINT { x: (i64::from(origin.x) + i64::from(size.width) / 2) as i32,
+                y: (i64::from(origin.y) + i64::from(size.height) / 2) as i32 };
+            let mut info: MONITORINFO = unsafe { std::mem::zeroed() };
+            info.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
+            if unsafe { GetMonitorInfoW(MonitorFromPoint(point, MONITOR_DEFAULTTONEAREST), &mut info) } != 0 {
+                let work = info.rcWork;
+                return WorkArea { x: work.left, y: work.top, width: (work.right - work.left).max(0) as u32,
+                    height: (work.bottom - work.top).max(0) as u32 };
+            }
+        }
+        fallback
+    }).collect()
+}
+
+fn restore_geometry(window: &tauri::WebviewWindow, saved: Option<Geometry>) -> tauri::Result<()> {
+    let (position, size) = (window.outer_position()?, window.outer_size()?);
+    let current = Geometry { x: position.x, y: position.y, width: size.width, height: size.height };
+    let areas = work_areas(window.app_handle());
+    let wanted = saved.and_then(|geometry| visible_geometry(geometry, &areas)).or_else(|| visible_geometry(current, &areas));
+    let Some(wanted) = wanted else { return Ok(()); };
+    // Move first so frame measurements and minimum size use the target DPI.
+    window.set_position(tauri::PhysicalPosition::new(wanted.x, wanted.y))?;
+    let (outer, inner) = (window.outer_size()?, window.inner_size()?);
+    let client = client_size_for_outer(wanted, (outer.width, outer.height), (inner.width, inner.height));
+    let scale = window.scale_factor()?;
+    window.set_min_size(Some(tauri::PhysicalSize::new(((780. * scale).round() as u32).min(client.0),
+        ((560. * scale).round() as u32).min(client.1))))?;
+    window.set_size(tauri::PhysicalSize::new(client.0, client.1))?;
+    window.set_position(tauri::PhysicalPosition::new(wanted.x, wanted.y))?;
+    Ok(())
 }
 
 fn focus_main(app: &tauri::AppHandle) {
@@ -148,15 +237,13 @@ fn startup_error(app: &tauri::AppHandle, message: &str) {
 }
 fn open_workspace(app: &tauri::AppHandle, port: u16) -> Result<(), String> {
     let url: tauri::Url = format!("http://127.0.0.1:{port}/app").parse().map_err(|e| format!("{e}"))?;
-    let geometry = saved_geometry(app);
     let prefs = preferences(app);
     let origin = url.origin();
     let handle = app.clone();
     let new_handle = app.clone();
     let mut builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
         .title("Facetmark")
-        .inner_size(geometry.map_or(1440., |g| g.width as f64), geometry.map_or(920., |g| g.height as f64))
-        .min_inner_size(780., 560.)
+        .inner_size(1440., 920.).visible(false).center()
         .on_navigation(move |target| {
             if target.origin() == origin && (target.path() == "/app" || target.path().starts_with("/app/")) { return true; }
             open_original(&handle, target, "navigation");
@@ -168,22 +255,37 @@ fn open_workspace(app: &tauri::AppHandle, port: u16) -> Result<(), String> {
         });
     // Only a service restart under a live UI needs the label freed first.
     if let Some(old) = app.get_webview_window("main") { let _ = old.destroy(); }
-    builder = match geometry {
-        Some(box_) => builder.position(box_.x as f64, box_.y as f64),
-        None => builder.center(),
-    };
     if cloud_webview_inspection() { builder = builder.additional_browser_args(CI_BROWSER_ARGS); }
+    if cloud_webview_inspection() && std::env::var("FACETMARK_CI_FAIL_WORKSPACE_ONCE").as_deref() == Ok("1")
+        && !CI_WORKSPACE_FAILURE_INJECTED.swap(true, Ordering::SeqCst) {
+        let runtime = std::env::var_os("FACETMARK_DATA_DIR")
+            .and_then(|directory| std::fs::read(std::path::PathBuf::from(directory).join("desktop-runtime.json")).ok())
+            .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok());
+        ci_record("startup-failure-injected.json", serde_json::json!({ "stage": "workspace build after sidecar ready", "port": port,
+            "process": std::process::id(), "sidecar_pid": runtime.and_then(|record| record["pid"].as_u64()) }));
+        return Err("Synthetic CI workspace window construction failure after sidecar ready".into());
+    }
     let window = match builder.build() {
         Ok(window) => window,
-        Err(error) => {
-            // Keep the app reachable: without a window the tray is the only
-            // entry point, and a failed build may have taken the splash too.
-            startup_error(app, &format!("工作台窗口未能打开。 / The workspace window could not open: {error}"));
-            return Err(error.to_string());
-        }
+        Err(error) => return Err(format!("工作台窗口未能打开。 / The workspace window could not open: {error}")),
     };
+    app.state::<GeometryWriter>().maximized.store(prefs.maximized, Ordering::SeqCst);
+    if let Err(error) = restore_geometry(&window, prefs.window).and_then(|_| window.show()) {
+        let _ = window.destroy();
+        return Err(format!("工作台窗口未能恢复。 / The workspace window could not restore: {error}"));
+    }
     if prefs.maximized { let _ = window.maximize(); }
     let _ = window.set_focus();
+    if cloud_webview_inspection() {
+        if let (Ok(outer), Ok(position), Ok(inner), Ok(scale)) = (window.outer_size(), window.outer_position(), window.inner_size(), window.scale_factor()) {
+            ci_record("native-window.json", serde_json::json!({
+                "process": std::process::id(),
+                "outer": Geometry { x: position.x, y: position.y, width: outer.width, height: outer.height },
+                "inner": { "width": inner.width, "height": inner.height }, "scale_factor": scale,
+                "preferences_path": app.path().app_config_dir().ok().map(|path| path.join("desktop.json")),
+            }));
+        }
+    }
     if let Some(splash) = app.get_webview_window("loading") { let _ = splash.destroy(); }
     Ok(())
 }
@@ -192,6 +294,7 @@ fn spawn_backend(app: &tauri::AppHandle) -> Result<(), String> {
     if state.starting.swap(true, Ordering::SeqCst) { return Ok(()); }
     let generation = state.generation.fetch_add(1, Ordering::SeqCst) + 1;
     state.ready.store(false, Ordering::SeqCst);
+    state.error_shown.store(false, Ordering::SeqCst);
     let command = app.shell().sidecar("facetmark-service").map_err(|e| {
             state.starting.store(false, Ordering::SeqCst); e.to_string()
         })?
@@ -224,9 +327,15 @@ fn spawn_backend(app: &tauri::AppHandle) -> Result<(), String> {
                                 state.starting.store(false, Ordering::SeqCst);
                                 state.owned.store(record["owned"].as_bool().unwrap_or(false), Ordering::SeqCst);
                                 if let Some(port) = record["port"].as_u64().filter(|p| *p > 0 && *p < 65536) {
-                                    match open_workspace(&handle, port as u16) {
+                                    let opened = open_workspace(&handle, port as u16);
+                                    let opened = workspace_start_result(&mut state.child.lock().unwrap(), opened, |child| { let _ = child.kill(); });
+                                    match opened {
                                         Ok(_) => { state.ready.store(true, Ordering::SeqCst); },
-                                        Err(e) => startup_error(&handle, &e),
+                                        Err(e) => {
+                                            state.error_shown.store(true, Ordering::SeqCst);
+                                            state.ready.store(false, Ordering::SeqCst);
+                                            startup_error(&handle, &e);
+                                        },
                                     }
                                 }
                             },
@@ -266,6 +375,8 @@ fn spawn_backend(app: &tauri::AppHandle) -> Result<(), String> {
 fn request_exit(app: &tauri::AppHandle) {
     let state = app.state::<Backend>();
     if state.exiting.swap(true, Ordering::SeqCst) { return; }
+    flush_geometry(app, true);
+    save_window_mode(app);
     if let Some(child) = state.child.lock().unwrap().as_mut() { let _ = child.write(b"stop\n"); }
     let handle = app.clone();
     std::thread::spawn(move || {
@@ -311,6 +422,7 @@ fn main() {
     }
     tauri::Builder::default()
         .manage(Backend::default())
+        .manage(GeometryWriter::default())
         .plugin(tauri_plugin_single_instance::init(|app, _, _| focus_main(app)))
         .plugin(native_shell::init())
         // The remote workbench has no opener IPC capability. Leave native link
@@ -358,9 +470,8 @@ fn main() {
                             // the two disagreeing, and toggling from the stale
                             // value asks the wrong direction.
                             let registered = app.global_shortcut().is_registered(SHORTCUT);
-                            let mut prefs = preferences(app);
                             let result = if registered { app.global_shortcut().unregister(SHORTCUT) } else { app.global_shortcut().register(SHORTCUT) };
-                            if result.is_ok() { prefs.shortcut = !registered; save_preferences(app, &prefs); }
+                            if result.is_ok() { update_preferences(app, |prefs| prefs.shortcut = !registered); }
                             let _ = shortcut_item.set_checked(result.is_ok() && !registered);
                         },
                         "update" => {
@@ -389,16 +500,14 @@ fn main() {
                     if win.label() == "main" {
                         api.prevent_close();
                         remember_geometry(win);
-                        if win.is_maximized().unwrap_or(false) {
-                            let mut prefs = preferences(win.app_handle());
-                            prefs.maximized = true;
-                            save_preferences(win.app_handle(), &prefs);
-                        }
                         let app = win.app_handle();
+                        flush_geometry(app, true);
+                        save_window_mode(app);
                         let mut prefs = preferences(app);
                         if !prefs.tray_notice_seen {
                             app.dialog().message("Facetmark 将在系统托盘继续运行，索引任务不会停止。可在托盘菜单退出。\n\nFacetmark continues in the system tray. Use the tray menu to quit.").title("Facetmark").show(|_| {});
-                            prefs.tray_notice_seen = true; save_preferences(app, &prefs);
+                            prefs.tray_notice_seen = true;
+                            update_preferences(app, |saved| saved.tray_notice_seen = prefs.tray_notice_seen);
                         }
                         let _ = win.hide();
                     } else if win.label() == "loading" {

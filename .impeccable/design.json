@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-23T20:45:52.029Z",
+  "generatedAt": "2026-10-23T22:00:27.946Z",
   "title": "Design System: Facetmark collection workspace",
   "extensions": {
     "colorMeta": {
@@ -960,7 +960,7 @@
     "typographyMeta": {
       "display": {
         "displayName": "Collection heading",
-        "purpose": "Upright Inter/Noto title: 32px default, 30px below 1300px, 26px below 720px and in desktop windows at or below 650px height.",
+        "purpose": "Upright Inter/Noto title: 32px default, 30px below 1300px, 26px below 720px and in desktop windows at or below 650px height. Short 600-959px windows at <=560px height use 22px.",
         "source": "frontend/src/workbench.css"
       },
       "title": {
@@ -1203,6 +1203,13 @@
         "query": "(max-height: 700px) and (min-width: 720px)",
         "purpose": "Smaller directory heading, category and search spacing.",
         "source": "frontend/src/facet-browser.css"
+      },
+      {
+        "name": "short-narrow-workbench",
+        "value": "959px width / 560px height",
+        "query": "(max-width: 959px) and (max-height: 560px)",
+        "purpose": "Whole-workbench scrolling with 160px minimum results; horizontal title/search from 600px.",
+        "source": "frontend/src/workbench.css"
       }
     ],
     "materials": [
@@ -1235,21 +1242,21 @@
     "tonalRampProvenance": "Generated 8-step OKLCH strips for the design panel only. They are not shipped palette tokens or verified contrast combinations.",
     "specimenScope": "Static, self-contained HTML/CSS visual states with inline SVG and root-token fallbacks. Runtime controls, selection geometry, layout springs, focus management and data behavior remain in the React application. The bundled font aliases use platform fallbacks if the host has not loaded those fonts.",
     "evidence": {
-      "status": "local-refinement-awaiting-cloud-validation",
+      "status": "issue-refinement-awaiting-source-matched-cloud-validation",
       "visualAcceptance": "overall-progress-acknowledged-new-refinements-awaiting-review",
-      "sourceState": "Mist-blue identity retained after 2026-10-24 feedback. Real capsule dimensions, blue control states, nested folders and the complete startup/setup path are refined.",
-      "sourceBasis": "Current local source diff; static specimens describe endpoints only. Runtime verification is pending.",
+      "sourceState": "Mist-blue identity retained. Capsule geometry, blue states, nested folders and startup/setup refined; follow-up adds two-line folder labels, short-window and forced-colors fixes, native geometry/persistence/retry repairs and a porcelain folded-F desktop icon.",
+      "sourceBasis": "Current follow-up source diff. First pushed 87456ff has verified-source cloud captures; its failures are corrected here and require new runs.",
       "brief": ".impeccable/workbench-direction.md",
       "surface": ".impeccable/surfaces/frontend.md",
       "history": ".impeccable/history/2026-10-23-rejected-iris/",
       "baseRevision": "530471ae7ae125d9b2f81fef082864638f04ad8a",
       "roundRecord": "docs/collection-workspace-polish-2026-10-24.md",
-      "verification": "46 TS/TSX files and frontend CSS passed syntax parsing; 6 changed Python files passed AST parsing. Native JS/CSS, Tauri JSON and 10 static component styles parsed. Scoped motion/icon/reduced-motion type checking passed. AST-extracted folder queries passed recoverable import depth, exact counts, literal and ambiguous slash names and all 207 children across five in-memory pages without changing records. The small source-state regression passed interrupted paint, 60 switches, cleanup and synthetic Chinese/English native restart; both negative controls failed as expected. Full local types could not complete because two existing dependencies are absent; Ruff is unavailable. No current cloud render, browser operation or installed-app verification has run.",
+      "verification": "Local follow-up: 46 TS/TSX syntax and frontend CSS parsing passed; three changed Python files passed AST, Cargo TOML and installer PowerShell syntax passed. GSAP interruption/cleanup/60 switches and two negative controls passed at their small synthetic scope. First 87456ff collection run passed 8/10; CI browser 78 passed/2 skipped/8 failed; desktop stopped at locator ambiguity; experience web cancelled during browser installation. 53 captures, 64 source and 57 media/record hashes verified; full collection, narrow screen, folders and startup inspected. Current issue and native/icon changes await new cloud build/render/install checks.",
       "nativeStartupScope": "Browser tests use the native splash HTML with a synthetic Tauri restart bridge. Installed Windows startup and lifecycle remain a separate desktop workflow.",
       "latestFeedback": {
         "date": "2026-10-24",
         "scope": "Facetmark PR #44",
-        "assessment": "Substantial overall improvement; comprehensive refinement requested. No individual token, component or new change is marked approved."
+        "assessment": "Substantial overall improvement; comprehensive refinement requested. No individual token, component or new change is marked approved. User additionally requested open-issue fixes and replacing the desktop icon, and approved commit/push plus cloud verification."
       },
       "historicalBaseline": {
         "status": "cloud-verified-awaiting-user-visual-review",
@@ -1271,6 +1278,20 @@
           "finalCapture": "39882197281"
         },
         "independentReview": "Generic independent reviewer substituted for the unavailable dedicated role. All six listed corrections resolved; remaining clear, disposition ship within that scope. User aesthetic acceptance remains pending. Storyboard and frame review did not include direct full-MP4 playback."
+      },
+      "firstPolishRun": {
+        "revision": "87456fff7fa20db703b93fbfc1abe09f51d7cf73",
+        "collection": "40026554487",
+        "ci": "40026558007",
+        "windows": "40026554543",
+        "experience": "40026554473",
+        "state": "partial failures corrected in follow-up; not final certification"
+      },
+      "desktopIcon": {
+        "source": "scripts/desktop_assets.py",
+        "direction": "Porcelain tile and blue folded F; 16-256px ICO and PNG",
+        "review": "pending",
+        "runtime": "CI generation and installed verification pending"
       }
     },
     "componentSources": {
@@ -1372,7 +1393,7 @@
   ],
   "narrative": {
     "northStar": "The Layered Collection Table",
-    "overview": "An upright, tactile collection system uses mist-blue surroundings, porcelain reading surfaces and deep ink, with electric-blue actions. Translucent navigation and directory layers, rounded cards and molded capsule controls carry the current implementation's visual character. This is a working implementation description, not a user-approved visual identity.\n\nOn 2026-10-24 the user described PR #44's mist-blue workspace as a substantial improvement and requested comprehensive refinement. Keep its composition, typography and material direction while fixing malformed selected capsules, black control states, interrupted motion, nested-folder access and unfinished startup flows. This feedback does not approve every individual visual choice or the new refinements.\n\nThe current changes are local source edits awaiting cloud rendering and operation checks. Earlier application revision 04ecc11 and capture-only revision 7d2abd0 passed their recorded cloud checks; those runs are the historical baseline, not verification of this diff. The [current round record](docs/collection-workspace-polish-2026-10-24.md) records the implemented changes and actual check scope.",
+    "overview": "An upright, tactile collection system uses mist-blue surroundings, porcelain reading surfaces and deep ink, with electric-blue actions. Translucent navigation and directory layers, rounded cards and molded capsule controls carry the current implementation's visual character. This is a working implementation description, not a user-approved visual identity.\n\nOn 2026-10-24 the user described PR #44's mist-blue workspace as a substantial improvement and requested comprehensive refinement. Keep its composition, typography and material direction while fixing malformed selected capsules, black control states, interrupted motion, nested-folder access and unfinished startup flows. This feedback does not approve every individual visual choice or the new refinements.\n\nFirst polish revision 87456ff produced verified-source cloud renders with partial test failures. Those failures and the added issue/native/icon repairs are corrected in a follow-up awaiting new cloud rendering and operation checks. Earlier application revision 04ecc11 and capture-only revision 7d2abd0 passed their recorded cloud checks; those runs are the historical baseline, not verification of this diff. The [current round record](docs/collection-workspace-polish-2026-10-24.md) records the implemented changes and actual check scope.",
     "keyCharacteristics": [
       "Mist-blue ambient light, translucent supporting layers and opaque content surfaces.",
       "Bundled Inter and Noto Sans SC with upright headings and readable mixed-language records.",

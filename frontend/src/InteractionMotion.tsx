@@ -34,7 +34,10 @@ export function SelectionPill({ active, group }: { active: boolean; group: strin
       target = marker.getBoundingClientRect();
       paint.position = target;
       paint.origin = owner.getBoundingClientRect();
-      if (!from || reduced) return;
+      if (!from || reduced) {
+        gsap.set(marker, { clearProps: "transform" });
+        return;
+      }
       gsap.fromTo(marker, {
         x: from.left - target.left, y: from.top - target.top,
         width: from.width, height: from.height,

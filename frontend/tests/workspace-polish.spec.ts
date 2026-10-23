@@ -21,6 +21,64 @@ async function capture(page: Page, name: string) {
   await page.screenshot({ path: `${output}/${name}.png`, animations: "disabled" });
 }
 
+test("a 683 by 384 window keeps readable results, scrolling controls and reader return", async ({ page }) => {
+  await page.setViewportSize({ width: 683, height: 384 });
+  await page.goto("/app");
+  await expect(page.locator(".result-row")).toHaveCount(30);
+  await settleVisualLayout(page);
+  const allCount = await page.locator(".result-count").textContent();
+  const list = page.locator(".result-list");
+  expect((await list.boundingBox())!.height).toBeGreaterThanOrEqual(160);
+  const title = await page.locator(".result-title").first().boundingBox();
+  expect(title!.y).toBeGreaterThanOrEqual(0);
+  expect(title!.y + title!.height).toBeLessThanOrEqual(384);
+  expect(await list.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true);
+  await capture(page, "polish-short-window-683-384");
+  await page.locator(".bookmark-preview").first().press("Enter");
+  await expect(page.locator(".preview-drawer")).toBeVisible();
+  await capture(page, "polish-short-window-reader");
+  await page.getByRole("button", { name: "返回收藏", exact: true }).press("Escape");
+  await expect(page.locator(".preview-drawer")).toHaveCount(0);
+  await page.getByRole("textbox", { name: "搜索书签", exact: true }).fill("中文排版");
+  await expect(page.locator(".toolbar-location h1")).toHaveText("搜索结果");
+  await expect(page.locator(".result-count")).not.toHaveText(allCount!);
+  await expect(list).toHaveAttribute("aria-busy", "false");
+  await expect(page.locator(".result-row").first()).toBeVisible();
+  expect((await list.boundingBox())!.height).toBeGreaterThanOrEqual(160);
+  await capture(page, "polish-short-window-search");
+});
+
+test("forced colors retain distinct card and batch selection using system colors", async ({ page }) => {
+  await page.emulateMedia({ forcedColors: "active" });
+  await page.goto("/app");
+  await expect(page.locator(".result-row")).toHaveCount(30);
+  const first = page.locator(".result-row").first();
+  const next = page.locator(".result-row").nth(1);
+  await expect(first).toHaveCSS("outline-width", "0px");
+  await first.locator(".bookmark-preview").press("Enter");
+  await expect(first).toHaveClass(/selected/);
+  await expect(first).toHaveCSS("outline-width", "3px");
+  await expect(first).toHaveCSS("outline-style", "solid");
+  await expect(next).toHaveCSS("outline-width", "0px");
+  const colors = await first.locator(".bookmark-preview").evaluate(button => {
+    const style = getComputedStyle(button);
+    return { background: style.backgroundColor, text: style.color };
+  });
+  expect(colors.background).not.toBe(colors.text);
+  await capture(page, "polish-forced-colors-preview-selection");
+  await page.keyboard.press("Escape");
+  await expect(first).not.toHaveClass(/selected/);
+  await first.locator(".bookmark-check").press("Space");
+  await expect(first.locator(".bookmark-check")).toBeChecked();
+  await expect(first).toHaveClass(/batch-selected/);
+  await expect(first).toHaveCSS("outline-width", "3px");
+  await expect(next).toHaveCSS("outline-width", "0px");
+  await capture(page, "polish-forced-colors-batch-selection");
+  await first.locator(".bookmark-check").press("Space");
+  await expect(first).not.toHaveClass(/batch-selected/);
+  await expect(first).toHaveCSS("outline-width", "0px");
+});
+
 test("category capsules fill their segments, stay stationary while pressed, and reverse without corner scaling", async ({ page }) => {
   await page.goto("/app");
   await expect(page.locator(".result-row")).toHaveCount(30);
@@ -133,8 +191,15 @@ test("nested folders expand independently, retain cached branches, and select th
   const folders = await page.locator(".result-folder").allTextContents();
   expect(folders.length).toBeGreaterThan(0);
   expect(folders.every(folder => folder.trim() === leaf)).toBe(true);
-  const leafBounds = await rail.getByTitle(leaf, { exact: true }).boundingBox();
+  const leafOption = rail.locator(".facet-options").getByRole("button").and(rail.getByTitle(leaf, { exact: true }));
+  const leafBounds = await leafOption.boundingBox();
   expect(leafBounds!.width / leafBounds!.height).toBeGreaterThan(1.5);
+  const label = await leafOption.locator(".facet-label").evaluate(element => {
+    const style = getComputedStyle(element);
+    return { wrapping: style.whiteSpace, height: element.getBoundingClientRect().height, line: parseFloat(style.lineHeight) };
+  });
+  expect(label.wrapping).toBe("normal");
+  expect(label.height).toBeGreaterThan(label.line * 1.5);
   await expect(page.locator(".toolbar-location h1")).toHaveText(leaf.split("/").at(-1)!);
   await rail.locator(".facet-location > summary").click();
   await expect(rail.locator(".facet-location p")).toHaveText(leaf.split("/").join(" / "));

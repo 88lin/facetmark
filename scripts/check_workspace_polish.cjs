@@ -58,7 +58,7 @@ function selectionContextCheck(source) {
   const marker = (left, width) => {
     const owner = { isConnected: true, clientWidth: width, clientHeight: 32,
       closest: () => scope, getBoundingClientRect: () => ({ left, top: 10, width, height: 32 }) };
-    const item = { parentElement: owner, x: 0, y: 0, width: '100%', height: '100%' };
+    const item = { parentElement: owner, x: 0, y: 0, width: '100%', height: '100%', clearProps: '' };
     item.getBoundingClientRect = () => ({ left: left + Number(item.x), top: 10 + Number(item.y),
       width: item.width === '100%' ? width : Number(item.width),
       height: item.height === '100%' ? 32 : Number(item.height) });

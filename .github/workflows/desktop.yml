@@ -44,6 +44,8 @@ jobs:
         run: .desktop-build/venv/Scripts/python -m PyInstaller --noconfirm desktop/facetmark.spec
       - name: Stage sidecar and icons
         run: .desktop-build/venv/Scripts/python scripts/desktop_assets.py
+      - name: Native geometry, coalescing persistence and startup regression
+        run: cargo test --release --manifest-path desktop/src-tauri/Cargo.toml
       - name: Build offline Windows installer
         working-directory: desktop
         run: |

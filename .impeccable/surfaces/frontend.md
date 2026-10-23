@@ -49,8 +49,15 @@ changes await cloud validation and user review; no individual visual choice is
 newly approved. The 04ecc11 / 7d2abd0 cloud results are the historical baseline.
 Current scope is in docs/collection-workspace-polish-2026-10-24.md.
 
-Long-term reference: the supplied handbook and its latest D04 feedback record.
+Long-term reference: the supplied handbook v0.13 and D04 / D05 feedback records.
 Impeccable owns one system; oil-ui / Taste and S17-S20 supply selected relationships.
+
+The user additionally requested open-issue repairs and a replacement desktop app
+icon, and authorized commit/push plus cloud verification. 87456ff produced 53
+verified-source captures; collection was 8/10, CI browser 78 passed / 2 skipped /
+8 failed, and installed checks stopped at an ambiguous directory locator. Those
+failures and the issue fixes await a new run. New native icon and repairs remain
+pending user review.
 
 ## Direction contract
 
@@ -143,6 +150,10 @@ form, retains failed token drafts and blocks duplicate submissions. Visited setu
 panels stay mounted; completion comes from actual setup facts, not visitation.
 Source discovery and import remain explicit read-only actions on selected sources.
 Browser-rendered splash HTML with a synthetic bridge does not certify installation.
+The package/window/tray icon uses a porcelain tile and authored folded blue F;
+the UI bookmark mark continues to express collection. The icon is generated only
+in CI, with light/dark size evidence. Native physical-frame restoration, quiet
+geometry persistence and sidecar cleanup are separately verified after installation.
 
 ## Implementation and verification
 

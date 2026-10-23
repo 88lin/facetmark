@@ -8,6 +8,10 @@ its floating navigation, layered worktable, porcelain reading surfaces and uprig
 Chinese typography. The user requests fixes to capsule geometry, black click
 states, animation continuity, nested folders, folder artwork and unfinished
 startup surfaces. No new refinement is marked user-approved before review.
+The user also requests open-issue fixes (#45–#50) and replacing the desktop
+application icon. Commit/push and cloud verification are explicitly authorized;
+merge/release are outside this authorization. Preserve the overall mist-blue
+direction while examining the new native icon at small sizes.
 
 ## Visual and interaction direction
 

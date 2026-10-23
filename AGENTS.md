@@ -9,6 +9,9 @@
 这是对整体进步的评价与继续完善的授权，不代表每项控件或本轮新改动已获认可。
 当前状态见 [本轮打磨记录](docs/collection-workspace-polish-2026-10-24.md)。
 
+同日用户追加检查开放 issue 与更换桌面应用图标，并明确批准提交、推送到现有
+PR #44 后继续云端验证。新图标和新修复仍待视觉复评；该授权不包含合并或发布。
+
 以 [PRODUCT.md](PRODUCT.md)、[当前工作要求](.impeccable/workbench-direction.md)、
 `E:\design\design-reference-handbook.md` 与最新反馈为依据。Impeccable 主导一套
 体系；oil-ui 与 Taste 按手册取舍作为局部方法参考。

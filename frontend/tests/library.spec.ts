@@ -398,7 +398,7 @@ test("export downloads honor search-page, selected and category scopes", async (
   await page.getByRole("textbox", { name: "搜索书签", exact: true }).fill("");
   const directory = page.locator(".collection-sidebar");
   await directory.getByRole("textbox", { name: "查找分类" }).fill(folder);
-  await directory.getByTitle(folder, { exact: true }).click();
+  await directory.locator(".facet-options").getByRole("button").and(directory.getByTitle(folder, { exact: true })).click();
   await expect(page.locator(".result-row")).toHaveCount(2);
   await page.locator(".library-manage > summary").click();
   await page.getByRole("button", { name: "导出", exact: true }).click();
@@ -418,7 +418,7 @@ test("creation, organization and export start in the category the user is browsi
   await page.goto("/app");
   const rail = page.locator(".collection-sidebar");
   await rail.getByRole("textbox", { name: "查找分类" }).fill(folder);
-  await rail.getByTitle(folder, { exact: true }).click();
+  await rail.locator(".facet-options").getByRole("button").and(rail.getByTitle(folder, { exact: true })).click();
   await expect(page.locator(".result-row")).toHaveCount(1);
   await page.locator(".library-manage > summary").click();
   await page.getByRole("button", { name: "整理分类", exact: true }).click();
@@ -427,7 +427,7 @@ test("creation, organization and export start in the category the user is browsi
   await dialog.getByRole("button", { name: "取消", exact: true }).click();
   await rail.getByRole("button", { name: "标签", exact: true }).click();
   await rail.getByRole("textbox", { name: "查找分类" }).fill(tag);
-  await rail.getByTitle(tag, { exact: true }).click();
+  await rail.locator(".facet-options").getByRole("button").and(rail.getByTitle(tag, { exact: true })).click();
   await page.getByRole("button", { name: "新增收藏", exact: true }).click();
   dialog = page.getByRole("dialog");
   await expect(folderPicker(dialog, "收藏文件夹").locator(".folder-picker-trigger")).toContainText(folder);

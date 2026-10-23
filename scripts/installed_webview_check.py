@@ -344,7 +344,7 @@ with sync_playwright() as playwright:
             motion_step(f'分类：{category}', ['.collection-sidebar .facet-options'],
                         lambda category=category: categories.get_by_role('button', name=category, exact=True).click(),
                         content=True, direction=1 if category == '标签' else -1)
-        folder = categories.get_by_title('合成演示文件夹', exact=True)
+        folder = categories.locator('.facet-options').get_by_role('button').and_(categories.get_by_title('合成演示文件夹', exact=True))
         folder.wait_for()
         folder_front = '.collection-sidebar .facet-option[title="合成演示文件夹"] .collection-folder-front'
         folder_icon = folder.locator('.collection-folder-icon')

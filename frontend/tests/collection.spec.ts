@@ -106,7 +106,7 @@ test("a mouse can scroll and page the category directory, then search beyond the
   expect(late.total).toBeGreaterThan(240);
   const name: string = late.items[0].value;
   await rail.getByRole("textbox", { name: "查找分类" }).fill(name);
-  const target = options.getByTitle(name, { exact: true });
+  const target = options.getByRole("button").and(options.getByTitle(name, { exact: true }));
   await expect(target).toBeVisible();
   await target.click();
   await expect(target).toHaveAttribute("aria-pressed", "true");
@@ -128,7 +128,7 @@ test("a mouse can scroll and page the category directory, then search beyond the
   await expect(options).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(options.getByRole("button", { name: "全部文件夹", exact: true })).toBeFocused();
-  await options.getByTitle("知识管理", { exact: true }).focus();
+  await options.getByRole("button").and(options.getByTitle("知识管理", { exact: true })).focus();
   await page.keyboard.press("Enter");
   await expect(page.locator(".result-list")).toHaveAttribute("aria-busy", "false");
   await expect(page.locator(".result-row").first()).toBeVisible();
@@ -207,7 +207,7 @@ test("filter labels explain unfiled and clearing filters keeps the keyword query
   await expect(page.locator(".result-row")).toHaveCount(30);
   const rail = page.locator(".collection-sidebar");
   await rail.getByRole("textbox", { name: "查找分类" }).fill("开发工具");
-  await rail.getByTitle("开发工具", { exact: true }).click();
+  await rail.locator(".facet-options").getByRole("button").and(rail.getByTitle("开发工具", { exact: true })).click();
   const search = page.getByRole("textbox", { name: "搜索书签", exact: true });
   await search.fill("SQLite");
   await expect(page.locator(".result-title").first()).toContainText("SQLite");
@@ -343,9 +343,9 @@ test("changing a category closes the old reader and fails closed until the new s
   await expect(page.locator(".body-text")).toBeVisible();
   const menu = page.locator(".collection-sidebar");
   await menu.getByRole("textbox", { name: "查找分类" }).fill("知识管理");
-  await expect(menu.getByTitle("知识管理", { exact: true })).toBeVisible();
+  await expect(menu.locator(".facet-options").getByRole("button").and(menu.getByTitle("知识管理", { exact: true }))).toBeVisible();
   await page.route("**/bookmarks?**", route => route.fulfill({ status: 503, json: { detail: "Synthetic delayed collection failure" } }));
-  await menu.getByTitle("知识管理", { exact: true }).click();
+  await menu.locator(".facet-options").getByRole("button").and(menu.getByTitle("知识管理", { exact: true })).click();
   await expect(page.locator(".preview-pane")).toHaveCount(0);
   await expect(page.locator(".search-error")).toBeVisible();
   await expect(page.locator(".result-row")).toHaveCount(0);
@@ -372,10 +372,10 @@ test("mobile category errors recover and list view is a persistent alternative",
   await menu.getByRole("button", { name: "重试", exact: true }).click();
   await expect(menu.locator(".facet-option[title]")).toHaveCount(50);
   await menu.getByRole("textbox", { name: "查找分类" }).fill("知识管理");
-  await expect(menu.getByTitle("知识管理", { exact: true })).toBeVisible();
+  await expect(menu.locator(".facet-options").getByRole("button").and(menu.getByTitle("知识管理", { exact: true }))).toBeVisible();
   await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/collection-mobile-categories.png", animations: "disabled" });
-  await menu.getByTitle("知识管理", { exact: true }).click();
+  await menu.locator(".facet-options").getByRole("button").and(menu.getByTitle("知识管理", { exact: true })).click();
   await expect(menu).toHaveAttribute("inert", "");
   await expect(page.locator(".result-row").first()).toBeVisible();
   await page.getByRole("button", { name: "列表视图", exact: true }).click();

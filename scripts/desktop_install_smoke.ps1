@@ -14,6 +14,7 @@ $dataTarget = Join-Path $env:RUNNER_TEMP 'Facetmark CI 资料库'
 $env:FACETMARK_DATA_DIR = $dataTarget
 $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--remote-debugging-port=9223'
 $env:FACETMARK_CI_WEBVIEW_INSPECT = '1'
+$env:FACETMARK_CI_FAIL_WORKSPACE_ONCE = '1'
 $env:FACETMARK_CI_EVIDENCE_DIR = $evidenceDir
 $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
 Get-ChildItem Env: | Where-Object Name -Like 'PYTHON*' | ForEach-Object { Remove-Item -LiteralPath "Env:$($_.Name)" }
@@ -46,6 +47,8 @@ try {
     $exe = Join-Path $installTarget 'facetmark-desktop.exe'
     if (-not (Test-Path -LiteralPath $exe)) { throw "Installed application missing: $exe" }
     $app = Start-Process -FilePath $exe -PassThru -WindowStyle Hidden
+    & (Join-Path $repoRoot '.desktop-build/venv/Scripts/python.exe') (Join-Path $repoRoot 'scripts/installed_window_check.py') $evidenceDir startup $app.Id
+    if ($LASTEXITCODE -ne 0) { throw 'Installed startup failure did not recover through its real keyboard retry.' }
     $manifest = Join-Path $dataTarget 'desktop-runtime.json'
     $deadline = (Get-Date).AddSeconds(60)
     do {
@@ -68,10 +71,21 @@ try {
     $saved = Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:$($ready.port)/bookmark" -Headers $headers -ContentType 'application/json' -Body '{"url":"https://ci.example/retained","title":"Synthetic retained bookmark"}'
     $report = @{ installer_bytes = $installer.Length; installed_path = $installTarget; runtime_absent_before = $true; network_blocked_for_installers = $true; backend_ready = $true; webview_processes = $webviews.Count; signed = ((Get-AuthenticodeSignature -LiteralPath $installer.FullName).Status -eq 'Valid') }
     $report | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidenceDir 'installed-desktop.json') -Encoding utf8
+    & (Join-Path $repoRoot '.desktop-build/venv/Scripts/python.exe') (Join-Path $repoRoot 'scripts/installed_window_check.py') $evidenceDir prepare $app.Id
+    if ($LASTEXITCODE -ne 0) { throw 'Native drag persistence and final close flush failed.' }
     Stop-Process -Id $app.Id
     $deadline = (Get-Date).AddSeconds(30)
     while ((Get-Process -Id $ready.pid -ErrorAction SilentlyContinue) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 300 }
     if (Get-Process -Id $ready.pid -ErrorAction SilentlyContinue) { throw 'Backend survived parent exit' }
+    $env:FACETMARK_CI_FAIL_WORKSPACE_ONCE = '0'
+    $app = Start-Process -FilePath $exe -PassThru -WindowStyle Hidden
+    & (Join-Path $repoRoot '.desktop-build/venv/Scripts/python.exe') (Join-Path $repoRoot 'scripts/installed_window_check.py') $evidenceDir restored $app.Id
+    if ($LASTEXITCODE -ne 0) { throw 'Native geometry did not restore its physical frame into the monitor work area.' }
+    $ready = Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json
+    Stop-Process -Id $app.Id
+    $deadline = (Get-Date).AddSeconds(30)
+    while ((Get-Process -Id $ready.pid -ErrorAction SilentlyContinue) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 300 }
+    if (Get-Process -Id $ready.pid -ErrorAction SilentlyContinue) { throw 'Relaunched backend survived parent exit' }
     # A same-version reinstall is a repair smoke; it is not a cross-version upgrade test.
     $repair = Start-Process -FilePath $installer.FullName -ArgumentList "/S /D=$installTarget" -Wait -PassThru -WindowStyle Hidden
     if ($repair.ExitCode -ne 0) { throw 'Same-version reinstall failed' }

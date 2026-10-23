@@ -97,4 +97,9 @@
   .result-row .result-meta { padding-top: 8px; }
 }
 @media (prefers-reduced-motion: reduce) { .result-row, .result-row::before, .result-row :is(.source-symbol, .bookmark-check-frame > svg, .summary-expand svg) { transition: none; } .result-row::before { display: none; } .result-row:hover .source-symbol { transform: none; } }
-@media (forced-colors: active) { .result-row .bookmark-check { position: static; width: 18px; height: 18px; opacity: 1; } .result-row .bookmark-check-frame { display: none; } }
+@media (forced-colors: active) {
+  .result-row .bookmark-check { position: static; width: 18px; height: 18px; opacity: 1; }
+  .result-row .bookmark-check-frame { display: none; }
+  .result-row:is(.selected, .batch-selected) { outline: 3px solid Highlight; outline-offset: -3px; border-color: Highlight; }
+  .result-row .bookmark-preview[aria-pressed="true"] { forced-color-adjust: none; background: Highlight; color: HighlightText; border-color: Highlight; }
+}

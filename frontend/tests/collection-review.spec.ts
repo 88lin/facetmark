@@ -72,7 +72,7 @@ test("representative collection, responsive states, exact scopes, save recovery 
     await directory.getByRole("button", { name: "展开「设计与体验」", exact: true }).press("Enter");
     await directory.getByRole("button", { name: "展开「中文排版」", exact: true }).press("Space");
     await directory.getByRole("button", { name: "展开「界面规范」", exact: true }).press("Enter");
-    const nestedOption = directory.locator(".facet-options").getByTitle(nestedFolder, { exact: true });
+    const nestedOption = directory.locator(".facet-options").getByRole("button").and(directory.getByTitle(nestedFolder, { exact: true }));
     await expect(nestedOption).toBeVisible();
     await expect(page.locator(".result-count")).toHaveText(allCount!);
     await capture(page, evidence, "folder-expanded", "Four real directory levels; disclosure leaves the result scope unchanged");
@@ -89,9 +89,9 @@ test("representative collection, responsive states, exact scopes, save recovery 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole("button", { name: "筛选收藏", exact: true }).click();
     const mobileDirectory = page.locator(".sidebar");
-    await expect(mobileDirectory.locator(".facet-options").getByTitle(nestedFolder, { exact: true })).toBeVisible();
+    await expect(mobileDirectory.locator(".facet-options").getByRole("button").and(mobileDirectory.getByTitle(nestedFolder, { exact: true }))).toBeVisible();
     await mobileDirectory.locator(".facet-location > summary").click();
-    await mobileDirectory.locator(".facet-options").getByTitle(nestedFolder, { exact: true }).scrollIntoViewIfNeeded();
+    await mobileDirectory.locator(".facet-options").getByRole("button").and(mobileDirectory.getByTitle(nestedFolder, { exact: true })).scrollIntoViewIfNeeded();
     await capture(page, evidence, "mobile-folder-expanded", "The same exact path and expanded ancestors remain reachable in a narrow window");
     await page.keyboard.press("Escape");
     await page.setViewportSize({ width: 1440, height: 960 });
