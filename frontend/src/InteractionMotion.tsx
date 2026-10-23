@@ -66,8 +66,10 @@ export function SelectionPill({ active, group }: { active: boolean; group: strin
     });
     const previousBox = previous?.owner.isConnected ? previous.owner.getBoundingClientRect() : undefined;
     update(previous && previousBox?.width && previousBox.height ? {
-      ...previous.position, left: previous.position.left + previousBox.left - previous.origin.left,
+      // DOMRect dimensions are non-enumerable; copy them explicitly.
+      left: previous.position.left + previousBox.left - previous.origin.left,
       top: previous.position.top + previousBox.top - previous.origin.top,
+      width: previous.position.width, height: previous.position.height,
     } : undefined);
     const resize = new ResizeObserver(() => {
       const bounds = owner.getBoundingClientRect();

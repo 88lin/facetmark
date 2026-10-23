@@ -492,6 +492,10 @@ from 32px to 6.89px during cleanup while scale remained 1. The new lifecycle
 guard stops capture before GSAP reversion; both ref-detachment orders pass the
 small isolated check. Actual minimum-width/height browser assertions and this
 repair still require a new source-matched cloud run.
+The first lifecycle-only run, 2b4ecdb, failed the new frame-height assertion:
+DOMRect's prototype width/height getters were lost by an object spread. The
+current repair also copies all four coordinates explicitly; isolated checks now
+use non-enumerable getters and four negative controls. New cloud evidence is pending.
 The collection workflow now includes folder disclosure, capsule geometry,
 startup/pairing and draft-recovery checks. Native splash captures use a synthetic
 restart bridge and are distinguished from installed-app evidence. Synthetic

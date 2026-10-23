@@ -30,6 +30,17 @@ function selectionContextCheck(source, detachBeforeCleanup = false) {
   };
   react.useLayoutEffect = react.useEffect;
   const scope = {};
+  // Browser DOMRect coordinates are prototype getters, not enumerable fields.
+  // A plain-object stand-in would conceal an unsafe geometry spread.
+  class SyntheticRect {
+    constructor(left, top, width, height) {
+      Object.defineProperty(this, 'values', { value: { left, top, width, height } });
+    }
+    get left() { return this.values.left; }
+    get top() { return this.values.top; }
+    get width() { return this.values.width; }
+    get height() { return this.values.height; }
+  }
   const observers = [];
   class SyntheticObserver {
     constructor(callback) { this.callback = callback; observers.push(this); }
@@ -58,11 +69,10 @@ function selectionContextCheck(source, detachBeforeCleanup = false) {
   });
   const marker = (left, width) => {
     const owner = { isConnected: true, clientWidth: width, clientHeight: 32,
-      closest: () => scope, getBoundingClientRect: () => ({ left, top: 10, width, height: 32 }) };
+      closest: () => scope, getBoundingClientRect: () => new SyntheticRect(left, 10, width, 32) };
     const item = { parentElement: owner, x: 0, y: 0, width: '100%', height: '100%', clearProps: '' };
-    item.getBoundingClientRect = () => ({ left: left + Number(item.x), top: 10 + Number(item.y),
-      width: item.width === '100%' ? width : Number(item.width),
-      height: item.height === '100%' ? 32 : Number(item.height) });
+    item.getBoundingClientRect = () => new SyntheticRect(left + Number(item.x), 10 + Number(item.y),
+      item.width === '100%' ? width : Number(item.width), item.height === '100%' ? 32 : Number(item.height));
     return item;
   };
   const render = (id, active, target) => {
@@ -85,6 +95,8 @@ function selectionContextCheck(source, detachBeforeCleanup = false) {
     assert.ok(tween, 'second capsule should move from the previous painted bounds');
     tween.progress(.35);
     const interrupted = b.getBoundingClientRect();
+    assert.ok(Math.abs(interrupted.height - 32) < .001,
+      'category capsule must retain height when DOMRect fields are prototype getters');
     render('b', false, b);
     assert.equal(gsap.getTweensOf(b).length, 0, 'inactive capsule must own and dispose all of its tweens');
     assert.equal(observers.at(-1).observing, false, 'inactive capsule must disconnect its observer');
@@ -161,6 +173,8 @@ async function nativeRestartCheck(language) {
   assert.throws(() => selectionContextCheck(noPaintGuard), /next capsule should resume/);
   const refOnlyGuard = source.replaceAll('if (!paintLive.current || ref.current !== marker) return;', 'if (ref.current !== marker) return;');
   assert.throws(() => selectionContextCheck(refOnlyGuard, false), /next capsule should resume/);
+  const implicitRectSpread = source.replace('width: previous.position.width, height: previous.position.height,', '...previous.position,');
+  assert.throws(() => selectionContextCheck(implicitRectSpread, true), /retain height/);
   // Disabling dependency cleanup is a synthetic negative control.
   const noDependencyCleanup = source.replace('revertOnUpdate: true', 'revertOnUpdate: false');
   assert.throws(() => selectionContextCheck(noDependencyCleanup), /inactive capsule must own/);
@@ -171,6 +185,7 @@ async function nativeRestartCheck(language) {
     cleanupBeforeRefDetach: 'passed', cleanupAfterRefDetach: 'passed',
     unguardedReversionNegativeControl: 'failed as expected',
     refOnlyGuardNegativeControl: 'failed as expected',
+    nonEnumerableRectNegativeControl: 'failed as expected',
     disabledCleanupNegativeControl: 'failed as expected', rapidSwitches: 60,
     syntheticNativeRestart: ['zh-CN', 'en-US'], browserOrInstalledRuntime: false }));
 })().catch(error => { gsap.ticker.sleep(); console.error(error); process.exitCode = 1; });

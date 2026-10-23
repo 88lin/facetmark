@@ -4,6 +4,11 @@
 
 <!-- current-experience-evidence:start -->
 
+The additional `2b4ecdb` lifecycle-only repair failed the new category frame-height
+check (collection 11/12). A DOMRect spread also omitted prototype dimensions;
+the current explicit-coordinate repair awaits new cloud verification. The
+successful installed icon/geometry results above remain revision-specific.
+
 ## Historical 2026-10-23 baseline: layered collection workspace
 
 Application source: `04ecc1133b62717cbd06f3733e40a3322cd42230`.

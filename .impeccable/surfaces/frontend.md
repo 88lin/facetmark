@@ -51,7 +51,7 @@ evidence. Frame review found dimension collapse despite scale=1; the cleanup
 lifecycle repair still awaits a new run. 04ecc11 / 7d2abd0 are historical.
 Current scope is in docs/collection-workspace-polish-2026-10-24.md.
 
-Long-term reference: the supplied handbook v0.15 and D04 / D05 feedback records.
+Long-term reference: the supplied handbook v0.16 and D04 / D05 feedback records.
 Impeccable owns one system; oil-ui / Taste and S17-S20 supply selected relationships.
 
 The user additionally requested open-issue repairs and a replacement desktop app
@@ -65,6 +65,12 @@ cleanup with the old ref attached. The current lifecycle guard and minimum-frame
 dimensions await rerun; isolated checks cover both detach orders and three
 negative controls. 150% DPI/monitor removal remain pure geometry scope.
 New native icon and repairs remain pending user review.
+
+The lifecycle-only 2b4ecdb run was 11/12: frame height still fell to 10.16px.
+Browser DOMRect getters were lost through an object spread, independently of
+cleanup timing. The current repair copies left/top/width/height explicitly;
+the isolated model uses non-enumerable getters and four negative controls.
+This coordinate repair still needs source-matched browser verification.
 
 ## Direction contract
 
