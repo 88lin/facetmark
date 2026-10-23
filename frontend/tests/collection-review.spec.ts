@@ -221,6 +221,8 @@ test("representative collection, responsive states, exact scopes, save recovery 
     await expect(page.locator(".preview-title h1")).toHaveText(firstTitle);
     await capture(page, evidence, "desktop-reader", "Reader and retained collection index share the selected bookmark");
     await page.getByRole("tab", { name: "AI 摘要", exact: true }).click();
+    await expect(page.locator(".preview-scroll")).toHaveAttribute("aria-busy", "false");
+    await expect(page.locator(".reading .summary-label")).toBeVisible();
     await capture(page, evidence, "reader-summary", "Saved AI summary in the same reading context");
     await page.getByRole("tab", { name: "正文", exact: true }).click();
     await page.locator(".focus-reading").press("Enter");
