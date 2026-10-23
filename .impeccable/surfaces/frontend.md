@@ -46,22 +46,25 @@ On 2026-10-24 the user described PR #44's mist-blue workspace as a substantial
 improvement and requested refinement. Preserve this identity while fixing selected
 capsules, control colors, motion, nested folders and startup/setup paths. The new
 changes remain pending user review; no individual visual choice is newly
-approved. 475c732 has collection and installed evidence; final visual tightening
-still awaits a new run. 04ecc11 / 7d2abd0 are the historical baseline.
+approved. 831dcfd has four successful workflows and verified rendered/installed
+evidence. Frame review found dimension collapse despite scale=1; the cleanup
+lifecycle repair still awaits a new run. 04ecc11 / 7d2abd0 are historical.
 Current scope is in docs/collection-workspace-polish-2026-10-24.md.
 
-Long-term reference: the supplied handbook v0.14 and D04 / D05 feedback records.
+Long-term reference: the supplied handbook v0.15 and D04 / D05 feedback records.
 Impeccable owns one system; oil-ui / Taste and S17-S20 supply selected relationships.
 
 The user additionally requested open-issue repairs and a replacement desktop app
-icon, and authorized commit/push plus cloud verification. 475c732 passed 12/12
-collection cases and installed Windows checks, with 59 screenshots, 7 action
-groups, 64 verified source hashes and 63 media/record hashes. Eight Rust cases,
-real 96-DPI restoration, 240 events merged into one idle write and keyboard
-startup retry passed. CI search-data assumptions and zip lint are now corrected;
-short-window typography, folder clipping, icon preview spacing and extraction
-from the installed exe await rerun. 150% DPI and monitor removal are pure geometry
-tests. New native icon and repairs remain pending user review.
+icon, and authorized commit/push plus cloud verification. 831dcfd passed all four
+workflows, with 12/12 collection, 88 browser cases/2 skips and one separate 200k
+case. Its 59 PNGs, 7 action groups, 64 source hashes and 63 media/record hashes
+are verified. The installed 32px folded-F icon matches the ICO pixels exactly.
+Short-window typography, two-line clipping and icon spacing were inspected.
+The raw category frames still revealed 32px to 6.89px collapse during context
+cleanup with the old ref attached. The current lifecycle guard and minimum-frame
+dimensions await rerun; isolated checks cover both detach orders and three
+negative controls. 150% DPI/monitor removal remain pure geometry scope.
+New native icon and repairs remain pending user review.
 
 ## Direction contract
 

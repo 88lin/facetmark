@@ -155,6 +155,10 @@ test("category capsules fill their segments, stay stationary while pressed, and 
   expect(frames.length).toBeGreaterThan(8);
   expect(new Set(frames.map(frame => Math.round(frame.x)) ).size).toBeGreaterThan(3);
   expect(frames.every(frame => Math.abs(frame.scaleX - 1) < .001 && Math.abs(frame.scaleY - 1) < .001 && !frame.radius.includes("%"))).toBe(true);
+  // Equal-width category slots must retain the painted capsule dimensions
+  // through React/GSAP cleanup, including a reversal before the tween settles.
+  expect(Math.min(...frames.map(frame => frame.height))).toBeGreaterThanOrEqual(frames[0].height - .5);
+  expect(Math.min(...frames.map(frame => frame.width))).toBeGreaterThanOrEqual(frames[0].width - .5);
   await writeFile(`${output}/capsule-frame-samples.json`, JSON.stringify(frames, null, 2));
   await page.emulateMedia({ reducedMotion: "reduce" });
   await types.getByRole("button", { name: "标签", exact: true }).press("Space");

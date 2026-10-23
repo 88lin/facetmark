@@ -1,4 +1,4 @@
-import { useRef, type RefObject } from "react";
+import { useLayoutEffect, useRef, type RefObject } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useReducedMotion } from "./useReducedMotion";
@@ -15,6 +15,13 @@ const pillGroups = new WeakMap<Node, Map<string, PillPaint>>();
 export function SelectionPill({ active, group }: { active: boolean; group: string }) {
   const reduced = useReducedMotion();
   const ref = useRef<HTMLElement>(null);
+  const paintLive = useRef(false);
+  // React can clean up layout effects while the old marker ref is attached.
+  // Stop capture before the following GSAP context restores teardown styles.
+  useLayoutEffect(() => {
+    paintLive.current = active;
+    return () => { paintLive.current = false; };
+  }, [active, group, reduced]);
   // Observer callbacks and their tweens share this dependency-owned context;
   // switching controls must also dispose animations on the departed marker.
   const { contextSafe } = useGSAP(() => {
@@ -45,13 +52,13 @@ export function SelectionPill({ active, group }: { active: boolean; group: strin
         x: 0, y: 0, width: target.width, height: target.height,
         duration: 0.34, ease: "power3.out", overwrite: "auto",
         onUpdate: () => {
-          // Context reversion can invoke onUpdate after React removes this
-          // marker. Preserve its last visible frame for the next selection.
-          if (ref.current !== marker) return;
+          // Teardown geometry was never painted and must not replace the
+          // last visible frame that the next selection will resume from.
+          if (!paintLive.current || ref.current !== marker) return;
           paint.position = marker.getBoundingClientRect(); paint.origin = owner.getBoundingClientRect();
         },
         onComplete: contextSafe(() => {
-          if (ref.current !== marker) return;
+          if (!paintLive.current || ref.current !== marker) return;
           gsap.set(marker, { width: "100%", height: "100%", clearProps: "transform" });
           paint.position = marker.getBoundingClientRect();
         }),

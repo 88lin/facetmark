@@ -1,6 +1,6 @@
 ---
 name: "Facetmark collection workspace"
-description: "Mist-blue workspace refinement after positive feedback; issue repairs have cloud evidence, final refinements await verification and user review."
+description: "Mist-blue workspace refinement; installed icon and layout have cloud evidence, the motion-continuity repair awaits new verification and user review."
 colors:
   secondary-ink: "#526379"
   canvas: "#ffffff"
@@ -483,13 +483,15 @@ not additional shipped theme colors.
 - **Don't** merge record hover movement with the layout controller or hide metadata until hover.
 - **Don't** treat old evidence, generated tonal ramps or static component specimens as current runtime or aesthetic approval.
 
-Revision 475c732 passed all 12 focused collection cases and installed Windows
-checks, including 8 Rust regressions, real 96-DPI physical-frame restoration,
-240 native events merged into one idle write, and actual keyboard retry after
-startup failure. Its 59 screenshots and 7 action groups have 64 source and 63
-media/record hashes verified. CI's synthetic-search assumption and Python zip
-lint are corrected; final short-window typography, two-line folder clipping and
-installed-executable icon extraction still require a new source-matched run.
+Revision 831dcfd passed all four cloud workflows: 12 focused collection cases,
+88 browser cases with 2 skips, a separate 200k browser case and installed Windows
+checks. Its 59 PNGs and 7 action groups have 64 source and 63 media/record hashes
+verified. Short-window typography, two-line folders and the installed exe's new
+32px icon were inspected. Frame review nevertheless found a capsule shrinking
+from 32px to 6.89px during cleanup while scale remained 1. The new lifecycle
+guard stops capture before GSAP reversion; both ref-detachment orders pass the
+small isolated check. Actual minimum-width/height browser assertions and this
+repair still require a new source-matched cloud run.
 The collection workflow now includes folder disclosure, capsule geometry,
 startup/pairing and draft-recovery checks. Native splash captures use a synthetic
 restart bridge and are distinguished from installed-app evidence. Synthetic

@@ -7,7 +7,7 @@ const ts = require('../frontend/node_modules/typescript');
 const { gsap } = require('../frontend/node_modules/gsap/dist/gsap.js');
 const read = name => fs.readFileSync(path.resolve(__dirname, '..', name), 'utf8');
 
-function selectionContextCheck(source) {
+function selectionContextCheck(source, detachBeforeCleanup = false) {
   let current;
   const instances = new Map();
   const react = {
@@ -21,13 +21,14 @@ function selectionContextCheck(source) {
       const index = instance.index++;
       const previous = instance.effects[index];
       if (!previous || dependencies.some((value, i) => value !== previous.dependencies[i])) {
-        instance.pending.push(() => {
-          previous?.cleanup?.();
-          instance.effects[index] = { dependencies, cleanup: callback() };
+        instance.pending.push({
+          cleanup: () => previous?.cleanup?.(),
+          setup: () => { instance.effects[index] = { dependencies, cleanup: callback() }; },
         });
       }
     },
   };
+  react.useLayoutEffect = react.useEffect;
   const scope = {};
   const observers = [];
   class SyntheticObserver {
@@ -68,9 +69,12 @@ function selectionContextCheck(source) {
     if (!instances.has(id)) instances.set(id, { refs: [], effects: [], pending: [], index: 0 });
     current = instances.get(id); current.index = 0;
     const host = scriptModule.exports.SelectionPill({ active, group: 'synthetic-capsule' });
+    const effects = current.pending.splice(0);
+    if (!detachBeforeCleanup) effects.forEach(effect => effect.cleanup());
     if (host) host.ref.current = target;
     else current.refs[0].current = null;
-    current.pending.splice(0).forEach(effect => effect());
+    if (detachBeforeCleanup) effects.forEach(effect => effect.cleanup());
+    effects.forEach(effect => effect.setup());
   };
   const a = marker(10, 80), b = marker(100, 95), c = marker(205, 90);
   try {
@@ -88,6 +92,10 @@ function selectionContextCheck(source) {
     gsap.getTweensOf(c).find(animation => animation.duration() > 0).render(0, false, true);
     assert.ok(Math.abs(c.getBoundingClientRect().left - interrupted.left) < .001,
       `next capsule should resume from the interrupted paint: ${c.getBoundingClientRect().left} / ${interrupted.left}`);
+    assert.ok(Math.abs(c.getBoundingClientRect().height - interrupted.height) < .001,
+      'next capsule must preserve height during context cleanup with an attached ref');
+    assert.ok(Math.abs(c.getBoundingClientRect().width - interrupted.width) < .001,
+      'next capsule must preserve width during context cleanup with an attached ref');
     render('c', false, c);
     for (let i = 0; i < 30; i++) {
       render('a', true, a); render('a', false, a);
@@ -147,9 +155,12 @@ async function nativeRestartCheck(language) {
 
 (async () => {
   const source = read('frontend/src/InteractionMotion.tsx');
-  selectionContextCheck(source);
-  const noPaintGuard = source.replaceAll('if (ref.current !== marker) return;', '');
+  selectionContextCheck(source, true);
+  selectionContextCheck(source, false);
+  const noPaintGuard = source.replaceAll('if (!paintLive.current || ref.current !== marker) return;', '');
   assert.throws(() => selectionContextCheck(noPaintGuard), /next capsule should resume/);
+  const refOnlyGuard = source.replaceAll('if (!paintLive.current || ref.current !== marker) return;', 'if (ref.current !== marker) return;');
+  assert.throws(() => selectionContextCheck(refOnlyGuard, false), /next capsule should resume/);
   // Disabling dependency cleanup is a synthetic negative control.
   const noDependencyCleanup = source.replace('revertOnUpdate: true', 'revertOnUpdate: false');
   assert.throws(() => selectionContextCheck(noDependencyCleanup), /inactive capsule must own/);
@@ -157,7 +168,9 @@ async function nativeRestartCheck(language) {
   await nativeRestartCheck('en-US');
   gsap.ticker.sleep();
   console.log(JSON.stringify({ selectionContextCleanup: 'passed', interruption: 'passed',
+    cleanupBeforeRefDetach: 'passed', cleanupAfterRefDetach: 'passed',
     unguardedReversionNegativeControl: 'failed as expected',
+    refOnlyGuardNegativeControl: 'failed as expected',
     disabledCleanupNegativeControl: 'failed as expected', rapidSwitches: 60,
     syntheticNativeRestart: ['zh-CN', 'en-US'], browserOrInstalledRuntime: false }));
 })().catch(error => { gsap.ticker.sleep(); console.error(error); process.exitCode = 1; });

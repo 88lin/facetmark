@@ -1242,16 +1242,16 @@
     "tonalRampProvenance": "Generated 8-step OKLCH strips for the design panel only. They are not shipped palette tokens or verified contrast combinations.",
     "specimenScope": "Static, self-contained HTML/CSS visual states with inline SVG and root-token fallbacks. Runtime controls, selection geometry, layout springs, focus management and data behavior remain in the React application. The bundled font aliases use platform fallbacks if the host has not loaded those fonts.",
     "evidence": {
-      "status": "issue-repairs-cloud-verified-final-refinements-awaiting-rerun",
+      "status": "motion-continuity-repair-awaiting-source-matched-cloud-validation",
       "visualAcceptance": "overall-progress-acknowledged-new-refinements-awaiting-review",
-      "sourceState": "Mist-blue identity retained. Capsule geometry, blue states, nested folders and startup/setup refined; follow-up adds two-line folder labels, short-window and forced-colors fixes, native geometry/persistence/retry repairs and a porcelain folded-F desktop icon.",
-      "sourceBasis": "475c732 has source-matched collection and installed Windows evidence. Current final typography, folder clipping, splash sizing and executable icon extraction require new runs.",
+      "sourceState": "Mist-blue identity retained. Capsule geometry, blue states, nested folders and startup/setup refined; follow-up adds two-line folder labels, short-window and forced-colors fixes, native geometry/persistence/retry repairs and a porcelain folded-F desktop icon. The latest repair freezes painted-frame capture before GSAP context reversion, including cleanup while a marker ref is attached.",
+      "sourceBasis": "831dcfd passed four cloud workflows with source-matched captures and installed icon evidence. Manual frame review exposed dimension collapse; the current cleanup lifecycle guard requires new source-matched runs.",
       "brief": ".impeccable/workbench-direction.md",
       "surface": ".impeccable/surfaces/frontend.md",
       "history": ".impeccable/history/2026-10-23-rejected-iris/",
       "baseRevision": "530471ae7ae125d9b2f81fef082864638f04ad8a",
       "roundRecord": "docs/collection-workspace-polish-2026-10-24.md",
-      "verification": "475c732 collection 12/12 and installed Windows passed: 59 screenshots, 7 action groups, 0 page errors; 64 source and 63 media/record hashes verified. Eight Rust tests, real 96-DPI restoration, 240 native events merged into one idle write and actual Enter retry passed. CI browser 87 passed/2 skipped/1 failed due to a test search term absent in the default synthetic library; that assumption and Python B905 are corrected. Experience web cancelled during extra apt encoder installation, now replaced with the standalone encoder. Final short-window typography, two-line clipping, splash sizing, icon preview spacing and installed-exe icon extraction await rerun. Pure 150% DPI/removed-monitor tests are not physical device evidence. No full-MP4 playback or new user visual approval.",
+      "verification": "831dcfd passed all four cloud workflows: collection 12/12; CI/experience browser 88 passed/2 skipped; separate real 200k browser 1 passed; installed Windows passed. 59 PNGs (30 primary/29 supplementary), 7 action groups, 64 source and 63 media/record hashes verified. Short-window typography, two-line folders and icon preview inspected; installed 32px folded-F matches ICO pixels. Raw frames still collapsed from 32px to 6.89px with scale=1. Current lifecycle guard passes isolated cleanup-before/after-ref-detach, 60 switches per order and three negative controls; minimum frame-dimension browser assertions await rerun. Relevant TS types and 46 TS/TSX syntax/CSS passed. Real 96-DPI restoration, 240 events merged to one idle write and Enter retry were verified; 150% DPI/monitor removal remain pure geometry. No full-MP4 playback or new user visual approval.",
       "nativeStartupScope": "Browser tests use the native splash HTML with a synthetic Tauri restart bridge. Installed Windows startup and lifecycle remain a separate desktop workflow.",
       "latestFeedback": {
         "date": "2026-10-24",
@@ -1291,7 +1291,7 @@
         "source": "scripts/desktop_assets.py",
         "direction": "Porcelain tile and blue folded F; 16-256px ICO and PNG",
         "review": "pending",
-        "runtime": "475c732 CI PNG/ICO hashes verified and light/dark size sheet inspected. Preview spacing and extraction from the installed executable await rerun."
+        "runtime": "831dcfd CI PNG/ICO and Windows CRLF source hashes verified; corrected size sheet and installed 32px exe icon inspected. Premultiplied pixels match the ICO exactly."
       },
       "issuePolishRun": {
         "revision": "475c732d1543ef3c097f9ecc3bc024f8f63ef4e4",
@@ -1299,7 +1299,15 @@
         "ci": "40030840835",
         "windows": "40030836014",
         "experience": "40030835958",
-        "state": "collection and installed Windows passed; final source tightening and CI/encoder corrections await rerun"
+        "state": "collection and installed Windows passed; later typography and CI/encoder corrections verified at 831dcfd"
+      },
+      "thirdPolishRun": {
+        "revision": "831dcfd522a9d69906328b198f45e9c79f27129c",
+        "collection": "40034333539",
+        "ci": "40034338389",
+        "windows": "40034333613",
+        "experience": "40034333555",
+        "state": "four workflows passed; manual frame-dimension review exposed collapse and the new lifecycle guard awaits cloud validation"
       }
     },
     "componentSources": {
@@ -1401,7 +1409,7 @@
   ],
   "narrative": {
     "northStar": "The Layered Collection Table",
-    "overview": "An upright, tactile collection system uses mist-blue surroundings, porcelain reading surfaces and deep ink, with electric-blue actions. Translucent navigation and directory layers, rounded cards and molded capsule controls carry the current implementation's visual character. This is a working implementation description, not a user-approved visual identity.\n\nOn 2026-10-24 the user described PR #44's mist-blue workspace as a substantial improvement and requested comprehensive refinement. Keep its composition, typography and material direction while fixing malformed selected capsules, black control states, interrupted motion, nested-folder access and unfinished startup flows. This feedback does not approve every individual visual choice or the new refinements.\n\nRevision 475c732 passed 12 collection cases and installed Windows checks with verified-source renders. Final short-window typography, folder clipping, splash sizing and installed-executable icon extraction await new runs; the CI test-data/lint and experience encoder corrections are included. Earlier application revision 04ecc11 and capture-only revision 7d2abd0 passed their recorded cloud checks; those runs are the historical baseline, not verification of this diff. The [current round record](docs/collection-workspace-polish-2026-10-24.md) records the implemented changes and actual check scope.",
+    "overview": "An upright, tactile collection system uses mist-blue surroundings, porcelain reading surfaces and deep ink, with electric-blue actions. Translucent navigation and directory layers, rounded cards and molded capsule controls carry the current implementation's visual character. This is a working implementation description, not a user-approved visual identity.\n\nOn 2026-10-24 the user described PR #44's mist-blue workspace as a substantial improvement and requested comprehensive refinement. Keep its composition, typography and material direction while fixing malformed selected capsules, black control states, interrupted motion, nested-folder access and unfinished startup flows. This feedback does not approve every individual visual choice or the new refinements.\n\nRevision 831dcfd passed all four cloud workflows with verified-source renders and installed icon evidence. Manual frame review found a shrinking category capsule during cleanup despite scale=1; the current lifecycle guard and minimum-frame-dimension checks await new source-matched runs. Earlier application revision 04ecc11 and capture-only revision 7d2abd0 passed their recorded cloud checks; those runs are the historical baseline, not verification of this diff. The [current round record](docs/collection-workspace-polish-2026-10-24.md) records the implemented changes and actual check scope.",
     "keyCharacteristics": [
       "Mist-blue ambient light, translucent supporting layers and opaque content surfaces.",
       "Bundled Inter and Noto Sans SC with upright headings and readable mixed-language records.",
