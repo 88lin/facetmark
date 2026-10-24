@@ -1,5 +1,5 @@
 import { CapsuleButton as Button } from "./ui/controls";
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { AlertCircle, ArrowUpRight, Check, CheckCircle2, ChevronDown, Clock3, Eye, Pencil, Sparkles } from "lucide-react";
 import { post, safeUrl, type Bookmark } from "./api";
 import { useText } from "./locale";
@@ -21,6 +21,26 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
   const [clipped, setClipped] = useState(false);
   const summary = useRef<HTMLParagraphElement>(null);
   const previewControl = useRef<HTMLButtonElement>(null);
+  const row = useRef<HTMLElement>(null);
+  const previewSelected = useRef(selected);
+  previewSelected.current = selected;
+  const revealPreview = useCallback(() => {
+    const element = row.current;
+    if (!previewSelected.current || !element?.closest(".main-workspace.has-selection")) return;
+    const list = element.closest<HTMLElement>(".result-list");
+    if (!list || list.closest("[inert], [hidden]")) return;
+    const card = element.getBoundingClientRect(), viewport = list.getBoundingClientRect();
+    const shift = card.top < viewport.top ? card.top - viewport.top
+      : card.bottom > viewport.bottom ? (card.height > viewport.height ? card.top - viewport.top : card.bottom - viewport.bottom) : 0;
+    if (Math.abs(shift) > 1) list.scrollBy({ top: shift, behavior: "instant" });
+  }, []);
+  useEffect(() => {
+    if (!selected) return;
+    // Covers selection changes with no layout motion, including reduced motion.
+    // A layout completion also corrects the final, unprojected card bounds.
+    const frame = requestAnimationFrame(revealPreview);
+    return () => cancelAnimationFrame(frame);
+  }, [selected, reduced, revealPreview]);
   const href = safeUrl(record.url);
   const title = record.title || record.url;
   const trackOpen = (event?: { button: number }) => {
@@ -53,8 +73,9 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
   const savedDate = record.date_added ? new Intl.DateTimeFormat("zh-CN", { month: "numeric", day: "numeric" })
     .format(new Date(record.date_added * 1000)) : "";
 
-  return <motion.article data-bookmark-id={record.bookmark_id} data-source-tone={sourceTone} aria-labelledby={`${id}-title`}
+  return <motion.article ref={row} data-bookmark-id={record.bookmark_id} data-source-tone={sourceTone} aria-labelledby={`${id}-title`}
     layout={reduced ? false : "position"}
+    onLayoutAnimationComplete={revealPreview}
     initial={reduced ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
     transition={{ opacity: { duration: reduced ? 0 : 0.26, delay: reduced ? 0 : Math.min(entranceOrder, 5) * 0.025 },
       y: { duration: reduced ? 0 : 0.38, ease: [0.22, 1, 0.36, 1] }, layout: { type: "spring", stiffness: 340, damping: 32 } }}

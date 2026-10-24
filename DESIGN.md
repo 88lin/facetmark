@@ -310,7 +310,9 @@ endpoints; clipped tree wrappers use inset focus outlines.
 Native original links and independent selection/edit/process controls remain.
 Blank card areas open preview through the real preview button's focus-return path.
 Modifier clicks, non-left buttons, text selection and interactive descendants retain
-their own actions. Close returns to the actual record opener.
+their own actions. The card owns whole-row index visibility and corrects final bounds
+after layout animation; hidden/inert lists never scroll. Close restores the collection
+scroll position and returns focus to the actual record opener.
 
 Reading retains a compact index on wide screens and previous/next/close operations.
 Only a saved, successful body-text tab has a 48px in-flow progress footer.

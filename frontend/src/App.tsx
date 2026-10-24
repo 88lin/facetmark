@@ -652,8 +652,6 @@ function Workbench({
     setPreviewError("");
     setPreviewTab("body");
     setSelected(id);
-    if (!drawer && selected === null)
-      requestAnimationFrame(() => lastRow.current?.scrollIntoView({ block: "nearest" }));
   };
   const selectedPosition = items.findIndex((item) => item.bookmark_id === selected);
   const moveSelection = (step: number) => {
@@ -662,7 +660,6 @@ function Workbench({
       list.current?.querySelectorAll<HTMLButtonElement>(".bookmark-preview")[selectedPosition + step];
     if (next) {
       select(next.bookmark_id, button);
-      button?.scrollIntoView({ block: "nearest" });
     }
   };
   const previewContent = (

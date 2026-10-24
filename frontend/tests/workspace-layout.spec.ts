@@ -103,6 +103,38 @@ test("card blank areas open the reader while native links, selection and expansi
   await original.close();
 });
 
+test("reader index reveals the whole selection after layout motion and restores collection scroll on close", async ({ page }) => {
+  await savedTextFixture(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/app");
+  await expect(page.locator(".result-row")).toHaveCount(30);
+  const opener = page.locator(".result-row").nth(12);
+  await opener.scrollIntoViewIfNeeded();
+  const before = await page.locator(".result-list").evaluate(element => element.scrollTop);
+  expect(before).toBeGreaterThan(0);
+  await opener.click({ position: { x: 7, y: 7 } });
+  await expect(page.locator(".body-text")).toBeVisible();
+  const measurements = [];
+  for (const action of [null, "下一条收藏", "下一条收藏", "上一条收藏"] as const) {
+    if (action) await page.getByRole("button", { name: action, exact: true }).press("Enter");
+    await settleVisualLayout(page);
+    await expect(page.locator(".result-row.selected .result-title")).toBeInViewport({ ratio: 1 });
+    const bounds = await page.locator(".result-list").evaluate(element => {
+      const list = element.getBoundingClientRect(), card = element.querySelector(".result-row.selected")!.getBoundingClientRect();
+      return { top: card.top, bottom: card.bottom, listTop: list.top, listBottom: list.bottom };
+    });
+    expect(bounds.top).toBeGreaterThanOrEqual(bounds.listTop - 1);
+    expect(bounds.bottom).toBeLessThanOrEqual(bounds.listBottom + 1);
+    measurements.push(bounds);
+  }
+  await capture(page, "reader-index-full-selection");
+  await page.keyboard.press("Escape");
+  await settleVisualLayout(page);
+  expect(Math.abs(await page.locator(".result-list").evaluate(element => element.scrollTop) - before)).toBeLessThanOrEqual(1);
+  await expect(page.locator(".result-row").nth(13).locator(".bookmark-preview")).toBeFocused();
+  await writeFile(`${output}/reader-index-continuity.json`, JSON.stringify({ measurements, restoredScroll: before }, null, 2));
+});
+
 test("reading text has a clear scale, progress stays below the article and missing text has no progress box", async ({ page }) => {
   await savedTextFixture(page);
   await page.setViewportSize({ width: 1440, height: 900 });

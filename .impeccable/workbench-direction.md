@@ -55,7 +55,9 @@ spans both rows; remove the brand/title blocks from the collection header and
 duplicate folder labels. Keep 280px minimum cards and compact 16px padding, while
 preserving varied synthetic titles/summaries and visible record operations.
 The reading index keeps source, title, status and actions, with room for consecutive
-preview switching. Article body is 17px/1.8 (16px mobile); titles are 29px (25px
+preview switching. Its selected card owns full-row visibility after layout motion;
+closing restores collection scroll and the real opener's focus. Article body is
+17px/1.8 (16px mobile); titles are 29px (25px
 mobile, 32px focus). Progress is a 48px in-flow footer only on saved body text.
 
 Settings span the available page. Heading/return share a row; four mobile tabs use
