@@ -1,0 +1,23 @@
+/* HeroUI owns input state; this adapter's visual states use Facetmark tokens.
+   Pressing changes the material rather than moving or scaling the hit area. */
+.fm-button { --button-bg: transparent; --button-bg-hover: var(--inset); --button-bg-pressed: var(--soft); --button-fg: var(--ink); position: relative; isolation: isolate; height: auto; min-width: 0; white-space: normal; border-radius: var(--radius-pill); transition: background-color 160ms ease, color 160ms ease, border-color 180ms ease, box-shadow 220ms var(--ease); }
+.fm-button.button:active, .fm-button.button[data-pressed="true"] { transform: none; background-color: var(--button-bg-pressed); }
+.fm-button.button:focus-visible, .fm-button.button[data-focus-visible="true"] { outline: 2px solid var(--accent); outline-offset: 3px; }
+.fm-button.button svg { margin: 0; }
+.icon-button { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; flex-shrink: 0; }
+.icon-button svg { width: 16px; height: 16px; }
+.icon-button[aria-pressed="true"] { --button-bg: var(--soft); --button-fg: var(--accent); }
+.primary, .secondary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: var(--control-height); font-size: var(--type-ui); font-weight: 600; line-height: 1.5; }
+.primary > svg, .secondary > svg { width: 16px; height: 16px; }
+.primary { --button-bg: var(--accent); --button-fg: var(--on-accent); --button-bg-hover: var(--accent-hover); --button-bg-pressed: var(--accent-hover); padding: 10px 20px; border: 1px solid color-mix(in srgb, var(--accent) 75%, var(--light)); background-image: linear-gradient(180deg, #ffffff24, #ffffff00 65%); box-shadow: inset 0 1px 0 #ffffff40, 0 4px 8px -4px #15468a50, 0 10px 22px -12px #235fe589; }
+.primary:active, .primary[data-pressed="true"] { box-shadow: inset 0 2px 5px #102c5b33, 0 2px 5px -3px #235fe559; }
+.secondary { --button-bg: var(--canvas); --button-fg: var(--ink); --button-bg-hover: var(--inset); --button-bg-pressed: var(--soft); padding: 9px 18px; border: 1px solid var(--rule); background-image: linear-gradient(180deg, color-mix(in srgb, var(--light) 10%, transparent), transparent); box-shadow: inset 0 1px 0 var(--glass-edge), 0 4px 8px -6px #213e6833; }
+.secondary:active, .secondary[data-pressed="true"] { box-shadow: inset 0 2px 4px #23456d14; }
+.primary::after, .secondary::after { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; background: linear-gradient(115deg, transparent 20%, #ffffff26 45%, transparent 65%); background-size: 240% 100%; background-position: 100% 0; opacity: 0; transition: background-position 650ms var(--ease), opacity 180ms ease; }
+.primary:hover::after, .secondary:hover::after { background-position: 0 0; opacity: 1; }
+.text-button { --button-fg: var(--accent); --button-bg-hover: var(--soft); --button-bg-pressed: var(--selected); display: inline-flex; align-items: center; gap: 7px; font-size: var(--type-ui); font-weight: 550; min-height: 32px; padding: 5px 10px; }
+@media (prefers-reduced-motion: reduce) {
+  .fm-button { transition: none; }
+  .fm-button.button:active, .fm-button.button[data-pressed="true"] { transform: none; }
+  .primary::after, .secondary::after { transition: none; }
+}

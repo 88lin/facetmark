@@ -3691,3 +3691,7 @@ EN["integrations"] = {
         ),
     ],
 }
+
+from desktop_preview import extend as extend_desktop_preview
+
+extend_desktop_preview(EN)

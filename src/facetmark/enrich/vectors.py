@@ -26,6 +26,7 @@ from ..db import (
     content_vector_hashes,
     ensure_vec_tables,
     jload,
+    set_meta,
     upsert_content_vector,
     upsert_intent_vector,
     vec_tables_exist,
@@ -165,7 +166,10 @@ async def embed_content(
 ) -> VectorReport:
     s = settings or get_settings()
     prov = provider or get_provider(s)
+    from ..modelspace import space_id, validate_space
+    validate_space(conn, s)
     ensure_vec_tables(conn, s.embed_dim, s.embed_model)
+    set_meta(conn, "embedding_space", space_id(s))
     rep = VectorReport(dim=s.embed_dim, model=s.embed_model)
 
     pending, rep.content_skipped, rep.content_current = content_work(
@@ -195,7 +199,10 @@ async def embed_intents(
     """Embed the queries that survived the self-consistency filter."""
     s = settings or get_settings()
     prov = provider or get_provider(s)
+    from ..modelspace import space_id, validate_space
+    validate_space(conn, s)
     ensure_vec_tables(conn, s.embed_dim, s.embed_model)
+    set_meta(conn, "embedding_space", space_id(s))
     rep = VectorReport(dim=s.embed_dim, model=s.embed_model)
 
     sql = (

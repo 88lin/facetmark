@@ -1,0 +1,71 @@
+name: historical-design-studies
+on:
+  workflow_dispatch:
+    inputs:
+      include_legacy_folder:
+        description: 'Also render the rejected legacy folder component for historical regression review'
+        type: boolean
+        required: false
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: design-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright
+      - run: playwright install --with-deps chromium
+      - run: sudo apt-get install -y ffmpeg
+      - run: python scripts/design_preview.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: facetmark-design-directions
+          path: |
+            design-evidence/*.png
+            design-evidence/*.mp4
+            design-evidence/*.json
+            design-evidence/preview/**
+          retention-days: 14
+  folder-motion:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.include_legacy_folder == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # This sample was rejected and removed from production.
+          ref: f1454704f15d89f9fd6aa74889e984280410e425
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - working-directory: frontend
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx vite build --config vite.folder-preview.config.ts
+      - run: |
+          pip install playwright
+          playwright install --with-deps chromium
+          sudo apt-get install -y ffmpeg
+          python scripts/folder_preview.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: facetmark-folder-motion
+          path: |
+            folder-evidence/*.png
+            folder-evidence/*.mp4
+            folder-evidence/*.gif
+            folder-evidence/provenance.json
+          retention-days: 14

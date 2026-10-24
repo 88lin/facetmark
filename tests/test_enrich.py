@@ -180,9 +180,13 @@ class TestProviderSelection:
     def test_mock_is_chosen_when_asked_for(self, mock_settings):
         assert isinstance(get_provider(mock_settings), MockProvider)
 
-    def test_mock_is_chosen_when_there_is_no_key_rather_than_crashing(self, tmp_path):
+    async def test_missing_credentials_never_silently_select_mock(self, tmp_path):
         s = Settings(data_dir=tmp_path, use_mock_provider=False, api_key="")
-        assert isinstance(get_provider(s), MockProvider)
+        provider = get_provider(s)
+        assert not isinstance(provider, MockProvider)
+        with pytest.raises(ProviderError, match='not configured'):
+            await provider.embed(['a real request'])
+        await provider.aclose()
 
     def test_a_key_selects_the_real_transport(self, tmp_path):
         s = Settings(data_dir=tmp_path, api_key="sk-test")

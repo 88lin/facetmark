@@ -1,0 +1,35 @@
+/* FolderTree owns nesting and disclosure. Exact selection stays in the row's
+   native button; opening a branch never changes the collection filter. */
+.facet-browser .facet-folder-tree { min-width: 0; }
+.facet-browser .facet-tree-container { flex: none; min-width: 0; }
+.facet-browser .facet-tree-branch { display: flex; flex-direction: column; gap: 3px; padding: 0; margin: 0; list-style: none; }
+.facet-browser .facet-tree-node { min-width: 0; }
+.facet-browser .facet-tree-row { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: center; gap: 1px; min-width: 0; margin-left: calc(var(--folder-depth) * 9px); }
+.facet-browser .facet-expand { --button-bg-hover: var(--canvas); --button-bg-pressed: var(--soft); display: grid; place-items: center; width: 24px; min-width: 24px; height: 32px; min-height: 32px; padding: 0; border-radius: var(--radius-pill); color: var(--secondary-ink); }
+.facet-browser .facet-expand > svg { width: 14px; height: 14px; transition: transform 240ms var(--ease), color 180ms ease; }
+.facet-browser .facet-expand[aria-expanded="true"] > svg { transform: rotate(90deg); color: var(--accent); }
+.facet-browser .facet-option.facet-folder-select { grid-template-columns: 24px minmax(0, 1fr) auto; gap: 7px; min-height: 44px; padding: 9px 9px; }
+.facet-browser .facet-folder-select .facet-label { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; min-width: 0; max-height: 3.1em; overflow: hidden; white-space: normal; overflow-wrap: anywhere; font-size: .875rem; line-height: 1.55; }
+.facet-browser .facet-folder-select .collection-folder-icon { width: 24px; height: 24px; filter: drop-shadow(0 2px 2px #235fe51a); }
+.facet-browser .facet-tree-children { overflow: hidden; }
+.facet-browser .facet-tree-children > .facet-tree-branch { padding: 3px 0 4px; }
+.facet-browser .facet-tree-feedback { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; padding: 14px 8px; font-size: .8125rem; line-height: 1.6; color: var(--secondary-ink); text-align: center; }
+.facet-browser .facet-tree-feedback p { flex-basis: 100%; margin: 0; }
+.facet-browser .facet-tree-more { padding-left: 25px; }
+.facet-browser .facet-tree-more .facet-load-more { width: 100%; font-size: .75rem; }
+.facet-browser .facet-location { flex: none; margin: 0 0 10px; border: 1px solid var(--selected-edge); border-radius: 20px; background: var(--soft); color: var(--accent); }
+.facet-browser .facet-location > summary { display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 8px 11px; cursor: pointer; list-style: none; font-size: .8125rem; font-weight: 600; }
+.facet-browser .facet-location > summary::-webkit-details-marker { display: none; }
+.facet-browser .facet-location > summary > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.facet-browser .facet-location > summary > svg:last-child { width: 14px; height: 14px; transition: transform 200ms var(--ease); }
+.facet-browser .facet-location[open] > summary > svg:last-child { transform: rotate(180deg); }
+.facet-browser .facet-location p { margin: 0; padding: 0 12px 8px; color: var(--secondary-ink); font-size: .75rem; line-height: 1.7; overflow-wrap: anywhere; user-select: text; }
+.facet-browser .facet-locate { --button-bg-hover: var(--canvas); --button-bg-pressed: var(--selected); margin: 0 7px 7px; padding: 6px 9px; min-height: 32px; color: var(--accent); font-size: .75rem; }
+@media (max-width: 719px) {
+  .facet-browser .facet-tree-row { grid-template-columns: 28px minmax(0, 1fr); }
+  .facet-browser .facet-expand { width: 28px; min-width: 28px; min-height: 44px; }
+  .facet-browser .facet-locate, .facet-browser .facet-location > summary { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .facet-browser .facet-expand > svg, .facet-browser .facet-location > summary > svg:last-child { transition: none; }
+}

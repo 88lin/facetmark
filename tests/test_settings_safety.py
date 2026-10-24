@@ -193,8 +193,10 @@ def test_model_switch_returns_actionable_conflict_and_keeps_lexical_search(clien
     upsert_content_vector(state.conn, bid, [1.0] * 8)
     assert client.put("/admin/settings", json={"values": {"embed_model": "other-model"}}).status_code == 200
     r = client.post("/search", json={"q": "searchable", "config": "A"})
-    assert r.status_code == 409
-    assert "reindex --vectors" in r.json()["detail"]
+    # Save keeps the active vector space intact until a confirmed apply.
+    assert r.status_code == 200
+    assert state.settings.embed_model == original
+    assert state.pending_settings['embed_model'] == 'other-model'
     assert get_meta(state.conn, "embed_model") == original
     assert client.get("/quick", params={"q": "searchable"}).json()["total"] == 1
 
@@ -209,8 +211,8 @@ def test_mock_or_missing_credentials_never_claim_real_connection_success(client,
     assert not r.json()["ok"]
     for kind in ("chat", "embed"):
         assert not r.json()[kind]["ok"]
-        assert r.json()[kind]["model"] == "mock"
-        assert "not tested" in r.json()[kind]["error"] or "no real model connection" in r.json()[kind]["error"]
+        assert r.json()[kind]["model"] == ('mock' if mock else getattr(state.settings, f'{kind}_model'))
+        assert any(text in r.json()[kind]['error'] for text in ('not tested', 'no real model connection', 'not configured'))
 
 
 def test_saved_restart_value_survives_reload_and_can_be_reverted(client):

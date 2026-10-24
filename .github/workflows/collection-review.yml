@@ -1,0 +1,68 @@
+name: collection-workspace-review
+on:
+  push:
+    branches: ['desktop/**']
+    paths:
+      - 'frontend/**'
+      - 'desktop/splash/**'
+      - 'desktop/src-tauri/tauri.conf.json'
+      - 'src/facetmark/workbench.py'
+      - 'scripts/desktop_assets.py'
+      - 'scripts/check_workspace_polish.cjs'
+      - 'scripts/collection_review_*.py'
+      - 'scripts/experience_server.py'
+      - '.github/workflows/collection-review.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: collection-review-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  collection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: pip install -e '.[dev]'
+      - working-directory: frontend
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Selection cleanup and synthetic startup regression
+        run: node scripts/check_workspace_polish.cjs
+      - working-directory: frontend
+        run: npm run build
+      - run: ruff check scripts/collection_review_fixture.py scripts/collection_review_evidence.py
+      - working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Prepare recording encoder
+        # Both text faces ship in the app. Use the standalone encoder rather
+        # than pulling a desktop multimedia dependency tree from the apt mirror.
+        run: |
+          pip install imageio-ffmpeg==0.6.0
+          mkdir -p "$RUNNER_TEMP/facetmark-encoder"
+          ln -s "$(python -c 'import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())')" "$RUNNER_TEMP/facetmark-encoder/ffmpeg"
+          echo "$RUNNER_TEMP/facetmark-encoder" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/facetmark-encoder/ffmpeg" -version
+      - name: Representative page and interaction review
+        working-directory: frontend
+        env:
+          FACETMARK_REVIEW_CORPUS: '1'
+        run: npx playwright test collection-review.spec.ts workspace-polish.spec.ts startup.spec.ts
+      - name: Package viewable source-matched evidence
+        if: always()
+        run: python scripts/collection_review_evidence.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: facetmark-collection-workspace-review
+          path: |
+            collection-review-evidence/
+            frontend/playwright-report/
+            frontend/test-results/
+          retention-days: 14

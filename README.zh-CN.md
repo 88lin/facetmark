@@ -30,8 +30,28 @@
 </p>
 
 > [!NOTE]
-> 全部在本机运行，全部落在一个 SQLite 文件里。不上传、不删除，也**从不写回**你浏览器
-> 自己的书签库。
+> 书库保存在本机 SQLite 文件中，**从不写回**浏览器原始书签。关键词检索不需要 AI；
+> 确认使用云端模型索引后，允许处理的标题、网址和已提取正文会发送至你配置的服务。
+
+### Windows 桌面预览
+
+`desktop/facetmark-experience` 测试分支提供 Tauri 2 桌面应用与共享 React 工作台：
+三栏检索和阅读、真实书签分页、导入向导、聊天与向量独立配置、后台任务、
+纸白／石墨灰主题、中英文和窄窗口预览抽屉。
+
+从成功的 [desktop-preview Actions](https://github.com/88lin/facetmark/actions/workflows/desktop.yml)
+下载 `facetmark-windows-x64-preview` 产物。这是**未签名测试安装包**，不是正式 Release，
+Windows 可能显示 SmartScreen。安装包携带 Python 后端和 WebView2 离线安装器，
+不包含大型 AI 模型；桌面用户无需安装 Python、Node 或 Rust。
+详见[桌面使用与验证边界](docs/desktop-preview.md)。
+
+CI 构建的 Python wheel 与 Docker 镜像共享同一套 React 静态资源。
+源码开发者在打包前构建 `frontend/`；Python 包用户无需自行运行 Node。
+
+![React 三栏工作台，使用合成演示书签](docs/landing/assets/workbench-zh-light.png)
+
+截图来自 GitHub Actions 中真实运行的共享界面，仅使用合成数据。
+参见[截图来源](docs/landing/assets/workbench-provenance.md)。
 
 ---
 

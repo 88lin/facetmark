@@ -1,0 +1,161 @@
+/* HeroUI controls share the app palette; menu geometry remains local. */
+.folder-picker { position: relative; min-width: 0; }
+.folder-picker .folder-picker-trigger,
+.model-picker .model-picker-trigger,
+.model-picker > .input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: auto;
+  min-height: 48px;
+  padding: 11px 18px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--canvas);
+  color: var(--ink);
+  text-align: left;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  white-space: normal;
+}
+.folder-picker-trigger > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.folder-picker-trigger > svg:first-child { color: var(--muted); }
+.folder-picker .folder-picker-trigger:hover,
+.folder-picker .folder-picker-trigger[aria-expanded="true"],
+.model-picker .model-picker-trigger:hover,
+.model-picker .model-picker-trigger[aria-expanded="true"] { border-color: var(--accent); background: var(--soft); }
+.folder-picker-chevron { color: var(--muted); transition: transform 220ms var(--ease); }
+[data-open="true"] .folder-picker-chevron { transform: rotate(180deg); }
+.folder-picker .folder-picker-panel,
+.model-picker .model-picker-menu {
+  padding: 10px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 24px;
+  background: var(--canvas);
+  box-shadow: var(--sheet-shadow);
+}
+.folder-picker .folder-picker-panel { margin-top: 4px; }
+.model-picker .model-picker-menu { top: calc(100% + 8px); z-index: 30; }
+.folder-picker .folder-picker-search,
+.model-picker .model-picker-search {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--inset);
+  color: var(--muted);
+  transition: border-color 180ms var(--ease), background 180ms var(--ease), box-shadow 180ms var(--ease);
+}
+.folder-picker .folder-picker-search:focus-within,
+.model-picker .model-picker-search:focus-within {
+  border-color: var(--accent);
+  background: var(--canvas);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.folder-picker .folder-picker-search .input,
+.library-dialog .folder-picker .folder-picker-search .input,
+.model-picker .model-picker-search .input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  min-height: 44px;
+  padding: 10px 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 400;
+  outline: none;
+  box-shadow: none;
+  caret-color: var(--accent);
+}
+.folder-picker-search input::placeholder,
+.model-picker-search input::placeholder { color: var(--muted); opacity: 1; }
+.folder-picker-options,
+.model-picker .model-picker-list {
+  max-height: min(280px, 32dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin-top: 8px;
+  padding: 3px;
+  scroll-padding: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
+}
+.folder-picker-options > .fm-button,
+.model-picker-list > .fm-button {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  height: auto;
+  min-height: 48px;
+  margin: 3px 0;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  font-size: var(--type-ui);
+  font-weight: 400;
+  line-height: 1.5;
+  white-space: normal;
+  transition: background-color 160ms ease, color 160ms ease, box-shadow 200ms var(--ease);
+}
+.folder-picker-options > .fm-button > span,
+.model-picker-choice { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.folder-picker-options > .fm-button > svg { color: var(--muted); }
+.folder-picker-options > .fm-button:hover,
+.model-picker-list > .fm-button:hover,
+.model-picker-list > .fm-button.is-active { background: var(--inset); }
+.folder-picker-options > .fm-button[aria-pressed="true"],
+.model-picker-list > .fm-button[aria-selected="true"] {
+  background: var(--selected);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--selected-edge);
+  font-weight: 500;
+}
+.folder-picker-options > .fm-button[aria-pressed="true"] > svg:last-child { color: var(--accent); }
+.folder-picker-options > .fm-button:focus-visible,
+.model-picker-list > .fm-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.folder-path,
+.model-picker-choice { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
+.folder-path small,
+.model-picker-list .model-picker-choice small { color: var(--muted); font-size: 0.8125rem; font-weight: 400; line-height: 1.5; overflow-wrap: anywhere; }
+.model-picker-list .model-picker-choice strong { font-size: var(--type-ui); font-weight: 500; }
+.folder-picker-count { color: var(--muted); font-size: 0.8125rem; font-variant-numeric: tabular-nums; font-weight: 400; }
+.folder-picker-feedback { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; padding: 14px 16px; font-size: var(--type-ui); font-weight: 400; color: var(--muted); }
+.folder-picker-options > .folder-picker-create { color: var(--accent); font-weight: 500; }
+.folder-picker-options > .folder-picker-create > svg { color: inherit; }
+.folder-picker-options > .folder-picker-more,
+.model-picker .model-picker-more { width: 100%; justify-content: center; border-radius: var(--radius-control); color: var(--accent); }
+.folder-picker-note { margin: 10px 12px 6px; color: var(--muted); font-size: 0.8125rem; font-weight: 400; line-height: 1.6; }
+.model-picker .model-picker-control.is-editable { gap: 4px; padding: 3px; border-radius: var(--radius-control); background: var(--canvas); }
+.model-picker .model-picker-control.is-editable:focus-within { border-color: var(--accent); }
+.model-picker .model-picker-control.is-editable > .input { height: 44px; min-height: 44px; padding: 10px 14px; border: 0; border-radius: var(--radius-control); background: transparent; font-size: 1rem; }
+.model-picker .model-picker-control.is-editable > .model-picker-trigger { width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: var(--radius-control); background: var(--inset); }
+.model-picker .model-picker-label .text-button,
+.model-picker .model-manual { height: auto; min-height: 36px; padding: 6px 12px; border-radius: var(--radius-control); font-size: 0.8125rem; font-weight: 500; }
+.model-picker .model-picker-menu > .model-manual { width: 100%; min-height: 42px; margin-top: 6px; padding: 9px 14px; border: 0; background: var(--soft); text-align: center; }
+.model-picker .model-picker-menu > .hint { margin: 12px; font-size: 0.8125rem; line-height: 1.6; }
+@media (max-width: 719px) {
+  .folder-picker-options > .fm-button,
+  .model-picker-list > .fm-button { min-height: 52px; }
+  .model-picker .model-picker-menu { top: calc(100% + 8px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .folder-picker-chevron,
+  .folder-picker .folder-picker-search,
+  .model-picker .model-picker-search,
+  .folder-picker-options > .fm-button,
+  .model-picker-list > .fm-button { transition: none; }
+}

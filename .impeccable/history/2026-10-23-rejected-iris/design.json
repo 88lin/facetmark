@@ -1,0 +1,206 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-22T22:11:21.124753+00:00",
+  "title": "Facetmark collection workspace — 2026-10-23",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "displayName": "accent",
+        "purpose": "Primary selection and interactive accent",
+        "darkToken": "accent-dark"
+      },
+      "canvas": {
+        "displayName": "canvas",
+        "purpose": "Collection and reading surface",
+        "darkToken": "canvas-dark"
+      },
+      "rail": {
+        "displayName": "rail",
+        "purpose": "Navigation surface",
+        "darkToken": "rail-dark"
+      },
+      "ink": {
+        "displayName": "ink",
+        "purpose": "Primary content text",
+        "darkToken": "ink-dark"
+      },
+      "secondary-ink": {
+        "displayName": "secondary-ink",
+        "purpose": "Descriptions and controls",
+        "darkToken": "secondary-ink-dark"
+      },
+      "rule": {
+        "displayName": "rule",
+        "purpose": "Dividers and boundaries",
+        "darkToken": "rule-dark"
+      },
+      "inset": {
+        "displayName": "inset",
+        "purpose": "Search and quiet controls",
+        "darkToken": "inset-dark"
+      },
+      "selected": {
+        "displayName": "selected",
+        "purpose": "Selected objects",
+        "darkToken": "selected-dark"
+      },
+      "soft": {
+        "displayName": "soft",
+        "purpose": "Hover and selection feedback",
+        "darkToken": "soft-dark"
+      },
+      "danger": {
+        "displayName": "danger",
+        "purpose": "Failure or destructive action",
+        "darkToken": "danger-dark"
+      },
+      "success": {
+        "displayName": "success",
+        "purpose": "Completed processing",
+        "darkToken": "success-dark"
+      },
+      "warning": {
+        "displayName": "warning",
+        "purpose": "Attention state",
+        "darkToken": "warning-dark"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "purpose": "Collection heading only; bundled OFL Smiley Sans"
+      },
+      "title": {
+        "purpose": "Readable mixed Chinese/English record title"
+      },
+      "summary": {
+        "purpose": "Expandable saved summary or excerpt"
+      },
+      "label": {
+        "purpose": "Source and control labels"
+      }
+    },
+    "shadows": [
+      {
+        "name": "card",
+        "value": "0 2px 3px #28243d04, 0 8px 24px #28243d07",
+        "purpose": "Reader depth"
+      },
+      {
+        "name": "sheet",
+        "value": "0 16px 48px #28243d14, 0 3px 10px #28243d09",
+        "purpose": "Overlays and raised panels"
+      }
+    ],
+    "motion": [
+      "Local selected-tab highlight",
+      "Native checkbox with local animated fill",
+      "Folder front follows actual state",
+      "HeroUI pressed transform",
+      "Interruptible reader/content transitions with reduced-motion endpoints"
+    ],
+    "breakpoints": [
+      {
+        "name": "reader",
+        "value": "1120px",
+        "behavior": "Retained index above, focus-managed drawer below"
+      },
+      {
+        "name": "navigation",
+        "value": "960px",
+        "behavior": "Navigation drawer below"
+      },
+      {
+        "name": "mobile",
+        "value": "720px",
+        "behavior": "Main actions on own row; view with sorting"
+      },
+      {
+        "name": "short-window",
+        "value": "820px height",
+        "behavior": "Compact rail"
+      },
+      {
+        "name": "very-short-window",
+        "value": "650px height",
+        "behavior": "Compact navigation and omit redundant directory footer"
+      }
+    ],
+    "evidence": {
+      "status": "final-source-cloud-validation-in-progress",
+      "visualAcceptance": "awaiting-user-review",
+      "sourceState": "Production collection, reader layering and narrow controls implemented; no user aesthetic approval.",
+      "brief": ".impeccable/workbench-direction.md",
+      "history": ".impeccable/history/2026-10-19-rejected-ui/README.md",
+      "verification": "Current UI source 46cf2f3 is in Actions. Earlier source2a4c67e passed collection workflow39856478569; this does not validate later fixes. Final results pending.",
+      "workingProposal": {
+        "status": "rejected-by-user",
+        "entrypoint": "frontend/design/workbench/index.html",
+        "brief": ".impeccable/surfaces/workbench-prototype.md",
+        "handoff": "docs/workbench-prototype.md",
+        "productionIntegrated": false,
+        "sourceAudit": "docs/redesign-source-audit.md"
+      },
+      "roundRecord": "docs/collection-workspace-2026-10-23.md"
+    }
+  },
+  "components": [
+    {
+      "name": "Add bookmark",
+      "kind": "button",
+      "description": "Current collection specimen",
+      "html": "<button class=\"ds-add\">新增收藏</button>",
+      "css": ".ds-add{background:var(--ink);color:var(--canvas);border:0;border-radius:12px;padding:9px 14px;min-height:40px;font:600 14px/1.5 sans-serif}.ds-add:hover{background:color-mix(in srgb,var(--ink) 88%,var(--canvas))}.ds-add:focus-visible{outline:2px solid var(--accent);outline-offset:3px}",
+      "refersTo": "add-bookmark"
+    },
+    {
+      "name": "Search",
+      "kind": "input",
+      "description": "Current collection specimen",
+      "html": "<input class=\"ds-search\" aria-label=\"搜索书签\" placeholder=\"搜索标题、网址…\">",
+      "css": ".ds-search{background:var(--inset);color:var(--ink);border:1px solid var(--rule);border-radius:14px;padding:9px 14px;font:15px/1.5 sans-serif}.ds-search:focus{outline:2px solid var(--soft);border-color:var(--accent)}",
+      "refersTo": "search"
+    },
+    {
+      "name": "Directory entry",
+      "kind": "nav",
+      "description": "Current collection specimen",
+      "html": "<button class=\"ds-directory\">中文排版</button>",
+      "css": ".ds-directory{background:var(--selected);color:var(--accent);border:0;border-radius:11px;padding:9px 8px;font:600 14px/1.5 sans-serif}.ds-directory:hover{background:var(--soft)}.ds-directory:focus-visible{outline:2px solid var(--accent);outline-offset:3px}"
+    },
+    {
+      "name": "Tag",
+      "kind": "chip",
+      "description": "Current collection specimen",
+      "html": "<span class=\"ds-tag\">阅读体验</span>",
+      "css": ".ds-tag{background:var(--inset);color:var(--secondary-ink);border-radius:6px;padding:2px 7px;font:13px/1.5 sans-serif}",
+      "refersTo": "tag"
+    },
+    {
+      "name": "Collection row",
+      "kind": "custom",
+      "description": "Current collection specimen",
+      "html": "<article class=\"ds-row\"><strong>让一段思考再次被找到</strong><p>为收藏留下短而准确的线索。</p></article>",
+      "css": ".ds-row{color:var(--ink);border-bottom:1px solid var(--rule);padding:20px 10px 20px 0}.ds-row strong{font:650 18px/1.55 sans-serif}.ds-row p{color:var(--secondary-ink);font:15px/1.75 sans-serif}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Retrieve and read a saved page without losing collection context",
+    "overview": "Unified left navigation and searchable directory; continuous collection list, explicit operation scopes and context-preserving right reader.",
+    "keyCharacteristics": [
+      "Pale iris surfaces with blueberry ink and coral brand fold",
+      "Chinese display/body typography separation",
+      "Stable list alignments and local state-owned feedback"
+    ],
+    "rules": [
+      "Preserve real query, paging, selection and task contracts",
+      "Remove superseded styles during migration"
+    ],
+    "dos": [
+      "Verify actual app with source provenance and synthetic records"
+    ],
+    "donts": [
+      "Do not treat runtime passes as aesthetic approval",
+      "Do not revive rejected prototypes"
+    ]
+  }
+}

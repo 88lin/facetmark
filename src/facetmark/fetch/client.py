@@ -26,6 +26,7 @@ import httpx
 
 from .extract import Extraction, extract, looks_like_wall
 from .robots import DEFAULT_ROBOTS_TOKEN, RobotsCache
+from .safety import PublicFetchTransport
 
 DEFAULT_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -117,6 +118,7 @@ class FetchPolicy:
     #: aimed at search engines sweeping millions of URLs; a personal library has
     #: a handful per host and would otherwise stall the whole sweep on one site.
     max_crawl_delay_s: float = 5.0
+    excluded_domains: tuple[str, ...] = ()
 
 
 class _HostLimiter:
@@ -322,6 +324,9 @@ async def fetch_many(
         follow_redirects=True,
         limits=httpx.Limits(max_connections=pol.concurrency,
                             max_keepalive_connections=pol.concurrency),
+        transport=PublicFetchTransport(excluded_domains=pol.excluded_domains,
+                                       max_connections=pol.concurrency),
+        trust_env=False,
     )
 
     async def one(u: str) -> FetchResult:
@@ -339,9 +344,16 @@ async def fetch_many(
                 on_result(r)
             return r
 
+    tasks = [asyncio.create_task(one(u)) for u in urls]
     try:
-        results = await asyncio.gather(*(one(u) for u in urls))
+        results = await asyncio.gather(*tasks)
     finally:
+        # A persistence callback can fail while sibling requests are in
+        # flight. Drain them before the caller closes its database/client.
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
         if owned:
             await cl.aclose()
     return BatchResult(list(results))

@@ -1,0 +1,105 @@
+/* BookmarkCard owns record typography, material, selection and local light feedback. */
+.result-row { position: relative; isolation: isolate; display: flex; flex-direction: column; gap: 15px; min-width: 0; padding: 23px; border: 1px solid var(--glass-edge); border-radius: 25px; background: var(--canvas); box-shadow: var(--card-shadow); transition: border-color 220ms ease, box-shadow 340ms var(--ease), background-color 220ms ease; }
+.result-row::before { content: ""; position: absolute; z-index: -1; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; background: radial-gradient(360px circle at var(--glint-x, 50%) var(--glint-y, 0%), color-mix(in srgb, var(--brand-detail) 15%, transparent), transparent 75%); transition: opacity 280ms ease; }
+.result-row:hover { border-color: color-mix(in srgb, var(--accent) 25%, var(--rule)); box-shadow: 0 5px 10px -8px #294e7840, 0 18px 36px -22px #245da04d, inset 0 1px 0 var(--glass-edge); }
+.result-row:hover::before { opacity: 1; }
+.result-row:is(.selected, .batch-selected) { border-color: var(--selected-edge); background: color-mix(in srgb, var(--soft) 72%, var(--canvas)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 14%, transparent), var(--card-shadow); }
+.result-row .result-source { display: flex; align-items: center; gap: 9px; min-width: 0; color: var(--secondary-ink); font-size: .8125rem; }
+.result-row .source-symbol { display: grid; place-items: center; flex: none; width: 38px; height: 38px; border: 1px solid #aac9f455; border-radius: 13px; background: linear-gradient(145deg, #f1f7ff, #dceaff); color: #275da2; box-shadow: inset 0 1px 1px #ffffff, 0 4px 7px -5px #24569359; font-family: var(--font-display); font-size: 1.125rem; font-weight: 750; transform: rotate(-4deg); transition: transform 400ms var(--ease); }
+.result-row:hover .source-symbol { transform: rotate(0deg) translateY(-2px); }
+.result-row[data-source-tone="1"] .source-symbol { background: linear-gradient(145deg, #ecfbf7, #d7ebe5); color: #226955; border-color: #99ccb255; }
+.result-row[data-source-tone="2"] .source-symbol { background: linear-gradient(145deg, #fff6ec, #f6e5d1); color: #885423; border-color: #dfb98255; }
+.result-row[data-source-tone="3"] .source-symbol { background: linear-gradient(145deg, #fff1f5, #f0dae3); color: #94466a; border-color: #db9fb955; }
+.result-row .source-domain { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.result-row .bookmark-date { flex: none; color: var(--muted); font-size: .6875rem; font-variant-numeric: tabular-nums; }
+.result-row .bookmark-external { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 30px; height: 30px; border-radius: var(--radius-pill); color: var(--secondary-ink); text-decoration: none; }
+.result-row .bookmark-select { position: relative; display: grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: var(--radius-pill); cursor: pointer; }
+.result-row .bookmark-check { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.result-row .bookmark-check-frame { position: relative; width: 18px; height: 18px; overflow: hidden; border: 1px solid var(--muted); border-radius: 6px; background: var(--canvas); color: var(--on-accent); pointer-events: none; box-shadow: inset 0 1px 2px #2345610a; }
+.result-row .bookmark-check-fill { position: absolute; inset: 0; border-radius: 4px; background: var(--accent); }
+.result-row .bookmark-check-frame > svg { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transform: scale(.7); transition: opacity 150ms ease, transform 240ms var(--ease); }
+.result-row .bookmark-check-frame > svg.is-checked { opacity: 1; transform: scale(1); }
+.result-row .bookmark-check:checked + .bookmark-check-frame { border-color: var(--accent); }
+.result-row .bookmark-check:disabled { cursor: not-allowed; }
+.result-row .bookmark-check:disabled + .bookmark-check-frame { opacity: .45; }
+.result-row .bookmark-heading { min-width: 0; margin: 0; font: inherit; }
+.result-row .result-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; color: var(--ink); font-size: 1.1875rem; font-weight: 680; line-height: 1.6; letter-spacing: 0; text-decoration: none; text-underline-offset: .2em; text-decoration-thickness: 1px; }
+.result-row a.result-title:hover { color: var(--accent); text-decoration: underline; }
+.result-row .bookmark-description { position: relative; min-width: 0; }
+.result-row .bookmark-description:has(.summary-expand) { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; }
+.result-row .bookmark-description-heading { grid-column: 2; grid-row: 1; }
+.result-row .bookmark-description-heading:empty { display: none; }
+.result-row .summary-basis { display: inline; margin-right: 4px; color: var(--accent); font-size: .6875rem; font-weight: 600; line-height: 1.5; }
+.result-row .result-summary { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; max-width: 72ch; margin: 0; overflow: hidden; overflow-wrap: anywhere; color: var(--secondary-ink); font-size: .9375rem; line-height: 1.8; }
+.result-row .bookmark-description .result-summary { grid-column: 1; grid-row: 1; }
+.result-row .result-summary.is-empty { color: var(--muted); }
+.result-row .bookmark-description.expanded .result-summary { display: block; -webkit-line-clamp: unset; }
+.result-row .summary-expand { display: inline-flex; align-items: center; gap: 2px; min-width: 0; min-height: 28px; padding: 3px 6px; border: 0; border-radius: var(--radius-pill); background: var(--canvas); color: var(--accent); font-size: .75rem; line-height: 1.5; white-space: nowrap; }
+.result-row .summary-expand svg { transition: transform 240ms var(--ease); }
+.result-row .summary-expand[aria-expanded="true"] svg { transform: rotate(180deg); }
+.result-row .bookmark-metadata { display: flex; align-items: center; flex-wrap: wrap; gap: 5px 9px; min-width: 0; }
+.result-row .bookmark-status { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; min-height: 24px; color: var(--secondary-ink); font-size: .8125rem; line-height: 1.5; }
+.result-row .bookmark-status[data-summary-status="done"] { color: var(--success); }
+.result-row .bookmark-status[data-summary-status="failed"] { color: var(--danger); }
+.result-row .bookmark-retry { min-width: 0; min-height: 28px; margin-left: 2px; padding: 3px 9px; border: 0; border-radius: var(--radius-pill); color: var(--danger); background: var(--danger-soft); font-size: .75rem; }
+.result-row .bookmark-tags { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; margin: 0; padding: 0; list-style: none; }
+.result-row .bookmark-tags li { max-width: 100%; padding: 3px 8px; border-radius: 7px; background: var(--inset); color: var(--secondary-ink); font-size: .8125rem; line-height: 1.5; overflow-wrap: anywhere; }
+.result-row .result-meta { display: flex; align-items: center; gap: 8px; min-width: 0; margin-top: auto; padding-top: 13px; border-top: 1px solid var(--rule); }
+.result-row .result-folder { display: flex; align-items: center; flex: 1; gap: 6px; min-width: 0; color: var(--secondary-ink); font-size: .8125rem; line-height: 1.5; }
+.result-row .result-folder > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result-row .bookmark-actions { display: flex; align-items: center; flex: none; gap: 4px; }
+.result-row .bookmark-action, .result-row .bookmark-preview { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 34px; border: 1px solid transparent; border-radius: var(--radius-pill); color: var(--secondary-ink); font-size: .75rem; font-weight: 550; line-height: 1.5; }
+.result-row .bookmark-action { width: 32px; min-width: 32px; padding: 0; background: transparent; }
+.result-row .bookmark-preview { flex-shrink: 0; padding: 7px 13px; border-color: var(--rule); background: linear-gradient(180deg, var(--canvas), var(--inset)); box-shadow: inset 0 1px 0 var(--glass-edge), 0 3px 6px -4px #294e7833; white-space: nowrap; }
+.result-row .bookmark-preview[aria-pressed="true"] { background: var(--selected); border-color: var(--selected-edge); color: var(--accent); }
+.result-row :is(.bookmark-external, .bookmark-select, .summary-expand, .bookmark-action, .bookmark-preview):hover { background: var(--soft); color: var(--accent); }
+.result-row .bookmark-retry:hover { background: var(--danger-soft); color: var(--danger); }
+.result-row :is(.bookmark-action, .bookmark-preview, .bookmark-retry):disabled { opacity: .45; cursor: not-allowed; }
+.result-row :is(a, button):focus-visible, .result-row .bookmark-select:has(:focus-visible) { outline: 2px solid var(--accent); outline-offset: 3px; }
+/* List mode compresses the same record into a horizontal reading surface. */
+.list-mode .result-row { padding: 18px 20px; gap: 10px; border-radius: 20px; }
+@media (min-width: 1120px) {
+  .list-mode:not(.has-selection) .result-row { display: grid; grid-template-columns: 42px minmax(0, 1fr) max-content; gap: 6px 15px; }
+  .list-mode:not(.has-selection) .result-row .result-source { grid-column: 2 / -1; grid-row: 1; }
+  .list-mode:not(.has-selection) .result-row .source-symbol { position: absolute; left: 18px; top: 20px; width: 38px; height: 40px; }
+  .list-mode:not(.has-selection) .result-row .bookmark-heading { grid-column: 2; grid-row: 2; }
+  .list-mode:not(.has-selection) .result-row .bookmark-description { grid-column: 2; grid-row: 3; }
+  .list-mode:not(.has-selection) .result-row .result-summary { -webkit-line-clamp: 2; }
+  .list-mode:not(.has-selection) .result-row .bookmark-metadata { grid-column: 2; grid-row: 4; padding-top: 3px; }
+  .list-mode:not(.has-selection) .result-row .result-meta { grid-column: 3; grid-row: 2 / span 3; flex-direction: column; align-items: flex-end; justify-content: flex-end; gap: 10px; margin: 0; padding: 0; border: 0; }
+  .list-mode:not(.has-selection) .result-row .result-folder { flex: none; max-width: 136px; }
+}
+.has-selection .result-row { padding: 16px; gap: 10px; border-radius: 20px; }
+.has-selection .result-row .result-title { font-size: .9375rem; }
+.has-selection .result-row .result-summary { -webkit-line-clamp: 2; font-size: .8125rem; }
+.has-selection .result-row .result-meta { flex-wrap: wrap; gap: 8px; padding-top: 10px; }
+.has-selection .result-row .result-folder { flex-basis: 100%; }
+.has-selection .result-row .source-symbol { width: 28px; height: 28px; border-radius: 10px; font-size: .875rem; }
+@media (max-width: 719px) {
+  .result-row, .list-mode .result-row { padding: 16px; gap: 10px; border-radius: 20px; }
+  .result-row .result-title { font-size: 1.0625rem; line-height: 1.65; }
+  .result-row .result-summary { -webkit-line-clamp: 2; font-size: .875rem; }
+  .result-row .bookmark-date { display: none; }
+  .result-row .source-symbol { width: 30px; height: 32px; border-radius: 10px; font-size: 1rem; }
+  .result-row .result-meta { align-items: stretch; flex-wrap: wrap; border: 0; padding-top: 0; gap: 5px; }
+  .result-row .result-folder { flex-basis: 100%; }
+  .result-row .bookmark-actions { width: 100%; }
+  .result-row .bookmark-preview { margin-left: auto; }
+  .result-row :is(.bookmark-external, .bookmark-select, .bookmark-action, .bookmark-preview) { min-width: 40px; min-height: 44px; }
+  .result-row .bookmark-select { width: 40px; height: 44px; }
+  .result-row .bookmark-check-frame { width: 19px; height: 19px; }
+  .result-row .summary-expand { min-height: 44px; }
+  .result-row .bookmark-retry { min-height: 36px; }
+}
+@media (max-height: 650px) and (min-width: 960px) {
+  .result-row { padding: 16px; gap: 8px; }
+  .result-row .source-symbol { width: 32px; height: 32px; }
+  .result-row .result-meta { padding-top: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .result-row, .result-row::before, .result-row :is(.source-symbol, .bookmark-check-frame > svg, .summary-expand svg) { transition: none; } .result-row::before { display: none; } .result-row:hover .source-symbol { transform: none; } }
+@media (forced-colors: active) {
+  .result-row .bookmark-check { position: static; width: 18px; height: 18px; opacity: 1; }
+  .result-row .bookmark-check-frame { display: none; }
+  .result-row:is(.selected, .batch-selected) { outline: 3px solid Highlight; outline-offset: -3px; border-color: Highlight; }
+  .result-row .bookmark-preview[aria-pressed="true"] { forced-color-adjust: none; background: Highlight; color: HighlightText; border-color: Highlight; }
+}

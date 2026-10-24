@@ -1,0 +1,269 @@
+import { CapsuleButton } from "./ui/controls";
+import { useRef, useState } from "react";
+import { ArrowRight, Check, FolderOpen, LoaderCircle, Upload } from "lucide-react";
+import { api, post, type Job, type Setup } from "./api";
+import { Models } from "./Settings";
+import { Tasks } from "./Tasks";
+import { useText } from "./locale";
+import { SelectionPill, useContentMotion } from "./InteractionMotion";
+import "./setup.css";
+
+export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; onDone?: () => void }) {
+  const t = useText();
+  const input = useRef<HTMLInputElement>(null);
+  const inFlight = useRef(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [finding, setFinding] = useState(false);
+  const findingInFlight = useRef(false);
+  const [dragging, setDragging] = useState(false);
+  const [sources, setSources] = useState<{ id: string; browser: string; profile: string }[] | null>(
+    null,
+  );
+  async function run(work: () => Promise<unknown>) {
+    if (inFlight.current || findingInFlight.current) return;
+    inFlight.current = true;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const result = (await work()) as { inserted?: number; updated?: number };
+      await refresh();
+      setMessage(
+        `${t("导入完成", "Import complete")} · ${t("新增", "Added")} ${result.inserted ?? 0} · ${t("更新", "Updated")} ${result.updated ?? 0}`,
+      );
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+  async function upload(file?: File) {
+    if (!file || inFlight.current || findingInFlight.current) return;
+    setMessage("");
+    if (!/\.(html?|json)$/i.test(file.name)) {
+      setError(t("请选择 HTML 或 JSON 书签导出文件。", "Choose an HTML or JSON bookmark export."));
+      return;
+    }
+    if (file.size > 64 * 1024 * 1024) {
+      setError(t("请选择不超过 64 MB 的导出文件。", "Choose an export up to 64 MB."));
+      return;
+    }
+    await run(() =>
+      api("/admin/import", {
+        method: "POST",
+        body: file,
+        headers: { "x-filename": encodeURIComponent(file.name) },
+      }),
+    );
+  }
+  return (
+    <section className="importer">
+      <h2>{t("把收藏带回来", "Bring your bookmarks together")}</h2>
+      <p>
+        {t(
+          "从浏览器导出的 HTML 或 JSON 开始。只读取副本，原书签保持原样。",
+          "Start with an HTML or JSON browser export. Facetmark reads a copy and preserves your original bookmarks.",
+        )}
+      </p>
+      <div
+        className={`dropzone ${dragging ? "is-dragging" : ""}`}
+        aria-busy={busy || finding}
+        onDragOver={(e) => { e.preventDefault(); if (!busy && !finding) setDragging(true); }}
+        onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false); }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          upload(e.dataTransfer.files[0]);
+        }}
+      >
+        <span className="dropzone-symbol" aria-hidden="true"><Upload size={28} /></span>
+        <h3>{t("将书签文件拖到这里", "Drop your bookmark file here")}</h3>
+        <p>HTML / JSON · {t("最大 64 MB", "Up to 64 MB")}</p>
+        <input
+          ref={input}
+          type="file"
+          accept=".html,.htm,.json"
+          hidden
+          onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; upload(file); }}
+        />
+        <CapsuleButton type="button" className="primary" disabled={busy || finding} onClick={() => input.current?.click()}>
+          {busy ? <LoaderCircle className="spin"/> : <FolderOpen />}
+          {busy ? t("正在导入…", "Importing…") : t("选择文件", "Choose a file")}
+        </CapsuleButton>
+      </div>
+      <details className="import-help">
+        <summary>{t("如何导出浏览器书签？", "How do I export my bookmarks?")}</summary>
+        <p>{t("在 Chrome 或 Edge 中打开书签管理器，选择菜单中的「导出书签」，再将保存的 HTML 文件拖到这里。也可导入 Facetmark 导出的 JSON。", "Open the bookmark manager in Chrome or Edge, choose Export bookmarks from its menu, then drop the saved HTML file here. Facetmark JSON exports are also supported.")}</p>
+      </details>
+      <CapsuleButton
+        type="button"
+        className="text-button"
+        disabled={busy || finding}
+        onClick={async () => {
+          if (inFlight.current || findingInFlight.current) return;
+          findingInFlight.current = true;
+          setError(""); setMessage(""); setSources(null); setDragging(false);
+          setFinding(true);
+          try {
+            const data = await api<{ sources: { id: string; browser: string; profile: string }[] }>(
+              "/admin/import/sources",
+            );
+            setSources(data.sources);
+          } catch (e) {
+            setError(String(e));
+          } finally {
+            findingInFlight.current = false;
+            setFinding(false);
+          }
+        }}
+      >
+        {finding ? t("正在查找书签来源…", "Finding bookmark sources…") : t("查找本机 Chromium 浏览器的书签来源", "Find local Chromium bookmark sources")}
+      </CapsuleButton>
+      {sources && (
+        <div className="source-list">
+          {sources.length === 0 ? (
+            <p>
+              {t(
+                "没有发现可读取来源，请使用导出文件。",
+                "No readable sources found. Use a browser export.",
+              )}
+            </p>
+          ) : (
+            sources.map((source) => (
+              <CapsuleButton
+                type="button"
+                disabled={busy || finding}
+                className="source"
+                key={source.id}
+                onClick={() => run(() => post("/admin/import/source", { source_id: source.id }))}
+              >
+                <FolderOpen />
+                <span>
+                  {source.browser}
+                  <small>{source.profile}</small>
+                </span>
+                <span>{t("导入此来源", "Import this source")}</span>
+              </CapsuleButton>
+            ))
+          )}
+        </div>
+      )}
+      {message && (
+        <div className="import-result"><p className="notice" role="status">
+          <Check size={16} />
+          {message}
+        </p><p>{t("现在就可以搜索和整理收藏，AI 摘要可稍后配置。", "Your bookmarks are ready to search and organize. AI summaries can be set up later.")}</p>
+        {onDone && <CapsuleButton type="button" className="primary" onClick={onDone}>{t("查看已导入的收藏", "View imported bookmarks")}<ArrowRight size={16}/></CapsuleButton>}</div>
+      )}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+    </section>
+  );
+}
+
+export default function SetupFlow({
+  setup,
+  job,
+  refresh,
+  onDone,
+  onProcess,
+}: {
+  setup: Setup | null;
+  job: Job;
+  refresh: () => Promise<void>;
+  onDone: () => void;
+  onProcess: (mode: "fetch" | "summarize") => void;
+}) {
+  const t = useText();
+  const [step, setStep] = useState(0);
+  const [visited, setVisited] = useState(() => new Set([0]));
+  const root = useRef<HTMLDivElement>(null);
+  useContentMotion(root, String(step), ".setup-panel:not([hidden])", "x");
+  const completed = [Boolean(setup?.bookmarks),
+    Boolean(setup?.channels.chat.configured && setup.channels.chat.tested && !setup.pending_apply),
+    Boolean(setup?.has_vectors && setup.vector_compatible && !setup.pending_apply), false];
+  function goTo(next: number) { setVisited(previous => new Set([...previous, next])); setStep(next); }
+  const labels = [
+    t("导入书签", "Import"),
+    t("连接模型", "Models"),
+    t("建立索引", "Index"),
+    t("开始检索", "Search"),
+  ];
+  return (
+    <div className="setup-flow" ref={root}>
+      <header className="page-heading">
+        <div>
+          <h1>{t("让收藏，再次有用", "Make your saved pages useful again")}</h1>
+          <p>
+            {t("导入即可查找和整理，AI 连接与索引可以稍后准备。", "Import to start searching and organizing. AI connections and indexing can wait.")}
+          </p>
+        </div>
+        <CapsuleButton type="button" className="text-button" onClick={onDone}>
+          {t("先用关键词检索", "Use keyword search for now")}
+        </CapsuleButton>
+      </header>
+      <nav className="setup-steps" aria-label={t("设置步骤", "Setup steps")}>
+        {labels.map((label, index) => (
+          <CapsuleButton
+            type="button"
+            key={label}
+            aria-current={step === index ? "step" : undefined}
+            disabled={index > step + 1 && !visited.has(index)}
+            onClick={() => goTo(index)}
+          >
+            <SelectionPill active={step === index} group="setup-step" />
+            <span className="setup-step-number">{completed[index] ? <Check size={14} /> : index + 1}</span>
+            <span className="setup-step-label">{label}</span>
+          </CapsuleButton>
+        ))}
+      </nav>
+      {visited.has(0) && <div className="setup-panel" hidden={step !== 0}><Importer refresh={refresh} onDone={onDone} /></div>}
+      {visited.has(1) && <div className="setup-panel" hidden={step !== 1}>
+        <Models setup={setup} refresh={refresh} onSummarize={() => onProcess("summarize")} />
+      </div>}
+      {visited.has(2) && <div className="setup-panel" hidden={step !== 2}>
+        <Tasks setup={setup} job={job} refresh={refresh} onProcess={onProcess} onBack={onDone} />
+      </div>}
+      {visited.has(3) && <div className="setup-panel" hidden={step !== 3}>
+        <section className="ready">
+          <Check size={32} />
+          <h2>{t("从你记得的一点开始", "Start with the detail you remember")}</h2>
+          <p>
+            {t(
+              "一个词、一段描述，或保存时所在的文件夹。检索结果与正文会并排呈现。",
+              "A word, a description, or the folder you saved it in. Results and page text stay side by side.",
+            )}
+          </p>
+          <CapsuleButton type="button" className="primary" onClick={onDone}>
+            {t("进入工作台", "Open workbench")}
+            <ArrowRight />
+          </CapsuleButton>
+        </section>
+      </div>}
+      {step < 3 && (
+        <footer className="setup-footer">
+          <span>
+            {setup?.bookmarks ?? 0} {t("条书签已在库中", "bookmarks in your library")}
+          </span>
+          <CapsuleButton
+            type="button"
+            className="secondary"
+            disabled={step === 0 && !setup?.bookmarks}
+            onClick={() => goTo(step + 1)}
+          >
+            {step === 1
+              ? t("继续查看索引确认", "Continue to index confirmation")
+              : t("下一步", "Continue")}
+            <ArrowRight />
+          </CapsuleButton>
+        </footer>
+      )}
+    </div>
+  );
+}

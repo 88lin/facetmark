@@ -14,6 +14,7 @@ import hashlib
 import sqlite3
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from itertools import islice
 
 from ..config import Settings, get_settings
 from ..db import jdump, now
@@ -66,14 +67,15 @@ def title_only_hash(title: str, url: str) -> str:
     return "t:" + hashlib.sha256(f"{title}\x00{url}".encode()).hexdigest()
 
 
-def targets(
+def iter_targets(
     conn: sqlite3.Connection,
     *,
     limit: int | None = None,
     force: bool = False,
     ids: Sequence[int] | None = None,
     require_body: bool = False,
-) -> list[Target]:
+    body_chars: int | None = None,
+):
     """Bookmarks whose enrichment is missing or stale.
 
     Privacy-excluded rows are absent by construction: they never reach a model.
@@ -82,28 +84,39 @@ def targets(
     params: list[object] = []
     if ids is not None:
         if not ids:
-            return []
+            return
         where.append(f"b.id IN ({','.join('?' * len(ids))})")
         params.extend(ids)
     if require_body:
         where.append("c.body_hash IS NOT NULL")
+    body_sql = "c.body_text"
+    if body_chars is not None:
+        head = max(0, int(body_chars * 0.75))
+        tail = max(0, body_chars - head)
+        body_sql = (f"CASE WHEN length(c.body_text)<={body_chars} THEN c.body_text ELSE "
+                    f"substr(c.body_text,1,{head})||' … '||substr(c.body_text,-{tail},{tail}) END") if body_chars else "''"
     sql = (
-        "SELECT b.id, b.url, b.title, b.folder, c.body_text, c.body_hash, e.source_hash "
+        f"SELECT b.id, b.url, b.title, b.folder, {body_sql} AS body_text, c.body_hash, e.source_hash, e.summary, "
+        "EXISTS(SELECT 1 FROM enrichment_failure ef WHERE ef.bookmark_id=b.id) AS failed "
         "FROM bookmark b "
         "LEFT JOIN content c    ON c.bookmark_id = b.id "
         "LEFT JOIN enrichment e ON e.bookmark_id = b.id "
         f"WHERE {' AND '.join(where)} ORDER BY b.id"
     )
-    out: list[Target] = []
+    count = 0
     for r in conn.execute(sql, params):
         sh = r["body_hash"] or title_only_hash(r["title"] or "", r["url"])
-        if not force and r["source_hash"] == sh:
+        if not force and not r["failed"] and r["summary"] and r["source_hash"] == sh:
             continue
-        out.append(Target(r["id"], r["url"], r["title"] or "", r["folder"] or "",
-                          r["body_text"] or "", sh))
-        if limit is not None and len(out) >= limit:
+        yield Target(r["id"], r["url"], r["title"] or "", r["folder"] or "",
+                     r["body_text"] or "", sh)
+        count += 1
+        if limit is not None and count >= limit:
             break
-    return out
+
+
+def targets(conn, **kwargs) -> list[Target]:
+    return list(iter_targets(conn, **kwargs))
 
 
 def count_unchanged(conn: sqlite3.Connection) -> int:
@@ -143,6 +156,7 @@ def store_enrichment(
          "title" if not target.body else "body",
          target.source_hash, model, now()),
     )
+    conn.execute("DELETE FROM enrichment_failure WHERE bookmark_id=?", (target.bookmark_id,))
     # Candidate queries are regenerated wholesale; keeping stale ones around
     # would leave orphaned vectors pointing at text that no longer exists.
     old = [r["id"] for r in conn.execute(
@@ -182,15 +196,13 @@ async def enrich_all(
     ids: Sequence[int] | None = None,
     concurrency: int | None = None,
     progress=None,
+    after_commit=None,
 ) -> EnrichReport:
     s = settings or get_settings()
     prov = provider or get_provider(s)
     concurrency = concurrency if concurrency is not None else s.enrich_concurrency
-    todo = targets(conn, limit=limit, force=force, ids=ids)
-    rep = EnrichReport(considered=len(todo), skipped_unchanged=count_unchanged(conn))
-    if not todo:
-        rep.usage = prov.usage.as_dict()
-        return rep
+    todo = iter_targets(conn, limit=limit, force=force, ids=ids, body_chars=s.body_truncate_chars)
+    rep = EnrichReport(skipped_unchanged=count_unchanged(conn) if ids is None else 0)
 
     gate = asyncio.Semaphore(concurrency)
 
@@ -224,17 +236,46 @@ async def enrich_all(
                 except (ProviderError, EnrichmentInvalid) as second:
                     return t, None, f"{t.url}: {first} | retry@{shorter}: {second}", False
 
-    for coro in asyncio.as_completed([one(t) for t in todo]):
-        t, enr, err, shortened = await coro
-        if enr is None:
-            rep.failed += 1
-            rep.errors.append(err)
-        else:
-            rep.queries_generated += store_enrichment(conn, t, enr, model=s.chat_model)
-            rep.enriched += 1
-            rep.rescued_by_shorter_body += int(shortened)
-        if progress is not None:
-            progress(t, enr, err)
+    tasks = []
+    try:
+        while batch := list(islice(todo, 64)):
+            rep.considered += len(batch)
+            tasks = [asyncio.create_task(one(t)) for t in batch]
+            for coro in asyncio.as_completed(tasks):
+                t, enr, err, shortened = await coro
+                conn.execute("SAVEPOINT enrichment_item")
+                try:
+                    if enr is None:
+                        from ..admin import safe_error
+                        err = safe_error(ProviderError(err), s)
+                        rep.failed += 1
+                        if len(rep.errors) < 10:
+                            rep.errors.append(err)
+                        conn.execute("INSERT INTO enrichment_failure(bookmark_id,error,updated_at) VALUES(?,?,?) "
+                                     "ON CONFLICT(bookmark_id) DO UPDATE SET error=excluded.error,updated_at=excluded.updated_at",
+                                     (t.bookmark_id, err[:1000], now()))
+                    else:
+                        rep.queries_generated += store_enrichment(
+                            conn, t, enr, model=getattr(prov, 'chat_model_in_use', None) or s.chat_model)
+                        rep.enriched += 1
+                        rep.rescued_by_shorter_body += int(shortened)
+                    if progress is not None:
+                        progress(t, enr, err)
+                except BaseException:
+                    conn.execute("ROLLBACK TO enrichment_item")
+                    conn.execute("RELEASE enrichment_item")
+                    raise
+                conn.execute("RELEASE enrichment_item")
+                if after_commit is not None:
+                    after_commit()
+
+    finally:
+        # The owner closes the database/provider as soon as this unwinds.
+        # as_completed does not cancel its children when its caller is stopped.
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
     conn.commit()
     rep.usage = prov.usage.as_dict()
     return rep

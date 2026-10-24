@@ -15,6 +15,12 @@ scripts
 docs
 integrations
 extension
+desktop
+.desktop-build
+**/node_modules
+**/playwright-report
+**/test-results
+**/screenshots
 agent-ctx
 *.db
 *.db-*

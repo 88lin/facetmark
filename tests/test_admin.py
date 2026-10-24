@@ -339,9 +339,9 @@ class TestSettings:
         assert rows["api_key"]["secret"] is True
         assert rows["api_key"]["set"] is True
 
-    def test_mask_keeps_short_values_intact_rather_than_lying(self):
+    def test_mask_never_discloses_short_secrets(self):
         assert mask("") == ""
-        assert mask("short") == "short"
+        assert mask("short") == "••••"
         assert mask("sk-abcdefghij") == "sk-...ghij"
 
     def test_the_source_column_names_the_winner(self, client, auth, monkeypatch):
@@ -405,6 +405,24 @@ class TestSettings:
         assert "low" in client.app.state.fm.settings.chat_extra_body
         assert client.post("/admin/settings/test", json={"chat_extra_body": "[]"},
                            headers=auth).status_code == 400
+
+    def test_chat_fallback_draft_probe_matches_saved_configuration(self, client, auth, monkeypatch):
+        import facetmark.admin as admin
+
+        seen = []
+
+        async def capture(settings, channel):
+            seen.append(settings.chat_model_chain())
+            return {"chat": {"ok": True, "model": "working-backup", "ms": 1}}
+
+        monkeypatch.setattr(admin, "probe", capture)
+        values = {"chat_model": "primary", "chat_model_fallbacks": "working-backup"}
+        response = client.post("/admin/settings/test", json={**values, "channel": "chat"}, headers=auth)
+        assert response.status_code == 200
+        assert seen == [["primary", "working-backup"]]
+        assert client.put("/admin/settings", json={"values": values}, headers=auth).status_code == 200
+        state = client.app.state.fm
+        assert state.probe_results["chat"]["fingerprint"] == admin.probe_fingerprint(state.settings, "chat")
 
     @pytest.mark.parametrize("key", ["fetch_concurrency", "enrich_concurrency", "request_timeout"])
     def test_numeric_settings_are_typed_and_positive_live(self, client, auth, key):
@@ -615,6 +633,9 @@ class TestConnectionProbe:
         client.app.state.fm.settings.use_mock_provider = False
         client.app.state.fm.settings.api_key = "test-key"
         client.app.state.fm.settings.base_url = "https://probe.example/v1"
+        for channel in ('chat', 'embed'):
+            setattr(client.app.state.fm.settings, f'{channel}_api_key', 'test-key')
+            setattr(client.app.state.fm.settings, f'{channel}_base_url', 'https://probe.example/v1')
         with respx.mock:
             respx.post("https://probe.example/v1/chat/completions").respond(
                 200, json={"choices": [{"message": {"content": '{"ok":true}'}}]},
@@ -638,11 +659,11 @@ class TestConnectionProbe:
         """The meta table pins the dimension on first build; a mismatch found
         later means an index of incompatible vectors, so it has to fail here."""
 
-        async def short(self, texts):
-            return [[0.0] * 8 for _ in texts]
+        async def short(self):
+            return [[0.0] * 8]
 
         with pytest.MonkeyPatch.context() as mp:
-            mp.setattr("facetmark.providers.OpenAICompatibleProvider.embed", short)
+            mp.setattr("facetmark.providers.OpenAICompatibleProvider.probe_embedding", short)
             body = client.post("/admin/settings/test", json={}, headers=auth).json()
         assert body["embed"]["ok"] is True
         assert body["embed"]["dim"] == 8
@@ -651,11 +672,11 @@ class TestConnectionProbe:
         assert body["ok"] is False
 
     def test_a_broken_endpoint_returns_a_readable_reason_not_a_500(self, client, auth):
-        async def boom(self, texts):
+        async def boom(self):
             raise RuntimeError("404 page not found: /v1/embeddings")
 
         with pytest.MonkeyPatch.context() as mp:
-            mp.setattr("facetmark.providers.OpenAICompatibleProvider.embed", boom)
+            mp.setattr("facetmark.providers.OpenAICompatibleProvider.probe_embedding", boom)
             body = client.post("/admin/settings/test", json={}, headers=auth).json()
         assert body["embed"]["ok"] is False
         assert "/v1/embeddings" in body["embed"]["error"]

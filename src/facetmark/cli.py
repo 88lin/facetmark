@@ -349,9 +349,10 @@ def index(
 ) -> None:
     """Build the whole index: fetch, enrich, embed, sessions, edges."""
     st = _settings(db, mock)
-    if not st.api_key and not st.use_mock_provider:
-        err.print("[yellow]no FACETMARK_API_KEY set; falling back to --mock[/yellow]")
-        st = _settings(db, mock=True)
+    if not st.use_mock_provider and not (st.channel_ready('chat') and st.channel_ready('embed')):
+        err.print("[red]Configure chat and embedding models before indexing. "
+                  "Use search --quick for keyword search, or demo for an explicit offline demo.[/red]")
+        raise typer.Exit(2)
     conn = _open(st)
     try:
         def progress(name: str, value) -> None:

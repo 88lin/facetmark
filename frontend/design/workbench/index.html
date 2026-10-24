@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Facetmark · 我的收藏</title>
+  <link rel="stylesheet" href="./workbench.css">
+  <script defer src="./workbench.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#collection">跳到收藏</a>
+  <header class="topbar">
+    <a class="brand" href="./index.html" aria-label="Facetmark 收藏首页">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i></span><span>Facetmark<span class="brand-dot">.</span></span>
+    </a>
+    <nav class="main-nav" aria-label="主导航">
+      <button class="nav-item active" aria-current="page" data-route="collection" aria-label="收藏"><span data-icon="collection"></span><span>收藏</span></button>
+      <button class="nav-item" data-route="tasks" aria-label="任务"><span data-icon="tasks"></span><span>任务</span></button>
+      <button class="nav-item" data-route="settings" aria-label="设置"><span data-icon="settings"></span><span>设置</span></button>
+    </nav>
+    <div class="top-utilities"><span class="preview-label"><i></i>交互原型 · 合成数据</span><button id="theme-toggle" class="icon-button theme-switch" aria-label="切换为深色" title="切换主题"><span data-icon="moon"></span></button></div>
+  </header>
+
+  <main class="workspace" id="collection" tabindex="-1">
+    <section class="collection-heading" aria-labelledby="page-title">
+      <div><h1 id="page-title">留住灵感，<span>随时拾起。</span></h1><p>把值得留下的网页，整理成自己的收藏。</p></div>
+      <form class="search-box" role="search" id="search-form">
+        <span data-icon="search"></span><input id="search-input" type="search" placeholder="搜索标题、内容或站点" aria-label="搜索收藏" autocomplete="off">
+        <button type="button" id="search-clear" class="icon-button" aria-label="清空搜索" hidden><span data-icon="close"></span></button><kbd id="search-shortcut">Ctrl K</kbd>
+      </form>
+    </section>
+
+    <section class="collection-strip" aria-label="收藏分类">
+      <button class="collection-tile teal is-current" data-category="all" aria-pressed="true"><span><strong>全部收藏</strong><small>6 条收藏</small></span><span class="tile-emblem" data-emblem="all"></span><span class="tile-arrow" data-icon="arrow"></span></button>
+      <button class="collection-tile peach" data-category="设计" aria-pressed="false"><span><strong>设计</strong><small>3 条收藏</small></span><span class="tile-emblem" data-emblem="design"></span><span class="tile-arrow" data-icon="arrow"></span></button>
+      <button class="collection-tile blue" data-category="开发" aria-pressed="false"><span><strong>开发</strong><small>1 条收藏</small></span><span class="tile-emblem" data-emblem="code"></span><span class="tile-arrow" data-icon="arrow"></span></button>
+      <button class="collection-tile lavender" data-category="阅读" aria-pressed="false"><span><strong>阅读</strong><small>1 条收藏</small></span><span class="tile-emblem" data-emblem="reading"></span><span class="tile-arrow" data-icon="arrow"></span></button>
+    </section>
+
+    <section class="collection-content" aria-label="收藏内容">
+      <div class="content-heading">
+        <div class="collection-location"><h2 id="collection-title">全部收藏</h2><span id="result-count" class="count-badge">6</span><button id="clear-filters" class="text-button" hidden>清除筛选<span data-icon="close"></span></button></div>
+        <div class="content-actions"><div class="directory-anchor"><button id="directory-toggle" class="button secondary" aria-controls="directory-popover" aria-expanded="false"><span data-icon="folder"></span>目录<span data-icon="chevron"></span></button>
+          <section id="directory-popover" class="directory-popover" aria-label="收藏目录" hidden>
+            <div class="popover-heading"><strong>收藏目录</strong><button id="directory-close" class="icon-button" aria-label="关闭目录"><span data-icon="close"></span></button></div>
+            <label class="directory-search"><span data-icon="search"></span><input id="folder-search" placeholder="查找完整目录…" aria-label="搜索收藏目录"></label>
+            <div class="directory-items" id="directory-items"></div>
+            <p class="directory-note">显示全部 5 个目录，包含未分类</p>
+          </section>
+        </div><button id="add-bookmark" aria-label="新增收藏" class="button primary"><span data-icon="plus"></span>新增收藏</button></div>
+      </div>
+      <div class="filter-bar">
+        <div class="status-tabs" role="group" aria-label="摘要状态">
+          <button class="status-tab active" data-status="all" aria-pressed="true">全部<span data-count="all">6</span></button>
+          <button class="status-tab" data-status="pending" aria-pressed="false">待生成<span data-count="pending">2</span></button>
+          <button class="status-tab" data-status="done" aria-pressed="false">有摘要<span data-count="done">3</span></button>
+          <button class="status-tab" data-status="failed" aria-pressed="false">失败<span data-count="failed">1</span></button>
+        </div>
+        <div class="view-tools"><label class="sort-control"><span data-icon="sort"></span><select id="sort-order" aria-label="收藏排序"><option value="newest">最近收藏</option><option value="oldest">最早收藏</option><option value="title">标题顺序</option><option value="domain">站点顺序</option></select></label><div class="view-toggle" role="group" aria-label="显示方式"><button id="view-grid" class="icon-button active" aria-label="画廊视图" aria-pressed="true"><span data-icon="grid"></span></button><button id="view-list" class="icon-button" aria-label="紧凑视图" aria-pressed="false"><span data-icon="list"></span></button></div></div>
+      </div>
+      <div id="bookmark-grid" class="bookmark-grid"></div>
+      <div class="empty-results" id="empty-results" hidden><span data-icon="search"></span><h3>暂时没有找到</h3><p>试试更短的关键词，或清除筛选查看全部收藏。</p><button class="button secondary" id="empty-clear">查看全部收藏</button></div>
+      <footer class="collection-footer"><span id="pagination-label">共 6 条收藏，已全部显示</span><span class="local-note"><span data-icon="bookmark"></span>收藏属于你，原网页始终可直达。</span></footer>
+    </section>
+  </main>
+
+  <aside id="selection-bar" class="selection-bar" aria-label="所选收藏操作" hidden><button id="clear-selection" class="selection-close" aria-label="清空选择"><span data-icon="close"></span></button><strong>已选 <span id="selection-count">0</span> 条</strong><span class="selection-divider"></span><button id="selection-summary"><span data-icon="spark"></span>生成摘要</button><button id="selection-move"><span data-icon="folder"></span>移动</button><button id="selection-export" aria-label="导出所选收藏"><span data-icon="import"></span>导出</button></aside>
+
+  <dialog id="reader-dialog" class="reader-dialog" aria-labelledby="reader-title">
+    <div class="reader-topbar"><button id="reader-close" class="button ghost" autofocus><span data-icon="back"></span>返回收藏</button><span class="reader-context" id="reader-context"></span><a id="reader-original" class="button secondary" href="https://design.example.com/navigation" target="_blank" rel="noreferrer">原网页<span data-icon="external"></span></a></div>
+    <div class="reader-layout"><div class="reader-outline"><span class="reader-outline-label">本篇内容</span><a href="#reader-overview" class="active">摘要</a><a href="#reader-body-section">正文摘录</a><div class="reader-bookmark" aria-hidden="true"><span data-emblem="reading"></span></div><p>给好内容<br>留一点时间。</p></div><article class="reader-article"><div class="reader-source" id="reader-source"></div><h1 id="reader-title"></h1><div id="reader-meta" class="reader-meta"></div><section id="reader-overview" class="reader-summary"><div class="reader-summary-label"><span data-icon="spark"></span><strong id="reader-summary-label">AI 摘要</strong></div><p id="reader-summary-text"></p></section><section id="reader-body-section"><h2>正文摘录</h2><div id="reader-body"></div></section><div class="reader-end"><span></span><span data-icon="bookmark"></span><span></span></div><p class="reader-disclosure">本页内容为交互原型的合成示例。</p></article></div>
+  </dialog>
+
+  <dialog id="action-dialog" class="action-dialog" aria-labelledby="action-title"><div class="action-heading"><h2 id="action-title"></h2><button id="action-close" class="icon-button" aria-label="关闭"><span data-icon="close"></span></button></div><div id="action-content"></div></dialog>
+  <p class="sr-only" role="status" id="live-status"></p>
+</body>
+</html>
