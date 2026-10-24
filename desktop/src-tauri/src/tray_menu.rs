@@ -14,7 +14,16 @@ fn record_window_event(app: &tauri::AppHandle, details: serde_json::Value) {
     if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true)
         .open(std::path::PathBuf::from(directory).join("tray-window-events.jsonl")) {
         let time = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis();
-        let _ = writeln!(file, "{}", serde_json::json!({ "process": std::process::id(), "time_ms": time, "details": details }));
+        let menu = app.get_webview_window("tray-menu");
+        let mut record = serde_json::json!({ "process": std::process::id(), "time_ms": time, "details": details,
+            "menu_url": menu.as_ref().and_then(|window| window.url().ok()).map(|url| url.to_string()) });
+        #[cfg(windows)]
+        {
+            use windows_sys::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
+            record["menu_hwnd"] = serde_json::json!(menu.and_then(|window| window.hwnd().ok()).map(|hwnd| hwnd.0 as usize));
+            record["foreground_hwnd"] = serde_json::json!(unsafe { GetForegroundWindow() } as usize);
+        }
+        let _ = writeln!(file, "{}", record);
     }
 }
 pub fn focus_changed(window: &tauri::Window, focused: bool) {
@@ -78,10 +87,22 @@ pub fn tray_action(window: tauri::WebviewWindow, app: tauri::AppHandle, action: 
 pub fn open(app: &tauri::AppHandle, x: f64, y: f64, source: &str) -> tauri::Result<()> {
     let Some((geometry, scale)) = tray_menu_geometry(x, y, &display_areas(app)) else { return Ok(()); };
     let menu = if let Some(menu) = app.get_webview_window("tray-menu") { menu } else {
+        let navigation_app = app.clone();
         let mut builder = WebviewWindowBuilder::new(app, "tray-menu", WebviewUrl::App("tray.html".into()))
-            .title("Facetmark tray").inner_size(312., 374.).visible(false).decorations(false)
+            // Hidden construction must not focus the WebView. Its queued
+            // GotFocus/LostFocus events can otherwise arrive after show().
+            // The one explicit focus request belongs to the visible opening.
+            .title("Facetmark tray").inner_size(312., 374.).visible(false).focused(false).decorations(false)
             .resizable(false).skip_taskbar(true).always_on_top(true).transparent(true).shadow(true)
-            .on_navigation(packaged_tray_url)
+            .on_navigation(move |url| {
+                let allowed = packaged_tray_url(url);
+                record_window_event(&navigation_app, serde_json::json!({ "event": "navigation", "url": url.as_str(), "allowed": allowed }));
+                allowed
+            })
+            .on_page_load(|window, payload| {
+                record_window_event(window.app_handle(), serde_json::json!({ "event": "page-load", "url": payload.url().as_str(),
+                    "phase": format!("{:?}", payload.event()) }));
+            })
             .on_new_window(|_, _| tauri::webview::NewWindowResponse::Deny);
         if cloud_webview_inspection() { builder = builder.additional_browser_args(CI_BROWSER_ARGS); }
         builder.build()?

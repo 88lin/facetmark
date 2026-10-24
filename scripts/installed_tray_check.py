@@ -8,6 +8,7 @@ import sys
 import time
 from ctypes import wintypes
 from pathlib import Path
+from urllib.request import urlopen
 
 from playwright.sync_api import Error, expect, sync_playwright
 
@@ -134,6 +135,13 @@ with sync_playwright() as playwright:
     opening_sources = []
     activation_history = []
 
+    def cdp_targets():
+        try:
+            with urlopen("http://127.0.0.1:9223/json/list", timeout=3) as response:
+                return json.load(response)
+        except (OSError, ValueError) as error:
+            return {"error": str(error)}
+
     def menu_page():
         handle = native_window("Facetmark tray")
         if not handle or not user32.IsWindowVisible(handle):
@@ -177,8 +185,11 @@ with sync_playwright() as playwright:
                 "menu_visible": bool(handle and user32.IsWindowVisible(handle)),
                 "foreground_hwnd": user32.GetForegroundWindow(), "main_hwnd": main_handle,
                 "cdp_pages": [page.url for context in browser.contexts for page in context.pages],
+                "cdp_targets": cdp_targets(),
                 "activation_history": activation_history, "opening_sources": opening_sources})
             raise
+        handle = native_window("Facetmark tray")
+        wait_for(lambda: user32.GetForegroundWindow() == handle, "Native tray did not take the foreground", 5)
         opening_sources.append("synthetic cloud trigger; actual native window")
         return menu
 

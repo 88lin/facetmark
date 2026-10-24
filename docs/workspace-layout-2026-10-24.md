@@ -162,6 +162,27 @@ HTML 合成 bridge 截图与安装后的原生 API 证据分别标注。
 另根据新画面补足表单未勾选边界：原浅/深对比 1.30 / 1.64，当前颜色计算为
 3.30 / 5.55，几何和输入语义不变。这批仍待新的渲染与安装运行。
 
+### `a09b6de` 复查与托盘冷启动诊断
+
+[收藏 40059298431](https://github.com/88lin/facetmark/actions/runs/40059298431)、
+[CI 40059294640](https://github.com/88lin/facetmark/actions/runs/40059294640) 与
+[体验 40059315356](https://github.com/88lin/facetmark/actions/runs/40059315356) 全部通过。
+[Windows 40059308610](https://github.com/88lin/facetmark/actions/runs/40059308610)
+原生编译、离线安装、#52 立即重试和安装后 Web 操作通过，整条运行仍因托盘失败。
+立即 Enter 时旧 PID=1372 仍在，确认退出前没有新 spawn；新 PID=4216 的 owned
+服务连续 12 次 health 成功。本轮不以这部分通过关闭 issue。
+
+前台前提已成立：失败记录显示主 HWND=66114；托盘 HWND=328334 已创建。
+窗口在 open 记录后 2ms 收到 GotFocus，随后 1ms 内 LostFocus 并隐藏；30ms 内
+又一组焦点事件到达。当前 Tauri 2.12.1 在 Windows 由 WebView2 的 GotFocus /
+LostFocus 合成窗口事件，Wry 0.57.0 在默认 focused=true 的隐藏构造中请求
+MoveFocus。最小修正是让隐藏托盘以 focused=false 构造，仅在可见打开时请求焦点；
+保留原来的真实失焦关闭。该假设仍需新安装运行确认。
+
+仅 CI 的诊断进一步记录当前前台 HWND、菜单 HWND、菜单 URL、导航与加载事件，
+失败记录同时保留原始 CDP targets；成功打开还需断言菜单真正取得 Windows 前台。
+验证不直接 show / focus 托盘 HWND，不放宽菜单可见或失焦关闭条件。
+
 只用隔离合成数据；不操作真实浏览器资料。本地只编辑、轻量检查和小型证据查看；
 安装、构建、浏览器、打包与安装测试全部在 GitHub Actions。
 实际截图、动画采样与当前 run 结果待补。全部新改动等待用户复评。
