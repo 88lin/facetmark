@@ -36,6 +36,12 @@ related_targets:
 - frontend/src/setup.css
 - desktop/splash/index.html
 - desktop/splash/loading.js
+- desktop/splash/mark.svg
+- desktop/splash/native-ui.css
+- desktop/splash/tray.html
+- desktop/splash/tray.js
+- desktop/src-tauri/src/tray_menu.rs
+- frontend/src/AnchoredMenu.tsx
 ---
 
 # Facetmark frontend — Operate
@@ -48,7 +54,9 @@ the current identity, layout, type, colors or material; no individual choice is
 newly approved. Final application/capture f1c67fe passed all four workflows with verified
 rendered/installed evidence and actual capsule frame bounds. 04ecc11 / 7d2abd0
 and the earlier 831dcfd round remain revision-specific history.
-Current scope is in docs/collection-workspace-polish-2026-10-24.md.
+Current follow-up is in docs/workspace-layout-2026-10-24.md. PR #44 is merged;
+commit/push and cloud checks are authorized for a new PR, without automatic merge
+or release. This source revision awaits cloud rendering and user review.
 
 Long-term reference: general handbook v0.18. D04 / D05 history and latest D06
 assessment belong in docs/design-reference-project-record.md in this repository.
@@ -94,15 +102,16 @@ STORY: Enter through floating navigation, choose an exact directory, search or s
 the collection. Read beside a retained index. Selection and summary scopes remain
 visible and separate through paging and failure recovery.
 
-FIRST VIEWPORT: At 1440px an 88px top band holds identity, capsule navigation and
-utilities. A 244px frosted directory faces the rounded collection surface. Title
-and capsule search lead to actions/status and reading cards in an adaptive grid
-(three columns at 1440px, two at 1280px, one in narrow windows).
-Source medallions, mixed-language titles and summaries stay visible. Short windows
-compact the chrome; narrow screens retain focus-managed directory and reader layers.
+FIRST VIEWPORT: At 1440px a 64px header holds capsule navigation, shared search
+and utilities above the collection. A 252px directory spans the entire window
+height; duplicate brand/title blocks are removed. Compact actions/status lead
+directly to a 280px-minimum card grid (three columns at 1440px/1280px, two at
+1024px, one on mobile). The retained reader index is 264px. Settings use the full
+workspace width. Source, mixed-language titles and varied summaries remain visible.
 
-FORM: Code-led refinement of the mist-blue identity after explicit positive
-feedback. Source-inspected S17/S19 relationships remain supporting references.
+FORM: Code-led improvement from the current mist-blue implementation under the
+latest usability and appearance feedback. Source-inspected S17/S19 relationships
+remain supporting references. Current choices are not frozen or approved.
 
 SIGNATURE: Local light follows the pointer on a record without moving its hit area;
 the source medallion settles on hover. Selection plates move through their actual dimensions without scaling corners.
@@ -116,6 +125,8 @@ operations. Report actual coverage and remaining defects; user review stays sepa
 
 Keep Add / Manage / Summarize distinct from summary status, sorting and display.
 Original links, selection, editing, summary actions and preview remain independent.
+Blank card areas open preview through the existing button's focus-return path.
+Modifier clicks, text selection and interactive descendants retain their own actions.
 Descriptions must remain readable; measured clipping determines expansion.
 Searchable access to the full folder/tag/site directory, parent paths, counts and
 pagination must remain available at narrow and short viewport sizes.
@@ -157,7 +168,12 @@ If a library adapter changes, verify these contracts before applying it everywhe
 Each element/property has one animation owner. Closing overlays must stop accepting
 input immediately; rapid reversal and live reduced-motion changes remain safe.
 
-Reader layouts may change. Keep actual heading navigation, article progress,
+Reader layouts may change. Body text is 17px/1.8 (16px mobile), titles are
+29px/700 (25px mobile, 32px focus). The compact index hides duplicate excerpts,
+tags and folder paths while retaining source, title, status and actions.
+Only saved body text has an in-flow progress footer; summary/related/empty states
+do not show an idle “reading preview” box.
+ Keep actual heading navigation, article progress,
 chapter selection and an unobscured final paragraph. Resizing and closing preview
 must preserve meaningful reading/search context. Existing glass/plane artwork and
 layout are not mandatory; their underlying progress and navigation behavior is.
@@ -172,8 +188,12 @@ panels stay mounted; completion comes from actual setup facts, not visitation.
 Source discovery and import remain explicit read-only actions on selected sources.
 Browser-rendered splash HTML with a synthetic bridge does not certify installation.
 The package/window/tray icon uses a porcelain tile and authored folded blue F;
-the UI bookmark mark continues to express collection. The icon is generated only
-in CI, with light/dark size evidence. Native physical-frame restoration, quiet
+the same folded-F SVG is used for the React identity, native startup and tray. The icon is generated only
+in CI, with light/dark size evidence. The installed local 32px icon was read-only
+extracted and matched to the previous installed cloud image (0 different pixels).
+A packaged native tray WebView uses the same fonts/mark, real native settings,
+keyboard roving focus and bounded monitor-aware geometry. Native menu actions
+are restricted to that local page; cloud HTML fixtures remain separately labeled. Native physical-frame restoration, quiet
 geometry persistence and sidecar cleanup are separately verified after installation.
 
 ## Implementation and verification

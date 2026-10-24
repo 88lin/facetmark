@@ -67,7 +67,7 @@ typography:
     letterSpacing: "0"
   title:
     fontFamily: "\"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif"
-    fontSize: "1.1875rem"
+    fontSize: "1.125rem"
     fontWeight: 680
     lineHeight: 1.6
     letterSpacing: "0"
@@ -98,32 +98,32 @@ typography:
     lineHeight: 1.5
   reader-title:
     fontFamily: "\"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif"
-    fontSize: "36px"
+    fontSize: "1.8125rem"
     fontWeight: 600
     lineHeight: 1.4
   reading:
     fontFamily: "\"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif"
-    fontSize: "1.125rem"
+    fontSize: "1.0625rem"
     fontWeight: 400
-    lineHeight: 1.85
+    lineHeight: 1.8
 rounded:
   control: "999px"
   pill: "999px"
-  card: "25px"
+  card: "22px"
   card-compact: "20px"
-  directory: "28px"
-  workspace: "32px"
-  reader: "26px"
+  directory: "24px"
+  workspace: "28px"
+  reader: "24px"
   dialog: "32px"
   tag: "7px"
-  source-symbol: "13px"
+  source-symbol: "11px"
   checkbox: "6px"
 spacing:
   inline: "8px"
   group: "16px"
-  card-gap: "18px"
-  card: "23px"
-  workspace: "28px"
+  card-gap: "12px"
+  card: "16px"
+  workspace: "20px"
   dialog: "30px"
   compact-card: "16px"
 components:
@@ -159,8 +159,8 @@ components:
     backgroundColor: "{colors.canvas}"
     textColor: "{colors.ink}"
     rounded: "{rounded.pill}"
-    padding: "11px 16px"
-    height: "50px"
+    padding: "8px 13px"
+    height: "44px"
   form-input:
     backgroundColor: "{colors.inset}"
     textColor: "{colors.ink}"
@@ -171,8 +171,8 @@ components:
     backgroundColor: "{colors.accent}"
     textColor: "{colors.on-accent}"
     rounded: "{rounded.pill}"
-    padding: "9px 19px"
-    height: "40px"
+    padding: "8px 13px"
+    height: "38px"
   directory-entry:
     textColor: "{colors.secondary-ink}"
     rounded: "{rounded.pill}"
@@ -193,340 +193,177 @@ components:
 
 # Design System: Facetmark collection workspace
 
-## Overview
+## Current state
 
-**Creative North Star: "The Layered Collection Table"**
+The implemented system uses mist-blue surroundings, porcelain content surfaces,
+deep ink text, electric-blue actions and shaped capsule controls. It is a working
+baseline. The user described it as usable but not good-looking and requested more
+refinement. No current palette, typography, layout, icon or new detail is marked
+user-approved.
 
-An upright, tactile collection system uses mist-blue surroundings, porcelain reading surfaces and deep ink, with electric-blue actions. Translucent navigation and directory layers, rounded cards and molded capsule controls carry the current implementation's visual character. This is a working implementation description, not a user-approved visual identity.
+This follow-up removes excess chrome, gives the directory and bookmarks more
+height, corrects reading hierarchy and carries the shared folded-F mark into native
+startup and the real tray menu. Current source awaits cloud evidence and user
+review. PR #44 is merged; this round belongs in a new PR. The previous f1c67fe
+verification is a historical baseline, not validation of these edits.
 
-Latest 2026-10-24 assessment: “还不算好看，能用的样子而已”. The current overall appearance needs further improvement. Earlier acknowledgement of progress is historical and does not freeze the composition, typography, palette or material. No current visual identity or individual new detail is marked user-approved.
+[Product facts](PRODUCT.md), [active direction](.impeccable/workbench-direction.md),
+[surface brief](.impeccable/surfaces/frontend.md) and
+[round record](docs/workspace-layout-2026-10-24.md) describe the same task.
+General handbook v0.18 contains only methods and reference research. Project
+choices, feedback, screenshots and evidence stay in this repository.
 
-Final application/capture f1c67fe passed collection, CI, experience and Windows checks with source-matched evidence; this establishes technical scope, not aesthetic satisfaction. Earlier revisions remain historical. The [current round](docs/collection-workspace-polish-2026-10-24.md) records actual changes and tests, and the [project reference/feedback record](docs/design-reference-project-record.md) records the latest assessment. General handbook v0.18 contains only reference research and methods; product directions, implementation and feedback remain exclusively in this repository.
+## Color and material
 
-The active product and behavior requirements remain in [PRODUCT.md](PRODUCT.md)
-and the [frontend surface brief](.impeccable/surfaces/frontend.md). The frontmatter
-records current source values. Component heights represent their observed minimum
-heights unless the control has a fixed dimension.
+Frontmatter keys match the shipped theme variables, with a `-dark` suffix for
+dark variants. Electric blue identifies actions and selection; deep ink carries
+text. Porcelain is the opaque card/article surface. Mist desk, rail and inset
+surfaces establish the surrounding layers. Glass and its light edge lift navigation,
+directory, dialogs and the worktable. Semantic success/warning/danger pairs retain
+their data meanings; they are not decorative source categories.
 
-**Key Characteristics:**
+Depth uses offset soft shadows, inset highlights and local pointer light. The
+navigation and directory use 18px and 24px blur respectively. The content itself
+remains opaque. Card hover changes light and shadow without translating its hit
+area. Pressed controls keep their semantic blue/porcelain material and stable bounds.
 
-- Mist-blue ambient light, translucent supporting layers and opaque content surfaces.
-- Bundled Inter and Noto Sans SC with upright headings and readable mixed-language records.
-- Capsule controls, layered cards and motion tied to actual navigation, selection and reading state.
-- Independent original links, record actions and scope controls remain visible.
-
-## Colors
-
-Electric blue carries actions; mist-blue layers and deep ink carry the workspace.
-Frontmatter keys match the CSS custom-property names, with a `-dark` suffix for
-the corresponding dark-theme value.
-
-### Primary
-
-- **Electric blue** (`accent`, `accent-hover`, `on-accent`): primary actions,
-  active accents and their legible foreground. Add bookmark uses this blue.
-- **Selection blue** (`soft`, `selected`, `selected-edge`): active controls,
-  chosen records and their boundaries. Main navigation uses a blue filled plate;
-  category and settings plates use porcelain-to-blue material.
-
-### Secondary
-
-- **Sky detail** (`brand-detail`): the bookmark mark, layered folder face and
-  local card light. It does not replace a semantic processing status.
-- **Semantic status pairs** (`success`, `warning`, `danger` and their
-  `-soft` surfaces): completed work, attention and failure/destructive states.
-
-### Neutral
-
-- **Porcelain** (`canvas`): cards, search, dialogs and reading content.
-- **Mist desk and rail** (`desk`, `rail`, `inset`): the ambient workspace,
-  navigation drawer and inset control groups.
-- **Deep ink** (`ink`, `secondary-ink`, `muted`): primary text, explanations
-  and tertiary metadata. Pressed control surfaces use their semantic blue or
-  porcelain roles; ink is not the navigation selection fill.
-- **Glass and light** (`glass`, `glass-edge`, `light`): translucent support
-  surfaces and their top edges. `ambient-blue` and `ambient-mint` form the
-  two workspace radial gradients; `scrim` protects modal context.
-- **Boundaries** (`rule`, `selection-neutral`): dividers and quiet state surfaces.
-
-**The Content Surface Rule.** Keep reading text on an opaque content surface; ambient gradients and frosted layers belong to the surrounding workspace and controls.
+Selection, caret, focus, scrolling and tabular figures use the theme roles.
+Forced colors retain system Highlight boundaries and native operation.
 
 ## Typography
 
-**Display Font:** bundled Inter and Noto Sans SC through the `Facetmark Latin`
-and `Facetmark CJK` aliases.
+Bundled variable Inter and Noto Sans SC use the `Facetmark Latin` and
+`Facetmark CJK` aliases, with Segoe UI/Microsoft YaHei UI and sans-serif fallback.
+The same offline font files are staged for native startup and tray packaging.
+Smiley Sans is a historical asset, not the active interface font.
 
-**Body Font:** the same bundled pair, with Segoe UI, Microsoft YaHei UI and
-sans-serif fallbacks. Smiley Sans is a retained historical asset and is not the
-active interface font.
+- Card titles: 18px/680, 1.6 line height, two lines; 17px on mobile.
+- Card summaries: 15px/1.8, two lines; 14px on mobile. Measured overflow exposes
+  expansion in a separate 8px-gapped column. Expanded text has no clamp.
+- Source, status, tags and folder paths: 13px; dates and summary-basis captions: 11px.
+- Reading index: 16px title, 28px source medallion and compact status/actions.
+  Duplicate summaries, tags and folder paths are hidden in this context.
+- Article title: 29px/700, 1.45 line height; 32px in focus mode and 25px mobile.
+- Article body: 17px/1.8, 16px mobile; h2: 21px/700, h3: 19px/650.
+  Mobile h2/h3 are 20px/18px. These reading roles use rem units.
+- Shared controls: 15px/600; local navigation/actions retain their own smaller,
+  source-defined type and hit areas.
 
-**Character:** firm, upright headings sit above quieter source and description
-text. Collection and record headings keep neutral letter spacing, including Chinese.
-
-### Hierarchy
-
-- **Display:** the frontmatter display role is the collection heading; it becomes
-  30px below 1300px and 26px below 720px. Desktop windows at or below 650px
-  high also use the 26px heading.
-- **Title:** the title role is the default card link, capped at two lines with the
-  full title available on its native link. It becomes 17px / 1.65 on mobile and
-  15px in the retained reading index.
-- **Body and controls:** body is the base text scale; the control role belongs to
-  shared primary/secondary buttons. Collection actions use a local 14px desktop
-  and 13px mobile scale.
-- **Summary:** the summary role uses two lines and a 72ch maximum in a card,
-  at 15px on desktop, 14px on mobile and 13px in the reading index.
-  Measured clipping exposes expansion; expanded text has no line clamp. When
-  expansion is available, text and its control occupy separate normal-flow grid
-  columns with an 8px gap.
-- **Source and tag:** domain labels use the source role. Status, tags and folder paths
-  use readable 13px metadata; dates and summary-basis captions remain 11px.
-  Numeric counts use tabular figures.
-- **Reading:** the reading role controls article body text. Reader titles use the
-  reader-title role and grow to 38px in focus mode.
+The collection scope h1 remains available to assistive technology without a
+duplicate visible display block. It is not a decorative heading above the results.
 
 ## Layout
 
-The collection surface uses an 88px top navigation band above a 244px directory
-and a flexible rounded worktable, with a 20px column gap. The workspace has 28px
-horizontal padding and a 120px title/search band. The card grid fills available
-width with a 340px minimum card width and an 18px gap. Grid view is the default
-when no saved preference exists; list view remains a saved option.
+Desktop shell: 64px header, 252px directory, 16px gap, 10px top and 16px side/bottom
+padding. The directory spans both grid rows. Above the collection, the header
+contains navigation, shared search and utilities; the repeated brand and title/search
+band are removed. The directory's category controls share one row, the folders
+entry uses its icon with an accessible name, and the tree scrolls independently.
 
-At 1660px and above, the directory/index become 264px/340px, horizontal shell
-padding becomes 30px and the card minimum becomes 360px. Below 1300px,
-directory/index widths become 218px/280px and workspace padding becomes 22px.
-At 1120px and above, reading keeps an index beside the reader; below that,
-reading uses the full-viewport focus-managed drawer. Below 960px, top navigation
-and the fixed directory are replaced by the navigation drawer.
+The collection uses 12px top / 20px horizontal padding, a compact actions/status
+area, a 280px-minimum grid with 12px gaps and a separate paging footer.
+Card padding is 16px, internal gap 9px and radius 22px.
+Grid is the unsaved default; list remains a persisted alternative.
 
-Below 720px, the shell has a 58px top row, cards and list records share a compact
-single-column treatment, and title/search stack. Main actions take one row, status
-takes the next, and sorting/options/view share a third. Record actions and major
-directory controls use their mobile touch dimensions. The directory remains a
-separately scrollable bounded list rather than expanding the entire page. Below
-360px, status uses four equal columns with each count below its label. The toolbar
-compacts to an 8px gap and 12px top / 10px bottom padding.
+At 1660px the directory/index are 280px/288px, shell sides 20px, workspace sides
+24px and card minimum 320px. Below 1300px the directory/index are 232px/248px;
+navigation/utility text compacts. Below 1120px reading uses the full-viewport,
+focus-managed drawer. Below 960px the fixed directory and desktop navigation
+become one drawer opened by the filter control beside search. Below 720px the
+header is 56px and actions, status and display controls reflow into separate rows.
+Very short narrow windows allow the whole worktable to scroll while maintaining a
+160px result region. The directory remains independently bounded.
 
-On desktop widths, heights at or below 820px reduce the top row to 76px and the
-toolbar to 98px. At or below 650px these become 68px and 72px, toolbar vertical
-padding becomes 6px, the collection heading becomes 26px and the directory footer
-is hidden. In this short desktop state, cards use 16px padding and an 8px gap,
-source medallions are 32px square and record footers use 8px top padding.
-Directory headings and search spacing compact at 700px height on widths of at
-least 720px. Settings/tasks use the full content span. Paging stays outside the
-collection's scrolling region.
+Settings use the whole available page width. At 1280px and above the chat and
+embedding channels share two columns; a 1px divider separates them.
+Four settings tabs sit in a padded grid, reflowing to 2×2 on mobile. Focus is not
+cropped by an overflow strip. Form fields, tasks, importer and desktop settings no
+longer have page-wide centering caps. Reading text retains its measure cap.
 
-## Elevation & Depth
+## Controls and menus
 
-Depth combines two ambient radial gradients, translucent support layers, opaque
-cards, inset top highlights and offset soft shadows. Main navigation blurs at
-18px, the directory at 24px, navigation scrims at 8px and library dialog scrims
-at 10px. These are source-defined treatments awaiting current cloud inspection.
+Shared capsule buttons keep the HeroUI/native adapter for click, Enter/Space,
+focus and form semantics. Their corners and hit areas remain stable during press.
+Selected segment plates animate actual bounds over 340ms with GSAP `power3.out`;
+they do not scale rounded geometry. Last-painted bounds are captured before
+teardown reversion, including non-enumerable DOMRect getters.
 
-### Shadow Vocabulary
+ModelPicker and FolderPicker own their paint in `folder-picker.css`.
+AnchoredMenu uses native manual popovers to escape scroll/animation clipping while
+retaining DOM, form and focus ancestry. It measures visual viewport and scroll
+ancestors, clamps horizontal bounds, flips vertically when needed and closes when
+the anchor is hidden. Exit controls become inert immediately; the top layer is
+released after the overlay exit. Engines without popovers use an inline fallback.
+Search, selection, catalog loading, drafts, Escape and focus return remain intact.
 
-- **Card:** `--card-shadow` defines resting record depth and changes with theme.
-- **Sheet:** `--sheet-shadow` lifts the reader, dialogs and raised menus; its
-  light theme includes a top inset highlight.
-- **Local controls:** primary actions, selected navigation and source medallions
-  have component-specific highlights and shallow shadows. Card hover introduces
-  a separate, broader shadow and pointer light without a card translation.
+FolderTree reconstructs recoverable importer hierarchy from depth and stored path;
+literal slash names and ambiguous legacy identities remain exact entries.
+Disclosure and selection are separate buttons. Counts exclude descendants.
+Loaded branches/pages survive closing and category switching until library revision.
+Long labels wrap to two lines and a path disclosure exposes the full identity.
+The layered folder SVG interpolates matching paths over 240ms with reduced-motion
+endpoints; clipped tree wrappers use inset focus outlines.
 
-The exact shadow values and dark variants are in the sidecar's extensions,
-extracted from the current stylesheet.
+## Cards and reading
 
-**The Motion Ownership Rule.** Assign each animated property to its existing component or motion controller; local hover light must not translate the whole record hit area.
+Native original links and independent selection/edit/process controls remain.
+Blank card areas open preview through the real preview button's focus-return path.
+Modifier clicks, non-left buttons, text selection and interactive descendants retain
+their own actions. Close returns to the actual record opener.
 
-## Shapes
+Reading retains a compact index on wide screens and previous/next/close operations.
+Only a saved, successful body-text tab has a 48px in-flow progress footer.
+Summary, related, pending, failed and empty-text states do not show a placeholder
+“reading preview” box. The footer holds real progress, chapter selection and a
+36px capsule return-to-top button (40px mobile); it does not cover the last paragraph.
+Article width is 740px; native source access remains visible.
 
-Capsules are an explicit user requirement for buttons, search, segmented controls
-and single-line form fields. Frontmatter records the active capsule radius.
-Larger containers use their own geometry: cards, compact records, directory,
-workspace, reader and dialog are separate radius roles. Tags remain small rounded
-labels; source initials sit in softly rounded medallions. Checkbox frames retain
-their compact square form and native checkbox semantics.
+Cards retain the interruptible layout spring (340/32) and source-owned opacity/
+position entrances. Folder/disclosure, reader, menu and dialog transitions have
+separate owners. Overlay exits use 160ms and immediately stop accepting input.
+Reduced motion skips spatial entrances, springs and hover sweeps while preserving
+clear state changes and operation.
 
-## Components
+## Startup and tray
 
-### Buttons
+A shared authored `desktop/splash/mark.svg` uses the same folded-F geometry as
+the generated desktop icon. React, native startup and tray consume that mark.
+The package/window/tray PNG/ICO remains generated by `scripts/desktop_assets.py`
+in CI. The locally installed 32px icon was read-only extracted and compared against
+the installed f1c67fe cloud image: all 1024 pixels matched. This checks the installed
+asset; it does not certify every Windows icon-cache rendering.
 
-Shared capsule buttons keep the HeroUI/native event adapter. Primary actions use
-electric blue, a top highlight and a specular sweep; secondary actions use porcelain
-with an outlined, shallow raised edge; text actions keep their accent foreground.
-Collection Add has a local blue treatment, while Summarize has a pale outlined
-treatment. The source-owned variants determine their sizes and states.
+Native startup has a single identity/status panel, bounded readable errors, a
+progress track and an immediate retry control. Waiting precedes restart; a late
+native error during the promise remains visible. React boot, pairing, setup and
+import retain their drafts, real completion facts and single-flight guards.
 
-Hover sweeps move over 650ms with the shared CSS easing; opacity arrives in 180ms.
-HeroUI owns pressed and focus state. The adapter's CSS keeps the button hit area
-stationary; pressing changes its material and inset shadow. Focus uses the visible
-accent outline; disabled/pending behavior stays with the actual control. The sidecar
-contains separate primary, Add, secondary and text visual specimens.
+The old OS-styled tray menu is replaced by a packaged local WebView with the same
+font, mark, material and blue state vocabulary. It offers open workspace, launch at
+login, global shortcut, desktop/update settings and quit. Check states come from the
+real native plugins; single-flight actions preserve old state on error. Arrow/Home/
+End/Tab roving focus, Escape and native focus loss dismiss correctly.
+Monitor-aware placement uses physical coordinates, target DPI and work-area bounds.
+Rust restricts tray commands to the packaged tray page's label and URL.
+Synthetic cloud opening is separately identified when the hosted notification area
+cannot expose an actual right-click.
 
-### Inputs / Fields
+## Ownership and verification
 
-The main search is a porcelain capsule with a shallow inset and outer shadow.
-Focus changes the edge and adds a soft accent ring. Its mobile font grows to
-16px and minimum height becomes 44px. Form fields use the inset surface, capsule
-geometry and the actual label/form behavior. Directory search has its own compact
-desktop dimensions and 44px mobile treatment.
+`styles.css`: fonts/theme; `ui/controls.css`: shared control paint;
+`workbench.css`: shell/search/responsive geometry; `bookmark-card.css`: records;
+`facet-browser.css`/`folder-tree.css`: directory and disclosure;
+`folder-picker.css`/`AnchoredMenu.tsx`: picker paint and placement;
+`reader-shell.css`: reading; `startup.css`/`setup.css`: React arrival;
+`desktop/splash/native-ui.css`: native startup/tray paint;
+`desktop/src-tauri/src/tray_menu.rs`: privileged native actions.
 
-### Navigation
+Sidecar specimens show static source-defined visual states. They do not reproduce
+React, native APIs, focus management or motion controllers, and are not runtime
+evidence. Tonal ramps are preview aids, not new shipped tokens.
 
-Top navigation sits inside a frosted capsule; its active segment is blue with an
-on-accent label. The shared highlight animates real dimensions and translation
-over 340ms, without scale projection of rounded corners. Grid segments explicitly
-fill their assigned width. Directory entries use capsule rows, exact folder/tag/site
-labels, counts and selected blue surfaces. The mobile
-navigation drawer uses the rail surface and a separate scrim. Its width is the
-smaller of 380px and the viewport minus 20px, with 16px padding and a 12px gap.
-Main navigation uses two columns in a 1.2:1 ratio; bottom utilities use three
-columns in a 1.6:1:1 ratio, with appearance controls spanning the full row. Drawer
-navigation and utility buttons retain a 44px minimum height. The layered folder
-face interpolates matching SVG paths over 240ms; its paper moves with selection
-or disclosure. Fine-pointer hover detail is disabled under reduced motion.
-
-The folder tree pages direct children using the stored `folder_depth` and the
-importers' `/` display separator. API-created slash names remain literal; ambiguous
-legacy depth/path combinations remain complete exact entries rather than guessed trees.
-Disclosure and exact selection have separate buttons; ancestors without direct
-bookmarks can expand. Row counts exclude descendants. Labels wrap to two lines
-within the bounded sidebar, and the selected path has a complete-text disclosure. Loaded
-branches and their pages survive closing and category changes; library revisions
-invalidate them. Arrow keys move through visible rows and their ancestors.
-
-### Chips
-
-Record tags use compact inset labels with their own small radius. Filter-removal
-chips and editable tags are interactive capsules; they are not the same component
-as the passive record tag.
-
-### Cards / Containers
-
-Bookmark cards present source, native title/original links, expandable text, status,
-tags, folder and actions as separate elements. Domain initials choose one of four
-source medallion colors; they are not page thumbnails. The card's local pointer
-light responds only to a mouse and is removed for reduced motion. Hover settles
-the source medallion over 400ms. Selected records retain an explicit edge and tint.
-List mode reuses the record with compact padding and a horizontal desktop layout.
-Its action column uses max-content width; the preview control does not shrink or
-wrap its label. Expandable descriptions use a minmax(0, 1fr) text column and an
-auto-sized control column with an 8px gap, preserving both reading width and the
-control's hit area.
-
-The card layout controller uses a spring (stiffness 340, damping 32). Its entrance
-moves 12px over 380ms with 260ms opacity and a small capped opacity stagger. Native
-selection uses a 160ms fill scale; the checkmark uses opacity/scale, not stroke
-drawing. Cloud interaction captures include intermediate states, rapid reversals
-and reduced-motion endpoints. These samples do not certify full-session frame
-pacing on every target device.
-
-### Reader, overlays and shared motion
-
-The reader keeps collection context on wide screens and becomes a 220ms horizontal
-drawer below the reading breakpoint. Shared selected segments use an interruptible
-340ms GSAP `power3.out` transition of actual width, height and position. The last
-painted bounds are scoped to the application, and responsive changes update the
-endpoint immediately. Dialog/menu overlays use a spring
-(stiffness 380, damping 30), 200ms entering opacity and 160ms exits; their exit
-wrapper immediately becomes inert. Content/category/page transitions retain the
-existing interruptible GSAP controller. Reduced motion skips spatial entrances,
-layout springs and local sweeps while preserving the usable state.
-
-### Startup and first use
-
-The native splash, React boot waiting/error screen, pairing form and setup/import
-path use the same mist, porcelain, blue and bookmark geometry. The native splash
-uses local platform fonts before the service and bundled application fonts are
-available. Its 500×360 window keeps long errors scrollable and retry reachable.
-Waiting is set before restart; a native error received during the promise stays
-visible. Reduced motion removes the loading track's movement.
-
-Boot, pairing, import and source discovery use immediate in-flight guards. Pairing
-retains a failed token draft and submits through a native form. Visited setup
-panels remain mounted, preserving model drafts; step completion reflects actual
-import, tested connection and compatible-index facts. Connection errors have a
-bounded panel rather than stretching between competing top/bottom offsets.
-
-### Ownership and evidence
-
-`styles.css` owns theme/font primitives; `ui/controls.css` owns shared button
-paint; `workbench.css` owns shell/search/responsive geometry;
-`bookmark-card.css` owns record paint; `facet-browser.css` owns the directory;
-`folder-tree.css` owns nested disclosure; `collection-folder-icon.css` owns folder
-material; `startup.css` and `setup.css` own arrival and first-use surfaces;
-`library-tools.css` and `collection-tools.css` own their action/scoping flows;
-`reader-shell.css` owns reading surfaces. Motion controllers keep their existing
-property ownership.
-
-The sidecar's self-contained HTML/CSS specimens reproduce visual states with inline
-SVG and token fallbacks. They do not reproduce React, HeroUI, GSAP, Motion,
-backend behavior or focus management. Generated tonal ramps are panel previews,
-not additional shipped theme colors.
-
-**The Evidence Boundary Rule.** Describe source and runtime evidence at their actual scope. A passing test or a design record never establishes user visual acceptance.
-
-## Do's and Don'ts
-
-### Do:
-
-- **Do** use the current paired light and dark tokens and component-owned capsule styles.
-- **Do** preserve native links, keyboard activation, form behavior, focus return and explicit action scopes.
-- **Do** keep long Chinese and English content readable, with measured summary expansion and independent directory scrolling.
-- **Do** remove replaced styles at their owner and keep reduced-motion states usable.
-- **Do** review the new source in cloud renders and recordings with isolated synthetic data.
-
-### Don't:
-
-- **Don't** restore rejected pale-iris, limestone or pale-green layouts and tokens from historical records.
-- **Don't** use a blanket button/input appearance rule or a document-wide event patch to create local effects.
-- **Don't** merge record hover movement with the layout controller or hide metadata until hover.
-- **Don't** treat old evidence, generated tonal ramps or static component specimens as current runtime or aesthetic approval.
-
-Final application/capture revision f1c67fe passed all four cloud workflows: 12
-focused collection cases, 88 browser cases with 2 skips, a separate real 200k
-case and installed Windows checks. Its 59 PNGs and 7 action groups have 64 source
-and 63 media/record hashes verified. The broader experience evidence has 45
-source, 94 PNG and 3 MP4 hashes verified. Representative full light/dark pages,
-390px reflow, short-window typography, nested folders, startup/setup and system
-selection colors were inspected.
-
-Manual review at 831dcfd exposed shrinking dimensions despite scale=1. The
-lifecycle-only 2b4ecdb repair still failed: spreading DOMRect omitted prototype
-width/height getters. Final code stops capture before GSAP reversion and copies
-left/top/width/height explicitly. Both cleanup orders pass 60 isolated switches
-with non-enumerable getters and four negative controls; actual browser bounds now
-pass. All 61 category frames stay 32px high and 66.65625–67.000015px wide.
-Installed 96-DPI restore, 240 native events merged to one idle write and real
-Enter retry pass at the same final revision, with zero unexpected data writes.
-The collection workflow now includes folder disclosure, capsule geometry,
-startup/pairing and draft-recovery checks. Native splash captures use a synthetic
-restart bridge and are distinguished from installed-app evidence. Synthetic
-150% DPI and removed-monitor geometry are not physical device tests. The new
-overall appearance requires further improvement after user review; the individual
-new icon and details have no separate approval. See the
-[current round](docs/collection-workspace-polish-2026-10-24.md) and
-[historical baseline](docs/collection-workspace-2026-10-23.md).
-
-### Short windows, system colors and native identity
-
-At 683×384, the title/search share a row, tools wrap compactly and the workbench
-can scroll as a whole while retaining at least 160px of results. Forced colors
-use a system Highlight outline for preview/batch selection, and the preview
-control uses HighlightText on Highlight. Native checkbox operation remains intact.
-
-The desktop application icon replaces the earlier bookmark asset with an authored
-blue folded F on a porcelain tile. Edge light, facet planes and soft depth retain
-the workbench's material roles at 16–256px. The CI asset script owns its PNG/ICO;
-default window, tray and package identities consume those same assets. The UI
-collection mark remains the bookmark geometry. The final installed executable's
-extracted 32px icon matches the corresponding ICO pixels after alpha premultiplication.
-Light/dark size previews and the installed icon were inspected; user review is pending.
-
-Native persistence retains the existing physical outer-frame preference shape.
-Restoration moves to the target work area, measures physical decoration and applies
-an explicit physical inner size. Geometry events update memory; one worker writes
-after 900ms of quiet, and close/quit flush the final state. Minimized mode retains
-the last non-minimized maximized state. Startup failure after ready clears its child
-before exposing Retry. Actual current-DPI installed checks are separate from pure
-synthetic 100%/150% and removed-monitor regression cases.
+Local checks cover syntax, whitespace and isolated source behavior only. All
+dependency installs, builds, browsers, packaging and installed-app checks run in
+GitHub Actions with isolated synthetic data. Record exact current runs in
+[the follow-up](docs/workspace-layout-2026-10-24.md). Historical verification,
+technical passing status and user aesthetic acceptance remain separate.

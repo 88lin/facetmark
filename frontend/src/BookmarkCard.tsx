@@ -20,6 +20,7 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
   const [expanded, setExpanded] = useState(false);
   const [clipped, setClipped] = useState(false);
   const summary = useRef<HTMLParagraphElement>(null);
+  const previewControl = useRef<HTMLButtonElement>(null);
   const href = safeUrl(record.url);
   const title = record.title || record.url;
   const trackOpen = (event?: { button: number }) => {
@@ -57,6 +58,16 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
     initial={reduced ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
     transition={{ opacity: { duration: reduced ? 0 : 0.26, delay: reduced ? 0 : Math.min(entranceOrder, 5) * 0.025 },
       y: { duration: reduced ? 0 : 0.38, ease: [0.22, 1, 0.36, 1] }, layout: { type: "spring", stiffness: 340, damping: 32 } }}
+    onClick={event => {
+      if (disabled || event.defaultPrevented || event.button !== 0 ||
+          event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+      const target = event.target;
+      if (!(target instanceof Element) ||
+          target.closest("a, button, input, label, select, textarea, summary, details, [role=button]")) return;
+      const selection = event.currentTarget.ownerDocument.getSelection();
+      if (selection && !selection.isCollapsed && event.currentTarget.contains(selection.anchorNode)) return;
+      if (previewControl.current) onPreview(previewControl.current);
+    }}
     onPointerMove={event => {
       if (reduced || event.pointerType !== "mouse") return;
       const bounds = event.currentTarget.getBoundingClientRect();
@@ -135,7 +146,7 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
           aria-label={t(`编辑：${title}`, `Edit: ${title}`)} title={t("编辑收藏", "Edit bookmark")}><Pencil size={16}/></Button>}
         {onSummarize && <Button type="button" className="bookmark-action" disabled={disabled} onClick={onSummarize}
           aria-label={t("生成此条摘要", "Summarize this bookmark")} title={t("生成摘要", "Summarize")}><Sparkles size={16}/></Button>}
-        <Button type="button" className="bookmark-preview" disabled={disabled} onClick={event => onPreview(event.currentTarget)}
+        <Button ref={previewControl} type="button" className="bookmark-preview" disabled={disabled} onClick={event => onPreview(event.currentTarget)}
           onKeyDown={event => {
             if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
             event.preventDefault();

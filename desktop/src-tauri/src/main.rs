@@ -3,7 +3,6 @@
 use serde::{Deserialize, Serialize};
 use std::sync::{atomic::{AtomicBool, AtomicU64, Ordering}, Mutex};
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
-use tauri::menu::{CheckMenuItem, Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_dialog::DialogExt;
@@ -12,6 +11,7 @@ use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_shell::{process::{CommandChild, CommandEvent}, ShellExt};
 
 mod native_shell;
+mod tray_menu;
 mod window_state;
 use window_state::{Geometry, GeometryQueue, WorkArea, client_size_for_outer, visible_geometry, workspace_start_result};
 
@@ -215,6 +215,7 @@ fn restore_geometry(window: &tauri::WebviewWindow, saved: Option<Geometry>) -> t
 }
 
 fn focus_main(app: &tauri::AppHandle) {
+    tray_menu::hide(app);
     if let Some(win) = app.get_webview_window("main").or_else(|| app.get_webview_window("loading")) {
         let _ = win.show(); let _ = win.unminimize(); let _ = win.set_focus();
     }
@@ -435,58 +436,42 @@ fn main() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().with_handler(|app, _, event| {
             if event.state() == ShortcutState::Pressed { focus_main(app); }
         }).build())
-        .invoke_handler(tauri::generate_handler![restart_backend])
+        .invoke_handler(tauri::generate_handler![restart_backend, tray_menu::tray_snapshot, tray_menu::tray_action])
         .setup(|app| {
-            let show = MenuItem::with_id(app, "show", "打开 Facetmark / Open", true, None::<&str>)?;
-            let startup = CheckMenuItem::with_id(app, "startup", "开机启动 / Launch at login", true, app.autolaunch().is_enabled().unwrap_or(false), None::<&str>)?;
             let prefs = preferences(app.handle());
-            let shortcut = CheckMenuItem::with_id(app, "shortcut", "全局快捷键 Ctrl+Shift+Space", true, prefs.shortcut, None::<&str>)?;
-            let update = MenuItem::with_id(app, "update", "检查更新 / Check for updates", true, None::<&str>)?;
-            let exit = MenuItem::with_id(app, "exit", "退出 / Quit", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show, &startup, &shortcut, &update, &exit])?;
-            // The closure owns its handles; the registration fallback below
-            // still needs the menu item, so it takes a clone.
-            let shortcut_item = shortcut.clone();
-            TrayIconBuilder::new().icon(app.default_window_icon().unwrap().clone()).tooltip("Facetmark")
+            let tray = TrayIconBuilder::with_id("facetmark-tray")
+                .icon(app.default_window_icon().unwrap().clone()).tooltip("Facetmark")
+                .show_menu_on_left_click(false)
                 .on_tray_icon_event(|tray, event| {
-                    // Windows convention: a plain left click restores the app;
-                    // without this the tray icon feels dead until right-clicked.
-                    if let tauri::tray::TrayIconEvent::Click {
-                        button: tauri::tray::MouseButton::Left,
-                        button_state: tauri::tray::MouseButtonState::Up, ..
-                    } = event {
-                        focus_main(tray.app_handle());
-                    }
-                })
-                .menu(&menu).on_menu_event(move |app, event| {
-                    match event.id.as_ref() {
-                        "show" => focus_main(app),
-                        "startup" => {
-                            let enabled = app.autolaunch().is_enabled().unwrap_or(false);
-                            let result = if enabled { app.autolaunch().disable() } else { app.autolaunch().enable() };
-                            let _ = startup.set_checked(if result.is_ok() { !enabled } else { enabled });
-                        },
-                        "shortcut" => {
-                            // Trust the actual registration, not the stored
-                            // preference: a failed first registration leaves
-                            // the two disagreeing, and toggling from the stale
-                            // value asks the wrong direction.
-                            let registered = app.global_shortcut().is_registered(SHORTCUT);
-                            let result = if registered { app.global_shortcut().unregister(SHORTCUT) } else { app.global_shortcut().register(SHORTCUT) };
-                            if result.is_ok() { update_preferences(app, |prefs| prefs.shortcut = !registered); }
-                            let _ = shortcut_item.set_checked(result.is_ok() && !registered);
-                        },
-                        "update" => {
-                            if let Some(win) = app.get_webview_window("main") { let _ = win.eval("window.location.hash = 'settings'"); }
-                            focus_main(app);
-                        },
-                        "exit" => request_exit(app),
-                        _ => {},
+                    if let tauri::tray::TrayIconEvent::Click { button, button_state: tauri::tray::MouseButtonState::Up, position, .. } = event {
+                        match button {
+                            tauri::tray::MouseButton::Left => focus_main(tray.app_handle()),
+                            tauri::tray::MouseButton::Right => {
+                                if let Err(error) = tray_menu::open(tray.app_handle(), position.x, position.y, "right-click") {
+                                    tray.app_handle().dialog().message(format!("托盘菜单未能打开。 / Could not open the tray menu: {error}"))
+                                        .title("Facetmark").show(|_| {});
+                                }
+                            },
+                            _ => {},
+                        }
                     }
                 }).build(app)?;
+            if cloud_webview_inspection() {
+                let handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_secs(1));
+                    if let Ok(Some(rect)) = tray.rect() {
+                        let position = rect.position.to_physical::<f64>(1.);
+                        let size = rect.size.to_physical::<u32>(1.);
+                        ci_record("tray-icon-native.json", serde_json::json!({
+                            "process": std::process::id(), "x": position.x, "y": position.y, "width": size.width, "height": size.height
+                        }));
+                    }
+                    tray_menu::start_ci_inspection(&handle);
+                });
+            }
             if prefs.shortcut {
                 if let Err(error) = app.global_shortcut().register(SHORTCUT) {
-                    let _ = shortcut.set_checked(false);
                     app.dialog().message(format!("无法注册全局快捷键，可能已被占用。 / Global shortcut unavailable: {error}")).title("Facetmark").show(|_| {});
                 }
             }
@@ -495,6 +480,9 @@ fn main() {
         })
         .on_window_event(|win, event| {
             match event {
+                tauri::WindowEvent::Focused(false) if win.label() == "tray-menu" => {
+                    let _ = win.hide();
+                }
                 tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) if win.label() == "main" => {
                     remember_geometry(win);
                 }
@@ -511,6 +499,9 @@ fn main() {
                             prefs.tray_notice_seen = true;
                             update_preferences(app, |saved| saved.tray_notice_seen = prefs.tray_notice_seen);
                         }
+                        let _ = win.hide();
+                    } else if win.label() == "tray-menu" {
+                        api.prevent_close();
                         let _ = win.hide();
                     } else if win.label() == "loading" {
                         api.prevent_close();

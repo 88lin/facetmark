@@ -16,6 +16,7 @@ $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--remote-debugging-port=9223'
 $env:FACETMARK_CI_WEBVIEW_INSPECT = '1'
 $env:FACETMARK_CI_FAIL_WORKSPACE_ONCE = '1'
 $env:FACETMARK_CI_EVIDENCE_DIR = $evidenceDir
+$env:FACETMARK_CI_TRAY_INSPECT = '1'
 $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
 Get-ChildItem Env: | Where-Object Name -Like 'PYTHON*' | ForEach-Object { Remove-Item -LiteralPath "Env:$($_.Name)" }
 
@@ -74,6 +75,8 @@ try {
     $webviews | Select-Object ProcessId, ParentProcessId, CommandLine | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidenceDir 'webview-processes.json') -Encoding utf8
     & (Join-Path $repoRoot '.desktop-build/venv/Scripts/python.exe') (Join-Path $repoRoot 'scripts/installed_webview_check.py') $evidenceDir
     if ($LASTEXITCODE -ne 0) { throw 'Installed WebView interaction check failed; inspect its trace and evidence.' }
+    & (Join-Path $repoRoot '.desktop-build/venv/Scripts/python.exe') (Join-Path $repoRoot 'scripts/installed_tray_check.py') $evidenceDir $app.Id operate
+    if ($LASTEXITCODE -ne 0) { throw 'Installed tray actions, keyboard and focus checks failed.' }
     $token = (Get-Content -LiteralPath (Join-Path $dataTarget 'pairing-token.txt') -Raw).Trim()
     $headers = @{ Authorization = "Bearer $token" }
     $saved = Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:$($ready.port)/bookmark" -Headers $headers -ContentType 'application/json' -Body '{"url":"https://ci.example/retained","title":"Synthetic retained bookmark"}'
@@ -90,10 +93,9 @@ try {
     & (Join-Path $repoRoot '.desktop-build/venv/Scripts/python.exe') (Join-Path $repoRoot 'scripts/installed_window_check.py') $evidenceDir restored $app.Id
     if ($LASTEXITCODE -ne 0) { throw 'Native geometry did not restore its physical frame into the monitor work area.' }
     $ready = Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json
-    Stop-Process -Id $app.Id
-    $deadline = (Get-Date).AddSeconds(30)
-    while ((Get-Process -Id $ready.pid -ErrorAction SilentlyContinue) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 300 }
-    if (Get-Process -Id $ready.pid -ErrorAction SilentlyContinue) { throw 'Relaunched backend survived parent exit' }
+    & (Join-Path $repoRoot '.desktop-build/venv/Scripts/python.exe') (Join-Path $repoRoot 'scripts/installed_tray_check.py') $evidenceDir $app.Id exit
+    if ($LASTEXITCODE -ne 0) { throw 'Tray Quit did not stop the relaunched desktop and its owned service.' }
+    if (-not $app.WaitForExit(30000)) { throw 'Relaunched desktop did not exit through its tray menu.' }
     # A same-version reinstall is a repair smoke; it is not a cross-version upgrade test.
     $repair = Start-Process -FilePath $installer.FullName -ArgumentList "/S /D=$installTarget" -Wait -PassThru -WindowStyle Hidden
     if ($repair.ExitCode -ne 0) { throw 'Same-version reinstall failed' }

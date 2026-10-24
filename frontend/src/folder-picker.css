@@ -1,5 +1,15 @@
 /* HeroUI controls share the app palette; menu geometry remains local. */
 .folder-picker { position: relative; min-width: 0; }
+.model-picker, .model-picker-anchor { position: relative; }
+.model-picker-label { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; font-size: var(--type-ui); font-weight: 600; }
+.model-picker-label .text-button { display: inline-flex; gap: 6px; align-items: center; }
+.model-picker-trigger > span { min-width: 0; }
+.model-picker-trigger > svg { flex-shrink: 0; }
+.model-picker-control.is-editable { display: flex; border: 1px solid var(--rule); }
+.model-picker-control.is-editable > input { width: 100%; min-width: 0; color: var(--ink); }
+.model-picker-control.is-editable > .model-picker-trigger { flex-shrink: 0; justify-content: center; }
+.model-picker > input { margin-top: 8px; }
+.model-catalog-note { margin: 2px 0 0; }
 .folder-picker .folder-picker-trigger,
 .model-picker .model-picker-trigger,
 .model-picker > .input {
@@ -36,8 +46,19 @@
   background: var(--canvas);
   box-shadow: var(--sheet-shadow);
 }
-.folder-picker .folder-picker-panel { margin-top: 4px; }
-.model-picker .model-picker-menu { top: calc(100% + 8px); z-index: 30; }
+.fm-picker-popover[popover] {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  max-width: calc(100dvw - 16px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
+}
+.fm-picker-popover:popover-open { display: flex; flex-direction: column; }
+.fm-picker-popover::backdrop { background: transparent; pointer-events: none; }
+.fm-picker-popover[data-floating="false"] { position: static; width: 100%; margin-top: 6px; }
 .folder-picker .folder-picker-search,
 .model-picker .model-picker-search {
   display: flex;
@@ -80,6 +101,8 @@
 .folder-picker-options,
 .model-picker .model-picker-list {
   max-height: min(280px, 32dvh);
+  min-height: 0;
+  flex: 0 1 auto;
   overflow-y: auto;
   overscroll-behavior: contain;
   margin-top: 8px;
@@ -150,7 +173,6 @@
 @media (max-width: 719px) {
   .folder-picker-options > .fm-button,
   .model-picker-list > .fm-button { min-height: 52px; }
-  .model-picker .model-picker-menu { top: calc(100% + 8px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .folder-picker-chevron,

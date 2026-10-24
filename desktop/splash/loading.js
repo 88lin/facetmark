@@ -5,7 +5,7 @@ const status = document.querySelector('#status');
 const hint = document.querySelector('#hint');
 const retry = document.querySelector('#retry');
 const track = document.querySelector('#track');
-const idleStatus = english ? 'Opening your bookmark workspace…' : '正在启动你的书签工作台…';
+const idleStatus = english ? 'Opening your collection workspace…' : '正在打开你的收藏工作区…';
 if (english) {
   document.documentElement.lang = 'en';
   status.textContent = idleStatus;

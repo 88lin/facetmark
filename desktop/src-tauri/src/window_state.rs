@@ -65,6 +65,27 @@ pub fn client_size_for_outer(wanted: Geometry, outer: (u32, u32), inner: (u32, u
      wanted.height.saturating_sub(outer.1.saturating_sub(inner.1)).max(1))
 }
 
+/// The tray sends physical coordinates. Choose the monitor from that point,
+/// then keep the entire scaled menu clear of its taskbar and work-area edges.
+pub fn tray_menu_geometry(x: f64, y: f64, scale: f64, areas: &[WorkArea]) -> Option<Geometry> {
+    if !x.is_finite() || !y.is_finite() || !scale.is_finite() || scale <= 0. { return None; }
+    let cursor = Geometry { x: x.round() as i32, y: y.round() as i32, width: 1, height: 1 };
+    let area = areas.iter().filter(|area| area.width > 0 && area.height > 0).max_by(|a, b| {
+        a.overlap(cursor).cmp(&b.overlap(cursor)).then_with(|| b.distance(cursor).total_cmp(&a.distance(cursor)))
+    })?;
+    let margin = (8. * scale).round() as u32;
+    let width = ((312. * scale).round() as u32).min(area.width.saturating_sub(margin * 2).max(1));
+    let height = ((374. * scale).round() as u32).min(area.height.saturating_sub(margin * 2).max(1));
+    let inset_x = margin.min((area.width - width) / 2), inset_y = margin.min((area.height - height) / 2);
+    Some(Geometry {
+        x: (i64::from(cursor.x) - i64::from(width) + i64::from(margin)).clamp(
+            i64::from(area.x) + i64::from(inset_x), area.right() - i64::from(width) - i64::from(inset_x)) as i32,
+        y: (i64::from(cursor.y) - i64::from(height) - i64::from(margin)).clamp(
+            i64::from(area.y) + i64::from(inset_y), area.bottom() - i64::from(height) - i64::from(inset_y)) as i32,
+        width, height,
+    })
+}
+
 #[derive(Default)]
 pub struct GeometryQueue {
     latest: Option<Geometry>,
@@ -152,6 +173,21 @@ mod tests {
             assert_eq!(visible_geometry(saved, &[area(0, 0, 2400, 1600)]), Some(saved));
         }
         assert_eq!(client_size_for_outer(box_at(0, 0, 1000, 700), (1500, 1050), (1476, 991)), (976, 641));
+    }
+    #[test]
+    fn tray_menu_stays_in_the_requested_monitor_at_both_dpi_scales() {
+        let displays = [area(-1920, -200, 1920, 1040), area(0, 40, 2400, 1520)];
+        for (x, y, scale, target) in [(-50., 850., 1., displays[0]), (2390., 1580., 1.5, displays[1]),
+            (2., 0., 1., displays[1]), (-1925., 0., 1.5, displays[0])] {
+            let menu = tray_menu_geometry(x, y, scale, &displays).unwrap();
+            assert!(menu.x >= target.x && menu.y >= target.y);
+            assert!(i64::from(menu.x) + i64::from(menu.width) <= target.right());
+            assert!(i64::from(menu.y) + i64::from(menu.height) <= target.bottom());
+            assert_eq!(menu.width, (312. * scale).round() as u32);
+        }
+        let tiny = tray_menu_geometry(300., 190., 1.5, &[area(0, 40, 320, 160)]).unwrap();
+        assert!(tiny.width <= 320 && tiny.height <= 160);
+        assert!(tray_menu_geometry(f64::NAN, 0., 1., &displays).is_none());
     }
     #[test]
     fn a_drag_coalesces_changing_events_and_closing_flushes_the_latest_box() {

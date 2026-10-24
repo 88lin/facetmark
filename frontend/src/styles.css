@@ -671,7 +671,7 @@ kbd {
   justify-content: space-between;
   gap: 24px;
   margin-bottom: 36px;
-  max-width: 1040px;
+  min-width: 0;
 }
 .page-heading p {
   color: var(--muted);
@@ -695,7 +695,8 @@ kbd {
 .importer,
 .extension-settings,
 .desktop-note {
-  max-width: 1040px;
+  width: 100%;
+  min-width: 0;
 }
 .field {
   display: flex;
@@ -704,6 +705,7 @@ kbd {
   margin-bottom: 20px;
   font-size: var(--type-ui);
   font-weight: 600;
+  min-width: 0;
 }
 .field > span {
   display: flex;
@@ -931,7 +933,7 @@ pre {
   border-radius: 10px;
   background: var(--canvas);
   width: 100%;
-  max-width: 1040px;
+  min-width: 0;
   padding: 22px;
   margin: 10px 0;
 }

@@ -4,7 +4,7 @@ import { Input } from "@heroui/react";
 import { Check, ChevronDown, LoaderCircle, RefreshCw, Search } from "lucide-react";
 import { post } from "./api";
 import { useText } from "./locale";
-import { OverlayMotion } from "./overlay-motion";
+import { AnchoredMenu } from "./AnchoredMenu";
 import { useReducedMotion } from "./useReducedMotion";
 import { CapsuleButton as Button } from "./ui/controls";
 import "./folder-picker.css";
@@ -29,6 +29,7 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
   const [visibleCount, setVisibleCount] = useState(100);
   const [manual, setManual] = useState(false);
   const container = useRef<HTMLDivElement>(null);
+  const anchor = useRef<HTMLDivElement>(null);
   const filter = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -92,7 +93,7 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
         {busy ? t("读取模型…", "Loading models…") : t("刷新模型", "Refresh models")}
       </Button>
     </div>
-    <div className="model-picker-anchor">
+    <div className="model-picker-anchor" ref={anchor}>
     <div className={`model-picker-control ${!agent ? "is-editable" : ""}`}>
     {!agent && <Input id={`${id}-input`} name={name} value={value} aria-label={t("自定义模型名称", "Custom model name")}
       disabled={disabled} spellCheck={false} autoComplete="off" placeholder={t("输入模型名称，或从右侧目录选择", "Enter a model name or browse the catalog")}
@@ -108,7 +109,7 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
     </Button>
     </div>
     <AnimatePresence>
-    {open && <OverlayMotion key="model-menu" className="model-picker-menu" onKeyDown={event => {
+    {open && <AnchoredMenu anchor={anchor} onDismiss={() => setOpen(false)} key="model-menu" className="model-picker-menu" onKeyDown={event => {
       if (event.nativeEvent.isComposing) return;
       if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setOpen(false); trigger.current?.focus({ preventScroll: true }); return; }
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -143,7 +144,7 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
         {t(`加载更多（${shown.length} / ${choices.length}）`, `Load more (${shown.length} / ${choices.length})`)}
       </Button>}
       <Button className="text-button model-manual" type="button" onClick={() => { setManual(true); setOpen(false); requestAnimationFrame(() => document.getElementById(`${id}-input`)?.focus()); }}>{t("手动输入模型名称", "Enter a model name")}</Button>
-    </OverlayMotion>}
+    </AnchoredMenu>}
     </AnimatePresence>
     </div>
     {manual && agent && <Input id={`${id}-input`} name={name} value={value} aria-label={t("自定义模型名称", "Custom model name")}

@@ -280,7 +280,7 @@ test("supporting views and small-window reader share the same system", async ({ 
   await page.screenshot({ path: "screenshots/reader-zh-390.png", animations: "disabled" });
   await page.getByRole("button", { name: "返回收藏" }).click();
   await expect(page.locator(".result-row").first().locator(".bookmark-preview")).toBeFocused();
-  await page.getByRole("button", { name: "打开导航", exact: true }).click();
+  await page.getByRole("button", { name: "筛选收藏", exact: true }).click();
   await page.getByRole("button", { name: "设置", exact: true }).click();
   await expect(page.locator("input[name=chat_model]")).toBeVisible();
   await settleVisualLayout(page);

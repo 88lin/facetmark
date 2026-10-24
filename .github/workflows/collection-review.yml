@@ -35,6 +35,8 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Selection cleanup and synthetic startup regression
         run: node scripts/check_workspace_polish.cjs
+      - name: Stage shared native text faces
+        run: python scripts/stage_native_ui.py
       - working-directory: frontend
         run: npm run build
       - run: ruff check scripts/collection_review_fixture.py scripts/collection_review_evidence.py
@@ -53,7 +55,7 @@ jobs:
         working-directory: frontend
         env:
           FACETMARK_REVIEW_CORPUS: '1'
-        run: npx playwright test collection-review.spec.ts workspace-polish.spec.ts startup.spec.ts
+        run: npx playwright test collection-review.spec.ts workspace-polish.spec.ts workspace-layout.spec.ts native-menu.spec.ts startup.spec.ts
       - name: Package viewable source-matched evidence
         if: always()
         run: python scripts/collection_review_evidence.py

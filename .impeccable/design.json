@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-23T22:00:27.946Z",
+  "generatedAt": "2026-10-24T01:23:52.934363+00:00",
   "title": "Design System: Facetmark collection workspace",
   "extensions": {
     "colorMeta": {
@@ -960,12 +960,12 @@
     "typographyMeta": {
       "display": {
         "displayName": "Collection heading",
-        "purpose": "Upright Inter/Noto title: 32px default, 30px below 1300px, 26px below 720px and in desktop windows at or below 650px height. Short 600-959px windows at <=560px height use 22px.",
-        "source": "frontend/src/workbench.css"
+        "purpose": "Collection scope h1 is visually hidden; setup/support headings retain their own visible scale.",
+        "source": "frontend/src/App.tsx + frontend/src/setup.css"
       },
       "title": {
         "displayName": "Record title",
-        "purpose": "19px/680 default; 17px mobile; 15px retained reading index. Native original-page link.",
+        "purpose": "18px/680 default, 17px mobile, 16px retained reading index. Native original-page link.",
         "source": "frontend/src/bookmark-card.css"
       },
       "body": {
@@ -975,7 +975,7 @@
       },
       "summary": {
         "displayName": "Record summary",
-        "purpose": "15px/1.8 desktop summary, 14px on mobile; measured expansion, two lines; 13px in the reading index. Available expansion occupies a separate control column with an 8px gap.",
+        "purpose": "15px/1.8 desktop, 14px mobile; measured expansion, two lines, separate 8px control gap. Hidden in compact reading index.",
         "source": "frontend/src/bookmark-card.css"
       },
       "control": {
@@ -995,12 +995,12 @@
       },
       "reader-title": {
         "displayName": "Reader title",
-        "purpose": "36px article heading, 38px in focus mode.",
+        "purpose": "29px/700 title, 32px focus, 25px mobile; rem-scaled.",
         "source": "frontend/src/reader-shell.css"
       },
       "reading": {
         "displayName": "Reading body",
-        "purpose": "18px/1.85 article text on an opaque content surface.",
+        "purpose": "17px/1.8 body, 16px mobile; h2/h3 21px/19px desktop and 20px/18px mobile.",
         "source": "frontend/src/reader-shell.css"
       }
     },
@@ -1145,71 +1145,64 @@
         "name": "wide",
         "value": "1660px",
         "query": "(min-width: 1660px)",
-        "purpose": "264px directory, 340px index, 360px card minimum and wider shell.",
+        "purpose": "280px directory, 288px index, 320px card minimum; 20px shell sides.",
         "source": "frontend/src/workbench.css"
       },
       {
         "name": "compact-desktop",
         "value": "1300px",
         "query": "(max-width: 1299px)",
-        "purpose": "218px directory, 280px index, 22px workspace padding and 30px collection title.",
+        "purpose": "232px directory, 248px index; compact navigation and utility labels.",
         "source": "frontend/src/workbench.css"
       },
       {
         "name": "reader",
         "value": "1120px",
         "query": "(max-width: 1119px)",
-        "purpose": "Full-viewport reader drawer below; retained index and optional article outline above.",
-        "source": "frontend/src/workbench.css + frontend/src/App.tsx"
+        "purpose": "Focus-managed full-viewport reader; compact index on wider windows.",
+        "source": "frontend/src/workbench.css"
       },
       {
         "name": "navigation",
         "value": "960px",
         "query": "(max-width: 959px)",
-        "purpose": "Hide top navigation/fixed directory and expose the rail drawer: width min(380px, viewport - 20px), gap 12px and padding 16px; main navigation 1.2:1 columns, bottom utilities 1.6:1:1 columns with appearance spanning the row.",
+        "purpose": "60px header; filter entry opens complete navigation drawer; hide fixed directory/top navigation.",
         "source": "frontend/src/workbench.css"
       },
       {
         "name": "mobile",
         "value": "720px",
         "query": "(max-width: 719px)",
-        "purpose": "58px header row; stacked search; separate action/status/display rows and compact records.",
-        "source": "frontend/src/workbench.css + frontend/src/bookmark-card.css"
+        "purpose": "56px header, full-width search, separate action/status/display rows; settings tabs 2x2.",
+        "source": "frontend/src/workbench.css"
       },
       {
         "name": "narrow-mobile",
         "value": "360px",
         "query": "(max-width: 359px)",
-        "purpose": "Below 360px: four equal status columns with label/count stacked; toolbar gap 8px and padding 12px 0 10px; compact workspace/footer/subtitle.",
-        "source": "frontend/src/workbench.css + frontend/src/collection-tools.css"
-      },
-      {
-        "name": "short-desktop",
-        "value": "820px height",
-        "query": "(max-height: 820px) and (min-width: 960px)",
-        "purpose": "76px top row and 98px toolbar to preserve directory and record space.",
+        "purpose": "8px workspace sides and compact paging.",
         "source": "frontend/src/workbench.css"
       },
       {
-        "name": "very-short-desktop",
-        "value": "650px height",
-        "query": "(max-height: 650px) and (min-width: 960px)",
-        "purpose": "68px top row; 72px toolbar with 6px vertical padding and 26px heading; hidden directory footer. Cards use 16px padding/8px gap, 32px source medallions and 8px footer top padding.",
-        "source": "frontend/src/workbench.css + frontend/src/bookmark-card.css"
+        "name": "short-narrow-workbench",
+        "value": "959px / 560px",
+        "query": "(max-width: 959px) and (max-height: 560px)",
+        "purpose": "52px header, whole-worktable scroll, 160px minimum results.",
+        "source": "frontend/src/workbench.css"
+      },
+      {
+        "name": "settings-columns",
+        "value": "1280px",
+        "query": "(min-width: 1280px)",
+        "purpose": "Chat/embedding channels in two full-width columns with 1px divider.",
+        "source": "frontend/src/support.css"
       },
       {
         "name": "compact-directory",
         "value": "700px height",
         "query": "(max-height: 700px) and (min-width: 720px)",
-        "purpose": "Smaller directory heading, category and search spacing.",
+        "purpose": "Compact category/search spacing.",
         "source": "frontend/src/facet-browser.css"
-      },
-      {
-        "name": "short-narrow-workbench",
-        "value": "959px width / 560px height",
-        "query": "(max-width: 959px) and (max-height: 560px)",
-        "purpose": "Whole-workbench scrolling with 160px minimum results; horizontal title/search from 600px.",
-        "source": "frontend/src/workbench.css"
       }
     ],
     "materials": [
@@ -1242,101 +1235,128 @@
     "tonalRampProvenance": "Generated 8-step OKLCH strips for the design panel only. They are not shipped palette tokens or verified contrast combinations.",
     "specimenScope": "Static, self-contained HTML/CSS visual states with inline SVG and root-token fallbacks. Runtime controls, selection geometry, layout springs, focus management and data behavior remain in the React application. The bundled font aliases use platform fallbacks if the host has not loaded those fonts.",
     "evidence": {
-      "status": "technically-verified-visual-quality-requires-refinement",
-      "visualAcceptance": "user-assessed-usable-but-not-good-looking",
-      "sourceState": "Mist-blue identity retained. Capsule geometry, blue states, nested folders and startup/setup refined; follow-up adds two-line folder labels, short-window and forced-colors fixes, native geometry/persistence/retry repairs and a porcelain folded-F desktop icon. The latest repair freezes painted-frame capture before GSAP context reversion, including cleanup while a marker ref is attached. Geometry now explicitly copies DOMRect left/top/width/height instead of spreading non-enumerable getters.",
-      "sourceBasis": "Final application/capture f1c67fe passed collection, CI, experience and Windows workflows. Explicit DOMRect coordinates and teardown sampling guard are verified together in real browser frame bounds. Earlier partial failures remain revision-specific history.",
-      "applicationRevision": "f1c67fe49282c487f9b9a664c9be0ea800ca6df2",
-      "captureRevision": "f1c67fe49282c487f9b9a664c9be0ea800ca6df2",
+      "status": "source-edited-awaiting-cloud-validation-and-user-review",
+      "visualAcceptance": "awaiting-user-review",
+      "sourceState": "Header search, full-height directory, compact grid/index, full-width settings and native anchored pickers; quieter reading type, in-flow body-only progress, shared folded-F startup and real packaged tray menu.",
+      "sourceBasis": "Current follow-up workspace on fix/workspace-layout-2026-10-24. Cloud validation has not yet run for these edits.",
+      "applicationRevision": null,
+      "captureRevision": null,
       "handbookVersion": "0.18",
       "brief": ".impeccable/workbench-direction.md",
       "surface": ".impeccable/surfaces/frontend.md",
-      "history": ".impeccable/history/2026-10-23-rejected-iris/",
-      "baseRevision": "530471ae7ae125d9b2f81fef082864638f04ad8a",
-      "roundRecord": "docs/collection-workspace-polish-2026-10-24.md",
-      "verification": "f1c67fe passed four workflows: collection 12/12, browser 88 passed/2 skipped, independent real 200k case 1 passed, backend 2054 passed/1 skipped and installed Windows/8 Rust tests. Collection has 59 PNGs, 7 action groups, 64 source and 63 media/record hashes verified; broader experience has 45 source, 94 PNG and 3 MP4 hashes verified. All 61 category frames stay 32px high and 66.65625-67.000015px wide with scale 1. Two cleanup orders each pass 60 isolated switches with non-enumerable getters and four negative controls. Installed 32px folded-F matches ICO premultiplied pixels exactly; PNG/ICO and Windows CRLF source hashes match. Actual 96-DPI restore, 240 native calls merged to one idle write and Enter retry pass. 18 Web/24 installed interactions have no page errors or unexpected writes. 150% DPI/monitor removal remain pure geometry. Representative renders, storyboards and frame data were inspected; full-MP4 playback/all-device frame-rate tests were not performed. The latest user assessment is usable but not good-looking; overall visual quality requires refinement. The individual new icon/details have no separate approval.",
-      "nativeStartupScope": "Browser splash HTML uses a synthetic Tauri restart bridge; pairing/import state captures use synthetic responses. Installed ready-then-failure cleanup, real Enter retry, geometry and lifecycle pass separately in Windows run 40039337892 at f1c67fe.",
+      "roundRecord": "docs/workspace-layout-2026-10-24.md",
+      "verification": "Local syntax and isolated source checks only; complete build, render and installed checks pending in GitHub Actions.",
       "latestFeedback": {
         "date": "2026-10-24",
-        "scope": "Facetmark PR #44 appearance and documentation ownership",
+        "scope": "Layout height, settings clipping, reading typography, blank-card preview, shared header search, native icon/tray/startup; PR44 merged, new follow-up requested.",
         "assessment": "Usable but still not good-looking. Overall visual quality requires improvement; no individual visual choice is newly approved. Earlier progress acknowledgement does not freeze the current direction.",
         "quote": "还不算好看，能用的样子而已",
         "recordScope": "All product directions, implementation, screenshots, bugs, runs, commits and assessments remain exclusively in this repository. The long-term master contains only general reference methods and research.",
         "previousAssessment": "Earlier substantial-progress acknowledgement remains historical; commit/push and cloud-verification authorization persists."
       },
-      "historicalBaseline": {
-        "status": "cloud-verified-awaiting-user-visual-review",
-        "visualAcceptance": "awaiting-user-review",
-        "sourceState": "Replacement after the user rejected 46cf2f3: top capsule navigation, frosted directory, mist-blue layered cards and upright Inter/Noto typography.",
-        "sourceBasis": "Static tokens and specimens extracted from frontend/src; runtime evidence is recorded separately at exact revisions below.",
+      "localInstalledIcon": {
+        "scope": "Read-only EXE icon extraction; no local app launch/install/cache change",
+        "pixelComparison": "1024/1024 match to f1c67fe cloud installed icon",
+        "executableSha256": "F51726C3E0032BA5DE02B8A66666867F774C31850AB539219FCB447EAE9FC4F5",
+        "visualAcceptance": "pending"
+      },
+      "previousRound": {
+        "status": "technically-verified-visual-quality-requires-refinement",
+        "visualAcceptance": "user-assessed-usable-but-not-good-looking",
+        "sourceState": "Mist-blue identity retained. Capsule geometry, blue states, nested folders and startup/setup refined; follow-up adds two-line folder labels, short-window and forced-colors fixes, native geometry/persistence/retry repairs and a porcelain folded-F desktop icon. The latest repair freezes painted-frame capture before GSAP context reversion, including cleanup while a marker ref is attached. Geometry now explicitly copies DOMRect left/top/width/height instead of spreading non-enumerable getters.",
+        "sourceBasis": "Final application/capture f1c67fe passed collection, CI, experience and Windows workflows. Explicit DOMRect coordinates and teardown sampling guard are verified together in real browser frame bounds. Earlier partial failures remain revision-specific history.",
+        "applicationRevision": "f1c67fe49282c487f9b9a664c9be0ea800ca6df2",
+        "captureRevision": "f1c67fe49282c487f9b9a664c9be0ea800ca6df2",
+        "handbookVersion": "0.18",
         "brief": ".impeccable/workbench-direction.md",
         "surface": ".impeccable/surfaces/frontend.md",
         "history": ".impeccable/history/2026-10-23-rejected-iris/",
-        "verification": "All four 04ecc11 cloud workflows passed. Capture-only 7d2abd0 passed collection review with identical application files: 26 screenshots, 6 action groups, 0 page errors, 39 source hashes and 29 media/record hashes verified. Windows installed WebView completed 24 steps without page errors or unexpected writes.",
-        "roundRecord": "docs/collection-workspace-2026-10-23.md",
-        "applicationRevision": "04ecc1133b62717cbd06f3733e40a3322cd42230",
-        "captureRevision": "7d2abd0f52687d2192b01b2cd7557aa446995698",
-        "runs": {
-          "ci": "39878725847",
-          "experience": "39878719512",
-          "collection": "39878719511",
-          "windows": "39878719504",
-          "finalCapture": "39882197281"
+        "baseRevision": "530471ae7ae125d9b2f81fef082864638f04ad8a",
+        "roundRecord": "docs/collection-workspace-polish-2026-10-24.md",
+        "verification": "f1c67fe passed four workflows: collection 12/12, browser 88 passed/2 skipped, independent real 200k case 1 passed, backend 2054 passed/1 skipped and installed Windows/8 Rust tests. Collection has 59 PNGs, 7 action groups, 64 source and 63 media/record hashes verified; broader experience has 45 source, 94 PNG and 3 MP4 hashes verified. All 61 category frames stay 32px high and 66.65625-67.000015px wide with scale 1. Two cleanup orders each pass 60 isolated switches with non-enumerable getters and four negative controls. Installed 32px folded-F matches ICO premultiplied pixels exactly; PNG/ICO and Windows CRLF source hashes match. Actual 96-DPI restore, 240 native calls merged to one idle write and Enter retry pass. 18 Web/24 installed interactions have no page errors or unexpected writes. 150% DPI/monitor removal remain pure geometry. Representative renders, storyboards and frame data were inspected; full-MP4 playback/all-device frame-rate tests were not performed. The latest user assessment is usable but not good-looking; overall visual quality requires refinement. The individual new icon/details have no separate approval.",
+        "nativeStartupScope": "Browser splash HTML uses a synthetic Tauri restart bridge; pairing/import state captures use synthetic responses. Installed ready-then-failure cleanup, real Enter retry, geometry and lifecycle pass separately in Windows run 40039337892 at f1c67fe.",
+        "latestFeedback": {
+          "date": "2026-10-24",
+          "scope": "Facetmark PR #44 appearance and documentation ownership",
+          "assessment": "Usable but still not good-looking. Overall visual quality requires improvement; no individual visual choice is newly approved. Earlier progress acknowledgement does not freeze the current direction.",
+          "quote": "还不算好看，能用的样子而已",
+          "recordScope": "All product directions, implementation, screenshots, bugs, runs, commits and assessments remain exclusively in this repository. The long-term master contains only general reference methods and research.",
+          "previousAssessment": "Earlier substantial-progress acknowledgement remains historical; commit/push and cloud-verification authorization persists."
         },
-        "independentReview": "Generic independent reviewer substituted for the unavailable dedicated role. All six listed corrections resolved; remaining clear, disposition ship within that scope. User aesthetic acceptance remains pending. Storyboard and frame review did not include direct full-MP4 playback."
-      },
-      "firstPolishRun": {
-        "revision": "87456fff7fa20db703b93fbfc1abe09f51d7cf73",
-        "collection": "40026554487",
-        "ci": "40026558007",
-        "windows": "40026554543",
-        "experience": "40026554473",
-        "state": "partial failures corrected in follow-up; not final certification"
-      },
-      "desktopIcon": {
-        "source": "scripts/desktop_assets.py",
-        "direction": "Porcelain tile and blue folded F; 16-256px ICO and PNG",
-        "review": "pending",
-        "runtime": "f1c67fe CI PNG/ICO and Windows CRLF source hashes verified; light/dark size sheet and installed 32px exe icon inspected. Premultiplied pixels match the corresponding ICO image exactly."
-      },
-      "issuePolishRun": {
-        "revision": "475c732d1543ef3c097f9ecc3bc024f8f63ef4e4",
-        "collection": "40030835960",
-        "ci": "40030840835",
-        "windows": "40030836014",
-        "experience": "40030835958",
-        "state": "collection and installed Windows passed; later typography and CI/encoder corrections verified at 831dcfd"
-      },
-      "thirdPolishRun": {
-        "revision": "831dcfd522a9d69906328b198f45e9c79f27129c",
-        "collection": "40034333539",
-        "ci": "40034338389",
-        "windows": "40034333613",
-        "experience": "40034333555",
-        "state": "four workflows passed at this earlier revision; manual frame-dimension review exposed collapse. Final f1c67fe later verifies both cleanup protection and explicit DOMRect fields."
-      },
-      "finalPolishRun": {
-        "revision": "f1c67fe49282c487f9b9a664c9be0ea800ca6df2",
-        "collection": "40039337928",
-        "ci": "40039341275",
-        "windows": "40039337892",
-        "experience": "40039337908",
-        "state": "four workflows passed with verified fingerprints and installed icon; the user assesses overall visual quality as insufficient. Individual icon/detail approval remains pending.",
-        "categoryFrames": {
-          "count": 61,
-          "height": [
-            32,
-            32
-          ],
-          "width": [
-            66.65625,
-            67.00001525878906
-          ],
-          "scaleIsOne": true
+        "historicalBaseline": {
+          "status": "cloud-verified-awaiting-user-visual-review",
+          "visualAcceptance": "awaiting-user-review",
+          "sourceState": "Replacement after the user rejected 46cf2f3: top capsule navigation, frosted directory, mist-blue layered cards and upright Inter/Noto typography.",
+          "sourceBasis": "Static tokens and specimens extracted from frontend/src; runtime evidence is recorded separately at exact revisions below.",
+          "brief": ".impeccable/workbench-direction.md",
+          "surface": ".impeccable/surfaces/frontend.md",
+          "history": ".impeccable/history/2026-10-23-rejected-iris/",
+          "verification": "All four 04ecc11 cloud workflows passed. Capture-only 7d2abd0 passed collection review with identical application files: 26 screenshots, 6 action groups, 0 page errors, 39 source hashes and 29 media/record hashes verified. Windows installed WebView completed 24 steps without page errors or unexpected writes.",
+          "roundRecord": "docs/collection-workspace-2026-10-23.md",
+          "applicationRevision": "04ecc1133b62717cbd06f3733e40a3322cd42230",
+          "captureRevision": "7d2abd0f52687d2192b01b2cd7557aa446995698",
+          "runs": {
+            "ci": "39878725847",
+            "experience": "39878719512",
+            "collection": "39878719511",
+            "windows": "39878719504",
+            "finalCapture": "39882197281"
+          },
+          "independentReview": "Generic independent reviewer substituted for the unavailable dedicated role. All six listed corrections resolved; remaining clear, disposition ship within that scope. User aesthetic acceptance remains pending. Storyboard and frame review did not include direct full-MP4 playback."
         },
-        "documentationOnlyFollowup": "Later handbook and record commits do not change this application/capture revision."
-      },
-      "projectReferenceRecord": "docs/design-reference-project-record.md"
+        "firstPolishRun": {
+          "revision": "87456fff7fa20db703b93fbfc1abe09f51d7cf73",
+          "collection": "40026554487",
+          "ci": "40026558007",
+          "windows": "40026554543",
+          "experience": "40026554473",
+          "state": "partial failures corrected in follow-up; not final certification"
+        },
+        "desktopIcon": {
+          "source": "scripts/desktop_assets.py",
+          "direction": "Porcelain tile and blue folded F; 16-256px ICO and PNG",
+          "review": "pending",
+          "runtime": "f1c67fe CI PNG/ICO and Windows CRLF source hashes verified; light/dark size sheet and installed 32px exe icon inspected. Premultiplied pixels match the corresponding ICO image exactly."
+        },
+        "issuePolishRun": {
+          "revision": "475c732d1543ef3c097f9ecc3bc024f8f63ef4e4",
+          "collection": "40030835960",
+          "ci": "40030840835",
+          "windows": "40030836014",
+          "experience": "40030835958",
+          "state": "collection and installed Windows passed; later typography and CI/encoder corrections verified at 831dcfd"
+        },
+        "thirdPolishRun": {
+          "revision": "831dcfd522a9d69906328b198f45e9c79f27129c",
+          "collection": "40034333539",
+          "ci": "40034338389",
+          "windows": "40034333613",
+          "experience": "40034333555",
+          "state": "four workflows passed at this earlier revision; manual frame-dimension review exposed collapse. Final f1c67fe later verifies both cleanup protection and explicit DOMRect fields."
+        },
+        "finalPolishRun": {
+          "revision": "f1c67fe49282c487f9b9a664c9be0ea800ca6df2",
+          "collection": "40039337928",
+          "ci": "40039341275",
+          "windows": "40039337892",
+          "experience": "40039337908",
+          "state": "four workflows passed with verified fingerprints and installed icon; the user assesses overall visual quality as insufficient. Individual icon/detail approval remains pending.",
+          "categoryFrames": {
+            "count": 61,
+            "height": [
+              32,
+              32
+            ],
+            "width": [
+              66.65625,
+              67.00001525878906
+            ],
+            "scaleIsOne": true
+          },
+          "documentationOnlyFollowup": "Later handbook and record commits do not change this application/capture revision."
+        },
+        "projectReferenceRecord": "docs/design-reference-project-record.md"
+      }
     },
     "componentSources": {
       "button-primary": "frontend/src/ui/controls.css",
@@ -1349,8 +1369,11 @@
       "directory-entry": "frontend/src/folder-tree.css + frontend/src/facet-browser.css + frontend/src/CollectionFolderIcon.tsx",
       "tag": "frontend/src/bookmark-card.css",
       "bookmark-card": "frontend/src/bookmark-card.css + frontend/src/BookmarkCard.tsx",
-      "startup": "frontend/src/startup.css + desktop/splash/index.html",
-      "setup": "frontend/src/setup.css + frontend/src/Setup.tsx"
+      "startup": "frontend/src/startup.css + desktop/splash/native-ui.css + desktop/splash/mark.svg",
+      "setup": "frontend/src/setup.css + frontend/src/Setup.tsx",
+      "tray-menu": "desktop/splash/native-ui.css + desktop/splash/tray.js + desktop/src-tauri/src/tray_menu.rs",
+      "anchored-picker": "frontend/src/AnchoredMenu.tsx + frontend/src/folder-picker.css",
+      "reader": "frontend/src/Reader.tsx + frontend/src/reader-shell.css"
     }
   },
   "components": [
@@ -1392,7 +1415,7 @@
       "refersTo": "search",
       "description": "Main search's wrapper owns the capsule, inset depth and focus ring; the actual input remains native.",
       "html": "<label class=\"ds-search\"><svg aria-hidden=\"true\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input aria-label=\"搜索书签\" placeholder=\"搜索标题、网址…\"></label>",
-      "css": ".ds-search{display:flex;align-items:center;gap:11px;min-width:0;min-height:50px;padding:11px 16px;border:1px solid var(--glass-edge, #ffffffd9);border-radius:var(--radius-pill,999px);color:var(--secondary-ink, #526379);background:var(--canvas, #ffffff);box-shadow:inset 0 2px 4px #28507806,0 5px 16px -10px #294e7826;transition:box-shadow 300ms var(--ease,cubic-bezier(.22,1,.36,1)),border-color 220ms ease;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);}.ds-search>svg{flex:none;color:var(--accent, #235fe5)}.ds-search input{width:100%;min-width:0;padding:0;border:0;outline:0;background:transparent;color:var(--ink, #162b43);font:inherit;font-size:.9375rem;caret-color:var(--accent, #235fe5)}.ds-search input::placeholder{color:var(--muted, #62748a);opacity:1}.ds-search:focus-within{border-color:var(--selected-edge, #8baef3);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent, #235fe5) 12%,transparent),0 10px 28px -18px #235fe570}@media(max-width:719px){.ds-search{min-height:44px;gap:7px;padding:8px 12px}.ds-search input{font-size:1rem}}@media(prefers-reduced-motion:reduce){.ds-search{transition:none}}"
+      "css": ".ds-search{display:flex;align-items:center;gap:8px;min-width:0;min-height:44px;padding:8px 13px;border:1px solid var(--glass-edge, #ffffffd9);border-radius:var(--radius-pill,999px);color:var(--secondary-ink, #526379);background:var(--canvas, #ffffff);box-shadow:inset 0 2px 4px #28507806,0 5px 16px -10px #294e7826;transition:box-shadow 300ms var(--ease,cubic-bezier(.22,1,.36,1)),border-color 220ms ease;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);}.ds-search>svg{flex:none;color:var(--accent, #235fe5)}.ds-search input{width:100%;min-width:0;padding:0;border:0;outline:0;background:transparent;color:var(--ink, #162b43);font:inherit;font-size:.9375rem;caret-color:var(--accent, #235fe5)}.ds-search input::placeholder{color:var(--muted, #62748a);opacity:1}.ds-search:focus-within{border-color:var(--selected-edge, #8baef3);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent, #235fe5) 12%,transparent),0 10px 28px -18px #235fe570}@media(max-width:719px){.ds-search{min-height:44px;gap:6px;padding:8px 10px}.ds-search input{font-size:1rem}}@media(prefers-reduced-motion:reduce){.ds-search{transition:none}}"
     },
     {
       "name": "Form field",
@@ -1408,7 +1431,7 @@
       "refersTo": "navigation-active",
       "description": "Frosted top capsule with a blue active segment. The app animates actual plate dimensions over 340ms; this is its static endpoint.",
       "html": "<nav class=\"ds-nav\" aria-label=\"工作区\"><button type=\"button\" class=\"ds-nav-item\" aria-pressed=\"true\">收藏</button><button type=\"button\" class=\"ds-nav-item\" aria-pressed=\"false\">任务</button><button type=\"button\" class=\"ds-nav-item\" aria-pressed=\"false\">设置</button></nav>",
-      "css": ".ds-nav{display:inline-flex;gap:4px;padding:5px;border:1px solid var(--glass-edge, #ffffffd9);border-radius:var(--radius-pill,999px);background:var(--glass, #ffffffb3);box-shadow:inset 0 1px 0 var(--glass-edge, #ffffffd9),0 6px 16px -12px #284b8040;backdrop-filter:blur(18px)}.ds-nav-item{position:relative;min-height:40px;padding:9px 19px;border:0;border-radius:var(--radius-pill,999px);background:transparent;color:var(--secondary-ink, #526379);font-size:.875rem;line-height:1.6;white-space:nowrap;cursor:pointer;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);}.ds-nav-item[aria-pressed=\"true\"]{color:var(--on-accent, #fff);background:linear-gradient(180deg,color-mix(in srgb,var(--accent, #235fe5) 86%,var(--light, #ffffff)),var(--accent, #235fe5));font-weight:650;box-shadow:inset 0 1px 0 #ffffff4d,0 4px 10px -5px #235fe570}.ds-nav-item:not([aria-pressed=\"true\"]):hover{background:var(--inset, #edf3f9)}.ds-nav-item:not([aria-pressed=\"true\"]):active{background:var(--soft, #e8f0ff)}.ds-nav-item:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}"
+      "css": ".ds-nav{display:inline-flex;gap:4px;padding:5px;border:1px solid var(--glass-edge, #ffffffd9);border-radius:var(--radius-pill,999px);background:var(--glass, #ffffffb3);box-shadow:inset 0 1px 0 var(--glass-edge, #ffffffd9),0 6px 16px -12px #284b8040;backdrop-filter:blur(18px)}.ds-nav-item{position:relative;min-height:38px;padding:8px 13px;border:0;border-radius:var(--radius-pill,999px);background:transparent;color:var(--secondary-ink, #526379);font-size:.8125rem;line-height:1.6;white-space:nowrap;cursor:pointer;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);}.ds-nav-item[aria-pressed=\"true\"]{color:var(--on-accent, #fff);background:linear-gradient(180deg,color-mix(in srgb,var(--accent, #235fe5) 86%,var(--light, #ffffff)),var(--accent, #235fe5));font-weight:650;box-shadow:inset 0 1px 0 #ffffff4d,0 4px 10px -5px #235fe570}.ds-nav-item:not([aria-pressed=\"true\"]):hover{background:var(--inset, #edf3f9)}.ds-nav-item:not([aria-pressed=\"true\"]):active{background:var(--soft, #e8f0ff)}.ds-nav-item:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}"
     },
     {
       "name": "Selected directory entry",
@@ -1430,14 +1453,14 @@
       "name": "Bookmark card",
       "kind": "card",
       "refersTo": "bookmark-card",
-      "description": "Layered record with source medallion, native title link, separate text/expansion columns, tag and non-wrapping preview. The specimen shows collapsed expansion and CSS hover endpoints; runtime expansion, pointer tracking and layout springs remain in BookmarkCard.",
+      "description": "Compact layered record with 16px padding, 18px title, native links and separate action/expansion controls. The static specimen shows visual endpoints; blank-area preview, selection and motion remain runtime behavior.",
       "html": "<article class=\"ds-card\"><header class=\"ds-card-source\"><span class=\"ds-card-symbol\" aria-hidden=\"true\">E</span><span>example.com</span></header><a class=\"ds-card-title\" href=\"https://example.com/\" target=\"_blank\" rel=\"noreferrer\">让一段思考再次被找到</a><div class=\"ds-card-description\"><div class=\"ds-card-description-heading\"><button class=\"ds-card-expand\" type=\"button\" aria-expanded=\"false\" aria-controls=\"ds-card-summary\" aria-label=\"展开全文\"><span>展开</span><svg aria-hidden=\"true\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m6 9 6 6 6-6\"/></svg></button></div><p class=\"ds-card-summary\" id=\"ds-card-summary\"><span class=\"ds-card-basis\">正文摘录</span> 为收藏留下短而准确的线索，保留原网页与阅读上下文。</p></div><span class=\"ds-card-tag\">阅读体验</span><footer class=\"ds-card-footer\"><span>资料 / 设计</span><button class=\"ds-card-preview\" type=\"button\">预览</button></footer></article>",
-      "css": ".ds-card{position:relative;isolation:isolate;display:flex;flex-direction:column;gap:15px;min-width:0;padding:23px;border:1px solid var(--glass-edge, #ffffffd9);border-radius:25px;background:var(--canvas, #ffffff);color:var(--ink, #162b43);box-shadow:var(--card-shadow,0 2px 4px #233d5810, 0 12px 26px -18px #294e7840);transition:border-color 220ms ease,box-shadow 340ms var(--ease,cubic-bezier(.22,1,.36,1)),background-color 220ms ease;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);}.ds-card::before{content:\"\";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;opacity:0;background:radial-gradient(360px circle at var(--glint-x,50%) var(--glint-y,0%),color-mix(in srgb,var(--brand-detail, #7ac5ff) 15%,transparent),transparent 75%);transition:opacity 280ms ease}.ds-card:hover{border-color:color-mix(in srgb,var(--accent, #235fe5) 25%,var(--rule, #d9e3ef));box-shadow:0 5px 10px -8px #294e7840,0 18px 36px -22px #245da04d,inset 0 1px 0 var(--glass-edge, #ffffffd9)}.ds-card:hover::before{opacity:1}.ds-card-source{display:flex;align-items:center;gap:9px;color:var(--secondary-ink, #526379);font-size:.8125rem;font-weight:500;line-height:1.6}.ds-card-symbol{display:grid;place-items:center;flex:none;width:38px;height:38px;border:1px solid #aac9f455;border-radius:13px;background:linear-gradient(145deg,#f1f7ff,#dceaff);color:#275da2;box-shadow:inset 0 1px 1px #ffffff,0 4px 7px -5px #24569359;font-size:1.125rem;font-weight:750;transform:rotate(-4deg);transition:transform 400ms var(--ease,cubic-bezier(.22,1,.36,1))}.ds-card:hover .ds-card-symbol{transform:rotate(0deg) translateY(-2px)}.ds-card-title{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;color:var(--ink, #162b43);font-size:1.1875rem;font-weight:680;line-height:1.6;letter-spacing:0;text-decoration:none;text-underline-offset:.2em}.ds-card-title:hover{color:var(--accent, #235fe5);text-decoration:underline}.ds-card-description{position:relative;min-width:0}.ds-card-description:has(.ds-card-expand){display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:8px}.ds-card-description-heading{grid-column:2;grid-row:1}.ds-card-description-heading:empty{display:none}.ds-card-description .ds-card-summary{grid-column:1;grid-row:1}.ds-card-expand{display:inline-flex;align-items:center;gap:2px;min-width:0;min-height:28px;padding:3px 6px;border:0;border-radius:var(--radius-pill,999px);background:var(--canvas,#ffffff);color:var(--accent,#235fe5);font:inherit;font-size:.75rem;line-height:1.5;white-space:nowrap;cursor:pointer}.ds-card-expand svg{transition:transform 240ms var(--ease,cubic-bezier(.22,1,.36,1))}.ds-card-expand[aria-expanded=\"true\"] svg{transform:rotate(180deg)}.ds-card-expand:hover{background:var(--soft,#e8f0ff);color:var(--accent,#235fe5)}.ds-card-expand:focus-visible{outline:2px solid var(--accent,#235fe5);outline-offset:3px}.ds-card-summary{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;max-width:72ch;margin:0;overflow:hidden;overflow-wrap:anywhere;color:var(--secondary-ink, #526379);font-size:.9375rem;line-height:1.8}.ds-card-basis{margin-right:4px;color:var(--accent, #235fe5);font-size:.6875rem;font-weight:600;line-height:1.5}.ds-card-tag{align-self:flex-start;padding:3px 8px;border-radius:7px;background:var(--inset, #edf3f9);color:var(--secondary-ink, #526379);font-size:.8125rem;line-height:1.5}.ds-card-footer{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:13px;border-top:1px solid var(--rule, #d9e3ef);color:var(--secondary-ink, #526379);font-size:.8125rem;line-height:1.5}.ds-card-preview{margin-left:auto;flex-shrink:0;white-space:nowrap;min-height:34px;padding:7px 13px;border:1px solid var(--rule, #d9e3ef);border-radius:var(--radius-pill,999px);background:linear-gradient(180deg,var(--canvas, #ffffff),var(--inset, #edf3f9));color:var(--secondary-ink, #526379);box-shadow:inset 0 1px 0 var(--glass-edge, #ffffffd9),0 3px 6px -4px #294e7833;font:550 .75rem/1.5 var(--font-ui,\"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);cursor:pointer}.ds-card-preview:hover{background:var(--soft, #e8f0ff);color:var(--accent, #235fe5)}.ds-card-preview:active{background:var(--selected, #deebff)}.ds-card-title:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}.ds-card-preview:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}@media(max-width:719px){.ds-card{padding:16px;gap:10px;border-radius:20px}.ds-card-title{font-size:1.0625rem;line-height:1.65}.ds-card-summary{-webkit-line-clamp:2;font-size:.875rem}.ds-card-symbol{width:30px;height:32px;border-radius:10px;font-size:1rem}.ds-card-preview{min-width:40px;min-height:44px}.ds-card-expand{min-height:44px}}@media(max-height:650px) and (min-width:960px){.ds-card{padding:16px;gap:8px}.ds-card-symbol{width:32px;height:32px}.ds-card-footer{padding-top:8px}}@media(prefers-reduced-motion:reduce){.ds-card,.ds-card::before,.ds-card-symbol,.ds-card-expand svg{transition:none}.ds-card::before{display:none}.ds-card:hover .ds-card-symbol{transform:none}}"
+      "css": ".ds-card{position:relative;isolation:isolate;display:flex;flex-direction:column;gap:9px;min-width:0;padding:16px;border:1px solid var(--glass-edge, #ffffffd9);border-radius:22px;background:var(--canvas, #ffffff);color:var(--ink, #162b43);box-shadow:var(--card-shadow,0 2px 4px #233d5810, 0 12px 26px -18px #294e7840);transition:border-color 220ms ease,box-shadow 340ms var(--ease,cubic-bezier(.22,1,.36,1)),background-color 220ms ease;font-family:var(--font-ui, \"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);}.ds-card::before{content:\"\";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;opacity:0;background:radial-gradient(360px circle at var(--glint-x,50%) var(--glint-y,0%),color-mix(in srgb,var(--brand-detail, #7ac5ff) 15%,transparent),transparent 75%);transition:opacity 280ms ease}.ds-card:hover{border-color:color-mix(in srgb,var(--accent, #235fe5) 25%,var(--rule, #d9e3ef));box-shadow:0 5px 10px -8px #294e7840,0 18px 36px -22px #245da04d,inset 0 1px 0 var(--glass-edge, #ffffffd9)}.ds-card:hover::before{opacity:1}.ds-card-source{display:flex;align-items:center;gap:9px;color:var(--secondary-ink, #526379);font-size:.8125rem;font-weight:500;line-height:1.6}.ds-card-symbol{display:grid;place-items:center;flex:none;width:32px;height:32px;border:1px solid #aac9f455;border-radius:11px;background:linear-gradient(145deg,#f1f7ff,#dceaff);color:#275da2;box-shadow:inset 0 1px 1px #ffffff,0 4px 7px -5px #24569359;font-size:1rem;font-weight:750;transform:rotate(-4deg);transition:transform 400ms var(--ease,cubic-bezier(.22,1,.36,1))}.ds-card:hover .ds-card-symbol{transform:rotate(0deg) translateY(-2px)}.ds-card-title{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;color:var(--ink, #162b43);font-size:1.125rem;font-weight:680;line-height:1.6;letter-spacing:0;text-decoration:none;text-underline-offset:.2em}.ds-card-title:hover{color:var(--accent, #235fe5);text-decoration:underline}.ds-card-description{position:relative;min-width:0}.ds-card-description:has(.ds-card-expand){display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:8px}.ds-card-description-heading{grid-column:2;grid-row:1}.ds-card-description-heading:empty{display:none}.ds-card-description .ds-card-summary{grid-column:1;grid-row:1}.ds-card-expand{display:inline-flex;align-items:center;gap:2px;min-width:0;min-height:28px;padding:3px 6px;border:0;border-radius:var(--radius-pill,999px);background:var(--canvas,#ffffff);color:var(--accent,#235fe5);font:inherit;font-size:.75rem;line-height:1.5;white-space:nowrap;cursor:pointer}.ds-card-expand svg{transition:transform 240ms var(--ease,cubic-bezier(.22,1,.36,1))}.ds-card-expand[aria-expanded=\"true\"] svg{transform:rotate(180deg)}.ds-card-expand:hover{background:var(--soft,#e8f0ff);color:var(--accent,#235fe5)}.ds-card-expand:focus-visible{outline:2px solid var(--accent,#235fe5);outline-offset:3px}.ds-card-summary{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;max-width:72ch;margin:0;overflow:hidden;overflow-wrap:anywhere;color:var(--secondary-ink, #526379);font-size:.9375rem;line-height:1.8}.ds-card-basis{margin-right:4px;color:var(--accent, #235fe5);font-size:.6875rem;font-weight:600;line-height:1.5}.ds-card-tag{align-self:flex-start;padding:3px 8px;border-radius:7px;background:var(--inset, #edf3f9);color:var(--secondary-ink, #526379);font-size:.8125rem;line-height:1.5}.ds-card-footer{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:8px;border-top:1px solid var(--rule, #d9e3ef);color:var(--secondary-ink, #526379);font-size:.8125rem;line-height:1.5}.ds-card-preview{margin-left:auto;flex-shrink:0;white-space:nowrap;min-height:34px;padding:7px 13px;border:1px solid var(--rule, #d9e3ef);border-radius:var(--radius-pill,999px);background:linear-gradient(180deg,var(--canvas, #ffffff),var(--inset, #edf3f9));color:var(--secondary-ink, #526379);box-shadow:inset 0 1px 0 var(--glass-edge, #ffffffd9),0 3px 6px -4px #294e7833;font:550 .75rem/1.5 var(--font-ui,\"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif);cursor:pointer}.ds-card-preview:hover{background:var(--soft, #e8f0ff);color:var(--accent, #235fe5)}.ds-card-preview:active{background:var(--selected, #deebff)}.ds-card-title:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}.ds-card-preview:focus-visible{outline:2px solid var(--accent, #235fe5);outline-offset:3px}@media(max-width:719px){.ds-card{padding:16px;gap:10px;border-radius:20px}.ds-card-title{font-size:1.0625rem;line-height:1.65}.ds-card-summary{-webkit-line-clamp:2;font-size:.875rem}.ds-card-symbol{width:30px;height:32px;border-radius:10px;font-size:1rem}.ds-card-preview{min-width:40px;min-height:44px}.ds-card-expand{min-height:44px}}@media(max-height:650px) and (min-width:960px){.ds-card{padding:16px;gap:8px}.ds-card-symbol{width:32px;height:32px}.ds-card-footer{padding-top:8px}}@media(prefers-reduced-motion:reduce){.ds-card,.ds-card::before,.ds-card-symbol,.ds-card-expand svg{transition:none}.ds-card::before{display:none}.ds-card:hover .ds-card-symbol{transform:none}}"
     }
   ],
   "narrative": {
     "northStar": "The Layered Collection Table",
-    "overview": "The implemented f1c67fe collection workspace uses mist-blue surroundings, porcelain reading surfaces, ink text and blue controls with layered navigation and cards. These values describe the shipped implementation, not an approved visual identity or a preset for other projects.\n\nLatest 2026-10-24 assessment: the current interface is usable but not good-looking. Overall visual refinement remains required. Earlier acknowledgement of progress does not freeze the current composition, typography, palette or material, and no individual new icon/detail is approved. Preserve product behavior while improving visual form under the latest feedback.\n\nFinal application/capture f1c67fe passed four cloud workflows with source-matched pages, narrow/short layouts, startup/setup, capsule frame bounds and the installed folded-F icon. Native 96-DPI restore, coalesced writes and Enter retry pass; 150% DPI/monitor removal remain pure geometry. Technical evidence is independent from user aesthetic judgment. General handbook v0.18 contains only reference research and methods; the current round and docs/design-reference-project-record.md hold all product-specific directions, evidence and review in this repository.",
+    "overview": "The current follow-up gives height to the folder directory and collection, moves search into a compact shared header, expands settings to the workspace and separates reading text from its title. Mist-blue/porcelain/blue describes the implementation baseline; no visual identity is user-approved. Shared folded-F geometry and bundled font files extend to native startup and a packaged tray menu with real privileged actions. Cloud source-matched rendering and installed checks are pending for this revision. All project content stays in this repository; the general handbook is not modified.",
     "keyCharacteristics": [
       "Mist-blue ambient light, translucent supporting layers and opaque content surfaces.",
       "Bundled Inter and Noto Sans SC with upright headings and readable mixed-language records.",

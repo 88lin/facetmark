@@ -5,7 +5,7 @@ import type { Page } from "@playwright/test";
 export async function settleVisualLayout(page: Page) {
   await page.evaluate(async () => {
     await document.fonts.ready;
-    const selectors = ".result-row, .preview-pane, .preview-drawer, .page-scroll, .workspace-toolbar, .sidebar, .facet-options, .facet-tree-children, .selection-pill, .setup-panel:not([hidden])";
+    const selectors = ".result-row, .preview-pane, .preview-drawer, .page-scroll, .workspace-toolbar, .sidebar, .facet-options, .facet-tree-children, .selection-pill, .setup-panel:not([hidden]), .settings-panel:not([hidden]), .fm-picker-popover:popover-open";
     const deadline = performance.now() + 5000;
     let previous = "";
     let stableSince = performance.now();
