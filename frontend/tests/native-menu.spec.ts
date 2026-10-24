@@ -61,10 +61,21 @@ for (const locale of ["zh-CN", "en-US"]) test.describe(`packaged tray page ${loc
     await expect(startup).toBeEnabled(); await expect(startup).toHaveAttribute("aria-checked", "false");
     for (const theme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme: theme });
-      await page.keyboard.press("End"); await expect(page.locator('[data-action="exit"]')).toBeFocused();
-      await expect(page.locator('[data-action="exit"]')).toBeInViewport({ ratio: 1 });
-      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      await page.screenshot({ path: `screenshots/collection-review/polish-native-tray-${locale}-${theme}.png`, animations: "disabled" });
+      for (const installedClient of [false, true]) {
+        // The real 96-DPI Windows outer frame is 312x374; its shadow frame
+        // leaves a 296x365 client viewport. Exercise that measured viewport as
+        // well as the nominal design canvas, preserving full 44px hit targets.
+        await page.setViewportSize(installedClient ? { width: 296, height: 365 } : { width: 312, height: 374 });
+        const layout = await page.locator('.tray-shell').evaluate(element => ({ height: element.clientHeight, extent: element.scrollHeight }));
+        expect(layout.extent).toBeLessThanOrEqual(layout.height + 1);
+        await page.keyboard.press("End"); await expect(page.locator('[data-action="exit"]')).toBeFocused();
+        for (const selector of ['.tray-identity', '.tray-menu', '#tray-feedback', '[data-action="exit"]']) {
+          await expect(page.locator(selector)).toBeInViewport({ ratio: 1 });
+        }
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        const prefix = installedClient ? 'polish-native-tray-installed-client' : 'polish-native-tray';
+        await page.screenshot({ path: `screenshots/collection-review/${prefix}-${locale}-${theme}.png`, animations: "disabled" });
+      }
     }
     await page.emulateMedia({ reducedMotion: "reduce" });
     await expect(page.locator(".tray-shell")).toHaveCSS("animation-name", "none");

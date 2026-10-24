@@ -227,3 +227,27 @@ outer / inner 的差值，使用主窗口已有的 `client_size_for_outer` 换�
 client size、原生 monitor work area 和 DPI。保留两像素尺寸误差上限，并增加实际
 位置及整外框不能越过工作区的断言，不放宽可见、前台、键盘、热键或退出检查。
 此尺寸修正和完整生命周期仍待新的真实安装运行，失败包不作为验证通过的交付包。
+
+### `838ca70` 外框及开关已通过，校正隐藏主窗口的测试前提
+
+[CI 40066797728](https://github.com/88lin/facetmark/actions/runs/40066797728)
+10 个 job 全部通过。[Windows 40066830510](https://github.com/88lin/facetmark/actions/runs/40066830510)
+实际外框为 `(704,338,312,374)`，与请求完全一致，完整位于 `1024×720` 工作区。
+真实 client viewport 为 `296×365`，DPI=96。检查已走过开机启动 / 快捷键开关恢复、
+权限拒绝、浅深画面和 Escape；后续“打开工作区”恢复断言失败，整条运行不算通过。
+#52 再次通过：旧 PID=5392 仍活着时 Enter，没有提前 spawn；新 owned PID=8120
+连续 12 次 health 成功。
+
+核对本轮云端 lock 的 Tao 0.37.1：可见状态由 `WindowFlags::VISIBLE` 缓存，
+`apply_diff` 在 flags 无变化时直接返回。测试用 Win32 `SW_HIDE` 隐藏主窗口，
+绕过了应用/Tao 的状态维护；后续 Tauri `show()` 仍看到旧的 visible=true 而没有
+执行实际恢复。这与产品 CloseRequested 中调用 `Window.hide()` 的路径不同。
+现在用既有限 CI 原生取证入口，通过相同的 Tauri hide API 准备场景，再核对真实
+HWND 已隐藏；菜单与 OS 热键必须各自将它恢复。入口只在 disposable hosted-CI
+条件下启用，不新增远程窗口权限，不直接显示或聚焦菜单 HWND。
+
+实际 native screenshot 还显示普通 client viewport 内出现多余滚动。仅压缩菜单
+条目间隙与分隔线留白，保留 44px 操作高度。新增中英 / 浅深在实测 `296×365`
+client 和原 `312×374` 画布下，标题、菜单、提示和选中退出项全部可见、没有普通
+高度滚动的检查及画面。CSS 已变化，需补新收藏取证与真实安装运行；现有 a09b6de
+收藏、设置和阅读画面仍对应未变的前端，旧 native HTML 菜单画面不代表这次间隙修正。

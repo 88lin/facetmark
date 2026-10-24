@@ -148,6 +148,7 @@ with sync_playwright() as playwright:
     sequence = 0
     opening_sources = []
     activation_history = []
+    hide_history = []
     tray_connection = None
 
     def cdp_targets():
@@ -180,8 +181,30 @@ with sync_playwright() as playwright:
                          if page.url.endswith("/tray.html")), None)
         return None
 
-    def open_menu(*, actual_click=False):
+    def native_request(**values):
         global sequence
+        sequence += 1
+        request = output / f"tray-open-request-{process}.json"
+        temporary = request.with_suffix(".tmp")
+        temporary.write_text(json.dumps({"sequence": sequence, **values}), encoding="utf-8")
+        temporary.replace(request)
+        return sequence
+
+    def hide_main():
+        # Use the app's own Tauri hide API, also used by CloseRequested. Direct
+        # Win32 SW_HIDE leaves Tao's cached VISIBLE bit true, so a later native
+        # show() becomes a no-op. Verify the actual HWND after this preparation.
+        requested = native_request(action="hide-main")
+        def response():
+            record = read_json(output / "tray-main-hide-native.json")
+            return record if record.get("process") == process and record.get("sequence") == requested else None
+        record = wait_for(response, "Native main-window hide preparation did not run")
+        assert record["error"] is None, record
+        wait_for(lambda: not user32.IsWindowVisible(main_handle), "Native hide did not hide the actual main HWND")
+        hide_history.append({**record, "actual_hwnd_visible": False})
+        report("installed-tray-preparation.json", {"native_hide_history": hide_history})
+
+    def open_menu(*, actual_click=False):
         activate_main(main_handle)
         # Try a real right click on the registered notification icon first.
         if actual_click:
@@ -203,13 +226,9 @@ with sync_playwright() as playwright:
         # A headless Server desktop may have no usable notification area. The
         # CI-only native trigger still creates and positions the real WebView.
         activate_main(main_handle)
-        sequence += 1
-        request = output / f"tray-open-request-{process}.json"
-        temporary = request.with_suffix(".tmp")
-        temporary.write_text(json.dumps({"sequence": sequence}), encoding="utf-8")
-        temporary.replace(request)
+        requested = native_request()
         wait_for(lambda: (record := read_json(output / "tray-menu-native.json")).get("process") == process
-                 and record.get("source") == f"synthetic cloud tray trigger {sequence}",
+                 and record.get("source") == f"synthetic cloud tray trigger {requested}",
                  "Native tray trigger did not run")
         try:
             menu = wait_for(menu_page, "Native tray WebView missing")
@@ -294,8 +313,14 @@ with sync_playwright() as playwright:
             catch (error) { return String(error); }
         }""")
         assert remote != "ALLOWED" and alive(process), "Remote workbench acquired tray Quit privilege"
+        tray_layout = []
         for theme in ["light", "dark"]:
             menu.emulate_media(color_scheme=theme)
+            layout = menu.locator(".tray-shell").evaluate("el => ({height: el.clientHeight, extent: el.scrollHeight})")
+            assert layout["extent"] <= layout["height"] + 1, f"Normal tray menu scrolls: {layout}"
+            for selector in [".tray-identity", ".tray-menu", "#tray-feedback"]:
+                expect(menu.locator(selector)).to_be_in_viewport(ratio=1)
+            tray_layout.append({"theme": theme, **layout})
             menu.locator('[data-action="exit"]').focus()
             expect(menu.locator('[data-action="exit"]')).to_be_in_viewport(ratio=1)
             menu.screenshot(path=str(output / f"installed-tray-{theme}.png"))
@@ -304,7 +329,7 @@ with sync_playwright() as playwright:
         menu.keyboard.press("Escape")
         wait_for(lambda: not user32.IsWindowVisible(handle), "Escape did not hide the native tray window")
         menu = open_menu()
-        user32.ShowWindow(main_handle, 0)
+        hide_main()
         assert not user32.IsWindowVisible(main_handle), "Open-workspace regression needs a hidden main window"
         menu.locator('[data-action="show"]').press("Enter")
         wait_for(lambda: user32.IsWindowVisible(main_handle), "Open workspace did not restore the main window")
@@ -322,7 +347,7 @@ with sync_playwright() as playwright:
             menu.locator('[data-action="shortcut"]').press("Space")
             expect(menu.locator('[data-action="shortcut"]')).to_have_attribute("aria-checked", "true")
         menu.keyboard.press("Escape")
-        user32.ShowWindow(main_handle, 0)
+        hide_main()
         for key in [0x11, 0x10, 0x20]:
             user32.keybd_event(key, 0, 0, 0)
         for key in [0x20, 0x10, 0x11]:
@@ -337,6 +362,7 @@ with sync_playwright() as playwright:
         assert not errors
         report("installed-tray.json", {"native_geometry": geometry, "initial_state": initial,
             "measured_outer": measured_geometry, "work_area": work_area, "whole_frame_visible": True,
+            "layout": tray_layout, "native_hide_history": hide_history,
             "startup_toggled_and_restored": True, "shortcut_toggled_persisted_and_restored": True,
             "real_global_shortcut": True, "open_workspace": True, "escape_hides_menu": True,
             "native_focus_loss_hides_menu": True, "update_opens_desktop_settings": True,

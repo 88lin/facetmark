@@ -57,7 +57,7 @@ button { font: inherit; }
 .tray-identity img { width: 38px; height: 38px; }
 .tray-identity strong { display: block; font-size: 15px; font-weight: 700; }
 .tray-identity span { display: block; font-size: 12px; color: var(--muted); }
-.tray-menu { display: grid; gap: 3px; }
+.tray-menu { display: grid; gap: 2px; }
 .tray-item { position: relative; display: flex; align-items: center; gap: 11px; width: 100%; min-height: 44px; padding: 10px 14px;
   border: 1px solid transparent; border-radius: 999px; color: var(--ink); background: transparent; text-align: left; font-size: 13px; font-weight: 500; cursor: pointer;
   transition: background-color 160ms ease, border-color 160ms ease, box-shadow 200ms var(--ease); }
@@ -77,7 +77,7 @@ button { font: inherit; }
 .tray-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 11px; height: 11px; border-radius: 50%; background: var(--canvas); box-shadow: 0 1px 3px #16385c26; transition: transform 200ms var(--ease); }
 [aria-checked="true"] .tray-switch { background: var(--accent); }
 [aria-checked="true"] .tray-switch::after { transform: translateX(11px); background: var(--on-accent); }
-.tray-divider { height: 1px; margin: 4px 12px; background: var(--rule); }
+.tray-divider { height: 1px; margin: 3px 12px; background: var(--rule); }
 #tray-feedback { flex: none; margin: auto 8px 0; padding-top: 8px; min-height: 27px; max-height: 56px; overflow-y: auto; font-size: 12px; line-height: 1.6; color: var(--muted); overflow-wrap: anywhere; }
 #tray-feedback[data-error="true"] { color: var(--danger); user-select: text; }
 @media (prefers-reduced-motion: reduce) { .splash, .track span { animation: none; transform: none; } .restart, .tray-item, .tray-switch, .tray-switch::after { transition: none; } }

@@ -145,6 +145,21 @@ pub fn start_ci_inspection(app: &tauri::AppHandle) {
                     previous = sequence;
                     let app = handle.clone();
                     let _ = handle.run_on_main_thread(move || {
+                        if record["action"].as_str() == Some("hide-main") {
+                            if let Some(main) = app.get_webview_window("main") {
+                                // Test preparation must use the same window API
+                                // as CloseRequested. A raw Win32 SW_HIDE bypasses
+                                // Tao's cached VISIBLE flag and invalidates show().
+                                let result = main.hide();
+                                ci_record("tray-main-hide-native.json", serde_json::json!({
+                                    "process": std::process::id(), "sequence": sequence,
+                                    "api": "Tauri Window.hide; same API as main CloseRequested",
+                                    "visible": main.is_visible().ok(),
+                                    "error": result.err().map(|error| error.to_string())
+                                }));
+                            }
+                            return;
+                        }
                         let areas = work_areas(&app);
                         if let Some(area) = areas.first() {
                             let x = record["x"].as_f64().unwrap_or(f64::from(area.x) + f64::from(area.width) - 12.);
