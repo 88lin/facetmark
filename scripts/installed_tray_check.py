@@ -21,6 +21,8 @@ process = int(sys.argv[2])
 mode = sys.argv[3] if len(sys.argv) > 3 else "operate"
 user32 = ctypes.WinDLL("user32", use_last_error=True)
 kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+user32.SetProcessDpiAwarenessContext.argtypes = [ctypes.c_void_p]
+user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
 user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
 user32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
 user32.GetWindowTextW.restype = ctypes.c_int
@@ -28,6 +30,10 @@ user32.IsWindowVisible.argtypes = [wintypes.HWND]
 user32.ShowWindow.argtypes = [wintypes.HWND, ctypes.c_int]
 user32.SetForegroundWindow.argtypes = [wintypes.HWND]
 user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+user32.GetClientRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+user32.GetDpiForWindow.argtypes = [wintypes.HWND]
+user32.MonitorFromWindow.argtypes = [wintypes.HWND, wintypes.DWORD]
+user32.MonitorFromWindow.restype = wintypes.HANDLE
 user32.GetForegroundWindow.restype = wintypes.HWND
 user32.AttachThreadInput.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.BOOL]
 user32.AttachThreadInput.restype = wintypes.BOOL
@@ -37,6 +43,14 @@ kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
 kernel32.OpenProcess.restype = wintypes.HANDLE
 kernel32.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
 kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+
+
+class MonitorInfo(ctypes.Structure):
+    _fields_ = [("cbSize", wintypes.DWORD), ("rcMonitor", wintypes.RECT),
+                ("rcWork", wintypes.RECT), ("dwFlags", wintypes.DWORD)]
+
+
+user32.GetMonitorInfoW.argtypes = [wintypes.HANDLE, ctypes.POINTER(MonitorInfo)]
 
 
 def read_json(path):
@@ -239,8 +253,26 @@ with sync_playwright() as playwright:
         assert rect.right > rect.left and rect.bottom > rect.top
         geometry = read_json(output / "tray-menu-native.json")
         assert geometry["process"] == process
-        assert abs((rect.right - rect.left) - geometry["outer"]["width"]) <= 2
-        assert abs((rect.bottom - rect.top) - geometry["outer"]["height"]) <= 2
+        client_rect = wintypes.RECT()
+        assert user32.GetClientRect(handle, ctypes.byref(client_rect))
+        monitor = MonitorInfo()
+        monitor.cbSize = ctypes.sizeof(monitor)
+        assert user32.GetMonitorInfoW(user32.MonitorFromWindow(handle, 2), ctypes.byref(monitor))
+        measured_geometry = {"x": rect.left, "y": rect.top,
+            "width": rect.right - rect.left, "height": rect.bottom - rect.top}
+        work_area = {"x": monitor.rcWork.left, "y": monitor.rcWork.top,
+            "width": monitor.rcWork.right - monitor.rcWork.left,
+            "height": monitor.rcWork.bottom - monitor.rcWork.top}
+        report("installed-tray-geometry.json", {"requested_outer": geometry["outer"],
+            "measured_outer": measured_geometry,
+            "measured_client": {"width": client_rect.right, "height": client_rect.bottom},
+            "work_area": work_area, "dpi": user32.GetDpiForWindow(handle)})
+        for dimension in ["x", "y", "width", "height"]:
+            assert abs(measured_geometry[dimension] - geometry["outer"][dimension]) <= 2, (
+                f"Tray outer {dimension} differs: requested {geometry['outer']}, measured {measured_geometry}")
+        assert rect.left >= monitor.rcWork.left and rect.top >= monitor.rcWork.top
+        assert rect.right <= monitor.rcWork.right and rect.bottom <= monitor.rcWork.bottom, (
+            f"Tray frame is outside the monitor work area: {measured_geometry}, {work_area}")
         def snapshot():
             return menu.evaluate("() => window.__TAURI_INTERNALS__.invoke('tray_snapshot')")
 
@@ -304,6 +336,7 @@ with sync_playwright() as playwright:
         menu.emulate_media(color_scheme="null", reduced_motion="null")
         assert not errors
         report("installed-tray.json", {"native_geometry": geometry, "initial_state": initial,
+            "measured_outer": measured_geometry, "work_area": work_area, "whole_frame_visible": True,
             "startup_toggled_and_restored": True, "shortcut_toggled_persisted_and_restored": True,
             "real_global_shortcut": True, "open_workspace": True, "escape_hides_menu": True,
             "native_focus_loss_hides_menu": True, "update_opens_desktop_settings": True,

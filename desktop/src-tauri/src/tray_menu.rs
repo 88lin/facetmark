@@ -1,6 +1,6 @@
 //! Styled native tray window; privileged actions are limited to this local page.
 use super::{ci_record, cloud_webview_inspection, display_areas, focus_main, preferences, request_exit, update_preferences, work_areas, Backend, CI_BROWSER_ARGS, SHORTCUT};
-use crate::window_state::tray_menu_geometry;
+use crate::window_state::{client_size_for_outer, tray_menu_geometry};
 use serde::Serialize;
 use std::sync::atomic::Ordering;
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
@@ -108,7 +108,12 @@ pub fn open(app: &tauri::AppHandle, x: f64, y: f64, source: &str) -> tauri::Resu
         builder.build()?
     };
     menu.set_position(tauri::PhysicalPosition::new(geometry.x, geometry.y))?;
-    menu.set_size(tauri::PhysicalSize::new(geometry.width, geometry.height))?;
+    // set_size takes the client area. Undecorated Windows shadows still have
+    // native frame offsets, so measure them at the target monitor's DPI before
+    // fitting the entire outer frame to the available work area.
+    let (outer, inner) = (menu.outer_size()?, menu.inner_size()?);
+    let client = client_size_for_outer(geometry, (outer.width, outer.height), (inner.width, inner.height));
+    menu.set_size(tauri::PhysicalSize::new(client.0, client.1))?;
     menu.set_position(tauri::PhysicalPosition::new(geometry.x, geometry.y))?;
     // Reset roving focus and reread real plugin state on every open. The script
     // also loads its state on first parse if this eval arrives before it.
