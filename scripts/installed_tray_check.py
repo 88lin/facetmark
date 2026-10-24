@@ -28,6 +28,10 @@ user32.ShowWindow.argtypes = [wintypes.HWND, ctypes.c_int]
 user32.SetForegroundWindow.argtypes = [wintypes.HWND]
 user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
 user32.GetForegroundWindow.restype = wintypes.HWND
+user32.AttachThreadInput.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.BOOL]
+user32.AttachThreadInput.restype = wintypes.BOOL
+user32.PeekMessageW.argtypes = [ctypes.POINTER(wintypes.MSG), wintypes.HWND, wintypes.UINT, wintypes.UINT, wintypes.UINT]
+kernel32.GetCurrentThreadId.restype = wintypes.DWORD
 kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
 kernel32.OpenProcess.restype = wintypes.HANDLE
 kernel32.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
@@ -49,6 +53,39 @@ def wait_for(check, message, seconds=30):
             return result
         time.sleep(.1)
     raise AssertionError(message)
+
+
+def activate_main(hwnd):
+    # The native-link smoke leaves a fresh system browser in front. Establish a
+    # real foreground main window before the CI-only tray trigger; never show or
+    # focus the tray HWND directly, which would mask the application's opening.
+    previous = user32.GetForegroundWindow()
+    user32.ShowWindow(hwnd, 9)
+    user32.SetForegroundWindow(hwnd)
+    method = "SetForegroundWindow"
+    if user32.GetForegroundWindow() != hwnd:
+        message = wintypes.MSG()
+        user32.PeekMessageW(ctypes.byref(message), None, 0, 0, 0)
+        owner = wintypes.DWORD()
+        foreground_thread = user32.GetWindowThreadProcessId(previous, ctypes.byref(owner)) if previous else 0
+        current_thread = kernel32.GetCurrentThreadId()
+        attached = bool(foreground_thread and foreground_thread != current_thread
+                        and user32.AttachThreadInput(current_thread, foreground_thread, True))
+        try:
+            user32.SetForegroundWindow(hwnd)
+            method = "temporary foreground input-queue attachment"
+        finally:
+            if attached:
+                user32.AttachThreadInput(current_thread, foreground_thread, False)
+    if user32.GetForegroundWindow() != hwnd:
+        # Alt releases Windows' foreground lock through actual OS keyboard input.
+        user32.keybd_event(0x12, 0, 0, 0)
+        user32.keybd_event(0x12, 0, 2, 0)
+        time.sleep(.1)
+        user32.SetForegroundWindow(hwnd)
+        method = "OS Alt input followed by SetForegroundWindow"
+    wait_for(lambda: user32.GetForegroundWindow() == hwnd, "Could not establish the native main foreground", 5)
+    activation_history.append({"previous": previous, "foreground": hwnd, "method": method})
 
 
 def native_window(title):
@@ -95,6 +132,7 @@ with sync_playwright() as playwright:
     main_handle = wait_for(lambda: native_window("Facetmark"), "Installed main window missing")
     sequence = 0
     opening_sources = []
+    activation_history = []
 
     def menu_page():
         handle = native_window("Facetmark tray")
@@ -104,6 +142,7 @@ with sync_playwright() as playwright:
 
     def open_menu(*, actual_click=False):
         global sequence
+        activate_main(main_handle)
         # Try a real right click on the registered notification icon first.
         if actual_click:
             icon_path = output / "tray-icon-native.json"
@@ -121,6 +160,7 @@ with sync_playwright() as playwright:
                         pass
         # A headless Server desktop may have no usable notification area. The
         # CI-only native trigger still creates and positions the real WebView.
+        activate_main(main_handle)
         sequence += 1
         request = output / f"tray-open-request-{process}.json"
         temporary = request.with_suffix(".tmp")
@@ -129,7 +169,16 @@ with sync_playwright() as playwright:
         wait_for(lambda: (record := read_json(output / "tray-menu-native.json")).get("process") == process
                  and record.get("source") == f"synthetic cloud tray trigger {sequence}",
                  "Native tray trigger did not run")
-        menu = wait_for(menu_page, "Native tray WebView missing")
+        try:
+            menu = wait_for(menu_page, "Native tray WebView missing")
+        except AssertionError:
+            handle = native_window("Facetmark tray")
+            report("installed-tray-failure.json", {"menu_hwnd": handle,
+                "menu_visible": bool(handle and user32.IsWindowVisible(handle)),
+                "foreground_hwnd": user32.GetForegroundWindow(), "main_hwnd": main_handle,
+                "cdp_pages": [page.url for context in browser.contexts for page in context.pages],
+                "activation_history": activation_history, "opening_sources": opening_sources})
+            raise
         opening_sources.append("synthetic cloud trigger; actual native window")
         return menu
 
@@ -190,11 +239,13 @@ with sync_playwright() as playwright:
         menu.keyboard.press("Escape")
         wait_for(lambda: not user32.IsWindowVisible(handle), "Escape did not hide the native tray window")
         menu = open_menu()
+        user32.ShowWindow(main_handle, 0)
+        assert not user32.IsWindowVisible(main_handle), "Open-workspace regression needs a hidden main window"
         menu.locator('[data-action="show"]').press("Enter")
         wait_for(lambda: user32.IsWindowVisible(main_handle), "Open workspace did not restore the main window")
         wait_for(lambda: not user32.IsWindowVisible(handle), "Open workspace left the menu over the application")
         menu = open_menu()
-        user32.SetForegroundWindow(main_handle)
+        activate_main(main_handle)
         wait_for(lambda: not user32.IsWindowVisible(handle), "Losing native focus did not hide the tray menu")
         menu = open_menu()
         menu.locator('[data-action="update"]').press("Enter")
@@ -224,6 +275,7 @@ with sync_playwright() as playwright:
             "real_global_shortcut": True, "open_workspace": True, "escape_hides_menu": True,
             "native_focus_loss_hides_menu": True, "update_opens_desktop_settings": True,
             "remote_tray_actions_denied": remote, "opening_sources": opening_sources,
+            "activation_history": activation_history,
             "theme_scope": "WebView media overrides for light/dark and reduced motion", "page_errors": errors})
     else:
         raise SystemExit(f"Unknown tray check mode: {mode}")

@@ -108,8 +108,10 @@ FIRST VIEWPORT: At 1440px a 64px header holds capsule navigation, shared search
 and utilities above the collection. A 252px directory spans the entire window
 height; duplicate brand/title blocks are removed. Compact actions/status lead
 directly to a 280px-minimum card grid (three columns at 1440px/1280px, two at
-1024px, one on mobile). The retained reader index is 264px. Settings use the full
-workspace width. Source, mixed-language titles and varied summaries remain visible.
+1024px, one on mobile). The retained desktop reader index is 264px. A narrow modal
+reader keeps the background collection's layout, total height and scroll position
+unchanged. Settings use the full workspace width. Source, mixed-language titles and
+varied summaries remain visible.
 
 FORM: Code-led improvement from the current mist-blue implementation under the
 latest usability and appearance feedback. Source-inspected S17/S19 relationships
@@ -173,6 +175,8 @@ input immediately; rapid reversal and live reduced-motion changes remain safe.
 Reader layouts may change. Body text is 17px/1.8 (16px mobile), titles are
 29px/700 (25px mobile, 32px focus). The compact index hides duplicate excerpts,
 tags and folder paths while retaining source, title, status and actions.
+Only a visible desktop index may reveal the selected whole card. Hidden, inert or
+aria-hidden lists never auto-scroll; focus-mode reversal restores the settled index.
 Only saved body text has an in-flow progress footer; summary/related/empty states
 do not show an idle “reading preview” box.
  Keep actual heading navigation, article progress,
@@ -194,7 +198,10 @@ the same folded-F SVG is used for the React identity, native startup and tray. T
 in CI, with light/dark size evidence. The installed local 32px icon was read-only
 extracted and matched to the previous installed cloud image (0 different pixels).
 A packaged native tray WebView uses the same fonts/mark, real native settings,
-keyboard roving focus and bounded monitor-aware geometry. Native menu actions
+keyboard roving focus and bounded monitor-aware geometry. Select a full monitor's
+bounds before clamping to its work area and applying that monitor's DPI. Reused
+windows replay one interruptible entrance on every open, with a static reduced-motion
+endpoint. Native menu actions
 are restricted to that local page; cloud HTML fixtures remain separately labeled. Native physical-frame restoration, quiet
 geometry persistence and sidecar cleanup are separately verified after installation.
 

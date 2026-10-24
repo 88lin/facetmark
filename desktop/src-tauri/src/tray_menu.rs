@@ -7,6 +7,22 @@ use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
+fn record_window_event(app: &tauri::AppHandle, details: serde_json::Value) {
+    if !cloud_webview_inspection() { return; }
+    let Some(directory) = std::env::var_os("FACETMARK_CI_EVIDENCE_DIR") else { return; };
+    use std::io::Write;
+    if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true)
+        .open(std::path::PathBuf::from(directory).join("tray-window-events.jsonl")) {
+        let time = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis();
+        let _ = writeln!(file, "{}", serde_json::json!({ "process": std::process::id(), "time_ms": time, "details": details }));
+    }
+}
+pub fn focus_changed(window: &tauri::Window, focused: bool) {
+    record_window_event(window.app_handle(), serde_json::json!({ "event": "focus", "focused": focused,
+        "visible_before": window.is_visible().ok() }));
+    if !focused { let _ = window.hide(); }
+}
+
 fn packaged_tray_url(url: &tauri::Url) -> bool {
     url.path() == "/tray.html" && ((matches!(url.scheme(), "http" | "https") && url.host_str() == Some("tauri.localhost"))
         || (url.scheme() == "tauri" && url.host_str() == Some("localhost")))
@@ -78,6 +94,8 @@ pub fn open(app: &tauri::AppHandle, x: f64, y: f64, source: &str) -> tauri::Resu
     let _ = menu.eval("if (window.openFacetmarkTray) window.openFacetmarkTray()");
     menu.show()?;
     menu.set_focus()?;
+    record_window_event(app, serde_json::json!({ "event": "open", "source": source,
+        "visible": menu.is_visible().ok() }));
     ci_record("tray-menu-native.json", serde_json::json!({ "process": std::process::id(),
         "source": source, "outer": geometry, "scale_factor": scale, "preference_shortcut": preferences(app).shortcut }));
     Ok(())

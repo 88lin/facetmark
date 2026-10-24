@@ -560,8 +560,8 @@ fn main() {
         })
         .on_window_event(|win, event| {
             match event {
-                tauri::WindowEvent::Focused(false) if win.label() == "tray-menu" => {
-                    let _ = win.hide();
+                tauri::WindowEvent::Focused(focused) if win.label() == "tray-menu" => {
+                    tray_menu::focus_changed(win, *focused);
                 }
                 tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) if win.label() == "main" => {
                     remember_geometry(win);

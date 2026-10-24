@@ -763,7 +763,7 @@ kbd {
   padding: 0;
   width: 18px;
   height: 18px;
-  border: 1px solid var(--rule);
+  border: 1px solid color-mix(in srgb, var(--secondary-ink) 72%, var(--canvas));
   border-radius: 6px;
   background: var(--canvas);
   color: var(--on-accent);

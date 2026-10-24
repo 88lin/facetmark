@@ -310,9 +310,12 @@ endpoints; clipped tree wrappers use inset focus outlines.
 Native original links and independent selection/edit/process controls remain.
 Blank card areas open preview through the real preview button's focus-return path.
 Modifier clicks, non-left buttons, text selection and interactive descendants retain
-their own actions. The card owns whole-row index visibility and corrects final bounds
-after layout animation; hidden/inert lists never scroll. Close restores the collection
-scroll position and returns focus to the actual record opener.
+their own actions. The card owns whole-row visibility only in the desktop reading
+index and corrects final bounds after layout animation; hidden, inert or aria-hidden
+lists never auto-scroll. A narrow modal reader preserves the collection's layout,
+height and scroll position behind it. Close restores collection scroll and returns
+focus to the actual record opener. Scroll regressions record the settled index before
+comparing chapter navigation or focus-mode reversal, with unchanged precision.
 
 Reading retains a compact index on wide screens and previous/next/close operations.
 Only a saved, successful body-text tab has a 48px in-flow progress footer.
@@ -347,7 +350,10 @@ font, mark, material and blue state vocabulary. It offers open workspace, launch
 login, global shortcut, desktop/update settings and quit. Check states come from the
 real native plugins; single-flight actions preserve old state on error. Arrow/Home/
 End/Tab roving focus, Escape and native focus loss dismiss correctly.
-Monitor-aware placement uses physical coordinates, target DPI and work-area bounds.
+Monitor-aware placement first selects full physical display bounds, then uses that
+display's DPI and work area; a taskbar point near another monitor keeps its own
+display. Every opening owns one cancellable entrance, including reused windows;
+reduced motion cancels it and uses the visible endpoint.
 Rust restricts tray commands to the packaged tray page's label and URL.
 Synthetic cloud opening is separately identified when the hosted notification area
 cannot expose an actual right-click.
