@@ -316,8 +316,16 @@ with sync_playwright() as playwright:
         tray_layout = []
         for theme in ["light", "dark"]:
             menu.emulate_media(color_scheme=theme)
-            layout = menu.locator(".tray-shell").evaluate("el => ({height: el.clientHeight, extent: el.scrollHeight})")
-            assert layout["extent"] <= layout["height"] + 1, f"Normal tray menu scrolls: {layout}"
+            layout = menu.locator(".tray-shell").evaluate("""el => ({
+                height: el.clientHeight, extent: el.scrollHeight,
+                width: el.clientWidth, horizontal_extent: el.scrollWidth,
+                viewport: {width: innerWidth, height: innerHeight},
+                font: getComputedStyle(el).fontFamily
+            })""")
+            # scrollHeight/clientHeight are integer CSS pixels. A one-pixel
+            # tolerance still permits a real, visible Windows scrollbar.
+            assert layout["extent"] <= layout["height"], f"Normal tray menu scrolls: {layout}"
+            assert layout["horizontal_extent"] <= layout["width"], f"Normal tray menu scrolls horizontally: {layout}"
             for selector in [".tray-identity", ".tray-menu", "#tray-feedback"]:
                 expect(menu.locator(selector)).to_be_in_viewport(ratio=1)
             tray_layout.append({"theme": theme, **layout})

@@ -67,7 +67,8 @@ for (const locale of ["zh-CN", "en-US"]) test.describe(`packaged tray page ${loc
         // well as the nominal design canvas, preserving full 44px hit targets.
         await page.setViewportSize(installedClient ? { width: 296, height: 365 } : { width: 312, height: 374 });
         const layout = await page.locator('.tray-shell').evaluate(element => ({ height: element.clientHeight, extent: element.scrollHeight }));
-        expect(layout.extent).toBeLessThanOrEqual(layout.height + 1);
+        // Even a one-pixel overflow paints a scrollbar in the installed WebView.
+        expect(layout.extent).toBeLessThanOrEqual(layout.height);
         await page.keyboard.press("End"); await expect(page.locator('[data-action="exit"]')).toBeFocused();
         for (const selector of ['.tray-identity', '.tray-menu', '#tray-feedback', '[data-action="exit"]']) {
           await expect(page.locator(selector)).toBeInViewport({ ratio: 1 });
