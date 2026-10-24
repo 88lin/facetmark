@@ -1,6 +1,6 @@
 # Desktop experience validation
 
-> 2026-10-24：最终应用与取证版本 `f1c67fe` 的收藏、CI、体验、Windows 四条云端工作流全部通过。收藏 12/12、浏览器 88 通过 / 2 跳过、独立 200k 浏览器 1 通过；61 个分类胶囊帧全为 32px 高。安装 exe 提取的 32px 新 F 图标与 ICO 像素一致；实际 96 DPI 窗口恢复、240 次事件合并写盘和 Enter 重试已验。150% DPI 与显示器移除只有纯几何测试。新图标和细节待用户复评，详见 [本轮打磨记录](collection-workspace-polish-2026-10-24.md)。
+> 2026-10-24：最终应用与取证版本 `f1c67fe` 的收藏、CI、体验、Windows 四条云端工作流全部通过。收藏 12/12、浏览器 88 通过 / 2 跳过、独立 200k 浏览器 1 通过；61 个分类胶囊帧全为 32px 高。安装 exe 提取的 32px 新 F 图标与 ICO 像素一致；实际 96 DPI 窗口恢复、240 次事件合并写盘和 Enter 重试已验。150% DPI 与显示器移除只有纯几何测试。最新用户评价为“还不算好看，能用的样子而已”，整体视觉仍需改善；技术与复评仅记录在本项目。详见 [本轮打磨记录](collection-workspace-polish-2026-10-24.md)。
 
 <!-- current-experience-evidence:start -->
 
@@ -33,7 +33,9 @@ creation failure after ready stops the old sidecar; real Enter retry recovers.
 splash/pairing/import captures are distinguished from the installed startup checks.
 Storyboards, representative renders and frame data were inspected; complete MP4
 playback and all-device frame-rate certification were not performed. No real user
-browser profiles were used. Native icon and new refinements remain pending review.
+browser profiles were used. The user assesses overall appearance as usable but
+not good-looking; visual refinement is required. The individual new icon and
+details have no separate approval. Product evidence and review stay in this repository.
 
 ## Historical 2026-10-23 baseline: layered collection workspace
 

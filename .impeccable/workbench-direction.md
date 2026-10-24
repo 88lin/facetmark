@@ -2,16 +2,22 @@
 
 ## Latest feedback — 2026-10-24
 
-User: “现在这个 pr44 你上次改的还算可以，至少有很大的进步了”。
-Continue the mist-blue collection direction with comprehensive refinement. Keep
-its floating navigation, layered worktable, porcelain reading surfaces and upright
-Chinese typography. The user requests fixes to capsule geometry, black click
+Latest user assessment: “还不算好看，能用的样子而已”. The current overall appearance
+needs further visual refinement. Earlier acknowledgement of progress is historical;
+it does not approve or freeze the current composition, typography, palette or material.
+The user requests fixes to capsule geometry, black click
 states, animation continuity, nested folders, folder artwork and unfinished
 startup surfaces. No new refinement is marked user-approved before review.
 The user also requests open-issue fixes (#45–#50) and replacing the desktop
 application icon. Commit/push and cloud verification are explicitly authorized;
-merge/release are outside this authorization. Preserve the overall mist-blue
-direction while examining the new native icon at small sizes.
+merge/release are outside this authorization. The installed icon has technical
+evidence but no individual visual approval.
+
+The user requires the long-term handbook to contain only general methods and
+reference research. All project directions, implementation, screenshots, bugs,
+runs, commits and user assessments belong exclusively in this repository.
+[Project reference/feedback record](../docs/design-reference-project-record.md)
+contains the migrated project material and latest review.
 
 ## Visual and interaction direction
 
@@ -20,6 +26,7 @@ P04 navigation context, P08 icon/behavior separation, P15 interrupted motion and
 P16 ownership. oil-ui and Taste are selected methods; S17-S20 remain source-backed
 references. Do not restart a direction tournament or restore a rejected skin.
 
+The following describes the current implementation, not an approved visual identity.
 Blue carries action and selection; ink carries text. Top navigation uses a blue
 plate, while category/settings segments use porcelain and blue material. Capsules
 fill their assigned grid space. Their moving plates animate actual dimensions
@@ -64,5 +71,8 @@ installed Windows evidence. Old green checks do not verify the current source.
 [Current round](../docs/collection-workspace-polish-2026-10-24.md),
 [DESIGN.md](../DESIGN.md), [sidecar](design.json) and
 [frontend brief](surfaces/frontend.md) describe the same revision and review state.
+The repository handbook is a snapshot of general master v0.18. Update project
+feedback and implementation in separate repository files; do not write them back
+to the long-term master.
 Rejected pale-iris, limestone, pale-green and Orbit-era treatments remain historical
 migration references only. The latest feedback controls the next iteration.

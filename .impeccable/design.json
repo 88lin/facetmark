@@ -1242,24 +1242,27 @@
     "tonalRampProvenance": "Generated 8-step OKLCH strips for the design panel only. They are not shipped palette tokens or verified contrast combinations.",
     "specimenScope": "Static, self-contained HTML/CSS visual states with inline SVG and root-token fallbacks. Runtime controls, selection geometry, layout springs, focus management and data behavior remain in the React application. The bundled font aliases use platform fallbacks if the host has not loaded those fonts.",
     "evidence": {
-      "status": "cloud-verified-new-refinements-awaiting-user-review",
-      "visualAcceptance": "overall-progress-acknowledged-new-refinements-awaiting-review",
+      "status": "technically-verified-visual-quality-requires-refinement",
+      "visualAcceptance": "user-assessed-usable-but-not-good-looking",
       "sourceState": "Mist-blue identity retained. Capsule geometry, blue states, nested folders and startup/setup refined; follow-up adds two-line folder labels, short-window and forced-colors fixes, native geometry/persistence/retry repairs and a porcelain folded-F desktop icon. The latest repair freezes painted-frame capture before GSAP context reversion, including cleanup while a marker ref is attached. Geometry now explicitly copies DOMRect left/top/width/height instead of spreading non-enumerable getters.",
       "sourceBasis": "Final application/capture f1c67fe passed collection, CI, experience and Windows workflows. Explicit DOMRect coordinates and teardown sampling guard are verified together in real browser frame bounds. Earlier partial failures remain revision-specific history.",
       "applicationRevision": "f1c67fe49282c487f9b9a664c9be0ea800ca6df2",
       "captureRevision": "f1c67fe49282c487f9b9a664c9be0ea800ca6df2",
-      "handbookVersion": "0.17",
+      "handbookVersion": "0.18",
       "brief": ".impeccable/workbench-direction.md",
       "surface": ".impeccable/surfaces/frontend.md",
       "history": ".impeccable/history/2026-10-23-rejected-iris/",
       "baseRevision": "530471ae7ae125d9b2f81fef082864638f04ad8a",
       "roundRecord": "docs/collection-workspace-polish-2026-10-24.md",
-      "verification": "f1c67fe passed four workflows: collection 12/12, browser 88 passed/2 skipped, independent real 200k case 1 passed, backend 2054 passed/1 skipped and installed Windows/8 Rust tests. Collection has 59 PNGs, 7 action groups, 64 source and 63 media/record hashes verified; broader experience has 45 source, 94 PNG and 3 MP4 hashes verified. All 61 category frames stay 32px high and 66.65625-67.000015px wide with scale 1. Two cleanup orders each pass 60 isolated switches with non-enumerable getters and four negative controls. Installed 32px folded-F matches ICO premultiplied pixels exactly; PNG/ICO and Windows CRLF source hashes match. Actual 96-DPI restore, 240 native calls merged to one idle write and Enter retry pass. 18 Web/24 installed interactions have no page errors or unexpected writes. 150% DPI/monitor removal remain pure geometry. Representative renders, storyboards and frame data were inspected; full-MP4 playback/all-device frame-rate tests were not performed. New visuals remain pending user review.",
+      "verification": "f1c67fe passed four workflows: collection 12/12, browser 88 passed/2 skipped, independent real 200k case 1 passed, backend 2054 passed/1 skipped and installed Windows/8 Rust tests. Collection has 59 PNGs, 7 action groups, 64 source and 63 media/record hashes verified; broader experience has 45 source, 94 PNG and 3 MP4 hashes verified. All 61 category frames stay 32px high and 66.65625-67.000015px wide with scale 1. Two cleanup orders each pass 60 isolated switches with non-enumerable getters and four negative controls. Installed 32px folded-F matches ICO premultiplied pixels exactly; PNG/ICO and Windows CRLF source hashes match. Actual 96-DPI restore, 240 native calls merged to one idle write and Enter retry pass. 18 Web/24 installed interactions have no page errors or unexpected writes. 150% DPI/monitor removal remain pure geometry. Representative renders, storyboards and frame data were inspected; full-MP4 playback/all-device frame-rate tests were not performed. The latest user assessment is usable but not good-looking; overall visual quality requires refinement. The individual new icon/details have no separate approval.",
       "nativeStartupScope": "Browser splash HTML uses a synthetic Tauri restart bridge; pairing/import state captures use synthetic responses. Installed ready-then-failure cleanup, real Enter retry, geometry and lifecycle pass separately in Windows run 40039337892 at f1c67fe.",
       "latestFeedback": {
         "date": "2026-10-24",
-        "scope": "Facetmark PR #44",
-        "assessment": "Substantial overall improvement; comprehensive refinement requested. No individual token, component or new change is marked approved. User additionally requested open-issue fixes and replacing the desktop icon, and approved commit/push plus cloud verification."
+        "scope": "Facetmark PR #44 appearance and documentation ownership",
+        "assessment": "Usable but still not good-looking. Overall visual quality requires improvement; no individual visual choice is newly approved. Earlier progress acknowledgement does not freeze the current direction.",
+        "quote": "还不算好看，能用的样子而已",
+        "recordScope": "All product directions, implementation, screenshots, bugs, runs, commits and assessments remain exclusively in this repository. The long-term master contains only general reference methods and research.",
+        "previousAssessment": "Earlier substantial-progress acknowledgement remains historical; commit/push and cloud-verification authorization persists."
       },
       "historicalBaseline": {
         "status": "cloud-verified-awaiting-user-visual-review",
@@ -1318,15 +1321,22 @@
         "ci": "40039341275",
         "windows": "40039337892",
         "experience": "40039337908",
-        "state": "four workflows passed; source/media fingerprints and actual installed icon verified; new visuals await user review",
+        "state": "four workflows passed with verified fingerprints and installed icon; the user assesses overall visual quality as insufficient. Individual icon/detail approval remains pending.",
         "categoryFrames": {
           "count": 61,
-          "height": [32, 32],
-          "width": [66.65625, 67.00001525878906],
+          "height": [
+            32,
+            32
+          ],
+          "width": [
+            66.65625,
+            67.00001525878906
+          ],
           "scaleIsOne": true
         },
         "documentationOnlyFollowup": "Later handbook and record commits do not change this application/capture revision."
-      }
+      },
+      "projectReferenceRecord": "docs/design-reference-project-record.md"
     },
     "componentSources": {
       "button-primary": "frontend/src/ui/controls.css",
@@ -1427,7 +1437,7 @@
   ],
   "narrative": {
     "northStar": "The Layered Collection Table",
-    "overview": "An upright, tactile collection system uses mist-blue surroundings, porcelain reading surfaces and deep ink, with electric-blue actions. Translucent navigation and directory layers, rounded cards and molded capsule controls carry the current implementation's visual character. This is a working implementation description, not a user-approved visual identity.\n\nOn 2026-10-24 the user described PR #44's mist-blue workspace as a substantial improvement and requested comprehensive refinement. Keep its composition, typography and material direction while fixing malformed selected capsules, black control states, interrupted motion, nested-folder access and unfinished startup flows. This feedback does not approve every individual visual choice or the new refinements.\n\nFinal application/capture f1c67fe passed all four cloud workflows. Source-matched full pages, narrow/short windows, startup/setup states, capsule frame bounds and the installed folded-F icon were verified. Both teardown sampling protection and explicit DOMRect coordinates are tested in the real browser; all 61 category frames retain 32px height. Native 96-DPI restore, coalesced writes and Enter retry pass; 150% DPI/monitor removal remain pure geometry. Handbook v0.17 and the [current round record](docs/collection-workspace-polish-2026-10-24.md) preserve the actual scope and pending visual review. Earlier 04ecc11/7d2abd0/831dcfd results remain historical and revision-specific.",
+    "overview": "The implemented f1c67fe collection workspace uses mist-blue surroundings, porcelain reading surfaces, ink text and blue controls with layered navigation and cards. These values describe the shipped implementation, not an approved visual identity or a preset for other projects.\n\nLatest 2026-10-24 assessment: the current interface is usable but not good-looking. Overall visual refinement remains required. Earlier acknowledgement of progress does not freeze the current composition, typography, palette or material, and no individual new icon/detail is approved. Preserve product behavior while improving visual form under the latest feedback.\n\nFinal application/capture f1c67fe passed four cloud workflows with source-matched pages, narrow/short layouts, startup/setup, capsule frame bounds and the installed folded-F icon. Native 96-DPI restore, coalesced writes and Enter retry pass; 150% DPI/monitor removal remain pure geometry. Technical evidence is independent from user aesthetic judgment. General handbook v0.18 contains only reference research and methods; the current round and docs/design-reference-project-record.md hold all product-specific directions, evidence and review in this repository.",
     "keyCharacteristics": [
       "Mist-blue ambient light, translucent supporting layers and opaque content surfaces.",
       "Bundled Inter and Noto Sans SC with upright headings and readable mixed-language records.",

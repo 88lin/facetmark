@@ -42,16 +42,17 @@ related_targets:
 
 ## Direction status
 
-On 2026-10-24 the user described PR #44's mist-blue workspace as a substantial
-improvement and requested refinement. Preserve this identity while fixing selected
-capsules, control colors, motion, nested folders and startup/setup paths. The new
-changes remain pending user review; no individual visual choice is newly
-approved. Final application/capture f1c67fe passed all four workflows with verified
+Latest 2026-10-24 assessment: “还不算好看，能用的样子而已”. The overall appearance
+needs improvement. Earlier acknowledgement of progress does not approve or freeze
+the current identity, layout, type, colors or material; no individual choice is
+newly approved. Final application/capture f1c67fe passed all four workflows with verified
 rendered/installed evidence and actual capsule frame bounds. 04ecc11 / 7d2abd0
 and the earlier 831dcfd round remain revision-specific history.
 Current scope is in docs/collection-workspace-polish-2026-10-24.md.
 
-Long-term reference: the supplied handbook v0.17 and D04 / D05 feedback records.
+Long-term reference: general handbook v0.18. D04 / D05 history and latest D06
+assessment belong in docs/design-reference-project-record.md in this repository.
+The master does not contain this product's designs, implementation or runtime results.
 Impeccable owns one system; oil-ui / Taste and S17-S20 supply selected relationships.
 
 The user additionally requested open-issue repairs and a replacement desktop app
@@ -65,7 +66,8 @@ broader experience package has 45 source, 94 PNG and 3 MP4 hashes verified.
 Actual 96-DPI installed geometry/retry passes; 240 changing move/resize calls
 produce one idle write and close flushes the final outer frame. 18 Web and 24
 installed interactions report no page errors or unexpected writes. 150% DPI and
-monitor removal remain pure geometry scope. New visuals remain pending review.
+monitor removal remain pure geometry scope. Overall visual quality requires
+refinement after user review; individual new icon/detail approval remains pending.
 
 The lifecycle-only 2b4ecdb run was 11/12: frame height still fell to 10.16px.
 Browser DOMRect getters were lost through an object spread, independently of
@@ -76,6 +78,9 @@ remain 32px high and 66.65625–67.000015px wide; scale remains 1. Storyboards a
 frame data were inspected; full MP4 playback/all-device frame-rate testing was not.
 
 ## Direction contract
+
+This contract describes the implemented version and its behavior. Visual form remains
+open to improvement under the latest assessment; it is not a frozen or approved preset.
 
 THESIS: A personal collection with a clear reading surface and tactile controls.
 Actual saved content carries the composition.

@@ -1,6 +1,6 @@
 ---
 name: "Facetmark collection workspace"
-description: "Mist-blue workspace refinement; installed icon and layout have cloud evidence, the motion-continuity repair awaits new verification and user review."
+description: "Implemented workspace with source-matched cloud evidence; the user assesses current appearance as usable but not good-looking. Visual quality requires further refinement. Project material stays in this repository."
 colors:
   secondary-ink: "#526379"
   canvas: "#ffffff"
@@ -199,9 +199,9 @@ components:
 
 An upright, tactile collection system uses mist-blue surroundings, porcelain reading surfaces and deep ink, with electric-blue actions. Translucent navigation and directory layers, rounded cards and molded capsule controls carry the current implementation's visual character. This is a working implementation description, not a user-approved visual identity.
 
-On 2026-10-24 the user described PR #44's mist-blue workspace as a substantial improvement and requested comprehensive refinement. Keep its composition, typography and material direction while fixing malformed selected capsules, black control states, interrupted motion, nested-folder access and unfinished startup flows. This feedback does not approve every individual visual choice or the new refinements.
+Latest 2026-10-24 assessment: “还不算好看，能用的样子而已”. The current overall appearance needs further improvement. Earlier acknowledgement of progress is historical and does not freeze the composition, typography, palette or material. No current visual identity or individual new detail is marked user-approved.
 
-The current changes are local source edits awaiting cloud rendering and operation checks. Earlier application revision 04ecc11 and capture-only revision 7d2abd0 passed their recorded cloud checks; those runs are the historical baseline, not verification of this diff. The [current round record](docs/collection-workspace-polish-2026-10-24.md) records the implemented changes and actual check scope.
+Final application/capture f1c67fe passed collection, CI, experience and Windows checks with source-matched evidence; this establishes technical scope, not aesthetic satisfaction. Earlier revisions remain historical. The [current round](docs/collection-workspace-polish-2026-10-24.md) records actual changes and tests, and the [project reference/feedback record](docs/design-reference-project-record.md) records the latest assessment. General handbook v0.18 contains only reference research and methods; product directions, implementation and feedback remain exclusively in this repository.
 
 The active product and behavior requirements remain in [PRODUCT.md](PRODUCT.md)
 and the [frontend surface brief](.impeccable/surfaces/frontend.md). The frontmatter
@@ -503,7 +503,8 @@ The collection workflow now includes folder disclosure, capsule geometry,
 startup/pairing and draft-recovery checks. Native splash captures use a synthetic
 restart bridge and are distinguished from installed-app evidence. Synthetic
 150% DPI and removed-monitor geometry are not physical device tests. The new
-icon and refinements remain pending user review. See the
+overall appearance requires further improvement after user review; the individual
+new icon and details have no separate approval. See the
 [current round](docs/collection-workspace-polish-2026-10-24.md) and
 [historical baseline](docs/collection-workspace-2026-10-23.md).
 
