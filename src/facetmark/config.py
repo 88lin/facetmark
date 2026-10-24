@@ -13,6 +13,7 @@ import contextlib
 import json
 import os
 from pathlib import Path
+from typing import Literal
 from urllib.parse import urlsplit
 
 from pydantic import Field, field_validator
@@ -158,6 +159,8 @@ class Settings(BaseSettings):
     chat_backend: str = "endpoint"
     chat_agent: str = "auto"
     chat_agent_model: str = ""
+    chat_agent_reasoning_effort: str = ""
+    """Empty inherits the CLI/model default; OpenCode uses a model variant."""
     chat_agent_timeout: float = Field(default=180, ge=10, le=1800)
     embed_base_url: str | None = None
     embed_api_key: str | None = None
@@ -260,6 +263,13 @@ class Settings(BaseSettings):
     body_truncate_chars: int = 6000
 
     # ---------- enrichment / intent ----------
+    summary_language: Literal["auto", "zh", "en"] = "auto"
+    """Auto follows the UI language for new jobs; CLI calls default to Chinese."""
+    summary_prompt: str = Field(default="", max_length=10000)
+    """Optional writing instructions. Empty uses the built-in language default.
+
+    JSON shape, target language and retrieval requirements remain built-in.
+    """
     #: In-flight enrichment calls. The right value is a property of the backend,
     #: not of facetmark: a hosted API rations by tokens-per-minute and punishes
     #: bursts, while a self-hosted llama.cpp with continuous batching gets
@@ -418,6 +428,14 @@ class Settings(BaseSettings):
     def _chat_agent(cls, value: str) -> str:
         if value not in {"auto", "codex", "claude", "opencode"}:
             raise ValueError("Unsupported local agent")
+        return value
+
+    @field_validator("chat_agent_reasoning_effort")
+    @classmethod
+    def _agent_reasoning_effort(cls, value: str) -> str:
+        value = value.strip()
+        if len(value) > 128 or value.startswith("-") or any(ord(char) < 32 for char in value):
+            raise ValueError("Invalid agent reasoning level or variant")
         return value
 
     @field_validator("chat_extra_body")

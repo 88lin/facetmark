@@ -1,17 +1,15 @@
 import { CapsuleButton } from "./ui/controls";
 import { useEffect, useRef, useState } from "react";
-import { ArrowDownWideNarrow, ChevronDown, SlidersHorizontal, Sparkles, Pause, Play, CheckCheck, X } from "lucide-react";
+import { ArrowDownWideNarrow, ChevronDown, SlidersHorizontal, Pause, Play } from "lucide-react";
 import { post, type CollectionScope, type Job, type Page } from "./api";
 import { useText } from "./locale";
 import { SelectionPill } from "./InteractionMotion";
 
 export function CollectionTools({ scope, page, display, onDisplay, sort, onSort, onStatus, disabled,
-  selecting, allMatching, selectedCount, onAll, onClear, onSummarizeSelection, job, refresh, admin }: {
+  job, refresh, admin }: {
   scope: CollectionScope; page: Page | null; display: "summary" | "original";
   onDisplay: (value: "summary" | "original") => void; sort: string; onSort: (value: string) => void;
   onStatus: (value: CollectionScope["status"]) => void; disabled: boolean;
-  selecting: boolean; allMatching: boolean; selectedCount: number; onAll: () => void; onClear: () => void;
-  onSummarizeSelection: () => void;
   job: Job; refresh: () => Promise<void>; admin: boolean;
 }) {
   const t = useText();
@@ -39,7 +37,7 @@ export function CollectionTools({ scope, page, display, onDisplay, sort, onSort,
     </div>
     <label className="collection-sort"><ArrowDownWideNarrow size={16} aria-hidden="true"/><span className="sr-only">{t("排序", "Sort")}</span><select aria-label={t("排序", "Sort")} value={sort} onChange={e => onSort(e.target.value)}>
       <option value="newest">{t("最近收藏", "Newest saved")}</option><option value="oldest">{t("最早收藏", "Oldest saved")}</option>
-      <option value="title">{t("标题顺序", "Title")}</option><option value="domain">{t("按站点", "Website")}</option>
+      <option value="title">{t("标题顺序", "Title")}</option>
     </select></label>
     <details ref={displayMenu} className="collection-options-menu"
       onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}
@@ -52,12 +50,6 @@ export function CollectionTools({ scope, page, display, onDisplay, sort, onSort,
       </div>
       </div>
     </details>
-    {admin && (selecting || allMatching || selectedCount > 0) && <div className="collection-selection" role="group" aria-label={t("摘要批量选择", "Batch summary selection")}>
-      <CapsuleButton className="text-button" disabled={disabled || !page?.total} onClick={onAll}><CheckCheck size={15}/>{t(`全选 ${(page?.total || 0).toLocaleString()} 条用于摘要`, `Select all ${(page?.total || 0).toLocaleString()} for summaries`)}</CapsuleButton>
-      {!!selectedCount && <><span role="status">{t(`已选 ${selectedCount.toLocaleString()} 条${allMatching ? " · 摘要处理 · 跨页生效" : ""}`, `${selectedCount.toLocaleString()} selected${allMatching ? " · summaries across pages" : ""}`)}</span>
-        <CapsuleButton className="text-button" disabled={disabled || job.state === "running"} onClick={onSummarizeSelection}><Sparkles size={15}/>{t("生成所选摘要", "Summarize selected")}</CapsuleButton>
-        <CapsuleButton className="text-button" onClick={onClear}><X size={14}/>{t("清空", "Clear")}</CapsuleButton></>}
-    </div>}
     {admin && job.params?.mode !== "index" && (job.state === "running" || job.resumable) && <div className="collection-job">
       <span>{job.state === "running" ? t("正在处理", "Processing") : t("任务已保存，可继续", "Task saved; ready to resume")} · {job.items?.done.toLocaleString() || 0} / {job.items?.total.toLocaleString() || 0}
         {!!job.items?.failed && t(` · ${job.items.failed} 条失败`, ` · ${job.items.failed} failed`)}</span>

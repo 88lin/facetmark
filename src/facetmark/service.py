@@ -128,12 +128,14 @@ SELECT b.id, b.url, b.title, b.folder, b.folder_depth, b.domain, b.host,
        e.summary, e.topics, e.entities, e.key_points, e.utility, e.content_type,
        e.basis AS enrich_basis,
        e.model AS enrich_model,
+       e.ai_title, e.language AS summary_language, ef.error AS summary_error,
        c.char_count, c.lang, c.extractor, c.fetch_channel, c.http_status,
        c.fetched_at, c.final_url, c.error AS fetch_error,
        substr(COALESCE(c.body_text, ''), 1, 400) AS body_head
 FROM bookmark b
 LEFT JOIN enrichment e ON e.bookmark_id = b.id
 LEFT JOIN content    c ON c.bookmark_id = b.id
+LEFT JOIN enrichment_failure ef ON ef.bookmark_id = b.id
 WHERE b.id = ?
 """
 
@@ -183,6 +185,7 @@ def bookmark_record(
         "managed_externally": managed_externally,
         "url": row["url"],
         "title": row["title"],
+        "ai_title": row["ai_title"] or "",
         "folder": row["folder"],
         "folder_depth": row["folder_depth"],
         "domain": row["domain"],
@@ -191,6 +194,8 @@ def bookmark_record(
         "last_opened_at": row["last_opened_at"],
         "tags": _jlist(row["tags"]),
         "summary": _clip(row["summary"], SUMMARY_CHARS),
+        "summary_language": row["summary_language"] or "",
+        "summary_error": row["summary_error"] or "",
         "topics": _jlist(row["topics"]),
         "entities": _jlist(row["entities"]),
         "key_points": _jlist(row["key_points"]),
@@ -754,13 +759,14 @@ def sync_fts_tag_refresh(conn: sqlite3.Connection, bookmark_id: int) -> None:
         "SELECT body_text, body_seg FROM content WHERE bookmark_id=?", (bookmark_id,)
     ).fetchone()
     enr = conn.execute(
-        "SELECT summary, topics, entities, key_points FROM enrichment WHERE bookmark_id=?",
+        "SELECT ai_title, summary, topics, entities, key_points FROM enrichment WHERE bookmark_id=?",
         (bookmark_id,),
     ).fetchone()
     sync_fts(
         conn,
         bookmark_id,
         title=b["title"] or "",
+        ai_title=(enr["ai_title"] if enr else "") or "",
         body=(body_row["body_text"] if body_row else "") or "",
         body_seg=(body_row["body_seg"] if body_row else None),
         summary=(enr["summary"] if enr else "") or "",
@@ -899,8 +905,8 @@ def export_reading_data(conn: sqlite3.Connection, ids: Sequence[int]) -> dict[in
     for batch in dbmod.in_chunks(ids):
         marks = ",".join("?" * len(batch))
         for row in conn.execute(
-            "SELECT b.id, b.source, e.summary, e.topics, e.entities, e.key_points, e.utility,"
-            " e.content_type, e.basis, e.model, e.source_hash, e.created_at,"
+            "SELECT b.id, b.source, e.ai_title, e.summary, e.topics, e.entities, e.key_points, e.utility,"
+            " e.content_type, e.basis, e.model, e.source_hash, e.created_at, e.language, e.prompt_hash,"
             " c.bookmark_id AS content_id, c.body_text, c.body_hash, c.char_count, c.lang,"
             " c.extractor, c.fetch_channel, c.http_status, c.final_url, c.fetched_at"
             " FROM bookmark b LEFT JOIN enrichment e ON e.bookmark_id=b.id"
@@ -909,7 +915,10 @@ def export_reading_data(conn: sqlite3.Connection, ids: Sequence[int]) -> dict[in
         ):
             reading: dict = {"derived": {
                 "source": row["source"] or "",
+                "ai_title": row["ai_title"] or "",
                 "summary": row["summary"] or "",
+                "summary_language": row["language"] or "",
+                "prompt_hash": row["prompt_hash"] or "",
                 "topics": _jlist(row["topics"]),
                 "entities": _jlist(row["entities"]),
                 "key_points": _jlist(row["key_points"]),

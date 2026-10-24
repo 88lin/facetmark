@@ -672,6 +672,11 @@ class SearchHit:
     #: Only set on rows in the expansion group.
     via: int | None = None
     via_kind: str = ""
+    ai_title: str = ""
+    summary: str = ""
+    summary_basis: str = ""
+    summary_language: str = ""
+    summary_error: str = ""
 
     def as_dict(self) -> dict:
         d = {
@@ -690,6 +695,8 @@ class SearchHit:
             "snippet": self.snippet, "utility": self.utility,
             "content_type": self.content_type, "topics": self.topics,
             "tags": self.tags,
+            "ai_title": self.ai_title, "summary": self.summary, "summary_basis": self.summary_basis,
+            "summary_language": self.summary_language, "summary_error": self.summary_error,
         }
         if self.via is not None:
             d["via"] = self.via
@@ -797,11 +804,13 @@ class SearchResponse:
 
 _ROW_SQL = """
 SELECT b.id, b.url, b.title, b.folder, b.domain, b.date_added, b.tags, b.privacy_skipped,
-       e.summary, e.utility, e.content_type, e.topics,
+       e.ai_title, e.summary, e.basis AS summary_basis, e.language AS summary_language,
+       ef.error AS summary_error, e.utility, e.content_type, e.topics,
        substr(c.body_text, 1, 400) AS body_head
 FROM bookmark b
 LEFT JOIN enrichment e ON e.bookmark_id = b.id
 LEFT JOIN content    c ON c.bookmark_id = b.id
+LEFT JOIN enrichment_failure ef ON ef.bookmark_id = b.id
 WHERE b.id IN ({marks})
 """
 
@@ -886,6 +895,11 @@ def _to_hit(
         bookmark_id=int(row["id"]),
         url=str(row["url"]),
         title=str(row["title"] or ""),
+        ai_title=str(row["ai_title"] or ""),
+        summary=str(row["summary"] or ""),
+        summary_basis=str(row["summary_basis"] or ""),
+        summary_language=str(row["summary_language"] or ""),
+        summary_error=str(row["summary_error"] or ""),
         score=fused.score if fused else 0.0,
         base_score=fused.score if fused else 0.0,
         facets=fused.facets if fused else [],

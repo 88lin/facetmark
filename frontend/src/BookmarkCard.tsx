@@ -43,7 +43,7 @@ export function BookmarkCard({ record, selected, indexVisible, checked, disabled
     return () => cancelAnimationFrame(frame);
   }, [selected, indexVisible, reduced, revealPreview]);
   const href = safeUrl(record.url);
-  const title = record.title || record.url;
+  const title = record.ai_title || record.title || record.url;
   const trackOpen = (event?: { button: number }) => {
     // Native auxiliary activation is counted separately from the primary click.
     if (event && event.button !== 0) return;

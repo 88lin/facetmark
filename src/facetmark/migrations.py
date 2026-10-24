@@ -206,6 +206,13 @@ def _v7_collection_processing(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE INDEX IF NOT EXISTS ix_processing_pending ON processing_item(job_id,state,bookmark_id)")
 
 
+def _v8_summary_preferences(conn: sqlite3.Connection) -> None:
+    """Keep AI titles separate and make language/prompt changes invalidate caches."""
+    for name in ("ai_title", "language", "prompt_hash"):
+        if name not in _columns(conn, "enrichment"):
+            conn.execute(f"ALTER TABLE enrichment ADD COLUMN {name} TEXT NOT NULL DEFAULT ''")
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(2, "browser queue remembers when a retry is allowed", _v2_browser_queue_backoff),
     Migration(3, "content vectors remember what they were built from",
@@ -217,6 +224,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(6, "bookmarks keep the tags the importer already parsed",
               _v6_bookmark_tags),
     Migration(7, "large collections retain processing snapshots and failures", _v7_collection_processing),
+    Migration(8, "summaries retain AI titles, output language and prompt provenance", _v8_summary_preferences),
 )
 
 #: What this build writes into a new database. Derived from the migration list

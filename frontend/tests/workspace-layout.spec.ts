@@ -197,10 +197,11 @@ test("reading text has a clear scale, progress stays below the article and missi
   await top.press("Enter");
   await expect.poll(() => page.locator(".preview-scroll").evaluate(element => element.scrollTop)).toBe(0);
   await capture(page, "reader-type-and-footer");
-  await page.getByRole("tab", { name: "AI 摘要", exact: true }).click();
-  await expect(page.locator(".reading-position")).toHaveCount(0);
+  await expect(page.locator(".reader-summary")).toBeVisible();
+  await expect(page.locator(".preview-tabs [role=tab]")).toHaveCount(2);
+  await expect(page.getByRole("tab", { name: "AI 摘要", exact: true })).toHaveCount(0);
+  await expect(page.locator(".reading-position")).toBeVisible();
   await capture(page, "reader-summary");
-  await page.getByRole("tab", { name: "正文", exact: true }).click();
   await page.keyboard.press("Escape");
   const id = await first.getAttribute("data-bookmark-id");
   await page.route(`**/bookmark/${id}?body=true`, async route => {
@@ -208,7 +209,8 @@ test("reading text has a clear scale, progress stays below the article and missi
     await route.fulfill({ json: { ...record, body_text: "" } });
   });
   await first.click({ position: { x: 7, y: 7 } });
-  await expect(page.locator(".reading-empty")).toContainText("正文还未保存");
+  await expect(page.locator(".reader-summary")).toBeVisible();
+  await expect(page.locator(".reader-source-missing")).toContainText("正文尚未保存");
   await expect(page.locator(".reading-position")).toHaveCount(0);
   await capture(page, "reader-without-page-text");
 });

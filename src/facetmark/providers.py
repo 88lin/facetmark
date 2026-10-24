@@ -141,6 +141,10 @@ class MockProvider(Provider):
         ents = list(dict.fromkeys(_CAPS.findall(body)))[:6]
         first = next((ln.strip() for ln in body.splitlines() if len(ln.strip()) > 30), body[:160])
         summary = first[:200]
+        saved_title = re.search(r"^  title:  (.+)$", user, re.MULTILINE)
+        title = saved_title.group(1) if saved_title else next(
+            (ln.strip().lstrip("# ") for ln in body.splitlines() if ln.strip()), "Saved page",
+        )
         n = self.settings.intent_generate_n
         stems = (top or ["this page"])[:4]
         templates = [
@@ -155,6 +159,7 @@ class MockProvider(Provider):
         ]
         queries = [templates[i % len(templates)].format(stems[i % len(stems)]) for i in range(n)]
         out = {
+            "title": title[:120],
             "summary": summary,
             "key_points": [f"{w}: mentioned {freq[w]} times" for w in top[:4]],
             "entities": ents,

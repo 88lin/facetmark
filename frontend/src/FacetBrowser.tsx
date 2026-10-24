@@ -1,6 +1,6 @@
 import { CapsuleButton } from "./ui/controls";
 import { useEffect, useId, useRef, useState } from "react";
-import { Check, ChevronDown, Globe2, Inbox, LoaderCircle, Search, Settings2, Tags, X } from "lucide-react";
+import { Check, ChevronDown, Inbox, LoaderCircle, Search, Settings2, Tags, X } from "lucide-react";
 import { api, query } from "./api";
 import { useText } from "./locale";
 import { SelectionPill, useContentMotion } from "./InteractionMotion";
@@ -8,8 +8,8 @@ import { CollectionFolderIcon } from "./CollectionFolderIcon";
 import { FolderTree } from "./FolderTree";
 import "./facet-browser.css";
 
-type Field = "folder" | "tag" | "domain";
-type Group = "folders" | "tags" | "domains";
+type Field = "folder" | "tag";
+type Group = "folders" | "tags";
 type Facet = { value: string; count: number };
 type FacetPage = { items: Facet[]; total: number; has_more: boolean };
 
@@ -34,12 +34,11 @@ export function FacetBrowser({ filters, folderPath, enabled = true, revision, on
   const [retry, setRetry] = useState(0);
   const scroller = useRef<HTMLElement>(null);
   useContentMotion(scroller, group, undefined, "x");
-  const field: Field = group === "folders" ? "folder" : group === "tags" ? "tag" : "domain";
+  const field: Field = group === "folders" ? "folder" : "tag";
   const browseFolders = group === "folders" && !text;
   const groups = [
     { key: "folders" as const, label: t("文件夹", "Folders") },
     { key: "tags" as const, label: t("标签", "Tags") },
-    { key: "domains" as const, label: t("站点", "Sites") },
   ];
 
   useEffect(() => { setOffset(0); }, [revision]);
@@ -92,7 +91,7 @@ export function FacetBrowser({ filters, folderPath, enabled = true, revision, on
     <label className="facet-search">
       <Search size={15} aria-hidden="true" />
       <input aria-label={t("查找分类", "Find a category")} value={text}
-        placeholder={group === "folders" ? t("搜索文件夹…", "Search folders…") : group === "tags" ? t("搜索标签…", "Search tags…") : t("搜索站点…", "Search sites…")} maxLength={2048}
+        placeholder={group === "folders" ? t("搜索文件夹…", "Search folders…") : t("搜索标签…", "Search tags…")} maxLength={2048}
         onChange={e => { resetList(); setText(e.target.value); }} />
       {text && <CapsuleButton type="button" className="facet-search-clear" aria-label={t("清空分类搜索", "Clear category search")}
         onClick={() => { resetList(); setText(""); }}><X size={14} /></CapsuleButton>}
@@ -110,13 +109,13 @@ export function FacetBrowser({ filters, folderPath, enabled = true, revision, on
     </CapsuleButton>}
     <nav className="facet-options" ref={scroller} tabIndex={0}
       aria-label={group === "folders" ? t("按文件夹浏览", "Browse by folder") :
-        group === "tags" ? t("按标签浏览", "Browse by tag") : t("按站点浏览", "Browse by site")}
+        t("按标签浏览", "Browse by tag")}
       aria-busy={loading}>
       <CapsuleButton className="facet-option facet-any" type="button" aria-pressed={filters[field] === undefined}
         onClick={() => onSelect(field, undefined)}>
-        {group === "folders" ? <CollectionFolderIcon active={filters.folder === undefined}/> : group === "tags" ? <Tags size={18}/> : <Globe2 size={18}/>}
+        {group === "folders" ? <CollectionFolderIcon active={filters.folder === undefined}/> : <Tags size={18}/>}
         <span className="facet-label">{group === "folders" ? t("全部文件夹", "All folders") :
-          group === "tags" ? t("不限标签", "Any tag") : t("不限站点", "Any site")}</span>
+          t("不限标签", "Any tag")}</span>
         <span className="facet-count"/>
         <Check className="facet-selected-mark" size={14} aria-hidden="true" />
       </CapsuleButton>
@@ -136,7 +135,7 @@ export function FacetBrowser({ filters, folderPath, enabled = true, revision, on
         return <CapsuleButton className="facet-option" key={item.value} type="button"
           title={item.value} aria-label={`${item.value} ${item.count}`} aria-pressed={filters[field] === item.value}
           onClick={() => onSelect(field, item.value)}>
-          {group === "folders" ? <CollectionFolderIcon active={filters.folder === item.value}/> : group === "tags" ? <Tags size={18}/> : <Globe2 size={18}/>}
+          {group === "folders" ? <CollectionFolderIcon active={filters.folder === item.value}/> : <Tags size={18}/>}
           <span className="facet-label">{split >= 0 ? <><span>{item.value.slice(split + 3)}</span><small className="facet-parent">{item.value.slice(0, split)}</small></> : item.value}</span>
           <small className="facet-count">{item.count.toLocaleString()}</small>
           <Check className="facet-selected-mark" size={14} aria-hidden="true"/>

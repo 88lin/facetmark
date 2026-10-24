@@ -12,8 +12,10 @@ import {
   Save,
 } from "lucide-react";
 import { api, getToken, post, type Probe, type Setting, type Setup } from "./api";
-import { useText } from "./locale";
-import { ModelPicker } from "./ModelPicker";
+import { useText, type Language } from "./locale";
+import { ModelPicker, type Catalog } from "./ModelPicker";
+import { ReasoningSettings } from "./ReasoningSettings";
+import { SummaryPreferences } from "./SummaryPreferences";
 
 type LocalAgent = { id: string; name: string; installed: boolean; path?: string | null };
 
@@ -34,6 +36,12 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
   const [channelFeedback, setChannelFeedback] = useState<Record<string, { text: string; saved: boolean }>>({});
   const [testingAndSaving, setTestingAndSaving] = useState(false);
   const agentModels = useRef<Record<string, string>>({});
+  const agentEfforts = useRef<Record<string, string>>({});
+  const [chatCatalog, setChatCatalog] = useState<Catalog | null>(null);
+  const [summaryDefaults, setSummaryDefaults] = useState<Partial<Record<Language, string>>>({});
+  const detectionAbort = useRef<AbortController | null>(null);
+  const agentEditVersion = useRef(0);
+  const preserveDetectionDraft = useRef(false);
   const lastAgent = useRef<{ preference: string; id: string } | null>(null);
   const hasDraft = Object.keys(draft).length > 0;
   const channelStatus = (channel: string) => {
@@ -54,25 +62,34 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
         : t("未配置", "Not configured");
   };
   async function detect() {
+    detectionAbort.current?.abort();
+    const request = new AbortController();
+    detectionAbort.current = request;
+    const editVersion = agentEditVersion.current;
     setDetecting(true);
     setDetectionError("");
     try {
-      const found = await api<{ agents: LocalAgent[] }>("/admin/agents");
+      const found = await api<{ agents: LocalAgent[] }>("/admin/agents", { signal: request.signal });
+      if (request.signal.aborted) return [];
+      preserveDetectionDraft.current = agentEditVersion.current !== editVersion;
       setAgents(found.agents);
       return found.agents;
     } catch {
+      if (request.signal.aborted) return [];
       setAgents([]);
       setDetectionError(t("暂时无法检测本机 Agent，请重新检测。", "Agent detection failed. Please retry."));
       return [];
     } finally {
-      setDetecting(false);
+      if (!request.signal.aborted) setDetecting(false);
     }
   }
   async function load(suggestAgent = false) {
     setLoadingSettings(true); setLoadError("");
     try {
-      const data = await api<{ settings: Setting[]; channels: { chat: { configured: boolean } } }>("/admin/settings");
+      const data = await api<{ settings: Setting[]; channels: { chat: { configured: boolean } };
+        summary_prompt_defaults?: Record<Language, string> }>("/admin/settings");
       setRows(data.settings);
+      setSummaryDefaults(data.summary_prompt_defaults || {});
       if (suggestAgent) {
         const found = await detect();
         if (!data.channels.chat.configured && found.some(a => a.installed)
@@ -86,6 +103,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
   }
   useEffect(() => {
     load(true).catch((e) => { setError(String(e)); setDetecting(false); });
+    return () => detectionAbort.current?.abort();
   }, []);
   const row = (key: string) => rows.find((r) => r.key === key);
   const value = (key: string) =>
@@ -102,27 +120,41 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
     const previous = lastAgent.current;
     lastAgent.current = { preference: agentPreference, id };
     if (previous?.preference === "auto" && agentPreference === "auto" && previous.id !== id) {
-      if (previous.id) agentModels.current[previous.id] = String(value("chat_agent_model"));
+      if (previous.id && !preserveDetectionDraft.current) {
+        agentModels.current[previous.id] = String(value("chat_agent_model"));
+        agentEfforts.current[previous.id] = String(value("chat_agent_reasoning_effort"));
+      }
       // A model the user typed while detection was in flight outranks the
       // remembered value for the newly detected agent.
-      if (!row("chat_agent_model")?.locked && !manualEdits.current.has(id)) {
-        setDraft(current => ({ ...current, chat_agent_model: agentModels.current[id] || "" }));
+      if (!preserveDetectionDraft.current && !manualEdits.current.has(id)) {
+        setDraft(current => ({ ...current,
+          ...(!row("chat_agent_model")?.locked ? { chat_agent_model: agentModels.current[id] || "" } : {}),
+          ...(!row("chat_agent_reasoning_effort")?.locked ? { chat_agent_reasoning_effort: agentEfforts.current[id] || "" } : {}),
+        }));
       }
       setResults(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== "chat")));
       setChannelFeedback(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== "chat")));
     }
   }, [selectedAgent?.id, agentPreference, detecting, detectionError]);
   const change = (key: string, next: unknown) => {
-    if (key === "chat_agent_model" || key.endsWith("_model")) {
+    if (key === "chat_agent_model" || key === "chat_agent_reasoning_effort" || key.endsWith("_model")) {
       manualEdits.current.add(selectedAgent?.id || agentPreference);
+      agentEditVersion.current++;
     }
-    if (key === "chat_agent") agentModels.current[selectedAgent?.id || agentPreference] = String(value("chat_agent_model"));
+    if (key === "chat_agent") {
+      agentModels.current[selectedAgent?.id || agentPreference] = String(value("chat_agent_model"));
+      agentEfforts.current[selectedAgent?.id || agentPreference] = String(value("chat_agent_reasoning_effort"));
+    }
     const nextAgent = next === "auto" ? agents.find(agent => agent.installed)?.id || "auto" : String(next);
     setDraft((d) => ({
       ...d,
       [key]: next,
       ...(key === "chat_agent" && !row("chat_agent_model")?.locked
         ? { chat_agent_model: agentModels.current[nextAgent] || "" } : {}),
+      ...(key === "chat_agent" && !row("chat_agent_reasoning_effort")?.locked
+        ? { chat_agent_reasoning_effort: agentEfforts.current[nextAgent] || "" } : {}),
+      ...(key === "chat_agent_model" && next !== value(key) && !row("chat_agent_reasoning_effort")?.locked
+        ? { chat_agent_reasoning_effort: "" } : {}),
       ...(key.endsWith("_allow_no_key") && next
         ? { [key.replace("_allow_no_key", "_api_key")]: "" }
         : {}),
@@ -249,6 +281,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
       : JSON.stringify([value(`${channel}_base_url`), value(`${channel}_api_key`), value(`${channel}_allow_no_key`)]);
     return <ModelPicker key={local ? "agent" : channel} name={key} value={String(value(key))}
       onChange={next => change(key, next)} payload={payload} identity={identity}
+      onCatalogChange={channel === "chat" ? setChatCatalog : undefined}
       agent={local ? selectedAgent?.id || agentPreference : undefined} autoLoad={local && !agentUnavailable}
       disabled={!!busy || loadingSettings || !!row(key)?.locked}/>;
   };
@@ -313,11 +346,21 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
                     await detect(); await refresh();
                   }}><RefreshCw size={14} className={detecting ? "spin" : ""}/>{t("重新检测", "Detect again")}</CapsuleButton>
                 </div>
+                <div className="model-selection">
                 {modelPicker("chat", true)}
+                <ReasoningSettings agent={selectedAgent?.id || agentPreference} model={String(value("chat_agent_model"))}
+                  value={String(value("chat_agent_reasoning_effort"))} extraBody="" catalog={chatCatalog}
+                  disabled={!!busy || loadingSettings || !!row("chat_agent_reasoning_effort")?.locked}
+                  onChange={next => change("chat_agent_reasoning_effort", next)}/>
+                </div>
               </> : <>
                 {field(`${channel}_base_url`, t("服务地址", "Base URL"), "url", "https://api.openai.com/v1")}
                 {field(`${channel}_api_key`, "API Key", "password")}
-                {modelPicker(channel)}
+                {channel === "chat" ? <div className="model-selection">{modelPicker(channel)}
+                <ReasoningSettings model={String(value("chat_model"))}
+                  baseUrl={String(value("chat_base_url"))} value="" extraBody={String(value("chat_extra_body"))}
+                  catalog={chatCatalog} disabled={!!busy || loadingSettings || !!row("chat_extra_body")?.locked}
+                  onChange={next => change("chat_extra_body", next)}/></div> : modelPicker(channel)}
                 {channel === "embed" && field("embed_dim", t("向量维度", "Dimensions"), "number")}
               </>}
             </div>
@@ -411,6 +454,19 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
           </section>
         ))}
       </div>
+      <SummaryPreferences preference={String(value("summary_language") || "auto")}
+        prompt={String(value("summary_prompt"))} defaults={summaryDefaults}
+        disabled={!!busy || loadingSettings} languageLocked={!!row("summary_language")?.locked}
+        promptLocked={!!row("summary_prompt")?.locked}
+        dirty={"summary_language" in draft || "summary_prompt" in draft}
+        onChange={change} onSave={() => run("summary", async () => {
+          const values = Object.fromEntries(Object.entries(draft).filter(([key]) =>
+            key === "summary_language" || key === "summary_prompt"));
+          await api("/admin/settings", { method: "PUT", body: JSON.stringify({ values }) });
+          acknowledgeSaved(values); await load(); await refresh();
+          setNotice(t("摘要设置已保存，下次生成时生效。已保存的内容可勾选后重新生成。",
+            "Summary settings saved for the next generation. Select saved items to regenerate them."));
+        })}/>
       <details className="advanced">
         <summary>
           {t("高级聊天参数与隐私排除", "Advanced chat options and privacy exclusions")}
@@ -446,7 +502,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
           <Save />
           {t("保存配置", "Save settings")}
         </CapsuleButton>
-        {hasDraft && <CapsuleButton className="secondary" disabled={!!busy} onClick={() => { setDraft({}); setResults({}); setChannelFeedback({}); setError(""); setNotice(""); setConsent(false); agentModels.current = {}; }}>{t("放弃修改", "Discard changes")}</CapsuleButton>}
+        {hasDraft && <CapsuleButton className="secondary" disabled={!!busy} onClick={() => { setDraft({}); setResults({}); setChannelFeedback({}); setError(""); setNotice(""); setConsent(false); agentModels.current = {}; agentEfforts.current = {}; manualEdits.current.clear(); }}>{t("放弃修改", "Discard changes")}</CapsuleButton>}
         <span className="hint">
           {t(
             "测试只发送固定测试句，不发送书签。",

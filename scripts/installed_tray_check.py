@@ -320,12 +320,20 @@ with sync_playwright() as playwright:
                 height: el.clientHeight, extent: el.scrollHeight,
                 width: el.clientWidth, horizontal_extent: el.scrollWidth,
                 viewport: {width: innerWidth, height: innerHeight},
+                surface: {x: el.getBoundingClientRect().x, y: el.getBoundingClientRect().y,
+                          width: el.getBoundingClientRect().width, height: el.getBoundingClientRect().height},
+                padding: getComputedStyle(document.body).padding,
+                shadow: getComputedStyle(el).boxShadow,
                 font: getComputedStyle(el).fontFamily
             })""")
             # scrollHeight/clientHeight are integer CSS pixels. A one-pixel
             # tolerance still permits a real, visible Windows scrollbar.
             assert layout["extent"] <= layout["height"], f"Normal tray menu scrolls: {layout}"
             assert layout["horizontal_extent"] <= layout["width"], f"Normal tray menu scrolls horizontally: {layout}"
+            assert layout["padding"] == "0px", f"Tray has an outer transparent margin: {layout}"
+            assert layout["surface"]["x"] == 0 and layout["surface"]["y"] == 0
+            assert layout["surface"]["width"] == layout["viewport"]["width"]
+            assert layout["surface"]["height"] == layout["viewport"]["height"]
             for selector in [".tray-identity", ".tray-menu", "#tray-feedback"]:
                 expect(menu.locator(selector)).to_be_in_viewport(ratio=1)
             tray_layout.append({"theme": theme, **layout})

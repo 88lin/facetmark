@@ -13,6 +13,7 @@ import re
 from dataclasses import dataclass, field
 
 SUMMARY_MAX = 200
+TITLE_MAX = 120
 
 UTILITIES = frozenset({
     "reference", "tutorial", "tool", "news", "opinion", "documentation",
@@ -86,9 +87,11 @@ class Enrichment:
     utility: str = "other"
     content_type: str = "other"
     intent_queries: list[str] = field(default_factory=list)
+    ai_title: str = ""
 
     def as_row(self) -> dict:
         return {
+            "ai_title": self.ai_title,
             "summary": self.summary,
             "key_points": self.key_points,
             "entities": self.entities,
@@ -112,6 +115,7 @@ def coerce(payload: dict, *, max_queries: int = 8) -> Enrichment:
             break
 
     e = Enrichment(
+        ai_title=_as_text(payload.get("title") or payload.get("ai_title"), limit=TITLE_MAX),
         summary=_as_text(payload.get("summary") or payload.get("abstract"), limit=SUMMARY_MAX),
         key_points=_as_list(payload.get("key_points") or payload.get("keypoints"), limit=6),
         entities=_as_list(payload.get("entities"), limit=12),

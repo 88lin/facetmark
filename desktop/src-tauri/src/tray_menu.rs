@@ -93,7 +93,9 @@ pub fn open(app: &tauri::AppHandle, x: f64, y: f64, source: &str) -> tauri::Resu
             // GotFocus/LostFocus events can otherwise arrive after show().
             // The one explicit focus request belongs to the visible opening.
             .title("Facetmark tray").inner_size(312., 374.).visible(false).focused(false).decorations(false)
-            .resizable(false).skip_taskbar(true).always_on_top(true).transparent(true).shadow(true)
+            // Alpha is only for the menu's rounded corners. A native shadow
+            // adds a second translucent frame around the opaque menu surface.
+            .resizable(false).skip_taskbar(true).always_on_top(true).transparent(true).shadow(false)
             .on_navigation(move |url| {
                 let allowed = packaged_tray_url(url);
                 record_window_event(&navigation_app, serde_json::json!({ "event": "navigation", "url": url.as_str(), "allowed": allowed }));

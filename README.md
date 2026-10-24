@@ -261,6 +261,14 @@ working directory, or a key in `<DATA_DIR>/config.toml`. That is also the preced
 highest first — a file the web UI wrote never overrides a variable you exported. The web UI's
 Settings panel edits the file; `facetmark config path` prints it.
 
+In AI settings, thinking mode sits beside model choice. Leaving it empty inherits
+the service or local client's default; changing model or effort requires a new
+connection test. The Titles and summaries section separately saves target language
+and editable built-in writing instructions without retesting the connection.
+Generate updates the AI title, summary and key points together, keeping the original
+bookmark title and page text. Select records to regenerate them, or generate pending
+and changed content in the current scope without a selection.
+
 `DATA_DIR` defaults per OS: `%LOCALAPPDATA%\facetmark` on Windows,
 `$XDG_DATA_HOME/facetmark` when that is set, otherwise `~/.local/share/facetmark`.
 
@@ -271,7 +279,13 @@ Settings panel edits the file; `facetmark config path` prints it.
 | `API_KEY` | — | Key for the OpenAI-compatible endpoint |
 | `BASE_URL` | `https://api.openai.com/v1` | Provider API base path; usually `/v1`, or `/api/paas/v4` for Zhipu |
 | `CHAT_MODEL` | `gpt-6-luna` | Enrichment and intent generation |
+| `CHAT_BACKEND` | `endpoint` | `endpoint` or an installed `agent` using its existing sign-in |
+| `CHAT_AGENT` | `auto` | `auto`, `codex`, `claude` or `opencode` |
+| `CHAT_AGENT_MODEL` | empty | Explicit agent model; empty inherits the client's default |
+| `CHAT_AGENT_REASONING_EFFORT` | empty | Agent effort or OpenCode variant; empty inherits the default |
 | `CHAT_EXTRA_BODY` | empty | JSON string for reasoning, temperature and output limits; shared by fallbacks |
+| `SUMMARY_LANGUAGE` | `auto` | Follow UI language for web jobs; `zh` or `en` override it. CLI auto defaults to Chinese |
+| `SUMMARY_PROMPT` | empty | Custom writing instructions, up to 10,000 characters; empty restores the built-in default |
 | `EMBED_SEND_DIMENSIONS` | `false` | Enable only for models supporting `dimensions` |
 | `EMBED_BATCH_SIZE` | `64` | Endpoint request batch limit; use `20` for current Bailian models |
 | `EMBED_MODEL` | `text-embedding-3-small` | Embeddings |

@@ -45,6 +45,12 @@ from .configfile import config_path, external_setting_keys, read_config, update_
 from .db import open_db
 from .enrich import enrich_all
 from .enrich import targets as enrichment_targets
+from .enrich.prompts import (
+    DEFAULT_SUMMARY_PROMPTS,
+    effective_summary_prompt,
+    resolve_summary_language,
+    summary_prompt_hash,
+)
 from .fetch import store as fetchstore
 from .importers import decode_bookmark_bytes
 from .privacy import refresh_privacy
@@ -82,7 +88,7 @@ WRITABLE = (
     "api_key",
     "base_url",
     "chat_base_url", "chat_api_key", "chat_allow_no_key",
-    "chat_backend", "chat_agent", "chat_agent_model", "chat_agent_timeout",
+    "chat_backend", "chat_agent", "chat_agent_model", "chat_agent_reasoning_effort", "chat_agent_timeout",
     "embed_base_url", "embed_api_key", "embed_allow_no_key",
     "chat_model",
     "chat_extra_body",
@@ -96,6 +102,7 @@ WRITABLE = (
     "request_timeout",
     "fetch_concurrency",
     "enrich_concurrency",
+    "summary_language", "summary_prompt",
     "privacy_excluded_domains",
 )
 
@@ -160,6 +167,9 @@ class IndexJob:
     scope: dict | None = None
     pause_requested: bool = False
     snapshot_ready: bool = False
+    summary_language: str | None = None
+    summary_prompt: str | None = None
+    summary_prompt_hash: str | None = None
     state: str = "running"  # running | done | failed | cancelled
     stages: list[Stage] = field(default_factory=list)
     log: deque[str] = field(default_factory=lambda: deque(maxlen=200))
@@ -191,6 +201,8 @@ class IndexJob:
             "params": {"fetch": self.fetch, "limit": self.limit, "force": self.force,
                        "mode": self.mode,
                        "scope": self.scope,
+                       "summary_language": self.summary_language,
+                       "summary_prompt": self.summary_prompt,
                        "bookmark_ids": list(self.bookmark_ids) if self.bookmark_ids is not None else None},
             "items": {"done": self.items_done, "total": self.items_total, "failed": self.items_failed},
         }
@@ -316,7 +328,8 @@ class JobRunner:
     def start(self, settings: Settings, *, fetch: bool, limit: int | None, force: bool,
               mode: str = "index", bookmark_ids: list[int] | None = None,
               scope: dict | None = None, resume_id: str | None = None,
-              snapshot_ready: bool = False) -> IndexJob:
+              snapshot_ready: bool = False, summary_language: str | None = None,
+              summary_prompt: str | None = None) -> IndexJob:
         if self.running:
             raise RuntimeError("an index job is already running")
         if mode not in {"index", "fetch", "summarize"}:
@@ -325,6 +338,14 @@ class JobRunner:
             raise ValueError("selected indexing is not supported")
         planned = (("fetch",) if mode == "fetch" else ("enrich",) if mode == "summarize"
                    else INDEX_STAGES if fetch else INDEX_STAGES[1:])
+        pinned_settings = settings.model_copy(deep=True)
+        if mode != "fetch":
+            summary_language = resolve_summary_language(summary_language or settings.summary_language)
+            summary_prompt = effective_summary_prompt(
+                summary_language, summary_prompt if summary_prompt is not None else settings.summary_prompt,
+            )
+            pinned_settings.summary_language = summary_language
+            pinned_settings.summary_prompt = summary_prompt
         job = IndexJob(
             id=resume_id or uuid.uuid4().hex[:12],
             fetch=fetch if mode == "index" else mode == "fetch",
@@ -336,12 +357,15 @@ class JobRunner:
             bookmark_ids=tuple(bookmark_ids) if bookmark_ids is not None else None,
             scope=scope,
             snapshot_ready=snapshot_ready,
+            summary_language=summary_language,
+            summary_prompt=summary_prompt,
+            summary_prompt_hash=summary_prompt_hash(summary_language, summary_prompt) if mode != "fetch" else None,
         )
         scope = f"{len(bookmark_ids)} selected" if bookmark_ids is not None else "library"
         job.log.append(f"started: mode={mode} scope={scope} fetch={job.fetch} limit={limit} force={force}")
         self.job = job
         self.persist()
-        self._task = asyncio.create_task(self._run(job, settings.model_copy(deep=True)))
+        self._task = asyncio.create_task(self._run(job, pinned_settings))
         return job
 
     def pause(self) -> bool:
@@ -534,7 +558,8 @@ class JobRunner:
             if job.pause_requested:
                 raise _Paused
             # Only this small batch may load body text or create provider work.
-            todo = enrichment_targets(conn, ids=batch, force=job.force, body_chars=0)
+            todo = enrichment_targets(conn, ids=batch, force=job.force, body_chars=0,
+                                      prompt_hash=job.summary_prompt_hash)
             eligible = {target.bookmark_id for target in todo}
             for bid in batch:
                 if bid not in eligible:
@@ -568,6 +593,9 @@ class IndexRequest(BaseModel):
     scope: CollectionScope | None = None
     resume_id: str | None = None
     preview_revision: str | None = None
+    preview_prompt_hash: str | None = None
+    summary_language: Literal["zh", "en"] | None = None
+    summary_prompt: str | None = Field(default=None, max_length=10000)
     fetch: bool = True
     """Crawl page bodies first. Off is the fast path for a re-index."""
     limit: int | None = Field(default=None, ge=1)
@@ -604,6 +632,7 @@ class ProbeRequest(BaseModel):
     chat_backend: str | None = None
     chat_agent: str | None = None
     chat_agent_model: str | None = None
+    chat_agent_reasoning_effort: str | None = None
     chat_agent_timeout: float | None = None
     embed_model: str | None = None
     chat_base_url: str | None = None
@@ -712,13 +741,16 @@ def probe_fingerprint(settings: Settings, channel: str) -> str:
               f'{channel}_model', 'use_mock_provider'] +
              (['embed_dim', 'embed_backend', 'local_embed_path', 'embed_send_dimensions']
               if channel == 'embed' else ['chat_extra_body', 'chat_model_fallbacks',
-                  'chat_backend', 'chat_agent', 'chat_agent_model', 'chat_agent_timeout']))
+                  'chat_backend', 'chat_agent', 'chat_agent_model', 'chat_agent_reasoning_effort', 'chat_agent_timeout']))
     values = {k: getattr(settings, k) for k in names}
     if channel == 'chat' and settings.chat_backend == 'agent':
-        from .local_agents import resolve_command, selected_agent
+        from .local_agents import configuration_fingerprint, resolve_command, selected_agent
         agent = selected_agent(settings.chat_agent)
         values['resolved_agent'] = agent
         values['resolved_command'] = resolve_command(agent) if agent else None
+        values['agent_configuration'] = configuration_fingerprint(
+            agent, model=settings.chat_agent_model, reasoning_effort=settings.chat_agent_reasoning_effort
+        ) if agent else None
     return hashlib.sha256(json.dumps(values,
                                     sort_keys=True, default=str).encode()).hexdigest()
 
@@ -783,6 +815,7 @@ def settings_view(settings: Settings, pending: dict[str, Any] | None = None) -> 
             "pending_restart": pending_restart,
         })
     return {"path": str(config_path()), "settings": rows,
+            "summary_prompt_defaults": DEFAULT_SUMMARY_PROMPTS,
             "channels": {name: {"configured": saved.channel_ready(name),
                 "base_url": getattr(saved, f'{name}_base_url') or saved.base_url,
                 "key_set": bool(getattr(saved, f'{name}_api_key'))} for name in ('chat', 'embed')}}
@@ -941,7 +974,7 @@ def register(app: FastAPI, auth: list) -> None:
             if state.jobs.running:
                 raise HTTPException(409, "an index job is already running")
             if body.preview_revision is not None and body.preview_revision != library_revision(state.conn):
-                raise HTTPException(409, "The library changed after preview. Close and reopen this action to review its scope.")
+                raise HTTPException(409, "The library changed. Generate again to use the updated selection.")
             snapshot_ready = False
             if body.resume_id:
                 previous = state.jobs.saved(body.resume_id)
@@ -949,6 +982,11 @@ def register(app: FastAPI, auth: list) -> None:
                     raise HTTPException(409, "This job is no longer resumable")
                 body = IndexRequest(**previous["params"], confirmed=body.confirmed, resume_id=body.resume_id)
                 snapshot_ready = previous.get("snapshot_ready", False)
+            language = resolve_summary_language(body.summary_language or state.settings.summary_language)
+            prompt = body.summary_prompt if body.summary_prompt is not None else state.settings.summary_prompt
+            if (body.preview_prompt_hash is not None
+                    and body.preview_prompt_hash != summary_prompt_hash(language, prompt)):
+                raise HTTPException(409, "Summary settings changed. Generate again to use the saved settings.")
             if body.mode == "index" and (body.bookmark_ids is not None or body.scope is not None):
                 raise HTTPException(400, "Selected indexing is not supported; fetch or summarize the selection")
             if body.scope is not None:
@@ -994,6 +1032,7 @@ def register(app: FastAPI, auth: list) -> None:
                 mode=body.mode, bookmark_ids=body.bookmark_ids,
                 scope=body.scope.model_dump() if body.scope is not None else None,
                 resume_id=body.resume_id, snapshot_ready=snapshot_ready,
+                summary_language=language, summary_prompt=prompt,
             )
         return job.as_dict()
 
@@ -1005,12 +1044,18 @@ def register(app: FastAPI, auth: list) -> None:
             raise HTTPException(400, "Preview supports fetch and summarize")
         state = _state(request)
         async with state.lock:
+            language = resolve_summary_language(body.summary_language or state.settings.summary_language)
+            prompt_hash = summary_prompt_hash(
+                language, body.summary_prompt if body.summary_prompt is not None else state.settings.summary_prompt,
+            )
             try:
                 count = preview(state.conn, scope=body.scope, ids=body.bookmark_ids,
-                                mode=body.mode, force=body.force, limit=body.limit)
+                                mode=body.mode, force=body.force, limit=body.limit,
+                                prompt_hash=prompt_hash if body.mode == "summarize" else None)
             except ValueError as exc:
                 raise HTTPException(422, str(exc)) from None
-        return {"total": count, "revision": library_revision(state.conn)}
+            revision = library_revision(state.conn)
+        return {"total": count, "revision": revision, "prompt_hash": prompt_hash}
 
     @app.post("/admin/jobs/pause", dependencies=deps)
     async def admin_job_pause(request: Request) -> dict:
@@ -1134,10 +1179,15 @@ def register(app: FastAPI, auth: list) -> None:
             settings = draft_settings(base, body.model_dump(exclude_none=True, exclude={'channel'}))
         except ValueError:
             raise HTTPException(400, 'Invalid model settings; check endpoint URLs and field types') from None
+        channels = ('chat', 'embed') if body.channel is None else (body.channel,)
+        fingerprints = {channel: probe_fingerprint(settings, channel) for channel in channels}
         result = await probe(settings, body.channel) if body.channel else await probe(settings)
-        for channel in ('chat', 'embed') if body.channel is None else (body.channel,):
+        for channel in channels:
+            if fingerprints[channel] != probe_fingerprint(settings, channel):
+                result[channel] = {**result.get(channel, {}), 'ok': False,
+                                   'error': 'Model or agent configuration changed during the test. Detect it again and retry.'}
             if result.get(channel, {}).get('ok') and (channel != 'embed' or result[channel]['dim_matches']):
-                state.probe_results[channel] = {'fingerprint': probe_fingerprint(settings, channel),
+                state.probe_results[channel] = {'fingerprint': fingerprints[channel],
                                                 'result': result[channel]}
             else:
                 state.probe_results.pop(channel, None)

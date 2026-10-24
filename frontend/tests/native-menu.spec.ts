@@ -62,13 +62,22 @@ for (const locale of ["zh-CN", "en-US"]) test.describe(`packaged tray page ${loc
     for (const theme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme: theme });
       for (const installedClient of [false, true]) {
-        // The real 96-DPI Windows outer frame is 312x374; its shadow frame
-        // leaves a 296x365 client viewport. Exercise that measured viewport as
-        // well as the nominal design canvas, preserving full 44px hit targets.
+        // Retain the old smaller client viewport as a regression case. The
+        // current menu has no extra native shadow or transparent CSS margin.
         await page.setViewportSize(installedClient ? { width: 296, height: 365 } : { width: 312, height: 374 });
-        const layout = await page.locator('.tray-shell').evaluate(element => ({ height: element.clientHeight, extent: element.scrollHeight }));
+        const layout = await page.locator('.tray-shell').evaluate(element => ({
+          height: element.clientHeight, extent: element.scrollHeight,
+          x: element.getBoundingClientRect().x, y: element.getBoundingClientRect().y,
+          width: element.getBoundingClientRect().width,
+          shadow: getComputedStyle(element).boxShadow, padding: getComputedStyle(document.body).padding,
+        }));
         // Even a one-pixel overflow paints a scrollbar in the installed WebView.
         expect(layout.extent).toBeLessThanOrEqual(layout.height);
+        expect(layout.x).toBe(0); expect(layout.y).toBe(0);
+        expect(layout.width).toBe(installedClient ? 296 : 312);
+        expect(layout.padding).toBe("0px");
+        expect(layout.shadow).toContain("inset");
+        expect(layout.shadow.split(",").filter(part => part.includes("px")).length).toBe(1);
         await page.keyboard.press("End"); await expect(page.locator('[data-action="exit"]')).toBeFocused();
         for (const selector of ['.tray-identity', '.tray-menu', '#tray-feedback', '[data-action="exit"]']) {
           await expect(page.locator(selector)).toBeInViewport({ ratio: 1 });

@@ -201,22 +201,22 @@ baseline. The user described it as usable but not good-looking and requested mor
 refinement. No current palette, typography, layout, icon or new detail is marked
 user-approved.
 
-This follow-up removes excess chrome, gives the directory and bookmarks more
-height, corrects reading hierarchy and carries the shared folded-F mark into native
-startup and the real tray menu. Application/capture 8af69ae passes all 10 CI jobs,
-97 browser cases (2 skipped), 21 collection checks and the complete installed
-Windows workflow. Its 79 source and 26 selected media/record hashes match;
-the full gallery contains 88 PNGs. The installed tray has no normal-height scroll
-in either theme: clientHeight and scrollHeight are both 347px. Real native menu
-actions, global shortcut, focus dismissal, immediate retry and installation
-lifecycle pass. Hosted-CI opens the real tray through a synthetic trigger;
-an actual notification-icon right click remains outside that verified scope.
-User visual review remains pending. PR #44 is merged;
-this round is PR #51. The previous f1c67fe verification remains historical.
+The 2026-10-25 follow-up removes site classification and the extra summary selection
+row, combines overview and source text in one reading panel, adds generated titles
+and editable language-specific writing instructions, and exposes thinking settings
+beside model choice. The tray interior is preserved while its transparent surround
+and native shadow are removed. These are local source changes; current builds,
+rendered interaction evidence and installed verification remain pending.
+
+Application/capture 8af69ae verified the preceding layout/native revision: 10 CI jobs,
+97 browser passes/2 skips, 21 collection checks and the installed Windows workflow.
+Its tray was 347px clientHeight/scrollHeight in both themes. Those screenshots and
+results do not verify the new borderless tray or current summary/reading workflow.
+The older f1c67fe evidence is likewise revision-specific. User review remains pending.
 
 [Product facts](PRODUCT.md), [active direction](.impeccable/workbench-direction.md),
 [surface brief](.impeccable/surfaces/frontend.md) and
-[round record](docs/workspace-layout-2026-10-24.md) describe the same task.
+[round record](docs/summary-reading-reasoning-2026-10-25.md) describe the same task.
 General handbook v0.18 contains only methods and reference research. Project
 choices, feedback, screenshots and evidence stay in this repository.
 
@@ -264,13 +264,17 @@ duplicate visible display block. It is not a decorative heading above the result
 Desktop shell: 64px header, 252px directory, 16px gap, 10px top and 16px side/bottom
 padding. The directory spans both grid rows. Above the collection, the header
 contains navigation, shared search and utilities; the repeated brand and title/search
-band are removed. The directory's category controls share one row, the folders
+band are removed. The directory has only folder and tag categories in one row; the folders
 entry uses its icon with an accessible name, and the tree scrolls independently.
 
 The collection uses 12px top / 20px horizontal padding, a compact actions/status
 area, a 280px-minimum grid with 12px gaps and a separate paging footer.
 Card padding is 16px, internal gap 9px and radius 22px.
 Grid is the unsaved default; list remains a persisted alternative.
+The existing action toolbar contains select-all with its compact count and one
+Generate button. Individual checking leaves the same toolbar in place. Partial
+selection uses the native mixed checkbox state; cross-page selection retains its
+server scope and explicit exclusions. Separate bulk management remains available.
 
 At 1660px the directory/index are 280px/288px, shell sides 20px, workspace sides
 24px and card minimum 320px. Below 1300px the directory/index are 232px/248px;
@@ -304,6 +308,13 @@ the anchor is hidden. Exit controls become inert immediately; the top layer is
 released after the overlay exit. Engines without popovers use an inline fallback.
 Search, selection, catalog loading, drafts, Escape and focus return remain intact.
 
+ReasoningSettings owns the model-adjacent thinking control. Endpoint choices update
+only the relevant advanced JSON fields; Agent choices inherit known defaults or
+forward an explicit Codex effort, Claude effort or OpenCode variant. Catalog and test
+states remain distinct. SummaryPreferences owns target language and an expandable
+editor containing the built-in writing instructions or the user's saved text.
+Its save action persists writing preferences without retesting the connection.
+
 FolderTree reconstructs recoverable importer hierarchy from depth and stored path;
 literal slash names and ambiguous legacy identities remain exact entries.
 Disclosure and selection are separate buttons. Counts exclude descendants.
@@ -325,8 +336,13 @@ focus to the actual record opener. Scroll regressions record the settled index b
 comparing chapter navigation or focus-mode reversal, with unchanged precision.
 
 Reading retains a compact index on wide screens and previous/next/close operations.
-Only a saved, successful body-text tab has a 48px in-flow progress footer.
-Summary, related, pending, failed and empty-text states do not show a placeholder
+The Read tab contains AI overview/key points followed by saved original text;
+Related remains a separate tab. Generated titles lead cards and the reader, with
+the original title retained in expandable details and the edit form. Title-only
+inference and Karakeep summaries retain their source labels. Failed regeneration
+shows the failure and preserves the last saved overview.
+Only a reading panel with saved body text has a 48px in-flow progress footer.
+Related, pending, failed and empty-text states do not show a placeholder
 “reading preview” box. The footer holds real progress, chapter selection and a
 36px capsule return-to-top button (40px mobile); it does not cover the last paragraph.
 Article width is 740px; native source access remains visible.
@@ -361,7 +377,9 @@ Monitor-aware placement first selects full physical display bounds, then uses th
 display's DPI and work area; a taskbar point near another monitor keeps its own
 display. The requested dimensions describe the whole outer frame; measure native
 outer/client offsets after moving to that display before calling set_size with a
-client size. Shadows stay within the same work area. Every opening owns one cancellable entrance, including reused windows;
+client size. The menu surface fills the client viewport, without transparent outer
+padding or a native shadow; alpha remains only around its rounded corners.
+Every opening owns one cancellable entrance, including reused windows;
 reduced motion cancels it and uses the visible endpoint.
 Construct the hidden tray without window or WebView focus, then request focus
 when opening the visible window. Windows synthesizes focus events from the
@@ -379,6 +397,8 @@ cannot expose an actual right-click.
 `facet-browser.css`/`folder-tree.css`: directory and disclosure;
 `folder-picker.css`/`AnchoredMenu.tsx`: picker paint and placement;
 `reader-shell.css`: reading; `startup.css`/`setup.css`: React arrival;
+`summary-preferences.css`: language and prompt editor; `reasoning-settings.css`:
+thinking controls; `useSummaryGeneration.ts`: direct summary starts and feedback;
 `desktop/splash/native-ui.css`: native startup/tray paint;
 `desktop/src-tauri/src/tray_menu.rs`: privileged native actions.
 
@@ -389,5 +409,5 @@ evidence. Tonal ramps are preview aids, not new shipped tokens.
 Local checks cover syntax, whitespace and isolated source behavior only. All
 dependency installs, builds, browsers, packaging and installed-app checks run in
 GitHub Actions with isolated synthetic data. Record exact current runs in
-[the follow-up](docs/workspace-layout-2026-10-24.md). Historical verification,
+[the follow-up](docs/summary-reading-reasoning-2026-10-25.md). Historical verification,
 technical passing status and user aesthetic acceptance remain separate.

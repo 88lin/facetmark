@@ -1,6 +1,8 @@
 """Synthetic scale data shared by cloud benchmarks and browser acceptance."""
 from __future__ import annotations
 
+from facetmark.enrich.prompts import summary_prompt_hash
+
 
 def populate(conn, total=200_000):
     start = conn.execute("SELECT COALESCE(max(id),0) FROM bookmark").fetchone()[0]
@@ -17,9 +19,9 @@ def populate(conn, total=200_000):
         for table in ("fts_seg", "fts_tri"):
             conn.execute(f"INSERT INTO {table}(rowid,title,body,summary,extra) "
                          "SELECT id,title,'','','scale' FROM bookmark WHERE id>?", (start,))
-        conn.execute("INSERT INTO enrichment(bookmark_id,summary,source_hash,basis) "
-                     "SELECT id,'A synthetic title-based summary for scale validation.',fm_title_hash(title,url),'title' "
-                     "FROM bookmark WHERE id>? AND id%5=0", (start,))
+        conn.execute("INSERT INTO enrichment(bookmark_id,summary,source_hash,basis,language,prompt_hash) "
+                     "SELECT id,'A synthetic title-based summary for scale validation.',fm_title_hash(title,url),'title','zh',? "
+                     "FROM bookmark WHERE id>? AND id%5=0", (summary_prompt_hash("zh"), start))
         conn.execute("COMMIT")
     except BaseException:
         conn.execute("ROLLBACK")

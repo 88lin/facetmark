@@ -144,9 +144,9 @@ test("category capsules fill their segments, stay stationary while pressed, and 
   const types = page.locator(".collection-sidebar .facet-types");
   await types.getByRole("button", { name: "标签", exact: true }).press("Enter");
   await page.waitForTimeout(45);
-  await types.getByRole("button", { name: "站点", exact: true }).press("Space");
+  await types.getByRole("button", { name: "文件夹", exact: true }).press("Space");
   await page.waitForTimeout(45);
-  await types.getByRole("button", { name: "文件夹", exact: true }).press("Enter");
+  await types.getByRole("button", { name: "标签", exact: true }).press("Enter");
   await settleVisualLayout(page);
   const frames = await page.evaluate(() => {
     const state = window as typeof window & { __capsuleFrames: { scaleX: number; scaleY: number; x: number; width: number; height: number; radius: string }[]; __capsuleRAF: number };

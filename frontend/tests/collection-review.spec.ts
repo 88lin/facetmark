@@ -37,6 +37,13 @@ test("representative collection, responsive states, exact scopes, save recovery 
   });
   await context.route("**/*", route => new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort());
   const page = await context.newPage();
+  const summaryStarts: Record<string, unknown>[] = [];
+  await page.route("**/admin/jobs/start", route => {
+    const body = route.request().postDataJSON();
+    if (body.mode !== "summarize") return route.continue();
+    summaryStarts.push(body);
+    return route.fulfill({ json: { id: "synthetic-review-summary", state: "done", params: body } });
+  });
   page.setDefaultTimeout(15000);
   const video = page.video();
   const evidence: Evidence = { captures: [], actions: [], errors: [] };
@@ -190,33 +197,40 @@ test("representative collection, responsive states, exact scopes, save recovery 
     await page.getByRole("button", { name: "下一页", exact: true }).click();
     await expect(firstRow).not.toHaveAttribute("data-bookmark-id", String(firstId));
     await firstRow.locator(".bookmark-check").check();
-    await expect(page.locator(".selection-total")).toContainText("2");
-    await capture(page, evidence, "batch-cross-page", "Two explicit management IDs retained across pages");
-    await page.getByRole("button", { name: "生成所选摘要", exact: true }).click();
+    const secondId = Number(await firstRow.getAttribute("data-bookmark-id"));
+    await expect(page.locator(".library-selection-count")).toHaveText("已选 2");
+    await expect(page.locator(".collection-selection")).toHaveCount(0);
+    await capture(page, evidence, "batch-cross-page", "Two selected IDs retained across pages in the existing toolbar");
+    await page.getByRole("button", { name: "生成摘要", exact: true }).click();
     const dialog = page.getByRole("dialog");
-    await expect(dialog).toContainText("2 条收藏");
-    await expect(dialog.getByRole("button", { name: "开始任务", exact: true })).toBeDisabled();
-    await capture(page, evidence, "summary-selection", "Selected summary target count and required consent");
-    await dialog.getByRole("button", { name: "取消", exact: true }).click();
-    await page.getByRole("button", { name: "完成选择", exact: true }).click();
+    await expect.poll(() => summaryStarts[0]).toEqual(expect.objectContaining({
+      mode: "summarize", bookmark_ids: [firstId, secondId], force: true, confirmed: true, summary_language: "zh",
+    }));
+    await expect(dialog).toHaveCount(0);
+    await expect(firstRow.locator(".bookmark-check")).not.toBeChecked();
+    await capture(page, evidence, "summary-selection", "Selected summaries start directly without a confirmation dialog");
     await page.getByRole("button", { name: "上一页", exact: true }).click();
     await expect(firstRow).toHaveAttribute("data-bookmark-id", String(firstId));
-    // Scoped summary selection never becomes management/export's ID selection.
     await firstRow.locator(".bookmark-check").check();
-    await page.getByRole("button", { name: /^全选 .* 条用于摘要$/ }).click();
-    await expect(page.locator(".collection-selection")).toContainText("跨页生效");
-    await capture(page, evidence, "summary-all-matching", "All-matching summary scope is separate from explicit management IDs");
-    await page.getByRole("button", { name: "生成所选摘要", exact: true }).click();
-    await expect(dialog.getByRole("combobox", { name: "摘要处理范围", exact: true })).toHaveValue("current");
-    await capture(page, evidence, "summary-scope", "Server-scoped target review and explicit consent");
-    await dialog.getByRole("button", { name: "取消", exact: true }).click();
-    await page.getByRole("button", { name: "清空", exact: true }).click();
+    const selectAll = page.getByRole("checkbox", { name: "全选当前结果", exact: true });
+    await expect(selectAll).toHaveJSProperty("indeterminate", true);
+    await selectAll.check();
+    await expect(selectAll).toBeChecked();
+    await capture(page, evidence, "summary-all-matching", "One checkbox selects all matches across pages");
+    await page.getByRole("button", { name: "生成摘要", exact: true }).click();
+    await expect.poll(() => summaryStarts[1]).toEqual(expect.objectContaining({
+      mode: "summarize", scope: expect.objectContaining({ status: "all" }), force: true, confirmed: true,
+    }));
+    expect(summaryStarts[1].bookmark_ids).toBeUndefined();
+    await expect(selectAll).not.toBeChecked();
+    await capture(page, evidence, "summary-scope", "Server-scoped generation retains exact filters and clears selection on start");
 
     await page.locator(".bookmark-status[data-summary-status='failed']").first().getByRole("button", { name: "重试", exact: true }).click();
-    await expect(dialog).toContainText("1 条收藏");
-    await capture(page, evidence, "summary-retry", "Retry targets one failed bookmark, consent still required");
-    await dialog.getByRole("button", { name: "取消", exact: true }).click();
-    evidence.actions.push("Selection survives pages; summary review uses selected IDs; individual retry keeps its target");
+    await expect.poll(() => summaryStarts.length).toBe(3);
+    expect(summaryStarts[2].bookmark_ids).toHaveLength(1);
+    await expect(dialog).toHaveCount(0);
+    await capture(page, evidence, "summary-retry", "One failed bookmark retries directly");
+    evidence.actions.push("Selection survives pages; one Generate action uses selected IDs or all matching scope; retry retains its target");
 
     await page.getByRole("button", { name: "新增收藏", exact: true }).click();
     await dialog.getByRole("textbox", { name: "收藏网址", exact: true }).fill("https://review.example/new-bookmark");
@@ -254,11 +268,10 @@ test("representative collection, responsive states, exact scopes, save recovery 
     await expect(page.locator(".body-text")).toBeVisible();
     await expect(page.locator(".preview-title h1")).toHaveText(firstTitle);
     await capture(page, evidence, "desktop-reader", "Reader and retained collection index share the selected bookmark");
-    await page.getByRole("tab", { name: "AI 摘要", exact: true }).click();
     await expect(page.locator(".preview-scroll")).toHaveAttribute("aria-busy", "false");
-    await expect(page.locator(".reading .summary-label")).toBeVisible();
-    await capture(page, evidence, "reader-summary", "Saved AI summary in the same reading context");
-    await page.getByRole("tab", { name: "正文", exact: true }).click();
+    await expect(page.locator(".reader-summary-basis")).toBeVisible();
+    await expect(page.getByRole("tab", { name: "AI 摘要", exact: true })).toHaveCount(0);
+    await capture(page, evidence, "reader-summary", "AI overview and saved source text appear in one reading panel");
     await page.locator(".focus-reading").press("Enter");
     await page.locator(".focus-reading").press("Enter");
     await page.locator(".focus-reading").press("Enter");

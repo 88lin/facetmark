@@ -19,6 +19,12 @@ test.beforeEach(async ({ page }) => {
 test("model choice survives test, save and reopen and reaches summary generation", async ({ page }) => {
   let saved: Record<string, unknown> = {};
   let tested: Record<string, unknown> = {};
+  let generated: Record<string, unknown> = {};
+  await page.route("**/admin/jobs/preview", route => route.fulfill({ json: { total: 1, revision: "synthetic-model-preview" } }));
+  await page.route("**/admin/jobs/start", route => {
+    generated = route.request().postDataJSON();
+    return route.fulfill({ json: { id: "synthetic-summary", state: "done", params: generated } });
+  });
   await page.route("**/admin/settings", async route => {
     if (route.request().method() === "PUT") {
       saved = { ...saved, ...route.request().postDataJSON().values };
@@ -53,11 +59,12 @@ test("model choice survives test, save and reopen and reaches summary generation
   await expect(page.getByRole("option", { name: /快速摘要/ })).toBeVisible();
   await page.keyboard.press("Escape");
   await panel.getByRole("button", { name: "前往生成摘要", exact: true }).click();
-  await expect(page.getByRole("dialog", { name: "生成 AI 摘要", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "取消", exact: true }).click();
+  await expect.poll(() => generated).toEqual(expect.objectContaining({ mode: "summarize", confirmed: true, summary_language: "zh" }));
+  await expect(page.getByRole("dialog", { name: "生成 AI 摘要", exact: true })).toHaveCount(0);
   await page.reload();
   await expect(panel.locator(".model-picker-trigger")).toContainText(/详细阅读|opencode\/careful/);
   await page.setViewportSize({ width: 390, height: 844 });
+  await panel.getByRole("button", { name: "测试并保存", exact: true }).scrollIntoViewIfNeeded();
   await expect(panel.getByRole("button", { name: "测试并保存", exact: true })).toBeInViewport({ ratio: 1 });
   await page.screenshot({ path: "screenshots/models-selected-mobile.png", animations: "disabled" });
 });

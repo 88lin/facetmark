@@ -7,6 +7,12 @@ related_targets:
 - frontend/src/Settings.tsx
 - frontend/src/SettingsWorkspace.tsx
 - frontend/src/ModelPicker.tsx
+- frontend/src/ReasoningSettings.tsx
+- frontend/src/reasoning.ts
+- frontend/src/reasoning-settings.css
+- frontend/src/SummaryPreferences.tsx
+- frontend/src/summary-preferences.css
+- frontend/src/useSummaryGeneration.ts
 - frontend/src/Setup.tsx
 - frontend/src/CollectionTools.tsx
 - frontend/src/LibraryTools.tsx
@@ -48,15 +54,24 @@ related_targets:
 
 ## Direction status
 
-Latest 2026-10-24 assessment: “还不算好看，能用的样子而已”. The overall appearance
+Latest 2026-10-25 request: remove site classification and repeated summary-selection/
+consent UI, combine summary and body into Read, generate target-language titles and
+summaries with editable defaults, expose Agent thinking settings, and remove the
+tray's transparent outer frame. Current source and regressions are local; no build,
+browser capture or installed evidence verifies this revision yet. Current work is in
+docs/summary-reading-reasoning-2026-10-25.md; commit/push/PR decisions follow session
+authorization. The user has now confirmed this batch's commit, push, new PR and
+cloud verification; delivery is in progress. No automatic merge or release.
+
+Overall 2026-10-24 assessment: “还不算好看，能用的样子而已”. The overall appearance
 needs improvement. Earlier acknowledgement of progress does not approve or freeze
 the current identity, layout, type, colors or material; no individual choice is
 newly approved. Final application/capture f1c67fe passed all four workflows with verified
 rendered/installed evidence and actual capsule frame bounds. 04ecc11 / 7d2abd0
 and the earlier 831dcfd round remain revision-specific history.
-Current follow-up is in docs/workspace-layout-2026-10-24.md. PR #44 is merged;
-commit/push and cloud checks are authorized for a new PR, without automatic merge
-or release. Application/capture 8af69ae passes collection 21/21, browser 97/2
+The preceding follow-up is in docs/workspace-layout-2026-10-24.md. PR #44 is merged;
+its follow-up authorization and results are historical. Application/capture 8af69ae
+passed collection 21/21, browser 97/2
 (passed/skipped), all 10 CI jobs and the complete installed Windows workflow.
 The gallery has 88 PNGs; all 79 sources and 26 selected media/record hashes match.
 The installed tray's strict layout is 347px clientHeight / 347px scrollHeight in
@@ -65,7 +80,7 @@ quit, immediate retry and reinstall/uninstall pass. The retry occurs while the
 old service and lock remain alive, then a new owned service passes 12 health checks.
 Hosted-CI uses a synthetic tray-opening trigger; actual notification-icon right
 click and physical Windows 10/11 or additional-DPI certification are not claimed.
-Current runs and historical failures are recorded in the project follow-up.
+Those runs and failures apply only to the preceding application/capture revision.
 Every visual detail remains pending
 user review; these technical results do not freeze the design.
 
@@ -110,8 +125,9 @@ controls have molded edges and moving highlights. Inter and Noto Sans SC provide
 firm, upright type with distinct display, title and description scales.
 
 STORY: Enter through floating navigation, choose an exact directory, search or scan
-the collection. Read beside a retained index. Selection and summary scopes remain
-visible and separate through paging and failure recovery.
+the collection. Read the AI overview followed by saved text beside a retained index.
+The existing toolbar's checkbox/count and Generate action retain selection scope
+through paging and failure recovery.
 
 FIRST VIEWPORT: At 1440px a 64px header holds capsule navigation, shared search
 and utilities above the collection. A 252px directory spans the entire window
@@ -141,7 +157,7 @@ Original links, selection, editing, summary actions and preview remain independe
 Blank card areas open preview through the existing button's focus-return path.
 Modifier clicks, text selection and interactive descendants retain their own actions.
 Descriptions must remain readable; measured clipping determines expansion.
-Searchable access to the full folder/tag/site directory, parent paths, counts and
+Searchable access to the full folder/tag directory, parent paths, counts and
 pagination must remain available at narrow and short viewport sizes.
 The sidebar now uses a bounded direct-child folder tree. Disclosure never changes
 selection; counts exclude descendants. Virtual ancestors expand, full-path search
@@ -164,14 +180,28 @@ changes. Preserve IME input, final query and relevant scroll/focus context.
 Summary and optional embedding channels remain independently configurable. Preserve
 drafts and results across settings navigation. Discovery, catalog availability,
 model selection, successful test, persisted save and execution are separate states.
-Per-Agent drafts stay independent. Provider/installation/credential changes
-invalidate stale catalogs and tests; changing the model requires a fresh test.
+Per-Agent model and thinking drafts stay independent. Provider/installation/credential
+or inherited-default changes invalidate stale catalogs and tests; changing the model
+or effort requires a fresh test. Empty effort inherits the client/model default;
+OpenCode exposes available variants. Endpoint thinking controls preserve unrelated
+advanced JSON options and explain format compatibility.
 A failed save remains visibly unsaved.
 
-Processing requires scope review and consent. Zero eligible items cannot start.
-Library changes invalidate stale scope previews. Management/export scope remains
+The native select-all checkbox and one Generate button occupy the existing action
+toolbar; individual selection does not add a row or enter bulk management. Generation
+starts directly after an internal count/revision check. No repeated model-consent or
+force checkbox is required. Selections reprocess completed records; no selection
+handles eligible pending/failed/changed entries in the current scope. Zero eligible
+items cannot start. Library or prompt changes invalidate stale previews. Management/export scope remains
 separate from processing scope. Resume/retry uses the original durable target
-snapshot, preserves completed entries and only handles its unfinished/failed entries.
+snapshot, language and writing instructions, preserves completed entries and only
+handles its unfinished/failed entries.
+
+Summary language follows the UI by default or an explicit Chinese/English choice.
+An expandable editor exposes the actual built-in writing instructions, accepts custom
+text and restores defaults. Its save action does not retest chat. Generated titles,
+summaries and key points use the target language; original titles/text remain saved.
+Language/prompt changes make old derived content eligible for regeneration.
 
 ## Controls, reading and motion behavior
 
@@ -186,7 +216,10 @@ Reader layouts may change. Body text is 17px/1.8 (16px mobile), titles are
 tags and folder paths while retaining source, title, status and actions.
 Only a visible desktop index may reveal the selected whole card. Hidden, inert or
 aria-hidden lists never auto-scroll; focus-mode reversal restores the settled index.
-Only saved body text has an in-flow progress footer; summary/related/empty states
+Read combines the AI overview/key points and saved source text. Original title and
+retrieval questions remain in expandable details. Missing-body inference and source
+labels remain explicit; failed regeneration retains the previous derived content.
+Only reading with saved body text has an in-flow progress footer; related/empty states
 do not show an idle “reading preview” box.
  Keep actual heading navigation, article progress,
 chapter selection and an unobscured final paragraph. Resizing and closing preview
@@ -215,6 +248,8 @@ are restricted to that local page. Construct it hidden and unfocused; request
 focus only on visible opening and keep native blur dismissal. Placement keeps
 the complete physical outer frame within the work area: measure
 outer/client offsets at the target DPI before passing a client size to set_size.
+The opaque menu fills the client viewport. Remove transparent outer padding and
+native shadow while preserving the inner menu and rounded-corner alpha.
 Cloud HTML fixtures remain separately labeled. Actual physical-frame restoration, quiet
 geometry persistence and sidecar cleanup require installed verification.
 

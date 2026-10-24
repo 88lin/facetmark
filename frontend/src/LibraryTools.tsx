@@ -18,16 +18,20 @@ export type LibraryAction =
   | { kind: "bulk"; ids: number[] }
   | { kind: "taxonomy" }
   | { kind: "export" }
-  | { kind: "process"; mode: "fetch" | "summarize"; ids?: number[]; scope?: CollectionScope; scopeLabel?: string };
+  | { kind: "process"; mode: "fetch" | "summarize"; ids?: number[]; scope?: CollectionScope; scopeLabel?: string; reprocess?: boolean };
 
-export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch, onIds, onAction, onSummarize }: {
+export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch, onIds, onAction, onSummarize,
+  selectedCount, allSelected, total, crossPage, onAll, onClear }: {
   batch: boolean; ids: number[]; pageIds: number[]; disabled: boolean; pending: boolean;
   onBatch: (value: boolean) => void; onIds: (ids: number[]) => void;
   onAction: (action: LibraryAction) => void;
   onSummarize: () => void;
+  selectedCount: number; allSelected: boolean; total: number; crossPage: boolean; onAll: () => void; onClear: () => void;
 }) {
   const t = useText();
   const manage = useRef<HTMLDetailsElement>(null);
+  const selection = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (selection.current) selection.current.indeterminate = selectedCount > 0 && !allSelected; }, [selectedCount, allSelected]);
   useEffect(() => {
     const dismiss = (event: PointerEvent) => {
       if (event.target instanceof Node && manage.current && !manage.current.contains(event.target)) manage.current.open = false;
@@ -49,15 +53,23 @@ export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch
     </> : <>
       <CapsuleButton className="secondary library-add" aria-label={t("新增收藏", "Add bookmark")} disabled={disabled} onClick={() => onAction({ kind: "create" })}><Plus size={15}/><span className="action-full">{t("新增收藏", "Add bookmark")}</span><span className="action-short" aria-hidden="true">{t("新增", "Add")}</span></CapsuleButton>
       <details ref={manage} className="library-manage" onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }} onKeyDown={event => { if (event.key === "Escape") { event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }}>
-        <summary>{t("管理收藏", "Manage")}<ChevronDown size={14}/></summary>
+        <summary aria-label={t("管理收藏", "Manage")}><ListChecks className="action-short" size={16}/><span className="action-full">{t("管理收藏", "Manage")}</span><ChevronDown size={14}/></summary>
         <div className="library-manage-menu" onClick={event => { if ((event.target as HTMLElement).closest("button:not(:disabled)")) event.currentTarget.closest("details")!.open = false; }}>
           <CapsuleButton type="button" disabled={!pageIds.length || disabled || pending} onClick={() => onBatch(true)}><ListChecks size={16}/>{t("批量管理", "Select")}</CapsuleButton>
           <CapsuleButton type="button" disabled={disabled} onClick={() => onAction({ kind: "taxonomy" })}><Folder size={16}/>{t("整理分类", "Organize")}</CapsuleButton>
           <CapsuleButton type="button" disabled={pending} onClick={() => onAction({ kind: "export" })}><Download size={16}/>{t("导出", "Export")}</CapsuleButton>
         </div>
       </details>
-      <CapsuleButton className="primary" disabled={disabled || pending || !pageIds.length} onClick={onSummarize}><Sparkles size={15}/>{t("生成摘要", "Summarize")}</CapsuleButton>
     </>}
+    <label className="library-summary-selection" title={crossPage
+      ? t("全选当前筛选结果，跨页生效", "Select all matching results across pages")
+      : t("选择本页语义结果，保留已有选择", "Select this page of semantic results and keep existing selections")}>
+      <input ref={selection} type="checkbox" checked={allSelected} disabled={disabled || pending || !total}
+        aria-label={t("全选当前结果", "Select all results")} onChange={event => event.target.checked ? onAll() : onClear()}/>
+      <span>{t("全选", "Select all")}</span>
+      <span className="library-selection-count" role="status">{selectedCount ? t("已选 " + selectedCount.toLocaleString(), selectedCount.toLocaleString() + " selected") : total.toLocaleString()}</span>
+    </label>
+    <CapsuleButton className="primary library-summarize" aria-label={t("生成摘要", "Summarize")} disabled={disabled || pending || !pageIds.length} onClick={onSummarize}><Sparkles size={15}/><span className="action-full">{t("生成摘要", "Summarize")}</span><span className="action-short" aria-hidden="true">{t("生成", "Summarize")}</span></CapsuleButton>
   </div>;
 }
 
@@ -102,7 +114,6 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
   const [scope, setScope] = useState(selectedIds.length ? "selected" : searching ? "page" :
     Object.values(filters).some(value => value !== undefined) ? "filtered" : "all");
   const [confirmed, setConfirmed] = useState(false);
-  const [force, setForce] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const foldersId = useId();
@@ -112,8 +123,9 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
   // the effect key is the content, not the identity, or the preview refetches
   // on every poll while the dialog is open.
   const idsKey = JSON.stringify(ids ?? null);
-  const processing = action.kind === "process" || (action.kind === "bulk" && ["fetch", "summarize"].includes(operation));
+  const processing = action.kind === "process" || (action.kind === "bulk" && operation === "fetch");
   const mode = action.kind === "process" ? action.mode : operation;
+  const force = processing && Boolean(ids?.length || (action.kind === "process" && action.reprocess));
   const [processTarget, setProcessTarget] = useState("current");
   const processScope = action.kind === "process" ? processTarget === "all" ? {} : processTarget === "current" ? action.scope
     : { ...action.scope, status: processTarget as "pending" | "failed" } : undefined;
@@ -131,7 +143,7 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
   }, [processing, mode, idsKey, processScopeKey, force]);
   const deleting = action.kind === "delete" || (action.kind === "bulk" && operation === "delete");
   const chatReady = Boolean(setup?.demo || setup?.channels.chat.tested);
-  const needsConsent = deleting || (processing && mode === "summarize") || action.kind === "taxonomy";
+  const needsConsent = deleting || action.kind === "taxonomy";
   const heading = action.kind === "create" ? t("新增收藏", "Add a bookmark")
     : action.kind === "edit" ? t("编辑收藏", "Edit bookmark")
     : action.kind === "delete" ? t("删除收藏", "Delete bookmarks")
@@ -149,7 +161,7 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
       if (action.kind === "export") {
         await downloadExport({ format, ...(scope === "selected" ? { ids: selectedIds } : scope === "page" ? { ids: pageIds } : scope === "filtered" ? { filters } : {}) });
       } else if (processing) {
-        await post("/admin/jobs/start", { mode, ...(ids ? { bookmark_ids: ids } : {}), confirmed, force, scope: processScope, preview_revision: previewRevision });
+        await post("/admin/jobs/start", { mode, ...(ids ? { bookmark_ids: ids } : {}), confirmed: confirmed || mode === "summarize", force, scope: processScope, preview_revision: previewRevision });
         await onJobStarted();
       } else if (action.kind === "create" || action.kind === "edit") {
         const values = { url: url.trim(), title: title.trim(), folder: folder.trim(), tags };
@@ -192,7 +204,7 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
           {action.kind === "bulk" && <>
             <p>{t(`将操作选中的 ${action.ids.length} 条收藏。`, `Applies to ${action.ids.length} selected bookmarks.`)}</p>
             <label className="field">{t("操作", "Action")}<select value={operation} onChange={e => resetConfirm(e.target.value)} aria-label={t("批量操作类型", "Bulk action")}>
-              <option value="move">{t("移动到文件夹", "Move to folder")}</option><option value="tag-add">{t("添加标签", "Add tags")}</option><option value="tag-remove">{t("移除标签", "Remove tags")}</option><option value="fetch">{t("提取正文", "Fetch text")}</option><option value="summarize">{t("生成摘要", "Generate summaries")}</option><option value="delete">{t("删除收藏", "Delete bookmarks")}</option>
+              <option value="move">{t("移动到文件夹", "Move to folder")}</option><option value="tag-add">{t("添加标签", "Add tags")}</option><option value="tag-remove">{t("移除标签", "Remove tags")}</option><option value="fetch">{t("提取正文", "Fetch text")}</option><option value="delete">{t("删除收藏", "Delete bookmarks")}</option>
             </select></label>
             {operation === "move" && <FolderPicker label={t("目标文件夹", "Destination folder")} value={folder} onChange={setFolder}/>}
             {["tag-add", "tag-remove"].includes(operation) && <TagEditor tags={tags} onChange={setTags}/>}
@@ -234,10 +246,9 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
                 : t("已完成且未变化的内容会跳过。", "Completed, unchanged content is skipped.")}
             </>}</p>}
             <p className="hint">{t("任务可暂停，重启后可继续。无需逐条打开书签。", "Pause and resume after restarting. No need to open bookmarks individually.")}</p>
-            <label className="check"><input type="checkbox" checked={force} onChange={e => setForce(e.target.checked)}/>{t("重新处理已完成的内容", "Reprocess completed content")}</label>
           </>}
           {deleting && <p className="deletion-note"><Trash2 size={18}/>{t(`将删除 ${ids?.length || 0} 条收藏，以及它们在 Facetmark 中的正文和索引。此操作无法撤销，建议先导出备份。`, `Delete ${ids?.length || 0} bookmarks and their Facetmark text and indexes. This cannot be undone; export a backup first.`)}</p>}
-          {needsConsent && <label className="check consent"><input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)}/>{deleting ? t("我确认删除这些收藏", "I confirm deletion") : processing ? t("我同意将上述内容发送给聊天模型", "I agree to send this content to the chat model") : t("我确认应用到使用该分类的全部收藏", "Apply to all bookmarks using this category")}</label>}
+          {needsConsent && <label className="check consent"><input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)}/>{deleting ? t("我确认删除这些收藏", "I confirm deletion") : t("我确认应用到使用该分类的全部收藏", "Apply to all bookmarks using this category")}</label>}
         </fieldset>
         {error && <p className="error" role="alert">{error}</p>}
         {running && action.kind !== "export" && <p className="notice">{t("请等待当前任务完成，再修改收藏或启动新任务。", "Wait for the current task before editing or starting another task.")}</p>}

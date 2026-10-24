@@ -55,7 +55,7 @@ jobs:
         working-directory: frontend
         env:
           FACETMARK_REVIEW_CORPUS: '1'
-        run: npx playwright test collection-review.spec.ts workspace-polish.spec.ts workspace-layout.spec.ts native-menu.spec.ts startup.spec.ts
+        run: npx playwright test collection-review.spec.ts workspace-polish.spec.ts workspace-layout.spec.ts native-menu.spec.ts startup.spec.ts reasoning.spec.ts summary-preferences.spec.ts model-choice.spec.ts bookmark-use.spec.ts
       - name: Package viewable source-matched evidence
         if: always()
         run: python scripts/collection_review_evidence.py

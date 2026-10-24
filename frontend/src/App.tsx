@@ -42,6 +42,7 @@ import { BookmarkCard } from "./BookmarkCard";
 import { CollectionTools } from "./CollectionTools";
 import type { CollectionScope } from "./api";
 import { LibraryDialog, LibraryToolbar, type LibraryAction } from "./LibraryTools";
+import { useSummaryGeneration } from "./useSummaryGeneration";
 import { FacetBrowser } from "./FacetBrowser";
 import { FacetmarkMark } from "./FacetmarkMark";
 import { QuerySuggestions, SearchAnswer } from "./SearchTools";
@@ -309,10 +310,22 @@ function Workbench({
       setConnectionError(String(e));
     }
   }, [invalidateLibrary]);
+  const summaryGeneration = useSummaryGeneration({ setup, running: job.state === "running", language,
+    onStarted: async () => {
+      setSelectedIds([]); setAllMatching(false); setExcludedIds([]); setBatchMode(false);
+      invalidateLibrary(); await refresh();
+    },
+  });
+  function handleLibraryAction(action: LibraryAction) {
+    if (action.kind === "process" && action.mode === "summarize") void summaryGeneration.generate(action);
+    else setLibraryAction(action);
+  }
   async function libraryChanged(deleted?: number[]) {
     if (selected !== null && deleted?.includes(selected)) closePreview();
     setSelectedIds([]);
     setBatchMode(false);
+    setAllMatching(false);
+    setExcludedIds([]);
     invalidateLibrary();
     await refresh();
     setLibraryNotice(t("收藏已更新", "Collection updated"));
@@ -604,6 +617,7 @@ function Workbench({
     return () => abort.abort();
   }, [view, paired, sessionsRevision]);
   const items = page?.items || page?.hits || [];
+  const semanticSelection = Boolean(search.trim() && searchMode === "semantic" && semantic);
   function selectFilter(key: keyof Filters, value: string | number | undefined) {
     setView("library");
     setNavOpen(false);
@@ -679,7 +693,7 @@ function Workbench({
       onClose={closePreview}
       onRetry={() => setPreviewRevision((v) => v + 1)}
       onSelect={(id) => select(id)}
-      onAction={adminAvailable ? setLibraryAction : undefined}
+      onAction={adminAvailable ? handleLibraryAction : undefined}
       running={job.state === "running"}
       onQuery={(q) => {
         changeQuery(q);
@@ -1073,23 +1087,30 @@ function Workbench({
               <header className="search-header">
                 {adminAvailable && selected === null && <LibraryToolbar
                   batch={batchMode && !allMatching} ids={selectedIds} pageIds={items.map(item => item.bookmark_id)}
-                  disabled={job.state === "running"} pending={scopePending}
-                  onBatch={value => { setBatchMode(value); setSelectedIds([]); setAllMatching(false); setExcludedIds([]); }}
-                  onIds={setSelectedIds} onAction={setLibraryAction}
-                  onSummarize={() => setLibraryAction({ kind: "process", mode: "summarize",
-                    // Keyword mode has a server scope, so the dialog can preview
-                    // and exclude across pages without shipping every ID. The
-                    // counts shown beside the button then match what starts.
-                    ...(search.trim() && searchMode === "semantic" && semantic ? { ids: items.map(item => item.bookmark_id) }
-                      : { scope: collectionScope, scopeLabel: t("当前筛选结果", "Current matching results") }) })}
+                  disabled={job.state === "running" || summaryGeneration.busy} pending={scopePending || summaryGeneration.busy}
+                  onBatch={value => { setBatchMode(value); if (!value || allMatching) { setSelectedIds([]); setAllMatching(false); setExcludedIds([]); } }}
+                  onIds={setSelectedIds} onAction={handleLibraryAction}
+                  selectedCount={allMatching ? Math.max(0, (page?.total || 0) - excludedIds.length) : selectedIds.length}
+                  total={semanticSelection ? items.length : page?.total || 0} crossPage={!semanticSelection}
+                  allSelected={allMatching ? !excludedIds.length : semanticSelection
+                    ? items.length > 0 && items.every(item => selectedIds.includes(item.bookmark_id))
+                    : selectedIds.length > 0 && selectedIds.length === page?.total}
+                  onAll={() => {
+                    setBatchMode(false); setExcludedIds([]);
+                    if (semanticSelection) {
+                      setAllMatching(false); setSelectedIds(ids => [...new Set([...ids, ...items.map(item => item.bookmark_id)])].slice(0, 1000));
+                    } else { setAllMatching(true); setSelectedIds([]); }
+                  }}
+                  onClear={() => { setAllMatching(false); setBatchMode(false); setExcludedIds([]); setSelectedIds([]); }}
+                  onSummarize={() => handleLibraryAction({ kind: "process", mode: "summarize",
+                    ...(allMatching ? { scope: collectionScope, reprocess: true }
+                      : selectedIds.length ? { ids: selectedIds }
+                        : semanticSelection ? { ids: items.map(item => item.bookmark_id), reprocess: false }
+                          : { scope: collectionScope }) })}
                 />}
                 {selected === null && !(search.trim() && searchMode === "semantic" && semantic) && <CollectionTools scope={collectionScope} page={page} display={summaryDisplay} onDisplay={setSummaryDisplay}
                   sort={collectionSort} onSort={value => { setCollectionSort(value); setOffset(0); }}
                   onStatus={value => { setSummaryStatus(value); setOffset(0); }} disabled={scopePending}
-                  selecting={batchMode} allMatching={allMatching} selectedCount={allMatching ? Math.max(0, (page?.total || 0) - excludedIds.length) : selectedIds.length}
-                  onAll={() => { setAllMatching(true); setBatchMode(false); setExcludedIds([]); setSelectedIds([]); }}
-                  onClear={() => { setAllMatching(false); setBatchMode(false); setExcludedIds([]); setSelectedIds([]); }}
-                  onSummarizeSelection={() => setLibraryAction({ kind: "process", mode: "summarize", ...(allMatching ? { scope: collectionScope, scopeLabel: t("跨页所选收藏", "Selection across pages") } : { ids: selectedIds }) })}
                   job={job} refresh={refresh} admin={adminAvailable}/>}
                 <div className="search-controls">
                   <div className="search-meta">
@@ -1216,14 +1237,14 @@ function Workbench({
                     selected={selected === record.bookmark_id}
                     indexVisible={!drawer && !focusReading}
                     checked={allMatching ? !excludedIds.includes(record.bookmark_id) : selectedIds.includes(record.bookmark_id)}
-                    disabled={scopePending} display={summaryDisplay}
+                    disabled={scopePending || summaryGeneration.busy} display={summaryDisplay}
                     onEdit={adminAvailable && job.state !== "running" ? () => setLibraryAction({ kind: "edit", record }) : undefined}
                     onCheck={() => {
                       if (allMatching) setExcludedIds(ids => ids.includes(record.bookmark_id) ? ids.filter(id => id !== record.bookmark_id) : [...ids, record.bookmark_id].slice(0, 10000));
-                      else { setBatchMode(true); setSelectedIds(ids => ids.includes(record.bookmark_id) ? ids.filter(id => id !== record.bookmark_id) : [...ids, record.bookmark_id].slice(0, 1000)); }
+                      else { setSelectedIds(ids => ids.includes(record.bookmark_id) ? ids.filter(id => id !== record.bookmark_id) : [...ids, record.bookmark_id].slice(0, 1000)); }
                     }}
                     onPreview={button => select(record.bookmark_id, button)}
-                    onSummarize={adminAvailable ? () => setLibraryAction({ kind: "process", mode: "summarize", ids: [record.bookmark_id] }) : undefined}
+                    onSummarize={adminAvailable ? () => handleLibraryAction({ kind: "process", mode: "summarize", ids: [record.bookmark_id] }) : undefined}
                   />)
                 )}
               </div>
@@ -1335,7 +1356,7 @@ function Workbench({
                 setup={setup}
                 job={job}
                 refresh={refresh}
-                onProcess={(mode) => setLibraryAction({ kind: "process", mode })}
+                onProcess={(mode) => handleLibraryAction({ kind: "process", mode })}
                 onDone={() => {
                   remember("fm-setup-skipped", "1");
                   openView("library");
@@ -1353,14 +1374,14 @@ function Workbench({
                 <Importer refresh={refresh} onDone={() => openView("library")} />
               </>
             ) : view === "settings" ? (
-              <SettingsWorkspace setup={setup} refresh={refresh} onChanged={libraryChanged} onBack={() => openView("library")} onSummarize={() => setLibraryAction({ kind: "process", mode: "summarize", scope: collectionScope, scopeLabel: t("当前收藏范围", "Current collection scope") })} />
+              <SettingsWorkspace setup={setup} refresh={refresh} onChanged={libraryChanged} onBack={() => openView("library")} onSummarize={() => handleLibraryAction({ kind: "process", mode: "summarize", scope: collectionScope, scopeLabel: t("当前收藏范围", "Current collection scope") })} />
             ) : view === "tasks" ? (
               <>
                 <header className="page-heading">
                   <div><h1>{t("任务与诊断", "Tasks and diagnostics")}</h1><p>{t("查看进度，继续处理未完成的收藏。", "Follow progress and resume unfinished work.")}</p></div>
                   <CapsuleButton className="text-button support-back" onClick={() => openView("library")}><ArrowLeft size={16}/>{t("返回收藏", "Back to collection")}</CapsuleButton>
                 </header>
-                <Tasks job={job} setup={setup} refresh={refresh} onBack={() => openView("library")} onProcess={(mode) => setLibraryAction({ kind: "process", mode })} />
+                <Tasks job={job} setup={setup} refresh={refresh} onBack={() => openView("library")} onProcess={(mode) => handleLibraryAction({ kind: "process", mode })} />
                 <HealthTools />
               </>
             ) : (
@@ -1460,6 +1481,14 @@ function Workbench({
           </div>
         )}
       </main>
+      {summaryGeneration.error && <div className="summary-generation-feedback" role="alert">
+        <span>{summaryGeneration.error}</span>
+        {summaryGeneration.needsConnection && <CapsuleButton className="text-button" onClick={() => {
+          openView("settings"); summaryGeneration.clearError();
+        }}>{t("打开 AI 连接", "Open AI settings")}</CapsuleButton>}
+        <CapsuleButton className="icon-button" aria-label={t("关闭摘要提示", "Dismiss summary message")}
+          onClick={summaryGeneration.clearError}><X size={16}/></CapsuleButton>
+      </div>}
       {libraryNotice && <div className="library-toast" role="status"><Check size={16}/>{libraryNotice}</div>}
       {libraryAction && <LibraryDialog
         key={`${libraryAction.kind}-${libraryAction.kind === "edit" ? libraryAction.record.bookmark_id : ""}`}

@@ -1,6 +1,7 @@
 export type Bookmark = {
   bookmark_id: number;
   title: string;
+  ai_title?: string;
   url: string;
   domain: string;
   folder: string;
@@ -8,6 +9,7 @@ export type Bookmark = {
   summary_basis?: string;
   summary_status?: "pending" | "done" | "failed";
   summary_error?: string;
+  summary_language?: string;
   snippet?: string;
   tags?: string[];
   date_added?: number;
@@ -55,6 +57,7 @@ export type Setup = {
   library_revision?: string;
   bookmarks: number;
   demo: boolean;
+  summary_language?: "auto" | "zh" | "en";
   pending_apply: boolean;
   vector_compatible: boolean;
   has_vectors: boolean;

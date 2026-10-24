@@ -30,10 +30,12 @@ def browse(conn, *, limit=40, offset=0, folder=None, tag=None, domain=None, sess
     total = conn.execute("SELECT count(*) FROM bookmark b" + where, params).fetchone()[0]
     orders = {"newest": "COALESCE(b.date_added,b.created_at) DESC,b.id DESC",
               "oldest": "COALESCE(b.date_added,b.created_at),b.id",
-              "title": "b.title COLLATE NOCASE,b.id", "domain": "b.domain,b.title COLLATE NOCASE,b.id"}
+              "title": "COALESCE(NULLIF(e.ai_title,''),b.title) COLLATE NOCASE,b.id",
+              "domain": "b.domain,b.title COLLATE NOCASE,b.id"}
     order = orders[sort]
     rows = conn.execute(
         "SELECT b.id AS bookmark_id, b.url, b.title, b.folder, b.tags, b.domain, b.date_added, "
+        "COALESCE(e.ai_title,'') AS ai_title, e.language AS summary_language, "
         "COALESCE(e.summary,'') AS summary, substr(COALESCE(c.body_text,''),1,400) AS snippet, "
         "b.privacy_skipped, e.basis AS summary_basis, ef.error AS summary_error, "
         "CASE WHEN ef.bookmark_id IS NOT NULL THEN 'failed' "
@@ -357,6 +359,7 @@ def register(app: FastAPI, auth: list) -> None:
                                 f"{state.conn.execute('PRAGMA data_version').fetchone()[0]}",
             "stats": stats,
             "demo": candidate.use_mock_provider,
+            "summary_language": candidate.summary_language,
             "pending_apply": bool(state.pending_settings),
             "vector_compatible": compatible,
             "has_vectors": bool(stats["vectors"] and sum(stats["vectors"]) > 0),

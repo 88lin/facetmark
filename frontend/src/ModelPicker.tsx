@@ -9,13 +9,16 @@ import { useReducedMotion } from "./useReducedMotion";
 import { CapsuleButton as Button } from "./ui/controls";
 import "./folder-picker.css";
 
-type Choice = { id: string; label: string; source: string };
-type Catalog = { agent?: string; models: Choice[]; default_model: string; warning: string };
+export type Choice = { id: string; label: string; source: string;
+  reasoning_levels?: { id: string }[]; default_reasoning_effort?: string };
+export type Catalog = { agent?: string; models: Choice[]; default_model: string; warning: string;
+  configured_reasoning_effort?: string; default_reasoning_effort?: string };
 
-export function ModelPicker({ name, value, onChange, payload, identity, agent, disabled, autoLoad = false }: {
+export function ModelPicker({ name, value, onChange, payload, identity, agent, disabled, autoLoad = false, onCatalogChange }: {
   name: string; value: string; onChange: (value: string) => void;
   payload: Record<string, unknown>; identity: string; agent?: string; disabled: boolean;
   autoLoad?: boolean;
+  onCatalogChange?: (catalog: Catalog | null) => void;
 }) {
   const t = useText();
   const reduced = useReducedMotion();
@@ -36,6 +39,8 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
   const abort = useRef<AbortController | null>(null);
   const latestPayload = useRef(payload);
   latestPayload.current = payload;
+  const notifyCatalog = useRef(onCatalogChange);
+  notifyCatalog.current = onCatalogChange;
 
   async function load() {
     abort.current?.abort();
@@ -47,7 +52,7 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
       const data = await post<Catalog>("/admin/settings/models", latestPayload.current, request.signal);
       if (agent && data.agent && data.agent !== agent)
         throw new Error(t("检测到的 Agent 已变化，请重新检测后读取模型。", "The detected agent changed. Detect agents again to read its models."));
-      if (!request.signal.aborted) setCatalog(data);
+      if (!request.signal.aborted) { setCatalog(data); notifyCatalog.current?.(data); }
     } catch (e) {
       if (!request.signal.aborted) setError(String(e));
     } finally {
@@ -57,6 +62,7 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
   useEffect(() => {
     abort.current?.abort();
     setCatalog(null); setError(""); setOpen(false); setSearch(""); setBusy(false);
+    notifyCatalog.current?.(null);
     return () => abort.current?.abort();
     // Identity includes provider, credential draft and resolved installation path.
     // Editing a model does not refetch its own catalog.

@@ -1,10 +1,10 @@
 # Desktop experience validation
 
-> 2026-10-24 当前：PR #44 已合并，追加修复在 [PR #51](https://github.com/88lin/facetmark/pull/51)。最终应用与取证源码为 8af69ae；CI、收藏和完整 Windows 安装验证全部通过。实际浅深托盘已无普通高度滚动，原生开关、恢复、真实快捷键、立即重试、退出及重装 / 卸载通过。最新视觉评价仍是‘能用，但不算好看’，所有新细节待用户复评。详见 [当前记录](workspace-layout-2026-10-24.md)。
+> 2026-10-25 当前：站点分类、选择 / 摘要生成、阅读合并、AI 标题 / 语言 / 提示词、Agent 思考设置和托盘外围玻璃已完成本地源码修改。本轮尚无云端构建、浏览器或安装验证，详见 [本轮记录](summary-reading-reasoning-2026-10-25.md)。下方 `8af69ae` 的截图与通过结果只适用于前一版。PR #51 已合并，当前分支基于 main 的合并提交 `6ca87aa`；不从本文件获取新提交、推送、合并或发布授权。
 
 <!-- current-experience-evidence:start -->
 
-## Current follow-up: 8af69ae verified delivery
+## Last verified layout/native follow-up: 8af69ae
 
 Application, browser capture and installed-app revision: `8af69ae4a4820d65d6a0589870428ed58a842fe0`.
 Later documentation-only commits retain exactly these fingerprinted sources.

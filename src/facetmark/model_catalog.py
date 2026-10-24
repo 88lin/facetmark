@@ -40,11 +40,59 @@ def _choices(rows: list, *, source: str) -> list[dict]:
             continue
         model_id = model_id.strip()
         label = row.get("display_name") or row.get("name") or model_id
-        choices[model_id] = {"id": model_id, "label": label if isinstance(label, str) else model_id,
-                             "source": source}
+        choice = {"id": model_id, "label": label if isinstance(label, str) else model_id,
+                  "source": source}
+        levels = row.get("supported_reasoning_levels", row.get("supported_reasoning_efforts"))
+        if levels is None and isinstance(row.get("variants"), dict):
+            levels = [{"effort": key} for key, value in row["variants"].items()
+                      if isinstance(value, dict) and not value.get("disabled")]
+        if isinstance(levels, list):
+            safe_levels = {}
+            for level in levels[:64]:
+                effort = level if isinstance(level, str) else level.get("effort") if isinstance(level, dict) else None
+                if isinstance(effort, str) and effort.strip() and len(effort) <= 128:
+                    safe_levels[effort.strip()] = {"id": effort.strip()}
+            choice["reasoning_levels"] = list(safe_levels.values())
+        default = row.get("default_reasoning_level")
+        if not isinstance(default, str):
+            options = row.get("options", {})
+            default = options.get("reasoningEffort") if isinstance(options, dict) else None
+        if isinstance(default, str) and len(default) <= 128:
+            choice["default_reasoning_effort"] = default
+        choices[model_id] = {**choices.get(model_id, {}), **choice}
         if len(choices) >= MAX_MODELS:
             break
     return list(choices.values())
+
+
+def _opencode_rows(output: str) -> list[dict]:
+    """Read plain catalogs and --verbose ID/JSON pairs without losing variants."""
+    rows = {}
+    decoder = json.JSONDecoder()
+    position = 0
+    current = ""
+    while position < len(output):
+        end = output.find("\n", position)
+        end = len(output) if end < 0 else end
+        line = output[position:end].strip()
+        if re.fullmatch(r"[\w.-]+/[\w./:@+-]+", line):
+            current = line
+            rows.setdefault(current, {"id": current})
+        elif line.startswith("{"):
+            try:
+                value, consumed = decoder.raw_decode(output[position:].lstrip())
+                position += len(output[position:]) - len(output[position:].lstrip()) + consumed
+                if isinstance(value, dict):
+                    model = value.get("id")
+                    provider = value.get("providerID")
+                    model = f"{provider}/{model}" if isinstance(provider, str) and isinstance(model, str) else current
+                    if model:
+                        rows[model] = {**value, "id": model}
+                continue
+            except ValueError:
+                pass
+        position = end + 1
+    return list(rows.values())
 
 
 async def _cli_catalog(agent: str, directory: Path, env: dict) -> str:
@@ -53,7 +101,7 @@ async def _cli_catalog(agent: str, directory: Path, env: dict) -> str:
         raise ProviderError("Selected agent is not installed. Detect agents again.")
     if agent == "opencode":
         env = local_agents._opencode_environment(directory, env)
-        args = ["models"]
+        args = ["models", "--verbose"]
     else:
         args = ["debug", "models", *local_agents._codex_model_config(env)]
     options = ({"creationflags": subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP}
@@ -92,23 +140,37 @@ async def agent_catalog(preference: str) -> dict:
     models: list[dict] = []
     default = ""
     warning = ""
+    configured_effort = ""
     env = dict(os.environ)
     try:
         if agent == "claude":
-            root = Path(env.get("CLAUDE_CONFIG_DIR", Path.home() / ".claude"))
-            config = _read_object(root / "settings.json")
+            config = local_agents._claude_configuration(env)
             configured_env = config.get("env", {})
             configured_env = configured_env if isinstance(configured_env, dict) else {}
-            default = env.get("ANTHROPIC_MODEL") or configured_env.get("ANTHROPIC_MODEL") or config.get("model", "")
+            effective_env = {**configured_env, **env}
+            default = effective_env.get("ANTHROPIC_MODEL") or config.get("model", "")
+            configured_effort = effective_env.get("CLAUDE_CODE_EFFORT_LEVEL") or config.get("effortLevel", "")
             rows = [{"id": name, "name": name.title()} for name in ("sonnet", "opus", "haiku")]
-            rows += [{"id": value} for key, value in {**configured_env, **env}.items()
+            rows += [{"id": value} for key, value in effective_env.items()
                      if key.startswith("ANTHROPIC_DEFAULT_") and key.endswith("_MODEL")]
+            rows += [{"id": default}] if isinstance(default, str) and default else []
+            saved = config.get("modelSettings", {})
+            for row in rows:
+                if not isinstance(row["id"], str):
+                    continue
+                actual = effective_env.get("ANTHROPIC_DEFAULT_" + row["id"].upper() + "_MODEL", row["id"])
+                entry = saved.get(actual, {}) if isinstance(saved, dict) and isinstance(actual, str) else {}
+                if isinstance(entry, dict) and isinstance(entry.get("effortLevel"), str):
+                    row["default_reasoning_level"] = effective_env.get("CLAUDE_CODE_EFFORT_LEVEL") or entry["effortLevel"]
             models = _choices(rows, source="alias")
         elif agent == "codex":
             root = Path(env.get("CODEX_HOME", Path.home() / ".codex"))
-            config_path = root / "config.toml"
-            config = local_agents.tomllib.loads(config_path.read_text(encoding="utf-8-sig")) if config_path.is_file() else {}
+            config = local_agents._codex_configuration(env)
             default = config.get("model", "")
+            # Keep the explicitly configured effort separate from managed
+            # defaults, which a later model selection overrides.
+            explicit = local_agents._codex_configuration(env, model="facetmark-explicit-selection")
+            configured_effort = explicit.get("model_reasoning_effort", "")
             try:
                 cache = _read_object(root / "models_cache.json")
             except (OSError, ValueError):
@@ -133,15 +195,16 @@ async def agent_catalog(preference: str) -> dict:
                 isolated = local_agents._opencode_environment(Path(directory), env)
                 config = json.loads(isolated["OPENCODE_CONFIG_CONTENT"])
                 default = config.get("model", "")
-                models = _choices([{"id": f"{provider}/{model}", "name": info.get("name", f"{provider}/{model}") if isinstance(info, dict) else f"{provider}/{model}"}
+                models = _choices([{**(info if isinstance(info, dict) else {}), "id": f"{provider}/{model}"}
                     for provider, definition in config.get("provider", {}).items() if isinstance(definition, dict)
-                    for model, info in definition.get("models", {}).items()], source="config")
+                    for model, info in (definition.get("models", {}) if isinstance(definition.get("models"), dict) else {}).items()], source="config")
                 try:
                     output = await _cli_catalog(agent, Path(directory), dict(os.environ))
-                    ids = [line.strip() for line in output.splitlines()
-                           if re.fullmatch(r"[\w.-]+/[\w./:@+-]+", line.strip())]
-                    live = _choices([{"id": model} for model in ids], source="cli")
-                    models = list({item["id"]: item for item in [*models, *live]}.values())
+                    live = _choices(_opencode_rows(output), source="cli")
+                    combined = {item["id"]: item for item in models}
+                    for item in live:
+                        combined[item["id"]] = {**combined.get(item["id"], {}), **item}
+                    models = list(combined.values())
                     if not live:
                         warning = "configured_catalog" if models else "empty_catalog"
                 except ProviderError:
@@ -151,7 +214,16 @@ async def agent_catalog(preference: str) -> dict:
             models.insert(0, {"id": default, "label": default, "source": "config"})
     except (OSError, ValueError, TypeError, AttributeError):
         raise ProviderError("Cannot read the agent model configuration. Check its settings, then retry.") from None
-    return {"agent": agent, "models": models, "default_model": default, "warning": warning}
+    configured_effort = configured_effort if isinstance(configured_effort, str) else ""
+    default_choice = next((model for model in models if model["id"] == default), {})
+    default_effort = configured_effort or default_choice.get("default_reasoning_effort", "")
+    if agent == "claude":
+        default_effort = default_choice.get("default_reasoning_effort") or configured_effort
+    if agent == "codex":
+        default_effort = config.get("model_reasoning_effort") or default_effort
+    return {"agent": agent, "models": models, "default_model": default, "warning": warning,
+            "configured_reasoning_effort": configured_effort,
+            "default_reasoning_effort": default_effort if isinstance(default_effort, str) else ""}
 
 
 async def endpoint_catalog(settings, channel: str) -> dict:
