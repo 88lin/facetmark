@@ -135,6 +135,44 @@ test("reader index reveals the whole selection after layout motion and restores 
   await writeFile(`${output}/reader-index-continuity.json`, JSON.stringify({ measurements, restoredScroll: before }, null, 2));
 });
 
+test("narrow reading leaves the collection layout and scroll in place through consecutive previews", async ({ page }) => {
+  await savedTextFixture(page);
+  const measurements = [];
+  for (const width of [390, 1024]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/app");
+    await expect(page.locator(".result-row")).toHaveCount(30);
+    const opener = page.locator(".result-row").nth(12);
+    await opener.scrollIntoViewIfNeeded();
+    await settleVisualLayout(page);
+    const before = await page.locator(".result-list").evaluate(element => ({
+      scroll: element.scrollTop,
+      extent: element.scrollHeight,
+      columns: getComputedStyle(element).gridTemplateColumns,
+    }));
+    expect(before.scroll).toBeGreaterThan(0);
+    await opener.locator(".bookmark-preview").click();
+    await expect(page.locator(".body-text")).toBeVisible();
+    for (const action of [null, "下一条收藏", "上一条收藏"] as const) {
+      if (action) await page.getByRole("button", { name: action, exact: true }).press("Enter");
+      await settleVisualLayout(page);
+      const current = await page.locator(".result-list").evaluate(element => ({
+        scroll: element.scrollTop,
+        extent: element.scrollHeight,
+        columns: getComputedStyle(element).gridTemplateColumns,
+      }));
+      expect(current).toEqual(before);
+    }
+    await capture(page, `reader-background-context-${width}`);
+    await page.keyboard.press("Escape");
+    await settleVisualLayout(page);
+    expect(await page.locator(".result-list").evaluate(element => element.scrollTop)).toBe(before.scroll);
+    await expect(opener.locator(".bookmark-preview")).toBeFocused();
+    measurements.push({ width, ...before });
+  }
+  await writeFile(`${output}/reader-background-context.json`, JSON.stringify(measurements, null, 2));
+});
+
 test("reading text has a clear scale, progress stays below the article and missing text has no progress box", async ({ page }) => {
   await savedTextFixture(page);
   await page.setViewportSize({ width: 1440, height: 900 });

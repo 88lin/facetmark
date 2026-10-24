@@ -1,5 +1,5 @@
 //! Styled native tray window; privileged actions are limited to this local page.
-use super::{ci_record, cloud_webview_inspection, focus_main, preferences, request_exit, update_preferences, work_areas, Backend, CI_BROWSER_ARGS, SHORTCUT};
+use super::{ci_record, cloud_webview_inspection, display_areas, focus_main, preferences, request_exit, update_preferences, work_areas, Backend, CI_BROWSER_ARGS, SHORTCUT};
 use crate::window_state::tray_menu_geometry;
 use serde::Serialize;
 use std::sync::atomic::Ordering;
@@ -60,8 +60,7 @@ pub fn tray_action(window: tauri::WebviewWindow, app: tauri::AppHandle, action: 
 }
 
 pub fn open(app: &tauri::AppHandle, x: f64, y: f64, source: &str) -> tauri::Result<()> {
-    let scale = app.monitor_from_point(x, y)?.map(|monitor| monitor.scale_factor()).unwrap_or(1.);
-    let Some(geometry) = tray_menu_geometry(x, y, scale, &work_areas(app)) else { return Ok(()); };
+    let Some((geometry, scale)) = tray_menu_geometry(x, y, &display_areas(app)) else { return Ok(()); };
     let menu = if let Some(menu) = app.get_webview_window("tray-menu") { menu } else {
         let mut builder = WebviewWindowBuilder::new(app, "tray-menu", WebviewUrl::App("tray.html".into()))
             .title("Facetmark tray").inner_size(312., 374.).visible(false).decorations(false)

@@ -21,6 +21,13 @@ pub struct WorkArea {
     pub height: u32,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct DisplayArea {
+    pub bounds: WorkArea,
+    pub work: WorkArea,
+    pub scale: f64,
+}
+
 impl WorkArea {
     fn right(self) -> i64 { i64::from(self.x) + i64::from(self.width) }
     fn bottom(self) -> i64 { i64::from(self.y) + i64::from(self.height) }
@@ -67,24 +74,30 @@ pub fn client_size_for_outer(wanted: Geometry, outer: (u32, u32), inner: (u32, u
 
 /// The tray sends physical coordinates. Choose the monitor from that point,
 /// then keep the entire scaled menu clear of its taskbar and work-area edges.
-pub fn tray_menu_geometry(x: f64, y: f64, scale: f64, areas: &[WorkArea]) -> Option<Geometry> {
-    if !x.is_finite() || !y.is_finite() || !scale.is_finite() || scale <= 0. { return None; }
+pub fn tray_menu_geometry(x: f64, y: f64, displays: &[DisplayArea]) -> Option<(Geometry, f64)> {
+    if !x.is_finite() || !y.is_finite() { return None; }
     let cursor = Geometry { x: x.round() as i32, y: y.round() as i32, width: 1, height: 1 };
-    let area = areas.iter().filter(|area| area.width > 0 && area.height > 0).max_by(|a, b| {
-        a.overlap(cursor).cmp(&b.overlap(cursor)).then_with(|| b.distance(cursor).total_cmp(&a.distance(cursor)))
+    // Taskbars belong to the full monitor, though outside its work area. Using
+    // work-area distance here can pick a neighboring monitor and its wrong DPI.
+    let display = displays.iter().filter(|display| display.bounds.width > 0 && display.bounds.height > 0
+        && display.work.width > 0 && display.work.height > 0 && display.scale.is_finite() && display.scale > 0.).max_by(|a, b| {
+        a.bounds.overlap(cursor).cmp(&b.bounds.overlap(cursor))
+            .then_with(|| b.bounds.distance(cursor).total_cmp(&a.bounds.distance(cursor)))
     })?;
+    let area = display.work;
+    let scale = display.scale;
     let margin = (8. * scale).round() as u32;
-    let width = ((312. * scale).round() as u32).min(area.width.saturating_sub(margin * 2).max(1));
-    let height = ((374. * scale).round() as u32).min(area.height.saturating_sub(margin * 2).max(1));
+    let width = ((312. * scale).round() as u32).min(area.width.saturating_sub(margin.saturating_mul(2)).max(1));
+    let height = ((374. * scale).round() as u32).min(area.height.saturating_sub(margin.saturating_mul(2)).max(1));
     let inset_x = margin.min((area.width - width) / 2);
     let inset_y = margin.min((area.height - height) / 2);
-    Some(Geometry {
+    Some((Geometry {
         x: (i64::from(cursor.x) - i64::from(width) + i64::from(margin)).clamp(
             i64::from(area.x) + i64::from(inset_x), area.right() - i64::from(width) - i64::from(inset_x)) as i32,
         y: (i64::from(cursor.y) - i64::from(height) - i64::from(margin)).clamp(
             i64::from(area.y) + i64::from(inset_y), area.bottom() - i64::from(height) - i64::from(inset_y)) as i32,
         width, height,
-    })
+    }, scale))
 }
 
 #[derive(Default)]
@@ -168,18 +181,39 @@ mod tests {
     }
     #[test]
     fn tray_menu_stays_in_the_requested_monitor_at_both_dpi_scales() {
-        let displays = [area(-1920, -200, 1920, 1040), area(0, 40, 2400, 1520)];
-        for (x, y, scale, target) in [(-50., 850., 1., displays[0]), (2390., 1580., 1.5, displays[1]),
-            (2., 0., 1., displays[1]), (-1925., 0., 1.5, displays[0])] {
-            let menu = tray_menu_geometry(x, y, scale, &displays).unwrap();
-            assert!(menu.x >= target.x && menu.y >= target.y);
-            assert!(i64::from(menu.x) + i64::from(menu.width) <= target.right());
-            assert!(i64::from(menu.y) + i64::from(menu.height) <= target.bottom());
-            assert_eq!(menu.width, (312. * scale).round() as u32);
+        for scale in [1., 1.5] {
+            let displays = [
+                DisplayArea { bounds: area(-1920, -200, 1920, 1080), work: area(-1920, -200, 1920, 1040), scale },
+                DisplayArea { bounds: area(0, 0, 2400, 1600), work: area(0, 40, 2400, 1520), scale },
+            ];
+            for (x, y, target) in [(-50., 850., displays[0].work), (2390., 1580., displays[1].work),
+                (2., 0., displays[1].work), (-1925., 0., displays[0].work)] {
+                let (menu, selected_scale) = tray_menu_geometry(x, y, &displays).unwrap();
+                assert!(menu.x >= target.x && menu.y >= target.y);
+                assert!(i64::from(menu.x) + i64::from(menu.width) <= target.right());
+                assert!(i64::from(menu.y) + i64::from(menu.height) <= target.bottom());
+                assert_eq!(selected_scale, scale);
+                assert_eq!(menu.width, (312. * scale).round() as u32);
+            }
         }
-        let tiny = tray_menu_geometry(300., 190., 1.5, &[area(0, 40, 320, 160)]).unwrap();
+        let small = [DisplayArea { bounds: area(0, 0, 320, 200), work: area(0, 40, 320, 160), scale: 1.5 }];
+        let (tiny, _) = tray_menu_geometry(300., 190., &small).unwrap();
         assert!(tiny.width <= 320 && tiny.height <= 160);
-        assert!(tray_menu_geometry(f64::NAN, 0., 1., &displays).is_none());
+        assert!(tray_menu_geometry(f64::NAN, 0., &small).is_none());
+    }
+    #[test]
+    fn a_top_taskbar_near_a_neighbor_keeps_its_own_monitor_and_dpi() {
+        let displays = [
+            DisplayArea { bounds: area(-1920, -200, 1920, 1080), work: area(-1920, -200, 1920, 1040), scale: 1. },
+            DisplayArea { bounds: area(0, 0, 2400, 1600), work: area(0, 40, 2400, 1520), scale: 1.5 },
+        ];
+        let cursor = box_at(2, 0, 1, 1);
+        // Negative control for the previous work-area-based monitor selection.
+        assert!(displays[0].work.distance(cursor) < displays[1].work.distance(cursor));
+        let (menu, scale) = tray_menu_geometry(2., 0., &displays).unwrap();
+        assert_eq!(scale, 1.5);
+        assert_eq!(menu.width, 468);
+        assert!(menu.x >= 0 && menu.y >= 40);
     }
     #[test]
     fn a_drag_coalesces_changing_events_and_closing_flushes_the_latest_box() {

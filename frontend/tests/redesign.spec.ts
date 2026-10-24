@@ -116,11 +116,13 @@ test("reader tabs, expansion reversal and keyboard preserve query and scroll con
   const browsePosition = await list.evaluate((el) => el.scrollTop);
   await selectedRow.locator(".bookmark-preview").click();
   await expect(page.locator(".body-text")).toBeVisible();
+  await settleVisualLayout(page);
   const listPosition = await list.evaluate((el) => el.scrollTop);
   expect(listPosition).toBeGreaterThan(0);
   await page.locator(".focus-reading").click();
   await page.locator(".focus-reading").click();
   await expect(page.locator(".main-workspace")).not.toHaveClass(/focus-mode/);
+  await settleVisualLayout(page);
   expect(Math.abs((await list.evaluate((el) => el.scrollTop)) - listPosition)).toBeLessThanOrEqual(
     1,
   );

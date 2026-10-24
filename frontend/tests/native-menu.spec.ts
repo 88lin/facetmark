@@ -35,6 +35,14 @@ for (const locale of ["zh-CN", "en-US"]) test.describe(`packaged tray page ${loc
     await page.evaluate(() => document.fonts.ready);
     const show = page.locator('[data-action="show"]'), startup = page.locator('[data-action="startup"]'), shortcut = page.locator('[data-action="shortcut"]');
     await expect(show).toBeFocused(); await expect(shortcut).toHaveAttribute("aria-checked", "true");
+    for (let opening = 0; opening < 3; opening++) {
+      const motion = await page.evaluate(async () => {
+        await (window as TrayTestWindow).openFacetmarkTray();
+        await new Promise(requestAnimationFrame);
+        return document.querySelector('.tray-shell')!.getAnimations().filter(animation => animation.playState === "running").length;
+      });
+      expect(motion).toBe(1);
+    }
     await page.keyboard.press("ArrowDown"); await expect(startup).toBeFocused();
     await page.keyboard.press("Space"); await expect(startup).toHaveAttribute("aria-checked", "true");
     await page.keyboard.press("ArrowDown"); await expect(shortcut).toBeFocused();
@@ -60,6 +68,9 @@ for (const locale of ["zh-CN", "en-US"]) test.describe(`packaged tray page ${loc
     }
     await page.emulateMedia({ reducedMotion: "reduce" });
     await expect(page.locator(".tray-shell")).toHaveCSS("animation-name", "none");
+    expect(await page.locator(".tray-shell").evaluate(element => element.getAnimations().every(animation => animation.playState !== "running"))).toBe(true);
+    await page.evaluate(() => (window as TrayTestWindow).openFacetmarkTray());
+    expect(await page.locator(".tray-shell").evaluate(element => element.getAnimations().length)).toBe(0);
     await page.keyboard.press("Escape");
     await expect.poll(() => page.evaluate(() => (window as TrayTestWindow).__actions.at(-1))).toBe("dismiss");
     expect(errors).toEqual([]);

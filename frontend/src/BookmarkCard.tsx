@@ -8,8 +8,9 @@ import { useReducedMotion } from "./useReducedMotion";
 import { CollectionFolderIcon } from "./CollectionFolderIcon";
 import "./bookmark-card.css";
 
-export function BookmarkCard({ record, selected, checked, disabled, display, entranceOrder = 0, onCheck, onPreview, onSummarize, onEdit }: {
+export function BookmarkCard({ record, selected, indexVisible, checked, disabled, display, entranceOrder = 0, onCheck, onPreview, onSummarize, onEdit }: {
   record: Bookmark; selected: boolean; checked: boolean; disabled: boolean;
+  indexVisible: boolean;
   entranceOrder?: number;
   display: "summary" | "original"; onCheck: () => void;
   onPreview: (button: HTMLButtonElement) => void; onSummarize?: () => void; onEdit?: () => void;
@@ -22,25 +23,25 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
   const summary = useRef<HTMLParagraphElement>(null);
   const previewControl = useRef<HTMLButtonElement>(null);
   const row = useRef<HTMLElement>(null);
-  const previewSelected = useRef(selected);
-  previewSelected.current = selected;
+  const previewSelected = useRef(selected && indexVisible);
+  previewSelected.current = selected && indexVisible;
   const revealPreview = useCallback(() => {
     const element = row.current;
-    if (!previewSelected.current || !element?.closest(".main-workspace.has-selection")) return;
+    if (!previewSelected.current || !element?.closest(".main-workspace.has-reader-index")) return;
     const list = element.closest<HTMLElement>(".result-list");
-    if (!list || list.closest("[inert], [hidden]")) return;
+    if (!list || list.closest('[inert], [hidden], [aria-hidden="true"]')) return;
     const card = element.getBoundingClientRect(), viewport = list.getBoundingClientRect();
     const shift = card.top < viewport.top ? card.top - viewport.top
       : card.bottom > viewport.bottom ? (card.height > viewport.height ? card.top - viewport.top : card.bottom - viewport.bottom) : 0;
     if (Math.abs(shift) > 1) list.scrollBy({ top: shift, behavior: "instant" });
   }, []);
   useEffect(() => {
-    if (!selected) return;
+    if (!selected || !indexVisible) return;
     // Covers selection changes with no layout motion, including reduced motion.
     // A layout completion also corrects the final, unprojected card bounds.
     const frame = requestAnimationFrame(revealPreview);
     return () => cancelAnimationFrame(frame);
-  }, [selected, reduced, revealPreview]);
+  }, [selected, indexVisible, reduced, revealPreview]);
   const href = safeUrl(record.url);
   const title = record.title || record.url;
   const trackOpen = (event?: { button: number }) => {

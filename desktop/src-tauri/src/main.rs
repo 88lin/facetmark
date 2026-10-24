@@ -14,7 +14,7 @@ mod backend_state;
 mod tray_menu;
 mod window_state;
 use backend_state::{RetryError, SidecarGate};
-use window_state::{Geometry, GeometryQueue, WorkArea, client_size_for_outer, visible_geometry};
+use window_state::{DisplayArea, Geometry, GeometryQueue, WorkArea, client_size_for_outer, visible_geometry};
 
 const SHORTCUT: &str = "Ctrl+Shift+Space";
 
@@ -178,7 +178,7 @@ fn save_window_mode(app: &tauri::AppHandle) {
     update_preferences(app, |prefs| prefs.maximized = maximized);
 }
 
-fn work_areas(app: &tauri::AppHandle) -> Vec<WorkArea> {
+fn display_areas(app: &tauri::AppHandle) -> Vec<DisplayArea> {
     app.available_monitors().unwrap_or_default().iter().map(|monitor| {
         let (origin, size) = (monitor.position(), monitor.size());
         let fallback = WorkArea { x: origin.x, y: origin.y, width: size.width, height: size.height };
@@ -190,12 +190,16 @@ fn work_areas(app: &tauri::AppHandle) -> Vec<WorkArea> {
             info.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
             if unsafe { GetMonitorInfoW(MonitorFromPoint(point, MONITOR_DEFAULTTONEAREST), &mut info) } != 0 {
                 let work = info.rcWork;
-                return WorkArea { x: work.left, y: work.top, width: (work.right - work.left).max(0) as u32,
-                    height: (work.bottom - work.top).max(0) as u32 };
+                return DisplayArea { bounds: fallback, scale: monitor.scale_factor(),
+                    work: WorkArea { x: work.left, y: work.top, width: (work.right - work.left).max(0) as u32,
+                        height: (work.bottom - work.top).max(0) as u32 } };
             }
         }
-        fallback
+        DisplayArea { bounds: fallback, work: fallback, scale: monitor.scale_factor() }
     }).collect()
+}
+fn work_areas(app: &tauri::AppHandle) -> Vec<WorkArea> {
+    display_areas(app).into_iter().map(|display| display.work).collect()
 }
 
 fn restore_geometry(window: &tauri::WebviewWindow, saved: Option<Geometry>) -> tauri::Result<()> {

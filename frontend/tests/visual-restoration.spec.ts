@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
+import { settleVisualLayout } from "./visual-layout";
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/*", route => new URL(route.request().url()).hostname === "127.0.0.1"
@@ -22,6 +23,7 @@ for (const { width, theme } of [{ width: 1440, theme: "light" }, { width: 390, t
     const picker = page.getByRole("combobox", { name: "跳转到章节" });
     await expect(surface).toHaveCSS("transform", "none");
     await expect(surface).toBeInViewport({ ratio: 1 });
+    await settleVisualLayout(page);
     // Opening preview intentionally reflows the grid into an index and reveals
     // the selected row. Chapter navigation must preserve that established view.
     const listPosition = await page.locator(".result-list").evaluate(el => el.scrollTop);

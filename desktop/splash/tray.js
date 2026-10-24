@@ -3,6 +3,10 @@ const bridge = window.__TAURI_INTERNALS__;
 const english = !navigator.language.toLowerCase().startsWith('zh');
 const items = [...document.querySelectorAll('[data-action]')];
 const feedback = document.querySelector('#tray-feedback');
+const shell = document.querySelector('.tray-shell');
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+let arrival;
+reducedMotion.addEventListener('change', () => { if (reducedMotion.matches) arrival?.cancel(); });
 let busy = false;
 let generation = 0;
 if (english) {
@@ -32,6 +36,13 @@ function paint(state) {
 async function openMenu() {
   const current = ++generation;
   document.body.dataset.phase = 'open';
+  // The native window is reused. Each opening owns one fresh, interruptible
+  // entrance, even when the previous CSS state was already "open".
+  arrival?.cancel();
+  if (!reducedMotion.matches) arrival = shell.animate([
+    { transform: 'translateY(5px) scale(.985)', opacity: .5 },
+    { transform: 'none', opacity: 1 },
+  ], { duration: 180, easing: 'cubic-bezier(.22, 1, .36, 1)' });
   if (!busy) items.forEach(item => { item.disabled = false; });
   focusItem(0);
   try {

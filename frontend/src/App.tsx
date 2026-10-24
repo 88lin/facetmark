@@ -974,7 +974,7 @@ function Workbench({
         ref={workspace}
         inert={navOpen}
         aria-hidden={navOpen}
-        className={`main-workspace ${paired && view === "library" ? "with-preview" : ""} ${selected !== null ? "has-selection" : "browse-mode"} ${collectionLayout === "list" ? "list-mode" : ""} ${focusReading && view === "library" ? "focus-mode" : ""}`}
+        className={`main-workspace ${paired && view === "library" ? "with-preview" : ""} ${selected !== null ? "has-selection" : "browse-mode"} ${selected !== null && !drawer ? "has-reader-index" : ""} ${collectionLayout === "list" ? "list-mode" : ""} ${focusReading && view === "library" ? "focus-mode" : ""}`}
       >
         {connectionError && (
           <div className="connection-error" role="alert">
@@ -1214,6 +1214,7 @@ function Workbench({
                 ) : (
                   items.map((record, index) => <BookmarkCard key={record.bookmark_id} record={record} entranceOrder={index}
                     selected={selected === record.bookmark_id}
+                    indexVisible={!drawer && !focusReading}
                     checked={allMatching ? !excludedIds.includes(record.bookmark_id) : selectedIds.includes(record.bookmark_id)}
                     disabled={scopePending} display={summaryDisplay}
                     onEdit={adminAvailable && job.state !== "running" ? () => setLibraryAction({ kind: "edit", record }) : undefined}

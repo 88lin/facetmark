@@ -33,7 +33,7 @@ export function SettingsWorkspace({ setup, refresh, onChanged, onBack, onSummari
   const sections = [
     { id: "models", label: t("AI 连接", "AI connections"), compact: t("AI 连接", "AI"), Icon: MessageCircle },
     { id: "sync", label: t("设备同步", "Device sync"), compact: t("同步", "Sync"), Icon: Cloud },
-    { id: "extension", label: t("浏览器扩展", "Browser extension"), compact: t("扩展", "Extension"), Icon: Puzzle },
+    { id: "extension", label: t("浏览器扩展", "Browser extension"), compact: t("扩展", "Add-on"), Icon: Puzzle },
     { id: "desktop", label: t("桌面与更新", "Desktop & updates"), compact: t("桌面", "Desktop"), Icon: Monitor },
   ];
   return <div className="settings-workspace" ref={root}>

@@ -56,7 +56,10 @@ duplicate folder labels. Keep 280px minimum cards and compact 16px padding, whil
 preserving varied synthetic titles/summaries and visible record operations.
 The reading index keeps source, title, status and actions, with room for consecutive
 preview switching. Its selected card owns full-row visibility after layout motion;
-closing restores collection scroll and the real opener's focus. Article body is
+closing restores collection scroll and the real opener's focus. Only the visible
+desktop reading index reflows and reveals its selection. A narrow modal reader
+keeps the collection's layout, height and scroll position intact behind it;
+hidden, inert or aria-hidden indices never auto-scroll. Article body is
 17px/1.8 (16px mobile); titles are 29px (25px
 mobile, 32px focus). Progress is a 48px in-flow footer only on saved body text.
 
@@ -71,8 +74,10 @@ A shared folded-F SVG and offline font faces connect React, native startup and
 the packaged tray window. Tray actions read real native plugin state; toggles are
 single-flight, errors preserve the previous state, and Escape/focus loss dismiss
 the menu. “Check updates” opens the desktop/update settings tab. Native tray
-commands are restricted to the packaged tray page, with physical monitor-aware
-placement. Cloud synthetic opening is identified separately from a real right-click.
+commands are restricted to the packaged tray page. Physical placement selects
+the full monitor bounds before clamping to its work area and using its own DPI.
+Each opening owns a fresh interruptible entrance; reduced motion cancels it.
+Cloud synthetic opening is identified separately from a real right-click.
 
 ## Product and implementation boundaries
 
