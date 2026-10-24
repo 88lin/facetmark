@@ -183,6 +183,26 @@ MoveFocus。最小修正是让隐藏托盘以 focused=false 构造，仅在可�
 失败记录同时保留原始 CDP targets；成功打开还需断言菜单真正取得 Windows 前台。
 验证不直接 show / focus 托盘 HWND，不放宽菜单可见或失焦关闭条件。
 
+### `6b32b77` 原生窗口已保持显示，补正迟建 WebView 的检查连接
+
+[Windows 40062357350](https://github.com/88lin/facetmark/actions/runs/40062357350)
+原生构造修正确认有效：菜单 HWND=262782 保持可见且为实际前台，记录只有一次
+GotFocus；原生导航允许 `http://tauri.localhost/tray.html`，Started / Finished
+加载事件完整。没有新 LostFocus 或隐藏。整条安装运行仍在菜单操作前失败，原因
+已区分：原始 `/json/list` 包含真实菜单 target，但旧 Playwright CDP connection
+只列出主窗口，没有发现后创建的 WebView。
+
+检查脚本现在等真实原生 HWND 与对应的 packaged target 都存在后，重新连接相同
+9223 端点以发现它；不创建新 page，不导航替代页，不直接显示或聚焦菜单。
+首次右键与合成打开都要求真正取得前台，保留所有原生操作、Escape、失焦、快捷键、
+退出及权限拒绝断言。此检查脚本的修正仍待新的真实安装运行。
+
+`a09b6de` 图库的 84 PNG（30 主旅程 / 54 补充）、79 源码与 91 媒体 / 记录
+SHA256 已独立核对，无差异。到 `6b32b77`，图库指纹内只有原生托盘实现和安装检查
+脚本变化；所有前端、原生 HTML / CSS / SVG / JS 和图标源均保持一致。页面、设置、
+正文、窄屏弹层及 storyboard 已复查。胶囊 51 采样均高 32px、宽
+57.999992–58.000015px，横纵 scale=1。完整 CI `40062289593` 全部通过。
+
 只用隔离合成数据；不操作真实浏览器资料。本地只编辑、轻量检查和小型证据查看；
 安装、构建、浏览器、打包与安装测试全部在 GitHub Actions。
 实际截图、动画采样与当前 run 结果待补。全部新改动等待用户复评。

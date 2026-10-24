@@ -134,6 +134,7 @@ with sync_playwright() as playwright:
     sequence = 0
     opening_sources = []
     activation_history = []
+    tray_connection = None
 
     def cdp_targets():
         try:
@@ -143,10 +144,27 @@ with sync_playwright() as playwright:
             return {"error": str(error)}
 
     def menu_page():
+        global tray_connection
         handle = native_window("Facetmark tray")
         if not handle or not user32.IsWindowVisible(handle):
             return None
-        return next((page for context in browser.contexts for page in context.pages if page.url.endswith("/tray.html")), None)
+        connection = tray_connection or browser
+        page = next((page for context in connection.contexts for page in context.pages
+                     if page.url.endswith("/tray.html")), None)
+        if page:
+            return page
+        # WebView2 exposes a late-created WebView in /json/list without always
+        # notifying an existing browser CDP connection. Reconnect only after the
+        # actual native HWND and its packaged target both exist. This discovers
+        # the installed page; it never creates or navigates a replacement page.
+        targets = cdp_targets()
+        if tray_connection is None and isinstance(targets, list) and any(
+                target.get("url") == "http://tauri.localhost/tray.html"
+                and target.get("title") == "Facetmark tray" for target in targets):
+            tray_connection = playwright.chromium.connect_over_cdp("http://127.0.0.1:9223", timeout=15000)
+            return next((page for context in tray_connection.contexts for page in context.pages
+                         if page.url.endswith("/tray.html")), None)
+        return None
 
     def open_menu(*, actual_click=False):
         global sequence
@@ -162,6 +180,8 @@ with sync_playwright() as playwright:
                     user32.mouse_event(0x0010, 0, 0, 0, 0)
                     try:
                         menu = wait_for(menu_page, "Notification area did not expose the tray menu", 8)
+                        handle = native_window("Facetmark tray")
+                        wait_for(lambda: user32.GetForegroundWindow() == handle, "Native tray did not take the foreground", 5)
                         opening_sources.append("right-click on notification icon")
                         return menu
                     except AssertionError:
@@ -184,7 +204,8 @@ with sync_playwright() as playwright:
             report("installed-tray-failure.json", {"menu_hwnd": handle,
                 "menu_visible": bool(handle and user32.IsWindowVisible(handle)),
                 "foreground_hwnd": user32.GetForegroundWindow(), "main_hwnd": main_handle,
-                "cdp_pages": [page.url for context in browser.contexts for page in context.pages],
+                "cdp_pages": [page.url for connection in [browser, tray_connection] if connection
+                              for context in connection.contexts for page in context.pages],
                 "cdp_targets": cdp_targets(),
                 "activation_history": activation_history, "opening_sources": opening_sources})
             raise
@@ -209,7 +230,8 @@ with sync_playwright() as playwright:
         wait_for(lambda: not alive(process), "Tray Quit did not exit the desktop", 30)
         wait_for(lambda: not alive(runtime["pid"]), "Tray Quit left the owned sidecar alive", 30)
         report("installed-tray-exit.json", {"real_quit_button": True, "desktop_stopped": True,
-            "owned_sidecar_stopped": True, "opening_sources": opening_sources})
+            "owned_sidecar_stopped": True, "opening_sources": opening_sources,
+            "late_native_target_attached": tray_connection is not None})
     elif mode == "operate":
         handle = native_window("Facetmark tray")
         rect = wintypes.RECT()
@@ -286,6 +308,7 @@ with sync_playwright() as playwright:
             "real_global_shortcut": True, "open_workspace": True, "escape_hides_menu": True,
             "native_focus_loss_hides_menu": True, "update_opens_desktop_settings": True,
             "remote_tray_actions_denied": remote, "opening_sources": opening_sources,
+            "late_native_target_attached": tray_connection is not None,
             "activation_history": activation_history,
             "theme_scope": "WebView media overrides for light/dark and reduced motion", "page_errors": errors})
     else:
