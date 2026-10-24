@@ -1,8 +1,62 @@
 # Desktop experience validation
 
-> 2026-10-24 当前：PR #44 已授权合并，追加修复在 [PR #51](https://github.com/88lin/facetmark/pull/51)。初版 26ca64d 四条云端运行整体失败；收藏专项 18/19、完整浏览器 88 通过 / 7 失败 / 2 跳过。已实际检查对应页面，继续修正手机设置、测试前提、Docker / Rust 语法及新增 issue #52 的立即重试竞态。当前后续源码等待云端重新验证。旧 f1c67fe 通过结果仅属于历史。最新视觉评价仍是“能用，但不算好看”；本轮未获用户复评。详见 [当前记录](workspace-layout-2026-10-24.md)。
+> 2026-10-24 当前：PR #44 已合并，追加修复在 [PR #51](https://github.com/88lin/facetmark/pull/51)。最终应用与取证源码为 8af69ae；CI、收藏和完整 Windows 安装验证全部通过。实际浅深托盘已无普通高度滚动，原生开关、恢复、真实快捷键、立即重试、退出及重装 / 卸载通过。最新视觉评价仍是‘能用，但不算好看’，所有新细节待用户复评。详见 [当前记录](workspace-layout-2026-10-24.md)。
 
 <!-- current-experience-evidence:start -->
+
+## Current follow-up: 8af69ae verified delivery
+
+Application, browser capture and installed-app revision: `8af69ae4a4820d65d6a0589870428ed58a842fe0`.
+Later documentation-only commits retain exactly these fingerprinted sources.
+
+| Evidence | Actual result |
+| --- | --- |
+| [Collection 40084669829](https://github.com/88lin/facetmark/actions/runs/40084669829) | 21/21; 88 PNGs (30 journey / 58 states), 7 action groups and 0 journey page errors. All 79 sources and 26 selected media/record SHA256 values match. The full manifest contains 95 media/records; the full video/archive was not downloaded locally. |
+| [CI 40084572244](https://github.com/88lin/facetmark/actions/runs/40084572244) | All 10 jobs pass; actual browser log: 97 passed / 2 skipped. |
+| [Windows 40084665472](https://github.com/88lin/facetmark/actions/runs/40084665472) | Complete native/build/frozen-service/offline-install workflow passes. Real tray toggles, permission denial, Escape, focus loss, workspace restore, OS global shortcut, Quit, reinstall and uninstall/data retention pass. |
+
+At 1440×900 the first viewport shows six complete cards; the directory spans
+874px. Full-width settings, 320px English model selection, 390px folder selection,
+long Chinese/mixed titles, reading typography, retained index and short-window
+operation were inspected. All 54 capsule samples stay 32px high,
+57.999985–58.000008px wide, with scale 1 and 999px radius. Desktop preview closure
+restores scroll 1033 and focus; narrow preview keeps collection layout and scroll.
+Representative screenshots, storyboard and frame records were inspected; full MP4
+playback and all-device frame-rate certification were not performed.
+
+The real installed tray outer frame is `(704,338,312,374)` inside a 1024×720 work
+area at 96 DPI; client viewport is 296×365. In both themes, clientHeight and
+scrollHeight are exactly 347px; clientWidth and scrollWidth are exactly 278px.
+Actual light/dark screenshots show no normal-height scrollbar. A previous +1px
+test tolerance permitted a visible scrollbar at 5586c00; the final implementation
+leaves 4px extra identity spacing room and uses strict no-overflow assertions.
+44px menu operations and long-error/short-height scroll fallback remain.
+
+Issue #52's installed Enter occurs while old PID 8308 and its lock are still alive.
+No new spawn precedes confirmed exit. Replacement owned PID 7760 passes 12 health
+checks. CI controls stop timing; the process, lock, native windows, Enter and new
+service are real. Issue #52 remains open until the follow-up PR is merged.
+
+The downloaded small installation ZIP SHA256 is
+`e1da84710a64bb9e588b8023b20eefb840ffeb63a9bf430db7987cc8340f02b4`, matching
+Actions. Generated PNG/ICO hashes and Windows CRLF source match. The installed
+32px EXE icon matches all 1024 premultiplied ICO pixels. Icons include 16, 20, 24,
+32, 48, 64, 128 and 256px. Native 240 move/resize calls produce one idle geometry
+write and close flushes the final frame. Actual frame restoration, parent/sidecar
+cleanup, same-version reinstall and uninstall retaining synthetic data pass.
+
+Hosted Windows uses a synthetic trigger to open the real native tray; actual
+notification-icon right click was not established. Real actions are not inferred
+from the separate synthetic browser bridge. Physical Windows 10/11, extra monitors
+and other DPI are not certified; mixed-DPI/removal cases are pure geometry tests.
+Only isolated synthetic data and disposable cloud VMs are used. Local work remains
+source edits, lightweight checks and small evidence inspection. Every new visual
+detail awaits user review; technical passing status does not freeze the design.
+
+- [Complete gallery, states and recording](https://github.com/88lin/facetmark/actions/runs/40084669829/artifacts/12556469131) — extract and open `collection-review-evidence/index.html`.
+- [Windows preview installer](https://github.com/88lin/facetmark/actions/runs/40084665472/artifacts/12556748453).
+- [Small installed evidence](https://github.com/88lin/facetmark/actions/runs/40084665472/artifacts/12556389884).
+- Historical failures and the independent a09b6de experience run are retained in [the round record](workspace-layout-2026-10-24.md).
 
 ## Previous 2026-10-24 refinement: f1c67fe evidence
 

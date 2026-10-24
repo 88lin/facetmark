@@ -203,9 +203,16 @@ user-approved.
 
 This follow-up removes excess chrome, gives the directory and bookmarks more
 height, corrects reading hierarchy and carries the shared folded-F mark into native
-startup and the real tray menu. Current source awaits cloud evidence and user
-review. PR #44 is merged; this round belongs in a new PR. The previous f1c67fe
-verification is a historical baseline, not validation of these edits.
+startup and the real tray menu. Application/capture 8af69ae passes all 10 CI jobs,
+97 browser cases (2 skipped), 21 collection checks and the complete installed
+Windows workflow. Its 79 source and 26 selected media/record hashes match;
+the full gallery contains 88 PNGs. The installed tray has no normal-height scroll
+in either theme: clientHeight and scrollHeight are both 347px. Real native menu
+actions, global shortcut, focus dismissal, immediate retry and installation
+lifecycle pass. Hosted-CI opens the real tray through a synthetic trigger;
+an actual notification-icon right click remains outside that verified scope.
+User visual review remains pending. PR #44 is merged;
+this round is PR #51. The previous f1c67fe verification remains historical.
 
 [Product facts](PRODUCT.md), [active direction](.impeccable/workbench-direction.md),
 [surface brief](.impeccable/surfaces/frontend.md) and
@@ -352,8 +359,15 @@ real native plugins; single-flight actions preserve old state on error. Arrow/Ho
 End/Tab roving focus, Escape and native focus loss dismiss correctly.
 Monitor-aware placement first selects full physical display bounds, then uses that
 display's DPI and work area; a taskbar point near another monitor keeps its own
-display. Every opening owns one cancellable entrance, including reused windows;
+display. The requested dimensions describe the whole outer frame; measure native
+outer/client offsets after moving to that display before calling set_size with a
+client size. Shadows stay within the same work area. Every opening owns one cancellable entrance, including reused windows;
 reduced motion cancels it and uses the visible endpoint.
+Construct the hidden tray without window or WebView focus, then request focus
+when opening the visible window. Windows synthesizes focus events from the
+WebView controller; hidden construction must not queue a stale blur over a new
+opening. Installed checks must discover the actual late-created native target,
+without creating a replacement page or showing/focusing the HWND themselves.
 Rust restricts tray commands to the packaged tray page's label and URL.
 Synthetic cloud opening is separately identified when the hosted notification area
 cannot expose an actual right-click.

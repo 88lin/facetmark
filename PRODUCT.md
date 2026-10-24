@@ -91,8 +91,9 @@ remain in this repository. Do not write project material to
 `E:\design\design-reference-handbook.md` or its general snapshot.
 PR #44 was merged with the user's authorization; this follow-up belongs in a new
 PR. Commit, push and cloud validation are authorized. Do not automatically merge
-the new PR or publish a release. Current changes await cloud evidence and user
-visual review; older checks establish only their own revisions.
+the new PR or publish a release. Application/capture 8af69ae has passed CI,
+collection and installed-desktop checks; user visual review remains pending.
+Older checks establish only their own revisions.
 
 ## Evidence on Hand
 

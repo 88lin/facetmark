@@ -56,9 +56,18 @@ rendered/installed evidence and actual capsule frame bounds. 04ecc11 / 7d2abd0
 and the earlier 831dcfd round remain revision-specific history.
 Current follow-up is in docs/workspace-layout-2026-10-24.md. PR #44 is merged;
 commit/push and cloud checks are authorized for a new PR, without automatic merge
-or release. PR #51's initial 26ca64d cloud runs exposed syntax, Docker, stale test
-and real mobile-layout failures. Current fixes and issue #52's actual-exit gate
-await cloud rendering, installed retry regression and user review.
+or release. Application/capture 8af69ae passes collection 21/21, browser 97/2
+(passed/skipped), all 10 CI jobs and the complete installed Windows workflow.
+The gallery has 88 PNGs; all 79 sources and 26 selected media/record hashes match.
+The installed tray's strict layout is 347px clientHeight / 347px scrollHeight in
+both themes. Native toggles, focus dismissal, real OS shortcut, workspace restore,
+quit, immediate retry and reinstall/uninstall pass. The retry occurs while the
+old service and lock remain alive, then a new owned service passes 12 health checks.
+Hosted-CI uses a synthetic tray-opening trigger; actual notification-icon right
+click and physical Windows 10/11 or additional-DPI certification are not claimed.
+Current runs and historical failures are recorded in the project follow-up.
+Every visual detail remains pending
+user review; these technical results do not freeze the design.
 
 Long-term reference: general handbook v0.18. D04 / D05 history and latest D06
 assessment belong in docs/design-reference-project-record.md in this repository.
@@ -202,8 +211,12 @@ keyboard roving focus and bounded monitor-aware geometry. Select a full monitor'
 bounds before clamping to its work area and applying that monitor's DPI. Reused
 windows replay one interruptible entrance on every open, with a static reduced-motion
 endpoint. Native menu actions
-are restricted to that local page; cloud HTML fixtures remain separately labeled. Native physical-frame restoration, quiet
-geometry persistence and sidecar cleanup are separately verified after installation.
+are restricted to that local page. Construct it hidden and unfocused; request
+focus only on visible opening and keep native blur dismissal. Placement keeps
+the complete physical outer frame within the work area: measure
+outer/client offsets at the target DPI before passing a client size to set_size.
+Cloud HTML fixtures remain separately labeled. Actual physical-frame restoration, quiet
+geometry persistence and sidecar cleanup require installed verification.
 
 ## Implementation and verification
 

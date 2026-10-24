@@ -77,6 +77,11 @@ the menu. “Check updates” opens the desktop/update settings tab. Native tray
 commands are restricted to the packaged tray page. Physical placement selects
 the full monitor bounds before clamping to its work area and using its own DPI.
 Each opening owns a fresh interruptible entrance; reduced motion cancels it.
+Hidden tray construction does not request window/WebView focus. Focus belongs
+to the visible opening. Preserve genuine native focus-loss dismissal.
+The requested geometry describes the physical outer frame. Measure native
+outer/client offsets at the target monitor's DPI before setting the client size;
+shadow borders must also fit within the work area.
 Cloud synthetic opening is identified separately from a real right-click.
 
 ## Product and implementation boundaries

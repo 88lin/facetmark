@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-24T01:23:52.934363+00:00",
+  "generatedAt": "2026-10-24T11:31:59.159138+00:00",
   "title": "Design System: Facetmark collection workspace",
   "extensions": {
     "colorMeta": {
@@ -1235,17 +1235,17 @@
     "tonalRampProvenance": "Generated 8-step OKLCH strips for the design panel only. They are not shipped palette tokens or verified contrast combinations.",
     "specimenScope": "Static, self-contained HTML/CSS visual states with inline SVG and root-token fallbacks. Runtime controls, selection geometry, layout springs, focus management and data behavior remain in the React application. The bundled font aliases use platform fallbacks if the host has not loaded those fonts.",
     "evidence": {
-      "status": "source-edited-awaiting-cloud-validation-and-user-review",
+      "status": "cloud-verified-awaiting-user-review",
       "visualAcceptance": "awaiting-user-review",
       "sourceState": "Header search, full-height directory, compact grid/index, full-width settings and native anchored pickers; quieter reading type, in-flow body-only progress, shared folded-F startup and real packaged tray menu.",
-      "sourceBasis": "PR51 initial 26ca64d had cloud renders but all four runs failed overall. Follow-up fixes include compact mobile settings, stale layout/body fixture corrections, Docker mark, Rust syntax and issue52 actual-exit retry gating; current edits await new cloud runs.",
-      "applicationRevision": null,
-      "captureRevision": null,
+      "sourceBasis": "Application/capture 8af69ae passes all CI, collection and installed-desktop workflows. All 79 source and 26 selected media/record hashes match. Actual installed tray is 347/347px with no scrollbar; real actions and lifecycle pass. Hosted-CI tray opening is synthetic; user aesthetic review remains pending.",
+      "applicationRevision": "8af69ae4a4820d65d6a0589870428ed58a842fe0",
+      "captureRevision": "8af69ae4a4820d65d6a0589870428ed58a842fe0",
       "handbookVersion": "0.18",
       "brief": ".impeccable/workbench-direction.md",
       "surface": ".impeccable/surfaces/frontend.md",
       "roundRecord": "docs/workspace-layout-2026-10-24.md",
-      "verification": "Current local syntax and isolated source checks pass. Initial 26ca64d collection was 18/19 and complete browser 88 passed/7 failed/2 skipped; current fixes and installed immediate retry await GitHub Actions.",
+      "verification": "Collection 21/21; all 10 CI jobs; 97 browser passes/2 skips. Gallery 88 PNGs, 7 action groups, 0 journey page errors. 54 capsule samples: 32px height, 57.999985-58.000008px width, scale 1. Actual native tray actions, strict no-overflow, immediate Enter retry, OS hotkey, restore, quit and install lifecycle pass. Representative images/storyboard/frames inspected; full MP4 playback and all-device frame-rate certification not performed.",
       "latestFeedback": {
         "date": "2026-10-24",
         "scope": "Layout height, settings clipping, reading typography, blank-card preview, shared header search, native icon/tray/startup; PR44 merged, new follow-up requested.",
@@ -1356,7 +1356,61 @@
           "documentationOnlyFollowup": "Later handbook and record commits do not change this application/capture revision."
         },
         "projectReferenceRecord": "docs/design-reference-project-record.md"
-      }
+      },
+      "currentTestRevision": "8af69ae4a4820d65d6a0589870428ed58a842fe0",
+      "runs": {
+        "collection": "40084669829",
+        "pageCi": "40084572244",
+        "nativeSourceCi": "40084572244",
+        "windows": "40084665472"
+      },
+      "pendingRuns": {},
+      "fingerprintReview": {
+        "sourceMatches": 79,
+        "mediaMatches": 26,
+        "mediaTotal": 95,
+        "mismatches": 0,
+        "png": 88,
+        "currentSourceDifferences": [],
+        "installEvidenceArchiveSha256": "e1da84710a64bb9e588b8023b20eefb840ffeb63a9bf430db7987cc8340f02b4",
+        "collectionArchiveActionsDigest": "54f593643adc0a718be29111e4c95076d6f252d3d377ff4af6bd6a97c2e338e9",
+        "scope": "79 fingerprinted sources and 26 selected small media/records verified. Small installed archive digest independently matches Actions. Full collection/video and 297MB installer were not downloaded locally; their archive digests are Actions metadata only."
+      },
+      "nativeStartupScope": "Installed Enter at 8af69ae occurs with old PID 8308 and lock alive; no new spawn before confirmed exit. Replacement owned PID 7760 passes 12 health checks. CI controls shutdown timing; process, lock, native windows, Enter and service are real.",
+      "nativeMenuReview": {
+        "applicationRevision": "8af69ae4a4820d65d6a0589870428ed58a842fe0",
+        "lastRun": "40084665472",
+        "status": "installed-actions-lifecycle-and-strict-no-overflow-verified",
+        "visible": true,
+        "foreground": true,
+        "packagedPageLoaded": true,
+        "viewport": {
+          "width": 296,
+          "height": 365
+        },
+        "clientHeight": 347,
+        "scrollHeight": 347,
+        "clientWidth": 278,
+        "scrollWidth": 278,
+        "openingScope": "Synthetic hosted-CI trigger; real installed HWND/WebView. Actual notification-icon right click was not established.",
+        "remaining": "User aesthetic review; physical Windows 10/11/additional-DPI certification is outside the hosted-run scope."
+      },
+      "desktopIcon": {
+        "source": "scripts/desktop_assets.py",
+        "review": "pending",
+        "runtime": "At 8af69ae, installed EXE 32px icon matches all 1024 premultiplied ICO pixels; PNG/ICO and Windows CRLF source hashes match. Size sheet and actual installed image inspected. No aesthetic approval or all-cache refresh claim.",
+        "sizes": [
+          16,
+          20,
+          24,
+          32,
+          48,
+          64,
+          128,
+          256
+        ]
+      },
+      "projectReferenceRecord": "docs/design-reference-project-record.md"
     },
     "componentSources": {
       "button-primary": "frontend/src/ui/controls.css",
@@ -1460,7 +1514,7 @@
   ],
   "narrative": {
     "northStar": "The Layered Collection Table",
-    "overview": "The current follow-up gives height to the folder directory and collection, moves search into a compact shared header, expands settings to the workspace and separates reading text from its title. Mist-blue/porcelain/blue describes the implementation baseline; no visual identity is user-approved. Shared folded-F geometry and bundled font files extend to native startup and a packaged tray menu with real privileged actions. Cloud source-matched rendering and installed checks are pending for this revision. All project content stays in this repository; the general handbook is not modified.",
+    "overview": "The follow-up gives height to the folder directory and collection, moves search into a compact header, expands settings and separates article body from titles. Mist-blue/porcelain/blue remains an unapproved implementation baseline. Application/capture 8af69ae passes current CI, collection and installed desktop workflows with source-matched evidence. The real tray has no normal-height scrollbar and its actions, restore, OS shortcut, immediate retry and lifecycle pass. Hosted-CI tray opening is synthetic. All project content stays in this repository; the general handbook is unchanged.",
     "keyCharacteristics": [
       "Mist-blue ambient light, translucent supporting layers and opaque content surfaces.",
       "Bundled Inter and Noto Sans SC with upright headings and readable mixed-language records.",
