@@ -113,6 +113,16 @@ jobs:
       - name: drive the shipped workbench
         working-directory: frontend
         run: npm test
+      - name: Preserve browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-failure-evidence
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+            frontend/screenshots/
+          retention-days: 7
 
   wheel:
     # .gitignore line 23 is `*.html`, and hatchling honours VCS ignore files

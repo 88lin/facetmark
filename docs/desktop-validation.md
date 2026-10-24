@@ -1,10 +1,10 @@
 # Desktop experience validation
 
-> 2026-10-24：最终应用与取证版本 `f1c67fe` 的收藏、CI、体验、Windows 四条云端工作流全部通过。收藏 12/12、浏览器 88 通过 / 2 跳过、独立 200k 浏览器 1 通过；61 个分类胶囊帧全为 32px 高。安装 exe 提取的 32px 新 F 图标与 ICO 像素一致；实际 96 DPI 窗口恢复、240 次事件合并写盘和 Enter 重试已验。150% DPI 与显示器移除只有纯几何测试。最新用户评价为“还不算好看，能用的样子而已”，整体视觉仍需改善；技术与复评仅记录在本项目。详见 [本轮打磨记录](collection-workspace-polish-2026-10-24.md)。
+> 2026-10-24 当前：PR #44 已授权合并，追加修复在 [PR #51](https://github.com/88lin/facetmark/pull/51)。初版 26ca64d 四条云端运行整体失败；收藏专项 18/19、完整浏览器 88 通过 / 7 失败 / 2 跳过。已实际检查对应页面，继续修正手机设置、测试前提、Docker / Rust 语法及新增 issue #52 的立即重试竞态。当前后续源码等待云端重新验证。旧 f1c67fe 通过结果仅属于历史。最新视觉评价仍是“能用，但不算好看”；本轮未获用户复评。详见 [当前记录](workspace-layout-2026-10-24.md)。
 
 <!-- current-experience-evidence:start -->
 
-## Current 2026-10-24 refinement: source-matched final evidence
+## Previous 2026-10-24 refinement: f1c67fe evidence
 
 Application and capture source: `f1c67fe49282c487f9b9a664c9be0ea800ca6df2`.
 Later documentation-only commits retain this application/capture mapping.

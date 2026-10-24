@@ -1,5 +1,5 @@
 import { CapsuleButton as Button } from "./ui/controls";
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { AlertCircle, ArrowUpRight, Check, CheckCircle2, ChevronDown, Clock3, Eye, Pencil, Sparkles } from "lucide-react";
 import { post, safeUrl, type Bookmark } from "./api";
 import { useText } from "./locale";
@@ -8,8 +8,9 @@ import { useReducedMotion } from "./useReducedMotion";
 import { CollectionFolderIcon } from "./CollectionFolderIcon";
 import "./bookmark-card.css";
 
-export function BookmarkCard({ record, selected, checked, disabled, display, entranceOrder = 0, onCheck, onPreview, onSummarize, onEdit }: {
+export function BookmarkCard({ record, selected, indexVisible, checked, disabled, display, entranceOrder = 0, onCheck, onPreview, onSummarize, onEdit }: {
   record: Bookmark; selected: boolean; checked: boolean; disabled: boolean;
+  indexVisible: boolean;
   entranceOrder?: number;
   display: "summary" | "original"; onCheck: () => void;
   onPreview: (button: HTMLButtonElement) => void; onSummarize?: () => void; onEdit?: () => void;
@@ -20,6 +21,27 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
   const [expanded, setExpanded] = useState(false);
   const [clipped, setClipped] = useState(false);
   const summary = useRef<HTMLParagraphElement>(null);
+  const previewControl = useRef<HTMLButtonElement>(null);
+  const row = useRef<HTMLElement>(null);
+  const previewSelected = useRef(selected && indexVisible);
+  previewSelected.current = selected && indexVisible;
+  const revealPreview = useCallback(() => {
+    const element = row.current;
+    if (!previewSelected.current || !element?.closest(".main-workspace.has-reader-index")) return;
+    const list = element.closest<HTMLElement>(".result-list");
+    if (!list || list.closest('[inert], [hidden], [aria-hidden="true"]')) return;
+    const card = element.getBoundingClientRect(), viewport = list.getBoundingClientRect();
+    const shift = card.top < viewport.top ? card.top - viewport.top
+      : card.bottom > viewport.bottom ? (card.height > viewport.height ? card.top - viewport.top : card.bottom - viewport.bottom) : 0;
+    if (Math.abs(shift) > 1) list.scrollBy({ top: shift, behavior: "instant" });
+  }, []);
+  useEffect(() => {
+    if (!selected || !indexVisible) return;
+    // Covers selection changes with no layout motion, including reduced motion.
+    // A layout completion also corrects the final, unprojected card bounds.
+    const frame = requestAnimationFrame(revealPreview);
+    return () => cancelAnimationFrame(frame);
+  }, [selected, indexVisible, reduced, revealPreview]);
   const href = safeUrl(record.url);
   const title = record.title || record.url;
   const trackOpen = (event?: { button: number }) => {
@@ -52,11 +74,22 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
   const savedDate = record.date_added ? new Intl.DateTimeFormat("zh-CN", { month: "numeric", day: "numeric" })
     .format(new Date(record.date_added * 1000)) : "";
 
-  return <motion.article data-bookmark-id={record.bookmark_id} data-source-tone={sourceTone} aria-labelledby={`${id}-title`}
+  return <motion.article ref={row} data-bookmark-id={record.bookmark_id} data-source-tone={sourceTone} aria-labelledby={`${id}-title`}
     layout={reduced ? false : "position"}
+    onLayoutAnimationComplete={revealPreview}
     initial={reduced ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
     transition={{ opacity: { duration: reduced ? 0 : 0.26, delay: reduced ? 0 : Math.min(entranceOrder, 5) * 0.025 },
       y: { duration: reduced ? 0 : 0.38, ease: [0.22, 1, 0.36, 1] }, layout: { type: "spring", stiffness: 340, damping: 32 } }}
+    onClick={event => {
+      if (disabled || event.defaultPrevented || event.button !== 0 ||
+          event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+      const target = event.target;
+      if (!(target instanceof Element) ||
+          target.closest("a, button, input, label, select, textarea, summary, details, [role=button]")) return;
+      const selection = event.currentTarget.ownerDocument.getSelection();
+      if (selection && !selection.isCollapsed && event.currentTarget.contains(selection.anchorNode)) return;
+      if (previewControl.current) onPreview(previewControl.current);
+    }}
     onPointerMove={event => {
       if (reduced || event.pointerType !== "mouse") return;
       const bounds = event.currentTarget.getBoundingClientRect();
@@ -135,7 +168,7 @@ export function BookmarkCard({ record, selected, checked, disabled, display, ent
           aria-label={t(`编辑：${title}`, `Edit: ${title}`)} title={t("编辑收藏", "Edit bookmark")}><Pencil size={16}/></Button>}
         {onSummarize && <Button type="button" className="bookmark-action" disabled={disabled} onClick={onSummarize}
           aria-label={t("生成此条摘要", "Summarize this bookmark")} title={t("生成摘要", "Summarize")}><Sparkles size={16}/></Button>}
-        <Button type="button" className="bookmark-preview" disabled={disabled} onClick={event => onPreview(event.currentTarget)}
+        <Button ref={previewControl} type="button" className="bookmark-preview" disabled={disabled} onClick={event => onPreview(event.currentTarget)}
           onKeyDown={event => {
             if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
             event.preventDefault();

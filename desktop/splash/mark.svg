@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <defs>
+    <linearGradient id="tile" x1="128" y1="14" x2="128" y2="238" gradientUnits="userSpaceOnUse"><stop stop-color="#feffff"/><stop offset="1" stop-color="#dee9f8"/></linearGradient>
+    <linearGradient id="face" x1="130" y1="58" x2="130" y2="206" gradientUnits="userSpaceOnUse"><stop stop-color="#419aff"/><stop offset="1" stop-color="#2253c7"/></linearGradient>
+    <linearGradient id="side" x1="130" y1="65" x2="130" y2="213" gradientUnits="userSpaceOnUse"><stop stop-color="#2474d2"/><stop offset="1" stop-color="#173e96"/></linearGradient>
+    <linearGradient id="fold" x1="130" y1="58" x2="130" y2="198" gradientUnits="userSpaceOnUse"><stop stop-color="#b5edff"/><stop offset="1" stop-color="#2c73d9"/></linearGradient>
+    <filter id="shadow" x="0" y="0" width="256" height="256" filterUnits="userSpaceOnUse"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#274269" flood-opacity=".22"/></filter>
+    <filter id="mark-shadow" x="50" y="45" width="165" height="185" filterUnits="userSpaceOnUse"><feDropShadow dx="0" dy="8" stdDeviation="5" flood-color="#275da4" flood-opacity=".22"/></filter>
+    <path id="f" d="M80 58h101a10 10 0 0 1 10 10v20a10 10 0 0 1-10 10h-69v17h52a8 8 0 0 1 8 8v20a8 8 0 0 1-8 8h-52v34l-42 14V68a10 10 0 0 1 10-10Z"/>
+  </defs>
+  <rect x="16" y="14" width="224" height="224" rx="54" fill="url(#tile)" filter="url(#shadow)"/>
+  <rect x="17" y="15" width="222" height="222" rx="53" stroke="#fff" stroke-opacity=".8"/>
+  <g filter="url(#mark-shadow)">
+    <use href="#f" transform="translate(6 7)" fill="url(#side)"/>
+    <use href="#f" fill="url(#face)"/>
+    <path d="M81 59h101l7 6-13 9H80Z M70 73l11 3v115l-11 7Z M154 115l18 8v25l-18-9Z" fill="url(#fold)"/>
+    <path d="M84 64h96 M75 79v109" stroke="#fff" stroke-opacity=".55" stroke-linecap="round"/>
+  </g>
+</svg>

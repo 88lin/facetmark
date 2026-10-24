@@ -64,35 +64,35 @@ contracts remain.
 
 ## Brand Commitments
 
-On 2026-10-24 the user described PR #44's mist-blue workspace as a substantial
-improvement and asked for comprehensive refinement. Keep the current composition,
-upright Inter / Noto Sans SC typography and layered material direction while
-improving the full arrival and operation path. This is permission to refine the
-incumbent identity; it does not approve every token, component or new change.
+The latest 2026-10-24 assessment is “还不算好看，能用的样子而已”.
+The user acknowledged earlier progress, then requested comprehensive improvement
+and specific space/typography repairs. The mist-blue implementation is a working
+baseline; its composition, fonts, color and material are open to refinement.
+No current identity, new icon or individual detail is marked user-approved.
 
-Capsule controls, rich material and continuous, interruptible motion remain
-explicit requirements. Fix elliptical selected states, black control fills,
-unsteady click transitions, inaccessible nested folders and unfinished startup,
-pairing and setup surfaces. Preserve stable hit areas, native controls, readable
-Chinese/English, exact data scopes and high-frequency operation.
+Capsule controls, refined material and continuous, interruptible motion remain
+explicit requirements. Give the collection and folder tree most of the window.
+Search belongs in the shared header; eliminate duplicate collection headings.
+Settings use the available workspace width and must not clip selected controls
+or menus. Saved-text preview has a quieter body scale and a distinct title scale.
+Blank record areas may open preview, preserving original links, text selection,
+check boxes and independent actions. Reading progress exists only for saved body
+text and must not obscure the final paragraph. Startup and the real tray menu
+share the application's folded-F mark, font assets and state colors.
 
-The supplied startup prompt and long-term design handbook govern the reference
-method. Impeccable owns one working system; oil-ui and Taste provide selected
-methods rather than competing skins or complete review workflows. S17-S20 remain
-permitted references for improvement, without making their components Facetmark
-requirements. Current handbook version and feedback are recorded in the
-[current round](docs/collection-workspace-polish-2026-10-24.md).
+Impeccable owns a single system. The supplied startup prompt and general handbook
+v0.18 govern reference methods; oil-ui, Taste and S17-S20 supply selected,
+source-checked relationships. Earlier pale-iris 46cf2f3, limestone/orange,
+pale-green and Orbit-era appearances remain rejected migration evidence.
+The active work requirements and frontend surface brief follow the latest feedback.
 
-Earlier pale-iris 46cf2f3, limestone/orange, pale-green and Orbit-era designs were
-rejected. They remain migration evidence in `.impeccable/history/` and historical
-round records. The latest positive assessment of the mist-blue version takes
-precedence; do not restart a whole-direction redesign or preference interview.
-
-The [active work requirements](.impeccable/workbench-direction.md) and
-[frontend surface brief](.impeccable/surfaces/frontend.md) describe this refinement.
-DESIGN.md and its sidecar describe actual source values and verification status.
-Current local edits await source-matched cloud rendering and user review. Older
-cloud checks establish their recorded revision and scope only.
+All product choices, implementation, screenshots, bugs, runs and user assessments
+remain in this repository. Do not write project material to
+`E:\design\design-reference-handbook.md` or its general snapshot.
+PR #44 was merged with the user's authorization; this follow-up belongs in a new
+PR. Commit, push and cloud validation are authorized. Do not automatically merge
+the new PR or publish a release. Current changes await cloud evidence and user
+visual review; older checks establish only their own revisions.
 
 ## Evidence on Hand
 

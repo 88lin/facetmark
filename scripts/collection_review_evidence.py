@@ -18,6 +18,8 @@ def caption(path):
     name = path.stem
     if name.startswith("polish-native-startup"):
         return f"{name} · 启动 HTML 的浏览器渲染，使用合成重启桥接；不是安装后的桌面截图"
+    if name.startswith("polish-native-tray"):
+        return f"{name} · 托盘 HTML 的浏览器渲染，使用合成动作桥接；原生开关行为由 Windows 安装验证另验"
     if name.startswith("polish-import-"):
         return f"{name} · 来源与导入界面的合成响应状态；真实导入接口另由回归测试验证"
     if name.startswith("polish-"):
@@ -44,13 +46,18 @@ def main():
                *Path("frontend/src").rglob("*.css"),
                *map(Path, ["frontend/tests/collection-review.spec.ts",
                            "frontend/tests/workspace-polish.spec.ts", "frontend/tests/startup.spec.ts",
+                           "frontend/tests/workspace-layout.spec.ts", "frontend/tests/native-menu.spec.ts",
                            "frontend/tests/visual-layout.ts", "frontend/package-lock.json",
                            "scripts/experience_server.py", "scripts/collection_review_fixture.py",
                            "scripts/collection_review_evidence.py", "scripts/desktop_assets.py",
                            "scripts/check_workspace_polish.cjs",
+                           "scripts/stage_native_ui.py", "scripts/installed_tray_check.py",
                            "src/facetmark/workbench.py", "src/facetmark/api.py", "src/facetmark/library.py",
                            "src/facetmark/importers/base.py", "tests/test_workbench.py",
                            "desktop/splash/index.html", "desktop/splash/loading.js",
+                           "desktop/splash/native-ui.css", "desktop/splash/mark.svg", "desktop/splash/tray.html", "desktop/splash/tray.js",
+                           "desktop/src-tauri/src/tray_menu.rs", "desktop/src-tauri/src/backend_state.rs", "desktop/src-tauri/src/window_state.rs", "desktop/src-tauri/src/main.rs",
+                           "desktop/src-tauri/capabilities/tray-menu.json",
                            "desktop/src-tauri/tauri.conf.json", ".github/workflows/collection-review.yml"])]
     captures = sorted(destination.glob("*.png"))
     review_path = destination / "review.json"

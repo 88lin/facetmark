@@ -13,6 +13,7 @@
 .facet-browser .facet-folder-select .collection-folder-icon { width: 24px; height: 24px; filter: drop-shadow(0 2px 2px #235fe51a); }
 .facet-browser .facet-tree-children { overflow: hidden; }
 .facet-browser .facet-tree-children > .facet-tree-branch { padding: 3px 0 4px; }
+.facet-browser .facet-option.facet-folder-select:is(:focus-visible, [data-focus-visible="true"]) { outline: 2px solid var(--accent); outline-offset: -3px; }
 .facet-browser .facet-tree-feedback { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; padding: 14px 8px; font-size: .8125rem; line-height: 1.6; color: var(--secondary-ink); text-align: center; }
 .facet-browser .facet-tree-feedback p { flex-basis: 100%; margin: 0; }
 .facet-browser .facet-tree-more { padding-left: 25px; }

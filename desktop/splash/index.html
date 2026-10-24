@@ -4,74 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Facetmark</title>
-  <style>
-    :root { color-scheme: light dark; --canvas: #fff; --desk: #e9eff5; --ink: #162b43; --muted: #526379;
-      --rule: #d9e3ef; --accent: #235fe5; --on-accent: #fff; --soft: #e8f0ff; --detail: #7ac5ff;
-      --glass: #ffffffb3; --edge: #ffffffd9; --light: #fff; --danger: #b73754; --danger-soft: #fff0f3; }
-    @media (prefers-color-scheme: dark) {
-      :root { --canvas: #152236; --desk: #0c1420; --ink: #eff6ff; --muted: #b7c8df; --rule: #304561;
-        --accent: #92bcff; --on-accent: #10223d; --soft: #213c61; --detail: #89d9f9;
-        --glass: #142237c9; --edge: #7195bf33; --light: #cce2ff; --danger: #ffa6bc; --danger-soft: #412635; }
-    }
-    * { box-sizing: border-box; }
-    html, body { min-height: 100%; margin: 0; }
-    body { display: grid; place-items: center; min-height: 100dvh; padding: 24px; color: var(--ink);
-      background: radial-gradient(ellipse at 90% 0, #83b9fa3d, transparent 65%),
-        radial-gradient(ellipse at 0 100%, #b6e4e729, transparent 65%), var(--desk);
-      font: 15px/1.65 "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
-      -webkit-font-smoothing: antialiased; }
-    .splash { display: flex; align-items: center; flex-direction: column; gap: 16px; width: min(400px, 100%); text-align: center; }
-    .mark { display: grid; place-items: center; flex: none; width: 82px; height: 82px; border: 1px solid var(--edge);
-      border-radius: 27px; background: linear-gradient(155deg, var(--canvas), var(--soft));
-      box-shadow: inset 0 1px 0 var(--edge), 0 16px 28px -20px #235fe566; color: var(--accent); }
-    .mark svg { width: 56px; height: 56px; overflow: visible; filter: drop-shadow(0 5px 4px #235fe51a); }
-    body[data-phase="connecting"] .mark-front { transform-origin: 20px 25px; animation: mark-arrive 500ms cubic-bezier(.22, 1, .36, 1) both; }
-    @keyframes mark-arrive { from { transform: translateY(5px) rotate(-6deg); opacity: .6; } to { transform: none; opacity: 1; } }
-    .copy { display: grid; gap: 6px; justify-items: center; width: 100%; }
-    h1 { margin: 0 0 2px; color: var(--ink); font-size: 28px; font-weight: 720; letter-spacing: -.03em; line-height: 1.35; }
-    #status { margin: 0; color: var(--muted); font-size: 15px; }
-    #hint { max-width: 100%; max-height: 72px; margin: 0; overflow: auto; overflow-wrap: anywhere; color: var(--muted); font-size: 12.5px; line-height: 1.7; }
-    body[data-phase="error"] .splash { gap: 12px; }
-    body[data-phase="error"] .mark { width: 56px; height: 56px; border-radius: 20px; }
-    body[data-phase="error"] .mark svg { width: 40px; height: 40px; }
-    body[data-phase="error"] h1 { font-size: 24px; }
-    body[data-phase="error"] #status { color: var(--danger); }
-    body[data-phase="error"] #hint { max-height: 54px; user-select: text; }
-    .track { width: 160px; height: 4px; margin-top: 2px; border-radius: 999px; background: var(--soft); overflow: hidden; }
-    .track span { display: block; width: 45%; height: 100%; border-radius: inherit; background: var(--accent);
-      animation: glide 1.6s cubic-bezier(.45, 0, .2, 1) infinite; }
-    @keyframes glide { from { transform: translateX(-110%); } to { transform: translateX(340%); } }
-    .restart { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 22px;
-      border: 1px solid var(--rule); border-radius: 999px; background: var(--canvas); color: var(--accent);
-      box-shadow: inset 0 1px 0 var(--edge), 0 5px 12px -8px #235fe54d; font: inherit; font-size: 14px; font-weight: 600;
-      cursor: pointer; transition: background-color 160ms ease, box-shadow 220ms cubic-bezier(.22, 1, .36, 1); }
-    .restart:hover { background: var(--soft); }
-    .restart:active { background: var(--soft); box-shadow: inset 0 2px 4px #235fe514; }
-    .restart:disabled { opacity: .5; cursor: default; }
-    .restart:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-    [hidden] { display: none !important; }
-    ::selection { background: var(--soft); color: var(--ink); }
-    @media (max-width: 359px) { body { padding: 20px 16px; } .mark { width: 72px; height: 72px; border-radius: 24px; } }
-    @media (prefers-reduced-motion: reduce) { .track span, body[data-phase="connecting"] .mark-front { animation: none; transform: none; } .restart { transition: none; } }
-  </style>
+  <link rel="stylesheet" href="native-ui.css">
 </head>
-<body data-phase="connecting">
+<body class="launch-body" data-phase="connecting">
   <main class="splash">
-    <span class="mark" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none">
-      <path d="M7 10a5 5 0 0 1 5-5h17a4 4 0 0 1 4 4v22a4 4 0 0 1-4 4H12a5 5 0 0 1-5-5Z" fill="var(--detail)" opacity=".55"/>
-      <g class="mark-front">
-        <path d="M10 6a4 4 0 0 1 4-4h14a4 4 0 0 1 4 4v29l-11-6-11 6Z" fill="currentColor"/>
-        <path d="M14 3h14a3 3 0 0 1 3 3v9L11 24V6a3 3 0 0 1 3-3Z" fill="var(--detail)" opacity=".45"/>
-        <path d="M17 12h9M17 17h6" stroke="var(--canvas)" stroke-width="2.5" stroke-linecap="round"/>
-      </g>
-    </svg></span>
-    <div class="copy">
-      <h1>Facetmark</h1>
-      <p id="status" role="status">正在启动你的书签工作台…</p>
-      <small id="hint">首次启动可能需要一点时间</small>
+    <div class="launch-identity">
+      <span class="mark" aria-hidden="true"><img src="mark.svg" alt="" draggable="false"></span>
+      <div class="copy">
+        <h1>Facetmark</h1>
+        <p id="status" role="status">正在打开你的收藏工作区…</p>
+      </div>
     </div>
-    <div class="track" id="track" aria-hidden="true"><span></span></div>
-    <button class="restart" id="retry" type="button" aria-describedby="status hint" hidden>重新启动服务</button>
+    <small id="hint">首次启动可能需要一点时间</small>
+    <div class="launch-controls">
+      <div class="track" id="track" aria-hidden="true"><span></span></div>
+      <button class="restart" id="retry" type="button" aria-describedby="status hint" hidden>重新启动服务</button>
+    </div>
   </main>
   <script src="loading.js"></script>
 </body>

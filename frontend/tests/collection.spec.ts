@@ -45,7 +45,8 @@ test("a large collection leaves useful browsing space in short desktop and mobil
       expect(directory!.x + directory!.width).toBeLessThan(results!.x);
       const header = await page.locator(".app-header").boundingBox();
       const options = await page.locator(".collection-sidebar .facet-options").boundingBox();
-      expect(directory!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
+      expect(Math.abs(directory!.y - header!.y)).toBeLessThanOrEqual(1);
+      expect(directory!.height).toBeGreaterThanOrEqual(viewport.height * .9);
       expect(results!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
       await expect(page.locator(".app-header .collection-sidebar")).toHaveCount(0);
       expect(options!.height).toBeGreaterThan(viewport.height * .2);
