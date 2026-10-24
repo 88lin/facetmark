@@ -3,9 +3,14 @@
 .page-heading h1 { font-size: 1.75rem; font-weight: 700; }
 .page-heading p { font-size: var(--type-ui); line-height: 1.6; }
 .support-back { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; min-height: 40px; }
+.settings-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 16px; }
+.settings-heading > h1, .settings-heading > p { margin: 0; }
+.settings-heading > p { grid-column: 1 / -1; }
+.settings-heading .support-back { justify-self: end; }
 .section-heading p, .importer > p, .task-operation p, .model-purpose { font-size: .9375rem; line-height: 1.65; color: var(--secondary-ink); }
 .settings-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; padding: 6px; margin-bottom: 20px; border: 1px solid var(--rule); border-radius: 24px; background: var(--inset); }
-.settings-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; min-height: 44px; padding: 10px 12px; border-radius: var(--radius-pill); color: var(--secondary-ink); font-size: var(--type-ui); font-weight: 600; white-space: normal; transition: background 180ms var(--ease), color 180ms var(--ease), box-shadow 180ms var(--ease); }
+.settings-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border-radius: var(--radius-pill); color: var(--secondary-ink); font-size: var(--type-ui); font-weight: 600; white-space: normal; transition: background 180ms var(--ease), color 180ms var(--ease), box-shadow 180ms var(--ease); }
+.settings-label-compact { display: none; }
 .settings-tabs button svg { flex: none; }
 .settings-tabs button:hover { background: var(--soft); color: var(--accent); }
 .settings-tabs button[aria-selected="true"] { background: transparent; color: var(--accent); }
@@ -79,9 +84,11 @@
   .page-heading h1 { font-size: 1.5rem; }
   .page-heading p { margin-top: 2px; }
   .support-back { min-height: 44px; padding: 0; }
-  .settings-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-bottom: 16px; border-radius: 22px; }
-  .settings-tabs button { gap: 6px; padding: 8px; font-size: .8125rem; }
+  .settings-tabs { gap: 4px; margin-bottom: 16px; border-radius: 28px; }
+  .settings-tabs button { gap: 6px; padding: 8px 4px; font-size: .8125rem; }
   .settings-tabs button svg { display: none; }
+  .settings-label-long { display: none; }
+  .settings-label-compact { display: inline; }
   .model-panel { padding: 18px 0; }
   .model-fields { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .model-intro { margin-bottom: 14px; }

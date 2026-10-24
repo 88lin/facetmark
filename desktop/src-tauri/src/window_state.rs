@@ -76,7 +76,8 @@ pub fn tray_menu_geometry(x: f64, y: f64, scale: f64, areas: &[WorkArea]) -> Opt
     let margin = (8. * scale).round() as u32;
     let width = ((312. * scale).round() as u32).min(area.width.saturating_sub(margin * 2).max(1));
     let height = ((374. * scale).round() as u32).min(area.height.saturating_sub(margin * 2).max(1));
-    let inset_x = margin.min((area.width - width) / 2), inset_y = margin.min((area.height - height) / 2);
+    let inset_x = margin.min((area.width - width) / 2);
+    let inset_y = margin.min((area.height - height) / 2);
     Some(Geometry {
         x: (i64::from(cursor.x) - i64::from(width) + i64::from(margin)).clamp(
             i64::from(area.x) + i64::from(inset_x), area.right() - i64::from(width) - i64::from(inset_x)) as i32,
@@ -121,15 +122,6 @@ impl GeometryQueue {
     }
     /// A move received during an older write must remain pending.
     pub fn acknowledge(&mut self, revision: u64) { self.written = self.written.max(revision); }
-}
-
-/// A sidecar may be healthy even though its workspace failed to open. Clear its
-/// handle before exposing Retry so the next attempt can start a new sidecar.
-pub fn workspace_start_result<C>(child: &mut Option<C>, opened: Result<(), String>, stop: impl FnOnce(C)) -> Result<(), String> {
-    if opened.is_err() {
-        if let Some(child) = child.take() { stop(child); }
-    }
-    opened
 }
 
 #[cfg(test)]
@@ -216,18 +208,5 @@ mod tests {
         queue.acknowledge(next.0);
         assert!(queue.next_wait(GEOMETRY_DELAY * 3).is_none());
         assert!(queue.record(box_at(3, 1, 900, 650), GEOMETRY_DELAY * 3));
-    }
-    #[test]
-    fn a_workspace_failure_stops_its_child_and_retry_can_start() {
-        let mut child = Some(42);
-        let mut stopped = Vec::new();
-        let error = workspace_start_result(&mut child, Err("synthetic workspace failure".into()), |pid| stopped.push(pid));
-        assert_eq!(error.unwrap_err(), "synthetic workspace failure");
-        assert_eq!(stopped, [42]);
-        assert!(child.is_none());
-        child = Some(43);
-        workspace_start_result(&mut child, Ok(()), |pid| stopped.push(pid)).unwrap();
-        assert_eq!(child, Some(43));
-        assert_eq!(stopped, [42]);
     }
 }

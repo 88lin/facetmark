@@ -276,7 +276,8 @@ Very short narrow windows allow the whole worktable to scroll while maintaining 
 
 Settings use the whole available page width. At 1280px and above the chat and
 embedding channels share two columns; a 1px divider separates them.
-Four settings tabs sit in a padded grid, reflowing to 2×2 on mobile. Focus is not
+Four settings tabs fill a padded grid, using compact labels in one row on mobile.
+Full accessible names remain. Heading and return action share a row. Focus is not
 cropped by an overflow strip. Form fields, tasks, importer and desktop settings no
 longer have page-wide centering caps. Reading text retains its measure cap.
 
@@ -334,7 +335,8 @@ the installed f1c67fe cloud image: all 1024 pixels matched. This checks the inst
 asset; it does not certify every Windows icon-cache rendering.
 
 Native startup has a single identity/status panel, bounded readable errors, a
-progress track and an immediate retry control. Waiting precedes restart; a late
+progress track and an immediate retry control. Restart waits for the previous
+sidecar's actual Terminated event; a consumed child handle cannot release it. A late
 native error during the promise remains visible. React boot, pairing, setup and
 import retain their drafts, real completion facts and single-flight guards.
 

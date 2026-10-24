@@ -30,7 +30,7 @@ test("a 683 by 384 window keeps readable results, scrolling controls and reader 
   await expect(page.locator(".collection-count-label")).toBeVisible();
   await expect(page.locator(".collection-note")).toBeHidden();
   const list = page.locator(".result-list");
-  expect((await list.boundingBox())!.height).toBeGreaterThanOrEqual(160);
+  expect(Math.round((await list.boundingBox())!.height)).toBeGreaterThanOrEqual(160);
   const firstTitle = page.locator(".result-title").first();
   const searchText = (await firstTitle.textContent())!.trim().match(/[\p{L}\p{N}]{3,}/u)![0];
   const title = await firstTitle.boundingBox();

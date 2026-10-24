@@ -229,20 +229,32 @@ test("loading, empty, failure and long-title states have real rendered evidence"
 });
 
 test("supporting views and small-window reader share the same system", async ({ page }) => {
+  // Earlier suites can legitimately leave the first record without fetched
+  // text. This render journey uses a saved excerpt fixture, preserving metadata
+  // and original links while keeping extraction tests independent.
+  await page.route("**/bookmark/*?body=true", async route => {
+    const response = await route.fetch();
+    const record = await response.json();
+    await route.fulfill({ json: { ...record, body_text: record.body_text ||
+      "## 收藏与阅读\n\n把网页保存下来，是为了在需要时回到当时的问题与来源。A saved excerpt keeps its original source and reading context.\n\n## 回到原文\n\n读完摘要后，可以打开原始链接，继续查阅完整材料。" } });
+  });
   await page.goto("/app");
   await expect(page.locator(".result-row").first()).toBeVisible();
   await expect(page.locator(".sidebar")).toHaveAttribute("inert", "");
   await expect(page.locator(".preview-pane")).toHaveCount(0);
-  const toolbar = await page.locator(".workspace-toolbar").boundingBox();
+  const search = await page.locator(".app-header .workspace-search").boundingBox();
   const collection = await page.locator(".results-column").boundingBox();
   const categories = await page.locator(".collection-sidebar").boundingBox();
   const header = await page.locator(".app-header").boundingBox();
-  expect(toolbar!.x).toBe(collection!.x);
-  expect(categories!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
-  expect(toolbar!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
+  expect(search!.x).toBeGreaterThanOrEqual(header!.x);
+  expect(search!.y).toBeGreaterThanOrEqual(header!.y);
+  expect(search!.x + search!.width).toBeLessThanOrEqual(header!.x + header!.width);
+  expect(search!.y + search!.height).toBeLessThanOrEqual(header!.y + header!.height);
+  expect(Math.abs(categories!.y - header!.y)).toBeLessThanOrEqual(1);
+  expect(categories!.height).toBeGreaterThanOrEqual(960 * .9);
+  expect(collection!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
   await expect(page.locator(".app-header .collection-sidebar")).toHaveCount(0);
   expect(categories!.x + categories!.width).toBeLessThan(collection!.x);
-  expect(toolbar!.x + toolbar!.width).toBe(collection!.x + collection!.width);
   const rows = await page.locator(".result-row").all();
   for (const row of rows.slice(0, 8)) {
     const bounds = await row.boundingBox();

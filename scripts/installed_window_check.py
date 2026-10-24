@@ -8,6 +8,7 @@ import sys
 import time
 from ctypes import wintypes
 from pathlib import Path
+from urllib.request import urlopen
 
 from playwright.sync_api import Error, sync_playwright
 
@@ -151,21 +152,57 @@ if mode == "startup":
                        "The CI workspace failure was not injected after sidecar readiness", 60)
     assert failure["process"] == process
     assert failure["sidecar_pid"], "Failure evidence did not identify its ready sidecar"
-    wait_for(lambda: not running(failure["sidecar_pid"]), "Failed workspace left its sidecar alive")
     with sync_playwright() as playwright:
         page = installed_page(playwright, splash=True)
         page.locator("#retry").wait_for(state="visible")
         assert "construction failure" in page.locator("#hint").inner_text()
+        assert running(failure["sidecar_pid"]), "The regression must retry while the failed service is still alive"
+        first_spawn = read_json(output / "backend-spawn.json")
+        assert first_spawn["process"] == process and first_spawn["generation"] == failure["generation"]
+        assert first_spawn["sidecar_pid"] == failure["sidecar_pid"]
         page.screenshot(path=str(output / "installed-startup-failure.png"))
         try:
             page.locator("#retry").press("Enter")
         except Error as error:
             if "closed" not in str(error).lower():
                 raise
+        page.wait_for_function("document.body.dataset.phase === 'connecting' && document.querySelector('#retry').disabled")
+        # Keep the real old process and its .desktop.lock alive after Enter.
+        # The shell must await exit, not create a replacement which reuses it.
+        time.sleep(.6)
+        assert running(failure["sidecar_pid"])
+        assert read_json(output / "backend-spawn.json") == first_spawn
+        page.screenshot(path=str(output / "installed-startup-waiting-for-exit.png"))
+        release = output / f"startup-exit-release-{process}.json"
+        temporary = release.with_suffix(".tmp")
+        temporary.write_text(json.dumps({"generation": failure["generation"]}), encoding="utf-8")
+        temporary.replace(release)
         restored = installed_page(playwright)
         assert restored.locator("#root .app-shell").is_visible()
+        wait_for(lambda: not running(failure["sidecar_pid"]), "Retry did not finish retiring the failed service")
+        confirmed = read_json(output / "backend-exit-confirmed.json")
+        assert confirmed["process"] == process and confirmed["generation"] == failure["generation"]
+        replacement = read_json(output / "backend-spawn.json")
+        assert replacement["process"] == process and replacement["generation"] > failure["generation"]
+        runtime = read_json(Path(os.environ["FACETMARK_DATA_DIR"]) / "desktop-runtime.json")
+        assert runtime["pid"] != failure["sidecar_pid"] and running(runtime["pid"])
+        assert runtime["pid"] == replacement["sidecar_pid"]
+        ready = read_json(output / "backend-ready.json")
+        assert ready["process"] == process and ready["generation"] == replacement["generation"]
+        assert ready["owned"] is True and ready["port"] == runtime["port"]
+        health_checks = 0
+        for _ in range(12):
+            with urlopen(f'http://127.0.0.1:{runtime["port"]}/health', timeout=3) as response:
+                assert json.load(response)["ok"]
+            assert running(runtime["pid"])
+            health_checks += 1
+            time.sleep(.2)
     report("installed-startup-retry.json", {"failure_after_ready": True, "failed_sidecar_stopped": True,
-        "real_keyboard_retry": True, "workspace_recovered": True, "failed_sidecar": failure["sidecar_pid"]})
+        "real_keyboard_retry": True, "workspace_recovered": True, "failed_sidecar": failure["sidecar_pid"],
+        "immediate_retry_while_old_service_alive": True, "no_new_spawn_before_confirmed_exit": True,
+        "replacement_pid": runtime["pid"], "replacement_owned_service": True,
+        "health_checks_after_recovery": health_checks,
+        "injection_scope": "CI holds native shutdown until Enter; actual installed service and its instance lock"})
 elif mode == "prepare":
     metadata = wait_for(window_metadata, "No current native-window evidence")
     hwnd = wait_for(window_handle, "Installed main window missing")

@@ -159,7 +159,9 @@ with sync_playwright() as playwright:
         assert geometry["process"] == process
         assert abs((rect.right - rect.left) - geometry["outer"]["width"]) <= 2
         assert abs((rect.bottom - rect.top) - geometry["outer"]["height"]) <= 2
-        snapshot = lambda: menu.evaluate("() => window.__TAURI_INTERNALS__.invoke('tray_snapshot')")
+        def snapshot():
+            return menu.evaluate("() => window.__TAURI_INTERNALS__.invoke('tray_snapshot')")
+
         initial = snapshot()
         for action in ["startup", "shortcut"]:
             item = menu.locator(f'[data-action="{action}"]')

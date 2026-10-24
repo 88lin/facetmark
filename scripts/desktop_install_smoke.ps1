@@ -15,6 +15,7 @@ $env:FACETMARK_DATA_DIR = $dataTarget
 $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--remote-debugging-port=9223'
 $env:FACETMARK_CI_WEBVIEW_INSPECT = '1'
 $env:FACETMARK_CI_FAIL_WORKSPACE_ONCE = '1'
+$env:FACETMARK_CI_HOLD_FAILED_SERVICE = '1'
 $env:FACETMARK_CI_EVIDENCE_DIR = $evidenceDir
 $env:FACETMARK_CI_TRAY_INSPECT = '1'
 $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"

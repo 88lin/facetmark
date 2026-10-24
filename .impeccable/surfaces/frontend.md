@@ -56,7 +56,9 @@ rendered/installed evidence and actual capsule frame bounds. 04ecc11 / 7d2abd0
 and the earlier 831dcfd round remain revision-specific history.
 Current follow-up is in docs/workspace-layout-2026-10-24.md. PR #44 is merged;
 commit/push and cloud checks are authorized for a new PR, without automatic merge
-or release. This source revision awaits cloud rendering and user review.
+or release. PR #51's initial 26ca64d cloud runs exposed syntax, Docker, stale test
+and real mobile-layout failures. Current fixes and issue #52's actual-exit gate
+await cloud rendering, installed retry regression and user review.
 
 Long-term reference: general handbook v0.18. D04 / D05 history and latest D06
 assessment belong in docs/design-reference-project-record.md in this repository.

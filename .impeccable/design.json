@@ -1173,7 +1173,7 @@
         "name": "mobile",
         "value": "720px",
         "query": "(max-width: 719px)",
-        "purpose": "56px header, full-width search, separate action/status/display rows; settings tabs 2x2.",
+        "purpose": "56px header, full-width search, separate action/status/display rows; four compact settings tabs with full capsule widths and accessible names.",
         "source": "frontend/src/workbench.css"
       },
       {
@@ -1238,14 +1238,14 @@
       "status": "source-edited-awaiting-cloud-validation-and-user-review",
       "visualAcceptance": "awaiting-user-review",
       "sourceState": "Header search, full-height directory, compact grid/index, full-width settings and native anchored pickers; quieter reading type, in-flow body-only progress, shared folded-F startup and real packaged tray menu.",
-      "sourceBasis": "Current follow-up workspace on fix/workspace-layout-2026-10-24. Cloud validation has not yet run for these edits.",
+      "sourceBasis": "PR51 initial 26ca64d had cloud renders but all four runs failed overall. Follow-up fixes include compact mobile settings, stale layout/body fixture corrections, Docker mark, Rust syntax and issue52 actual-exit retry gating; current edits await new cloud runs.",
       "applicationRevision": null,
       "captureRevision": null,
       "handbookVersion": "0.18",
       "brief": ".impeccable/workbench-direction.md",
       "surface": ".impeccable/surfaces/frontend.md",
       "roundRecord": "docs/workspace-layout-2026-10-24.md",
-      "verification": "Local syntax and isolated source checks only; complete build, render and installed checks pending in GitHub Actions.",
+      "verification": "Current local syntax and isolated source checks pass. Initial 26ca64d collection was 18/19 and complete browser 88 passed/7 failed/2 skipped; current fixes and installed immediate retry await GitHub Actions.",
       "latestFeedback": {
         "date": "2026-10-24",
         "scope": "Layout height, settings clipping, reading typography, blank-card preview, shared header search, native icon/tray/startup; PR44 merged, new follow-up requested.",

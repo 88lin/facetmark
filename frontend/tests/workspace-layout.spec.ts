@@ -5,13 +5,27 @@ import { settleVisualLayout } from "./visual-layout";
 const output = "screenshots/collection-review";
 test.beforeEach(async ({ page }) => {
   await mkdir(output, { recursive: true });
-  await page.addInitScript(() => { localStorage.setItem("fm-language", "zh"); localStorage.setItem("fm-theme", "light"); });
+  await page.addInitScript(() => {
+    if (!localStorage.getItem("fm-language")) localStorage.setItem("fm-language", "zh");
+    if (!localStorage.getItem("fm-theme")) localStorage.setItem("fm-theme", "light");
+  });
   await page.route("**/*", route => new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort());
 });
 async function capture(page: Page, name: string) {
   await settleVisualLayout(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await page.screenshot({ path: `${output}/polish-layout-${name}.png`, animations: "disabled" });
+}
+
+async function savedTextFixture(page: Page) {
+  const paragraph = "收藏需要把问题、来源与当时的想法放在一起。A saved page keeps its reading context and native source link. ";
+  const body = ["## 阅读与上下文", ...Array.from({ length: 16 }, () => paragraph.repeat(4)),
+    "## 文章末尾", "最后一段仍然完整可见，阅读进度和返回顶部不会遮挡正文。"].join("\n\n");
+  await page.route("**/bookmark/*?body=true", async route => {
+    const response = await route.fetch();
+    const record = await response.json();
+    await route.fulfill({ json: { ...record, body_text: body } });
+  });
 }
 
 test("desktop uses its height for the directory and collection, with search in the header", async ({ page }) => {
@@ -46,6 +60,7 @@ test("desktop uses its height for the directory and collection, with search in t
 });
 
 test("card blank areas open the reader while native links, selection and expansion keep their own behavior", async ({ page }) => {
+  await savedTextFixture(page);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/app");
   await expect(page.locator(".result-row")).toHaveCount(30);
@@ -89,6 +104,7 @@ test("card blank areas open the reader while native links, selection and expansi
 });
 
 test("reading text has a clear scale, progress stays below the article and missing text has no progress box", async ({ page }) => {
+  await savedTextFixture(page);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/app");
   const first = page.locator(".result-row").first();
@@ -139,8 +155,9 @@ test("settings fill the workspace; model menus fit edges and hidden tabs release
     { width: 320, height: 700, language: "en", theme: "dark" },
   ]) {
     await page.setViewportSize({ width, height });
-    await page.addInitScript(state => { localStorage.setItem("fm-language", state.language); localStorage.setItem("fm-theme", state.theme); }, { language, theme });
     await page.goto("/app#settings");
+    await page.evaluate(state => { localStorage.setItem("fm-language", state.language); localStorage.setItem("fm-theme", state.theme); }, { language, theme });
+    await page.reload();
     await expect(page.locator(".settings-tabs")).toBeVisible();
     const scroll = (await page.locator(".page-scroll").boundingBox())!;
     expect(scroll.width).toBeGreaterThan(width * .8);

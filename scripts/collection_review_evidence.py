@@ -56,7 +56,7 @@ def main():
                            "src/facetmark/importers/base.py", "tests/test_workbench.py",
                            "desktop/splash/index.html", "desktop/splash/loading.js",
                            "desktop/splash/native-ui.css", "desktop/splash/mark.svg", "desktop/splash/tray.html", "desktop/splash/tray.js",
-                           "desktop/src-tauri/src/tray_menu.rs", "desktop/src-tauri/src/window_state.rs", "desktop/src-tauri/src/main.rs",
+                           "desktop/src-tauri/src/tray_menu.rs", "desktop/src-tauri/src/backend_state.rs", "desktop/src-tauri/src/window_state.rs", "desktop/src-tauri/src/main.rs",
                            "desktop/src-tauri/capabilities/tray-menu.json",
                            "desktop/src-tauri/tauri.conf.json", ".github/workflows/collection-review.yml"])]
     captures = sorted(destination.glob("*.png"))

@@ -20,8 +20,9 @@ def main():
     run = os.environ["GITHUB_RUN_ID"]
     captures = []
     sources = [(source, source.name) for source in sorted(Path("frontend/screenshots").glob("*.png"))]
-    sources += [(source, f"failure-{source.parent.name}-{source.name}")
-                for source in sorted(Path("frontend/test-results").rglob("test-failed-*.png"))]
+    for directory in ["test-results-matrix", "test-results"]:
+        sources += [(source, f"failure-{directory}-{source.parent.name}-{source.name}")
+                    for source in sorted(Path("frontend", directory).rglob("test-failed-*.png"))]
     for source, filename in sources:
         with Image.open(source) as picture:
             metadata = PngImagePlugin.PngInfo()

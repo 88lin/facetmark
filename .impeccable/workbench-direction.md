@@ -12,7 +12,8 @@ PR #44 is merged under explicit user authorization. The new follow-up fixes
 workspace height, full-width settings, reader typography, blank-card preview,
 header search, native startup and the tray menu. Commit/push and cloud verification
 are authorized for a new PR; do not auto-merge it or publish a release.
-Open issues were checked again and the current list is empty. The installed icon
+New issue #52 covers retry while a failed sidecar is still exiting; its gate and
+immediate installed retry regression are part of PR #51. The installed icon
 has pixel-matched technical evidence, with no individual visual approval.
 
 The user requires the long-term handbook to contain only general methods and
@@ -57,7 +58,9 @@ The reading index keeps source, title, status and actions, with room for consecu
 preview switching. Article body is 17px/1.8 (16px mobile); titles are 29px (25px
 mobile, 32px focus). Progress is a 48px in-flow footer only on saved body text.
 
-Settings span the available page. Tabs retain internal focus padding; model/folder
+Settings span the available page. Heading/return share a row; four mobile tabs use
+compact labels, full accessible names and complete capsule widths. Tabs retain
+internal focus padding; model/folder
 menus use native manual popovers, escape scroll clipping, clamp to the viewport,
 flip above the anchor when needed and become inert during exit. Keep form/focus
 ancestry, IME, drafts and keyboard behavior.

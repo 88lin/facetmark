@@ -4,16 +4,17 @@ use serde::{Deserialize, Serialize};
 use std::sync::{atomic::{AtomicBool, AtomicU64, Ordering}, Mutex};
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri::tray::TrayIconBuilder;
-use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_shell::{process::{CommandChild, CommandEvent}, ShellExt};
 
 mod native_shell;
+mod backend_state;
 mod tray_menu;
 mod window_state;
-use window_state::{Geometry, GeometryQueue, WorkArea, client_size_for_outer, visible_geometry, workspace_start_result};
+use backend_state::{RetryError, SidecarGate};
+use window_state::{Geometry, GeometryQueue, WorkArea, client_size_for_outer, visible_geometry};
 
 const SHORTCUT: &str = "Ctrl+Shift+Space";
 
@@ -53,6 +54,7 @@ fn open_original(app: &tauri::AppHandle, target: &tauri::Url, event: &str) {
 #[derive(Default)]
 struct Backend {
     child: Mutex<Option<CommandChild>>,
+    lifetime: SidecarGate,
     exiting: AtomicBool,
     starting: AtomicBool,
     ready: AtomicBool,
@@ -265,7 +267,8 @@ fn open_workspace(app: &tauri::AppHandle, port: u16) -> Result<(), String> {
             .and_then(|directory| std::fs::read(std::path::PathBuf::from(directory).join("desktop-runtime.json")).ok())
             .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok());
         ci_record("startup-failure-injected.json", serde_json::json!({ "stage": "workspace build after sidecar ready", "port": port,
-            "process": std::process::id(), "sidecar_pid": runtime.and_then(|record| record["pid"].as_u64()) }));
+            "process": std::process::id(), "generation": app.state::<Backend>().generation.load(Ordering::SeqCst),
+            "sidecar_pid": runtime.and_then(|record| record["pid"].as_u64()) }));
         return Err("Synthetic CI workspace window construction failure after sidecar ready".into());
     }
     let window = match builder.build() {
@@ -295,25 +298,35 @@ fn open_workspace(app: &tauri::AppHandle, port: u16) -> Result<(), String> {
 fn spawn_backend(app: &tauri::AppHandle) -> Result<(), String> {
     let state = app.state::<Backend>();
     if state.starting.swap(true, Ordering::SeqCst) { return Ok(()); }
-    let generation = state.generation.fetch_add(1, Ordering::SeqCst) + 1;
+    if state.exiting.load(Ordering::SeqCst) { state.starting.store(false, Ordering::SeqCst); return Err("Application is closing".into()); }
+    let Some(generation) = state.lifetime.begin() else {
+        state.starting.store(false, Ordering::SeqCst);
+        return Err("Service is still running or stopping".into());
+    };
+    state.generation.store(generation, Ordering::SeqCst);
     state.ready.store(false, Ordering::SeqCst);
     state.error_shown.store(false, Ordering::SeqCst);
     let command = app.shell().sidecar("facetmark-service").map_err(|e| {
-            state.starting.store(false, Ordering::SeqCst); e.to_string()
+            state.starting.store(false, Ordering::SeqCst); state.lifetime.terminated(generation); e.to_string()
         })?
         .args(["--parent-pid", &std::process::id().to_string()]);
     let (mut events, child) = match command.spawn() {
         Ok(result) => result,
-        Err(e) => { state.starting.store(false, Ordering::SeqCst); return Err(e.to_string()); }
+        Err(e) => { state.starting.store(false, Ordering::SeqCst); state.lifetime.terminated(generation); return Err(e.to_string()); }
     };
+    ci_record("backend-spawn.json", serde_json::json!({ "process": std::process::id(), "generation": generation, "sidecar_pid": child.pid() }));
     *state.child.lock().unwrap() = Some(child);
     let timeout_handle = app.clone();
     std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_secs(45));
         let state = timeout_handle.state::<Backend>();
-        if state.generation.load(Ordering::SeqCst) != generation { return; }
+        // Serialize with the receiver clearing the child before releasing the
+        // gate. A paused old timer cannot mutate the next attempt's flags.
+        let _child = state.child.lock().unwrap();
+        if !state.lifetime.is_current(generation) { return; }
         if state.starting.swap(false, Ordering::SeqCst) && !state.ready.load(Ordering::SeqCst) && !state.exiting.load(Ordering::SeqCst) {
-            if let Some(child) = state.child.lock().unwrap().take() { let _ = child.kill(); }
+            state.error_shown.store(true, Ordering::SeqCst);
+            stop_failed_backend(&timeout_handle, generation, false);
             startup_error(&timeout_handle, "服务启动超时。请重试或检查数据目录权限。 / Startup timed out. Retry or check data directory permissions.");
         }
     });
@@ -327,29 +340,38 @@ fn spawn_backend(app: &tauri::AppHandle) -> Result<(), String> {
                         match record["event"].as_str() {
                             Some("ready") => {
                                 let state = handle.state::<Backend>();
-                                state.starting.store(false, Ordering::SeqCst);
+                                // The startup timeout and readiness claim the
+                                // same attempt. A late ready cannot reopen a
+                                // workspace after that attempt began stopping.
+                                if state.exiting.load(Ordering::SeqCst) || !state.starting.swap(false, Ordering::SeqCst) { continue; }
+                                ci_record("backend-ready.json", serde_json::json!({ "process": std::process::id(),
+                                    "generation": generation, "port": record["port"], "owned": record["owned"] }));
                                 state.owned.store(record["owned"].as_bool().unwrap_or(false), Ordering::SeqCst);
                                 if let Some(port) = record["port"].as_u64().filter(|p| *p > 0 && *p < 65536) {
                                     let opened = open_workspace(&handle, port as u16);
-                                    let opened = workspace_start_result(&mut state.child.lock().unwrap(), opened, |child| { let _ = child.kill(); });
                                     match opened {
                                         Ok(_) => { state.ready.store(true, Ordering::SeqCst); },
                                         Err(e) => {
                                             state.error_shown.store(true, Ordering::SeqCst);
                                             state.ready.store(false, Ordering::SeqCst);
+                                            stop_failed_backend(&handle, generation, true);
                                             startup_error(&handle, &e);
                                         },
                                     }
+                                } else {
+                                    state.error_shown.store(true, Ordering::SeqCst);
+                                    stop_failed_backend(&handle, generation, false);
+                                    startup_error(&handle, "服务未提供有效端口。请重试。 / The service did not provide a valid port. Retry.");
                                 }
                             },
                             Some("error") => {
-                                // The sidecar reports a fatal condition and then
-                                // exits; clear the handle now so Restart is not
-                                // rejected as "still running" during that gap.
+                                // Keep the retirement gate closed until its
+                                // actual Terminated event, even if kill consumes
+                                // the child handle. Immediate Retry waits safely.
                                 let state = handle.state::<Backend>();
                                 state.error_shown.store(true, Ordering::SeqCst);
                                 state.starting.store(false, Ordering::SeqCst);
-                                if let Some(child) = state.child.lock().unwrap().take() { let _ = child.kill(); }
+                                stop_failed_backend(&handle, generation, false);
                                 startup_error(&handle, record["message"].as_str().unwrap_or("Service startup failed"));
                             },
                             _ => {},
@@ -367,6 +389,8 @@ fn spawn_backend(app: &tauri::AppHandle) -> Result<(), String> {
                         && (!state.ready.load(Ordering::SeqCst) || state.owned.load(Ordering::SeqCst)) {
                         startup_error(&handle, "本地服务已停止。可重新启动；已保存的书签会保留。 / Local service stopped. Restart to continue.");
                     }
+                    ci_record("backend-exit-confirmed.json", serde_json::json!({ "process": std::process::id(), "generation": generation }));
+                    state.lifetime.terminated(generation);
                     break;
                 },
                 _ => {},
@@ -375,9 +399,53 @@ fn spawn_backend(app: &tauri::AppHandle) -> Result<(), String> {
     });
     Ok(())
 }
+fn stop_failed_backend(app: &tauri::AppHandle, generation: u64, hold_for_ci: bool) {
+    let state = app.state::<Backend>();
+    if !state.lifetime.stop(generation) { return; }
+    state.starting.store(false, Ordering::SeqCst);
+    state.ready.store(false, Ordering::SeqCst);
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        // Only this disposable-runner injection leaves the failed, ready
+        // service alive until the test has pressed Retry. Production never waits
+        // on a file or deliberately delays a shutdown.
+        if hold_for_ci && cloud_webview_inspection()
+            && std::env::var("FACETMARK_CI_HOLD_FAILED_SERVICE").as_deref() == Ok("1") {
+            if let Some(directory) = std::env::var_os("FACETMARK_CI_EVIDENCE_DIR") {
+                let request = std::path::PathBuf::from(directory).join(format!("startup-exit-release-{}.json", std::process::id()));
+                for _ in 0..250 {
+                    if handle.state::<Backend>().exiting.load(Ordering::SeqCst) { break; }
+                    let released = std::fs::read(&request).ok().and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
+                        .is_some_and(|record| record["generation"].as_u64() == Some(generation));
+                    if released { break; }
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                }
+            }
+        }
+        {
+            let state = handle.state::<Backend>();
+            let mut child = state.child.lock().unwrap();
+            if !state.lifetime.is_current(generation) { return; }
+            if let Some(child) = child.as_mut() { let _ = child.write(b"stop\n"); }
+        }
+        ci_record("backend-stop-request.json", serde_json::json!({ "process": std::process::id(), "generation": generation }));
+        for _ in 0..100 {
+            if !handle.state::<Backend>().lifetime.is_current(generation) { return; }
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+        // The gate stays closed after kill. Only the receiver observing an
+        // exited OS process may release it, never a timer or an empty handle.
+        let state = handle.state::<Backend>();
+        let mut child = state.child.lock().unwrap();
+        if state.lifetime.is_current(generation) {
+            if let Some(child) = child.take() { let _ = child.kill(); }
+        }
+    });
+}
 fn request_exit(app: &tauri::AppHandle) {
     let state = app.state::<Backend>();
     if state.exiting.swap(true, Ordering::SeqCst) { return; }
+    state.lifetime.wake();
     flush_geometry(app, true);
     save_window_mode(app);
     if let Some(child) = state.child.lock().unwrap().as_mut() { let _ = child.write(b"stop\n"); }
@@ -385,7 +453,8 @@ fn request_exit(app: &tauri::AppHandle) {
     std::thread::spawn(move || {
         // Give lifespan shutdown time to persist interrupted work and close SQLite.
         for _ in 0..100 {
-            if handle.state::<Backend>().child.lock().unwrap().is_none() { break; }
+            let state = handle.state::<Backend>();
+            if !state.lifetime.is_current(state.generation.load(Ordering::SeqCst)) { break; }
             std::thread::sleep(std::time::Duration::from_millis(100));
         }
         if let Some(child) = handle.state::<Backend>().child.lock().unwrap().take() { let _ = child.kill(); }
@@ -393,10 +462,17 @@ fn request_exit(app: &tauri::AppHandle) {
     });
 }
 #[tauri::command]
-fn restart_backend(window: tauri::WebviewWindow, app: tauri::AppHandle) -> Result<(), String> {
+async fn restart_backend(window: tauri::WebviewWindow, app: tauri::AppHandle) -> Result<(), String> {
     if window.label() != "loading" { return Err("Only the local startup window may restart the service".into()); }
-    if app.state::<Backend>().child.lock().unwrap().is_some() { return Err("Service is still running".into()); }
-    spawn_backend(&app)
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<Backend>();
+        state.lifetime.wait_for_retry(std::time::Duration::from_secs(30), &state.exiting).map_err(|error| match error {
+            RetryError::Running => "服务仍在运行。 / Service is still running",
+            RetryError::ExitUnconfirmed => "旧服务尚未确认退出，请稍后重试。 / The previous service has not exited. Retry shortly.",
+            RetryError::Exiting => "程序正在退出。 / The application is closing",
+        }.to_string())?;
+        spawn_backend(&app)
+    }).await.map_err(|error| error.to_string())?
 }
 fn main() {
     let mut context = tauri::generate_context!();
