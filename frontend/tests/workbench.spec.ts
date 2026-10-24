@@ -326,7 +326,7 @@ test("mobile navigation traps focus and restores it on Escape", async ({ page })
   await page.setViewportSize({ width: 390, height: 960 });
   await page.goto("/app");
   await expect(page.locator(".sidebar")).toHaveAttribute("inert", "");
-  const trigger = page.getByRole("button", { name: "打开导航" });
+  const trigger = page.getByRole("button", { name: "筛选收藏" });
   await trigger.click();
   await expect(page.getByRole("dialog", { name: "导航" })).toBeVisible();
   await expect(page.locator(".sidebar .brand")).toBeFocused();

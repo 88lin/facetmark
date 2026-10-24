@@ -130,6 +130,7 @@ function Workbench({
   const [bootBusy, setBootBusy] = useState(false);
   const [view, setView] = useState<View>("library");
   const [navOpen, setNavOpen] = useState(false);
+  const navOpener = useRef<HTMLButtonElement | null>(null);
   const [setup, setSetup] = useState<Setup | null>(null);
   const [job, setJob] = useState<Job>({ state: "idle" });
   const [adminAvailable, setAdminAvailable] = useState(true);
@@ -253,6 +254,8 @@ function Workbench({
   const openView = (next: View) => {
     setView(next);
     setNavOpen(false);
+    if (next !== "settings" && location.hash.startsWith("#settings"))
+      history.replaceState(null, "", location.pathname + location.search);
   };
   const closePreview = useCallback(() => {
     setSelected(null);
@@ -345,7 +348,9 @@ function Workbench({
   }, [boot]);
   useEffect(() => {
     const route = () => {
-      if (location.hash === "#settings") setView("settings");
+      if (location.hash === "#settings" || location.hash.startsWith("#settings/")) {
+        setView("settings"); setNavOpen(false);
+      }
     };
     route();
     window.addEventListener("hashchange", route);
@@ -398,7 +403,7 @@ function Workbench({
   }, [selected, drawer, closePreview, focusReading, libraryAction]);
   useEffect(() => {
     if (!navOpen) return;
-    const previous = document.activeElement as HTMLElement | null;
+    const previous = navOpener.current || document.activeElement as HTMLElement | null;
     const focusables = () =>
       Array.from(
         sidebar.current?.querySelectorAll<HTMLElement>(
@@ -429,7 +434,10 @@ function Workbench({
     document.addEventListener("keydown", trap, true);
     return () => {
       document.removeEventListener("keydown", trap, true);
-      previous?.focus();
+      requestAnimationFrame(() => {
+        if (previous?.isConnected && previous.getClientRects().length) previous.focus({ preventScroll: true });
+        else searchInput.current?.focus({ preventScroll: true });
+      });
     };
   }, [navOpen]);
   function changeQuery(value: string, force = false) {
@@ -644,8 +652,6 @@ function Workbench({
     setPreviewError("");
     setPreviewTab("body");
     setSelected(id);
-    if (!drawer && selected === null)
-      requestAnimationFrame(() => lastRow.current?.scrollIntoView({ block: "nearest" }));
   };
   const selectedPosition = items.findIndex((item) => item.bookmark_id === selected);
   const moveSelection = (step: number) => {
@@ -654,7 +660,6 @@ function Workbench({
       list.current?.querySelectorAll<HTMLButtonElement>(".bookmark-preview")[selectedPosition + step];
     if (next) {
       select(next.bookmark_id, button);
-      button?.scrollIntoView({ block: "nearest" });
     }
   };
   const previewContent = (
@@ -703,11 +708,11 @@ function Workbench({
         <CapsuleButton
           className="icon-button nav-trigger"
           aria-label={t("打开导航", "Open navigation")}
-          onClick={() => setNavOpen(true)}
+          onClick={event => { navOpener.current = event.currentTarget; setNavOpen(true); }}
         >
           <Menu />
         </CapsuleButton>
-        <a
+        {(!paired || view !== "library") && <a
           className="brand app-brand"
           href="/app"
           onClick={(event) => {
@@ -717,10 +722,11 @@ function Workbench({
         >
           <FacetmarkMark />
           <span>Facetmark</span>
-        </a>
+        </a>}
         <nav className="header-navigation" aria-label={t("主要导航", "Main navigation")}>
           <CapsuleButton
             className={view === "library" ? "active" : ""}
+            aria-label={t("全部书签", "All bookmarks")}
             aria-current={view === "library" ? "page" : undefined}
             onClick={() => {
               openView("library");
@@ -734,6 +740,7 @@ function Workbench({
           </CapsuleButton>
           <CapsuleButton
             className={view === "sessions" ? "active" : ""}
+            aria-label={t("浏览批次", "Saving sessions")}
             aria-current={view === "sessions" ? "page" : undefined}
             onClick={() => openView("sessions")}
           >
@@ -742,6 +749,51 @@ function Workbench({
             <span>{t("浏览批次", "Saving sessions")}</span>
           </CapsuleButton>
         </nav>
+        {paired && view === "library" && <div className="workspace-search">
+          <div className="search-box">
+            <Search size={19} aria-hidden="true" />
+            <input
+              ref={searchInput}
+              aria-label={t("搜索书签", "Search bookmarks")}
+              placeholder={t("搜索标题、网址或一段记忆…", "Search a title, URL, or remembered phrase…")}
+              value={input}
+              onChange={event => changeQuery(event.target.value)}
+              onCompositionStart={() => {
+                composing.current = true;
+                abortRef.current?.abort();
+                requestId.current++;
+              }}
+              onCompositionEnd={event => {
+                composing.current = false;
+                changeQuery(event.currentTarget.value, true);
+              }}
+              onBlur={() => { composing.current = false; }}
+              onKeyDown={event => {
+                if (event.key === "Enter" && !event.nativeEvent.isComposing && !composing.current)
+                  changeQuery(input, true);
+              }}
+            />
+            {input ? <CapsuleButton className="icon-button" aria-label={t("清空搜索", "Clear search")}
+              onClick={() => changeQuery("")}><X size={16} /></CapsuleButton> : <kbd>Ctrl K</kbd>}
+          </div>
+          <div className="query-tool">
+            <QuerySuggestions text={search} onSelect={value => {
+              changeQuery(value);
+              searchInput.current?.focus();
+            }} />
+          </div>
+          <CapsuleButton className="filter-trigger" onClick={event => { navOpener.current = event.currentTarget; setNavOpen(true); }}
+            aria-label={t("筛选收藏", "Filter collection")}
+            aria-describedby={activeFilters.length ? "active-filter-count" : undefined}>
+            <Folder size={17} /><span>{t("分类", "Categories")}</span>
+            {activeFilters.length > 0 && <>
+              <span className="filter-indicator" aria-hidden="true">{activeFilters.length}</span>
+              <span id="active-filter-count" className="sr-only">
+                {t(`已启用 ${activeFilters.length} 项筛选`, `${activeFilters.length} active filters`)}
+              </span>
+            </>}
+          </CapsuleButton>
+        </div>}
         <div className="header-utilities">
           {setup?.demo && <span className="demo-label">{t("合成演示数据", "Synthetic demo")}</span>}
           <div className="utility-cluster">
@@ -917,13 +969,12 @@ function Workbench({
         aria-hidden={navOpen || focusReading} aria-label={t("收藏目录", "Collection directory")}>
         <FacetBrowser filters={filters} folderPath={selectedFolderParts} enabled={!navOpen} revision={requestRevision} onSelect={selectFilter}
           onManage={adminAvailable && job.state !== "running" ? () => setLibraryAction({ kind: "taxonomy" }) : undefined} />
-        <div className="directory-footer"><span className="connection-light" aria-hidden="true"/>{t("你的书库", "Your library")}<span>{t("原网页直接访问", "Original links")}</span></div>
       </aside>}
       <main
         ref={workspace}
         inert={navOpen}
         aria-hidden={navOpen}
-        className={`main-workspace ${paired && view === "library" ? "with-preview" : ""} ${selected !== null ? "has-selection" : "browse-mode"} ${collectionLayout === "list" ? "list-mode" : ""} ${focusReading && view === "library" ? "focus-mode" : ""}`}
+        className={`main-workspace ${paired && view === "library" ? "with-preview" : ""} ${selected !== null ? "has-selection" : "browse-mode"} ${selected !== null && !drawer ? "has-reader-index" : ""} ${collectionLayout === "list" ? "list-mode" : ""} ${focusReading && view === "library" ? "focus-mode" : ""}`}
       >
         {connectionError && (
           <div className="connection-error" role="alert">
@@ -1009,83 +1060,13 @@ function Workbench({
           </section>
         ) : view === "library" ? (
           <>
-            <header className="workspace-toolbar">
+            <header className="workspace-toolbar sr-only">
               <div className="toolbar-location">
                 <h1 title={filters.folder}>
                   {search.trim() ? t("搜索结果", "Search results") :
                     filters.folder !== undefined ? selectedFolderParts?.at(-1) || filters.folder || t("未分类", "Unfiled") :
                     filters.tag || filters.domain || (filters.session !== undefined ? t("浏览批次", "Saving session") : t("我的收藏", "Your collection"))}
                 </h1>
-                {!search.trim() && selectedFolderParts && selectedFolderParts.length > 1 && <p className="toolbar-folder-path" title={filters.folder}>
-                  {selectedFolderParts.slice(0, -1).join(" / ")}
-                </p>}
-                <span className="collection-subtitle">
-                  <span className="result-count" aria-live="polite">{loading || !page ? "…" : page.total}{page?.depth_capped ? "+" : ""}</span>
-                  <span className="collection-count-label">{t("条收藏", "saved pages")}</span>
-                  <span className="collection-subtitle-separator" aria-hidden="true">·</span>
-                  <span className="collection-note">{t("每一个值得再回来的地方", "Places worth coming back to")}</span>
-                </span>
-              </div>
-              <div className="workspace-search">
-                <div className="search-box">
-                  <Search size={20} />
-                  <input
-                    ref={searchInput}
-                    aria-label={t("搜索书签", "Search bookmarks")}
-                    placeholder={t("搜索标题、网址或一段记忆…", "Search a title, URL, or remembered phrase…")}
-                    value={input}
-                    onChange={(e) => changeQuery(e.target.value)}
-                    onCompositionStart={() => {
-                      composing.current = true;
-                      abortRef.current?.abort();
-                      requestId.current++;
-                    }}
-                    onCompositionEnd={(e) => {
-                      composing.current = false;
-                      changeQuery(e.currentTarget.value, true);
-                    }}
-                    onBlur={() => { composing.current = false; }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.nativeEvent.isComposing && !composing.current)
-                        changeQuery(input, true);
-                    }}
-                  />
-                  {input ? (
-                    <CapsuleButton
-                      className="icon-button"
-                      aria-label={t("清空搜索", "Clear search")}
-                      onClick={() => changeQuery("")}
-                    >
-                      <X size={16} />
-                    </CapsuleButton>
-                  ) : (
-                    <kbd>Ctrl K</kbd>
-                  )}
-                </div>
-
-                <div className="query-tool">
-                  {" "}
-                  <QuerySuggestions
-                    text={search}
-                    onSelect={(value) => {
-                      changeQuery(value);
-                      searchInput.current?.focus();
-                    }}
-                  />
-                </div>
-                <CapsuleButton
-                  className="filter-trigger"
-                  onClick={() => setNavOpen(true)}
-                  aria-label={t("筛选收藏", "Filter collection")}
-                  aria-describedby={activeFilters.length ? "active-filter-count" : undefined}
-                >
-                  <Folder size={17} />
-                  <span>{t("分类", "Categories")}</span>
-                  {activeFilters.length > 0 && <>
-                    <span className="filter-indicator" aria-hidden="true">{activeFilters.length}</span>
-                    <span id="active-filter-count" className="sr-only">{t(`已启用 ${activeFilters.length} 项筛选`, `${activeFilters.length} active filters`)}</span>
-                  </>}
-                </CapsuleButton>
               </div>
             </header>
             <section className="results-column" inert={focusReading}>
@@ -1233,6 +1214,7 @@ function Workbench({
                 ) : (
                   items.map((record, index) => <BookmarkCard key={record.bookmark_id} record={record} entranceOrder={index}
                     selected={selected === record.bookmark_id}
+                    indexVisible={!drawer && !focusReading}
                     checked={allMatching ? !excludedIds.includes(record.bookmark_id) : selectedIds.includes(record.bookmark_id)}
                     disabled={scopePending} display={summaryDisplay}
                     onEdit={adminAvailable && job.state !== "running" ? () => setLibraryAction({ kind: "edit", record }) : undefined}
@@ -1246,11 +1228,15 @@ function Workbench({
                 )}
               </div>
               <footer className="results-footer">
-                <span>
-                  {page && page.total > 0
-                    ? `${page.offset + 1}–${page.offset + items.length}`
-                    : t("你的收藏，只在你的书库", "Your collection, in your library")}
-                </span>
+                <div className="collection-subtitle">
+                  {page && page.total > 0 && <span className="result-range">
+                    {`${page.offset + 1}–${page.offset + items.length}`}<span aria-hidden="true"> / </span>
+                  </span>}
+                  <span className="result-count" aria-live="polite">
+                    {loading || !page ? "…" : page.total}{page?.depth_capped ? "+" : ""}
+                  </span>
+                  <span className="collection-count-label">{t("条收藏", "saved pages")}</span>
+                </div>
                 <div>
                   {selected === null && pageCount > 1 && !paginationPage?.depth_capped && <form className="page-jump"
                     onSubmit={event => {

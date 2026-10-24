@@ -21,6 +21,13 @@ pub struct WorkArea {
     pub height: u32,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct DisplayArea {
+    pub bounds: WorkArea,
+    pub work: WorkArea,
+    pub scale: f64,
+}
+
 impl WorkArea {
     fn right(self) -> i64 { i64::from(self.x) + i64::from(self.width) }
     fn bottom(self) -> i64 { i64::from(self.y) + i64::from(self.height) }
@@ -65,6 +72,34 @@ pub fn client_size_for_outer(wanted: Geometry, outer: (u32, u32), inner: (u32, u
      wanted.height.saturating_sub(outer.1.saturating_sub(inner.1)).max(1))
 }
 
+/// The tray sends physical coordinates. Choose the monitor from that point,
+/// then keep the entire scaled menu clear of its taskbar and work-area edges.
+pub fn tray_menu_geometry(x: f64, y: f64, displays: &[DisplayArea]) -> Option<(Geometry, f64)> {
+    if !x.is_finite() || !y.is_finite() { return None; }
+    let cursor = Geometry { x: x.round() as i32, y: y.round() as i32, width: 1, height: 1 };
+    // Taskbars belong to the full monitor, though outside its work area. Using
+    // work-area distance here can pick a neighboring monitor and its wrong DPI.
+    let display = displays.iter().filter(|display| display.bounds.width > 0 && display.bounds.height > 0
+        && display.work.width > 0 && display.work.height > 0 && display.scale.is_finite() && display.scale > 0.).max_by(|a, b| {
+        a.bounds.overlap(cursor).cmp(&b.bounds.overlap(cursor))
+            .then_with(|| b.bounds.distance(cursor).total_cmp(&a.bounds.distance(cursor)))
+    })?;
+    let area = display.work;
+    let scale = display.scale;
+    let margin = (8. * scale).round() as u32;
+    let width = ((312. * scale).round() as u32).min(area.width.saturating_sub(margin.saturating_mul(2)).max(1));
+    let height = ((374. * scale).round() as u32).min(area.height.saturating_sub(margin.saturating_mul(2)).max(1));
+    let inset_x = margin.min((area.width - width) / 2);
+    let inset_y = margin.min((area.height - height) / 2);
+    Some((Geometry {
+        x: (i64::from(cursor.x) - i64::from(width) + i64::from(margin)).clamp(
+            i64::from(area.x) + i64::from(inset_x), area.right() - i64::from(width) - i64::from(inset_x)) as i32,
+        y: (i64::from(cursor.y) - i64::from(height) - i64::from(margin)).clamp(
+            i64::from(area.y) + i64::from(inset_y), area.bottom() - i64::from(height) - i64::from(inset_y)) as i32,
+        width, height,
+    }, scale))
+}
+
 #[derive(Default)]
 pub struct GeometryQueue {
     latest: Option<Geometry>,
@@ -100,15 +135,6 @@ impl GeometryQueue {
     }
     /// A move received during an older write must remain pending.
     pub fn acknowledge(&mut self, revision: u64) { self.written = self.written.max(revision); }
-}
-
-/// A sidecar may be healthy even though its workspace failed to open. Clear its
-/// handle before exposing Retry so the next attempt can start a new sidecar.
-pub fn workspace_start_result<C>(child: &mut Option<C>, opened: Result<(), String>, stop: impl FnOnce(C)) -> Result<(), String> {
-    if opened.is_err() {
-        if let Some(child) = child.take() { stop(child); }
-    }
-    opened
 }
 
 #[cfg(test)]
@@ -154,6 +180,42 @@ mod tests {
         assert_eq!(client_size_for_outer(box_at(0, 0, 1000, 700), (1500, 1050), (1476, 991)), (976, 641));
     }
     #[test]
+    fn tray_menu_stays_in_the_requested_monitor_at_both_dpi_scales() {
+        for scale in [1., 1.5] {
+            let displays = [
+                DisplayArea { bounds: area(-1920, -200, 1920, 1080), work: area(-1920, -200, 1920, 1040), scale },
+                DisplayArea { bounds: area(0, 0, 2400, 1600), work: area(0, 40, 2400, 1520), scale },
+            ];
+            for (x, y, target) in [(-50., 850., displays[0].work), (2390., 1580., displays[1].work),
+                (2., 0., displays[1].work), (-1925., 0., displays[0].work)] {
+                let (menu, selected_scale) = tray_menu_geometry(x, y, &displays).unwrap();
+                assert!(menu.x >= target.x && menu.y >= target.y);
+                assert!(i64::from(menu.x) + i64::from(menu.width) <= target.right());
+                assert!(i64::from(menu.y) + i64::from(menu.height) <= target.bottom());
+                assert_eq!(selected_scale, scale);
+                assert_eq!(menu.width, (312. * scale).round() as u32);
+            }
+        }
+        let small = [DisplayArea { bounds: area(0, 0, 320, 200), work: area(0, 40, 320, 160), scale: 1.5 }];
+        let (tiny, _) = tray_menu_geometry(300., 190., &small).unwrap();
+        assert!(tiny.width <= 320 && tiny.height <= 160);
+        assert!(tray_menu_geometry(f64::NAN, 0., &small).is_none());
+    }
+    #[test]
+    fn a_top_taskbar_near_a_neighbor_keeps_its_own_monitor_and_dpi() {
+        let displays = [
+            DisplayArea { bounds: area(-1920, -200, 1920, 1080), work: area(-1920, -200, 1920, 1040), scale: 1. },
+            DisplayArea { bounds: area(0, 0, 2400, 1600), work: area(0, 40, 2400, 1520), scale: 1.5 },
+        ];
+        let cursor = box_at(2, 0, 1, 1);
+        // Negative control for the previous work-area-based monitor selection.
+        assert!(displays[0].work.distance(cursor) < displays[1].work.distance(cursor));
+        let (menu, scale) = tray_menu_geometry(2., 0., &displays).unwrap();
+        assert_eq!(scale, 1.5);
+        assert_eq!(menu.width, 468);
+        assert!(menu.x >= 0 && menu.y >= 40);
+    }
+    #[test]
     fn a_drag_coalesces_changing_events_and_closing_flushes_the_latest_box() {
         let mut queue = GeometryQueue::default();
         let mut workers = 0;
@@ -180,18 +242,5 @@ mod tests {
         queue.acknowledge(next.0);
         assert!(queue.next_wait(GEOMETRY_DELAY * 3).is_none());
         assert!(queue.record(box_at(3, 1, 900, 650), GEOMETRY_DELAY * 3));
-    }
-    #[test]
-    fn a_workspace_failure_stops_its_child_and_retry_can_start() {
-        let mut child = Some(42);
-        let mut stopped = Vec::new();
-        let error = workspace_start_result(&mut child, Err("synthetic workspace failure".into()), |pid| stopped.push(pid));
-        assert_eq!(error.unwrap_err(), "synthetic workspace failure");
-        assert_eq!(stopped, [42]);
-        assert!(child.is_none());
-        child = Some(43);
-        workspace_start_result(&mut child, Ok(()), |pid| stopped.push(pid)).unwrap();
-        assert_eq!(child, Some(43));
-        assert_eq!(stopped, [42]);
     }
 }

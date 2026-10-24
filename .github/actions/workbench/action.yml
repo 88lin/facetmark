@@ -3,6 +3,9 @@ description: Build the React UI before packaging or testing a distribution
 runs:
   using: composite
   steps:
+    - name: Stage offline native UI fonts
+      shell: bash
+      run: python scripts/stage_native_ui.py
     - uses: actions/setup-node@v4
       with:
         node-version: '22'

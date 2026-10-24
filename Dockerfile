@@ -17,6 +17,7 @@ WORKDIR /build/frontend
 COPY frontend/package*.json ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
 COPY frontend ./
+COPY desktop/splash/mark.svg /build/desktop/splash/mark.svg
 RUN npm run build
 
 FROM python:3.12-slim AS runtime

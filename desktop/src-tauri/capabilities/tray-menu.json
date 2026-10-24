@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "local-tray-menu",
+  "description": "The packaged tray page can inspect its own native window; Rust checks its label and local URL before every tray action.",
+  "windows": ["tray-menu"],
+  "permissions": ["core:default"]
+}

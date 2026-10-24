@@ -76,17 +76,18 @@ export function FacetBrowser({ filters, folderPath, enabled = true, revision, on
   }
 
   return <section className="facet-browser" aria-label={t("分类与筛选", "Categories and filters")}>
-    <div className="facet-browser-heading">
-      <h2>{t("分类浏览", "Browse categories")}</h2>
-      {onManage && <CapsuleButton type="button" className="facet-manage" onClick={onManage}
-        title={t("整理文件夹与标签", "Organize folders and tags")} aria-label={t("整理文件夹与标签", "Organize folders and tags")}><Settings2 size={16}/></CapsuleButton>}
-    </div>
+    <div className="facet-browser-toolbar">
     <div className="facet-types" role="group" aria-label={t("分类类型", "Category type")}>
       {groups.map(({ key, label }) => <CapsuleButton key={key} type="button" className="facet-type"
-        aria-pressed={group === key} onClick={() => {
+        aria-label={label} title={label} aria-pressed={group === key} onClick={() => {
           if (group === key) return;
           resetList(); setText(""); setGroup(key);
-        }}><SelectionPill active={group === key} group={`${groupId}-directory-type`} /><span>{label}</span></CapsuleButton>)}
+        }}><SelectionPill active={group === key} group={`${groupId}-directory-type`} />
+          {key === "folders" ? <CollectionFolderIcon size={19} active={group === key}/> : <span>{label}</span>}
+        </CapsuleButton>)}
+    </div>
+      {onManage && <CapsuleButton type="button" className="facet-manage" onClick={onManage}
+        title={t("整理文件夹与标签", "Organize folders and tags")} aria-label={t("整理文件夹与标签", "Organize folders and tags")}><Settings2 size={16}/></CapsuleButton>}
     </div>
     <label className="facet-search">
       <Search size={15} aria-hidden="true" />
@@ -150,7 +151,7 @@ export function FacetBrowser({ filters, folderPath, enabled = true, revision, on
       {!browseFolders && !error && more && <CapsuleButton className="facet-load-more" type="button" disabled={loading}
         onClick={() => setOffset(items.length)}>{t("显示更多分类", "Show more categories")}</CapsuleButton>}
     </nav>
-    <span className="facet-range" aria-live="polite">
+    <span className={browseFolders ? "sr-only" : "facet-range"} aria-live="polite">
       {browseFolders ? t("展开箭头浏览子目录", "Expand an arrow to browse subfolders") :
         !loading && !error ? t(`${items.length} / ${total} 个分类`, `${items.length} of ${total} categories`) : ""}
     </span>

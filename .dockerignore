@@ -15,7 +15,10 @@ scripts
 docs
 integrations
 extension
-desktop
+desktop/*
+!desktop/splash
+desktop/splash/*
+!desktop/splash/mark.svg
 .desktop-build
 **/node_modules
 **/playwright-report

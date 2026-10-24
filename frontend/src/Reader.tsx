@@ -491,12 +491,11 @@ export default function Reader({
               )}
             </div>
           </div>
-          <ScrollProgress
+          {!pending && !error && tab === "body" && record?.body_text && <ScrollProgress
             containerRef={scroller}
             sections={tab === "body" ? sections : []}
             contentKey={`${selected}-${tab}`}
-            showProgress={Boolean(!pending && !error && tab === "body" && record?.body_text)}
-          />
+          />}
         </>
       )}
     </>

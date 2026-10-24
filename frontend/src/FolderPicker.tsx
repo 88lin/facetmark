@@ -4,7 +4,7 @@ import { Input } from "@heroui/react";
 import { Check, ChevronDown, FolderPlus, Inbox, LoaderCircle, Search } from "lucide-react";
 import { api, query } from "./api";
 import { useText } from "./locale";
-import { OverlayMotion } from "./overlay-motion";
+import { AnchoredMenu } from "./AnchoredMenu";
 import { useReducedMotion } from "./useReducedMotion";
 import { CapsuleButton as Button } from "./ui/controls";
 import { CollectionFolderIcon } from "./CollectionFolderIcon";
@@ -110,7 +110,7 @@ export function FolderPicker({ value, onChange, label, allowCreate = true, allow
       <ChevronDown size={16} className="folder-picker-chevron" />
     </Button>
     <AnimatePresence>
-    {open && <OverlayMotion key="folder-menu" id={`${id}-panel`} className="folder-picker-panel" role="region" aria-labelledby={`${id}-label`}>
+    {open && <AnchoredMenu anchor={trigger} onDismiss={() => setOpen(false)} key="folder-menu" id={`${id}-panel`} className="folder-picker-panel" role="region" aria-labelledby={`${id}-label`}>
       <label className="folder-picker-search"><Search size={17} aria-hidden="true" />
         <Input ref={search} value={request.q} aria-label={t("搜索文件夹", "Search folders")}
           maxLength={2048} placeholder={allowCreate ? t("搜索或输入新文件夹名称…", "Search or enter a new folder name…") : t("搜索文件夹…", "Search folders…")}
@@ -142,7 +142,7 @@ export function FolderPicker({ value, onChange, label, allowCreate = true, allow
         </Button>}
       </div>
       {allowCreate && <p className="folder-picker-note">{t("新文件夹会在保存收藏时创建；用「 / 」分隔层级。", "New folders are created when you save. Use “ / ” for nested paths.")}</p>}
-    </OverlayMotion>}
+    </AnchoredMenu>}
     </AnimatePresence>
   </div>;
 }

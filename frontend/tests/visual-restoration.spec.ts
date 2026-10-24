@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
+import { settleVisualLayout } from "./visual-layout";
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/*", route => new URL(route.request().url()).hostname === "127.0.0.1"
@@ -8,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 for (const { width, theme } of [{ width: 1440, theme: "light" }, { width: 390, theme: "dark" }]) {
-  test(`floating reader controls remain reachable and keep the final text clear at ${width}`, async ({ page }) => {
+  test(`reader footer stays in layout, remains reachable and keeps final text clear at ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.addInitScript(value => {
       localStorage.setItem("fm-language", "zh");
@@ -22,10 +23,14 @@ for (const { width, theme } of [{ width: 1440, theme: "light" }, { width: 390, t
     const picker = page.getByRole("combobox", { name: "跳转到章节" });
     await expect(surface).toHaveCSS("transform", "none");
     await expect(surface).toBeInViewport({ ratio: 1 });
+    await settleVisualLayout(page);
     // Opening preview intentionally reflows the grid into an index and reveals
     // the selected row. Chapter navigation must preserve that established view.
     const listPosition = await page.locator(".result-list").evaluate(el => el.scrollTop);
-    expect(await surface.evaluate(el => getComputedStyle(el).backdropFilter)).not.toBe("none");
+    const scroller = await page.locator(".preview-scroll").boundingBox();
+    const footer = await page.locator(".reading-position").boundingBox();
+    expect(scroller!.y + scroller!.height).toBeLessThanOrEqual(footer!.y + 1);
+    expect(await page.locator(".reading-position").evaluate(el => getComputedStyle(el).position)).toBe("relative");
     await picker.focus();
     await expect(picker).toBeFocused();
     await picker.selectOption({ label: "保持思考的上下文" });
@@ -47,7 +52,7 @@ for (const { width, theme } of [{ width: 1440, theme: "light" }, { width: 390, t
 
     await page.getByRole("button", { name: "回到顶部", exact: true }).press("Enter");
     await expect.poll(() => page.locator(".preview-scroll").evaluate(el => el.scrollTop)).toBe(0);
-    await page.screenshot({ path: `screenshots/restored-glass-${theme}-${width}.png`, animations: "disabled" });
+    await page.screenshot({ path: `screenshots/reader-footer-${theme}-${width}.png`, animations: "disabled" });
   });
 }
 

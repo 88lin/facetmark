@@ -2,13 +2,14 @@
  * Adapted from Rare UI ScrollProgress (https://rareui.com).
  * Copyright (c) 2026 Swami Malode.
  * MIT + Commons Clause + Attribution; full notice: /THIRD_PARTY_NOTICES.md.
- * Facetmark adaptation: floating glass capsule, actual scroll progress and an
+ * Facetmark adaptation: unobtrusive footer, actual scroll progress and an
  * animated chapter label over a keyboard-accessible native section picker.
  */
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { motion, useScroll, useSpring } from "motion/react";
 import { List, ArrowUp } from "lucide-react";
 import { useText } from "../../locale";
+import { CapsuleButton } from "../../ui/controls";
 import { useReducedMotion } from "../../useReducedMotion";
 import { SECTION_SELECTED, selectReaderSection, scrollToReaderSection } from "./reader-section";
 
@@ -17,12 +18,10 @@ export function ScrollProgress({
   containerRef,
   sections,
   contentKey,
-  showProgress = true,
 }: {
   containerRef: RefObject<HTMLDivElement | null>;
   sections: ScrollProgressSection[];
   contentKey: string;
-  showProgress?: boolean;
 }) {
   const t = useText();
   const reduceMotion = useReducedMotion();
@@ -87,16 +86,14 @@ export function ScrollProgress({
     <footer className="reading-position">
       <motion.div
         className="reading-position-surface"
-        initial={reduceMotion ? false : { opacity: 0.65, y: 10, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
+        initial={reduceMotion ? false : { opacity: 0.65 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: reduceMotion ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
       >
-        {showProgress && (
-          <div className="reading-progress-track" aria-hidden="true">
-            <motion.div style={{ scaleX: reduceMotion ? scrollYProgress : progress }} />
-          </div>
-        )}
-        {showProgress && sections.length > 1 ? (
+        <div className="reading-progress-track" aria-hidden="true">
+          <motion.div style={{ scaleX: reduceMotion ? scrollYProgress : progress }} />
+        </div>
+        {sections.length > 1 ? (
           <label className="section-picker">
             <List size={16} aria-hidden="true" />
             <span className="section-picker-copy" aria-hidden="true">
@@ -129,18 +126,18 @@ export function ScrollProgress({
             </select>
           </label>
         ) : (
-          <span>
-            {showProgress ? t("阅读位置", "Reading position") : t("阅读预览", "Reading preview")}
+          <span className="reading-position-label">
+            {t("阅读位置", "Reading position")}
           </span>
         )}
         <span
           className="reading-percent"
-          aria-label={showProgress ? t("滚动位置", "Scroll position") : undefined}
+          aria-label={t("滚动位置", "Scroll position")}
         >
-          {showProgress ? `${percent}%` : ""}
+          {`${percent}%`}
         </span>
-        <button
-          className="icon-button"
+        <CapsuleButton
+          type="button" className="icon-button reading-top"
           title={t("回到顶部", "Back to top")}
           aria-label={t("回到顶部", "Back to top")}
           onClick={() => {
@@ -151,7 +148,7 @@ export function ScrollProgress({
           }}
         >
           <ArrowUp size={14} />
-        </button>
+        </CapsuleButton>
       </motion.div>
     </footer>
   );

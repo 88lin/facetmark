@@ -223,7 +223,7 @@ test("shared-folder sync reviews actual changes, rejects a stale preview and res
     const status = await (await request.get("/admin/library/sync/status", { headers })).json();
     expect(status).toMatchObject({ enabled: false, auto_sync: false, poll_seconds: 30, needs_review: false });
     await page.reload();
-    await page.getByRole("button", { name: "打开导航", exact: true }).click();
+    await page.getByRole("button", { name: "筛选收藏", exact: true }).click();
     await page.getByRole("button", { name: "设置", exact: true }).click();
     await page.getByRole("tab", { name: "设备同步", exact: true }).click();
     await expect(page.locator(".sync-settings .sync-state")).toHaveText("未启用");
