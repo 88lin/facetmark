@@ -55,6 +55,10 @@ test.beforeEach(async ({ page }) => {
   } }));
 });
 
+test.afterEach(async ({ page }) => {
+  await page.unrouteAll({ behavior: "wait" });
+});
+
 test("processing limits save independently and preserve connection drafts and successful tests", async ({ page }) => {
   const { writes } = await processingFixture(page);
   const probes: Record<string, unknown>[] = [];

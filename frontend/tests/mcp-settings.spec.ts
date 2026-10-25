@@ -134,7 +134,8 @@ test("link health shows saved and confirmed results without automatically checki
   await page.route("**/bookmark/1?body=true", route => route.fulfill({ json: { bookmark_id: 1, title: "Saved page",
     ai_title: "保留的旧页面", url: "https://synthetic.invalid/dead", domain: "synthetic.invalid", folder: "",
     tags: [], summary: "之前保存的内容仍可阅读。", body_text: "## Saved source\n\nThis saved content remains available." } }));
-  await page.goto("/app#tasks");
+  await page.goto("/app");
+  await page.getByRole("button", { name: "任务", exact: true }).click();
   const health = page.locator(".health-tools");
   await health.locator("summary").click();
   await expect(health.locator(".health-counts")).toContainText("待检查");
@@ -166,7 +167,8 @@ for (const [target, expected] of [["auto", "en"], ["zh", "zh"]]) {
     await page.route("**/admin/index", route => {
       started = route.request().postDataJSON(); return route.fulfill({ json: { state: "done" } });
     });
-    await page.goto("/app#tasks");
+    await page.goto("/app");
+    await page.getByRole("button", { name: "Tasks", exact: true }).click();
     await page.locator(".index-consent > summary").click();
     await page.getByRole("checkbox", { name: "I understand and confirm processing", exact: true }).check();
     await page.getByRole("button", { name: "Start indexing", exact: true }).click();
@@ -184,7 +186,8 @@ test("resuming a saved task does not replace its language with the interface lan
   await page.route("**/admin/jobs/resume", route => {
     resumed = route.request().postDataJSON(); return route.fulfill({ json: job });
   });
-  await page.goto("/app#tasks");
+  await page.goto("/app");
+  await page.getByRole("button", { name: "Tasks", exact: true }).click();
   await page.getByRole("button", { name: "Resume saved task", exact: true }).click();
   await expect.poll(() => resumed).toEqual({ resume_id: "saved-chinese-task", confirmed: true });
 });

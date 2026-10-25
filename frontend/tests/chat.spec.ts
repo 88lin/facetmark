@@ -45,7 +45,7 @@ async function chatFixture(page: Page, options: { tested?: boolean; delayed?: bo
     if (match) sourceId = Number(match[1]);
     return route.continue();
   });
-  await page.route("**/chat/conversations**", async route => {
+  await page.route(/\/chat\/conversations(?:\/|\?|$)/, async route => {
     const request = route.request(), path = new URL(request.url()).pathname;
     const id = path.split("/")[3], action = path.split("/")[4];
     if (path === "/chat/conversations" && request.method() === "GET") {

@@ -16,21 +16,28 @@ async function fixture(page: Page, count = 2) {
     scopes.push(route.request().postDataJSON());
     return route.fulfill({ json: { bookmark_ids: records.map(record => record.bookmark_id) } });
   });
-  await page.route("**/chat/conversations**", route => {
-    if (new URL(route.request().url()).pathname.endsWith("/messages")) {
+  await page.route(/\/chat\/conversations(?:\/|\?|$)/, route => {
+    const request = route.request(), path = new URL(request.url()).pathname;
+    if (path === "/chat/conversations" && request.method() === "GET")
+      return route.fulfill({ json: { items: conversation ? [{ ...conversation, messages: undefined,
+        message_count: Array.isArray(conversation.messages) ? conversation.messages.length : 0 }] : [],
+        total: conversation ? 1 : 0 } });
+    if (path.endsWith("/messages") && request.method() === "POST") {
       conversation = { ...conversation, running: false, messages: [
         { id: 1, role: "user", content: "一起讨论", sources: [], status: "complete", model: "", created_at: 1792886400 },
         { id: 2, role: "assistant", content: "来自两篇收藏的回答。", sources: [], status: "complete", model: "synthetic", created_at: 1792886400 },
       ] };
       return route.fulfill({ json: conversation });
     }
-    if (route.request().method() === "POST") {
-      const body = route.request().postDataJSON(); created.push(body);
+    if (path === "/chat/conversations" && request.method() === "POST") {
+      const body = request.postDataJSON(); created.push(body);
       conversation = { id: "selected-conversation", title: body.title, bookmark_ids: body.bookmark_ids,
         running: false, created_at: 1792886400, updated_at: 1792886400, messages: [] };
       return route.fulfill({ json: conversation });
     }
-    return route.fulfill({ json: conversation || { items: [], total: 0 } });
+    if (path === "/chat/conversations/selected-conversation" && request.method() === "GET" && conversation)
+      return route.fulfill({ json: conversation });
+    return route.fulfill({ status: 404, json: { detail: "Unknown chat fixture request" } });
   });
   return { records, scopes, created };
 }
@@ -42,7 +49,7 @@ test.beforeEach(async ({ page }) => {
 test("Discuss selected resolves the current select-all scope and keeps the existing toolbar", async ({ page }) => {
   const control = await fixture(page);
   await page.goto("/app");
-  await expect(page.locator(".result-card")).toHaveCount(2);
+  await expect(page.locator(".result-row")).toHaveCount(2);
   await page.getByRole("checkbox", { name: "全选当前结果", exact: true }).check();
   await page.locator(".library-manage > summary").click();
   await page.getByRole("button", { name: "聊所选", exact: true }).click();

@@ -31,6 +31,10 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/*", route => new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort());
 });
 
+test.afterEach(async ({ page }) => {
+  await page.unrouteAll({ behavior: "wait" });
+});
+
 test("built-in instructions can be edited, saved separately and restored without a connection test", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("fm-language", "zh"));
   const { saved, writes } = await preferences(page);

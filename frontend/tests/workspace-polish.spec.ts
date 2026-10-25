@@ -51,7 +51,7 @@ test("a 683 by 384 window keeps readable results, scrolling controls and reader 
   await expect(page.locator(".result-count")).not.toHaveText(allCount!);
   await expect(list).toHaveAttribute("aria-busy", "false");
   await expect(page.locator(".result-row").first()).toBeVisible();
-  expect((await list.boundingBox())!.height).toBeGreaterThanOrEqual(160);
+  expect(Math.round((await list.boundingBox())!.height)).toBeGreaterThanOrEqual(160);
   await page.locator(".result-title").first().scrollIntoViewIfNeeded();
   await capture(page, "polish-short-window-search");
 });

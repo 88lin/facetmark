@@ -407,7 +407,8 @@ with sync_playwright() as playwright:
         page.locator('.bookmark-check').nth(1).press('ArrowUp')
         assert checkbox.evaluate('element => element === document.activeElement')
         assert page.evaluate('window.__linkClicks.length') == link_click_count, 'Selection activated an original-page link'
-        page.get_by_role('button', name='完成选择', exact=True).click()
+        assert not page.get_by_role('checkbox', name='全选当前结果', exact=True).is_checked()
+        assert page.locator('.library-tools.selecting').count() == 0, 'Selection added a redundant action row'
         second_id = page.locator('.result-row').nth(1).get_attribute('data-bookmark-id')
         layout_label = '列表视图' if initial_layout == 'grid' else '卡片视图'
         motion_step('切换收藏布局', [f'.result-row[data-bookmark-id="{second_id}"]'],
@@ -490,7 +491,8 @@ with sync_playwright() as playwright:
         motion_step('减少动态效果时 Space 取消选中', [check_fill, check_path],
                     lambda: checkbox.press('Space'), instant=True)
         assert_bookmark_checked(checkbox, False)
-        page.get_by_role('button', name='完成选择', exact=True).click()
+        assert not page.get_by_role('checkbox', name='全选当前结果', exact=True).is_checked()
+        assert page.locator('.library-tools.selecting').count() == 0, 'Reduced-motion selection added an action row'
         all_folders.click()
         page.emulate_media(reduced_motion='no-preference')
         page.evaluate('() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')

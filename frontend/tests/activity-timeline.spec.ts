@@ -210,9 +210,13 @@ test("Chinese and English activity stays compact at 320px and keyboard focus scr
     await page.setViewportSize({ width, height: 844 });
     await page.emulateMedia({ reducedMotion: "reduce" });
     if (width === 320) {
-      await page.getByRole("button", { name: "切换语言", exact: true }).first().click();
+      await page.getByRole("button", { name: "打开导航", exact: true }).click();
+      await page.getByRole("dialog", { name: "导航", exact: true })
+        .getByRole("button", { name: "切换语言", exact: true }).click();
+      await page.getByRole("dialog", { name: "Navigation", exact: true })
+        .getByRole("button", { name: "Toggle theme", exact: true }).click();
+      await page.getByRole("button", { name: "Close navigation", exact: true }).click();
       await expect(panel.getByRole("heading", { name: "Saving activity", exact: true })).toBeVisible();
-      await page.getByRole("button", { name: "Toggle theme", exact: true }).first().click();
       await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     }
     const lastDay = panel.locator('[data-period="day:2026-10-19"]');

@@ -349,7 +349,9 @@ def test_malformed_full_backups_fail_before_any_metadata_or_reading_is_changed(l
     else:
         payload["conversations"] = {}
     local_id = seed_page(destination, settings, url="https://local.test/preserved")
+    destination.execute("BEGIN")
     destination.execute("UPDATE bookmark SET title='OUTER_PENDING_EDIT' WHERE id=?", (local_id,))
+    assert destination.in_transaction
     before = snapshot(destination)
 
     with pytest.raises(ValueError):
@@ -368,7 +370,9 @@ def test_failure_after_one_restored_body_rolls_back_import_savepoint_and_keeps_o
     seed_page(source, settings)
     seed_page(source, settings, url="https://portable.test/second")
     local_id = seed_page(destination, settings, url="https://local.test/preserved")
+    destination.execute("BEGIN")
     destination.execute("UPDATE bookmark SET title='OUTER_PENDING_EDIT' WHERE id=?", (local_id,))
+    assert destination.in_transaction
     before = snapshot(destination)
     archive = json.dumps(service.export_bookmarks(source, full=True))
     original = fetchstore.store_body
@@ -390,6 +394,7 @@ def test_failure_after_one_restored_body_rolls_back_import_savepoint_and_keeps_o
     # The released savepoint must leave the same connection usable for a retry.
     retried = import_bookmarks(destination, content=archive, settings=settings)
     assert retried.restored_bodies == 2 and retried.restored_summaries == 2
+    assert destination.in_transaction
     assert destination.execute("SELECT title FROM bookmark WHERE id=?", (local_id,)).fetchone()[0] == "OUTER_PENDING_EDIT"
 
 

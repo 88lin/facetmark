@@ -12,7 +12,9 @@ async function openImporter(page: Page) {
   return page.locator(".importer");
 }
 async function upload(page: Page, name = "synthetic-bookmarks.json") {
-  await page.locator('.importer input[type="file"]').setInputFiles({ name, mimeType: "application/json",
+  const panel = page.locator(".importer");
+  await expect(panel.getByRole("button", { name: "选择文件", exact: true })).toBeEnabled();
+  await panel.locator('input[type="file"]').setInputFiles({ name, mimeType: "application/json",
     buffer: Buffer.from('{"format":"synthetic","bookmarks":[]}') });
 }
 test.beforeEach(async ({ page }) => {

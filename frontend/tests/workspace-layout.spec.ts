@@ -17,16 +17,16 @@ async function capture(page: Page, name: string) {
   await page.screenshot({ path: `${output}/polish-layout-${name}.png`, animations: "disabled" });
 }
 
-async function savedTextFixture(page: Page) {
+async function savedTextFixture(page: Page, sourceText?: string) {
   const paragraph = "收藏需要把问题、来源与当时的想法放在一起。A saved page keeps its reading context and native source link. ";
   const body = ["## 阅读与上下文", ...Array.from({ length: 16 }, () => paragraph.repeat(4)),
     "## 文章末尾", "最后一段仍然完整可见，阅读进度和返回顶部不会遮挡正文。"].join("\n\n");
   await page.route("**/bookmark/*?body=true", async route => {
     const response = await route.fetch();
     const record = await response.json();
-    await route.fulfill({ json: { ...record, body_text: body,
+    await route.fulfill({ json: { ...record, body_text: sourceText ?? body,
       summary: "收藏保存来源与阅读上下文，回到内容时仍能找到原文。", key_points: ["保留原始来源。"],
-      indexed: { ...record.indexed, summary_basis: "body" } } });
+      indexed: { ...record.indexed, summary_basis: "body", enriched_by: "synthetic-summary" } } });
   });
 }
 
@@ -206,11 +206,7 @@ test("reading text has a clear scale, progress stays below the article and missi
   await expect(page.locator(".reading-position")).toBeVisible();
   await capture(page, "reader-summary");
   await page.keyboard.press("Escape");
-  const id = await first.getAttribute("data-bookmark-id");
-  await page.route(`**/bookmark/${id}?body=true`, async route => {
-    const response = await route.fetch(); const record = await response.json();
-    await route.fulfill({ json: { ...record, body_text: "" } });
-  });
+  await savedTextFixture(page, "");
   await first.click({ position: { x: 7, y: 7 } });
   await expect(page.locator(".reader-summary")).toBeVisible();
   await expect(page.locator(".reader-source-missing")).toContainText("正文尚未保存");

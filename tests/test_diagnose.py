@@ -89,7 +89,8 @@ class TestTheFailuresNothingElseExplains:
             conn.close()
         c = named(checks, "vectors.dim")
         assert c is not None and c.status == "error"
-        assert "reindex" in c.message
+        assert "test and apply" in c.message and "backup" in c.message
+        assert "facetmark index" in c.message
 
     def test_vectors_built_with_another_model(self, tmp_path):
         st = st_for(tmp_path)
