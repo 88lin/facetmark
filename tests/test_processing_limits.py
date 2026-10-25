@@ -10,10 +10,11 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from facetmark import admin, local_agents, providers
+from facetmark import admin, local_agents, providers, service
 from facetmark.api import create_app
 from facetmark.config import Settings
-from facetmark.providers import OpenAICompatibleProvider, ProviderError, _retry_after
+from facetmark.db import open_db
+from facetmark.providers import MockProvider, OpenAICompatibleProvider, ProviderError, _retry_after
 
 
 @pytest.mark.parametrize("key,default,minimum,maximum", [
@@ -219,3 +220,50 @@ async def test_local_client_concurrency_is_a_real_cap_and_cancelled_waiters_rele
             if not task.done():
                 task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
+
+
+@pytest.mark.parametrize("summary_limit,agent_limit", [(6, 4), (3, 8), (4, 1)])
+async def test_desktop_summary_queue_reaches_the_configured_agent_limit(tmp_path, monkeypatch, summary_limit, agent_limit):
+    settings = Settings(data_dir=tmp_path, chat_backend="agent", chat_agent="codex",
+                        enrich_concurrency=summary_limit, agent_concurrency=agent_limit)
+    conn = open_db(settings.db_path)
+    try:
+        ids = [service.save_bookmark(conn, f"https://queue.test/{index}", title=f"Saved page {index}",
+                                     settings=settings)["bookmark_id"] for index in range(12)]
+    finally:
+        conn.close()
+    monkeypatch.setattr(local_agents, "selected_agent", lambda _: "codex")
+    expected = min(summary_limit, agent_limit)
+    release, filled = asyncio.Event(), asyncio.Event()
+    active, peak, calls = 0, 0, []
+    replies = MockProvider(settings)
+
+    async def generate(_provider, system, user):
+        nonlocal active, peak
+        active += 1
+        peak = max(peak, active)
+        calls.append(user)
+        if active == expected:
+            filled.set()
+        try:
+            await release.wait()
+            return await replies.chat_json(system, user)
+        finally:
+            active -= 1
+
+    # Keep the shipping provider's shared quota and the real desktop queue.
+    # Only the external CLI response is synthetic.
+    monkeypatch.setattr(local_agents.LocalAgentProvider, "_generate", generate)
+    runner = admin.JobRunner(tmp_path)
+    job = runner.start(settings, mode="summarize", fetch=False, limit=None, force=False, bookmark_ids=ids)
+    try:
+        await asyncio.wait_for(filled.wait(), 5)
+        assert peak == expected and len(calls) == expected and job.items_done == 0
+        release.set()
+        await asyncio.wait_for(runner._task, 10)
+        assert job.state == "done", job.error
+        assert job.items_done == len(ids) and job.items_failed == 0
+        assert len(calls) == len(ids) and peak == expected and active == 0
+    finally:
+        release.set()
+        await runner.shutdown()

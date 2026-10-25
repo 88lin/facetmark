@@ -554,7 +554,9 @@ class JobRunner:
             self.persist()
 
         queries = 0
-        width = min(64, 2 if settings.chat_backend == "agent" else max(1, settings.enrich_concurrency))
+        width = min(64, max(1, settings.enrich_concurrency))
+        if settings.chat_backend == "agent":
+            width = min(width, settings.agent_concurrency)
         while batch := processing.pending_batch(conn, job, size=width):
             if job.cancel_requested:
                 raise _Cancelled
