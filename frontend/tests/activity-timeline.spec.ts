@@ -215,7 +215,8 @@ test("Chinese and English activity stays compact at 320px and keyboard focus scr
         .getByRole("button", { name: "切换语言", exact: true }).click();
       await page.getByRole("dialog", { name: "Navigation", exact: true })
         .getByRole("button", { name: "Toggle theme", exact: true }).click();
-      await page.getByRole("button", { name: "Close navigation", exact: true }).click();
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog", { name: "Navigation", exact: true })).toHaveCount(0);
       await expect(panel.getByRole("heading", { name: "Saving activity", exact: true })).toBeVisible();
       await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     }

@@ -10,6 +10,10 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
+test.afterEach(async ({ page }) => {
+  await page.unrouteAll({ behavior: "wait" });
+});
+
 test("reader keeps the latest selection and remains usable while another body is loading", async ({
   page,
 }) => {

@@ -102,6 +102,7 @@ test("failed upload supports a single keyboard retry and validates the file befo
   await expect(panel.locator(".import-result")).toHaveAttribute("data-outcome", "complete");
   await expect(panel.locator(".import-error")).toHaveCount(0);
   const done = panel.getByRole("button", { name: "查看已导入的收藏", exact: true });
+  await expect(done).toBeEnabled();
   await done.focus(); await done.press("Space");
   await expect(page.locator(".workspace-search")).toBeVisible();
 });

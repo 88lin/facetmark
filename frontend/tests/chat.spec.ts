@@ -243,7 +243,7 @@ test("stop before message registration uses its request ID and an old cancel can
   expect(fixture.cancelRequests[0]).toEqual({ id: "chat-1", request_id: firstId });
   expect(fixture.registrationOrder).toEqual(["cancel:" + firstId, "messages:" + firstId]);
   expect(fixture.generated).toHaveLength(0);
-  await expect(page.locator(".chat-message.user")).toHaveText("在登记之前停止这个问题");
+  await expect(page.locator(".chat-message.user .chat-message-content")).toHaveText("在登记之前停止这个问题");
   await expect(page.locator(".chat-message.assistant")).toHaveAttribute("data-status", "cancelled");
 
   await question.fill("这是一个新的问题"); await question.press("Enter");
