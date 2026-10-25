@@ -754,7 +754,7 @@ def _mask(value: str) -> str:
     """Enough of a key to recognise, not enough to use."""
     if not value:
         return ""
-    return value if len(value) <= 8 else f"{value[:3]}...{value[-4:]}"
+    return "***" if len(value) <= 8 else f"{value[:3]}...{value[-4:]}"
 
 
 config_app = typer.Typer(help="The settings file the web UI writes.", no_args_is_help=True)
@@ -793,8 +793,8 @@ def config_show_cmd(json_out: bool = typer.Option(False, "--json")) -> None:
         else:
             source = "default"
         value = getattr(st, name)
-        if name == "api_key":
-            value = _mask(str(value))
+        if name in {"api_key", "chat_api_key", "embed_api_key", "mcp_token"}:
+            value = _mask(str(value or ""))
         rows.append({"key": name, "value": value, "source": source})
     if _emit({"path": str(config_path()), "settings": rows}, json_out):
         return

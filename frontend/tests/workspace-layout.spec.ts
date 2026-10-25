@@ -17,14 +17,16 @@ async function capture(page: Page, name: string) {
   await page.screenshot({ path: `${output}/polish-layout-${name}.png`, animations: "disabled" });
 }
 
-async function savedTextFixture(page: Page) {
+async function savedTextFixture(page: Page, sourceText?: string) {
   const paragraph = "收藏需要把问题、来源与当时的想法放在一起。A saved page keeps its reading context and native source link. ";
   const body = ["## 阅读与上下文", ...Array.from({ length: 16 }, () => paragraph.repeat(4)),
     "## 文章末尾", "最后一段仍然完整可见，阅读进度和返回顶部不会遮挡正文。"].join("\n\n");
   await page.route("**/bookmark/*?body=true", async route => {
     const response = await route.fetch();
     const record = await response.json();
-    await route.fulfill({ json: { ...record, body_text: body } });
+    await route.fulfill({ json: { ...record, body_text: sourceText ?? body,
+      summary: "收藏保存来源与阅读上下文，回到内容时仍能找到原文。", key_points: ["保留原始来源。"],
+      indexed: { ...record.indexed, summary_basis: "body", enriched_by: "synthetic-summary" } } });
   });
 }
 
@@ -82,7 +84,8 @@ test("card blank areas open the reader while native links, selection and expansi
   await expect(first.locator(".bookmark-check")).toBeChecked();
   await expect(page.locator(".preview-title")).toHaveCount(0);
   await first.locator(".bookmark-check").press("Space");
-  await page.getByRole("button", { name: "完成选择", exact: true }).click();
+  await expect(first.locator(".bookmark-check")).not.toBeChecked();
+  await expect(page.getByRole("button", { name: "完成选择", exact: true })).toHaveCount(0);
   const expand = first.locator(".summary-expand");
   if (await expand.count()) {
     await expand.click();
@@ -197,18 +200,16 @@ test("reading text has a clear scale, progress stays below the article and missi
   await top.press("Enter");
   await expect.poll(() => page.locator(".preview-scroll").evaluate(element => element.scrollTop)).toBe(0);
   await capture(page, "reader-type-and-footer");
-  await page.getByRole("tab", { name: "AI 摘要", exact: true }).click();
-  await expect(page.locator(".reading-position")).toHaveCount(0);
+  await expect(page.locator(".reader-summary")).toBeVisible();
+  await expect(page.locator(".preview-tabs [role=tab]")).toHaveCount(2);
+  await expect(page.getByRole("tab", { name: "AI 摘要", exact: true })).toHaveCount(0);
+  await expect(page.locator(".reading-position")).toBeVisible();
   await capture(page, "reader-summary");
-  await page.getByRole("tab", { name: "正文", exact: true }).click();
   await page.keyboard.press("Escape");
-  const id = await first.getAttribute("data-bookmark-id");
-  await page.route(`**/bookmark/${id}?body=true`, async route => {
-    const response = await route.fetch(); const record = await response.json();
-    await route.fulfill({ json: { ...record, body_text: "" } });
-  });
+  await savedTextFixture(page, "");
   await first.click({ position: { x: 7, y: 7 } });
-  await expect(page.locator(".reading-empty")).toContainText("正文还未保存");
+  await expect(page.locator(".reader-summary")).toBeVisible();
+  await expect(page.locator(".reader-source-missing")).toContainText("正文尚未保存");
   await expect(page.locator(".reading-position")).toHaveCount(0);
   await capture(page, "reader-without-page-text");
 });
@@ -233,7 +234,7 @@ test("settings fill the workspace; model menus fit edges and hidden tabs release
     expect(scroll.width).toBeGreaterThan(width * .8);
     const tabs = page.locator(".settings-tabs [role=tab]");
     await tabs.first().focus();
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < await tabs.count(); i++) {
       await page.keyboard.press("ArrowRight");
       await settleVisualLayout(page);
       const target = page.locator(".settings-tabs [aria-selected=true]");

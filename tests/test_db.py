@@ -234,6 +234,8 @@ def _write_v1(path) -> None:
     c.execute("DROP INDEX IF EXISTS ix_intent_unscored")   # indexed columns cannot be dropped
     c.execute("ALTER TABLE intent_query DROP COLUMN scored_at")
     c.execute("ALTER TABLE enrichment DROP COLUMN basis")
+    for name in ("ai_title", "language", "prompt_hash"):
+        c.execute(f"ALTER TABLE enrichment DROP COLUMN {name}")
     c.execute("ALTER TABLE bookmark DROP COLUMN tags")
     _add_bookmarks(c, 3)
     c.execute(

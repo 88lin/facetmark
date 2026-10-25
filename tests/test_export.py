@@ -211,7 +211,7 @@ class TestTheCommand:
     def test_it_writes_to_stdout_by_default(self, tmp_path, monkeypatch):
         r = self._run(["export", "-"], tmp_path, monkeypatch)
         assert r.exit_code == 0, r.output
-        assert json.loads(r.stdout)["facetmark"]["version"] == 1
+        assert json.loads(r.stdout)["facetmark"]["version"] == 2
 
     def test_it_writes_to_a_file(self, tmp_path, monkeypatch):
         out = tmp_path / "out.json"

@@ -1,6 +1,31 @@
 # Facetmark — current workspace refinement
 
-## Latest feedback — 2026-10-24
+## Latest feedback — 2026-10-25
+
+Remove the tray's transparent outer frame while preserving its interior. Expose
+thinking defaults and customization for endpoint models and automatically detected
+Codex, Claude Code and OpenCode clients. Remove the site directory category, combine
+AI overview and saved source text in one reading panel, and generate titles as well
+as summaries/key points in the chosen output language. Built-in writing instructions
+must be editable and restorable. Use select-all and Generate in the existing toolbar;
+do not add a selection row or repeat consent/reprocessing checkboxes.
+
+Explicitly selected records regenerate; without selection, generate eligible pending,
+failed or changed content in the current scope. Preserve previous derived content on
+failure and preserve a resumed task's language, instructions and target snapshot.
+Reference actual GithubStarsManager source at 2f41b01, as recorded in this repository.
+The initial 1696889 cloud run found regressions while the strict frontend build and
+real OpenCode checks passed. Follow-up completion includes durable cited chat,
+optional HTTP MCP, actual concurrency/retry controls, timeline/health, full reading
+and chat restoration, bounded website import and honest optional encoder support.
+Keep secondary entry points compact and preserve the existing selection toolbar.
+Application/capture 81f310a passed all four cloud workflows, including installed
+tray sizing and the actual Agent queue limit. Current captures remain unapproved
+as an aesthetic direction; precise technical and review scope is in
+[desktop completion](../docs/desktop-completion-2026-10-25.md).
+This brief does not authorize new commits, pushes, PRs, merges or releases.
+
+## Overall assessment and previous follow-up — 2026-10-24
 
 Latest user assessment: “还不算好看，能用的样子而已”. The current overall appearance
 needs further visual refinement. Earlier acknowledgement of progress is historical;
@@ -10,8 +35,8 @@ states, animation continuity, nested folders, folder artwork and unfinished
 startup surfaces. No new refinement is marked user-approved before review.
 PR #44 is merged under explicit user authorization. The new follow-up fixes
 workspace height, full-width settings, reader typography, blank-card preview,
-header search, native startup and the tray menu. Commit/push and cloud verification
-are authorized for a new PR; do not auto-merge it or publish a release.
+header search, native startup and the tray menu. The commit/push/cloud authorization
+recorded for that preceding follow-up does not originate from this file.
 New issue #52 covers retry while a failed sidecar is still exiting; its gate and
 immediate installed retry regression are part of PR #51. The installed icon
 has pixel-matched technical evidence, with no individual visual approval.
@@ -81,14 +106,19 @@ Hidden tray construction does not request window/WebView focus. Focus belongs
 to the visible opening. Preserve genuine native focus-loss dismissal.
 The requested geometry describes the physical outer frame. Measure native
 outer/client offsets at the target monitor's DPI before setting the client size;
-shadow borders must also fit within the work area.
+the tray's opaque surface fills the client viewport. Remove transparent surround
+padding and disable native shadow; retain alpha only at rounded corners.
 Cloud synthetic opening is identified separately from a real right-click.
 
 ## Product and implementation boundaries
 
 Preserve search/IME, server paging, exact folder selection, cross-page management
 and summary scopes, original links, native form/keyboard behavior, model discovery
-→ choice → test → save → execution, durable task recovery and processing consent.
+→ choice → thinking choice → test → save → execution and durable task recovery.
+Folders/tags provide directory classification; sites remain record metadata.
+Generate itself authorizes the scoped request to the tested chat connection.
+Connection settings explain the sent content without repeated per-task checkboxes.
+Writing preferences save independently from model connection testing.
 Use isolated synthetic content with long Chinese titles, mixed text and varied summaries.
 
 Assign styles and animated properties to their component owners. Remove superseded
@@ -107,7 +137,7 @@ Chinese/English, relevant actions, failure recovery and intermediate motion in t
 allowed environment. Native splash HTML with a synthetic bridge is distinct from
 installed Windows evidence. Old green checks do not verify the current source.
 
-[Current follow-up](../docs/workspace-layout-2026-10-24.md),
+[Current follow-up](../docs/summary-reading-reasoning-2026-10-25.md),
 [DESIGN.md](../DESIGN.md), [sidecar](design.json) and
 [frontend brief](surfaces/frontend.md) describe the same revision and review state.
 The repository handbook is a snapshot of general master v0.18. Update project

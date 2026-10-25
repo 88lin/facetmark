@@ -323,9 +323,11 @@ def test_json_export_keeps_reading_copy_and_roundtrips_scoped_metadata(client):
         assert stats["inserted"] == 1
         record = fresh.execute("SELECT title,folder,folder_depth,tags FROM bookmark").fetchone()
         assert tuple(record) == ("中文 <title>", "read/write", 1, '["tool", "a,b"]')
-        # Full exports keep text for portable reading. Import deliberately
-        # rebuilds cached bodies and AI data rather than restoring old indexes.
-        assert fresh.execute("SELECT count(*) FROM content").fetchone()[0] == 0
+        # Full v2 imports restore reading copies. This fixture's summary uses
+        # an obsolete source hash, so it must not be marked current on restore.
+        assert fresh.execute("SELECT count(*) FROM content").fetchone()[0] == 1
+        assert stats["restored_bodies"] == 1
+        assert stats["warnings"]
         assert fresh.execute("SELECT count(*) FROM enrichment").fetchone()[0] == 0
     finally:
         fresh.close()

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import hashlib
 import json
 import os
 import re
@@ -16,7 +17,9 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
 from pathlib import Path
+from weakref import WeakValueDictionary
 
 try:
     import tomllib
@@ -122,19 +125,50 @@ def _toml_literal(value):
     return json.dumps(value)
 
 
-def _codex_model_config(environ):
+def _codex_configuration(environ, *, model: str = "", reasoning_effort: str = "") -> dict:
+    """Resolve user/profile defaults while leaving project instructions isolated."""
+    directory = Path(environ.get("CODEX_HOME", Path.home() / ".codex"))
+    try:
+        config = tomllib.loads((directory / "config.toml").read_text(encoding="utf-8-sig"))
+    except FileNotFoundError:
+        return {}
+    except (OSError, ValueError):
+        raise ProviderError("Cannot read Codex model configuration. Check its config.toml and retry.") from None
+    profiles = config.get("profiles", {})
+    profile = profiles.get(config.get("profile"), {}) if isinstance(profiles, dict) else {}
+    if isinstance(profile, dict):
+        config = {**config, **profile}
+    models = config.get("models", {})
+    managed = models.get("new_thread", {}) if isinstance(models, dict) else {}
+    # An explicit model or effort overrides both managed new-thread defaults.
+    if isinstance(managed, dict) and not (model or reasoning_effort or config.get("model")
+                                         or config.get("model_reasoning_effort")):
+        for key in ("model", "model_reasoning_effort"):
+            if isinstance(managed.get(key), str):
+                config[key] = managed[key]
+    return config
+
+
+def _claude_configuration(environ) -> dict:
+    directory = Path(environ.get("CLAUDE_CONFIG_DIR", Path.home() / ".claude"))
+    try:
+        config = json.loads((directory / "settings.json").read_text(encoding="utf-8-sig"))
+        if not isinstance(config, dict):
+            raise ValueError("Expected a settings object")
+        return config
+    except FileNotFoundError:
+        return {}
+    except (OSError, ValueError):
+        raise ProviderError("Cannot read Claude Code model configuration. Check its settings.json and retry.") from None
+
+
+def _codex_model_config(environ, *, model: str = "", reasoning_effort: str = ""):
     """Reuse model selection without loading inherited tools, MCPs or hooks.
 
     Authentication stays in the original CLI store. Literal credential headers
     are deliberately never copied into process arguments.
     """
-    directory = Path(environ.get("CODEX_HOME", Path.home() / ".codex"))
-    try:
-        config = tomllib.loads((directory / "config.toml").read_text(encoding="utf-8"))
-    except FileNotFoundError:
-        return []
-    except (OSError, ValueError):
-        raise ProviderError("Cannot read Codex model configuration. Check its config.toml and retry.") from None
+    config = _codex_configuration(environ, model=model, reasoning_effort=reasoning_effort)
     args = []
     for key in ("model", "model_provider", "model_reasoning_effort"):
         if isinstance(config.get(key), str):
@@ -249,7 +283,8 @@ def _opencode_environment(directory: Path, env: dict) -> dict:
     return env
 
 
-def build_invocation(agent: str, directory: Path, *, model: str, environ: dict) -> tuple[list[str], dict]:
+def build_invocation(agent: str, directory: Path, *, model: str, environ: dict,
+                     reasoning_effort: str = "") -> tuple[list[str], dict]:
     env = dict(environ)
     # Do not inherit an active parent conversation or spawn a nested interactive session.
     env.pop("CLAUDECODE", None)
@@ -261,9 +296,11 @@ def build_invocation(agent: str, directory: Path, *, model: str, environ: dict) 
                 "-c", "features.js_repl=false", "-c", "features.apps=false",
                 "-c", "features.multi_agent=false", "-c", "features.hooks=false",
                 "-c", "mcp_servers={}", "-c", 'model_reasoning_summary="none"']
-        args += _codex_model_config(env)
+        args += _codex_model_config(env, model=model, reasoning_effort=reasoning_effort)
         if model:
             args += ["--model", model]
+        if reasoning_effort:
+            args += ["-c", "model_reasoning_effort=" + _toml_literal(reasoning_effort)]
         args += ["-"]
     elif agent == "claude":
         args = ["--print", "--output-format", "json", "--tools", "", "--strict-mcp-config",
@@ -272,15 +309,51 @@ def build_invocation(agent: str, directory: Path, *, model: str, environ: dict) 
                 "--settings", '{"disableAllHooks":true}']
         if model:
             args += ["--model", model]
+        if reasoning_effort:
+            if reasoning_effort not in {"low", "medium", "high", "xhigh", "max"}:
+                raise ProviderError("Claude Code effort must be low, medium, high, xhigh or max. Use its default for other models.")
+            args += ["--effort", reasoning_effort]
+            # A parent session's environment must not outrank this selection.
+            env["CLAUDE_CODE_EFFORT_LEVEL"] = reasoning_effort
     elif agent == "opencode":
         env = _opencode_environment(directory, env)
         args = ["run", "--format", "json", "--pure", "--agent", "facetmark-summary",
                 "--title", "Facetmark summary"]
         if model:
             args += ["--model", model]
+        if reasoning_effort:
+            args += ["--variant", reasoning_effort]
     else:
         raise ProviderError("Unknown local agent")
     return args, env
+
+
+def configuration_fingerprint(agent: str, *, model: str = "", reasoning_effort: str = "") -> str:
+    """Invalidate tests when inherited model/effort/provider configuration changes.
+
+    Only a digest leaves this function. Credentials and configuration contents
+    never appear in API responses or process arguments.
+    """
+    env = dict(os.environ)
+    try:
+        if agent == "codex":
+            config = _codex_configuration(env, model=model, reasoning_effort=reasoning_effort)
+            value = {key: config.get(key) for key in
+                     ("model", "model_reasoning_effort", "model_provider", "model_providers")}
+        elif agent == "claude":
+            config = _claude_configuration(env)
+            configured_env = config.get("env", {})
+            effective = {**(configured_env if isinstance(configured_env, dict) else {}), **env}
+            value = {key: config.get(key) for key in ("model", "effortLevel", "modelSettings", "maxEffortLevel")}
+            value["environment"] = {key: val for key, val in effective.items() if
+                                    key == "ANTHROPIC_MODEL" or key == "CLAUDE_CODE_EFFORT_LEVEL"
+                                    or (key.startswith("ANTHROPIC_DEFAULT_") and key.endswith("_MODEL"))}
+        else:
+            isolated = _opencode_environment(Path(".facetmark-model-fingerprint"), env)
+            value = json.loads(isolated["OPENCODE_CONFIG_CONTENT"])
+    except (OSError, ValueError, TypeError, AttributeError, ProviderError):
+        value = {"configuration_unavailable": True}
+    return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
 
 
 def parse_agent_output(agent: str, output: str) -> dict:
@@ -330,6 +403,35 @@ def _terminate(process: subprocess.Popen) -> None:
         process.wait(timeout=5)
 
 
+class _AgentQuota:
+    def __init__(self, limit: int):
+        self.gate = threading.BoundedSemaphore(limit)
+
+    async def __aenter__(self):
+        # Jobs have their own loop/thread. A nonblocking shared gate covers
+        # both loops without orphaning an acquisition when a waiter is stopped.
+        while not self.gate.acquire(blocking=False):
+            await asyncio.sleep(0.05)
+        return self
+
+    async def __aexit__(self, *args):
+        self.gate.release()
+
+
+_QUOTA_LOCK = threading.Lock()
+_QUOTAS: WeakValueDictionary = WeakValueDictionary()
+
+
+def _agent_quota(settings, agent: str):
+    key = (str(settings.data_dir.resolve()), agent, settings.agent_concurrency)
+    with _QUOTA_LOCK:
+        quota = _QUOTAS.get(key)
+        if quota is None:
+            quota = _AgentQuota(settings.agent_concurrency)
+            _QUOTAS[key] = quota
+        return quota
+
+
 class LocalAgentProvider(Provider):
     name = "local-agent"
 
@@ -340,7 +442,7 @@ class LocalAgentProvider(Provider):
             raise ProviderError("No supported local agent is available. Install/sign into Codex, Claude Code or OpenCode, then refresh detection.")
         self.chat_model_in_use = f"{self.agent}/{settings.chat_agent_model or 'configured default'}"
         self._processes: set[subprocess.Popen] = set()
-        self._gate = asyncio.Semaphore(2)
+        self._gate = _agent_quota(settings, self.agent)
 
     async def chat_json(self, system: str, user: str) -> dict:
         async with self._gate:
@@ -355,7 +457,8 @@ class LocalAgentProvider(Provider):
                   + system + "\n\n" + user)
         with tempfile.TemporaryDirectory(prefix="facetmark-agent-") as directory:
             args, env = build_invocation(self.agent, Path(directory),
-                                        model=self.settings.chat_agent_model, environ=os.environ)
+                                        model=self.settings.chat_agent_model, environ=os.environ,
+                                        reasoning_effort=self.settings.chat_agent_reasoning_effort)
             options = ({"creationflags": subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP}
                        if os.name == "nt" else {"start_new_session": True})
             try:
@@ -375,6 +478,9 @@ class LocalAgentProvider(Provider):
                     reason = ("Update the selected CLI; this version does not support the required non-interactive options."
                               if re.search(r"unknown (argument|option)|unrecognized (argument|option)|unexpected argument", diagnostic, re.I)
                               else "Sign into the selected CLI first." if re.search(r"auth|log.?in|401|403", diagnostic, re.I)
+                              else "The selected thinking level or variant was rejected. Check model support or select the agent default and test again."
+                              if re.search(r"reasoning|effort|variant|thinking", diagnostic, re.I)
+                              and re.search(r"unsupported|not supported|invalid|unknown|not found", diagnostic, re.I)
                               else "Check the selected CLI's connection and default model, then retry.")
                     raise ProviderError(f"{AGENTS[self.agent]} exited with code {process.returncode}. {reason}")
                 self.usage.calls += 1

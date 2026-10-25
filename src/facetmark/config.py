@@ -13,6 +13,7 @@ import contextlib
 import json
 import os
 from pathlib import Path
+from typing import Literal
 from urllib.parse import urlsplit
 
 from pydantic import Field, field_validator
@@ -158,6 +159,8 @@ class Settings(BaseSettings):
     chat_backend: str = "endpoint"
     chat_agent: str = "auto"
     chat_agent_model: str = ""
+    chat_agent_reasoning_effort: str = ""
+    """Empty inherits the CLI/model default; OpenCode uses a model variant."""
     chat_agent_timeout: float = Field(default=180, ge=10, le=1800)
     embed_base_url: str | None = None
     embed_api_key: str | None = None
@@ -229,16 +232,23 @@ class Settings(BaseSettings):
     unaffected either way. Raising it costs CPU quadratically for no gain here."""
 
     request_timeout: float = Field(default=60.0, gt=0)
-    max_retries: int = Field(default=3, ge=1)
+    max_retries: int = Field(default=3, ge=1, le=10)
+    """Maximum total HTTP attempts, including the first request."""
+    model_requests_per_minute: int = Field(default=0, ge=0, le=6000)
+    """Shared endpoint/account HTTP request limit; zero disables the minute cap."""
+    agent_concurrency: int = Field(default=2, ge=1, le=8)
+    """Shared local-client invocation cap across summary and chat providers."""
+    chat_concurrency: int = Field(default=2, ge=1, le=8)
+    """Maximum simultaneously running conversations in this service."""
 
     #: When true, all model calls are served by the deterministic offline mock.
     #: This is what makes ``facetmark demo`` runnable with no credentials.
     use_mock_provider: bool = False
 
     # ---------- fetching ----------
-    fetch_concurrency: int = Field(default=30, ge=1)
-    fetch_per_host_concurrency: int = 2
-    fetch_per_host_min_interval: float = 0.5
+    fetch_concurrency: int = Field(default=30, ge=1, le=64)
+    fetch_per_host_concurrency: int = Field(default=2, ge=1, le=16)
+    fetch_per_host_min_interval: float = Field(default=0.5, ge=0, le=60)
     fetch_timeout: float = 15.0
     user_agent: str = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -260,12 +270,19 @@ class Settings(BaseSettings):
     body_truncate_chars: int = 6000
 
     # ---------- enrichment / intent ----------
+    summary_language: Literal["auto", "zh", "en"] = "auto"
+    """Auto follows the UI language for new jobs; CLI calls default to Chinese."""
+    summary_prompt: str = Field(default="", max_length=10000)
+    """Optional writing instructions. Empty uses the built-in language default.
+
+    JSON shape, target language and retrieval requirements remain built-in.
+    """
     #: In-flight enrichment calls. The right value is a property of the backend,
     #: not of facetmark: a hosted API rations by tokens-per-minute and punishes
     #: bursts, while a self-hosted llama.cpp with continuous batching gets
     #: *faster* per token as the batch grows. 4 is a safe hosted default;
     #: a local server with N parallel slots wants N.
-    enrich_concurrency: int = Field(default=4, ge=1)
+    enrich_concurrency: int = Field(default=4, ge=1, le=64)
     intent_generate_n: int = 8
     intent_keep_n: int = 4
     """How many self-consistent intent queries to keep. Report's ablation should
@@ -382,6 +399,11 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = 8787
 
+    mcp_enabled: bool = False
+    """Expose the existing MCP tools through the running service when enabled."""
+    mcp_token: str = Field(default="", repr=False)
+    """Independent MCP credential, managed through the local integration settings."""
+
     admin_api: bool = True
     """Whether ``/admin/*`` -- import, index and settings -- is mounted.
 
@@ -418,6 +440,14 @@ class Settings(BaseSettings):
     def _chat_agent(cls, value: str) -> str:
         if value not in {"auto", "codex", "claude", "opencode"}:
             raise ValueError("Unsupported local agent")
+        return value
+
+    @field_validator("chat_agent_reasoning_effort")
+    @classmethod
+    def _agent_reasoning_effort(cls, value: str) -> str:
+        value = value.strip()
+        if len(value) > 128 or value.startswith("-") or any(ord(char) < 32 for char in value):
+            raise ValueError("Invalid agent reasoning level or variant")
         return value
 
     @field_validator("chat_extra_body")
@@ -473,7 +503,8 @@ class Settings(BaseSettings):
             from .local_agents import selected_agent
             return selected_agent(self.chat_agent) is not None
         if channel == 'embed' and self.embed_backend == 'local':
-            return bool(self.local_embed_path)
+            from .embedding_runtime import local_embedding_runtime
+            return bool(self.local_embed_path) and local_embedding_runtime()["supported"]
         try:
             configured = self.channel_settings(channel)
             return bool(configured.api_key or configured.endpoint_allow_no_key)

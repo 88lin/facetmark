@@ -14,10 +14,84 @@ import urllib.request
 from pathlib import Path
 
 
-def request(port, path, token=''):
+def request(port, path, token='', *, payload=None, headers=None):
     req = urllib.request.Request(f'http://127.0.0.1:{port}{path}',
-                                headers={'Authorization': f'Bearer {token}'})
+        data=json.dumps(payload).encode('utf-8') if payload is not None else None,
+        headers={'Authorization': f'Bearer {token}',
+                 **({'Content-Type': 'application/json'} if payload is not None else {}),
+                 **(headers or {})})
     return urllib.request.urlopen(req, timeout=5)
+
+
+def mcp_check(port, pairing_token):
+    """Actual HTTP protocol calls to the frozen child, without a Python client."""
+    protocol = '2025-03-26'
+    headers = {'Accept': 'application/json, text/event-stream', 'MCP-Protocol-Version': protocol}
+
+    def rpc(token, method, params=None):
+        with request(port, '/mcp/', token, payload={'jsonrpc': '2.0', 'id': 1,
+                'method': method, 'params': params or {}}, headers=headers) as response:
+            assert response.status == 200
+            value = json.load(response)
+            assert 'error' not in value, 'Frozen MCP returned a protocol error'
+            return value['result']
+
+    try:
+        rpc('', 'initialize')
+        raise AssertionError('MCP must be disabled until enabled in settings')
+    except urllib.error.HTTPError as error:
+        assert error.code == 404
+    with request(port, '/admin/mcp', pairing_token, payload={'enabled': True}) as response:
+        configured = json.load(response)
+    assert configured['running'] and configured['transport_ready']
+    token = configured['token']
+    assert token and token != pairing_token
+    assert configured['endpoint'] == f'http://127.0.0.1:{port}/mcp/'
+    for unauthorized in ('', pairing_token):
+        try:
+            rpc(unauthorized, 'tools/list')
+            raise AssertionError('MCP accepted browser or missing authority')
+        except urllib.error.HTTPError as error:
+            assert error.code == 401
+    initialized = rpc(token, 'initialize', {'protocolVersion': protocol,
+        'capabilities': {}, 'clientInfo': {'name': 'facetmark-frozen-smoke', 'version': '1'}})
+    assert initialized['serverInfo']['name'] == 'facetmark'
+    with request(port, '/mcp/', token, payload={'jsonrpc': '2.0',
+            'method': 'notifications/initialized'}, headers=headers) as notification:
+        assert notification.status == 202
+    tools = rpc(token, 'tools/list')['tools']
+    resources = rpc(token, 'resources/list')['resources']
+    templates = rpc(token, 'resources/templates/list')['resourceTemplates']
+    assert len(tools) == 9 and len(resources) == 1 and len(templates) == 2
+    assert any(tool['name'] == 'save_bookmark' for tool in tools)
+    created = rpc(token, 'tools/call', {'name': 'save_bookmark', 'arguments': {
+        'url': 'https://synthetic.example/frozen-mcp', 'title': 'Frozen MCP synthetic bookmark'}})
+    assert not created.get('isError', False)
+    record = created.get('structuredContent') or json.loads(created['content'][0]['text'])
+    found = rpc(token, 'tools/call', {'name': 'get_bookmark', 'arguments': {
+        'bookmark_id': record['bookmark_id']}})
+    assert not found.get('isError', False)
+    bookmark = found.get('structuredContent') or json.loads(found['content'][0]['text'])
+    assert bookmark['url'] == 'https://synthetic.example/frozen-mcp'
+    with request(port, '/admin/mcp', pairing_token, payload={'rotate_token': True}) as response:
+        rotated = json.load(response)
+    assert rotated['token'] != token
+    try:
+        rpc(token, 'tools/list')
+        raise AssertionError('MCP retained the old token after rotation')
+    except urllib.error.HTTPError as error:
+        assert error.code == 401
+    with request(port, '/admin/mcp', pairing_token, payload={'enabled': False}) as response:
+        assert json.load(response)['running'] is False
+    try:
+        rpc(rotated['token'], 'tools/list')
+        raise AssertionError('MCP remained available after disabling')
+    except urllib.error.HTTPError as error:
+        assert error.code == 404
+    return {'transport': 'streamable-http', 'real_http_socket': True,
+        'tools': len(tools), 'resources': len(resources), 'templates': len(templates),
+        'independent_token': True, 'rotation_revokes_old_token': True,
+        'disable_revokes_access': True, 'synthetic_write_read': True}
 
 
 def ready(process):
@@ -81,6 +155,7 @@ def main():
                 raise AssertionError('Runtime identity must be authenticated')
             except urllib.error.HTTPError as error:
                 assert error.code == 401
+            evidence['mcp'] = mcp_check(port, token)
             second = subprocess.Popen(command, env=env, cwd=temp, stdin=subprocess.PIPE,
                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                       text=True, encoding='utf-8')

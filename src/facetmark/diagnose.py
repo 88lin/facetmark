@@ -222,13 +222,15 @@ def check_vectors(conn: sqlite3.Connection, st: Settings) -> list[Check]:
             "vectors.dim", "error",
             f"stored vectors are {stored_dim}-dimensional, settings say "
             f"{st.embed_dim}. Every stored vector is unusable until they agree. "
-            "Run: facetmark reindex --vectors",
+            "In /app settings, test and apply the embedding connection with a "
+            "confirmed vector rebuild (a backup is made), then run: facetmark index",
         ))
     if stored_model is not None and stored_model != st.embed_model:
         out.append(Check(
             "vectors.model", "error",
             f"stored vectors were built with {stored_model!r}, settings say "
-            f"{st.embed_model!r}. Run: facetmark reindex --vectors",
+            f"{st.embed_model!r}. In /app settings, test and apply the embedding connection "
+            "with a confirmed vector rebuild (a backup is made), then run: facetmark index",
         ))
 
     if not _table_exists(conn, "vec_content"):
@@ -279,21 +281,36 @@ def check_provider(st: Settings) -> list[Check]:
                       "the mock provider is configured. It hashes text into a "
                       "vector, which is deterministic and meaningless -- fine for "
                       "a demo, not for a real library.")]
+    chat_model = (st.chat_agent_model or "(client default)") if st.chat_backend == "agent" else st.chat_model or "(unset)"
     out = [Check("provider.models", "ok",
-                 f"configured: chat {st.chat_model or '(unset)'}, embed "
+                 f"configured: chat {chat_model}, embed "
                  f"{st.embed_model or '(unset)'} at {st.embed_dim} dims")]
-    if st.embed_backend == "local":
-        out.append(Check("provider.embed", "ok",
-                         "local embedding backend configured; no embedding key needed. "
-                         "Model availability and loading were not tested."))
-    elif not st.api_key:
-        out.append(Check("provider.embed", "warn",
-                         "no API key is set and the embedding backend is not "
-                         "local, so nothing can be embedded or enriched"))
-    else:
-        out.append(Check("provider.embed", "ok",
-                         f"key set, base url {st.base_url or '(default)'}. "
-                         "Credentials and connectivity were not tested."))
+    for channel in ("chat", "embed"):
+        if channel == "chat" and st.chat_backend == "agent":
+            from .local_agents import AGENTS, selected_agent
+            selected = selected_agent(st.chat_agent)
+            out.append(Check("provider.chat", "ok" if selected else "warn",
+                             "Local chat Agent " + (AGENTS[selected] if selected else "is unavailable") +
+                             ". Login and model execution were not tested."))
+        elif channel == "embed" and st.embed_backend == "local":
+            from .embedding_runtime import local_embedding_error, local_embedding_runtime
+            available = local_embedding_runtime()["supported"]
+            out.append(Check("provider.embed", "ok" if available and st.local_embed_path else "warn",
+                             "Local embedding runtime available; model loading was not tested."
+                             if available and st.local_embed_path else
+                             "Set local_embed_path before using the local encoder." if available else
+                             local_embedding_error()))
+        else:
+            try:
+                configured = st.channel_settings(channel)
+            except ValueError:
+                out.append(Check(f"provider.{channel}", "warn", "Invalid model endpoint configuration."))
+                continue
+            ready = bool(configured.api_key or configured.endpoint_allow_no_key)
+            out.append(Check(f"provider.{channel}", "ok" if ready else "warn",
+                             f"{'Credentials configured' if ready else 'No credentials configured'} "
+                             f"for {channel} endpoint {configured.base_url}. "
+                             "Credentials and connectivity were not tested."))
     return out
 
 

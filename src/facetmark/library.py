@@ -512,10 +512,15 @@ def export_library(conn: sqlite3.Connection, body: ExportRequest) -> dict:
         reading_data = service.export_reading_data(conn, record_ids)
         for bid, record in zip(record_ids, records, strict=True):
             record.update(reading_data[bid])
-    return {MARKER: {"version": FORMAT_VERSION, "app_version": __version__,
+    result = {MARKER: {"version": FORMAT_VERSION, "app_version": __version__,
                      "exported_at": int(time.time()), "count": len(records), "query": body.query,
-                     "full": body.format == "json", "filters": body.filters.model_dump(exclude_none=True)},
+                     "full": body.format == "json", "restorable": body.format == "json", "filters": body.filters.model_dump(exclude_none=True)},
             "bookmarks": records}
+    if body.format == "json":
+        from .backup import export_conversations
+        all_scope = body.ids is None and not body.query.strip() and not body.filters.model_dump(exclude_none=True)
+        result["conversations"] = export_conversations(conn, record_ids, all_scope=all_scope)
+    return result
 
 
 def netscape_html(payload: dict) -> str:
@@ -548,7 +553,7 @@ def register(app: FastAPI, auth: list) -> None:
     deps = [*auth, Depends(admin.admin_gate)]
 
     def writable(state):
-        if state.jobs.running:
+        if state.jobs.running or state.crawls.running:
             raise HTTPException(409, "Stop the index job before changing bookmarks")
 
     @app.post("/admin/library/bookmarks", dependencies=deps)

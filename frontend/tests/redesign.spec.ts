@@ -10,6 +10,10 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
+test.afterEach(async ({ page }) => {
+  await page.unrouteAll({ behavior: "wait" });
+});
+
 test("reader keeps the latest selection and remains usable while another body is loading", async ({
   page,
 }) => {
@@ -27,7 +31,7 @@ test("reader keeps the latest selection and remains usable while another body is
   });
   await rows.nth(0).locator(".bookmark-preview").click();
   await expect(page.locator(".skeleton-article")).toBeVisible();
-  await expect(page.getByRole("tab", { name: "正文", exact: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "阅读", exact: true })).toBeVisible();
   await rows.nth(1).locator(".bookmark-preview").click();
   await expect(page.locator(".preview-title h1")).toHaveText(fastTitle);
   await expect(page.locator(".body-text")).toBeVisible();
@@ -64,9 +68,9 @@ test("reader tabs, expansion reversal and keyboard preserve query and scroll con
   });
   expect(readerBefore.top).toBeGreaterThan(0);
   const before = await page.locator(".preview-tabs").boundingBox();
-  await page.getByRole("tab", { name: "AI 摘要" }).click();
+  await expect(page.locator(".reader-summary")).toBeVisible();
   await page.getByRole("tab", { name: "相关书签" }).click();
-  await page.getByRole("tab", { name: "正文", exact: true }).click();
+  await page.getByRole("tab", { name: "阅读", exact: true }).click();
   expect((await page.locator(".preview-tabs").boundingBox())?.y).toBe(before?.y);
   expect(await page.locator(".preview-scroll").evaluate((el) => el.scrollTop)).toBe(
     readerBefore.top,
@@ -161,8 +165,8 @@ test("narrow reader reverses, contains focus and supports reduced motion", async
   await expect
     .poll(() => page.locator(".preview-pane").evaluate((el) => getComputedStyle(el).transform))
     .toBe("none");
-  await page.getByRole("tab", { name: "AI 摘要" }).click();
-  await page.getByRole("tab", { name: "正文", exact: true }).click();
+  await page.getByRole("tab", { name: "相关书签" }).click();
+  await page.getByRole("tab", { name: "阅读", exact: true }).click();
   const outline = page.getByRole("navigation", { name: "文章目录", exact: true });
   await expect(outline).toBeVisible();
   await outline.getByRole("button", { name: "从摘要回到原文", exact: true }).click();
@@ -204,6 +208,7 @@ test("loading, empty, failure and long-title states have real rendered evidence"
     const response = await route.fetch();
     const data = await response.json();
     data.title = title;
+    data.ai_title = title;
     await route.fulfill({ json: data });
   });
   await page.locator(".result-row").first().locator(".bookmark-preview").click();
@@ -351,9 +356,9 @@ test("record the search-to-reading interaction on the actual shared frontend", a
   await page.locator(".preview-scroll").hover();
   await page.mouse.wheel(0, 360);
   await page.waitForTimeout(900);
-  await page.getByRole("tab", { name: "AI 摘要" }).click();
+  await page.getByRole("tab", { name: "相关书签" }).click();
   await page.waitForTimeout(700);
-  await page.getByRole("tab", { name: "正文", exact: true }).click();
+  await page.getByRole("tab", { name: "阅读", exact: true }).click();
   await page.waitForTimeout(600);
   await page.locator(".focus-reading").click();
   await page.waitForTimeout(1100);

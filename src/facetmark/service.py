@@ -128,12 +128,14 @@ SELECT b.id, b.url, b.title, b.folder, b.folder_depth, b.domain, b.host,
        e.summary, e.topics, e.entities, e.key_points, e.utility, e.content_type,
        e.basis AS enrich_basis,
        e.model AS enrich_model,
+       e.ai_title, e.language AS summary_language, ef.error AS summary_error,
        c.char_count, c.lang, c.extractor, c.fetch_channel, c.http_status,
        c.fetched_at, c.final_url, c.error AS fetch_error,
        substr(COALESCE(c.body_text, ''), 1, 400) AS body_head
 FROM bookmark b
 LEFT JOIN enrichment e ON e.bookmark_id = b.id
 LEFT JOIN content    c ON c.bookmark_id = b.id
+LEFT JOIN enrichment_failure ef ON ef.bookmark_id = b.id
 WHERE b.id = ?
 """
 
@@ -183,6 +185,7 @@ def bookmark_record(
         "managed_externally": managed_externally,
         "url": row["url"],
         "title": row["title"],
+        "ai_title": row["ai_title"] or "",
         "folder": row["folder"],
         "folder_depth": row["folder_depth"],
         "domain": row["domain"],
@@ -191,6 +194,8 @@ def bookmark_record(
         "last_opened_at": row["last_opened_at"],
         "tags": _jlist(row["tags"]),
         "summary": _clip(row["summary"], SUMMARY_CHARS),
+        "summary_language": row["summary_language"] or "",
+        "summary_error": row["summary_error"] or "",
         "topics": _jlist(row["topics"]),
         "entities": _jlist(row["entities"]),
         "key_points": _jlist(row["key_points"]),
@@ -259,7 +264,7 @@ def session_record(conn: sqlite3.Connection, session_id: int) -> dict | None:
     if row is None:
         return None
     members = conn.execute(
-        "SELECT b.id, b.url, b.title, b.folder, b.domain, b.date_added, "
+        "SELECT b.id, b.url, b.title, e.ai_title, b.folder, b.domain, b.date_added, "
         f"       substr(COALESCE(e.summary,''),1,{SUMMARY_CHARS}) AS summary "
         "FROM bookmark_session bs JOIN bookmark b ON b.id = bs.bookmark_id "
         "LEFT JOIN enrichment e ON e.bookmark_id = b.id "
@@ -276,7 +281,7 @@ def session_record(conn: sqlite3.Connection, session_id: int) -> dict | None:
         "method": row["method"] or "",
         "eps_seconds": row["eps_seconds"],
         "bookmarks": [
-            {"bookmark_id": m["id"], "url": m["url"], "title": m["title"],
+            {"bookmark_id": m["id"], "url": m["url"], "title": m["title"], "ai_title": m["ai_title"] or "",
              "folder": m["folder"], "domain": m["domain"],
              "date_added": m["date_added"], "summary": m["summary"] or ""}
             for m in members
@@ -302,7 +307,7 @@ def related_records(
     rows = {
         r["id"]: r
         for r in conn.execute(
-            "SELECT b.id, b.url, b.title, b.folder, b.domain, b.date_added, "
+            "SELECT b.id, b.url, b.title, e.ai_title, b.folder, b.domain, b.date_added, "
             f"       substr(COALESCE(e.summary,''),1,{SUMMARY_CHARS}) AS summary "
             "FROM bookmark b LEFT JOIN enrichment e ON e.bookmark_id = b.id "
             f"WHERE b.id IN ({','.join('?' * len(ids))})",
@@ -315,7 +320,7 @@ def related_records(
         if r is None:
             continue
         out.append({
-            "bookmark_id": r["id"], "url": r["url"], "title": r["title"],
+            "bookmark_id": r["id"], "url": r["url"], "title": r["title"], "ai_title": r["ai_title"] or "",
             "folder": r["folder"], "domain": r["domain"], "date_added": r["date_added"],
             "summary": r["summary"] or "", "kind": e.kind, "score": round(e.score, 6),
         })
@@ -754,13 +759,14 @@ def sync_fts_tag_refresh(conn: sqlite3.Connection, bookmark_id: int) -> None:
         "SELECT body_text, body_seg FROM content WHERE bookmark_id=?", (bookmark_id,)
     ).fetchone()
     enr = conn.execute(
-        "SELECT summary, topics, entities, key_points FROM enrichment WHERE bookmark_id=?",
+        "SELECT ai_title, summary, topics, entities, key_points FROM enrichment WHERE bookmark_id=?",
         (bookmark_id,),
     ).fetchone()
     sync_fts(
         conn,
         bookmark_id,
         title=b["title"] or "",
+        ai_title=(enr["ai_title"] if enr else "") or "",
         body=(body_row["body_text"] if body_row else "") or "",
         body_seg=(body_row["body_seg"] if body_row else None),
         summary=(enr["summary"] if enr else "") or "",
@@ -892,27 +898,33 @@ def export_reading_data(conn: sqlite3.Connection, ids: Sequence[int]) -> dict[in
 
     This is an explicit local export, so privacy-excluded pages stay included
     when selected. Those rules prevent network/model calls, not the owner's
-    access to saved text. No keys, browser state, vectors or history are read.
-    Import still restores bookmark metadata only, leaving model data to rebuild.
+    access to saved text. No keys, browser state or vectors are read.
+    Version 2 full imports fill missing saved reading copies.
     """
     out: dict[int, dict] = {}
     for batch in dbmod.in_chunks(ids):
         marks = ",".join("?" * len(batch))
         for row in conn.execute(
-            "SELECT b.id, b.source, e.summary, e.topics, e.entities, e.key_points, e.utility,"
-            " e.content_type, e.basis, e.model, e.source_hash, e.created_at,"
+            "SELECT b.id, b.source, e.ai_title, e.summary, e.topics, e.entities, e.key_points, e.utility,"
+            " e.content_type, e.basis, e.model, e.source_hash, e.created_at, e.language, e.prompt_hash,"
             " c.bookmark_id AS content_id, c.body_text, c.body_hash, c.char_count, c.lang,"
-            " c.extractor, c.fetch_channel, c.http_status, c.final_url, c.fetched_at"
+            " c.extractor, c.fetch_channel, c.http_status, c.final_url, c.fetched_at,"
+            " (SELECT json_group_array(i.text) FROM intent_query i WHERE i.bookmark_id=b.id"
+            " AND e.source_hash=COALESCE(c.body_hash,fm_title_hash(b.title,b.url))) AS intent_queries"
             " FROM bookmark b LEFT JOIN enrichment e ON e.bookmark_id=b.id"
             " LEFT JOIN content c ON c.bookmark_id=b.id"
             f" WHERE b.id IN ({marks})", batch,
         ):
             reading: dict = {"derived": {
                 "source": row["source"] or "",
+                "ai_title": row["ai_title"] or "",
                 "summary": row["summary"] or "",
+                "summary_language": row["language"] or "",
+                "prompt_hash": row["prompt_hash"] or "",
                 "topics": _jlist(row["topics"]),
                 "entities": _jlist(row["entities"]),
                 "key_points": _jlist(row["key_points"]),
+                "intent_queries": _jlist(row["intent_queries"]),
                 "utility": row["utility"] or "",
                 "content_type": row["content_type"] or "",
                 "basis": row["basis"] or "",
@@ -952,8 +964,8 @@ def export_bookmarks(
     What is written is the source of truth: the URL, the title, the folder, the
     save date and the tags. Everything else -- summary, topics, vectors,
     sessions -- is derived and fingerprinted, and ``facetmark index`` rebuilds
-    it. ``full=True`` adds saved page text and derived fields for reading; the
-    importer ignores them.
+    it. ``full=True`` adds restorable saved page text, derived fields and
+    conversations wholly contained in this scope. Vectors are rebuilt locally.
 
     Ordered by id, which is import order: deterministic, and two exports of an
     unchanged library diff to nothing.
@@ -1009,7 +1021,7 @@ def export_bookmarks(
             rec.update(extra[i])
         out.append(rec)
 
-    return {
+    result = {
         MARKER: {
             "version": FORMAT_VERSION,
             "app_version": __version__,
@@ -1017,9 +1029,14 @@ def export_bookmarks(
             "count": len(out),
             "query": query,
             "full": bool(full),
+            "restorable": bool(full),
         },
         "bookmarks": out,
     }
+    if full:
+        from .backup import export_conversations
+        result["conversations"] = export_conversations(conn, ids, all_scope=not query.strip())
+    return result
 
 
 def timeline(
@@ -1269,6 +1286,8 @@ def _import_stats(stats) -> dict:
         "privacy_skipped": stats.privacy_skipped, "folders": stats.folders,
         "max_depth": stats.max_depth, "timestamp_unit": stats.timestamp_unit,
         "source": stats.source, "warnings": stats.warnings,
+        "restored_bodies": stats.restored_bodies, "restored_summaries": stats.restored_summaries,
+        "restored_conversations": stats.restored_conversations, "restored_messages": stats.restored_messages,
     }
 
 

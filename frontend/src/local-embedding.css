@@ -1,0 +1,10 @@
+.embedding-backend { margin: 0 0 18px; min-width: 0; font-size: var(--type-ui); line-height: 1.75; }
+.embedding-backend > p { margin: 0 0 8px; color: var(--secondary-ink); overflow-wrap: anywhere; }
+.embedding-backend > p > strong { color: var(--ink); font-weight: 650; }
+.embedding-backend .embedding-pending { color: var(--accent); }
+.local-embedding-runtime { padding: 13px 15px; margin: 12px 0; border: 1px solid var(--rule); border-radius: 18px; background: var(--soft); }
+.local-embedding-runtime > p { margin: 0 0 10px; color: var(--secondary-ink); }
+.local-embedding-runtime > p:last-child { margin-bottom: 0; }
+.local-embedding-runtime .fm-button { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; min-height: 44px; padding: 9px 13px; font-size: var(--type-ui); white-space: normal; }
+.local-embedding-runtime .fm-button > svg { flex: none; }
+.embedding-backend .embedding-backend-hint { margin: 10px 0 0; color: var(--muted); font-size: var(--type-meta); line-height: 1.8; }

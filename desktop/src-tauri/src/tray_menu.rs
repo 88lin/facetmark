@@ -1,6 +1,6 @@
 //! Styled native tray window; privileged actions are limited to this local page.
 use super::{ci_record, cloud_webview_inspection, display_areas, focus_main, preferences, request_exit, update_preferences, work_areas, Backend, CI_BROWSER_ARGS, SHORTCUT};
-use crate::window_state::{client_size_for_outer, tray_menu_geometry};
+use crate::window_state::tray_menu_geometry;
 use serde::Serialize;
 use std::sync::atomic::Ordering;
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
@@ -93,7 +93,9 @@ pub fn open(app: &tauri::AppHandle, x: f64, y: f64, source: &str) -> tauri::Resu
             // GotFocus/LostFocus events can otherwise arrive after show().
             // The one explicit focus request belongs to the visible opening.
             .title("Facetmark tray").inner_size(312., 374.).visible(false).focused(false).decorations(false)
-            .resizable(false).skip_taskbar(true).always_on_top(true).transparent(true).shadow(true)
+            // Alpha is only for the menu's rounded corners. A native shadow
+            // adds a second translucent frame around the opaque menu surface.
+            .resizable(false).skip_taskbar(true).always_on_top(true).transparent(true).shadow(false)
             .on_navigation(move |url| {
                 let allowed = packaged_tray_url(url);
                 record_window_event(&navigation_app, serde_json::json!({ "event": "navigation", "url": url.as_str(), "allowed": allowed }));
@@ -108,12 +110,16 @@ pub fn open(app: &tauri::AppHandle, x: f64, y: f64, source: &str) -> tauri::Resu
         builder.build()?
     };
     menu.set_position(tauri::PhysicalPosition::new(geometry.x, geometry.y))?;
-    // set_size takes the client area. Undecorated Windows shadows still have
-    // native frame offsets, so measure them at the target monitor's DPI before
-    // fitting the entire outer frame to the available work area.
-    let (outer, inner) = (menu.outer_size()?, menu.inner_size()?);
-    let client = client_size_for_outer(geometry, (outer.width, outer.height), (inner.width, inner.height));
-    menu.set_size(tauri::PhysicalSize::new(client.0, client.1))?;
+    let before = if cloud_webview_inspection() {
+        let (outer, inner) = (menu.outer_size()?, menu.inner_size()?);
+        Some(serde_json::json!({ "outer": { "width": outer.width, "height": outer.height },
+            "inner": { "width": inner.width, "height": inner.height } }))
+    } else { None };
+    // This undecorated window has no native shadow, so its client area is the
+    // desired outer frame. A newly constructed hidden Windows window can still
+    // report its initial caption insets before its first resize; subtracting
+    // those transient insets shrinks the actual borderless menu.
+    menu.set_size(tauri::PhysicalSize::new(geometry.width, geometry.height))?;
     menu.set_position(tauri::PhysicalPosition::new(geometry.x, geometry.y))?;
     // Reset roving focus and reread real plugin state on every open. The script
     // also loads its state on first parse if this eval arrives before it.
@@ -122,8 +128,13 @@ pub fn open(app: &tauri::AppHandle, x: f64, y: f64, source: &str) -> tauri::Resu
     menu.set_focus()?;
     record_window_event(app, serde_json::json!({ "event": "open", "source": source,
         "visible": menu.is_visible().ok() }));
-    ci_record("tray-menu-native.json", serde_json::json!({ "process": std::process::id(),
-        "source": source, "outer": geometry, "scale_factor": scale, "preference_shortcut": preferences(app).shortcut }));
+    if cloud_webview_inspection() {
+        let (outer, inner) = (menu.outer_size()?, menu.inner_size()?);
+        ci_record("tray-menu-native.json", serde_json::json!({ "process": std::process::id(),
+            "source": source, "outer": geometry, "scale_factor": scale, "preference_shortcut": preferences(app).shortcut,
+            "before_resize": before, "after_resize": { "outer": { "width": outer.width, "height": outer.height },
+                "inner": { "width": inner.width, "height": inner.height } } }));
+    }
     Ok(())
 }
 

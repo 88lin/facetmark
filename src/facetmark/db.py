@@ -103,8 +103,9 @@ CREATE TABLE IF NOT EXISTS content (
     error        TEXT
 );
 
--- LLM output. One row per bookmark, regenerated only when source_hash drifts
--- from content.body_hash. `basis` says what the summary was written from --
+-- LLM output. Regenerated when the source or summary instructions change.
+-- The imported bookmark.title stays intact; ai_title is a derived display title.
+-- `basis` says what the summary was written from --
 -- 'body' (the page's extracted text), 'title' (never fetched; inferred from
 -- title+url), 'karakeep' (bridge metadata, never a model call) -- because a
 -- title-based summary is a guess about the page rather than a report from it,
@@ -121,7 +122,10 @@ CREATE TABLE IF NOT EXISTS enrichment (
     source_hash  TEXT,
     model        TEXT,
     created_at   INTEGER,
-    basis        TEXT NOT NULL DEFAULT 'body'
+    basis        TEXT NOT NULL DEFAULT 'body',
+    ai_title     TEXT NOT NULL DEFAULT '',
+    language     TEXT NOT NULL DEFAULT '',
+    prompt_hash  TEXT NOT NULL DEFAULT ''
 );
 
 -- Durable status and target snapshots for bounded collection processing.
@@ -138,6 +142,29 @@ CREATE TABLE IF NOT EXISTS processing_item (
     PRIMARY KEY(job_id,bookmark_id)
 );
 CREATE INDEX IF NOT EXISTS ix_processing_pending ON processing_item(job_id,state,bookmark_id);
+
+CREATE TABLE IF NOT EXISTS chat_conversation (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    bookmark_ids TEXT NOT NULL DEFAULT '[]',
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_chat_conversation_updated ON chat_conversation(updated_at DESC,id);
+CREATE TABLE IF NOT EXISTS chat_message (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversation_id TEXT NOT NULL REFERENCES chat_conversation(id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK(role IN ('user','assistant')),
+    content TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'complete' CHECK(status IN ('complete','pending','error','cancelled')),
+    sources TEXT NOT NULL DEFAULT '[]',
+    model TEXT NOT NULL DEFAULT '',
+    request_id TEXT NOT NULL DEFAULT '',
+    created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_chat_messages ON chat_message(conversation_id,id);
+CREATE UNIQUE INDEX IF NOT EXISTS ix_chat_request ON chat_message(conversation_id,request_id)
+    WHERE role='user' AND request_id!='';
 
 -- Facet 2: hypothetical queries generated from the page (doc2query), then
 -- filtered for self-consistency. `kept=1` rows are the ones that get embedded.

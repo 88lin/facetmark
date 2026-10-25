@@ -119,6 +119,7 @@ async def check_bookmarks(
     client: httpx.AsyncClient | None = None,
     now_ts: int | None = None,
     save_recovered: bool = True,
+    persist_lock: asyncio.Lock | None = None,
 ) -> CheckReport:
     """Probe a batch of bookmarks and append one health row for each.
 
@@ -186,22 +187,43 @@ async def check_bookmarks(
         if owned:
             await cl.aclose()
 
-    for i, probe in enumerate(probes):
-        bid = int(rows[i]["id"])
-        check = synthesize(probe, externals[i], now_ts=now)
-        record_check(conn, bid, check)
-        rep.by_status[check.status.value] = rep.by_status.get(check.status.value, 0) + 1
-        if check.status is Status.GONE and is_confirmed_gone(
-            conn, bid, confirm_days=st.health_gone_confirm_days
-        ):
-            rep.confirmed_gone.append(bid)
-        if save_recovered and check.recovered_body and not (rows[i]["known_chars"] or 0):
-            store_body(
-                conn, bid, body=check.recovered_body,
-                title=check.recovered_title, extractor="reader-proxy",
-                channel="reader", final_url=probe.final_url or probe.url,
-            )
-            rep.recovered_bodies += 1
+    def persist():
+        conn.execute("SAVEPOINT health_results")
+        try:
+            for i, probe in enumerate(probes):
+                bid = int(rows[i]["id"])
+                current = conn.execute("SELECT b.url,b.privacy_skipped,c.char_count FROM bookmark b "
+                                       "LEFT JOIN content c ON c.bookmark_id=b.id WHERE b.id=?", (bid,)).fetchone()
+                if current is None or current["url"] != rows[i]["url"] or current["privacy_skipped"]:
+                    continue
+                check = synthesize(probe, externals[i], now_ts=now)
+                record_check(conn, bid, check)
+                rep.by_status[check.status.value] = rep.by_status.get(check.status.value, 0) + 1
+                if check.status is Status.GONE and is_confirmed_gone(
+                    conn, bid, confirm_days=st.health_gone_confirm_days
+                ):
+                    rep.confirmed_gone.append(bid)
+                if save_recovered and check.recovered_body and not current["char_count"]:
+                    store_body(
+                        conn, bid, body=check.recovered_body,
+                        title=check.recovered_title, extractor="reader-proxy",
+                        channel="reader", final_url=probe.final_url or probe.url,
+                    )
+                    rep.recovered_bodies += 1
+            conn.execute("RELEASE health_results")
+        except BaseException:
+            conn.execute("ROLLBACK TO health_results")
+            conn.execute("RELEASE health_results")
+            raise
+
+    if persist_lock is None:
+        persist()
+    else:
+        # Only the short persistence step owns the shared metadata lock. The
+        # preceding original-site and external probes remain cancellable.
+        async with persist_lock:
+            persist()
+            conn.commit()
 
     rep.by_status = dict(sorted(rep.by_status.items(), key=lambda kv: -kv[1]))
     return rep

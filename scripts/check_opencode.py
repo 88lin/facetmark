@@ -21,7 +21,7 @@ def main():
     command = resolve_command("opencode")
     assert command, "Installed OpenCode was not detected"
     requests = []
-    reply = json.dumps({"summary": "中文摘要链路通过"}, ensure_ascii=False)
+    reply = json.dumps({"title": "中文测试标题", "summary": "中文摘要链路通过"}, ensure_ascii=False)
 
     class Model(BaseHTTPRequestHandler):
         def log_message(self, *_args):
@@ -62,7 +62,11 @@ def main():
                 "small_model": "fixture/fixture-model",
                 "provider": {"fixture": {"npm": "@ai-sdk/openai-compatible", "name": "Fixture",
                     "options": {"baseURL": f"http://127.0.0.1:{server.server_port}/v1", "apiKey": "synthetic-only"},
-                    "models": {"fixture-model": {"name": "Fixture", "limit": {"context": 32000, "output": 1000}}}}},
+                    "models": {"fixture-model": {"name": "Fixture", "reasoning": True,
+                        "limit": {"context": 32000, "output": 1000},
+                        "options": {"reasoningEffort": "medium"},
+                        "variants": {"careful-summary": {"reasoningEffort": "high"},
+                                     "hidden-summary": {"disabled": True}}}}}},
                 "permission": {"bash": "allow", "read": "allow"},
                 "plugin": ["file:///must-not-load-facetmark-plugin.js"],
                 "mcp": {"inherited": {"type": "local", "command": ["must-not-start-facetmark-mcp"]}},
@@ -75,13 +79,19 @@ def main():
             async def generate():
                 catalog = await agent_catalog("opencode")
                 assert catalog["default_model"] == "fixture/fixture-model", catalog
-                assert any(item["id"] == "fixture/fixture-model" and item["source"] == "cli" for item in catalog["models"]), catalog
+                choice = next(item for item in catalog["models"] if item["id"] == "fixture/fixture-model")
+                assert choice["source"] == "cli", choice
+                variants = {item["id"] for item in choice.get("reasoning_levels", [])}
+                assert "careful-summary" in variants, choice
+                assert "hidden-summary" not in variants, choice
+                assert catalog["default_reasoning_effort"] == "medium", catalog
                 assert not catalog["warning"], catalog
                 provider = LocalAgentProvider(Settings(data_dir=root / "facetmark", chat_backend="agent",
-                    chat_agent="opencode", chat_agent_model="fixture/fixture-model", chat_agent_timeout=120))
+                    chat_agent="opencode", chat_agent_model="fixture/fixture-model",
+                    chat_agent_reasoning_effort="careful-summary", chat_agent_timeout=120))
                 try:
                     result = await provider.chat_json("Return a JSON summary.", "测试中文和 $(do-not-execute)")
-                    assert result == {"summary": "中文摘要链路通过"}, result
+                    assert result == {"title": "中文测试标题", "summary": "中文摘要链路通过"}, result
                 finally:
                     await provider.aclose()
 
@@ -91,11 +101,15 @@ def main():
             summary_requests = [item for item in requests if "do-not-execute" in json.dumps(item)]
             assert summary_requests, "The bookmark prompt was not delivered"
             assert all(not item.get("tools") for item in summary_requests), "Summary request exposed tools"
+            assert all(item.get("reasoning_effort") == "high" for item in summary_requests), "Selected variant did not reach the model service"
             assert settings_file.read_bytes() == before, "Original agent configuration changed"
             assert not list((root / "data").rglob("opencode.db")), "Session database escaped the temporary invocation"
             print(json.dumps({"cli": "OpenCode 1.19.0", "platform": os.name,
                               "model": "isolated synthetic HTTP fixture", "requests": len(requests),
-                              "stdin_unicode": True, "tools": False, "source_config_unchanged": True}))
+                              "stdin_unicode": True, "tools": False, "source_config_unchanged": True,
+                              "verbose_catalog": True, "disabled_variant_excluded": True,
+                              "configured_effort": "medium", "selected_variant": "careful-summary",
+                              "request_reasoning_effort": "high"}))
     finally:
         server.shutdown()
         server.server_close()

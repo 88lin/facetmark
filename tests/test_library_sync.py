@@ -398,7 +398,7 @@ async def test_automatic_poll_imports_only_after_approval_and_pauses_at_conflict
     aid, bid = converge(a, b)
     b.configure(SyncConfig(folder=str(shared), enabled=True, auto_sync=True, poll_seconds=30))
     state = SimpleNamespace(conn=b.conn, settings=b.settings, lock=asyncio.Lock(),
-                            jobs=SimpleNamespace(running=False), library_sync=b)
+                            jobs=SimpleNamespace(running=False), crawls=SimpleNamespace(running=False), library_sync=b)
     async def stop_after_one_pass(_delay):
         raise asyncio.CancelledError
     monkeypatch.setattr(library_sync.asyncio, "sleep", stop_after_one_pass)
@@ -517,7 +517,7 @@ async def test_idle_automatic_poll_preserves_a_manual_preview_and_does_not_write
     changes = b.conn.total_changes
     monkeypatch.setattr(library_sync.time, "time", lambda: last_sync + 60)
     state = SimpleNamespace(conn=b.conn, settings=b.settings, lock=asyncio.Lock(),
-                            jobs=SimpleNamespace(running=False), library_sync=b)
+                            jobs=SimpleNamespace(running=False), crawls=SimpleNamespace(running=False), library_sync=b)
     async def stop_after_one_pass(_delay):
         raise asyncio.CancelledError
     monkeypatch.setattr(library_sync.asyncio, "sleep", stop_after_one_pass)

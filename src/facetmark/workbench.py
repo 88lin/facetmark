@@ -30,10 +30,12 @@ def browse(conn, *, limit=40, offset=0, folder=None, tag=None, domain=None, sess
     total = conn.execute("SELECT count(*) FROM bookmark b" + where, params).fetchone()[0]
     orders = {"newest": "COALESCE(b.date_added,b.created_at) DESC,b.id DESC",
               "oldest": "COALESCE(b.date_added,b.created_at),b.id",
-              "title": "b.title COLLATE NOCASE,b.id", "domain": "b.domain,b.title COLLATE NOCASE,b.id"}
+              "title": "COALESCE(NULLIF(e.ai_title,''),b.title) COLLATE NOCASE,b.id",
+              "domain": "b.domain,b.title COLLATE NOCASE,b.id"}
     order = orders[sort]
     rows = conn.execute(
         "SELECT b.id AS bookmark_id, b.url, b.title, b.folder, b.tags, b.domain, b.date_added, "
+        "COALESCE(e.ai_title,'') AS ai_title, e.language AS summary_language, "
         "COALESCE(e.summary,'') AS summary, substr(COALESCE(c.body_text,''),1,400) AS snippet, "
         "b.privacy_skipped, e.basis AS summary_basis, ef.error AS summary_error, "
         "CASE WHEN ef.bookmark_id IS NOT NULL THEN 'failed' "
@@ -333,7 +335,7 @@ def register(app: FastAPI, auth: list) -> None:
         if len(raw) > admin.MAX_UPLOAD_BYTES:
             raise HTTPException(413, "Source exceeds 64 MB; export a smaller library")
         async with state.lock:
-            if state.jobs.running:
+            if state.jobs.running or state.crawls.running:
                 raise HTTPException(409, "Stop the processing job before importing bookmarks")
             return service.import_content(
                 state.conn, decode_bookmark_bytes(raw), settings=state.settings
@@ -357,6 +359,7 @@ def register(app: FastAPI, auth: list) -> None:
                                 f"{state.conn.execute('PRAGMA data_version').fetchone()[0]}",
             "stats": stats,
             "demo": candidate.use_mock_provider,
+            "summary_language": candidate.summary_language,
             "pending_apply": bool(state.pending_settings),
             "vector_compatible": compatible,
             "has_vectors": bool(stats["vectors"] and sum(stats["vectors"]) > 0),
@@ -374,8 +377,10 @@ def register(app: FastAPI, auth: list) -> None:
     async def apply_settings(body: ApplyRequest, request: Request):
         state = request.app.state.fm
         async with state.lock:
-            if state.jobs.running:
+            if state.jobs.running or state.crawls.running:
                 raise HTTPException(409, "Stop the index job before applying settings")
+            if state.model_users or state.health_running or any(not task.done() for task in state.chat_runs.values()):
+                raise HTTPException(409, "Wait for active model requests, replies or link checks before applying settings")
             candidate = admin.draft_settings(state.settings, state.pending_settings)
             changed = space_id(candidate) != space_id(state.settings)
             try:

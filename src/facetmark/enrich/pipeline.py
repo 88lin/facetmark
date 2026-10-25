@@ -1,10 +1,8 @@
 """Run the enrichment call and persist its output.
 
-Idempotency is the whole design. ``enrichment.source_hash`` records the body
-hash the enrichment was derived from; a page is re-enriched only when that hash
-moves. Re-running ``facetmark index`` on an unchanged library therefore costs
-nothing, which is the difference between a tool you can put on a schedule and
-one you run once and never dare run again.
+Idempotency includes both the source hash and the language/writing contract.
+An unchanged page costs nothing to re-index; changing summary instructions
+makes its old derived text eligible for regeneration.
 """
 
 from __future__ import annotations
@@ -20,7 +18,7 @@ from ..config import Settings, get_settings
 from ..db import jdump, now
 from ..providers import Provider, ProviderError, get_provider
 from ..text import sync_fts, truncate_head_tail
-from .prompts import SYSTEM, build_user_prompt
+from .prompts import SYSTEM, build_user_prompt, resolve_summary_language, summary_prompt_hash
 from .schema import Enrichment, EnrichmentInvalid, coerce
 
 
@@ -75,6 +73,7 @@ def iter_targets(
     ids: Sequence[int] | None = None,
     require_body: bool = False,
     body_chars: int | None = None,
+    prompt_hash: str | None = None,
 ):
     """Bookmarks whose enrichment is missing or stale.
 
@@ -96,7 +95,7 @@ def iter_targets(
         body_sql = (f"CASE WHEN length(c.body_text)<={body_chars} THEN c.body_text ELSE "
                     f"substr(c.body_text,1,{head})||' … '||substr(c.body_text,-{tail},{tail}) END") if body_chars else "''"
     sql = (
-        f"SELECT b.id, b.url, b.title, b.folder, {body_sql} AS body_text, c.body_hash, e.source_hash, e.summary, "
+        f"SELECT b.id, b.url, b.title, b.folder, {body_sql} AS body_text, c.body_hash, e.source_hash, e.summary, e.prompt_hash, "
         "EXISTS(SELECT 1 FROM enrichment_failure ef WHERE ef.bookmark_id=b.id) AS failed "
         "FROM bookmark b "
         "LEFT JOIN content c    ON c.bookmark_id = b.id "
@@ -106,7 +105,8 @@ def iter_targets(
     count = 0
     for r in conn.execute(sql, params):
         sh = r["body_hash"] or title_only_hash(r["title"] or "", r["url"])
-        if not force and not r["failed"] and r["summary"] and r["source_hash"] == sh:
+        if (not force and not r["failed"] and r["summary"] and r["source_hash"] == sh
+                and (prompt_hash is None or r["prompt_hash"] == prompt_hash)):
             continue
         yield Target(r["id"], r["url"], r["title"] or "", r["folder"] or "",
                      r["body_text"] or "", sh)
@@ -119,14 +119,17 @@ def targets(conn, **kwargs) -> list[Target]:
     return list(iter_targets(conn, **kwargs))
 
 
-def count_unchanged(conn: sqlite3.Connection) -> int:
+def count_unchanged(conn: sqlite3.Connection, prompt_hash: str | None = None) -> int:
     return conn.execute(
         "SELECT COUNT(*) c FROM bookmark b "
         "LEFT JOIN content c2   ON c2.bookmark_id = b.id "
         "JOIN enrichment e      ON e.bookmark_id = b.id "
         "WHERE b.indexable=1 AND b.privacy_skipped=0 "
-        "  AND e.source_hash = COALESCE(c2.body_hash, e.source_hash) "
-        "  AND c2.body_hash IS NOT NULL"
+        "  AND COALESCE(e.summary,'')!='' "
+        "  AND e.source_hash = COALESCE(c2.body_hash, fm_title_hash(b.title,b.url)) "
+        "  AND NOT EXISTS(SELECT 1 FROM enrichment_failure ef WHERE ef.bookmark_id=b.id) "
+        + (" AND e.prompt_hash=?" if prompt_hash is not None else ""),
+        (prompt_hash,) if prompt_hash is not None else (),
     ).fetchone()["c"]
 
 
@@ -136,25 +139,28 @@ def store_enrichment(
     enr: Enrichment,
     *,
     model: str,
+    language: str = "",
+    prompt_hash: str = "",
 ) -> int:
     """Write the enrichment, replace the candidate queries, refresh both FTS rows."""
     conn.execute(
         """
         INSERT INTO enrichment(bookmark_id, summary, key_points, entities, topics,
                                utility, content_type, basis, source_hash, model,
-                               created_at)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?)
+                               created_at, ai_title, language, prompt_hash)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ON CONFLICT(bookmark_id) DO UPDATE SET
             summary=excluded.summary, key_points=excluded.key_points,
             entities=excluded.entities, topics=excluded.topics,
             utility=excluded.utility, content_type=excluded.content_type,
             basis=excluded.basis, source_hash=excluded.source_hash,
-            model=excluded.model, created_at=excluded.created_at
+            model=excluded.model, created_at=excluded.created_at,
+            ai_title=excluded.ai_title, language=excluded.language, prompt_hash=excluded.prompt_hash
         """,
         (target.bookmark_id, enr.summary, jdump(enr.key_points), jdump(enr.entities),
          jdump(enr.topics), enr.utility, enr.content_type,
          "title" if not target.body else "body",
-         target.source_hash, model, now()),
+         target.source_hash, model, now(), enr.ai_title, language, prompt_hash),
     )
     conn.execute("DELETE FROM enrichment_failure WHERE bookmark_id=?", (target.bookmark_id,))
     # Candidate queries are regenerated wholesale; keeping stale ones around
@@ -171,7 +177,7 @@ def store_enrichment(
     )
     sync_fts(
         conn, target.bookmark_id,
-        title=target.title, body=target.body, summary=enr.summary,
+        title=target.title, ai_title=enr.ai_title, body=target.body, summary=enr.summary,
         topics=enr.topics, entities=enr.entities, key_points=enr.key_points,
     )
     return len(enr.intent_queries)
@@ -201,8 +207,11 @@ async def enrich_all(
     s = settings or get_settings()
     prov = provider or get_provider(s)
     concurrency = concurrency if concurrency is not None else s.enrich_concurrency
-    todo = iter_targets(conn, limit=limit, force=force, ids=ids, body_chars=s.body_truncate_chars)
-    rep = EnrichReport(skipped_unchanged=count_unchanged(conn) if ids is None else 0)
+    language = resolve_summary_language(s.summary_language)
+    prompt_hash = summary_prompt_hash(language, s.summary_prompt)
+    todo = iter_targets(conn, limit=limit, force=force, ids=ids, body_chars=s.body_truncate_chars,
+                        prompt_hash=prompt_hash)
+    rep = EnrichReport(skipped_unchanged=count_unchanged(conn, prompt_hash) if ids is None else 0)
 
     gate = asyncio.Semaphore(concurrency)
 
@@ -211,9 +220,13 @@ async def enrich_all(
             title=t.title, url=t.url, folder=t.folder,
             body=truncate_head_tail(t.body, budget),
             n_queries=s.intent_generate_n,
+            language=language, custom_prompt=s.summary_prompt,
         )
         payload = await prov.chat_json(SYSTEM, prompt)
-        return coerce(payload, max_queries=s.intent_generate_n)
+        result = coerce(payload, max_queries=s.intent_generate_n)
+        if not result.ai_title or not result.summary:
+            raise EnrichmentInvalid("reply must include a generated title and summary")
+        return result
 
     async def one(t: Target) -> tuple[Target, Enrichment | None, str, bool]:
         async with gate:
@@ -256,7 +269,8 @@ async def enrich_all(
                                      (t.bookmark_id, err[:1000], now()))
                     else:
                         rep.queries_generated += store_enrichment(
-                            conn, t, enr, model=getattr(prov, 'chat_model_in_use', None) or s.chat_model)
+                            conn, t, enr, model=getattr(prov, 'chat_model_in_use', None) or s.chat_model,
+                            language=language, prompt_hash=prompt_hash)
                         rep.enriched += 1
                         rep.rescued_by_shorter_body += int(shortened)
                     if progress is not None:

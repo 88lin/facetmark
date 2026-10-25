@@ -10,6 +10,7 @@ import {
   FileText,
   Folder,
   Maximize2,
+  MessageCircle,
   Minimize2,
   PanelRightClose,
   Pencil,
@@ -65,6 +66,7 @@ export default function Reader({
   onPrevious,
   onNext,
   onAction,
+  onChat,
   running,
 }: {
   record: Bookmark | null;
@@ -92,12 +94,15 @@ export default function Reader({
   onPrevious?: () => void;
   onNext?: () => void;
   onAction?: (action: LibraryAction) => void;
+  onChat?: (record: Bookmark) => void;
   running: boolean;
 }) {
   const t = useText();
   const scroller = useRef<HTMLDivElement>(null);
   const scrollPositions = useRef<Record<string, number>>({});
   const tabs = useTabIndicator(`${tab}-${language}`);
+  const hasSummary = Boolean(record?.summary && (record.ai_title || record.indexed?.enriched_by
+    || record.indexed?.summary_basis === "karakeep"));
   const paragraphs = useMemo(
     () =>
       (record?.body_text || "")
@@ -109,7 +114,7 @@ export default function Reader({
   // reinterpreted as a heading merely because it happens to be short.
   const sections = useMemo(
     () => [
-      { id: "reader-start", label: t("文章开头", "Start of article") },
+      { id: "reader-start", label: t("阅读开头", "Start of reading") },
       ...paragraphs.flatMap((p, i) =>
         /^#{1,3}\s+[^\n]+$/.test(p.trim())
           ? [{ id: `reader-section-${i}`, label: p.replace(/^#{1,3}\s+/, "") }]
@@ -158,8 +163,37 @@ export default function Reader({
       </div>
     );
   else if (tab === "body")
-    content = record?.body_text ? (
-      <div className="body-text">
+    content = record?.body_text || hasSummary ? (
+      <>
+      {hasSummary ? <section id="reader-summary" className="reader-summary" aria-label={t("AI 概览", "AI overview")}>
+        <div className="reader-section-heading">
+          <h2><Sparkles size={16}/>{t("AI 概览", "AI overview")}</h2>
+          {canProcess && <CapsuleButton className="text-button" disabled={running}
+            aria-label={t("重新生成这篇摘要", "Regenerate this summary")}
+            onClick={() => onAction?.({ kind: "process", mode: "summarize", ids: [selected!] })}>
+            {t("重新生成", "Regenerate")}
+          </CapsuleButton>}
+        </div>
+        <p className="reader-summary-basis">{record?.indexed?.summary_basis === "title"
+          ? t("基于标题与网址推断，尚未读取正文", "Inferred from title and URL; page text has not been read")
+          : record?.indexed?.summary_basis === "karakeep" ? t("来自 Karakeep 的摘要", "Summary from Karakeep")
+            : t("基于保存的原文生成", "Generated from saved source text")}</p>
+        <p className="reader-summary-text">{record?.summary}</p>
+        {!!record?.key_points?.length && <ul>{record.key_points.map((point, i) => <li key={i}>{point}</li>)}</ul>}
+      </section> : canProcess && <div className="reader-summary-invitation">
+        <span>{t("为这篇收藏生成标题、摘要和要点", "Generate a title, summary and key points for this page")}</span>
+        <CapsuleButton className="secondary" disabled={running}
+          onClick={() => onAction?.({ kind: "process", mode: "summarize", ids: [selected!] })}>
+          <Sparkles size={15}/>{t("生成这篇摘要", "Summarize this page")}
+        </CapsuleButton>
+      </div>}
+      {record?.summary_error && <p className="reader-summary-error" role="status">
+        {hasSummary ? t("最近一次生成失败，已保留上次摘要。", "The last generation failed. The previous summary is retained.")
+          : t("摘要生成失败。", "Summary generation failed.")} {record.summary_error}
+      </p>}
+      <section id="reader-source" className="reader-source" aria-label={t("保存的原文", "Saved source text")}>
+      <div className="reader-section-heading"><h2><FileText size={16}/>{t("保存的原文", "Saved source text")}</h2></div>
+      {record?.body_text ? <div className="body-text">
         {paragraphs.map((p, i) =>
           /^#{1,3}\s+[^\n]+$/.test(p.trim()) ? (
             <h2 id={`reader-section-${i}`} key={i}>
@@ -169,57 +203,31 @@ export default function Reader({
             <p key={i}>{p}</p>
           ),
         )}
-      </div>
+      </div> : <div className="reader-source-missing">
+        <p>{t("正文尚未保存，提取后可在这里接着读。", "Source text has not been saved. Fetch it to continue reading here.")}</p>
+        {canProcess && <CapsuleButton className="secondary" disabled={running}
+          onClick={() => onAction?.({ kind: "process", mode: "fetch", ids: [selected!] })}>
+          <FileText size={15}/>{t("提取这篇正文", "Fetch this page")}
+        </CapsuleButton>}
+      </div>}
+      </section>
+      </>
     ) : (
       <div className="reading-empty">
         <FileText size={24} />
-        <h3>{t("正文还未保存", "Page text is not saved yet")}</h3>
+        <h3>{t("还没有阅读内容", "No reading content yet")}</h3>
         <p>
           {t(
-            "仍可用标题和网址搜索。提取正文后，就能在这里接着读。",
-            "Search still works on titles and URLs. Fetch the page to keep reading here.",
+            "提取正文即可在这里阅读，也可以先根据标题与网址生成 AI 概览。",
+            "Fetch source text to read here, or generate an AI overview from the title and URL first.",
           )}
         </p>
-        {canProcess && <CapsuleButton className="secondary" disabled={running} onClick={() => onAction?.({ kind: "process", mode: "fetch", ids: [selected!] })}><FileText size={15}/>{t("提取这篇正文", "Fetch this page")}</CapsuleButton>}
+        {record?.summary_error && <p className="error" role="status">{record.summary_error}</p>}
+        {canProcess && <div className="reader-empty-actions">
+          <CapsuleButton className="secondary" disabled={running} onClick={() => onAction?.({ kind: "process", mode: "fetch", ids: [selected!] })}><FileText size={15}/>{t("提取这篇正文", "Fetch this page")}</CapsuleButton>
+          <CapsuleButton className="secondary" disabled={running} onClick={() => onAction?.({ kind: "process", mode: "summarize", ids: [selected!] })}><Sparkles size={15}/>{t("生成这篇摘要", "Summarize this page")}</CapsuleButton>
+        </div>}
       </div>
-    );
-  else if (tab === "summary")
-    content = (
-      <>
-        <div className="summary-label">
-          <Sparkles size={15} />
-          {record?.indexed?.summary_basis === "title"
-            ? t("基于标题推断", "Inferred from title")
-            : t("基于已保存内容", "From saved content")}
-        </div>
-        <p>
-          {record?.indexed?.enriched_by
-            ? record.summary
-            : t(
-                "尚未生成 AI 摘要。连接聊天模型后，可以单独处理这篇收藏。",
-                "No AI summary yet. Connect a chat model to summarize this bookmark.",
-              )}
-        </p>
-        {!record?.indexed?.enriched_by && canProcess && <CapsuleButton className="secondary" disabled={running} onClick={() => onAction?.({ kind: "process", mode: "summarize", ids: [selected!] })}><Sparkles size={15}/>{t("生成这篇摘要", "Summarize this page")}</CapsuleButton>}
-        {!!record?.key_points?.length && (
-          <ul>
-            {record.key_points.map((p) => (
-              <li key={p}>{p}</li>
-            ))}
-          </ul>
-        )}
-        {!!record?.intent_queries?.length && (
-          <>
-            <h3>{t("这些问题也能找到它", "Questions that lead here")}</h3>
-            {record.intent_queries.map((q) => (
-              <CapsuleButton className="suggested-query" key={q} onClick={() => onQuery(q)}>
-                {q}
-                <ArrowUpRight size={14} />
-              </CapsuleButton>
-            ))}
-          </>
-        )}
-      </>
     );
   else
     content = relatedLoading ? (
@@ -244,7 +252,7 @@ export default function Reader({
             onClick={() => onSelect(r.bookmark_id)}
           >
             <small>{r.domain}</small>
-            <span>{r.title || r.url}</span>
+            <span>{r.ai_title || r.title || r.url}</span>
             <ArrowUpRight size={14} />
           </CapsuleButton>
         ))}
@@ -297,6 +305,11 @@ export default function Reader({
                 <ArrowDown />
               </CapsuleButton>
               <span className="toolbar-divider" />
+              {record && onChat && !record.privacy_skipped && <CapsuleButton type="button"
+                className="icon-button reader-chat" title={t("聊这篇", "Chat about this page")}
+                aria-label={t("聊这篇", "Chat about this page")} onClick={() => onChat(record)}>
+                <MessageCircle />
+              </CapsuleButton>}
               {canFocus && (
                 <CapsuleButton
                   className="icon-button focus-reading"
@@ -354,8 +367,7 @@ export default function Reader({
             aria-label={t("预览内容", "Preview content")}
           >
             {[
-              ["body", t("正文", "Page text")],
-              ["summary", t("AI 摘要", "AI summary")],
+              ["body", t("阅读", "Read")],
               ["related", t("相关书签", "Related")],
             ].map(([id, label]) => (
               <CapsuleButton
@@ -369,21 +381,19 @@ export default function Reader({
                 onKeyDown={(e) => {
                   if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(e.key)) return;
                   e.preventDefault();
-                  const ids = ["body", "summary", "related"];
+                  const ids = ["body", "related"];
                   const next =
                     e.key === "Home"
                       ? "body"
                       : e.key === "End"
                         ? "related"
-                        : ids[(ids.indexOf(id) + (e.key === "ArrowRight" ? 1 : 2)) % 3];
+                        : ids[(ids.indexOf(id) + (e.key === "ArrowRight" ? 1 : ids.length - 1)) % ids.length];
                   changeTab(next);
                   document.getElementById(`preview-tab-${next}`)?.focus();
                 }}
               >
                 {id === "body" ? (
                   <FileText size={14} aria-hidden="true" />
-                ) : id === "summary" ? (
-                  <Sparkles size={14} aria-hidden="true" />
                 ) : (
                   <BookOpen size={14} aria-hidden="true" />
                 )}
@@ -425,7 +435,7 @@ export default function Reader({
                     </span>
                   </div>
                   <h1>
-                    {visibleRecord?.title ||
+                    {visibleRecord?.ai_title || visibleRecord?.title ||
                       visibleRecord?.url ||
                       t("正在读取收藏…", "Loading bookmark…")}
                   </h1>
@@ -435,6 +445,9 @@ export default function Reader({
                       {t("收藏信息与检索线索", "Saved details & search context")}
                       <ChevronDown size={13} aria-hidden="true" />
                     </summary>
+                    {record?.ai_title && record.title && record.ai_title !== record.title && <p className="reader-original-title">
+                      <span>{t("原始标题", "Original title")}</span>{record.title}
+                    </p>}
                     <div className="article-context">
                       <span>
                         <Folder size={13} />
@@ -452,6 +465,11 @@ export default function Reader({
                       )}
                     </div>
                     {search.trim() && <SearchExplanation hit={hit} />}
+                    {!!record?.intent_queries?.length && <div className="reader-context-queries">
+                      <h3>{t("这些问题也能找到它", "Questions that lead here")}</h3>
+                      {record.intent_queries.map((query, i) => <CapsuleButton className="suggested-query" key={i}
+                        onClick={() => onQuery(query)}>{query}<ArrowUpRight size={14}/></CapsuleButton>)}
+                    </div>}
                     {record && onAction && <div className="reader-manage-actions">
                       {canProcess && <>
                         <CapsuleButton className="secondary" disabled={running} onClick={() => onAction({ kind: "process", mode: "fetch", ids: [record.bookmark_id] })}><FileText size={14}/>{t("提取正文", "Fetch text")}</CapsuleButton>

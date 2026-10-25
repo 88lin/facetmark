@@ -1,16 +1,17 @@
 # Build in a clean CI virtual environment, never the developer's global Python.
-from PyInstaller.utils.hooks import collect_all, collect_data_files
+from PyInstaller.utils.hooks import collect_all, collect_data_files, copy_metadata
 from pathlib import Path
 
 root = Path(SPECPATH).parent
 
 datas = collect_data_files('facetmark', includes=['web/**/*'])
 binaries, hiddenimports = [], []
-for package in ('sqlite_vec', 'jieba', 'trafilatura', 'readability'):
+for package in ('sqlite_vec', 'jieba', 'trafilatura', 'readability', 'fastmcp', 'mcp'):
     data, binary, hidden = collect_all(package)
     datas += data
     binaries += binary
     hiddenimports += hidden
+datas += copy_metadata('fastmcp', recursive=True)
 a = Analysis(
     [str(root / 'desktop/freeze.py')], pathex=[str(root / 'src')], datas=datas, binaries=binaries,
     hiddenimports=hiddenimports + ['uvicorn.logging', 'uvicorn.loops.asyncio',

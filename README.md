@@ -39,7 +39,15 @@
 The `desktop/facetmark-experience` test branch introduces a Tauri 2 desktop app and a
 shared React workbench: browse bookmarks, search and read side by side, import through
 a guided flow, configure chat and embeddings separately, and follow background tasks.
-Paper white and graphite themes, Chinese/English and narrow-window reading are included.
+Light/dark themes, Chinese/English and narrow-window reading are included.
+
+[PR #53](https://github.com/88lin/facetmark/pull/53) completes generated titles and
+editable summary instructions, durable cited chat (library or selected pages),
+optional HTTP MCP, actual concurrency/retry settings, timeline and link maintenance,
+bounded site import, detailed import results and v2 reading/chat restoration.
+See the [feature comparison and current verification](docs/desktop-completion-2026-10-25.md).
+Frozen desktop builds use HTTP embedding endpoints; in-process SentenceTransformer
+remains optional for Python installations. This PR is a preview, not a released version.
 
 Download the `facetmark-windows-x64-preview` artifact from a successful
 [desktop-preview run](https://github.com/88lin/facetmark/actions/workflows/desktop.yml).
@@ -261,6 +269,14 @@ working directory, or a key in `<DATA_DIR>/config.toml`. That is also the preced
 highest first — a file the web UI wrote never overrides a variable you exported. The web UI's
 Settings panel edits the file; `facetmark config path` prints it.
 
+In AI settings, thinking mode sits beside model choice. Leaving it empty inherits
+the service or local client's default; changing model or effort requires a new
+connection test. The Titles and summaries section separately saves target language
+and editable built-in writing instructions without retesting the connection.
+Generate updates the AI title, summary and key points together, keeping the original
+bookmark title and page text. Select records to regenerate them, or generate pending
+and changed content in the current scope without a selection.
+
 `DATA_DIR` defaults per OS: `%LOCALAPPDATA%\facetmark` on Windows,
 `$XDG_DATA_HOME/facetmark` when that is set, otherwise `~/.local/share/facetmark`.
 
@@ -271,7 +287,13 @@ Settings panel edits the file; `facetmark config path` prints it.
 | `API_KEY` | — | Key for the OpenAI-compatible endpoint |
 | `BASE_URL` | `https://api.openai.com/v1` | Provider API base path; usually `/v1`, or `/api/paas/v4` for Zhipu |
 | `CHAT_MODEL` | `gpt-6-luna` | Enrichment and intent generation |
+| `CHAT_BACKEND` | `endpoint` | `endpoint` or an installed `agent` using its existing sign-in |
+| `CHAT_AGENT` | `auto` | `auto`, `codex`, `claude` or `opencode` |
+| `CHAT_AGENT_MODEL` | empty | Explicit agent model; empty inherits the client's default |
+| `CHAT_AGENT_REASONING_EFFORT` | empty | Agent effort or OpenCode variant; empty inherits the default |
 | `CHAT_EXTRA_BODY` | empty | JSON string for reasoning, temperature and output limits; shared by fallbacks |
+| `SUMMARY_LANGUAGE` | `auto` | Follow UI language for web jobs; `zh` or `en` override it. CLI auto defaults to Chinese |
+| `SUMMARY_PROMPT` | empty | Custom writing instructions, up to 10,000 characters; empty restores the built-in default |
 | `EMBED_SEND_DIMENSIONS` | `false` | Enable only for models supporting `dimensions` |
 | `EMBED_BATCH_SIZE` | `64` | Endpoint request batch limit; use `20` for current Bailian models |
 | `EMBED_MODEL` | `text-embedding-3-small` | Embeddings |
@@ -713,17 +735,19 @@ One SQLite file. The tables you are likely to query directly:
 |---|---|
 | `bookmark` | url, title, folder, date_added, open_count, source |
 | `content` | body_text, body_hash, char_count, lang, extractor, http_status |
-| `enrichment` | summary, topics, entities, key_points, model, source_hash |
+| `enrichment` | ai_title, summary, topics, entities, key_points, model, source_hash, language, prompt_hash |
 | `intent` | generated queries, kept flag, rank of the retrieve-back check |
 | `vec_content` / `vec_intent` | embeddings, keyed by bookmark |
 | `fts_tri` / `fts_seg` | FTS5 indexes over title, body, summary, extra |
 | `session` / `bookmark_session` | save-burst clusters and their members |
+| `chat_conversation` / `chat_message` | persistent discussion scopes, messages, reply status, request IDs and source snapshots |
 | `edge` | `(src, dst, kind, weight)`; kinds: session, semantic, same_domain, supersession |
 | `health` | per-URL verdicts over time: ok, gone, drifted, soft_gone |
 | `karakeep_doc` | created on demand; drop it to fully uninstall the bridge |
 
 > [!NOTE]
-> `enrichment.source_hash` is the fingerprint that decides whether a page needs re-enriching.
+> Summary reuse compares `enrichment.source_hash` with the saved content and also checks
+> `language` and `prompt_hash` against the effective writing settings.
 > The value `'karakeep'` is reserved and means "this row belongs to the bridge, overwrite it
 > freely"; anything else means a real model wrote it and the bridge must leave it alone.
 
@@ -735,7 +759,7 @@ One SQLite file. The tables you are likely to query directly:
 |---|---|
 | `Dimension mismatch: expected 1024, received 1536` | Stored vectors and `FACETMARK_EMBED_DIM` disagree. Restore the old dim, or re-embed with `--force`. |
 | `base_url` errors / 404 on every call | Use the provider API base path, usually `/v1`; Zhipu uses `/api/paas/v4`. Do not append `/chat/completions` yourself. |
-| Enrichment silently does nothing | `enrich.targets()` skips a row when `source_hash` already equals the body hash. Use `facetmark index --force`. |
+| Enrichment silently does nothing | Unselected generation skips content whose source, language and writing instructions are unchanged. Select the records and Generate to redo them; the Python CLI also offers `facetmark index --force`. |
 | A page has a vector but bad results | That is the stale-text failure mode above. `facetmark index --force` rebuilds from the current text. |
 | `disk I/O error` opening the database | SQLite cannot run on some network or FUSE filesystems. Copy the file to local disk first. |
 | Fetching gets blocked | facetmark honours `robots.txt` and per-domain rate limits by design. Lower `FETCH_CONCURRENCY` or accept that some pages stay body-less; the pipeline falls back to a title-only fingerprint. |

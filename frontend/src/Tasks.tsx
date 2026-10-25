@@ -1,8 +1,8 @@
 import { CapsuleButton } from "./ui/controls";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Check, Circle, Download, LoaderCircle, Pause, Play, RefreshCw, Sparkles, X } from "lucide-react";
 import { api, post, type Job, type Setup } from "./api";
-import { useText } from "./locale";
+import { Locale, useText } from "./locale";
 
 export function Tasks({
   job,
@@ -17,7 +17,7 @@ export function Tasks({
   onProcess: (mode: "fetch" | "summarize") => void;
   onBack: () => void;
 }) {
-  const t = useText();
+  const t = useText(), language = useContext(Locale);
   const [consent, setConsent] = useState(false);
   const [fetchPages, setFetchPages] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -248,7 +248,9 @@ export function Tasks({
           <CapsuleButton
             className="primary"
             disabled={!consent || !canIndex || busy}
-            onClick={() => action("/admin/index", { fetch: fetchPages, confirmed: true })}
+            onClick={() => action("/admin/index", { fetch: fetchPages, confirmed: true,
+              summary_language: setup?.summary_language === "zh" || setup?.summary_language === "en"
+                ? setup.summary_language : language })}
           >
             {job.state === "idle" ? <Play /> : <RefreshCw />}
             {t("开始索引", "Start indexing")}

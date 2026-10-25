@@ -164,7 +164,7 @@ class TestMockProvider:
 
     async def test_chat_returns_every_contracted_key(self, mock_settings):
         out = await MockProvider(mock_settings).chat_json("sys", "<<<PAGE>>>" + PAGES["kube"][1])
-        assert set(out) >= {"summary", "key_points", "entities", "topics", "utility",
+        assert set(out) >= {"title", "summary", "key_points", "entities", "topics", "utility",
                             "content_type", "intent_queries"}
         assert len(out["intent_queries"]) == mock_settings.intent_generate_n
 
@@ -760,7 +760,7 @@ class TestEnrichPipeline:
                     raise ProviderError(
                         'model did not return a JSON object: \'```json\\n{\\n "summary": "th\''
                     )
-                return {"summary": "recovered", "intent_queries": ["q"]}
+                return {"title": "Recovered title", "summary": "recovered", "intent_queries": ["q"]}
 
             async def embed(self, texts):
                 return []

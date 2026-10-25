@@ -6,7 +6,8 @@ import json
 from .collection import CollectionScope, predicate
 
 
-def target_query(*, scope: CollectionScope | None, ids, mode: str, force: bool, limit=None):
+def target_query(*, scope: CollectionScope | None, ids, mode: str, force: bool, limit=None,
+                 prompt_hash: str | None = None):
     where, params = predicate(scope or CollectionScope())
     parts = [where, "b.indexable=1", "b.privacy_skipped=0"]
     if ids is not None:
@@ -14,8 +15,11 @@ def target_query(*, scope: CollectionScope | None, ids, mode: str, force: bool, 
         params.append(json.dumps(list(ids)))
     if not force:
         if mode == "summarize":
+            stale_prompt = " OR e.prompt_hash!=?" if prompt_hash is not None else ""
             parts.append("(COALESCE(e.summary,'')='' OR e.source_hash IS NULL OR COALESCE(c.body_hash,fm_title_hash(b.title,b.url))!=e.source_hash "
-                         "OR EXISTS(SELECT 1 FROM enrichment_failure ef WHERE ef.bookmark_id=b.id))")
+                         "OR EXISTS(SELECT 1 FROM enrichment_failure ef WHERE ef.bookmark_id=b.id)" + stale_prompt + ")")
+            if prompt_hash is not None:
+                params.append(prompt_hash)
         else:
             parts.append("c.body_hash IS NULL")
     sql = ("SELECT b.id FROM bookmark b LEFT JOIN content c ON c.bookmark_id=b.id "
@@ -46,7 +50,7 @@ def snapshot(conn, job, planned_ids=None):
         else:
             scope = CollectionScope(**job.scope) if job.scope is not None else None
             sql, params = target_query(scope=scope, ids=selected, mode=job.mode,
-                                       force=job.force, limit=job.limit)
+                                       force=job.force, limit=job.limit, prompt_hash=job.summary_prompt_hash)
             conn.execute("INSERT INTO processing_item(job_id,bookmark_id) SELECT ?,id FROM (" + sql + ")",
                          [job.id, *params])
         conn.commit()

@@ -71,7 +71,17 @@ test("local agent can be detected, tested and saved without API fields", async (
   expect(tested.chat_api_key).toBeUndefined();
 });
 
-test("display and batch-summary options expose the current collection scope", async ({ page }) => {
+test("display options and inline selection generate the current scope without confirmation rows", async ({ page }) => {
+  const previews: Record<string, unknown>[] = [], starts: Record<string, unknown>[] = [];
+  await page.route("**/admin/jobs/preview", route => {
+    const body = route.request().postDataJSON();
+    previews.push(body);
+    return route.fulfill({ json: { total: body.force ? 1892 : 0, revision: "synthetic-preview", prompt_hash: "synthetic-prompt" } });
+  });
+  await page.route("**/admin/jobs/start", route => {
+    const body = route.request().postDataJSON(); starts.push(body);
+    return route.fulfill({ json: { id: "synthetic-summary", state: "done", params: body } });
+  });
   await page.goto("/app");
   await expect(page.locator(".result-row")).toHaveCount(30);
   const options = page.locator(".collection-options-menu");
@@ -89,28 +99,28 @@ test("display and batch-summary options expose the current collection scope", as
   await page.screenshot({ path: "screenshots/collection-options-mobile.png", animations: "disabled" });
   await options.locator("summary").click();
   await page.locator(".library-tools").getByRole("button", { name: "生成摘要", exact: true }).click();
-  const request = page.waitForRequest(r => r.url().includes("/admin/jobs/preview") && r.postDataJSON()?.scope?.status === "failed");
-  await page.getByRole("combobox", { name: "摘要处理范围", exact: true }).selectOption("failed");
-  const payload = (await request).postDataJSON();
-  expect(payload.scope.status).toBe("failed");
-  expect(payload.bookmark_ids).toBeUndefined();
-  const dialog = page.getByRole("dialog", { name: "生成 AI 摘要", exact: true });
-  await expect(dialog).toContainText("本次将处理");
-  await expect(dialog.getByRole("button", { name: "开始任务", exact: true })).toBeDisabled();
-  await dialog.getByRole("button", { name: "取消", exact: true }).click();
-  await page.locator(".library-tools").getByRole("button", { name: "生成摘要", exact: true }).click();
-  await expect(dialog.locator(".processing-count")).toHaveText("本次将处理 0 条。已完成且未变化的内容会跳过。");
+  await expect(page.locator(".summary-generation-feedback")).toContainText("当前范围没有待生成内容");
+  await expect.poll(() => previews[0]).toEqual(expect.objectContaining({
+    mode: "summarize", force: false, scope: expect.objectContaining({ status: "all" }), summary_language: "zh",
+  }));
+  expect(starts).toHaveLength(0);
+  await expect(page.getByRole("dialog", { name: "生成 AI 摘要", exact: true })).toHaveCount(0);
   await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/summary-skip-completed-mobile.png", animations: "disabled" });
-  const reprocess = dialog.getByLabel("重新处理已完成的内容", { exact: true });
-  await reprocess.check();
-  await expect(dialog.locator(".processing-count")).toHaveText("本次将处理 1,892 条。包括已完成且未变化的内容，将重新处理。");
+  const selectAll = page.getByRole("checkbox", { name: "全选当前结果", exact: true });
+  await selectAll.focus(); await selectAll.press("Space");
+  await expect(selectAll).toBeChecked();
+  await expect(page.locator(".collection-selection")).toHaveCount(0);
+  await expect(page.getByRole("checkbox", { name: "重新处理已完成的内容", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("checkbox", { name: "我同意将上述内容发送给聊天模型", exact: true })).toHaveCount(0);
   await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/summary-reprocess-mobile.png", animations: "disabled" });
   await page.setViewportSize({ width: 1366, height: 768 });
   await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/summary-reprocess-desktop.png", animations: "disabled" });
-  await reprocess.uncheck();
-  await expect(dialog.locator(".processing-count")).toHaveText("本次将处理 0 条。已完成且未变化的内容会跳过。");
-  await dialog.getByRole("button", { name: "取消", exact: true }).click();
+  await page.getByRole("button", { name: "生成摘要", exact: true }).click();
+  await expect.poll(() => starts[0]).toEqual(expect.objectContaining({
+    mode: "summarize", force: true, confirmed: true, preview_revision: "synthetic-preview", preview_prompt_hash: "synthetic-prompt",
+  }));
+  await expect(selectAll).not.toBeChecked();
 });

@@ -47,7 +47,7 @@ def main():
         assert categories["items"][0]["value"] == "Scale/4095"
         scope = CollectionScope(exclude_ids=[1, 2])
         assert measure("scope_preview", lambda: preview(conn, scope=scope, ids=None, mode="summarize", force=True)) == 199998
-        job = SimpleNamespace(id="scale-job", scope=scope.model_dump(), bookmark_ids=None, mode="summarize", force=True, limit=None, snapshot_ready=False)
+        job = SimpleNamespace(id="scale-job", scope=scope.model_dump(), bookmark_ids=None, mode="summarize", force=True, limit=None, snapshot_ready=False, summary_prompt_hash=None)
         tracemalloc.start()
         measure("durable_snapshot", lambda: snapshot(conn, job))
         peak = tracemalloc.get_traced_memory()[1]

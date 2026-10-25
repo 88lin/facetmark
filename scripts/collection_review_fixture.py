@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import json
 
+from facetmark.enrich.prompts import summary_prompt_hash
 from facetmark.fetch.store import store_body
+from facetmark.service import sync_fts_tag_refresh
 
 RECORDS = [
     ("中文界面的阅读节奏：从字阶、行距到长标题的完整排版实践", "sspai.example", "设计与体验 / 中文排版 / 界面规范 / 长标题与中英混排", ["中文排版", "阅读体验"],
@@ -18,7 +20,7 @@ RECORDS = [
      "检索从具体问题开始。为收藏留下短而准确的线索，比反复建立更深的目录更有帮助。标题、来源与保存时的想法，应该一起出现在回到原文的路径上。本文还比较了专题目录、标签和摘要各自的职责，说明它们怎样避免重复，以及内容越来越多时如何保持可维护。"),
     ("CSS View Transitions：状态切换、快速反向与 prefers-reduced-motion", "developer.example", "开发工具 / 前端", ["CSS", "可访问性"], "页面切换中的对象保持连贯，输入仍应立即生效。"),
     ("从一张列表到完整工作区：搜索、筛选、批量选择和阅读怎样相互呼应", "design.example", "设计与体验 / 交互研究", ["产品设计", "信息架构"],
-     "用稳定的位置表达不同的操作范围。搜索控制可见结果，管理作用于明确选择，摘要处理再经过范围预览与同意。阅读面板与列表共享同一个收藏 ID，关闭后回到原查询和焦点。"),
+     "用稳定的位置表达不同的操作范围。搜索控制可见结果，全选与生成共用工具栏。阅读面板把概览和原文放在一起，关闭后回到原查询和焦点。"),
     ("把模型连接的失败说清楚：一套可以重新测试、保存和继续处理的状态设计", "engineering.example", "人工智能 / 工作流", ["状态设计", "失败恢复"],
      "没有通过的连接不能显示为已准备好。错误要指向具体阶段，并留下可以重试的入口。"),
     ("A small guide to generous, useful empty states", "design.example", "设计与体验", ["Empty states", "UX"], "Explain what belongs here, preserve the current query, and offer one useful way back."),
@@ -44,7 +46,8 @@ def prepare(conn):
         conn.execute("UPDATE bookmark SET title=?,url=?,domain=?,folder=?,folder_depth=?,tags=? WHERE id=?",
                      (title, f"https://{host}/synthetic-review/{index}", host, "/".join(folder_parts), len(folder_parts),
                       json.dumps(["demo", *tags], ensure_ascii=False), bookmark_id))
-        conn.execute("UPDATE enrichment SET summary=?,basis='body' WHERE bookmark_id=?", (summary, bookmark_id))
+        conn.execute("UPDATE enrichment SET ai_title=?,summary=?,language='zh',basis='body',prompt_hash=? WHERE bookmark_id=?",
+                     (title, summary, summary_prompt_hash("zh"), bookmark_id))
         store_body(conn, bookmark_id, body=title + "\n\n" + summary + "\n\n"
                    "## 留下能找回来的线索\n\n收藏让一个页面有了再次被找到的机会。用具体的问题记录它为什么重要，"
                    "把标题、来源和保存时的想法留在一起。分类与标签不需要重复说明同一件事。\n\n"
@@ -54,9 +57,12 @@ def prepare(conn):
                    "## 保持思考的上下文\n\nA useful collection connects a question to its source. Keep the result list in place "
                    "while reading, then return with the same question in mind.\n\n"
                    "这是为本轮界面验证编写的隔离合成资料，不包含真实用户书签。")
+        conn.execute("UPDATE enrichment SET source_hash=(SELECT body_hash FROM content WHERE bookmark_id=?) WHERE bookmark_id=?",
+                     (bookmark_id, bookmark_id))
         if index in (3, 7, 16, 23):
             conn.execute("INSERT OR REPLACE INTO enrichment_failure(bookmark_id,error,updated_at) VALUES(?,?,?)",
                          (bookmark_id, "Synthetic previous connection timeout; retry is available.", 1792627200))
         elif index in (5, 10, 14, 19, 26):
             conn.execute("DELETE FROM enrichment WHERE bookmark_id=?", (bookmark_id,))
+        sync_fts_tag_refresh(conn, bookmark_id)
     conn.commit()

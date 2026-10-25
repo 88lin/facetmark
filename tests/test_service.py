@@ -167,9 +167,11 @@ class TestSessionsAndRelations:
                      "VALUES(7, 100, 200, 2, 'temporal')")
         conn.executemany("INSERT INTO bookmark_session(bookmark_id, session_id) VALUES(?,7)",
                          [(b1,), (b2,)])
+        conn.execute("INSERT INTO enrichment(bookmark_id,ai_title,summary) VALUES(?,?,'Summary')", (b1, "AI first"))
         rec = service.session_record(conn, 7)
         assert [m["bookmark_id"] for m in rec["bookmarks"]] == [b1, b2]
         assert rec["span_seconds"] == 100
+        assert rec["bookmarks"][0]["title"] == "first" and rec["bookmarks"][0]["ai_title"] == "AI first"
 
     def test_an_unknown_edge_kind_is_rejected_rather_than_silently_empty(self, conn, st):
         bid = put(conn, "https://r.example/1", "x")
@@ -181,9 +183,11 @@ class TestSessionsAndRelations:
         b = put(conn, "https://r.example/b", "B")
         conn.execute("INSERT INTO edge(src,dst,kind,weight) VALUES(?,?,'session',1.0)", (a, b))
         conn.execute("INSERT INTO edge(src,dst,kind,weight) VALUES(?,?,'session',1.0)", (b, a))
+        conn.execute("INSERT INTO enrichment(bookmark_id,ai_title,summary) VALUES(?,?,'Summary')", (b, "AI B"))
         out = service.related_records(conn, a)
         assert [r["bookmark_id"] for r in out] == [b]
         assert out[0]["kind"] == "session"
+        assert out[0]["title"] == "B" and out[0]["ai_title"] == "AI B"
 
 
 # ---------------------------------------------------------------------------

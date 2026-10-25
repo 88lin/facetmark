@@ -516,7 +516,7 @@ test("JSON download retains the saved page text for the selected synthetic bookm
   });
 });
 
-test("fetch needs no model while summarization requires chat and explicit consent", async ({ page, library }) => {
+test("fetch needs no model and tested chat generates directly from the reading panel", async ({ page, library }) => {
   const token = marker();
   const record = await library.create({ title: token });
   let chatReady = false;
@@ -543,13 +543,12 @@ test("fetch needs no model while summarization requires chat and explicit consen
   await page.goto("/app");
   await page.getByRole("button", { name: "任务", exact: true }).click();
   await page.getByRole("button", { name: "生成阅读摘要", exact: true }).click();
-  let dialog = page.getByRole("dialog", { name: "生成 AI 摘要", exact: true });
-  await expect(dialog.getByRole("alert")).toContainText("配置并测试聊天模型");
-  await dialog.getByLabel("我同意将上述内容发送给聊天模型", { exact: true }).check();
-  await expect(dialog.getByRole("button", { name: "开始任务", exact: true })).toBeDisabled();
-  await dialog.getByRole("button", { name: "取消", exact: true }).click();
+  await expect(page.locator(".summary-generation-feedback")).toContainText("测试并保存聊天模型");
+  await expect(page.getByRole("dialog", { name: "生成 AI 摘要", exact: true })).toHaveCount(0);
+  expect(starts).toHaveLength(0);
+  await page.getByRole("button", { name: "关闭摘要提示", exact: true }).click();
   await page.getByRole("button", { name: "抓取网页正文", exact: true }).click();
-  dialog = page.getByRole("dialog", { name: "提取网页正文", exact: true });
+  const dialog = page.getByRole("dialog", { name: "提取网页正文", exact: true });
   await expect(dialog.getByText("不调用 AI 模型", { exact: false })).toBeVisible();
   await expect(dialog.locator(".consent")).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "开始任务", exact: true })).toBeEnabled();
@@ -563,16 +562,11 @@ test("fetch needs no model while summarization requires chat and explicit consen
   await page.reload();
   await search(page, token, 1);
   await row(page, record.bookmark_id).locator(".bookmark-preview").click();
-  await page.getByRole("tab", { name: "AI 摘要", exact: true }).click();
   await page.getByRole("button", { name: "生成这篇摘要", exact: true }).click();
-  dialog = page.getByRole("dialog", { name: "生成 AI 摘要", exact: true });
-  await expect(dialog.getByRole("alert")).toHaveCount(0);
-  await expect(dialog.getByRole("button", { name: "开始任务", exact: true })).toBeDisabled();
-  await dialog.getByLabel("我同意将上述内容发送给聊天模型", { exact: true }).check();
-  await dialog.getByLabel("重新处理已完成的内容", { exact: true }).check();
-  await dialog.getByRole("button", { name: "开始任务", exact: true }).click();
-  await expect(dialog).toHaveCount(0);
-  expect(starts[1]).toEqual(expect.objectContaining({ mode: "summarize", bookmark_ids: [record.bookmark_id], confirmed: true, force: true }));
+  await expect(page.getByRole("dialog", { name: "生成 AI 摘要", exact: true })).toHaveCount(0);
+  await expect.poll(() => starts[1]).toEqual(expect.objectContaining({
+    mode: "summarize", bookmark_ids: [record.bookmark_id], confirmed: true, force: true, summary_language: "zh",
+  }));
   await expect(page.locator(".preview-pane")).toBeVisible();
   await page.getByRole("button", { name: "任务", exact: true }).click();
   await expect(page.locator(".tasks h2")).toHaveText("摘要生成已完成");

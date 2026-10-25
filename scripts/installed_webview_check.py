@@ -156,7 +156,10 @@ with sync_playwright() as playwright:
         finally:
             original_server.shutdown()
     page.locator('.bookmark-preview').first.click()
-    page.get_by_text('正文还未保存', exact=True).wait_for(timeout=15000)
+    page.get_by_role('heading', name='还没有阅读内容', exact=True).wait_for(timeout=15000)
+    assert page.locator('.body-text').count() == 0
+    assert page.get_by_role('button', name='提取这篇正文', exact=True).is_visible()
+    assert page.get_by_role('button', name='生成这篇摘要', exact=True).is_visible()
     capture_still('installed-reader.png')
     narrow_reader = page.locator('.preview-drawer').is_visible()
     return_label = '返回收藏' if narrow_reader else '关闭预览'
@@ -404,7 +407,8 @@ with sync_playwright() as playwright:
         page.locator('.bookmark-check').nth(1).press('ArrowUp')
         assert checkbox.evaluate('element => element === document.activeElement')
         assert page.evaluate('window.__linkClicks.length') == link_click_count, 'Selection activated an original-page link'
-        page.get_by_role('button', name='完成选择', exact=True).click()
+        assert not page.get_by_role('checkbox', name='全选当前结果', exact=True).is_checked()
+        assert page.locator('.library-tools.selecting').count() == 0, 'Selection added a redundant action row'
         second_id = page.locator('.result-row').nth(1).get_attribute('data-bookmark-id')
         layout_label = '列表视图' if initial_layout == 'grid' else '卡片视图'
         motion_step('切换收藏布局', [f'.result-row[data-bookmark-id="{second_id}"]'],
@@ -487,7 +491,8 @@ with sync_playwright() as playwright:
         motion_step('减少动态效果时 Space 取消选中', [check_fill, check_path],
                     lambda: checkbox.press('Space'), instant=True)
         assert_bookmark_checked(checkbox, False)
-        page.get_by_role('button', name='完成选择', exact=True).click()
+        assert not page.get_by_role('checkbox', name='全选当前结果', exact=True).is_checked()
+        assert page.locator('.library-tools.selecting').count() == 0, 'Reduced-motion selection added an action row'
         all_folders.click()
         page.emulate_media(reduced_motion='no-preference')
         page.evaluate('() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')

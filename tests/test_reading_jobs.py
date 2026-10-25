@@ -14,6 +14,7 @@ from facetmark.api import create_app
 from facetmark.config import Settings
 from facetmark.db import ensure_vec_tables, upsert_content_vector, upsert_intent_vector
 from facetmark.enrich import Enrichment, store_enrichment, targets
+from facetmark.enrich.prompts import resolve_summary_language, summary_prompt_hash
 from facetmark.fetch import store as fetchstore
 from facetmark.fetch.client import BatchResult, FetchResult, Verdict
 from facetmark.providers import Provider, ProviderError
@@ -46,7 +47,9 @@ def save(client, name, *, url=None, body=None, enriched=False):
         target = targets(state.conn, ids=[bid], force=True)[0]
         store_enrichment(state.conn, target,
                          Enrichment(summary=f"oldsummary {name}", intent_queries=[f"oldquery {name}"]),
-                         model="old-chat")
+                         model="old-chat", language=resolve_summary_language(state.settings.summary_language),
+                         prompt_hash=summary_prompt_hash(resolve_summary_language(state.settings.summary_language),
+                                                         state.settings.summary_prompt))
     service.sync_fts_tag_refresh(state.conn, bid)
     state.conn.commit()
     return bid
@@ -94,7 +97,7 @@ def wait_job(client):
     raise AssertionError(f"Reading job did not settle: {job}")
 
 
-def configure_chat(client, monkeypatch, *, fail=False):
+def configure_chat(client, monkeypatch, *, fail=False, payload=None):
     state = client.app.state.fm
     state.settings = state.settings.model_copy(update={
         "chat_base_url": "https://chat.test/v1", "chat_api_key": "synthetic-secret",
@@ -116,7 +119,9 @@ def configure_chat(client, monkeypatch, *, fail=False):
             self.prompts.append(user)
             if fail and (fail is True or fail in user):
                 raise ProviderError("failure synthetic-secret")
-            return {"summary": "A fresh reading summary.", "topics": ["reading"],
+            if payload is not None:
+                return payload
+            return {"title": "Generated reading title", "summary": "A fresh reading summary.", "topics": ["reading"],
                     "intent_queries": ["new reading question"]}
 
         async def embed(self, texts):
@@ -232,6 +237,138 @@ def test_chat_probe_does_not_construct_an_embedding_provider(client, monkeypatch
     assert len(instances) == 1 and instances[0].closed
 
 
+def test_generated_title_is_separate_searchable_and_exported_with_its_language(client, monkeypatch):
+    bid = save(client, "Original English title", body="Saved source text.")
+    instances = configure_chat(client, monkeypatch)
+    preview = client.post("/admin/jobs/preview", json={"mode": "summarize", "summary_language": "zh"}).json()
+    started = client.post("/admin/jobs/start", json={
+        "mode": "summarize", "summary_language": "zh", "confirmed": True,
+        "preview_revision": preview["revision"], "preview_prompt_hash": preview["prompt_hash"],
+    })
+    assert started.status_code == 200, started.text
+    assert wait_job(client)["state"] == "done"
+    assert "OUTPUT_LANGUAGE: zh" in instances[0].prompts[0]
+    record = client.get(f"/bookmark/{bid}?body=true").json()
+    assert record["title"] == "Original English title"
+    assert record["ai_title"] == "Generated reading title"
+    assert record["summary_language"] == "zh"
+    assert record["body_text"] == "Saved source text."
+    hits = client.get("/quick?q=Generated").json()["hits"]
+    assert hits[0]["bookmark_id"] == bid and hits[0]["ai_title"] == record["ai_title"]
+    listed = client.get("/bookmarks?sort=title").json()["items"][0]
+    assert listed["ai_title"] == record["ai_title"] and listed["title"] == record["title"]
+    exported = service.export_reading_data(client.app.state.fm.conn, [bid])[bid]["derived"]
+    assert exported["ai_title"] == record["ai_title"]
+    assert exported["summary_language"] == "zh"
+    assert exported["prompt_hash"] == preview["prompt_hash"]
+
+
+def test_saved_language_and_custom_prompt_invalidate_completed_summaries_without_retesting_chat(client, monkeypatch):
+    bid = save(client, "cached language", body="English source", enriched=True)
+    instances = configure_chat(client, monkeypatch)
+    original = client.post("/admin/jobs/preview", json={"mode": "summarize"}).json()
+    assert original["total"] == 0
+    custom = "Focus on practical steps. Keep {literal braces} and examples concise."
+    saved = client.put("/admin/settings", json={"values": {"summary_language": "en", "summary_prompt": custom}})
+    assert saved.status_code == 200, saved.text
+    assert client.get("/admin/setup-status").json()["channels"]["chat"]["tested"]
+    assert client.get("/admin/setup-status").json()["summary_language"] == "en"
+    preview = client.post("/admin/jobs/preview", json={"mode": "summarize"}).json()
+    assert preview["total"] == 1 and preview["prompt_hash"] != original["prompt_hash"]
+    started = client.post("/admin/jobs/start", json={
+        "mode": "summarize", "confirmed": True, "preview_revision": preview["revision"],
+        "preview_prompt_hash": preview["prompt_hash"],
+    })
+    assert started.status_code == 200, started.text
+    finished = wait_job(client)
+    assert finished["state"] == "done" and finished["params"]["summary_language"] == "en"
+    assert finished["params"]["summary_prompt"] == custom
+    assert custom in instances[0].prompts[0] and "OUTPUT_LANGUAGE: en" in instances[0].prompts[0]
+    assert client.post("/admin/jobs/preview", json={"mode": "summarize"}).json()["total"] == 0
+    assert client.get(f"/bookmark/{bid}").json()["summary_language"] == "en"
+    assert client.put("/admin/settings", json={"values": {"summary_prompt": ""}}).status_code == 200
+    reset = client.post("/admin/jobs/preview", json={"mode": "summarize"}).json()
+    assert reset["total"] == 1 and reset["prompt_hash"] != preview["prompt_hash"]
+    stale = client.post("/admin/jobs/start", json={
+        "mode": "summarize", "confirmed": True, "preview_prompt_hash": preview["prompt_hash"],
+    })
+    assert stale.status_code == 409 and "Summary settings changed" in stale.text
+    assert len(instances) == 1
+
+
+def test_resume_keeps_original_language_and_prompt_after_preferences_change(client, monkeypatch):
+    save(client, "retry same prompt")
+    save(client, "completed same prompt")
+    configure_chat(client, monkeypatch, fail="retry same prompt")
+    started = client.post("/admin/jobs/start", json={
+        "mode": "summarize", "confirmed": True, "summary_language": "en",
+        "summary_prompt": "Original task writing instructions.",
+    })
+    assert started.status_code == 200
+    previous = wait_job(client)
+    assert previous["state"] == "partial"
+    save(client, "added after original task")
+    assert client.put("/admin/settings", json={"values": {
+        "summary_language": "zh", "summary_prompt": "New task writing instructions.",
+    }}).status_code == 200
+    instances = configure_chat(client, monkeypatch)
+    response = client.post("/admin/jobs/resume", json={"resume_id": previous["id"], "confirmed": True})
+    assert response.status_code == 200, response.text
+    assert wait_job(client)["state"] == "done"
+    assert len(instances[0].prompts) == 1
+    prompt = instances[0].prompts[0]
+    assert "retry same prompt" in prompt and "OUTPUT_LANGUAGE: en" in prompt
+    assert "Original task writing instructions." in prompt and "New task writing instructions." not in prompt
+
+
+@pytest.mark.parametrize("payload", [{"summary_language": "zh-CN"}, {"summary_prompt": "x" * 10001}])
+def test_summary_preferences_reject_invalid_saved_values(client, payload):
+    assert client.put("/admin/settings", json={"values": payload}).status_code == 400
+
+
+def test_builtin_prompt_remains_available_and_custom_instructions_do_not_replace_output_contract(client):
+    from facetmark.enrich.prompts import build_user_prompt
+
+    defaults = client.get("/admin/settings").json()["summary_prompt_defaults"]
+    assert "中文标题" in defaults["zh"] and "title" in defaults["en"]
+    prompt = build_user_prompt(title="Original title", url="https://reading.test/prompt", folder="",
+                               body="Original source", n_queries=8, language="zh",
+                               custom_prompt="Prefer numbered practical takeaways.")
+    assert "Prefer numbered practical takeaways." in prompt
+    assert '"title"' in prompt and '"intent_queries"' in prompt
+    assert "Required target language: 简体中文" in prompt
+    assert prompt.endswith("<<<PAGE>>>\nOriginal source")
+
+
+@pytest.mark.parametrize("payload", [
+    {"summary": "Incomplete replacement", "intent_queries": ["replacement query"]},
+    {"title": "Incomplete replacement", "intent_queries": ["replacement query"]},
+])
+def test_incomplete_model_reply_keeps_previous_title_summary_queries_and_search_index(client, monkeypatch, payload):
+    bid = save(client, "original saved title", body="Saved source text", enriched=True)
+    state = client.app.state.fm
+    state.conn.execute("UPDATE enrichment SET ai_title='previous generated title' WHERE bookmark_id=?", (bid,))
+    service.sync_fts_tag_refresh(state.conn, bid)
+    state.conn.commit()
+    previous = dict(state.conn.execute("SELECT * FROM enrichment WHERE bookmark_id=?", (bid,)).fetchone())
+    queries = [tuple(row) for row in state.conn.execute("SELECT * FROM intent_query WHERE bookmark_id=?", (bid,))]
+    instances = configure_chat(client, monkeypatch, payload=payload)
+    response = client.post("/admin/jobs/start", json={
+        "mode": "summarize", "bookmark_ids": [bid], "force": True, "confirmed": True,
+    })
+    assert response.status_code == 200, response.text
+    job = wait_job(client)
+    assert job["state"] == "partial" and job["items"] == {"done": 1, "total": 1, "failed": 1}
+    assert dict(state.conn.execute("SELECT * FROM enrichment WHERE bookmark_id=?", (bid,)).fetchone()) == previous
+    assert [tuple(row) for row in state.conn.execute("SELECT * FROM intent_query WHERE bookmark_id=?", (bid,))] == queries
+    record = client.get(f"/bookmark/{bid}?body=true").json()
+    assert record["ai_title"] == previous["ai_title"] and record["summary"] == previous["summary"]
+    assert record["title"] == "original saved title" and record["body_text"] == "Saved source text"
+    assert "generated title and summary" in record["summary_error"]
+    assert client.get("/quick?q=previous").json()["hits"][0]["bookmark_id"] == bid
+    assert len(instances[0].prompts) == 2  # one shorter-body retry; neither reply overwrites saved data
+
+
 def test_summary_failure_is_partial_keeps_existing_summary_and_redacts_status(client, monkeypatch):
     bid = save(client, "failed", body="Saved page", enriched=True)
     vectors(client, [bid])
@@ -302,7 +439,7 @@ def test_discovered_model_is_tested_saved_and_used_by_actual_summary_job(client,
 
         async def chat_json(self, system, user):
             calls.append((self.chat_model_in_use, user))
-            return {"ok": True, "summary": "Summary from the selected model", "topics": [], "intent_queries": ["selected model"]}
+            return {"ok": True, "title": "Selected model title", "summary": "Summary from the selected model", "topics": [], "intent_queries": ["selected model"]}
 
         async def embed(self, texts):
             raise AssertionError("Summary generation must not require embeddings")
@@ -509,7 +646,7 @@ async def test_pause_drains_inflight_work_and_restart_resumes_original_snapshot(
             calls.append(user)
             runner.pause()
             await asyncio.sleep(0.01)
-            return {"summary": "saved summary"}
+            return {"title": "Saved title", "summary": "saved summary"}
     monkeypatch.setattr(admin, "get_chat_provider", lambda s: Chat(s))
     job = runner.start(settings, fetch=False, limit=None, force=True, mode="summarize", bookmark_ids=ids)
     await runner._task

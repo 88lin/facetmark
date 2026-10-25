@@ -221,6 +221,7 @@ def sync_fts(
     bookmark_id: int,
     *,
     title: str,
+    ai_title: str = "",
     body: str = "",
     body_seg: str | None = None,
     summary: str = "",
@@ -241,13 +242,14 @@ def sync_fts(
     """
     extra = _extra_blob(topics, entities, key_points, tags)
     seg_body = body_seg if body_seg is not None else segment(body)
-    seg_title = segment(title)
+    title_text = "\n".join(value for value in (title, ai_title) if value)
+    seg_title = segment(title_text)
     seg_summary = segment(summary)
     seg_extra = segment(extra)
 
     conn.execute("DELETE FROM fts_tri WHERE rowid=?", (bookmark_id,))
     conn.execute("DELETE FROM fts_seg WHERE rowid=?", (bookmark_id,))
-    conn.execute(_FTS_UPSERT_TRI, (bookmark_id, title, body, summary, extra))
+    conn.execute(_FTS_UPSERT_TRI, (bookmark_id, title_text, body, summary, extra))
     conn.execute(_FTS_UPSERT_SEG, (bookmark_id, seg_title, seg_body, seg_summary, seg_extra))
 
 

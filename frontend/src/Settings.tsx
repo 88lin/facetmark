@@ -12,17 +12,25 @@ import {
   Save,
 } from "lucide-react";
 import { api, getToken, post, type Probe, type Setting, type Setup } from "./api";
-import { useText } from "./locale";
-import { ModelPicker } from "./ModelPicker";
+import { useText, type Language } from "./locale";
+import { ModelPicker, type Catalog } from "./ModelPicker";
+import { ReasoningSettings } from "./ReasoningSettings";
+import { SummaryPreferences } from "./SummaryPreferences";
+import { ProcessingPreferences } from "./ProcessingPreferences";
+import "./local-embedding.css";
 
 type LocalAgent = { id: string; name: string; installed: boolean; path?: string | null };
+type ModelSetting = Setting & { active_value?: unknown };
+type LocalEmbeddingRuntime = { supported: boolean; packaged: boolean;
+  reason: "available" | "desktop-unavailable" | "dependency-missing" };
 
 export function Models({ setup, refresh, showHeading = true, onSummarize }: { setup: Setup | null; refresh: () => Promise<void>; showHeading?: boolean; onSummarize?: () => void }) {
   const t = useText();
   const [agents, setAgents] = useState<LocalAgent[]>([]);
   const [detecting, setDetecting] = useState(true);
   const [detectionError, setDetectionError] = useState("");
-  const [rows, setRows] = useState<Setting[]>([]);
+  const [rows, setRows] = useState<ModelSetting[]>([]);
+  const [localRuntime, setLocalRuntime] = useState<LocalEmbeddingRuntime | null>(null);
   const [draft, setDraft] = useState<Record<string, unknown>>({});
   const [results, setResults] = useState<Record<string, Probe>>({});
   const [busy, setBusy] = useState("");
@@ -34,6 +42,12 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
   const [channelFeedback, setChannelFeedback] = useState<Record<string, { text: string; saved: boolean }>>({});
   const [testingAndSaving, setTestingAndSaving] = useState(false);
   const agentModels = useRef<Record<string, string>>({});
+  const agentEfforts = useRef<Record<string, string>>({});
+  const [chatCatalog, setChatCatalog] = useState<Catalog | null>(null);
+  const [summaryDefaults, setSummaryDefaults] = useState<Partial<Record<Language, string>>>({});
+  const detectionAbort = useRef<AbortController | null>(null);
+  const agentEditVersion = useRef(0);
+  const preserveDetectionDraft = useRef(false);
   const lastAgent = useRef<{ preference: string; id: string } | null>(null);
   const hasDraft = Object.keys(draft).length > 0;
   const channelStatus = (channel: string) => {
@@ -54,25 +68,35 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
         : t("未配置", "Not configured");
   };
   async function detect() {
+    detectionAbort.current?.abort();
+    const request = new AbortController();
+    detectionAbort.current = request;
+    const editVersion = agentEditVersion.current;
     setDetecting(true);
     setDetectionError("");
     try {
-      const found = await api<{ agents: LocalAgent[] }>("/admin/agents");
+      const found = await api<{ agents: LocalAgent[] }>("/admin/agents", { signal: request.signal });
+      if (request.signal.aborted) return [];
+      preserveDetectionDraft.current = agentEditVersion.current !== editVersion;
       setAgents(found.agents);
       return found.agents;
     } catch {
+      if (request.signal.aborted) return [];
       setAgents([]);
       setDetectionError(t("暂时无法检测本机 Agent，请重新检测。", "Agent detection failed. Please retry."));
       return [];
     } finally {
-      setDetecting(false);
+      if (!request.signal.aborted) setDetecting(false);
     }
   }
   async function load(suggestAgent = false) {
     setLoadingSettings(true); setLoadError("");
     try {
-      const data = await api<{ settings: Setting[]; channels: { chat: { configured: boolean } } }>("/admin/settings");
+      const data = await api<{ settings: ModelSetting[]; channels: { chat: { configured: boolean } };
+        summary_prompt_defaults?: Record<Language, string>; local_embedding_runtime?: LocalEmbeddingRuntime }>("/admin/settings");
       setRows(data.settings);
+      setLocalRuntime(data.local_embedding_runtime || null);
+      setSummaryDefaults(data.summary_prompt_defaults || {});
       if (suggestAgent) {
         const found = await detect();
         if (!data.channels.chat.configured && found.some(a => a.installed)
@@ -86,10 +110,16 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
   }
   useEffect(() => {
     load(true).catch((e) => { setError(String(e)); setDetecting(false); });
+    return () => detectionAbort.current?.abort();
   }, []);
   const row = (key: string) => rows.find((r) => r.key === key);
   const value = (key: string) =>
     key in draft ? draft[key] : row(key)?.secret ? "" : (row(key)?.value ?? "");
+  const embedBackend = String(value("embed_backend") || "endpoint");
+  const activeEmbedBackend = String(row("embed_backend")?.active_value ?? row("embed_backend")?.value ?? "endpoint");
+  const localSelected = embedBackend === "local";
+  const localActive = activeEmbedBackend === "local";
+  const localUnavailable = localSelected && !localRuntime?.supported;
   const agentPreference = String(value("chat_agent") || "auto");
   const selectedAgent = agentPreference === "auto" ? agents.find(a => a.installed) : agents.find(a => a.id === agentPreference && a.installed);
   const agentUnavailable = value("chat_backend") === "agent" && (detecting || !selectedAgent || !!detectionError);
@@ -102,27 +132,41 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
     const previous = lastAgent.current;
     lastAgent.current = { preference: agentPreference, id };
     if (previous?.preference === "auto" && agentPreference === "auto" && previous.id !== id) {
-      if (previous.id) agentModels.current[previous.id] = String(value("chat_agent_model"));
+      if (previous.id && !preserveDetectionDraft.current) {
+        agentModels.current[previous.id] = String(value("chat_agent_model"));
+        agentEfforts.current[previous.id] = String(value("chat_agent_reasoning_effort"));
+      }
       // A model the user typed while detection was in flight outranks the
       // remembered value for the newly detected agent.
-      if (!row("chat_agent_model")?.locked && !manualEdits.current.has(id)) {
-        setDraft(current => ({ ...current, chat_agent_model: agentModels.current[id] || "" }));
+      if (!preserveDetectionDraft.current && !manualEdits.current.has(id)) {
+        setDraft(current => ({ ...current,
+          ...(!row("chat_agent_model")?.locked ? { chat_agent_model: agentModels.current[id] || "" } : {}),
+          ...(!row("chat_agent_reasoning_effort")?.locked ? { chat_agent_reasoning_effort: agentEfforts.current[id] || "" } : {}),
+        }));
       }
       setResults(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== "chat")));
       setChannelFeedback(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== "chat")));
     }
   }, [selectedAgent?.id, agentPreference, detecting, detectionError]);
   const change = (key: string, next: unknown) => {
-    if (key === "chat_agent_model" || key.endsWith("_model")) {
+    if (key === "chat_agent_model" || key === "chat_agent_reasoning_effort" || key.endsWith("_model")) {
       manualEdits.current.add(selectedAgent?.id || agentPreference);
+      agentEditVersion.current++;
     }
-    if (key === "chat_agent") agentModels.current[selectedAgent?.id || agentPreference] = String(value("chat_agent_model"));
+    if (key === "chat_agent") {
+      agentModels.current[selectedAgent?.id || agentPreference] = String(value("chat_agent_model"));
+      agentEfforts.current[selectedAgent?.id || agentPreference] = String(value("chat_agent_reasoning_effort"));
+    }
     const nextAgent = next === "auto" ? agents.find(agent => agent.installed)?.id || "auto" : String(next);
     setDraft((d) => ({
       ...d,
       [key]: next,
       ...(key === "chat_agent" && !row("chat_agent_model")?.locked
         ? { chat_agent_model: agentModels.current[nextAgent] || "" } : {}),
+      ...(key === "chat_agent" && !row("chat_agent_reasoning_effort")?.locked
+        ? { chat_agent_reasoning_effort: agentEfforts.current[nextAgent] || "" } : {}),
+      ...(key === "chat_agent_model" && next !== value(key) && !row("chat_agent_reasoning_effort")?.locked
+        ? { chat_agent_reasoning_effort: "" } : {}),
       ...(key.endsWith("_allow_no_key") && next
         ? { [key.replace("_allow_no_key", "_api_key")]: "" }
         : {}),
@@ -249,6 +293,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
       : JSON.stringify([value(`${channel}_base_url`), value(`${channel}_api_key`), value(`${channel}_allow_no_key`)]);
     return <ModelPicker key={local ? "agent" : channel} name={key} value={String(value(key))}
       onChange={next => change(key, next)} payload={payload} identity={identity}
+      onCatalogChange={channel === "chat" ? setChatCatalog : undefined}
       agent={local ? selectedAgent?.id || agentPreference : undefined} autoLoad={local && !agentUnavailable}
       disabled={!!busy || loadingSettings || !!row(key)?.locked}/>;
   };
@@ -285,6 +330,25 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
                 ? t("用于生成摘要与检索意图，选择一种接入方式即可。", "Generates summaries and search intents. Choose one provider below.")
                 : t("可选 · 用于按含义查找。普通关键词搜索和摘要不需要向量模型。", "Optional · Find pages by meaning. Keyword search and summaries do not require embeddings.")}</p>
             </div>
+            {channel === "embed" && <div className="embedding-backend" data-active-backend={activeEmbedBackend}>
+              <p><strong>{t("当前后端：", "Active backend: ")}</strong>{localActive
+                ? t("进程内本地模型 · Sentence Transformers", "In-process local model · Sentence Transformers")
+                : t("模型端点 · HTTP API", "Model endpoint · HTTP API")}</p>
+              {embedBackend !== activeEmbedBackend && <p className="embedding-pending">{localSelected
+                ? t("准备切换到进程内本地模型", "Switching to an in-process local model")
+                : t("准备切换到模型端点", "Switching to a model endpoint")} · {"embed_backend" in draft
+                  ? t("尚未保存，需重新测试", "Unsaved; a fresh test is required") : t("已保存，尚未应用", "Saved; not applied yet")}</p>}
+              {(localSelected || localActive) && <div className="local-embedding-runtime" role="status" data-runtime-reason={localRuntime?.reason || "unknown"}>
+                <p>{!localRuntime ? t("服务尚未返回本地模型的运行状态，请重新读取设置。", "The service has not reported local model support. Reload settings.")
+                  : localRuntime.supported ? t("当前环境支持进程内本地模型。配置模型后仍需测试，运行支持不代表模型已经可用。", "This environment supports in-process local models. Configure and test a model to verify it is ready.")
+                    : localRuntime.reason === "desktop-unavailable" ? t("此桌面安装包不包含 Sentence Transformers，无法运行进程内本地向量模型。", "This desktop package does not include Sentence Transformers and cannot run in-process local embeddings.")
+                      : t("当前服务环境缺少 Sentence Transformers，进程内本地向量模型暂不可用。", "Sentence Transformers is missing from this service environment. In-process local embeddings are unavailable.")}</p>
+                {localSelected && <CapsuleButton type="button" className="secondary" disabled={!!busy || loadingSettings || !!row("embed_backend")?.locked}
+                  onClick={() => change("embed_backend", "endpoint")}>{t("切换到模型端点", "Switch to model endpoint")}<ExternalLink size={15}/></CapsuleButton>}
+                {!localRuntime && <CapsuleButton type="button" className="text-button" disabled={!!busy || loadingSettings} onClick={() => load()}>{t("重新读取设置", "Reload settings")}</CapsuleButton>}
+              </div>}
+              <p className="embedding-backend-hint">{t("Ollama 是通过 HTTP 连接的模型端点。切换后需重新测试、保存并应用；向量空间变化时，使用下方备份与重建确认。", "Ollama connects through an HTTP model endpoint. Test, save and apply any change; confirm backup and rebuild below when the vector space changes.")}</p>
+            </div>}
             <div className="model-fields">
               {channel === "chat" && <label className="field">{t("摘要来源", "Summary provider")}
                 <select aria-label={t("摘要来源", "Summary provider")} value={String(value("chat_backend") || "endpoint")}
@@ -293,7 +357,10 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
                   <option value="endpoint">{t("API 服务", "API endpoint")}</option>
                 </select>
               </label>}
-              {channel === "chat" && value("chat_backend") === "agent" ? <>
+              {channel === "embed" && localSelected ? <>
+                {field("local_embed_path", t("本地模型 ID 或目录", "Local model ID or directory"))}
+                {field("embed_dim", t("向量维度", "Dimensions"), "number")}
+              </> : channel === "chat" && value("chat_backend") === "agent" ? <>
                 <label className="field">{t("选择 Agent", "Agent")}
                   <select aria-label={t("选择 Agent", "Agent")} value={String(value("chat_agent") || "auto")}
                     disabled={!!busy || row("chat_agent")?.locked} onChange={e => change("chat_agent", e.target.value)}>
@@ -313,20 +380,30 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
                     await detect(); await refresh();
                   }}><RefreshCw size={14} className={detecting ? "spin" : ""}/>{t("重新检测", "Detect again")}</CapsuleButton>
                 </div>
+                <div className="model-selection">
                 {modelPicker("chat", true)}
+                <ReasoningSettings agent={selectedAgent?.id || agentPreference} model={String(value("chat_agent_model"))}
+                  value={String(value("chat_agent_reasoning_effort"))} extraBody="" catalog={chatCatalog}
+                  disabled={!!busy || loadingSettings || !!row("chat_agent_reasoning_effort")?.locked}
+                  onChange={next => change("chat_agent_reasoning_effort", next)}/>
+                </div>
               </> : <>
                 {field(`${channel}_base_url`, t("服务地址", "Base URL"), "url", "https://api.openai.com/v1")}
                 {field(`${channel}_api_key`, "API Key", "password")}
-                {modelPicker(channel)}
+                {channel === "chat" ? <div className="model-selection">{modelPicker(channel)}
+                <ReasoningSettings model={String(value("chat_model"))}
+                  baseUrl={String(value("chat_base_url"))} value="" extraBody={String(value("chat_extra_body"))}
+                  catalog={chatCatalog} disabled={!!busy || loadingSettings || !!row("chat_extra_body")?.locked}
+                  onChange={next => change("chat_extra_body", next)}/></div> : modelPicker(channel)}
                 {channel === "embed" && field("embed_dim", t("向量维度", "Dimensions"), "number")}
               </>}
             </div>
             <div className="model-test">
-              <CapsuleButton className="secondary" disabled={!!busy || !rows.length || (channel === "chat" && agentUnavailable)} onClick={() => test(channel)}>
+              <CapsuleButton className="secondary" disabled={!!busy || !rows.length || (channel === "chat" && agentUnavailable) || (channel === "embed" && localUnavailable)} onClick={() => test(channel)}>
                 {busy === channel && !testingAndSaving ? <LoaderCircle className="spin" /> : <FlaskConical />}
                 {t("测试连接", "Test connection")}
               </CapsuleButton>
-              <CapsuleButton className="primary" disabled={!!busy || !rows.length || (channel === "chat" && agentUnavailable)} onClick={() => test(channel, true)}>{busy === channel && testingAndSaving ? <LoaderCircle size={16} className="spin"/> : <Check size={16}/>} {t("测试并保存", "Test and save")}</CapsuleButton>
+              <CapsuleButton className="primary" disabled={!!busy || !rows.length || (channel === "chat" && agentUnavailable) || (channel === "embed" && localUnavailable)} onClick={() => test(channel, true)}>{busy === channel && testingAndSaving ? <LoaderCircle size={16} className="spin"/> : <Check size={16}/>} {t("测试并保存", "Test and save")}</CapsuleButton>
               {results[channel] && (
                 <div
                   role="status"
@@ -380,7 +457,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
                 <ul className="agent-paths">{agents.map(agent => <li key={agent.id}><strong>{agent.name}</strong><span>{agent.path || (agent.installed ? t("已检测到", "Detected") : t("未检测到", "Not detected"))}</span></li>)}</ul>
               </details>
             </div>}
-            {!(channel === "chat" && value("chat_backend") === "agent") && <div className="model-options">
+            {!(channel === "chat" && value("chat_backend") === "agent") && !(channel === "embed" && localSelected) && <div className="model-options">
               <label className="check">
                 <input
                   type="checkbox"
@@ -411,6 +488,29 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
           </section>
         ))}
       </div>
+      <SummaryPreferences preference={String(value("summary_language") || "auto")}
+        prompt={String(value("summary_prompt"))} defaults={summaryDefaults}
+        disabled={!!busy || loadingSettings} languageLocked={!!row("summary_language")?.locked}
+        promptLocked={!!row("summary_prompt")?.locked}
+        dirty={"summary_language" in draft || "summary_prompt" in draft}
+        onChange={change} onSave={() => run("summary", async () => {
+          const values = Object.fromEntries(Object.entries(draft).filter(([key]) =>
+            key === "summary_language" || key === "summary_prompt"));
+          await api("/admin/settings", { method: "PUT", body: JSON.stringify({ values }) });
+          acknowledgeSaved(values); await load(); await refresh();
+          setNotice(t("摘要设置已保存，下次生成时生效。已保存的内容可勾选后重新生成。",
+            "Summary settings saved for the next generation. Select saved items to regenerate them."));
+        })}/>
+      <ProcessingPreferences settings={rows} disabled={!!busy || loadingSettings || !!loadError}
+        onSave={async values => {
+          setBusy("processing"); setError("");
+          try {
+            await api("/admin/settings", { method: "PUT", body: JSON.stringify({ values }) });
+            acknowledgeSaved(values); await load();
+            await refresh().catch(e => setError(t("处理设置已保存，但状态刷新失败。请重新读取设置。",
+              "Processing limits were saved, but status refresh failed. Reload settings.") + " " + String(e)));
+          } finally { setBusy(""); }
+        }}/>
       <details className="advanced">
         <summary>
           {t("高级聊天参数与隐私排除", "Advanced chat options and privacy exclusions")}
@@ -446,7 +546,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
           <Save />
           {t("保存配置", "Save settings")}
         </CapsuleButton>
-        {hasDraft && <CapsuleButton className="secondary" disabled={!!busy} onClick={() => { setDraft({}); setResults({}); setChannelFeedback({}); setError(""); setNotice(""); setConsent(false); agentModels.current = {}; }}>{t("放弃修改", "Discard changes")}</CapsuleButton>}
+        {hasDraft && <CapsuleButton className="secondary" disabled={!!busy} onClick={() => { setDraft({}); setResults({}); setChannelFeedback({}); setError(""); setNotice(""); setConsent(false); agentModels.current = {}; agentEfforts.current = {}; manualEdits.current.clear(); }}>{t("放弃修改", "Discard changes")}</CapsuleButton>}
         <span className="hint">
           {t(
             "测试只发送固定测试句，不发送书签。",

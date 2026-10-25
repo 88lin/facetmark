@@ -2,9 +2,9 @@
 de-duplication and insertion.
 
 Import is idempotent. Re-importing the same file updates titles and folders but
-never duplicates rows, never moves ``date_added`` forward, and never touches
-fetched content or enrichment. That matters because the file is the user's live
-bookmark store and will be re-imported often.
+never duplicates rows and never moves ``date_added`` forward. Browser exports
+preserve saved content and enrichment. Explicit version 2 full backups may fill
+missing reading data and conversations without replacing the local copies.
 """
 
 from __future__ import annotations
@@ -52,6 +52,10 @@ class ImportStats:
     folders: int = 0
     max_depth: int = 0
     warnings: list[str] = field(default_factory=list)
+    restored_bodies: int = 0
+    restored_summaries: int = 0
+    restored_conversations: int = 0
+    restored_messages: int = 0
 
     def as_dict(self) -> dict:
         return {
@@ -67,6 +71,10 @@ class ImportStats:
             "folders": self.folders,
             "max_depth": self.max_depth,
             "warnings": self.warnings,
+            "restored_bodies": self.restored_bodies,
+            "restored_summaries": self.restored_summaries,
+            "restored_conversations": self.restored_conversations,
+            "restored_messages": self.restored_messages,
         }
 
 
@@ -163,6 +171,24 @@ def import_bookmarks(
     content: str | None = None,
     settings: Settings | None = None,
 ) -> ImportStats:
+    conn.execute("SAVEPOINT bookmark_import")
+    try:
+        result = _import_bookmarks(conn, path, content=content, settings=settings)
+    except BaseException:
+        conn.execute("ROLLBACK TO bookmark_import")
+        conn.execute("RELEASE bookmark_import")
+        raise
+    conn.execute("RELEASE bookmark_import")
+    return result
+
+
+def _import_bookmarks(
+    conn: sqlite3.Connection,
+    path: str | Path | None = None,
+    *,
+    content: str | None = None,
+    settings: Settings | None = None,
+) -> ImportStats:
     """Import from a file path or from raw text."""
     st = settings or get_settings()
     if content is None:
@@ -171,6 +197,8 @@ def import_bookmarks(
         content = read_text(path)
 
     parsed = detect_and_parse(content)
+    from .. import backup
+    prepared = backup.prepare(parsed.reading_data, parsed.conversations)
     stats = ImportStats(
         total_parsed=len(parsed.bookmarks),
         timestamp_unit=parsed.timestamp_unit,
@@ -327,7 +355,7 @@ def import_bookmarks(
             "SELECT body_text, body_seg FROM content WHERE bookmark_id=?", (bid,)
         ).fetchone()
         enr = conn.execute(
-            "SELECT summary, topics, entities, key_points FROM enrichment WHERE bookmark_id=?",
+            "SELECT ai_title,summary, topics, entities, key_points FROM enrichment WHERE bookmark_id=?",
             (bid,),
         ).fetchone()
         from ..db import jload
@@ -339,6 +367,7 @@ def import_bookmarks(
             conn,
             bid,
             title=row["title"],
+            ai_title=(enr["ai_title"] if enr else "") or "",
             body=(body_row["body_text"] if body_row else "") or "",
             body_seg=(body_row["body_seg"] if body_row else None),
             summary=(enr["summary"] if enr else "") or "",
@@ -348,4 +377,5 @@ def import_bookmarks(
             tags=merged_tags,
         )
 
+    backup.restore(conn, prepared, stats)
     return stats

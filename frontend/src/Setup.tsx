@@ -1,20 +1,31 @@
 import { CapsuleButton } from "./ui/controls";
 import { useRef, useState } from "react";
-import { ArrowRight, Check, FolderOpen, LoaderCircle, Upload } from "lucide-react";
-import { api, post, type Job, type Setup } from "./api";
+import { AlertCircle, ArrowRight, Check, FolderOpen, LoaderCircle, RotateCcw, Upload } from "lucide-react";
+import { ApiError, api, post, type Job, type Setup } from "./api";
 import { Models } from "./Settings";
 import { Tasks } from "./Tasks";
 import { useText } from "./locale";
 import { SelectionPill, useContentMotion } from "./InteractionMotion";
+import { SiteImport } from "./SiteImport";
 import "./setup.css";
+
+type ImportReport = {
+  parsed?: number; total_parsed?: number; inserted?: number; updated?: number;
+  merged_duplicates?: number; privacy_skipped?: number; non_indexable?: number;
+  missing_dates?: number; folders?: number; max_depth?: number; skipped?: number; errors?: number; warnings?: string[];
+  restored_bodies?: number; restored_summaries?: number; restored_conversations?: number; restored_messages?: number;
+};
+const importCount = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0;
 
 export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; onDone?: () => void }) {
   const t = useText();
   const input = useRef<HTMLInputElement>(null);
   const inFlight = useRef(false);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
+  const [report, setReport] = useState<ImportReport | null>(null);
   const [error, setError] = useState("");
+  const [needsRefresh, setNeedsRefresh] = useState(false);
+  const lastWork = useRef<(() => Promise<unknown>) | null>(null);
   const [finding, setFinding] = useState(false);
   const findingInFlight = useRef(false);
   const [dragging, setDragging] = useState(false);
@@ -26,15 +37,16 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
     inFlight.current = true;
     setBusy(true);
     setError("");
-    setMessage("");
+    setReport(null); setNeedsRefresh(false); lastWork.current = work;
+    let received = false;
     try {
-      const result = (await work()) as { inserted?: number; updated?: number };
+      const result = (await work()) as ImportReport;
+      received = true; setReport(result);
       await refresh();
-      setMessage(
-        `${t("导入完成", "Import complete")} · ${t("新增", "Added")} ${result.inserted ?? 0} · ${t("更新", "Updated")} ${result.updated ?? 0}`,
-      );
     } catch (e) {
-      setError(String(e));
+      setNeedsRefresh(received);
+      setError(received ? t("导入结果已保存，但收藏列表未能刷新。请重新读取列表。", "Import results were saved, but the collection could not refresh. Reload the collection.")
+        : e instanceof ApiError ? e.message : t("导入服务暂时不可用，请重试。", "The import service is temporarily unavailable. Please retry."));
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -42,7 +54,7 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
   }
   async function upload(file?: File) {
     if (!file || inFlight.current || findingInFlight.current) return;
-    setMessage("");
+    setReport(null); setNeedsRefresh(false); lastWork.current = null;
     if (!/\.(html?|json)$/i.test(file.name)) {
       setError(t("请选择 HTML 或 JSON 书签导出文件。", "Choose an HTML or JSON bookmark export."));
       return;
@@ -59,6 +71,39 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
       }),
     );
   }
+  async function retry() {
+    if (!needsRefresh) { if (lastWork.current) await run(lastWork.current); return; }
+    if (inFlight.current || findingInFlight.current) return;
+    inFlight.current = true; setBusy(true); setError("");
+    try { await refresh(); setNeedsRefresh(false); }
+    catch { setError(t("收藏列表仍未能刷新，请重新读取。", "The collection still could not refresh. Please reload it.")); }
+    finally { inFlight.current = false; setBusy(false); }
+  }
+  const parsed = importCount(report?.parsed ?? report?.total_parsed);
+  const changed = importCount(report?.inserted) + importCount(report?.updated);
+  const restored = ["restored_bodies", "restored_summaries", "restored_conversations", "restored_messages"] as const;
+  const hasRestored = restored.some(key => importCount(report?.[key]) > 0);
+  const warnings = (report?.warnings || []).filter(value => typeof value === "string" && value.trim()).map(value => value.trim().slice(0, 1200));
+  const partial = importCount(report?.skipped) > 0 || importCount(report?.errors) > 0
+    || parsed > changed + importCount(report?.merged_duplicates);
+  const outcome = !changed && !hasRestored ? "empty" : partial ? "partial" : warnings.length || importCount(report?.missing_dates)
+    || importCount(report?.privacy_skipped) || importCount(report?.non_indexable) ? "review" : "complete";
+  const outcomeTitle = outcome === "empty" ? t("没有新增或更新的收藏", "No bookmarks were added or updated")
+    : outcome === "partial" ? t("导入结束，部分内容未能导入", "Import finished with some content not imported")
+      : outcome === "review" ? t("导入完成，有事项需要留意", "Import complete with details to review")
+        : hasRestored && !changed ? t("备份内容已恢复", "Backup content restored") : t("导入完成", "Import complete");
+  const metrics = [
+    ["parsed", t("解析条目", "Parsed entries"), parsed], ["inserted", t("新增收藏", "Added bookmarks"), importCount(report?.inserted)],
+    ["updated", t("更新收藏", "Updated bookmarks"), importCount(report?.updated)],
+    ["merged_duplicates", t("合并重复", "Merged duplicates"), importCount(report?.merged_duplicates)],
+    ["privacy_skipped", t("隐私排除", "Privacy exclusions"), importCount(report?.privacy_skipped)],
+    ["non_indexable", t("不参与索引", "Not indexable"), importCount(report?.non_indexable)],
+    ["missing_dates", t("缺少保存时间", "Missing save dates"), importCount(report?.missing_dates)],
+    ...(report?.folders !== undefined ? [["folders", t("文件夹", "Folders"), importCount(report.folders)] as const] : []),
+    ...(report?.max_depth !== undefined ? [["max_depth", t("最大层级", "Maximum folder depth"), importCount(report.max_depth)] as const] : []),
+    ...(report?.skipped !== undefined ? [["skipped", t("跳过条目", "Skipped entries"), importCount(report.skipped)] as const] : []),
+    ...(report?.errors !== undefined ? [["errors", t("处理失败", "Failed entries"), importCount(report.errors)] as const] : []),
+  ] as const;
   return (
     <section className="importer">
       <h2>{t("把收藏带回来", "Bring your bookmarks together")}</h2>
@@ -105,7 +150,7 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
         onClick={async () => {
           if (inFlight.current || findingInFlight.current) return;
           findingInFlight.current = true;
-          setError(""); setMessage(""); setSources(null); setDragging(false);
+          setError(""); setReport(null); setNeedsRefresh(false); lastWork.current = null; setSources(null); setDragging(false);
           setFinding(true);
           try {
             const data = await api<{ sources: { id: string; browser: string; profile: string }[] }>(
@@ -113,7 +158,7 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
             );
             setSources(data.sources);
           } catch (e) {
-            setError(String(e));
+            setError(t("未能读取书签来源，请重新查找或选择导出文件。", "Bookmark sources could not be read. Search again or choose an export file."));
           } finally {
             findingInFlight.current = false;
             setFinding(false);
@@ -151,18 +196,26 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
           )}
         </div>
       )}
-      {message && (
-        <div className="import-result"><p className="notice" role="status">
-          <Check size={16} />
-          {message}
-        </p><p>{t("现在就可以搜索和整理收藏，AI 摘要可稍后配置。", "Your bookmarks are ready to search and organize. AI summaries can be set up later.")}</p>
-        {onDone && <CapsuleButton type="button" className="primary" onClick={onDone}>{t("查看已导入的收藏", "View imported bookmarks")}<ArrowRight size={16}/></CapsuleButton>}</div>
+      {report && (
+        <div className="import-result" data-outcome={outcome}>
+          <p className="import-result-heading" role="status">{outcome === "complete" ? <Check size={18}/> : <AlertCircle size={18}/>}<strong>{outcomeTitle}</strong></p>
+          <dl className="import-metrics">{metrics.map(([key, label, count]) => <div key={key} data-metric={key}><dt>{label}</dt><dd>{count}</dd></div>)}</dl>
+          {hasRestored && <div className="import-restored"><h3>{t("从备份恢复的内容", "Content restored from backup")}</h3>
+            <dl className="import-metrics">{restored.map((key, index) => <div key={key} data-metric={key}>
+              <dt>{[t("保存正文", "Saved page text"), t("AI 摘要", "AI summaries"), t("对话", "Conversations"), t("对话消息", "Chat messages")][index]}</dt><dd>{importCount(report[key])}</dd>
+            </div>)}</dl><p>{t("恢复缺失内容，保留书库中已有的正文与摘要。", "Missing content was restored. Existing page text and summaries were kept.")}</p>
+          </div>}
+          {warnings.length > 0 && <details className="import-warnings" open><summary>{t("导入提醒", "Import notes")} · {warnings.length}</summary>
+            <ul>{warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></details>}
+          {outcome === "empty" ? <p>{t("没有可新增的有效内容。请检查导出范围，或选择另一个文件。", "There was no new content to add. Check the export scope or choose another file.")}</p>
+            : <p>{t("已保存的收藏可以继续搜索和整理；隐私排除与不支持检索的条目不会发送给 AI。", "Saved bookmarks can be searched and organized. Privacy-excluded and non-indexable entries are not sent to AI.")}</p>}
+          {onDone && outcome !== "empty" && <CapsuleButton type="button" className="primary" disabled={busy || needsRefresh} onClick={onDone}>{t("查看已导入的收藏", "View imported bookmarks")}<ArrowRight size={16}/></CapsuleButton>}
+        </div>
       )}
-      {error && (
-        <p className="error" role="alert">
-          {error}
-        </p>
-      )}
+      {error && <div className="import-error" role="alert"><p className="error">{error}</p>
+        {lastWork.current && <CapsuleButton type="button" className="secondary" disabled={busy || finding} onClick={() => void retry()}><RotateCcw size={15}/>{needsRefresh ? t("重新读取收藏", "Reload collection") : t("重试导入", "Retry import")}</CapsuleButton>}
+      </div>}
+      <SiteImport refresh={refresh} onDone={onDone}/>
     </section>
   );
 }
