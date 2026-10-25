@@ -24,7 +24,9 @@ async function savedTextFixture(page: Page) {
   await page.route("**/bookmark/*?body=true", async route => {
     const response = await route.fetch();
     const record = await response.json();
-    await route.fulfill({ json: { ...record, body_text: body } });
+    await route.fulfill({ json: { ...record, body_text: body,
+      summary: "收藏保存来源与阅读上下文，回到内容时仍能找到原文。", key_points: ["保留原始来源。"],
+      indexed: { ...record.indexed, summary_basis: "body" } } });
   });
 }
 
@@ -82,7 +84,8 @@ test("card blank areas open the reader while native links, selection and expansi
   await expect(first.locator(".bookmark-check")).toBeChecked();
   await expect(page.locator(".preview-title")).toHaveCount(0);
   await first.locator(".bookmark-check").press("Space");
-  await page.getByRole("button", { name: "完成选择", exact: true }).click();
+  await expect(first.locator(".bookmark-check")).not.toBeChecked();
+  await expect(page.getByRole("button", { name: "完成选择", exact: true })).toHaveCount(0);
   const expand = first.locator(".summary-expand");
   if (await expand.count()) {
     await expand.click();
@@ -235,7 +238,7 @@ test("settings fill the workspace; model menus fit edges and hidden tabs release
     expect(scroll.width).toBeGreaterThan(width * .8);
     const tabs = page.locator(".settings-tabs [role=tab]");
     await tabs.first().focus();
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < await tabs.count(); i++) {
       await page.keyboard.press("ArrowRight");
       await settleVisualLayout(page);
       const target = page.locator(".settings-tabs [aria-selected=true]");

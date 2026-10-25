@@ -10,6 +10,7 @@ import {
   FileText,
   Folder,
   Maximize2,
+  MessageCircle,
   Minimize2,
   PanelRightClose,
   Pencil,
@@ -65,6 +66,7 @@ export default function Reader({
   onPrevious,
   onNext,
   onAction,
+  onChat,
   running,
 }: {
   record: Bookmark | null;
@@ -92,6 +94,7 @@ export default function Reader({
   onPrevious?: () => void;
   onNext?: () => void;
   onAction?: (action: LibraryAction) => void;
+  onChat?: (record: Bookmark) => void;
   running: boolean;
 }) {
   const t = useText();
@@ -112,15 +115,13 @@ export default function Reader({
   const sections = useMemo(
     () => [
       { id: "reader-start", label: t("阅读开头", "Start of reading") },
-      ...(hasSummary ? [{ id: "reader-summary", label: t("AI 概览", "AI overview") }] : []),
-      ...(record?.body_text ? [{ id: "reader-source", label: t("保存的原文", "Saved source text") }] : []),
       ...paragraphs.flatMap((p, i) =>
         /^#{1,3}\s+[^\n]+$/.test(p.trim())
           ? [{ id: `reader-section-${i}`, label: p.replace(/^#{1,3}\s+/, "") }]
           : [],
       ),
     ],
-    [paragraphs, language, hasSummary, record?.body_text],
+    [paragraphs, language],
   );
   useLayoutEffect(() => {
     scrollPositions.current = {};
@@ -304,6 +305,11 @@ export default function Reader({
                 <ArrowDown />
               </CapsuleButton>
               <span className="toolbar-divider" />
+              {record && onChat && !record.privacy_skipped && <CapsuleButton type="button"
+                className="icon-button reader-chat" title={t("聊这篇", "Chat about this page")}
+                aria-label={t("聊这篇", "Chat about this page")} onClick={() => onChat(record)}>
+                <MessageCircle />
+              </CapsuleButton>}
               {canFocus && (
                 <CapsuleButton
                   className="icon-button focus-reading"

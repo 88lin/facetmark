@@ -29,14 +29,15 @@ import sqlite3
 from collections import deque
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
-from urllib.parse import urldefrag, urljoin
+from urllib.parse import urldefrag, urljoin, urlsplit
 
 import httpx
 
 from .config import Settings, get_settings
-from .fetch.client import DEFAULT_UA, FetchPolicy, RobotsCache, _HostLimiter
+from .fetch.client import FetchPolicy, RobotsCache, _HostLimiter
 from .fetch.extract import extract
-from .fetch.store import store_body
+from .fetch.safety import PublicFetchTransport
+from .fetch.store import policy_from_settings, store_body
 from .normalize import host_excluded, normalize_url, registrable_domain
 from .service import save_bookmark
 
@@ -104,6 +105,7 @@ class CrawlReport:
     start_url: str
     links_found: int = 0
     pages_fetched: int = 0
+    pages_attempted: int = 0
     inserted: int = 0
     already_known: int = 0
     bodies_stored: int = 0
@@ -119,6 +121,7 @@ class CrawlReport:
         return {
             "start_url": self.start_url, "links_found": self.links_found,
             "pages_fetched": self.pages_fetched, "inserted": self.inserted,
+            "pages_attempted": self.pages_attempted,
             "already_known": self.already_known, "bodies_stored": self.bodies_stored,
             "skipped": self.skipped, "errors": self.errors,
             "robots_denied": self.robots_denied, "off_domain_skipped": self.off_domain_skipped,
@@ -135,6 +138,8 @@ async def crawl_site(
     same_domain: bool = True,
     settings: Settings | None = None,
     on_page=None,
+    on_progress=None,
+    keep_existing: bool = False,
 ) -> CrawlReport:
     """Breadth-first crawl from ``start_url``, saving every page as a bookmark.
 
@@ -145,6 +150,8 @@ async def crawl_site(
     """
     st = settings or get_settings()
     report = CrawlReport(start_url=start_url)
+    if max_pages < 1:
+        raise ValueError("max_pages must be positive")
 
     start = normalize_url(start_url)
     if not start.indexable:
@@ -152,11 +159,7 @@ async def crawl_site(
         return report
     base_domain = registrable_domain(start.host)
 
-    policy = FetchPolicy(
-        concurrency=min(st.fetch_concurrency, 8),
-        timeout_s=st.request_timeout,
-        user_agent=DEFAULT_UA,
-    )
+    policy = policy_from_settings(st)
     limiter = _HostLimiter(policy)
     robots = RobotsCache(
         "facetmark-crawl",
@@ -166,30 +169,39 @@ async def crawl_site(
 
     frontier: deque[str] = deque([start_url])
     queued: set[str] = {start.normalized}
-    known_hashes = {
-        row[0] for row in conn.execute("SELECT url_hash FROM bookmark").fetchall()
-    }
+    frontier_limit = min(10_000, max_pages * 50)
 
     async with httpx.AsyncClient(
         timeout=policy.timeout_s,
-        follow_redirects=True,
+        follow_redirects=False,
         max_redirects=policy.max_redirects,
+        transport=PublicFetchTransport(excluded_domains=policy.excluded_domains,
+                                       max_connections=policy.concurrency),
+        trust_env=False,
     ) as client:
-        while frontier and report.pages_fetched < max_pages:
+        while frontier and report.pages_attempted < max_pages:
             # The batch is capped by what is left of the budget as well as by
             # the per-host concurrency: a batch sized only by concurrency can
             # fetch past `--max-pages`, and the budget is the whole point of
             # the flag.
-            room = max_pages - report.pages_fetched
+            room = max_pages - report.pages_attempted
             batch = []
-            while frontier and len(batch) < min(max(1, policy.per_host_concurrency), room):
+            while frontier and len(batch) < min(max(1, policy.per_host_concurrency), policy.concurrency, room):
                 batch.append(frontier.popleft())
 
-            results = await asyncio.gather(
-                *(_fetch_and_save(conn, client, url, limiter, robots, policy, report,
-                                  queued, known_hashes, settings=st, on_page=on_page)
-                  for url in batch)
-            )
+            tasks = [asyncio.create_task(_fetch_and_save(
+                conn, client, url, limiter, robots, policy, report, queued,
+                settings=st, on_page=on_page, same_domain=same_domain,
+                base_domain=base_domain, keep_existing=keep_existing)) for url in batch]
+            try:
+                results = await asyncio.gather(*tasks)
+            finally:
+                for task in tasks:
+                    if not task.done():
+                        task.cancel()
+                await asyncio.gather(*tasks, return_exceptions=True)
+                if on_progress is not None:
+                    on_progress(report)
             for _url, ok, links in results:
                 if not ok:
                     continue
@@ -200,6 +212,9 @@ async def crawl_site(
                         continue
                     if same_domain and registrable_domain(nu.host) != base_domain:
                         report.off_domain_skipped += 1
+                        continue
+                    if len(queued) >= frontier_limit:
+                        report.skipped += 1
                         continue
                     queued.add(nu.normalized)
                     frontier.append(link)
@@ -217,10 +232,12 @@ async def _fetch_and_save(
     policy: FetchPolicy,
     report: CrawlReport,
     queued: set[str],
-    known_hashes: set[str],
     *,
     settings: Settings | None = None,
     on_page=None,
+    same_domain: bool = True,
+    base_domain: str = "",
+    keep_existing: bool = False,
 ) -> tuple[str, bool, list[str]]:
     """Fetch one page, store it, and return the links to follow.
 
@@ -229,92 +246,105 @@ async def _fetch_and_save(
     page 3 of the docs 404s would strand the other 20.
     """
     st = settings or get_settings()
-    host = httpx.URL(url).host or ""
-    # The exclusion list is a promise about egress, so it is checked before the
-    # first request rather than at save time: `save_bookmark` would mark the row
-    # `privacy_skipped`, but by then the crawl has already fetched the page and
-    # `store_body` has already written its text into the library. Checked ahead
-    # of robots.txt too, because fetching robots.txt is itself a request to the
-    # host.
-    if host_excluded(host, st.privacy_excluded_domains):
-        report.privacy_skipped += 1
-        report.notes.append(f"{url}: host is on privacy_excluded_domains")
-        return url, False, []
-
-    allowed, delay = await robots.allows(client, url)
-    limiter.note_crawl_delay(host, delay)
-    if not allowed:
-        report.robots_denied += 1
-        report.notes.append(f"robots.txt disallows {url}")
-        return url, False, []
-
-    sem = await limiter.acquire(host)
+    report.pages_attempted += 1
     try:
-        try:
-            resp = await client.get(url, headers={"User-Agent": policy.user_agent})
-        except Exception as exc:  # noqa: BLE001 - one page, not the crawl
-            report.errors += 1
-            report.notes.append(f"{url}: {type(exc).__name__}")
-            return url, False, []
+        fetched = await _read_html(client, url, policy, st, report, limiter, robots,
+                                   same_domain=same_domain, base_domain=base_domain)
+    except Exception as exc:  # noqa: BLE001 - one page, not the crawl
+        report.errors += 1
+        report.notes.append(f"{url}: {type(exc).__name__}")
+        return url, False, []
+    if fetched is None:
+        return url, False, []
 
-        if resp.status_code >= 400:
-            report.errors += 1
-            report.notes.append(f"{url}: HTTP {resp.status_code}")
-            return url, False, []
-        ctype = resp.headers.get("content-type", "")
-        if ctype and "html" not in ctype.lower() and "xml" not in ctype.lower():
-            report.skipped += 1
-            return url, False, []
-        if len(resp.content) > policy.max_bytes:
-            report.skipped += 1
-            return url, False, []
-
-        report.pages_fetched += 1
-        html = resp.text
-        final_url = str(resp.url)
-        ex = extract(html, url=final_url)
-        links = extract_links(html, final_url)
-
-        nu = normalize_url(final_url)
-        # A redirect lands somewhere the frontier has not seen. Record the
-        # destination, or every other link to it spends another page of the
-        # budget re-fetching this same page.
-        queued.add(nu.normalized)
-        rec = None
-        if nu.hash in known_hashes:
+    report.pages_fetched += 1
+    final_url, status, html = fetched
+    ex = extract(html, url=final_url)
+    links = extract_links(html, final_url)
+    nu = normalize_url(final_url)
+    queued.add(nu.normalized)
+    row = conn.execute("SELECT id FROM bookmark WHERE url_hash=?", (nu.hash,)).fetchone()
+    if row is not None:
+        report.already_known += 1
+        bid = int(row[0])
+    else:
+        rec = save_bookmark(conn, final_url, title=ex.title or "", settings=st)
+        bid = rec["bookmark_id"]
+        if rec.get("created", True):
+            report.inserted += 1
+            conn.execute("UPDATE bookmark SET source='crawl' WHERE id=?", (bid,))
+        else:
             report.already_known += 1
-            row = conn.execute(
-                "SELECT id FROM bookmark WHERE url_hash=?", (nu.hash,)
-            ).fetchone()
-            if row is not None:
-                rec = {"bookmark_id": int(row[0])}
-        if rec is None:
-            rec = save_bookmark(conn, final_url, title=ex.title or "", settings=st)
-            known_hashes.add(nu.hash)
-            if rec.get("created", True):
-                report.inserted += 1
-                # Provenance: `api` is the save path's default and a crawl is
-                # not that. The one UPDATE a crawl performs, and it is on a row
-                # the crawl itself just created.
-                conn.execute(
-                    "UPDATE bookmark SET source='crawl' WHERE id=?",
-                    (rec["bookmark_id"],),
-                )
-            else:
-                report.already_known += 1
+    saved = conn.execute("SELECT body_text FROM content WHERE bookmark_id=?", (bid,)).fetchone()
+    if ex.text and not (keep_existing and saved and saved["body_text"]):
+        conn.execute("SAVEPOINT crawl_body")
+        try:
+            out = store_body(conn, bid, body=ex.text, title=ex.title or "",
+                             extractor=ex.extractor, channel="a", http_status=status, final_url=final_url)
+        except Exception:
+            conn.execute("ROLLBACK TO crawl_body")
+            conn.execute("RELEASE crawl_body")
+            raise
+        conn.execute("RELEASE crawl_body")
+        if out.stored:
+            report.bodies_stored += 1
+    # No SQLite write transaction may remain open while another page waits on
+    # the network. Each successful page also survives an interrupted batch.
+    conn.commit()
+    if on_page is not None:
+        on_page(final_url, ex.title or "", bool(ex.text))
+    # Even an empty page may contain links to useful reading material.
+    return url, True, links
 
-        if ex.text:
-            out = store_body(
-                conn, rec["bookmark_id"], body=ex.text, title=ex.title or "",
-                extractor=ex.extractor, channel="a",
-                http_status=resp.status_code, final_url=final_url,
-            )
-            if out.stored:
-                report.bodies_stored += 1
-        if on_page is not None:
-            on_page(final_url, ex.title or "", bool(ex.text))
-        # Follow links from every fetched page regardless of storage: a page
-        # with no extractable text is still a page with links worth walking.
-        return url, True, links
-    finally:
-        sem.release()
+
+async def _read_html(client, url, policy: FetchPolicy, settings, report, limiter, robots, *, same_domain, base_domain):
+    for _ in range(policy.max_redirects + 1):
+        parts = urlsplit(url)
+        if parts.scheme not in {"http", "https"} or not parts.hostname or parts.username or parts.password:
+            report.skipped += 1
+            return None
+        if host_excluded(parts.hostname, settings.privacy_excluded_domains):
+            report.privacy_skipped += 1
+            report.notes.append("A destination is on privacy_excluded_domains")
+            return None
+        if same_domain and registrable_domain(parts.hostname) != base_domain:
+            report.off_domain_skipped += 1
+            return None
+        if policy.respect_robots:
+            allowed, delay = await robots.allows(client, url)
+            limiter.note_crawl_delay(parts.hostname, delay)
+            if not allowed:
+                report.robots_denied += 1
+                report.notes.append("robots.txt disallows a requested page")
+                return None
+        sem = await limiter.acquire(parts.hostname)
+        try:
+            async with client.stream("GET", url, headers={"User-Agent": policy.user_agent}, follow_redirects=False) as response:
+                if response.status_code in {301, 302, 303, 307, 308} and response.headers.get("location"):
+                    url = urljoin(str(response.url), response.headers["location"])
+                    continue
+                if response.status_code >= 400:
+                    report.errors += 1
+                    report.notes.append(f"{url}: HTTP {response.status_code}")
+                    return None
+                ctype = response.headers.get("content-type", "")
+                if ctype and "html" not in ctype.lower() and "xml" not in ctype.lower():
+                    report.skipped += 1
+                    return None
+                body = bytearray()
+                async for chunk in response.aiter_bytes():
+                    if len(body) + len(chunk) > policy.max_bytes:
+                        report.skipped += 1
+                        report.notes.append("A page exceeded the fetch size limit")
+                        return None
+                    body.extend(chunk)
+                try:
+                    text = body.decode(response.charset_encoding or "utf-8", errors="replace")
+                except LookupError:
+                    text = body.decode("utf-8", errors="replace")
+                return str(response.url), response.status_code, text
+        finally:
+            sem.release()
+    report.errors += 1
+    report.notes.append("Too many redirects")
+    return None

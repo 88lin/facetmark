@@ -17,7 +17,9 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
 from pathlib import Path
+from weakref import WeakValueDictionary
 
 try:
     import tomllib
@@ -401,6 +403,35 @@ def _terminate(process: subprocess.Popen) -> None:
         process.wait(timeout=5)
 
 
+class _AgentQuota:
+    def __init__(self, limit: int):
+        self.gate = threading.BoundedSemaphore(limit)
+
+    async def __aenter__(self):
+        # Jobs have their own loop/thread. A nonblocking shared gate covers
+        # both loops without orphaning an acquisition when a waiter is stopped.
+        while not self.gate.acquire(blocking=False):
+            await asyncio.sleep(0.05)
+        return self
+
+    async def __aexit__(self, *args):
+        self.gate.release()
+
+
+_QUOTA_LOCK = threading.Lock()
+_QUOTAS: WeakValueDictionary = WeakValueDictionary()
+
+
+def _agent_quota(settings, agent: str):
+    key = (str(settings.data_dir.resolve()), agent, settings.agent_concurrency)
+    with _QUOTA_LOCK:
+        quota = _QUOTAS.get(key)
+        if quota is None:
+            quota = _AgentQuota(settings.agent_concurrency)
+            _QUOTAS[key] = quota
+        return quota
+
+
 class LocalAgentProvider(Provider):
     name = "local-agent"
 
@@ -411,7 +442,7 @@ class LocalAgentProvider(Provider):
             raise ProviderError("No supported local agent is available. Install/sign into Codex, Claude Code or OpenCode, then refresh detection.")
         self.chat_model_in_use = f"{self.agent}/{settings.chat_agent_model or 'configured default'}"
         self._processes: set[subprocess.Popen] = set()
-        self._gate = asyncio.Semaphore(2)
+        self._gate = _agent_quota(settings, self.agent)
 
     async def chat_json(self, system: str, user: str) -> dict:
         async with self._gate:

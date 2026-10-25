@@ -14,7 +14,13 @@ Explicitly selected records regenerate; without selection, generate eligible pen
 failed or changed content in the current scope. Preserve previous derived content on
 failure and preserve a resumed task's language, instructions and target snapshot.
 Reference actual GithubStarsManager source at 2f41b01, as recorded in this repository.
-The changes remain local source work, awaiting current cloud/runtime verification.
+The initial 1696889 cloud run found regressions while the strict frontend build and
+real OpenCode checks passed. Follow-up completion includes durable cited chat,
+optional HTTP MCP, actual concurrency/retry controls, timeline/health, full reading
+and chat restoration, bounded website import and honest optional encoder support.
+Keep secondary entry points compact and preserve the existing selection toolbar.
+Current follow-up source awaits its own cloud/runtime verification; see
+[desktop completion](../docs/desktop-completion-2026-10-25.md).
 This brief does not authorize new commits, pushes, PRs, merges or releases.
 
 ## Overall assessment and previous follow-up — 2026-10-24

@@ -98,7 +98,8 @@ test("category capsules fill their segments, stay stationary while pressed, and 
     await settleVisualLayout(page);
     const geometry = await rail.locator(".facet-types").evaluate(group => {
       const style = getComputedStyle(group);
-      const expected = (group.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - 2 * parseFloat(style.columnGap)) / 3;
+      const count = group.querySelectorAll(".facet-type").length;
+      const expected = (group.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - (count - 1) * parseFloat(style.columnGap)) / count;
       return [...group.querySelectorAll<HTMLElement>(".facet-type")].map(button => {
         const rect = button.getBoundingClientRect();
         return { expected, width: rect.width, height: rect.height, radius: getComputedStyle(button).borderTopLeftRadius };
@@ -356,7 +357,9 @@ test("source discovery and import exclude concurrent submissions, then expose co
     await expect(find).toBeDisabled();
     await capture(page, "polish-import-working");
     releaseImport();
-    await expect(importer.locator(".import-result")).toContainText("导入完成 · 新增 3 · 更新 1");
+    await expect(importer.locator(".import-result-heading")).toContainText("导入完成");
+    await expect(importer.locator('.import-result [data-metric="inserted"] dd')).toHaveText("3");
+    await expect(importer.locator('.import-result [data-metric="updated"] dd')).toHaveText("1");
     await capture(page, "polish-import-success");
     await importer.locator("input[type=file]").setInputFiles({ name: "invalid.exe", mimeType: "application/octet-stream", buffer: Buffer.from("synthetic") });
     await expect(importer.getByRole("alert")).toContainText("请选择 HTML 或 JSON");

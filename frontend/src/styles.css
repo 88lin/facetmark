@@ -831,14 +831,12 @@ kbd {
   gap: 16px;
   margin: 24px 0;
 }
-.advanced,
-.health-tools {
+.advanced {
   margin: 24px 0;
   border-top: 1px solid var(--rule);
   padding-top: 18px;
 }
-.advanced > summary,
-.health-tools > summary {
+.advanced > summary {
   cursor: pointer;
   color: var(--muted);
   font-size: var(--type-caption);

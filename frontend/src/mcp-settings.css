@@ -1,0 +1,49 @@
+.settings-tabs.mcp-settings-tabs { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.mcp-integrations { display: grid; gap: 28px; min-width: 0; }
+.mcp-settings, .mcp-karakeep { min-width: 0; }
+.mcp-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+.mcp-heading > div { min-width: 0; }
+.mcp-heading h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; font-size: 1.25rem; }
+.mcp-heading h2 svg { color: var(--accent); flex: none; }
+.mcp-heading p, .mcp-karakeep > p { margin: 0; max-width: 80ch; font-size: var(--type-ui); color: var(--secondary-ink); line-height: 1.8; }
+.mcp-service-status { flex: none; border-radius: var(--radius-pill); padding: 8px 13px; background: var(--inset); color: var(--muted); font-size: var(--type-meta); }
+.mcp-service-status.is-ready { background: var(--soft); color: var(--accent); }
+.mcp-actions, .mcp-token-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 18px 0 12px; }
+.mcp-note { margin: 10px 0; color: var(--muted); font-size: var(--type-meta); line-height: 1.8; overflow-wrap: anywhere; }
+.mcp-connection-fields { display: grid; min-width: 0; gap: 14px; padding: 22px; margin: 18px 0; border: 1px solid var(--rule); border-radius: 24px; background: var(--canvas); }
+.mcp-field { display: grid; gap: 8px; min-width: 0; font-size: var(--type-ui); font-weight: 600; }
+.mcp-copy-field { display: flex; gap: 10px; min-width: 0; }
+.mcp-field input, .mcp-field textarea { width: 100%; min-width: 0; padding: 11px 14px; color: var(--ink); background: var(--inset); border: 1px solid var(--rule); border-radius: 16px; font-family: ui-monospace, Consolas, monospace; font-size: .875rem; font-weight: 400; line-height: 1.7; }
+.mcp-field input { min-height: 44px; border-radius: var(--radius-pill); flex: 1; }
+.mcp-field textarea { resize: vertical; min-height: 190px; }
+.mcp-field input:focus-visible, .mcp-field textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mcp-copy-field button { flex: none; }
+.mcp-token-actions { margin: -6px 0 0; gap: 8px; }
+.mcp-token-reset { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 16px; border-radius: 18px; background: var(--soft); }
+.mcp-token-reset > p { flex: 1 1 240px; margin: 0; font-size: var(--type-ui); line-height: 1.7; }
+.mcp-copy-config { justify-self: start; }
+.mcp-codex-config { border-top: 1px solid var(--rule); padding-top: 12px; }
+.mcp-codex-config > summary { min-height: 40px; color: var(--secondary-ink); font-size: var(--type-ui); cursor: pointer; }
+.mcp-codex-config .mcp-field { margin-top: 6px; }
+.mcp-codex-config textarea { min-height: 120px; }
+.mcp-codex-config button { margin-top: 12px; }
+.mcp-probe { display: flex; align-items: center; gap: 8px; font-size: var(--type-ui); line-height: 1.7; }
+.mcp-probe.is-ready { color: var(--accent); }
+.mcp-probe.has-error { color: var(--danger); }
+.mcp-copy-status { min-height: 1.7em; margin: 0; color: var(--accent); font-size: var(--type-meta); line-height: 1.7; }
+.mcp-karakeep { padding-top: 24px; border-top: 1px solid var(--rule); }
+.mcp-karakeep h3 { margin: 0 0 10px; font-size: 1.125rem; }
+.mcp-karakeep .mcp-field { margin-top: 18px; }
+.mcp-karakeep .mcp-karakeep-stats { margin-top: 12px; color: var(--accent); }
+.mcp-actions a { font-size: var(--type-ui); }
+@media (max-width: 719px) {
+  .settings-tabs.mcp-settings-tabs { display: flex; overflow-x: auto; max-width: 100%; scroll-padding-inline: 6px; scrollbar-width: thin; }
+  .settings-tabs.mcp-settings-tabs button { flex: 0 0 auto; min-width: 76px; width: auto; padding-inline: 14px; white-space: nowrap; }
+  .mcp-heading { flex-direction: column; gap: 14px; }
+  .mcp-heading h2 { font-size: 1.125rem; }
+  .mcp-connection-fields { padding: 16px; border-radius: 20px; }
+  .mcp-copy-field { flex-wrap: wrap; }
+  .mcp-copy-field input { flex-basis: 100%; font-size: 16px; }
+  .mcp-field textarea { font-size: 16px; }
+  .mcp-actions .secondary, .mcp-actions .text-button, .mcp-token-actions button { min-height: 44px; }
+}

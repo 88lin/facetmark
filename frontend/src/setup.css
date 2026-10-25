@@ -30,6 +30,22 @@
 .source > span { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
 .source > span small { color: var(--secondary-ink); font-size: .8125rem; }
 .source > span:last-child { flex: none; margin-left: auto; color: var(--accent); font-size: .8125rem; }
+.import-result .import-result-heading { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 18px; color: var(--accent); line-height: 1.7; }
+.import-result-heading > svg { flex: none; margin-top: 4px; }
+.import-result[data-outcome="empty"] .import-result-heading,.import-result[data-outcome="partial"] .import-result-heading { color: var(--ink); }
+.import-metrics { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 0; }
+.import-metrics > div { display: flex; align-items: baseline; gap: 9px; min-width: 0; }
+.import-metrics dt { color: var(--secondary-ink); font-size: var(--type-meta); line-height: 1.7; }
+.import-metrics dd { margin: 0; color: var(--ink); font-size: var(--type-ui); font-weight: 650; font-variant-numeric: tabular-nums; }
+.import-restored { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--rule); }
+.import-restored h3 { margin: 0 0 12px; font-size: var(--type-ui); }
+.import-restored > p { margin: 10px 0 0; color: var(--muted); font-size: var(--type-meta); line-height: 1.7; }
+.import-warnings { margin-top: 18px; color: var(--secondary-ink); font-size: var(--type-ui); line-height: 1.8; }
+.import-warnings > summary { padding: 6px 0; cursor: pointer; color: var(--ink); }
+.import-warnings > ul { margin: 6px 0 0; padding-left: 21px; overflow-wrap: anywhere; }
+.import-error { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 18px; }
+.import-error > p { flex: 1 1 260px; min-width: 0; margin: 0; font-size: var(--type-ui); line-height: 1.7; }
+.import-error .fm-button { min-height: 44px; padding: 9px 14px; font-size: var(--type-ui); }
 .ready { display: flex; align-items: center; flex-direction: column; gap: 14px; padding: 40px 16px; text-align: center; }
 .ready > svg { display: block; width: 48px; height: 48px; padding: 10px; border: 1px solid var(--selected-edge); border-radius: var(--radius-pill); background: var(--soft); color: var(--accent); }
 .ready h2 { margin: 0; font-size: 1.5rem; line-height: 1.5; }

@@ -7,13 +7,10 @@ shape is borrowed from hister, whose ``export`` writes JSON its own
 can be a *subset*, since both tools already have a query language that can say
 which one.
 
-What is exported is the source of truth and nothing else: the URL, what the
-user called it, where they filed it, when they saved it, and their tags.
-Summaries, topics, vectors and sessions are all derived, all fingerprinted, and
-all rebuilt by ``facetmark index`` -- writing them into a backup would make the
-file enormous and would restore a snapshot of an old model's opinions. The
-``--full`` flag adds them anyway for anyone who wants to read the file, and
-this parser ignores the extra keys on the way back in.
+Metadata exports retain URLs, original titles, folders, dates and tags.
+Version 2 full exports explicitly restore saved reading data and conversations.
+Version 1 and files without the restorable marker keep their metadata-only
+contract. Credentials and vectors never travel in these portable copies.
 
 Timestamps are written as unix seconds, which is what the database stores, so
 the unit detection the browser formats need has an easy time of it on the way
@@ -31,7 +28,7 @@ from .base import ImportResult, RawBookmark
 #: it does not know, and "unknown version" is a better error than a silently
 #: half-read library.
 MARKER = "facetmark"
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
 
 
 def looks_like_facetmark_export(text: str) -> bool:
@@ -66,13 +63,17 @@ def parse(text: str) -> ImportResult:
 
     header = doc.get(MARKER) or {}
     version = header.get("version") if isinstance(header, dict) else None
-    if version is not None and int(version) > FORMAT_VERSION:
+    if not isinstance(version, int):
+        warnings.append("missing or invalid export version; reading data will not be restored")
+    elif version > FORMAT_VERSION:
         warnings.append(
             f"this file is format version {version}; this build reads "
             f"{FORMAT_VERSION}. Unknown fields were ignored."
         )
 
     out: list[RawBookmark] = []
+    reading_data: list[dict] = []
+    restorable = version == FORMAT_VERSION and header.get("full") is True and header.get("restorable") is True
     folders: set[str] = set()
     ambiguous: set[str] = set()
     depth = 0
@@ -111,9 +112,12 @@ def parse(text: str) -> ImportResult:
             title=str(raw.get("title") or "").strip(),
             folder_path=path,
             date_added_raw=float(added) if isinstance(added, (int, float)) else None,
+            date_modified_raw=float(raw["date_modified"]) if isinstance(raw.get("date_modified"), (int, float)) else None,
             note=str(raw.get("note") or ""),
             tags=tags,
         ))
+        if restorable:
+            reading_data.append(raw)
         if path:
             folders.add("/".join(path))
             depth = max(depth, len(path))
@@ -134,4 +138,6 @@ def parse(text: str) -> ImportResult:
         folders=len(folders),
         max_depth=depth,
         warnings=warnings,
+        reading_data=reading_data,
+        conversations=doc.get("conversations", []) if restorable else [],
     )

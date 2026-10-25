@@ -19,7 +19,7 @@ async function preferences(page: Page, initial: Record<string, unknown> = {}) {
   await page.route("**/admin/setup-status", async route => {
     const response = await route.fetch(), data = await response.json();
     data.demo = false; data.summary_language = saved.summary_language;
-    data.channels.chat = { configured: true, tested: true };
+    data.channels = { ...data.channels, chat: { configured: true, tested: true } };
     return route.fulfill({ response, json: data });
   });
   return { saved, writes };

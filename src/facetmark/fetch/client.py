@@ -153,13 +153,17 @@ class _HostLimiter:
             if sem is None:
                 sem = self._sems[host] = asyncio.Semaphore(self._policy.per_host_concurrency)
         await sem.acquire()
-        async with self._lock:
-            wait = self._next_ok[host] - time.monotonic()
-            self._next_ok[host] = max(
-                time.monotonic(), self._next_ok[host]
-            ) + self.interval_for(host)
-        if wait > 0:
-            await asyncio.sleep(wait)
+        try:
+            async with self._lock:
+                wait = self._next_ok[host] - time.monotonic()
+                self._next_ok[host] = max(
+                    time.monotonic(), self._next_ok[host]
+                ) + self.interval_for(host)
+            if wait > 0:
+                await asyncio.sleep(wait)
+        except BaseException:
+            sem.release()
+            raise
         return sem
 
 

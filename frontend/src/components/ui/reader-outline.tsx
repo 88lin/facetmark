@@ -17,7 +17,7 @@ import "./reader-outline.css";
 export type ReaderOutlineSection = { id: string; label: string };
 
 const ANCHOR_OFFSET = 28;
-const HEADING_SELECTOR = "h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]";
+const HEADING_SELECTOR = ".body-text :is(h1, h2, h3, h4, h5, h6)[id]";
 
 export function ReaderOutline({
   containerRef,

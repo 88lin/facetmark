@@ -213,6 +213,25 @@ def _v8_summary_preferences(conn: sqlite3.Connection) -> None:
             conn.execute(f"ALTER TABLE enrichment ADD COLUMN {name} TEXT NOT NULL DEFAULT ''")
 
 
+def _v9_chat_history(conn: sqlite3.Connection) -> None:
+    """Keep conversations and their verified source references in the local library."""
+    conn.execute("CREATE TABLE IF NOT EXISTS chat_conversation ("
+                 "id TEXT PRIMARY KEY,title TEXT NOT NULL,bookmark_ids TEXT NOT NULL DEFAULT '[]',"
+                 "created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)")
+    conn.execute("CREATE INDEX IF NOT EXISTS ix_chat_conversation_updated ON chat_conversation(updated_at DESC,id)")
+    conn.execute("CREATE TABLE IF NOT EXISTS chat_message ("
+                 "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                 "conversation_id TEXT NOT NULL REFERENCES chat_conversation(id) ON DELETE CASCADE,"
+                 "role TEXT NOT NULL CHECK(role IN ('user','assistant')),"
+                 "content TEXT NOT NULL DEFAULT '',"
+                 "status TEXT NOT NULL DEFAULT 'complete' CHECK(status IN ('complete','pending','error','cancelled')),"
+                 "sources TEXT NOT NULL DEFAULT '[]',model TEXT NOT NULL DEFAULT '',"
+                 "request_id TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL)")
+    conn.execute("CREATE INDEX IF NOT EXISTS ix_chat_messages ON chat_message(conversation_id,id)")
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ix_chat_request ON chat_message(conversation_id,request_id) "
+                 "WHERE role='user' AND request_id!=''")
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(2, "browser queue remembers when a retry is allowed", _v2_browser_queue_backoff),
     Migration(3, "content vectors remember what they were built from",
@@ -225,6 +244,7 @@ MIGRATIONS: tuple[Migration, ...] = (
               _v6_bookmark_tags),
     Migration(7, "large collections retain processing snapshots and failures", _v7_collection_processing),
     Migration(8, "summaries retain AI titles, output language and prompt provenance", _v8_summary_preferences),
+    Migration(9, "collection conversations retain messages and verified sources", _v9_chat_history),
 )
 
 #: What this build writes into a new database. Derived from the migration list

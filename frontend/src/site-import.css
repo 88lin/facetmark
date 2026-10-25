@@ -1,0 +1,24 @@
+/* SiteImport owns this optional form; the primary file-import path stays compact. */
+.site-import { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule); }
+.site-import > summary { display: flex; align-items: center; gap: 10px; width: fit-content; cursor: pointer; color: var(--ink); font-weight: 650; }
+.site-import > summary > svg { color: var(--accent); }
+.site-import > summary:focus-visible, .site-import-notes > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; border-radius: 8px; }
+.site-import-intro, .site-import-note, .site-import-rerun > p { margin: 14px 0; color: var(--secondary-ink); font-size: .875rem; line-height: 1.8; }
+.site-import-form { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 14px; }
+.site-import-form > label { display: flex; flex-direction: column; gap: 7px; min-width: 0; color: var(--secondary-ink); font-size: .875rem; }
+.site-import-form input[type=url], .site-import-form input[type=number] { min-width: 0; width: 100%; padding: 10px 15px; border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--canvas); color: var(--ink); }
+.site-import-form > .site-import-scope { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 9px; }
+.site-import-scope input { accent-color: var(--accent); }
+.site-import-actions { display: flex; flex-wrap: wrap; gap: 10px; grid-column: 1 / -1; }
+.site-import-result { padding: 15px 18px; border: 1px solid var(--rule); border-radius: 22px; background: var(--soft); }
+.site-import-result > strong { color: var(--ink); font-size: .9375rem; font-weight: 650; }
+.site-import-result > progress { display: block; width: 100%; height: 7px; margin: 14px 0; accent-color: var(--accent); }
+.site-import-result > dl { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 14px 0 0; }
+.site-import-result > dl > div { display: flex; align-items: baseline; gap: 8px; }
+.site-import-result dt { color: var(--secondary-ink); font-size: .8125rem; }
+.site-import-result dd { margin: 0; color: var(--ink); font-size: .9375rem; font-variant-numeric: tabular-nums; }
+.site-import-rerun { margin-top: 16px; }
+.site-import-notes { margin-top: 12px; color: var(--secondary-ink); font-size: .8125rem; }
+.site-import-notes > summary { cursor: pointer; }
+.site-import-notes li { overflow-wrap: anywhere; }
+@media (max-width: 599px) { .site-import-form { grid-template-columns: minmax(0, 1fr); } .site-import-result { padding: 14px; } }

@@ -1,4 +1,4 @@
-"""MCP server: nine tools and two resources over the local index.
+"""MCP server: nine tools and three resource shapes over the local index.
 
 Why an agent-facing surface at all. A bookmark library is the one corpus an
 assistant cannot get from the web: it is the set of pages *this person* decided
@@ -23,8 +23,12 @@ thread that created it.
 
 from __future__ import annotations
 
+import asyncio
 import sqlite3
-from dataclasses import dataclass
+from collections.abc import Callable
+from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
+from functools import wraps
 from typing import Annotated, Any
 
 from pydantic import Field
@@ -80,22 +84,50 @@ Guidance:
 
 @dataclass
 class Ctx:
-    settings: Settings
-    conn: sqlite3.Connection
+    settings: Settings | None
+    conn: sqlite3.Connection | None
     _provider: Any = None
+    state_getter: Callable[[], Any] | None = None
+    owns_conn: bool = False
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
     @property
     def provider(self):
+        if self.state_getter is not None:
+            return self.state_getter().provider
         if self._provider is None:
             self._provider = get_provider(self.settings)
         return self._provider
+
+    @asynccontextmanager
+    async def guard(self, *, writing: bool = False):
+        state = self.state_getter() if self.state_getter is not None else None
+        async with state.lock if state is not None else self.lock:
+            if state is not None:
+                # The root service owns this connection and provider. Refresh
+                # the view only while holding its lock, so a settings change
+                # cannot leave MCP using a stale client or privacy snapshot.
+                self.settings, self.conn = state.settings, state.conn
+                if writing and (state.jobs.running or (getattr(state, "crawls", None) and state.crawls.running)):
+                    raise ValueError("Wait for the running index task before changing bookmarks or link health")
+            yield
+
+    async def aclose(self):
+        if self.state_getter is not None:
+            return
+        if self._provider is not None:
+            await self._provider.aclose()
+            self._provider = None
+        if self.owns_conn and self.conn is not None:
+            self.conn.close()
+            self.owns_conn = False
 
 
 def build_context(settings: Settings | None = None,
                   conn: sqlite3.Connection | None = None) -> Ctx:
     st = settings or get_settings()
     st.ensure_dirs()
-    return Ctx(settings=st, conn=conn if conn is not None else open_db(st.db_path))
+    return Ctx(settings=st, conn=conn if conn is not None else open_db(st.db_path), owns_conn=conn is None)
 
 
 # ---------------------------------------------------------------------------
@@ -104,13 +136,39 @@ def build_context(settings: Settings | None = None,
 
 
 def create_server(  # noqa: C901 - a tool table, not a branchy function
-    settings: Settings | None = None, conn: sqlite3.Connection | None = None
+    settings: Settings | None = None, conn: sqlite3.Connection | None = None,
+    *, context: Ctx | None = None,
 ) -> FastMCP:
-    ctx = build_context(settings, conn)
-    mcp = FastMCP(name="facetmark", instructions=INSTRUCTIONS, version=__version__)
+    ctx = context or build_context(settings, conn)
+
+    @asynccontextmanager
+    async def lifespan(_server):
+        try:
+            yield
+        finally:
+            await ctx.aclose()
+
+    mcp = FastMCP(name="facetmark", instructions=INSTRUCTIONS, version=__version__, lifespan=lifespan)
+
+    def guarded(function):
+        @wraps(function)
+        async def run(*args, **kwargs):
+            writing = function.__name__ == "save_bookmark" or (
+                function.__name__ == "check_link_health" and kwargs.get("probe", False)
+            )
+            state = ctx.state_getter() if ctx.state_getter is not None else None
+            network = function.__name__ == "synthesize" or (
+                function.__name__ == "search_bookmarks" and not kwargs.get("quick", False)
+            ) or (function.__name__ == "check_link_health" and kwargs.get("probe", False))
+            if state is not None and hasattr(state, "model_operation") and network:
+                return await function(*args, **kwargs)
+            async with ctx.guard(writing=writing):
+                return await function(*args, **kwargs)
+        return run
 
     # ---- 1 ----------------------------------------------------------------
     @mcp.tool
+    @guarded
     async def search_bookmarks(
         query: Annotated[str, Field(description="Natural language, keywords, a "
                                     "memory fragment such as 'the CSS thing from "
@@ -157,6 +215,11 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
                 ctx.conn, query, limit=limit, offset=offset, depth=depth,
                 settings=ctx.settings,
             )
+        elif ctx.state_getter is not None and hasattr(ctx.state_getter(), "model_operation"):
+            async with ctx.state_getter().model_operation() as (conn, provider, configured):
+                resp = await service.search(conn, query, limit=limit, offset=offset, depth=depth,
+                    config=default_config(configured, provider), provider=provider, settings=configured,
+                    expand_limit=8 if include_related else 0)
         else:
             resp = await service.search(
                 ctx.conn, query, limit=limit, offset=offset, depth=depth,
@@ -171,6 +234,7 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
 
     # ---- 2 ----------------------------------------------------------------
     @mcp.tool
+    @guarded
     async def get_bookmark(
         bookmark_id: int,
         include_body: Annotated[bool, Field(description="Include the full indexed "
@@ -190,6 +254,7 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
 
     # ---- 3 ----------------------------------------------------------------
     @mcp.tool
+    @guarded
     async def list_sessions(
         limit: Annotated[int, Field(ge=1, le=200)] = 30,
         offset: Annotated[int, Field(ge=0)] = 0,
@@ -206,6 +271,7 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
 
     # ---- 4 ----------------------------------------------------------------
     @mcp.tool
+    @guarded
     async def get_session(session_id: int) -> dict:
         """Everything saved in one episode, in the order it was saved.
 
@@ -220,6 +286,7 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
 
     # ---- 5 ----------------------------------------------------------------
     @mcp.tool
+    @guarded
     async def find_related(
         bookmark_id: int,
         kind: Annotated[str | None, Field(description="One of: session, semantic, "
@@ -241,6 +308,7 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
 
     # ---- 6 ----------------------------------------------------------------
     @mcp.tool
+    @guarded
     async def synthesize(
         query: Annotated[str, Field(description="A question to answer using only "
                                     "what is in the library.")],
@@ -255,13 +323,18 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
         returned nothing and sources with no indexed text. `degraded: true`
         means the model was unavailable and the claims are raw excerpts.
         """
-        out = await service.synthesize(
-            ctx.conn, query, limit=limit, provider=ctx.provider, settings=ctx.settings
-        )
+        if ctx.state_getter is not None and hasattr(ctx.state_getter(), "model_operation"):
+            async with ctx.state_getter().model_operation() as (conn, provider, configured):
+                out = await service.synthesize(conn, query, limit=limit, provider=provider, settings=configured)
+        else:
+            out = await service.synthesize(
+                ctx.conn, query, limit=limit, provider=ctx.provider, settings=ctx.settings
+            )
         return out.as_dict()
 
     # ---- 7 ----------------------------------------------------------------
     @mcp.tool
+    @guarded
     async def suggest_from_context(
         text: Annotated[str, Field(description="A paragraph the user is writing, "
                                    "or the current working context.")],
@@ -277,6 +350,7 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
 
     # ---- 8 ----------------------------------------------------------------
     @mcp.tool
+    @guarded
     async def check_link_health(
         bookmark_ids: Annotated[list[int] | None,
                                 Field(description="Specific bookmarks. Omit to "
@@ -307,14 +381,17 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
                 ]
             return {"probed": False, "summary": healthmod.summary(ctx.conn),
                     "states": states}
-        rep = await healthmod.check_bookmarks(
-            ctx.conn, ids=bookmark_ids, limit=limit, settings=ctx.settings
-        )
+        state = ctx.state_getter() if ctx.state_getter is not None else None
+        if state is not None and hasattr(state, "check_links"):
+            rep = await state.check_links(ids=bookmark_ids, limit=limit)
+            return {"probed": True, **rep.as_dict(), "summary": healthmod.summary(state.conn)}
+        rep = await healthmod.check_bookmarks(ctx.conn, ids=bookmark_ids, limit=limit, settings=ctx.settings)
         ctx.conn.commit()
         return {"probed": True, **rep.as_dict(), "summary": healthmod.summary(ctx.conn)}
 
     # ---- 9 ----------------------------------------------------------------
     @mcp.tool
+    @guarded
     async def save_bookmark(
         url: str,
         title: str = "",
@@ -341,6 +418,7 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
     # ---- resources --------------------------------------------------------
 
     @mcp.resource("bookmark://{bookmark_id}", mime_type="application/json")
+    @guarded
     async def bookmark_resource(bookmark_id: str) -> dict:
         """A single bookmark record, addressable as a resource."""
         rec = service.bookmark_record(ctx.conn, int(bookmark_id), settings=ctx.settings)
@@ -349,6 +427,7 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
         return rec
 
     @mcp.resource("session://{session_id}", mime_type="application/json")
+    @guarded
     async def session_resource(session_id: str) -> dict:
         """One saving episode with its members."""
         rec = service.session_record(ctx.conn, int(session_id))
@@ -357,6 +436,7 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
         return rec
 
     @mcp.resource("facetmark://stats", mime_type="application/json")
+    @guarded
     async def stats_resource() -> dict:
         """Index size, coverage and link-health totals."""
         return service.library_stats(ctx.conn)

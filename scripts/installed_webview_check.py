@@ -156,7 +156,10 @@ with sync_playwright() as playwright:
         finally:
             original_server.shutdown()
     page.locator('.bookmark-preview').first.click()
-    page.get_by_text('正文还未保存', exact=True).wait_for(timeout=15000)
+    page.get_by_role('heading', name='还没有阅读内容', exact=True).wait_for(timeout=15000)
+    assert page.locator('.body-text').count() == 0
+    assert page.get_by_role('button', name='提取这篇正文', exact=True).is_visible()
+    assert page.get_by_role('button', name='生成这篇摘要', exact=True).is_visible()
     capture_still('installed-reader.png')
     narrow_reader = page.locator('.preview-drawer').is_visible()
     return_label = '返回收藏' if narrow_reader else '关闭预览'

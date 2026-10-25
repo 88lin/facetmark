@@ -65,3 +65,5 @@ class ImportResult:
     max_depth: int = 0
     #: Non-fatal problems worth surfacing to the user.
     warnings: list[str] = field(default_factory=list)
+    reading_data: list[dict] = field(default_factory=list)
+    conversations: list[dict] = field(default_factory=list)

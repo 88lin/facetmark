@@ -503,7 +503,7 @@ def test_real_provider_setup_apply_index_and_search(client):
     }
     assert not state.settings.use_mock_provider
     with respx.mock as router:
-        chat = router.post("https://chat.example/v1/chat/completions").respond(200, json={"choices": [{"message": {"content": json.dumps({"summary": "SQLite provides a reliable local retrieval store.", "key_points": ["Keep the source"], "entities": ["SQLite"], "topics": ["databases"], "utility": "reference", "content_type": "article", "intent_queries": ["How does SQLite store local data?"]})}}]})
+        chat = router.post("https://chat.example/v1/chat/completions").respond(200, json={"choices": [{"message": {"content": json.dumps({"title": "SQLite for reliable local retrieval", "summary": "SQLite provides a reliable local retrieval store.", "key_points": ["Keep the source"], "entities": ["SQLite"], "topics": ["databases"], "utility": "reference", "content_type": "article", "intent_queries": ["How does SQLite store local data?"]})}}]})
 
         def embeddings(request):
             payload = json.loads(request.content)
@@ -525,6 +525,9 @@ def test_real_provider_setup_apply_index_and_search(client):
                 break
             time.sleep(.02)
         assert job["state"] == "done", job
+        record = client.get(f"/bookmark/{bid}").json()
+        assert record["ai_title"] == "SQLite for reliable local retrieval"
+        assert record["title"] == "SQLite retrieval guide"
         assert all(call.request.headers["authorization"] == "Bearer chat-only" for call in chat.calls)
         result = client.post("/search", json={"q": "SQLite"})
         assert result.status_code == 200 and bid in [row["bookmark_id"] for row in result.json()["hits"]]

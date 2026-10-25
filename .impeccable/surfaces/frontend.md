@@ -57,9 +57,13 @@ related_targets:
 Latest 2026-10-25 request: remove site classification and repeated summary-selection/
 consent UI, combine summary and body into Read, generate target-language titles and
 summaries with editable defaults, expose Agent thinking settings, and remove the
-tray's transparent outer frame. Current source and regressions are local; no build,
-browser capture or installed evidence verifies this revision yet. Current work is in
-docs/summary-reading-reasoning-2026-10-25.md; commit/push/PR decisions follow session
+tray's transparent outer frame. The first 1696889 cloud run passed frontend build
+and real OpenCode checks while exposing regression failures. Follow-up adds cited
+chat, selected discussions, processing limits, MCP, timeline/health, import outcomes,
+site imports and portable reading/chat restoration. These surfaces preserve compact
+entry points, component-owned CSS, keyboard semantics and the existing toolbar.
+Their current source awaits new cloud captures and installed checks. Work is in
+docs/desktop-completion-2026-10-25.md; commit/push/PR decisions follow session
 authorization. The user has now confirmed this batch's commit, push, new PR and
 cloud verification; delivery is in progress. No automatic merge or release.
 

@@ -16,6 +16,7 @@ import {
   List,
   LoaderCircle,
   Menu,
+  MessageCircle,
   Moon,
   Search,
   Settings2,
@@ -43,6 +44,10 @@ import { CollectionTools } from "./CollectionTools";
 import type { CollectionScope } from "./api";
 import { LibraryDialog, LibraryToolbar, type LibraryAction } from "./LibraryTools";
 import { useSummaryGeneration } from "./useSummaryGeneration";
+import { ChatWorkspace } from "./ChatWorkspace";
+import type { ChatLaunch } from "./chat-types";
+import { HealthTools } from "./HealthTools";
+import { ActivityTimeline } from "./ActivityTimeline";
 import { FacetBrowser } from "./FacetBrowser";
 import { FacetmarkMark } from "./FacetmarkMark";
 import { QuerySuggestions, SearchAnswer } from "./SearchTools";
@@ -55,7 +60,7 @@ import { useReducedMotion } from "./useReducedMotion";
 import { SelectionPill, useContentMotion } from "./InteractionMotion";
 import "./startup.css";
 
-type View = "library" | "sessions" | "tasks" | "settings" | "setup" | "import";
+type View = "library" | "sessions" | "tasks" | "settings" | "setup" | "import" | "chat";
 type Facet = { value: string; count: number };
 type Filters = { folder?: string; tag?: string; domain?: string; session?: number };
 type Session = { session_id: number; label: string; started_at: number; size: number };
@@ -130,6 +135,10 @@ function Workbench({
   const connectionRetry = useRef<HTMLButtonElement>(null);
   const [bootBusy, setBootBusy] = useState(false);
   const [view, setView] = useState<View>("library");
+  const [chatLaunch, setChatLaunch] = useState<ChatLaunch | null>(null);
+  const [chatSelectionBusy, setChatSelectionBusy] = useState(false);
+  const chatSelectionRequest = useRef<AbortController | null>(null);
+  const chatSelectionGate = useRef(false);
   const [navOpen, setNavOpen] = useState(false);
   const navOpener = useRef<HTMLButtonElement | null>(null);
   const [setup, setSetup] = useState<Setup | null>(null);
@@ -163,6 +172,7 @@ function Workbench({
   const collectionScope: CollectionScope = { ...filters, q: search, status: summaryStatus, exclude_ids: excludedIds };
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [libraryNotice, setLibraryNotice] = useState("");
+  useEffect(() => () => chatSelectionRequest.current?.abort(), [view, allMatching, JSON.stringify(collectionScope), selectedIds.join(",")]);
   const libraryRevision = useRef<string | undefined>(undefined);
   const refreshId = useRef(0);
   const [preview, setPreview] = useState<Bookmark | null>(null);
@@ -255,8 +265,30 @@ function Workbench({
   const openView = (next: View) => {
     setView(next);
     setNavOpen(false);
-    if (next !== "settings" && location.hash.startsWith("#settings"))
+    if (next === "chat" && location.hash !== "#chat")
+      history.replaceState(null, "", location.pathname + location.search + "#chat");
+    else if (next === "settings" && location.hash.startsWith("#chat"))
+      history.replaceState(null, "", location.pathname + location.search + "#settings");
+    else if (next !== "settings" && next !== "chat" && (location.hash.startsWith("#settings") || location.hash.startsWith("#chat")))
       history.replaceState(null, "", location.pathname + location.search);
+  };
+  const chatWithBookmark = (record: Bookmark) => {
+    setChatLaunch({ nonce: Date.now(), bookmark_ids: [record.bookmark_id], title: record.ai_title || record.title });
+    setSelected(null); setFocusReading(false);
+    openView("chat");
+  };
+  const chatWithSelection = async () => {
+    if (chatSelectionGate.current || scopePending) return;
+    chatSelectionGate.current = true; setChatSelectionBusy(true);
+    const request = new AbortController(); chatSelectionRequest.current = request;
+    try {
+      const ids = allMatching ? (await post<{ bookmark_ids: number[] }>("/chat/scopes/resolve", { scope: collectionScope }, request.signal)).bookmark_ids : selectedIds;
+      if (request.signal.aborted) return;
+      if (!ids.length || ids.length > 12) throw new Error(t("请选择 1–12 篇收藏一起讨论。", "Select 1–12 saved pages to discuss together."));
+      setChatLaunch({ nonce: Date.now(), bookmark_ids: [...ids], title: t(`讨论所选 ${ids.length} 篇收藏`, `Discuss ${ids.length} selected pages`) });
+      setSelected(null); setFocusReading(false); openView("chat");
+    } catch (failure) { if (!request.signal.aborted) setLibraryNotice(String(failure)); }
+    finally { chatSelectionGate.current = false; setChatSelectionBusy(false); }
   };
   const closePreview = useCallback(() => {
     setSelected(null);
@@ -363,6 +395,8 @@ function Workbench({
     const route = () => {
       if (location.hash === "#settings" || location.hash.startsWith("#settings/")) {
         setView("settings"); setNavOpen(false);
+      } else if (location.hash === "#chat") {
+        setView("chat"); setNavOpen(false);
       }
     };
     route();
@@ -694,6 +728,7 @@ function Workbench({
       onRetry={() => setPreviewRevision((v) => v + 1)}
       onSelect={(id) => select(id)}
       onAction={adminAvailable ? handleLibraryAction : undefined}
+      onChat={adminAvailable ? chatWithBookmark : undefined}
       running={job.state === "running"}
       onQuery={(q) => {
         changeQuery(q);
@@ -761,6 +796,12 @@ function Workbench({
             <SelectionPill active={view === "sessions"} group="app-navigation" />
             <Clock3 size={22} aria-hidden="true" />
             <span>{t("浏览批次", "Saving sessions")}</span>
+          </CapsuleButton>
+          <CapsuleButton className={`chat-nav-button ${view === "chat" ? "active" : ""}`}
+            aria-label={t("AI 对话", "AI chat")} aria-current={view === "chat" ? "page" : undefined}
+            onClick={() => { setFocusReading(false); openView("chat"); }}>
+            <SelectionPill active={view === "chat"} group="app-navigation" />
+            <MessageCircle size={22} aria-hidden="true"/><span className="chat-nav-label">{t("AI 对话", "AI chat")}</span>
           </CapsuleButton>
         </nav>
         {paired && view === "library" && <div className="workspace-search">
@@ -904,6 +945,10 @@ function Workbench({
           >
             <Clock3 />
             {t("浏览批次", "Saving sessions")}
+          </CapsuleButton>
+          <CapsuleButton className={`chat-nav-button ${view === "chat" ? "active" : ""}`}
+            onClick={() => { setFocusReading(false); openView("chat"); }}>
+            <MessageCircle />{t("AI 对话", "AI chat")}
           </CapsuleButton>
         </nav>
         <div className="facet-nav">
@@ -1087,9 +1132,9 @@ function Workbench({
               <header className="search-header">
                 {adminAvailable && selected === null && <LibraryToolbar
                   batch={batchMode && !allMatching} ids={selectedIds} pageIds={items.map(item => item.bookmark_id)}
-                  disabled={job.state === "running" || summaryGeneration.busy} pending={scopePending || summaryGeneration.busy}
+                  disabled={job.state === "running" || summaryGeneration.busy} pending={scopePending || summaryGeneration.busy || chatSelectionBusy}
                   onBatch={value => { setBatchMode(value); if (!value || allMatching) { setSelectedIds([]); setAllMatching(false); setExcludedIds([]); } }}
-                  onIds={setSelectedIds} onAction={handleLibraryAction}
+                  onIds={setSelectedIds} onAction={handleLibraryAction} onChat={() => void chatWithSelection()}
                   selectedCount={allMatching ? Math.max(0, (page?.total || 0) - excludedIds.length) : selectedIds.length}
                   total={semanticSelection ? items.length : page?.total || 0} crossPage={!semanticSelection}
                   allSelected={allMatching ? !excludedIds.length : semanticSelection
@@ -1349,7 +1394,7 @@ function Workbench({
               </Dialog.Root>
             )}
           </>
-        ) : (
+        ) : view === "chat" ? null : (
           <div className="page-scroll">
             {view === "setup" ? (
               <SetupFlow
@@ -1382,7 +1427,7 @@ function Workbench({
                   <CapsuleButton className="text-button support-back" onClick={() => openView("library")}><ArrowLeft size={16}/>{t("返回收藏", "Back to collection")}</CapsuleButton>
                 </header>
                 <Tasks job={job} setup={setup} refresh={refresh} onBack={() => openView("library")} onProcess={(mode) => handleLibraryAction({ kind: "process", mode })} />
-                <HealthTools />
+                <HealthTools disabled={job.state === "running"} onPreview={id => { openView("library"); select(id); }} />
               </>
             ) : (
               <>
@@ -1398,6 +1443,10 @@ function Workbench({
                   </div>
                   <Clock3 />
                 </header>
+                <ActivityTimeline revision={sessionsRevision} onSelect={periodQuery => {
+                  setFilters({}); setSummaryStatus("all"); setSearchMode("keyword");
+                  changeQuery(periodQuery, true); openView("library");
+                }}/>
                 {sessionsError && (
                   <div role="alert">
                     <h3>{t("暂时无法读取浏览批次", "Saving sessions could not be loaded")}</h3>
@@ -1480,6 +1529,10 @@ function Workbench({
             )}
           </div>
         )}
+        {paired && <ChatWorkspace active={view === "chat"} launch={chatLaunch} setup={setup} language={language}
+          onPreview={id => { openView("library"); select(id); }}
+          onSettings={() => { openView("settings"); location.hash = "settings/models"; }}
+          onBack={() => openView("library")} />}
       </main>
       {summaryGeneration.error && <div className="summary-generation-feedback" role="alert">
         <span>{summaryGeneration.error}</span>
@@ -1505,39 +1558,5 @@ function Workbench({
         searching={Boolean(search.trim())}
       />}
     </div>
-  );
-}
-
-function HealthTools() {
-  const t = useText();
-  const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
-  return (
-    <details className="health-tools">
-      <summary>{t("链接健康检查", "Link health check")}</summary>
-      <p>
-        {t(
-          "点击后会访问最多 20 个原始网址以检查可用性，不会删除书签。",
-          "This visits up to 20 original URLs to check availability. Bookmarks are preserved.",
-        )}
-      </p>
-      <CapsuleButton
-        className="secondary"
-        disabled={busy}
-        onClick={async () => {
-          setBusy(true);
-          try {
-            setMessage(JSON.stringify(await post("/link-health/check", { limit: 20 })));
-          } catch (e) {
-            setMessage(String(e));
-          } finally {
-            setBusy(false);
-          }
-        }}
-      >
-        {t("确认并检查链接", "Confirm and check links")}
-      </CapsuleButton>
-      <pre role="status">{message}</pre>
-    </details>
   );
 }

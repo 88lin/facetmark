@@ -143,6 +143,29 @@ CREATE TABLE IF NOT EXISTS processing_item (
 );
 CREATE INDEX IF NOT EXISTS ix_processing_pending ON processing_item(job_id,state,bookmark_id);
 
+CREATE TABLE IF NOT EXISTS chat_conversation (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    bookmark_ids TEXT NOT NULL DEFAULT '[]',
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_chat_conversation_updated ON chat_conversation(updated_at DESC,id);
+CREATE TABLE IF NOT EXISTS chat_message (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversation_id TEXT NOT NULL REFERENCES chat_conversation(id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK(role IN ('user','assistant')),
+    content TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'complete' CHECK(status IN ('complete','pending','error','cancelled')),
+    sources TEXT NOT NULL DEFAULT '[]',
+    model TEXT NOT NULL DEFAULT '',
+    request_id TEXT NOT NULL DEFAULT '',
+    created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_chat_messages ON chat_message(conversation_id,id);
+CREATE UNIQUE INDEX IF NOT EXISTS ix_chat_request ON chat_message(conversation_id,request_id)
+    WHERE role='user' AND request_id!='';
+
 -- Facet 2: hypothetical queries generated from the page (doc2query), then
 -- filtered for self-consistency. `kept=1` rows are the ones that get embedded.
 CREATE TABLE IF NOT EXISTS intent_query (

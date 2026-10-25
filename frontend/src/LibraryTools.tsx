@@ -2,7 +2,7 @@ import { CapsuleButton } from "./ui/controls";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence } from "motion/react";
-import { Check, ChevronDown, Download, Folder, ListChecks, LoaderCircle, Plus, Sparkles, Tag, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Download, Folder, ListChecks, LoaderCircle, MessageCircle, Plus, Sparkles, Tag, Trash2, X } from "lucide-react";
 import { api, downloadExport, post, type Bookmark, type CollectionScope, type Setup } from "./api";
 import { useText } from "./locale";
 import { FolderPicker } from "./FolderPicker";
@@ -21,11 +21,12 @@ export type LibraryAction =
   | { kind: "process"; mode: "fetch" | "summarize"; ids?: number[]; scope?: CollectionScope; scopeLabel?: string; reprocess?: boolean };
 
 export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch, onIds, onAction, onSummarize,
-  selectedCount, allSelected, total, crossPage, onAll, onClear }: {
+  selectedCount, allSelected, total, crossPage, onAll, onClear, onChat }: {
   batch: boolean; ids: number[]; pageIds: number[]; disabled: boolean; pending: boolean;
   onBatch: (value: boolean) => void; onIds: (ids: number[]) => void;
   onAction: (action: LibraryAction) => void;
   onSummarize: () => void;
+  onChat?: () => void;
   selectedCount: number; allSelected: boolean; total: number; crossPage: boolean; onAll: () => void; onClear: () => void;
 }) {
   const t = useText();
@@ -48,6 +49,8 @@ export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch
         {pageSelected ? t("取消本页选择", "Deselect this page") : t("选择本页", "Select this page")}</CapsuleButton>
       <CapsuleButton className="secondary" disabled={!ids.length || disabled || pending} onClick={() => onAction({ kind: "bulk", ids })}><ListChecks size={15}/>{t("批量操作", "Actions")}</CapsuleButton>
       <CapsuleButton className="secondary" disabled={!ids.length || pending} onClick={() => onAction({ kind: "export" })}><Download size={15}/>{t("导出所选", "Export selected")}</CapsuleButton>
+      {onChat && <CapsuleButton type="button" className="secondary" disabled={!selectedCount || selectedCount > 12 || pending || disabled}
+        title={t("一次最多讨论 12 篇收藏", "Discuss up to 12 saved pages at a time")} onClick={onChat}><MessageCircle size={15}/>{t("聊所选", "Discuss selected")}</CapsuleButton>}
       <CapsuleButton className="text-button" onClick={() => onBatch(false)}>{t("完成选择", "Done")}</CapsuleButton>
       {ids.length >= 1000 && <span className="selection-limit" role="status">{t("一次最多选择 1000 条", "Select up to 1,000 at a time")}</span>}
     </> : <>
@@ -58,6 +61,8 @@ export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch
           <CapsuleButton type="button" disabled={!pageIds.length || disabled || pending} onClick={() => onBatch(true)}><ListChecks size={16}/>{t("批量管理", "Select")}</CapsuleButton>
           <CapsuleButton type="button" disabled={disabled} onClick={() => onAction({ kind: "taxonomy" })}><Folder size={16}/>{t("整理分类", "Organize")}</CapsuleButton>
           <CapsuleButton type="button" disabled={pending} onClick={() => onAction({ kind: "export" })}><Download size={16}/>{t("导出", "Export")}</CapsuleButton>
+          {onChat && <CapsuleButton type="button" disabled={!selectedCount || selectedCount > 12 || pending || disabled}
+            title={t("一次最多讨论 12 篇收藏", "Discuss up to 12 saved pages at a time")} onClick={onChat}><MessageCircle size={16}/>{t("聊所选", "Discuss selected")}</CapsuleButton>}
         </div>
       </details>
     </>}
@@ -191,7 +196,7 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
     {open && <Dialog.Content forceMount asChild key="content" onCloseAutoFocus={e => { e.preventDefault(); requestAnimationFrame(() => { const target = returnFocus.current?.isConnected && !(returnFocus.current as HTMLButtonElement).disabled ? returnFocus.current : document.querySelector<HTMLElement>(".library-tools button:not(:disabled), .app-header button:not(:disabled), .workspace-search input"); target?.focus({ preventScroll: true }); }); }} onEscapeKeyDown={e => { if (e.target instanceof Element && e.target.closest('.folder-picker[data-open="true"]')) { e.preventDefault(); return; } e.stopPropagation(); if (busy) e.preventDefault(); }} onInteractOutside={e => { if (busy) e.preventDefault(); }}>
       <OverlayMotion kind="dialog" className="library-dialog">
       <div className="library-dialog-heading"><Dialog.Title>{heading}</Dialog.Title><Dialog.Close className="icon-button" disabled={busy} aria-label={t("关闭操作窗口", "Close actions")}><X size={18}/></Dialog.Close></div>
-      <Dialog.Description className="library-dialog-description">{action.kind === "export" ? t("保存一份可带走的副本。JSON 可完整保留分类、标签和已保存正文。", "Keep a portable copy. JSON preserves folders, tags and saved page text.") : t("管理 Facetmark 中的收藏，浏览器中的原始书签保持原样。", "Manage your Facetmark collection. Original browser bookmarks stay untouched.")}</Dialog.Description>
+      <Dialog.Description className="library-dialog-description">{action.kind === "export" ? t("JSON 副本保留分类、标签、正文、AI 阅读内容和所选范围内的对话，导入时补齐缺失内容；已有本地副本优先。模型密钥和向量不在副本内。", "JSON copies preserve folders, tags, page text, AI reading content and conversations wholly within the export scope. Import fills missing content and keeps existing local copies. Model keys and vectors are excluded.") : t("管理 Facetmark 中的收藏，浏览器中的原始书签保持原样。", "Manage your Facetmark collection. Original browser bookmarks stay untouched.")}</Dialog.Description>
       <form onSubmit={submit}>
         <fieldset disabled={busy}>
           {(action.kind === "create" || action.kind === "edit") && <>

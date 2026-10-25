@@ -204,6 +204,7 @@ test("loading, empty, failure and long-title states have real rendered evidence"
     const response = await route.fetch();
     const data = await response.json();
     data.title = title;
+    data.ai_title = title;
     await route.fulfill({ json: data });
   });
   await page.locator(".result-row").first().locator(".bookmark-preview").click();

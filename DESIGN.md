@@ -205,8 +205,13 @@ The 2026-10-25 follow-up removes site classification and the extra summary selec
 row, combines overview and source text in one reading panel, adds generated titles
 and editable language-specific writing instructions, and exposes thinking settings
 beside model choice. The tray interior is preserved while its transparent surround
-and native shadow are removed. These are local source changes; current builds,
-rendered interaction evidence and installed verification remain pending.
+and native shadow are removed. The initial 1696889 cloud run passed the strict
+frontend build and real OpenCode checks but found regression failures. Follow-up
+adds durable cited chat, compact selected-chat access, actual processing limits,
+optional MCP, timeline/health, detailed imports, bounded site imports and portable
+reading/chat restoration. Each secondary surface owns its CSS and uses the existing
+capsule controls. Follow-up builds, captures and installed checks remain pending;
+see [desktop completion](docs/desktop-completion-2026-10-25.md).
 
 Application/capture 8af69ae verified the preceding layout/native revision: 10 CI jobs,
 97 browser passes/2 skips, 21 collection checks and the installed Windows workflow.

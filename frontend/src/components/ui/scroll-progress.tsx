@@ -36,6 +36,10 @@ export function ScrollProgress({
     const scroller = containerRef.current;
     if (!scroller) return;
     pinned.current = null;
+    const sectionElement = (id: string) => {
+      const element = scroller.querySelector<HTMLElement>(`#${CSS.escape(id)}`);
+      return element && (id === "reader-start" || element.closest(".body-text")) ? element : null;
+    };
     const update = () => {
       const extent = scroller.scrollHeight - scroller.clientHeight;
       const ratio = extent > 0 ? Math.min(1, scroller.scrollTop / extent) : 1;
@@ -46,7 +50,7 @@ export function ScrollProgress({
       if (pinned.current !== null) { setActiveId(pinned.current); return; }
       const anchor = scroller.getBoundingClientRect().top + 100;
       const active = [...sections].reverse().find(({ id }) => {
-        const top = document.getElementById(id)?.getBoundingClientRect().top;
+        const top = sectionElement(id)?.getBoundingClientRect().top;
         return top !== undefined && top <= anchor;
       });
       setActiveId(extent > 0 && scroller.scrollTop >= extent - 1
@@ -58,7 +62,7 @@ export function ScrollProgress({
       if (sections.some(section => section.id === id)) { pinned.current = id; setActiveId(id); }
     };
     const measure = () => {
-      const heading = pinned.current && scroller.querySelector<HTMLElement>(`#${CSS.escape(pinned.current)}`);
+      const heading = pinned.current && sectionElement(pinned.current);
       if (heading) scrollToReaderSection(scroller, heading, "instant");
       update();
     };
@@ -113,7 +117,8 @@ export function ScrollProgress({
               onChange={(e) => {
                 const scroller = containerRef.current;
                 const heading = scroller?.querySelector<HTMLElement>(`#${CSS.escape(e.target.value)}`);
-                if (!scroller || !heading) return;
+                if (!scroller || !heading || !sections.some(section => section.id === e.target.value)
+                  || (e.target.value !== "reader-start" && !heading.closest(".body-text"))) return;
                 selectReaderSection(scroller, e.target.value);
                 scrollToReaderSection(scroller, heading, reduceMotion ? "instant" : "smooth");
               }}

@@ -640,7 +640,7 @@ async def poll(state) -> None:
                 status = sync.status()
                 delay = status["poll_seconds"]
                 if (status["enabled"] and status["auto_sync"] and not status["needs_review"]
-                        and not status["pending_conflicts"] and not state.jobs.running):
+                        and not status["pending_conflicts"] and not state.jobs.running and not state.crawls.running):
                     plan = sync.preview()
                     if not plan["conflicts"] and plan["changes"]:
                         sync.apply(ApplyRequest(preview_id=plan["preview_id"]), automatic=True)
@@ -663,7 +663,7 @@ def register(app: FastAPI, auth: list) -> None:
     async def call(request: Request, action: Literal["status", "configure", "preview", "apply"], body=None):
         state = request.app.state.fm
         async with state.lock:
-            if action != "status" and state.jobs.running:
+            if action != "status" and (state.jobs.running or state.crawls.running):
                 _fail("Stop the index job before synchronizing bookmarks", 409)
             sync = manager(state)
             try:

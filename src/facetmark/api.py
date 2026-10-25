@@ -90,17 +90,61 @@ class AppState:
         self.lock = asyncio.Lock()
         #: At most one index run, on its own connection. See `facetmark.admin`.
         self.jobs = admin.JobRunner(self.settings.data_dir)
+        from .crawl_jobs import CrawlRunner
+        self.crawls = CrawlRunner(self.settings.data_dir)
         self.probe_results: dict[str, dict] = admin.load_probes(self.settings.data_dir)
         self.token = service.pairing_token(self.settings)
         self.started_at = int(time.time())
         self._provider = None
+        self.model_users = 0
+        self.health_running = False
         self.extension_seen_at: int | None = None
+        self.chat_runs: dict[str, asyncio.Task] = {}
+        self.chat_requests: dict[str, str] = {}
+        self.chat_cancellations: dict[tuple[str, str], float] = {}
+        # An interrupted assistant reply must be retryable after service restart.
+        self.conn.execute("UPDATE chat_message SET status='cancelled' WHERE status='pending'")
+        self.conn.commit()
 
     @property
     def provider(self):
         if self._provider is None:
             self._provider = get_provider(self.settings)
         return self._provider
+
+    @asynccontextmanager
+    async def model_operation(self, *, writing: bool = False):
+        # Keep the client alive and its settings stable, without holding the
+        # root metadata lock across a remote response or a rate-limit wait.
+        async with self.lock:
+            if writing and (self.jobs.running or self.crawls.running):
+                raise HTTPException(409, "Wait for the processing task before updating the index")
+            settings, provider = self.settings.model_copy(deep=True), self.provider
+            self.model_users += 1
+        conn = None
+        try:
+            conn = open_db(settings.db_path, same_thread=False)
+            if writing:
+                conn.isolation_level = None
+            yield conn, provider, settings
+        finally:
+            if conn is not None:
+                conn.close()
+            async with self.lock:
+                self.model_users -= 1
+
+    async def check_links(self, *, ids=None, limit=50):
+        async with self.lock:
+            if self.health_running or self.jobs.running or self.crawls.running:
+                raise HTTPException(409, "Wait for the current check or processing task")
+            self.health_running = True
+            settings = self.settings.model_copy(deep=True)
+        try:
+            return await healthmod.check_bookmarks(self.conn, ids=ids, limit=limit,
+                                                  settings=settings, persist_lock=self.lock)
+        finally:
+            async with self.lock:
+                self.health_running = False
 
     def close(self) -> None:
         with contextlib.suppress(Exception):  # pragma: no cover
@@ -285,15 +329,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         app.state.fm = AppState(settings)
-        from . import library_sync
+        from . import chat, library_sync
 
         sync_task = asyncio.create_task(library_sync.poll(app.state.fm))
         try:
-            yield
+            async with app.state.mcp_bridge.lifespan():
+                yield
         finally:
             sync_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await sync_task
+            await chat.shutdown(app.state.fm)
+            await app.state.fm.crawls.shutdown()
             await app.state.fm.jobs.shutdown()
             if app.state.fm._provider is not None:
                 await app.state.fm._provider.aclose()
@@ -348,11 +395,15 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
     # Import, index and settings. Token-gated like everything else, plus a hard
     # loopback check and an off switch. See `facetmark.admin`.
     admin.register(app, auth)
-    from . import library, library_sync, workbench
+    from . import chat, library, library_sync, mcp_http, workbench
 
     library.register(app, auth)
     library_sync.register(app, auth)
     workbench.register(app, auth)
+    chat.register(app, auth)
+    mcp_http.register(app, auth)
+    from . import crawl_jobs
+    crawl_jobs.register(app, auth)
 
     # ---------------- web UI ----------------
     # Three unauthenticated routes. Two serve bytes off disk; the third is the
@@ -416,23 +467,16 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
 
     @app.post("/search", dependencies=auth)
     async def full_search(req: SearchRequest, state: AppState = Depends(get_state)) -> dict:
-        if state.settings.channel_ready('embed') or state.settings.use_mock_provider:
-            workbench.validate_space(state.conn, state.settings)
-        # "full" is the name of *whatever this deployment ships*, and that
-        # depends on whether it has real embeddings -- so it resolves through
-        # default_config rather than through the table.
-        cfg = (
-            default_config(state.settings, state.provider)
-            if req.config in ("", "full")
-            else ALL_CONFIGS.get(req.config)
-        )
-        if cfg is None:
-            raise HTTPException(400, f"unknown config {req.config!r}")
-        async with state.lock:
+        async with state.model_operation() as (conn, provider, settings):
+            if settings.channel_ready('embed') or settings.use_mock_provider:
+                workbench.validate_space(conn, settings)
+            cfg = (default_config(settings, provider) if req.config in ("", "full") else ALL_CONFIGS.get(req.config))
+            if cfg is None:
+                raise HTTPException(400, f"unknown config {req.config!r}")
             resp = await service.search(
-                state.conn, req.q, limit=req.limit, offset=req.offset,
+                conn, req.q, limit=req.limit, offset=req.offset,
                 depth=req.depth, config=cfg,
-                provider=state.provider, settings=state.settings,
+                provider=provider, settings=settings,
                 assist=req.assist, expand_limit=req.expand,
             )
         return resp.as_dict()
@@ -443,10 +487,10 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
 
     @app.post("/synthesize", dependencies=auth)
     async def synthesize(req: SynthesizeRequest, state: AppState = Depends(get_state)) -> dict:
-        async with state.lock:
+        async with state.model_operation() as (conn, provider, settings):
             out = await service.synthesize(
-                state.conn, req.q, limit=req.limit,
-                provider=state.provider, settings=state.settings,
+                conn, req.q, limit=req.limit,
+                provider=provider, settings=settings,
             )
         return out.as_dict()
 
@@ -523,7 +567,7 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
     @app.post("/bookmark", dependencies=auth)
     async def save(req: SaveRequest, state: AppState = Depends(get_state)) -> dict:
         async with state.lock:
-            if state.jobs.running:
+            if state.jobs.running or state.crawls.running:
                 raise HTTPException(409, "Wait for the running task before changing bookmarks")
             return service.save_bookmark(
                 state.conn, req.url, title=req.title, folder=req.folder,
@@ -560,7 +604,7 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
         req: CompleteRequest, state: AppState = Depends(get_state)
     ) -> dict:
         async with state.lock:
-            if state.jobs.running:
+            if state.jobs.running or state.crawls.running:
                 raise HTTPException(409, "Wait for the running task before updating page text")
             out = fetchstore.complete_browser_item(
                 state.conn, req.bookmark_id, body=req.body, title=req.title,
@@ -591,11 +635,7 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
     async def health_check(
         req: HealthCheckRequest, state: AppState = Depends(get_state)
     ) -> dict:
-        async with state.lock:
-            rep = await healthmod.check_bookmarks(
-                state.conn, ids=req.ids, limit=req.limit, settings=state.settings
-            )
-            state.conn.commit()
+        rep = await state.check_links(ids=req.ids, limit=req.limit)
         return rep.as_dict()
 
     @app.get("/graveyard", dependencies=auth)
@@ -634,10 +674,10 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
     async def karakeep_add(
         req: KarakeepAddRequest, state: AppState = Depends(get_state)
     ) -> dict:
-        async with state.lock:
+        async with state.model_operation(writing=True) as (conn, provider, settings):
             return await kkbridge.add_documents(
-                state.conn, req.documents, provider=state.provider,
-                settings=state.settings, embed=req.embed,
+                conn, req.documents, provider=provider,
+                settings=settings, embed=req.embed,
             )
 
     @app.post("/karakeep/documents/delete", dependencies=auth)
@@ -653,10 +693,10 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
     ) -> dict:
         if req.config not in ALL_CONFIGS:
             raise HTTPException(status_code=400, detail=f"unknown config {req.config!r}")
-        async with state.lock:
+        async with state.model_operation() as (conn, provider, settings):
             return await kkbridge.search_documents(
-                state.conn, req.model_dump(), provider=state.provider,
-                settings=state.settings, config=req.config,
+                conn, req.model_dump(), provider=provider,
+                settings=settings, config=req.config,
             )
 
     @app.post("/karakeep/clear", dependencies=auth)

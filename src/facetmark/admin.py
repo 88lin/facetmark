@@ -100,8 +100,11 @@ WRITABLE = (
     "embed_backend",
     "local_embed_path",
     "request_timeout",
+    "max_retries", "model_requests_per_minute",
     "fetch_concurrency",
+    "fetch_per_host_concurrency", "fetch_per_host_min_interval",
     "enrich_concurrency",
+    "agent_concurrency", "chat_concurrency",
     "summary_language", "summary_prompt",
     "privacy_excluded_domains",
 )
@@ -783,6 +786,8 @@ def settings_view(settings: Settings, pending: dict[str, Any] | None = None) -> 
     actually read. Pointing it at ``settings.data_dir`` would look tidier under
     ``serve --db /elsewhere/x.db`` and would write settings nothing ever reads.
     """
+    from .embedding_runtime import local_embedding_runtime
+
     locked = env_locked()
     file_values = read_config()
     # Restart-only fields are edited as their saved values. Keep the active
@@ -815,6 +820,7 @@ def settings_view(settings: Settings, pending: dict[str, Any] | None = None) -> 
             "pending_restart": pending_restart,
         })
     return {"path": str(config_path()), "settings": rows,
+            "local_embedding_runtime": local_embedding_runtime(),
             "summary_prompt_defaults": DEFAULT_SUMMARY_PROMPTS,
             "channels": {name: {"configured": saved.channel_ready(name),
                 "base_url": getattr(saved, f'{name}_base_url') or saved.base_url,
@@ -958,9 +964,14 @@ def register(app: FastAPI, auth: list) -> None:
         content = decode_bookmark_bytes(raw)
         state = _state(request)
         async with state.lock:
-            if state.jobs.running:
+            if state.jobs.running or state.crawls.running:
                 raise HTTPException(409, "Stop the processing job before importing bookmarks")
-            stats = service.import_content(state.conn, content, settings=state.settings)
+            if any(not task.done() for task in state.chat_runs.values()):
+                raise HTTPException(409, "Stop active replies before importing a backup")
+            try:
+                stats = service.import_content(state.conn, content, settings=state.settings)
+            except ValueError:
+                raise HTTPException(400, "Invalid backup contents; no changes were applied") from None
         stats["filename"] = request.headers.get("x-filename", "")
         stats["bytes"] = len(raw)
         return stats
@@ -971,7 +982,7 @@ def register(app: FastAPI, auth: list) -> None:
     async def admin_index(body: IndexRequest, request: Request) -> dict:
         state = _state(request)
         async with state.lock:
-            if state.jobs.running:
+            if state.jobs.running or state.crawls.running or state.health_running:
                 raise HTTPException(409, "an index job is already running")
             if body.preview_revision is not None and body.preview_revision != library_revision(state.conn):
                 raise HTTPException(409, "The library changed. Generate again to use the updated selection.")
@@ -1145,8 +1156,12 @@ def register(app: FastAPI, auth: list) -> None:
         async with state.lock:
             # A job already selected its targets. Applying privacy rules while
             # it runs would claim to protect requests already queued by it.
-            if state.jobs.running:
+            if state.jobs.running or state.crawls.running:
                 raise HTTPException(409, "stop the index job before changing settings or privacy rules")
+            if any(not task.done() for task in state.chat_runs.values()):
+                raise HTTPException(409, "stop active replies before changing settings or privacy rules")
+            if state.model_users or state.health_running:
+                raise HTTPException(409, "wait for active model requests or link checks before changing settings")
             update_config(persisted)
             state.settings = state.settings.model_copy(update={
                 key: getattr(validated, key) for key in applied

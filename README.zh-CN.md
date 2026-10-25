@@ -37,7 +37,13 @@
 
 `desktop/facetmark-experience` 测试分支提供 Tauri 2 桌面应用与共享 React 工作台：
 三栏检索和阅读、真实书签分页、导入向导、聊天与向量独立配置、后台任务、
-纸白／石墨灰主题、中英文和窄窗口预览抽屉。
+明暗主题、中英文和窄窗口预览抽屉。
+
+[PR #53](https://github.com/88lin/facetmark/pull/53) 补齐目标语言的 AI 标题与摘要、
+可编辑内置提示词、带引用的持久对话（全库或所选）、HTTP MCP、实际并发与重试设置、
+收藏时间轴、链接维护、网站导入、完整导入反馈和 v2 阅读/聊天恢复。
+详见 [功能对照与当前验证](docs/desktop-completion-2026-10-25.md)。冻结桌面包使用
+HTTP 向量端点；Python 可选安装进程内 SentenceTransformer。本轮仍为预览 PR，未发布正式版本。
 
 从成功的 [desktop-preview Actions](https://github.com/88lin/facetmark/actions/workflows/desktop.yml)
 下载 `facetmark-windows-x64-preview` 产物。这是**未签名测试安装包**，不是正式 Release，

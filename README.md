@@ -39,7 +39,15 @@
 The `desktop/facetmark-experience` test branch introduces a Tauri 2 desktop app and a
 shared React workbench: browse bookmarks, search and read side by side, import through
 a guided flow, configure chat and embeddings separately, and follow background tasks.
-Paper white and graphite themes, Chinese/English and narrow-window reading are included.
+Light/dark themes, Chinese/English and narrow-window reading are included.
+
+[PR #53](https://github.com/88lin/facetmark/pull/53) completes generated titles and
+editable summary instructions, durable cited chat (library or selected pages),
+optional HTTP MCP, actual concurrency/retry settings, timeline and link maintenance,
+bounded site import, detailed import results and v2 reading/chat restoration.
+See the [feature comparison and current verification](docs/desktop-completion-2026-10-25.md).
+Frozen desktop builds use HTTP embedding endpoints; in-process SentenceTransformer
+remains optional for Python installations. This PR is a preview, not a released version.
 
 Download the `facetmark-windows-x64-preview` artifact from a successful
 [desktop-preview run](https://github.com/88lin/facetmark/actions/workflows/desktop.yml).

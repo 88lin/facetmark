@@ -43,10 +43,26 @@ detected agents expose available model effort levels or variants and known defau
 
 The collection supports manual create/edit, tags and folders, confirmed deletion,
 JSON/HTML export, direct original links and independent page-fetch or summary tasks.
-JSON exports retain saved reading data; reimport restores bookmark metadata.
+Version 2 full JSON restores missing saved reading content and conversations as well
+as bookmark metadata; existing local content takes precedence. Keys, vectors,
+browser state, configuration and task logs are excluded from portable JSON.
 Cross-page summary selection and server-scoped tasks support large libraries without
 sending every target ID from the browser. Management and export retain their own
 explicit selection or collection scopes.
+
+Durable AI chat covers the collection, one saved page or 1–12 selected pages. Sources
+are verified and linked; replies continue across navigation and support Stop, retry
+and regeneration while retaining earlier complete answers. MCP offers the existing
+stdio tools and an optional desktop HTTP connection with a separate token and real
+protocol self-check. Search, read and save capabilities are distinct.
+
+Processing settings expose actual concurrency, per-host spacing, total HTTP attempts
+and a shared endpoint/account minute budget. Same-process Agent calls share a quota
+across summary/chat providers; independent processes are not globally limited.
+The desktop also exposes the original site crawler as a bounded background import,
+a saving timeline and link-health maintenance. Python local SentenceTransformer
+support is optional; the frozen desktop reports its absence and offers a tested
+HTTP embedding endpoint instead.
 
 The directory groups by folders and tags. Site identity remains record metadata,
 without a separate site category. One select-all checkbox and Generate button occupy
@@ -115,7 +131,8 @@ PR #44 was merged with the user's authorization; this follow-up belongs in a new
 PR. Commit, push and cloud validation follow current session authorization; this
 document adds none. Do not automatically merge a new PR or publish a release.
 Application/capture 8af69ae passed checks for the preceding layout/native revision.
-The 2026-10-25 changes remain local and await cloud/runtime verification and user review.
+The initial 1696889 cloud run found regressions; follow-up corrections and feature
+completion await their own cloud/runtime verification and user review.
 Older checks establish only their own revisions.
 
 ## Evidence on Hand
@@ -133,6 +150,8 @@ must be identified as such. Never show personal bookmarks in evidence.
 Hosted Windows Server installation smoke is not Windows 10/11 certification.
 Current source changes and pending verification are recorded in
 [the summary/reading follow-up](docs/summary-reading-reasoning-2026-10-25.md).
+The broader suitability review and desktop completion are recorded in
+[the current feature completion](docs/desktop-completion-2026-10-25.md).
 
 ## Product Principles
 

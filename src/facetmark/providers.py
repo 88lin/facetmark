@@ -20,9 +20,14 @@ import hashlib
 import json
 import math
 import re
+import threading
 from abc import ABC, abstractmethod
-from collections import Counter
+from collections import Counter, deque
 from dataclasses import dataclass
+from datetime import timezone
+from email.utils import parsedate_to_datetime
+from time import monotonic, time
+from weakref import WeakValueDictionary
 
 import httpx
 
@@ -130,6 +135,25 @@ class MockProvider(Provider):
     async def chat_json(self, system: str, user: str) -> dict:
         self.usage.calls += 1
         self.usage.prompt_tokens += len(user) // 4
+        try:
+            payload = json.loads(user)
+        except ValueError:
+            payload = None
+        if isinstance(payload, dict) and isinstance(payload.get("saved_evidence"), list) and "question" in payload:
+            zh = payload.get("required_language") == "简体中文"
+            claims = []
+            for source in payload["saved_evidence"][:3]:
+                if not isinstance(source, dict) or not isinstance(source.get("n"), int):
+                    continue
+                title = source.get("ai_title") or source.get("title") or "Saved page"
+                excerpt = str(source.get("excerpt") or source.get("summary") or title)[:500]
+                text = f"《{title}》保存的片段：{excerpt}" if zh else f"{title} — saved excerpt: {excerpt}"
+                claims.append({"text": text, "sources": [source["n"]]})
+            out = {"claims": claims, "gaps": [
+                "这是离线示例，只展示保存的片段；连接并测试模型后才能获得实际分析。" if zh else
+                "This offline demo shows saved excerpts. Configure and test a model for actual analysis."]}
+            self.usage.completion_tokens += len(json.dumps(out, ensure_ascii=False)) // 4
+            return out
         body = user
         # Strip the framing the prompt builder adds, keep the page text.
         marker = "<<<PAGE>>>"
@@ -197,6 +221,50 @@ class MockProvider(Provider):
 # ---------------------------------------------------------------------------
 
 _RETRYABLE = frozenset({408, 409, 425, 429, 500, 502, 503, 504})
+MAX_RETRY_WAIT = 60.0
+MAX_AUTOMATIC_WAIT = 900.0
+
+
+class _RequestBudget:
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.requests: deque[float] = deque()
+        self.cooldown_until = 0.0
+
+
+_BUDGET_LOCK = threading.Lock()
+_BUDGETS: WeakValueDictionary = WeakValueDictionary()
+
+
+def _request_budget(settings: Settings) -> _RequestBudget:
+    # Jobs use their own event loop and provider. The quota still belongs to
+    # the same endpoint/account in this service, rather than to each task.
+    account = hashlib.sha256(settings.api_key.encode()).hexdigest()
+    key = (str(settings.data_dir.resolve()), settings.base_url.rstrip("/"), account,
+           settings.model_requests_per_minute)
+    with _BUDGET_LOCK:
+        budget = _BUDGETS.get(key)
+        if budget is None:
+            budget = _RequestBudget()
+            _BUDGETS[key] = budget
+        return budget
+
+
+def _retry_after(value: str | None) -> float:
+    """Honor seconds or HTTP dates without shortening the server's deadline."""
+    if not value:
+        return 0.0
+    try:
+        seconds = float(value)
+    except ValueError:
+        try:
+            date = parsedate_to_datetime(value)
+            if date.tzinfo is None:
+                date = date.replace(tzinfo=timezone.utc)
+            seconds = date.timestamp() - time()
+        except (ValueError, TypeError, OverflowError):
+            return 0.0
+    return max(0.0, seconds) if math.isfinite(seconds) else 0.0
 
 
 class OpenAICompatibleProvider(Provider):
@@ -216,6 +284,7 @@ class OpenAICompatibleProvider(Provider):
         self._json_mode = True
         self.chat_calls: Counter[str] = Counter()
         self.chat_failures: Counter[str] = Counter()
+        self._budget = _request_budget(self.settings)
         self._own = client is None
         self._client = client or httpx.AsyncClient(
             base_url=self.settings.base_url.rstrip("/"),
@@ -228,9 +297,32 @@ class OpenAICompatibleProvider(Provider):
         if self._own:
             await self._client.aclose()
 
+    async def _wait_request_slot(self) -> None:
+        # Every actual HTTP attempt participates, including retries and JSON
+        # compatibility fallbacks. Do not hold the gate while waiting: Stop
+        # cancels these waits, and a newer 429 can extend the shared cooldown.
+        while True:
+            with self._budget.lock:
+                current = monotonic()
+                while self._budget.requests and self._budget.requests[0] <= current - 60:
+                    self._budget.requests.popleft()
+                delay = max(0.0, self._budget.cooldown_until - current)
+                rpm = self.settings.model_requests_per_minute
+                if rpm and len(self._budget.requests) >= rpm:
+                    delay = max(delay, self._budget.requests[0] + 60 - current)
+                if delay <= 0:
+                    if rpm:
+                        self._budget.requests.append(current)
+                    return
+                if delay > MAX_AUTOMATIC_WAIT:
+                    raise ProviderError("The model service requested a long cooldown. Retry this task later.")
+            await asyncio.sleep(min(delay, MAX_RETRY_WAIT))
+
     async def _post(self, path: str, payload: dict) -> dict:
         last: Exception | None = None
         for attempt in range(self.settings.max_retries):
+            await self._wait_request_slot()
+            retry_delay = min(2 ** attempt, MAX_RETRY_WAIT)
             try:
                 r = await self._client.post(path, json=payload)
             except httpx.HTTPError as exc:
@@ -247,8 +339,14 @@ class OpenAICompatibleProvider(Provider):
                 if r.status_code not in _RETRYABLE:
                     raise ProviderError(f"{path} -> HTTP {r.status_code}: {r.text[:300]}")
                 last = ProviderError(f"HTTP {r.status_code}")
+                retry_delay = max(retry_delay, _retry_after(r.headers.get("Retry-After")))
+                if r.status_code in {429, 503}:
+                    with self._budget.lock:
+                        self._budget.cooldown_until = max(self._budget.cooldown_until, monotonic() + retry_delay)
             if attempt + 1 < self.settings.max_retries:
-                await asyncio.sleep(min(2 ** attempt, 8) * 0.5)
+                if retry_delay > MAX_AUTOMATIC_WAIT:
+                    raise ProviderError("The model service requested a long cooldown. Retry this task later.")
+                await asyncio.sleep(retry_delay)
         # Name the exception *class*. httpx raises several of its timeout and
         # protocol errors with an empty message, so interpolating only ``last``
         # produces "failed after 3 attempts: " -- which was, for one full
@@ -442,13 +540,14 @@ class LocalEmbeddingProvider(Provider):
         startup and hundreds of MB of RSS to do nothing.
         """
         if self._model is None:
+            from .embedding_runtime import local_embedding_error, local_embedding_runtime
+
+            if not local_embedding_runtime()["supported"]:
+                raise ProviderError(local_embedding_error())
             try:
                 from sentence_transformers import SentenceTransformer
             except ImportError as exc:  # pragma: no cover - depends on install
-                raise ProviderError(
-                    "embed_backend='local' needs sentence-transformers: "
-                    "pip install 'facetmark[local]'"
-                ) from exc
+                raise ProviderError(local_embedding_error()) from exc
             m = SentenceTransformer(self._path, device=self.settings.local_embed_device)
             m.max_seq_length = self.settings.local_embed_max_seq
             self._model = m

@@ -175,7 +175,8 @@ test("an import can retry the same file and returns directly to the collection",
   await upload.setInputFiles(file);
   await expect(page.getByRole("alert")).toContainText("Synthetic import interruption");
   await upload.setInputFiles(file);
-  await expect(page.locator(".import-result")).toContainText("新增 2");
+  await expect(page.locator(".import-result-heading")).toContainText("导入完成");
+  await expect(page.locator('.import-result [data-metric="inserted"] dd')).toHaveText("2");
   expect(attempts).toBe(2);
   await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/support-import-success.png", animations: "disabled" });

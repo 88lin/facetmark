@@ -1,9 +1,10 @@
 import { CapsuleButton } from "./ui/controls";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Cloud, MessageCircle, Monitor, Puzzle } from "lucide-react";
+import { ArrowLeft, Cloud, Link2, MessageCircle, Monitor, Puzzle } from "lucide-react";
 import { type Setup } from "./api";
 import { Models, ExtensionSettings, UpdateSettings } from "./Settings";
 import { SyncSettings } from "./SyncSettings";
+import { McpSettings } from "./McpSettings";
 import { useText } from "./locale";
 import { SelectionPill, useContentMotion } from "./InteractionMotion";
 
@@ -15,7 +16,7 @@ export function SettingsWorkspace({ setup, refresh, onChanged, onBack, onSummari
   const t = useText();
   const routeSection = () => {
     const section = location.hash.split("/")[1];
-    return ["models", "sync", "extension", "desktop"].includes(section) ? section : "models";
+    return ["models", "sync", "extension", "mcp", "desktop"].includes(section) ? section : "models";
   };
   const [active, setActive] = useState(routeSection);
   const switchSection = (id: string) => {
@@ -34,6 +35,7 @@ export function SettingsWorkspace({ setup, refresh, onChanged, onBack, onSummari
     { id: "models", label: t("AI 连接", "AI connections"), compact: t("AI 连接", "AI"), Icon: MessageCircle },
     { id: "sync", label: t("设备同步", "Device sync"), compact: t("同步", "Sync"), Icon: Cloud },
     { id: "extension", label: t("浏览器扩展", "Browser extension"), compact: t("扩展", "Add-on"), Icon: Puzzle },
+    { id: "mcp", label: t("MCP 与接入", "MCP & integrations"), compact: "MCP", Icon: Link2 },
     { id: "desktop", label: t("桌面与更新", "Desktop & updates"), compact: t("桌面", "Desktop"), Icon: Monitor },
   ];
   return <div className="settings-workspace" ref={root}>
@@ -42,7 +44,7 @@ export function SettingsWorkspace({ setup, refresh, onChanged, onBack, onSummari
       <CapsuleButton className="text-button support-back" onClick={onBack}><ArrowLeft size={16}/>{t("返回收藏", "Back to collection")}</CapsuleButton>
       <p>{t("按需连接服务，关键词搜索无需配置。", "Connect services as needed. Keyword search works without setup.")}</p>
     </header>
-    <div className="settings-tabs" role="tablist" aria-label={t("设置分类", "Settings categories")}>
+    <div className="settings-tabs mcp-settings-tabs" role="tablist" aria-label={t("设置分类", "Settings categories")}>
       {sections.map(({ id, label, compact, Icon }, index) => <CapsuleButton key={id} type="button" role="tab" aria-label={label}
         id={`settings-tab-${id}`} aria-controls={`settings-panel-${id}`} aria-selected={active === id}
         tabIndex={active === id ? 0 : -1} onClick={() => switchSection(id)}
@@ -52,7 +54,9 @@ export function SettingsWorkspace({ setup, refresh, onChanged, onBack, onSummari
           const next = event.key === "Home" ? 0 : event.key === "End" ? sections.length - 1 :
             (index + (event.key === "ArrowRight" ? 1 : -1) + sections.length) % sections.length;
           switchSection(sections[next].id);
-          document.getElementById(`settings-tab-${sections[next].id}`)?.focus();
+          const target = document.getElementById(`settings-tab-${sections[next].id}`);
+          target?.focus();
+          target?.scrollIntoView({ block: "nearest", inline: "nearest" });
         }}><SelectionPill active={active === id} group="settings-section" /><Icon size={17}/><span className="settings-label-long" aria-hidden="true">{label}</span><span className="settings-label-compact" aria-hidden="true">{compact}</span></CapsuleButton>)}
     </div>
     {/* Keep forms mounted so switching categories preserves unsaved drafts and test results. */}
@@ -60,7 +64,7 @@ export function SettingsWorkspace({ setup, refresh, onChanged, onBack, onSummari
       aria-labelledby={`settings-tab-${id}`} hidden={active !== id} tabIndex={0} className="settings-panel">
       {id === "models" ? <Models setup={setup} refresh={refresh} showHeading={false} onSummarize={onSummarize}/> :
         id === "sync" ? <SyncSettings onChanged={onChanged}/> :
-        id === "extension" ? <ExtensionSettings/> : <>
+        id === "extension" ? <ExtensionSettings/> : id === "mcp" ? <McpSettings active={active === id}/> : <>
           <UpdateSettings/>
           <p className="credits">{t("界面组件致谢：", "Interface credits: ")}<a href="https://heroui.com" target="_blank" rel="noreferrer">HeroUI</a> · <a href="https://rareui.com" target="_blank" rel="noreferrer">Rare UI</a></p>
         </>}
