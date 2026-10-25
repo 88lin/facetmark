@@ -4,6 +4,7 @@ on:
   push:
     branches: ['desktop/**']
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -63,6 +64,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: facetmark-windows-x64-preview
+          overwrite: true
           path: |
             desktop/src-tauri/target/release/bundle/nsis/*-setup.exe
             .desktop-build/evidence/*
@@ -72,6 +74,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: desktop-dependency-locks
+          overwrite: true
           path: |
             desktop/package-lock.json
             desktop/src-tauri/Cargo.lock
@@ -81,5 +84,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: desktop-install-evidence
+          overwrite: true
           path: .desktop-build/evidence/
           retention-days: 14

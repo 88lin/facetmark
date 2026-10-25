@@ -34,27 +34,28 @@
 > written to. Keyword search needs no AI. When you confirm indexing with cloud models,
 > eligible titles, URLs and extracted text are sent to the services you configure.
 
-### Windows desktop preview
+### Windows desktop (v2.1.0)
 
-The `desktop/facetmark-experience` test branch introduces a Tauri 2 desktop app and a
+Facetmark provides a Tauri 2 desktop app and a
 shared React workbench: browse bookmarks, search and read side by side, import through
 a guided flow, configure chat and embeddings separately, and follow background tasks.
 Light/dark themes, Chinese/English and narrow-window reading are included.
 
-[PR #53](https://github.com/88lin/facetmark/pull/53) completes generated titles and
+The v2.1.0 release includes generated titles and
 editable summary instructions, durable cited chat (library or selected pages),
 optional HTTP MCP, actual concurrency/retry settings, timeline and link maintenance,
 bounded site import, detailed import results and v2 reading/chat restoration.
 See the [feature comparison and current verification](docs/desktop-completion-2026-10-25.md).
 Frozen desktop builds use HTTP embedding endpoints; in-process SentenceTransformer
-remains optional for Python installations. This PR is a preview, not a released version.
+remains optional for Python installations.
 
-Download the `facetmark-windows-x64-preview` artifact from a successful
-[desktop-preview run](https://github.com/88lin/facetmark/actions/workflows/desktop.yml).
-These are **unsigned test installers**, not a production release. Windows may show
-SmartScreen. The package includes the Python sidecar and offline WebView2 installer;
+Download the [Windows x64 installer](https://github.com/88lin/facetmark/releases/download/v2.1.0/facetmark-2.1.0-windows-x64-setup.exe)
+from [Releases](https://github.com/88lin/facetmark/releases/tag/v2.1.0).
+The installer is **unsigned**; Windows may show SmartScreen.
+The package includes the Python sidecar and offline WebView2 installer;
 it does not include large AI models. No Python, Node or Rust installation is needed by
-desktop users. See [desktop setup and validation boundaries](docs/desktop-preview.md).
+desktop users. The same Release also provides the extension ZIP, Python wheel/source
+distribution and SHA256 checksums. See [release notes and validation boundaries](docs/releases/v2.1.0.md).
 
 The same React assets ship in CI-built Python wheels and Docker images. Source
 contributors build `frontend/` before packaging; Python end users do not run Node.

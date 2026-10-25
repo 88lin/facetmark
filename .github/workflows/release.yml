@@ -6,55 +6,134 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify release tag and all source versions
+        shell: bash
+        run: |
+          test "$GITHUB_REF_TYPE" = tag
+          python scripts/release_assets.py check --tag "$GITHUB_REF_NAME"
+
   extension:
+    needs: version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: npm install
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: extension
+      - run: npm run typecheck && npm test
         working-directory: extension
       - run: npm run build
         working-directory: extension
-      - name: zip
-        run: cd extension/dist && zip -qr ../../facetmark-extension.zip .
-      - uses: softprops/action-gh-release@v2
+      - name: Package extension
+        shell: bash
+        working-directory: extension/dist
+        run: zip -qr "../../facetmark-extension-${GITHUB_REF_NAME#v}.zip" .
+      - uses: actions/upload-artifact@v4
         with:
-          files: facetmark-extension.zip
-          generate_release_notes: true
+          name: release-extension
+          path: facetmark-extension-*.zip
+          if-no-files-found: error
+          overwrite: true
 
   pypi:
+    needs: version
     runs-on: ubuntu-latest
     env:
       PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-    # Publishing needs a PYPI_API_TOKEN repository secret. Without it this job
-    # is skipped rather than failing the release, so the extension artifact
-    # still ships.
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Build shared Web assets for Python users
-        working-directory: frontend
-        run: |
-          npm ci --ignore-scripts --no-audit --no-fund
-          npm run build
+      - uses: ./.github/actions/workbench
       - run: pip install build twine
       - run: python -m build
+      - name: Check Python distributions and shared offline UI
+        run: |
+          python scripts/check_web_bundle.py
+          twine check dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-python
+          path: dist/*
+          if-no-files-found: error
+          overwrite: true
       - name: publish
         if: env.PYPI_TOKEN != ''
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ env.PYPI_TOKEN }}
         run: twine upload dist/*
-      - uses: softprops/action-gh-release@v2
+
+  desktop:
+    needs: version
+    uses: ./.github/workflows/desktop.yml
+
+  stage:
+    needs: [extension, pypi, desktop]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          files: dist/*
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: facetmark-windows-x64-preview
+          path: incoming/desktop
+      - uses: actions/download-artifact@v4
+        with:
+          name: desktop-install-evidence
+          path: incoming/evidence
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-python
+          path: incoming/python
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-extension
+          path: incoming/extension
+      - name: Verify packages and installation evidence; generate checksums
+        run: |
+          python scripts/release_assets.py stage --tag "$GITHUB_REF_NAME" \
+            --desktop incoming/desktop --evidence incoming/evidence \
+            --python incoming/python --extension incoming/extension --output release-assets
+          cd release-assets
+          sha256sum --check SHA256SUMS.txt
+      - name: Upload the complete package set to a draft Release
+        shell: bash
+        run: |
+          set -euo pipefail
+          notes="docs/releases/$GITHUB_REF_NAME.md"
+          test -f "$notes"
+          if draft=$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq '.isDraft'); then
+            if [ "$draft" != true ]; then
+              echo "Refusing to replace packages of a published Release" >&2
+              exit 1
+            fi
+            gh release edit "$GITHUB_REF_NAME" --title "Facetmark $GITHUB_REF_NAME" --notes-file "$notes"
+          else
+            gh release create "$GITHUB_REF_NAME" --verify-tag --draft \
+              --title "Facetmark $GITHUB_REF_NAME" --notes-file "$notes"
+          fi
+          gh release upload "$GITHUB_REF_NAME" release-assets/* --clobber
