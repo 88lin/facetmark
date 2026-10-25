@@ -19,7 +19,9 @@ real OpenCode checks passed. Follow-up completion includes durable cited chat,
 optional HTTP MCP, actual concurrency/retry controls, timeline/health, full reading
 and chat restoration, bounded website import and honest optional encoder support.
 Keep secondary entry points compact and preserve the existing selection toolbar.
-Current follow-up source awaits its own cloud/runtime verification; see
+Application/capture 81f310a passed all four cloud workflows, including installed
+tray sizing and the actual Agent queue limit. Current captures remain unapproved
+as an aesthetic direction; precise technical and review scope is in
 [desktop completion](../docs/desktop-completion-2026-10-25.md).
 This brief does not authorize new commits, pushes, PRs, merges or releases.
 

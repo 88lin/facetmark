@@ -131,8 +131,10 @@ PR #44 was merged with the user's authorization; this follow-up belongs in a new
 PR. Commit, push and cloud validation follow current session authorization; this
 document adds none. Do not automatically merge a new PR or publish a release.
 Application/capture 8af69ae passed checks for the preceding layout/native revision.
-The initial 1696889 cloud run found regressions; follow-up corrections and feature
-completion await their own cloud/runtime verification and user review.
+The initial 1696889 cloud run found regressions. Application/capture 81f310a passed
+CI, collection, experience and Windows installation checks for the completed feature
+batch; exact evidence and limits are recorded in desktop-completion-2026-10-25.md.
+The current aesthetics still await user review.
 Older checks establish only their own revisions.
 
 ## Evidence on Hand
@@ -148,7 +150,7 @@ review verdicts establish only their recorded revision and scope; they do not
 accept the current implementation. Synthetic corpus, catalog and model fixtures
 must be identified as such. Never show personal bookmarks in evidence.
 Hosted Windows Server installation smoke is not Windows 10/11 certification.
-Current source changes and pending verification are recorded in
+The initial source changes and current verification are recorded in
 [the summary/reading follow-up](docs/summary-reading-reasoning-2026-10-25.md).
 The broader suitability review and desktop completion are recorded in
 [the current feature completion](docs/desktop-completion-2026-10-25.md).

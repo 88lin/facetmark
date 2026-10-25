@@ -62,7 +62,10 @@ and real OpenCode checks while exposing regression failures. Follow-up adds cite
 chat, selected discussions, processing limits, MCP, timeline/health, import outcomes,
 site imports and portable reading/chat restoration. These surfaces preserve compact
 entry points, component-owned CSS, keyboard semantics and the existing toolbar.
-Their current source awaits new cloud captures and installed checks. Work is in
+Application/capture 81f310a passed all four cloud workflows; 157 source blob
+fingerprints and 9 downloaded media/record fingerprints match. Representative
+collection/chat/settings/import and native tray captures were inspected. This is
+technical evidence, not user acceptance of the aesthetics. Work is in
 docs/desktop-completion-2026-10-25.md; commit/push/PR decisions follow session
 authorization. The user has now confirmed this batch's commit, push, new PR and
 cloud verification; delivery is in progress. No automatic merge or release.

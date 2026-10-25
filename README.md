@@ -735,17 +735,19 @@ One SQLite file. The tables you are likely to query directly:
 |---|---|
 | `bookmark` | url, title, folder, date_added, open_count, source |
 | `content` | body_text, body_hash, char_count, lang, extractor, http_status |
-| `enrichment` | summary, topics, entities, key_points, model, source_hash |
+| `enrichment` | ai_title, summary, topics, entities, key_points, model, source_hash, language, prompt_hash |
 | `intent` | generated queries, kept flag, rank of the retrieve-back check |
 | `vec_content` / `vec_intent` | embeddings, keyed by bookmark |
 | `fts_tri` / `fts_seg` | FTS5 indexes over title, body, summary, extra |
 | `session` / `bookmark_session` | save-burst clusters and their members |
+| `chat_conversation` / `chat_message` | persistent discussion scopes, messages, reply status, request IDs and source snapshots |
 | `edge` | `(src, dst, kind, weight)`; kinds: session, semantic, same_domain, supersession |
 | `health` | per-URL verdicts over time: ok, gone, drifted, soft_gone |
 | `karakeep_doc` | created on demand; drop it to fully uninstall the bridge |
 
 > [!NOTE]
-> `enrichment.source_hash` is the fingerprint that decides whether a page needs re-enriching.
+> Summary reuse compares `enrichment.source_hash` with the saved content and also checks
+> `language` and `prompt_hash` against the effective writing settings.
 > The value `'karakeep'` is reserved and means "this row belongs to the bridge, overwrite it
 > freely"; anything else means a real model wrote it and the bridge must leave it alone.
 
@@ -757,7 +759,7 @@ One SQLite file. The tables you are likely to query directly:
 |---|---|
 | `Dimension mismatch: expected 1024, received 1536` | Stored vectors and `FACETMARK_EMBED_DIM` disagree. Restore the old dim, or re-embed with `--force`. |
 | `base_url` errors / 404 on every call | Use the provider API base path, usually `/v1`; Zhipu uses `/api/paas/v4`. Do not append `/chat/completions` yourself. |
-| Enrichment silently does nothing | `enrich.targets()` skips a row when `source_hash` already equals the body hash. Use `facetmark index --force`. |
+| Enrichment silently does nothing | Unselected generation skips content whose source, language and writing instructions are unchanged. Select the records and Generate to redo them; the Python CLI also offers `facetmark index --force`. |
 | A page has a vector but bad results | That is the stale-text failure mode above. `facetmark index --force` rebuilds from the current text. |
 | `disk I/O error` opening the database | SQLite cannot run on some network or FUSE filesystems. Copy the file to local disk first. |
 | Fetching gets blocked | facetmark honours `robots.txt` and per-domain rate limits by design. Lower `FETCH_CONCURRENCY` or accept that some pages stay body-less; the pipeline falls back to a title-only fingerprint. |
