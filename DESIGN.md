@@ -195,6 +195,16 @@ components:
 
 ## Current state
 
+The latest 2026-10-26 user review is that the product is still unusable. This round
+repairs the select-all capsule and model choice/reopen feedback, and moves saving
+sessions into a component-owned list. Date cells use content-sized 16px corners;
+session rows use 20px corners (18px narrow), while action controls remain capsules.
+Date strips expose arrow buttons and accept ordinary mouse wheels. Reading text
+size has five local levels and a reset, with unchanged default typography.
+These are source changes pending cloud rendering and user review. The complete
+reference comparison and current evidence are in
+[the usability record](docs/githubstarsmanager-gap-audit-2026-10-26.md).
+
 The implemented system uses mist-blue surroundings, porcelain content surfaces,
 deep ink text, electric-blue actions and shaped capsule controls. It is a working
 baseline. The user described it as usable but not good-looking and requested more

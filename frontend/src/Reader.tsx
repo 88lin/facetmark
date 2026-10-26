@@ -1,5 +1,5 @@
 import { CapsuleButton } from "./ui/controls";
-import { useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   ArrowDown,
   ArrowLeft,
@@ -12,8 +12,10 @@ import {
   Maximize2,
   MessageCircle,
   Minimize2,
+  Minus,
   PanelRightClose,
   Pencil,
+  Plus,
   Sparkles,
   Tags,
   Trash2,
@@ -98,6 +100,17 @@ export default function Reader({
   running: boolean;
 }) {
   const t = useText();
+  const scales = [.88, 1, 1.12, 1.24, 1.36];
+  const [readingSize, setReadingSize] = useState(() => {
+    try {
+      const saved = Number(localStorage.getItem("fm-reading-size") ?? 1);
+      return Number.isInteger(saved) && saved >= 0 && saved < scales.length ? saved : 1;
+    } catch { return 1; }
+  });
+  const resizeText = (size: number) => {
+    setReadingSize(size);
+    try { localStorage.setItem("fm-reading-size", String(size)); } catch { /* Reading remains usable without storage. */ }
+  };
   const scroller = useRef<HTMLDivElement>(null);
   const scrollPositions = useRef<Record<string, number>>({});
   const tabs = useTabIndicator(`${tab}-${language}`);
@@ -246,7 +259,7 @@ export default function Reader({
     ) : related.length ? (
       <div className="related-list">
         {related.map((r) => (
-          <CapsuleButton
+          <button type="button"
             className="related-item"
             key={r.bookmark_id}
             onClick={() => onSelect(r.bookmark_id)}
@@ -254,7 +267,7 @@ export default function Reader({
             <small>{r.domain}</small>
             <span>{r.ai_title || r.title || r.url}</span>
             <ArrowUpRight size={14} />
-          </CapsuleButton>
+          </button>
         ))}
       </div>
     ) : (
@@ -404,7 +417,7 @@ export default function Reader({
           </div>
           <div className="preview-scroll" ref={scroller} aria-busy={pending}>
             <div className={`reader-layout ${showOutline ? "with-outline" : ""}`}>
-              <article id="reader-start" className="reader-article">
+              <article id="reader-start" className="reader-article" style={{ "--reader-font-scale": scales[readingSize] } as CSSProperties}>
                 <div className="preview-title">
                   <div className="article-source">
                     {original ? (
@@ -479,6 +492,11 @@ export default function Reader({
                       {managed && <p className="hint">{t("这条收藏由 Karakeep 管理，请在来源端编辑或删除。", "This bookmark is managed by Karakeep. Edit or delete it there.")}</p>}
                     </div>}
                   </details>
+                  {tab === "body" && <div className="reader-type-controls" role="group" aria-label={t("阅读字号", "Reading text size")}>
+                    <CapsuleButton type="button" className="reader-type-step" disabled={readingSize === 0} aria-label={t("减小阅读字号", "Decrease reading text size")} onClick={() => resizeText(readingSize - 1)}><Minus size={14}/></CapsuleButton>
+                    <CapsuleButton type="button" className="reader-type-reset" aria-label={t("恢复默认阅读字号", "Reset reading text size")} title={t("点击恢复默认字号", "Reset text size")} onClick={() => resizeText(1)}>{Math.round(scales[readingSize] * 100)}%</CapsuleButton>
+                    <CapsuleButton type="button" className="reader-type-step" disabled={readingSize === scales.length - 1} aria-label={t("增大阅读字号", "Increase reading text size")} onClick={() => resizeText(readingSize + 1)}><Plus size={14}/></CapsuleButton>
+                  </div>}
                   {record && onAction && !managed && <CapsuleButton className="secondary reader-edit" disabled={running} onClick={() => onAction({ kind: "edit", record })}><Pencil size={14}/>{t("编辑", "Edit")}</CapsuleButton>}
                   </div>
                 </div>

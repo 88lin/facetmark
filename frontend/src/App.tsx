@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
-  ArrowDown,
   ArrowLeft,
   ArrowRight,
   Bookmark as BookmarkIcon,
@@ -47,7 +46,7 @@ import { useSummaryGeneration } from "./useSummaryGeneration";
 import { ChatWorkspace } from "./ChatWorkspace";
 import type { ChatLaunch } from "./chat-types";
 import { HealthTools } from "./HealthTools";
-import { ActivityTimeline } from "./ActivityTimeline";
+import { SavingSessions } from "./SavingSessions";
 import { FacetBrowser } from "./FacetBrowser";
 import { FacetmarkMark } from "./FacetmarkMark";
 import { QuerySuggestions, SearchAnswer } from "./SearchTools";
@@ -63,7 +62,6 @@ import "./startup.css";
 type View = "library" | "sessions" | "tasks" | "settings" | "setup" | "import" | "chat";
 type Facet = { value: string; count: number };
 type Filters = { folder?: string; tag?: string; domain?: string; session?: number };
-type Session = { session_id: number; label: string; started_at: number; size: number };
 const remember = (key: string, value?: string) => {
   try {
     if (value !== undefined) localStorage.setItem(key, value);
@@ -231,12 +229,8 @@ function Workbench({
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [relatedError, setRelatedError] = useState("");
   const [previewRevision, setPreviewRevision] = useState(0);
-  const [sessionsLoading, setSessionsLoading] = useState(false);
-  const [sessionsError, setSessionsError] = useState("");
   const [sessionsRevision, setSessionsRevision] = useState(0);
   const sidebar = useRef<HTMLElement>(null);
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [sessionsMore, setSessionsMore] = useState(false);
   const searchInput = useRef<HTMLInputElement>(null);
   const composing = useRef(false);
   const firstRefresh = useRef(true);
@@ -632,24 +626,6 @@ function Workbench({
       });
     return () => abort.abort();
   }, [selected, previewRevision]);
-  useEffect(() => {
-    if (view !== "sessions" || !paired) return;
-    const abort = new AbortController();
-    setSessionsError("");
-    setSessionsLoading(true);
-    api<Session[]>("/sessions?limit=40", { signal: abort.signal })
-      .then((data) => {
-        setSessions(data);
-        setSessionsMore(data.length === 40);
-      })
-      .catch((e) => {
-        if (!abort.signal.aborted) setSessionsError(String(e));
-      })
-      .finally(() => {
-        if (!abort.signal.aborted) setSessionsLoading(false);
-      });
-    return () => abort.abort();
-  }, [view, paired, sessionsRevision]);
   const items = page?.items || page?.hits || [];
   const semanticSelection = Boolean(search.trim() && searchMode === "semantic" && semantic);
   function selectFilter(key: keyof Filters, value: string | number | undefined) {
@@ -1430,102 +1406,15 @@ function Workbench({
                 <HealthTools disabled={job.state === "running"} onPreview={id => { openView("library"); select(id); }} />
               </>
             ) : (
-              <>
-                <header className="page-heading">
-                  <div>
-                    <h1>{t("浏览批次", "Saving sessions")}</h1>
-                    <p>
-                      {t(
-                        "沿着收藏时的上下文，重新发现相关页面。",
-                        "Rediscover pages through the context in which you saved them.",
-                      )}
-                    </p>
-                  </div>
-                  <Clock3 />
-                </header>
-                <ActivityTimeline revision={sessionsRevision} onSelect={periodQuery => {
+              <SavingSessions language={language} revision={sessionsRevision} disabled={job.state === "running" || job.state === "pausing"}
+                onBack={() => openView("library")} onRebuilt={refresh}
+                onSession={id => {
+                  setFilters({ session: id }); setSummaryStatus("all"); setSearchMode("keyword");
+                  changeQuery("", true); openView("library");
+                }} onPeriod={periodQuery => {
                   setFilters({}); setSummaryStatus("all"); setSearchMode("keyword");
                   changeQuery(periodQuery, true); openView("library");
                 }}/>
-                {sessionsError && (
-                  <div role="alert">
-                    <h3>{t("暂时无法读取浏览批次", "Saving sessions could not be loaded")}</h3>
-                    <p className="error">{sessionsError}</p>
-                    <CapsuleButton className="secondary" onClick={() => setSessionsRevision((v) => v + 1)}>
-                      {t("重试浏览批次", "Retry saving sessions")}
-                    </CapsuleButton>
-                  </div>
-                )}
-                {sessionsLoading ? (
-                  <p role="status">{t("正在读取浏览批次…", "Loading saving sessions…")}</p>
-                ) : sessions.length ? (
-                  sessions.map((session) => (
-                    <CapsuleButton
-                      className="session-row"
-                      key={session.session_id}
-                      onClick={() => {
-                        setFilters({ session: session.session_id });
-                        changeQuery("");
-                        openView("library");
-                      }}
-                    >
-                      <Clock3 />
-                      <span>
-                        <strong>
-                          {session.label ||
-                            new Date(session.started_at * 1000).toLocaleDateString(
-                              language === "zh" ? "zh-CN" : "en",
-                            )}
-                        </strong>
-                        <small>
-                          {session.size} {t("条书签", "bookmarks")}
-                        </small>
-                      </span>
-                      <ArrowRight />
-                    </CapsuleButton>
-                  ))
-                ) : (
-                  !sessionsError && (
-                    <div className="empty">
-                      <Clock3 size={32} />
-                      <h2>{t("还没有浏览批次", "No saving sessions yet")}</h2>
-                      <p>
-                        {t(
-                          "索引完成后，保存时间相近的书签会在这里汇合。",
-                          "After indexing, bookmarks saved together appear here.",
-                        )}
-                      </p>
-                    </div>
-                  )
-                )}
-                {sessionsMore && (
-                  <CapsuleButton
-                    className="secondary"
-                    disabled={sessionsLoading}
-                    onClick={async () => {
-                      if (sessionsLoading) return;
-                      setSessionsLoading(true);
-                      try {
-                        const more = await api<Session[]>(
-                          `/sessions?limit=40&offset=${sessions.length}`,
-                        );
-                        setSessions((s) => {
-                          const seen = new Set(s.map((row) => row.session_id));
-                          return [...s, ...more.filter((row) => !seen.has(row.session_id))];
-                        });
-                        setSessionsMore(more.length === 40);
-                      } catch (e) {
-                        setSessionsError(String(e));
-                      } finally {
-                        setSessionsLoading(false);
-                      }
-                    }}
-                  >
-                    {sessionsLoading ? <LoaderCircle className="spin" /> : <ArrowDown />}
-                    {t("加载更多", "Load more")}
-                  </CapsuleButton>
-                )}
-              </>
             )}
           </div>
         )}

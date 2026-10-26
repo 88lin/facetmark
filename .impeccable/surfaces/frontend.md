@@ -8,6 +8,10 @@ related_targets:
 - frontend/src/SettingsWorkspace.tsx
 - frontend/src/ModelPicker.tsx
 - frontend/src/ReasoningSettings.tsx
+- frontend/src/SavingSessions.tsx
+- frontend/src/saving-sessions.css
+- frontend/src/ActivityTimeline.tsx
+- frontend/src/activity-timeline.css
 - frontend/src/reasoning.ts
 - frontend/src/reasoning-settings.css
 - frontend/src/SummaryPreferences.tsx
@@ -53,6 +57,14 @@ related_targets:
 # Facetmark frontend — Operate
 
 ## Direction status
+
+Latest 2026-10-26 feedback: the product is still unusable. The current repair covers
+saved connection reuse, direct thinking effort selection, a visible select-all
+capsule, content-sized saving sessions, ordinary mouse scrolling, metadata-only
+session organization and local reading text size. Code, remaining reference gaps
+and verification limits are in docs/githubstarsmanager-gap-audit-2026-10-26.md.
+Local source changes have no current browser/installed validation or aesthetic
+approval. The older authorization and successful runs below are historical.
 
 Latest 2026-10-25 request: remove site classification and repeated summary-selection/
 consent UI, combine summary and body into Read, generate target-language titles and

@@ -49,7 +49,7 @@ test("detected model levels, default and selected effort survive testing and sav
   await page.goto("/app#settings");
   const panel = page.locator(".model-chat"), thinking = panel.getByRole("combobox", { name: "思考模式", exact: true });
   await expect(thinking.locator('option[value=""]')).toContainText("medium");
-  await expect(thinking.locator('option[value="max"]')).toHaveCount(0);
+  await expect(thinking.locator('option[value="max"]')).toHaveCount(1);
   await thinking.focus(); await thinking.press("ArrowDown"); await thinking.press("Enter");
   await expect(thinking).toHaveValue("low");
   await panel.getByRole("button", { name: "测试并保存", exact: true }).click();
@@ -122,6 +122,10 @@ test("API thinking controls preserve advanced parameters and do not offer unsupp
 test("compatible services receive their thinking parameter shape and keep other template fields", async ({ page }) => {
   await settings(page, { chat_backend: "endpoint", chat_model: "custom-summary",
     chat_extra_body: '{"max_tokens":2048,"chat_template_kwargs":{"other_option":"keep"}}' });
+  await page.route("**/admin/settings/models", route => route.fulfill({ json: {
+    default_model: "custom-summary", warning: "", models: [{ id: "custom-summary", label: "Custom summary",
+      source: "api", reasoning_levels: [{ id: "high" }, { id: "max" }] }],
+  } }));
   let tested: Record<string, unknown> = {};
   await page.route("**/admin/settings/test", route => {
     tested = route.request().postDataJSON();
@@ -129,11 +133,15 @@ test("compatible services receive their thinking parameter shape and keep other 
   });
   await page.goto("/app#settings");
   const panel = page.locator(".model-chat");
+  await panel.getByRole("button", { name: "刷新模型", exact: true }).click();
+  await expect(panel.locator(".model-catalog-note")).toContainText("1 个模型");
   await panel.locator(".reasoning-compatibility > summary").click();
   const format = panel.getByRole("combobox", { name: "思考参数格式", exact: true });
   const thinking = panel.getByRole("combobox", { name: "思考模式", exact: true });
   for (const method of ["thinking", "enable_thinking", "chat_template_kwargs"]) {
     await format.selectOption(method); await thinking.selectOption("none");
+    await expect(thinking.locator('option[value="high"], option[value="max"]')).toHaveCount(0);
+    await expect(panel.locator(".reasoning-shortcuts")).toHaveCount(0);
     tested = {};
     await panel.getByRole("button", { name: "测试连接", exact: true }).click();
     await expect.poll(() => tested.chat_extra_body).toBeTruthy();

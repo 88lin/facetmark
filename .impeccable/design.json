@@ -1238,7 +1238,7 @@
       "status": "source-updated-awaiting-cloud-verification-and-user-review",
       "visualAcceptance": "awaiting-user-review",
       "sourceState": "Folder/tag directory without site classification; inline select-all and direct summary generation; AI-generated titles, editable writing instructions and target language; merged overview/source reader; endpoint and detected-Agent thinking controls; tray surround padding and native shadow removed.",
-      "sourceBasis": "Current 2026-10-25 source changes are local and uncommitted, based on main 6ca87aa. Current builds, browser captures and installed verification have not run. Application/capture 8af69ae and the historical evidence below verify only the preceding layout/native revision.",
+      "sourceBasis": "Current 2026-10-26 usability source changes are based on main 9eeefd0. Browser, full build and installed verification of this revision are pending.",
       "applicationRevision": null,
       "captureRevision": null,
       "lastVerifiedApplicationRevision": "8af69ae4a4820d65d6a0589870428ed58a842fe0",
@@ -1246,25 +1246,24 @@
       "handbookVersion": "0.18",
       "brief": ".impeccable/workbench-direction.md",
       "surface": ".impeccable/surfaces/frontend.md",
-      "roundRecord": "docs/summary-reading-reasoning-2026-10-25.md",
-      "verification": "Current local checks and authored regressions are recorded in the round record. No current full type-check pass, build, browser or installed verification is claimed. At 8af69ae only: collection 21/21, 10 CI jobs, browser 97 passed/2 skipped, 79 source and 26 selected media/record hashes, installed native actions and lifecycle. Those results do not cover the new source.",
+      "roundRecord": "docs/githubstarsmanager-gap-audit-2026-10-26.md",
+      "verification": "Eight small isolated checks passed: six connection/effort checks and two saving-session workflows. Ruff and source syntax passed. Full TypeScript checking is blocked by missing local HeroUI dependencies. Browser and installed checks remain on GitHub Actions.",
       "currentFollowup": {
-        "date": "2026-10-25",
-        "branch": "fix/tray-model-reasoning-2026-10-25",
-        "baseRevision": "6ca87aa2702e84a39d6d5595e6234050ef51cf14",
+        "date": "2026-10-26",
+        "branch": "fix/usability-connections-sessions-2026-10-26",
+        "baseRevision": "9eeefd0",
         "state": "local-source-changes-awaiting-cloud-verification",
         "referenceRepository": "AmintaCCCP/GithubStarsManager",
-        "referenceRevision": "2f41b01c79d9e4ed11752592fa4c6cbb837e342a",
-        "preservation": "Original bookmark title/text and prior successful derived content remain saved; resumed tasks retain their target snapshot, language and writing instructions.",
-        "authorization": "The user confirmed commit, push, new PR and cloud verification for this batch in the current session. Delivery is in progress. No automatic merge or release."
+        "referenceRevision": "aa1e3c7473511132758c94a0b2365db6288c1eba",
+        "preservation": "Original bookmarks, stored text and model credentials are retained. Connection proofs and saving-session transactions are repaired.",
+        "authorization": "The user permits commits, pushes, PR creation or updates and required cloud verification for assigned work without repeated confirmation. Automatic merges and formal releases still require an explicit user instruction."
       },
       "latestFeedback": {
-        "date": "2026-10-25",
-        "scope": "Simplify collection selection and generation, remove site classification, merge body/summary, generate target-language titles and summaries with editable defaults, expose thinking settings for detected agents, remove the tray's transparent surround while keeping the interior.",
-        "assessment": "Many usability issues remain. Preserve the requested tray interior and simplify the named workflows. Overall appearance and current source changes still await user review.",
-        "quote": "这俩合并一起不是更方便吗？",
-        "recordScope": "All product directions, implementation, screenshots, bugs, runs, commits and assessments remain exclusively in this repository. The long-term master contains only general reference methods and research.",
-        "previousAssessment": "The 2026-10-24 overall assessment remains usable but not good-looking. Earlier progress acknowledgement does not freeze the current design."
+        "date": "2026-10-26",
+        "scope": "Thinking level choice, repeated model testing after reopening, select-all discoverability, saving sessions, mouse scrolling and broad reference-source comparison.",
+        "assessment": "The user reports the current product is unusable. Current fixes are not yet visually reviewed or accepted.",
+        "quote": "现在这个项目完全就用不了",
+        "recordScope": "Project feedback and evidence remain in this repository only."
       },
       "localInstalledIcon": {
         "scope": "Read-only EXE icon extraction; no local app launch/install/cache change",

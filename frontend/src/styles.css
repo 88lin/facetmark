@@ -520,7 +520,17 @@ kbd {
   gap: 5px;
   position: relative;
   padding-right: 25px;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  font-family: inherit;
+  line-height: 1.7;
+  cursor: pointer;
+  overflow-wrap: anywhere;
 }
+.related-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .related-item > svg {
   position: absolute;
   right: 0;
@@ -943,38 +953,6 @@ pre {
 }
 .index-consent .primary {
   margin-top: 14px;
-}
-.session-row {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  text-align: left;
-  border: 1px solid var(--rule);
-  border-radius: 10px;
-  background: var(--canvas);
-  width: 100%;
-  min-width: 0;
-  padding: 22px;
-  margin: 10px 0;
-}
-.session-row:hover {
-  background: var(--inset);
-}
-.session-row > span {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1;
-}
-.session-row svg {
-  color: var(--muted);
-}
-.session-row strong {
-  font-size: 15px;
-  font-weight: 550;
-}
-.session-row small {
-  font-size: var(--type-caption);
 }
 .connection-error {
   position: fixed;

@@ -3,10 +3,19 @@
 .reasoning-note { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
 .reasoning-manual { display: grid; justify-items: start; gap: 8px; min-width: 0; }
 .reasoning-manual .field { width: 100%; }
+.reasoning-shortcuts { display: flex; flex-wrap: wrap; gap: 6px; }
+.reasoning-shortcuts .reasoning-shortcut { --button-bg: var(--canvas); --button-fg: var(--secondary-ink); min-height: 36px; padding: 6px 16px; border: 1px solid var(--rule); font-size: 13px; font-weight: 600; }
+.reasoning-shortcuts .reasoning-shortcut[aria-pressed="true"] { --button-bg: var(--soft); --button-fg: var(--accent); border-color: var(--accent); box-shadow: inset 0 1px 0 var(--glass-edge); }
 .reasoning-compatibility { min-width: 0; }
 .reasoning-compatibility > summary { color: var(--muted); font-size: 12px; cursor: pointer; }
 .reasoning-compatibility[open] > summary { margin-bottom: 10px; }
 .reasoning-compatibility .reasoning-note { margin-top: 8px; }
 .model-selection { display: grid; grid-column: 1 / -1; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 14px 20px; align-items: start; min-width: 0; }
 .model-selection > .model-picker, .model-selection > .reasoning-settings { grid-column: auto; }
+.connection-saved { display: flex; align-items: flex-start; gap: 10px; padding: 14px 16px; margin-top: 16px; border: 1px solid var(--selected-edge); border-radius: 18px; background: var(--soft); color: var(--accent); }
+.connection-saved > svg { flex: none; margin-top: 3px; }
+.connection-saved > div { min-width: 0; }
+.connection-saved strong { font-size: 14px; font-weight: 650; }
+.connection-saved-model { display: block; margin-top: 4px; font-size: 13px; overflow-wrap: anywhere; }
+.connection-saved p { margin: 5px 0 0; font-size: 12px; line-height: 1.7; color: var(--secondary-ink); }
 @media (max-width: 900px) { .model-selection { grid-template-columns: minmax(0, 1fr); } }

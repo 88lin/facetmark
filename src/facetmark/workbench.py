@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import hashlib
 import hmac
@@ -364,14 +365,46 @@ def register(app: FastAPI, auth: list) -> None:
             "vector_compatible": compatible,
             "has_vectors": bool(stats["vectors"] and sum(stats["vectors"]) > 0),
             "channels": {
-                c: {
-                    "configured": candidate.channel_ready(c),
-                    "tested": state.probe_results.get(c, {}).get("fingerprint")
-                    == admin.probe_fingerprint(candidate, c),
-                }
+                c: admin.connection_status(candidate, c, state.probe_results)
                 for c in ("chat", "embed")
             },
         }
+
+    @app.post("/admin/sessions/rebuild", dependencies=deps)
+    async def rebuild_saving_sessions(request: Request):
+        from .db import open_db
+        from .edges import build_session_edges
+        from .sessions import FALLBACK_EPS, build_sessions
+
+        state = request.app.state.fm
+        async with state.lock:
+            if state.jobs.running or state.crawls.running or state.model_users or state.health_running:
+                raise HTTPException(409, "Wait for active processing before organizing saving sessions")
+            if any(not task.done() for task in state.chat_runs.values()):
+                raise HTTPException(409, "Wait for active replies before organizing saving sessions")
+
+            def organize():
+                with contextlib.closing(open_db(state.settings.db_path)) as conn:
+                    with conn:
+                        conn.execute("BEGIN IMMEDIATE")
+                        result = build_sessions(conn, eps=FALLBACK_EPS, commit=False)
+                        conn.execute("DELETE FROM edge WHERE kind='session'")
+                        build_session_edges(conn)
+                    return result
+
+            # Use a separate connection off the event loop. This is metadata
+            # processing; it neither fetches pages nor calls a model.
+            state.model_users += 1
+            task = asyncio.create_task(asyncio.to_thread(organize))
+            try:
+                result = await asyncio.shield(task)
+            except asyncio.CancelledError:
+                await task  # Keep the write guard until SQLite has finished.
+                raise
+            finally:
+                state.model_users -= 1
+        return {"sessions": result.n_sessions, "assigned": result.n_assigned,
+                "import_artifacts": result.n_import_artifact, "gap_minutes": result.eps // 60}
 
     @app.post("/admin/settings/apply", dependencies=deps)
     async def apply_settings(body: ApplyRequest, request: Request):
@@ -393,9 +426,7 @@ def register(app: FastAPI, auth: list) -> None:
                     409,
                     "Confirm vector rebuild. A backup is made; bookmarks and page text are kept.",
                 )
-            if not candidate.use_mock_provider and state.probe_results.get("embed", {}).get(
-                "fingerprint"
-            ) != admin.probe_fingerprint(candidate, "embed"):
+            if not candidate.use_mock_provider and not admin.matching_probe(candidate, "embed", state.probe_results):
                 raise HTTPException(409, "Test the saved embedding settings before applying")
             backup = None
             if rebuild:

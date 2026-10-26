@@ -233,3 +233,25 @@ test("Chinese and English activity stays compact at 320px and keyboard focus scr
   await expect(page.locator(".result-count")).toHaveText("3");
   expect(errors).toHaveLength(0);
 });
+
+test("date strips work with an ordinary mouse wheel and visible arrow buttons", async ({ page }) => {
+  await fixture(page);
+  await page.goto("/app"); await enterSessions(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const strip = page.locator(".activity-month-strip"), rail = strip.locator("..");
+  await expect(rail.getByRole("button", { name: "向右浏览日期", exact: true })).toBeEnabled();
+  await rail.getByRole("button", { name: "向右浏览日期", exact: true }).click();
+  await expect.poll(() => strip.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
+  await rail.getByRole("button", { name: "向左浏览日期", exact: true }).click();
+  await expect.poll(() => strip.evaluate(element => element.scrollLeft)).toBe(0);
+  await strip.hover(); await page.mouse.wheel(0, 160);
+  await expect.poll(() => strip.evaluate(element => element.scrollLeft)).toBeGreaterThan(30);
+  await strip.focus(); await page.keyboard.press("End");
+  await expect(rail.getByRole("button", { name: "向右浏览日期", exact: true })).toBeDisabled();
+  const zoomWheel = await strip.evaluate(element => {
+    const event = new WheelEvent("wheel", { deltaY: 100, ctrlKey: true, cancelable: true, bubbles: true });
+    element.dispatchEvent(event); return event.defaultPrevented;
+  });
+  expect(zoomWheel).toBe(false);
+});

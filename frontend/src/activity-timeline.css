@@ -1,4 +1,4 @@
-.activity-timeline { min-width: 0; margin: 0 0 26px; padding: 22px 24px; background: var(--canvas); border: 1px solid var(--rule); border-radius: 24px; }
+.activity-timeline { min-width: 0; margin: 0 0 28px; padding: 8px 2px 26px; border-bottom: 1px solid var(--rule); }
 .activity-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
 .activity-heading > div { min-width: 0; }
 .activity-heading h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; color: var(--ink); font-size: var(--type-body); line-height: 1.5; }
@@ -8,18 +8,23 @@
 .activity-period-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 5px 14px; margin: 20px 0 10px; }
 .activity-period-heading h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin: 0; color: var(--ink); font-size: var(--type-ui); line-height: 1.6; }
 .activity-period-heading h3 span, .activity-period-heading p { margin: 0; color: var(--muted); font-size: var(--type-meta); font-weight: 400; line-height: 1.7; }
-.activity-day-strip, .activity-month-strip { min-width: 0; max-width: 100%; overflow-x: auto; padding: 4px 3px 8px; scroll-padding-inline: 3px; scrollbar-width: thin; }
+.activity-scroller { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; gap: 8px; min-width: 0; }
+.activity-scroller[data-overflow=true] { grid-template-columns: 32px minmax(0, 1fr) 32px; }
+.activity-scroller .activity-scroll-button { --button-bg: var(--canvas); --button-fg: var(--accent); display: grid; place-items: center; width: 32px; height: 44px; padding: 0; border: 1px solid var(--rule); box-shadow: inset 0 1px 0 var(--glass-edge); }
+.activity-day-strip, .activity-month-strip { min-width: 0; max-width: 100%; overflow-x: auto; padding: 4px 3px 10px; scroll-padding-inline: 3px; scrollbar-width: thin; scrollbar-color: var(--selected-edge) var(--inset); }
+.activity-day-strip:focus-visible, .activity-month-strip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 14px; }
 .activity-day-strip { display: grid; grid-template-columns: repeat(7, minmax(84px, 1fr)); gap: 8px; }
 .activity-month-strip { display: flex; gap: 10px; }
-.activity-timeline .activity-bucket { display: grid; position: relative; min-width: 0; min-height: 74px; gap: 4px; padding: 11px 13px; color: var(--ink); background: var(--inset); border: 1px solid var(--rule); border-radius: var(--radius-pill); font: inherit; text-align: center; }
+.activity-timeline .activity-bucket { display: grid; position: relative; align-content: center; min-width: 0; min-height: 92px; gap: 7px; padding: 13px 14px; color: var(--ink); background: var(--canvas); border: 1px solid var(--rule); border-radius: 16px; font: inherit; text-align: center; cursor: pointer; box-shadow: inset 0 1px 0 var(--glass-edge),0 4px 9px -8px #213e6840; transition: background-color 160ms ease,border-color 160ms ease,color 160ms ease; }
 .activity-timeline .activity-bucket:hover:not(:disabled), .activity-timeline .activity-bucket[data-pressed="true"]:not(:disabled) { color: var(--accent); background: var(--soft); border-color: var(--accent); }
 .activity-timeline .activity-bucket:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.activity-timeline .activity-bucket:active:not(:disabled) { color: var(--accent); background: var(--selected); }
 .activity-timeline .activity-bucket:disabled { color: var(--muted); opacity: .65; cursor: default; }
 .activity-bucket-date { min-width: 0; font-size: var(--type-meta); line-height: 1.5; }
-.activity-bucket-count { min-width: 0; font-size: var(--type-ui); font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.4; overflow-wrap: anywhere; }
+.activity-bucket-count { min-width: 0; font-size: 19px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.4; overflow-wrap: anywhere; }
 .activity-day-meter { width: 100%; height: 3px; overflow: hidden; border-radius: var(--radius-pill); background: var(--rule); }
 .activity-day-meter > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
-.activity-timeline .activity-bucket-month { flex: 0 0 214px; grid-template-columns: minmax(0, 1fr) auto; align-content: center; gap: 5px 12px; padding-inline: 18px; text-align: left; }
+.activity-timeline .activity-bucket-month { flex: 0 0 224px; grid-template-columns: minmax(0, 1fr) auto; align-content: center; gap: 5px 12px; padding-inline: 18px; text-align: left; }
 .activity-bucket-month .activity-bucket-count { text-align: right; }
 .activity-bucket-range { grid-column: 1 / -1; color: var(--secondary-ink); font-size: var(--type-meta); font-variant-numeric: tabular-nums; line-height: 1.7; overflow-wrap: anywhere; }
 .activity-timeline .activity-older { display: inline-flex; align-items: center; gap: 12px; max-width: 100%; min-height: 44px; margin-top: 10px; text-align: left; white-space: normal; }
@@ -30,9 +35,10 @@
 .activity-error { color: var(--danger); }
 .activity-no-months { margin-top: 0; }
 @media (max-width: 719px) {
-  .activity-timeline { padding: 16px; margin-bottom: 20px; border-radius: 20px; }
+  .activity-timeline { padding: 0 0 20px; margin-bottom: 22px; }
   .activity-heading { flex-wrap: wrap; gap: 8px; }
   .activity-timeline .activity-refresh { margin-left: auto; }
   .activity-period-heading { margin-top: 16px; }
   .activity-day-strip { grid-template-columns: repeat(7, 84px); }
 }
+@media (prefers-reduced-motion: reduce) { .activity-timeline .activity-bucket { transition: none; } }

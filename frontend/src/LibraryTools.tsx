@@ -2,7 +2,7 @@ import { CapsuleButton } from "./ui/controls";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence } from "motion/react";
-import { Check, ChevronDown, Download, Folder, ListChecks, LoaderCircle, MessageCircle, Plus, Sparkles, Tag, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Download, Folder, ListChecks, LoaderCircle, MessageCircle, Minus, Plus, Sparkles, Tag, Trash2, X } from "lucide-react";
 import { api, downloadExport, post, type Bookmark, type CollectionScope, type Setup } from "./api";
 import { useText } from "./locale";
 import { FolderPicker } from "./FolderPicker";
@@ -66,13 +66,14 @@ export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch
         </div>
       </details>
     </>}
-    <label className="library-summary-selection" title={crossPage
+    <label className="library-summary-selection" data-selected={selectedCount > 0} data-disabled={disabled || pending || !total} title={crossPage
       ? t("全选当前筛选结果，跨页生效", "Select all matching results across pages")
       : t("选择本页语义结果，保留已有选择", "Select this page of semantic results and keep existing selections")}>
       <input ref={selection} type="checkbox" checked={allSelected} disabled={disabled || pending || !total}
         aria-label={t("全选当前结果", "Select all results")} onChange={event => event.target.checked ? onAll() : onClear()}/>
+      <span className="library-selection-mark" aria-hidden="true">{allSelected ? <Check size={14}/> : selectedCount > 0 ? <Minus size={14}/> : null}</span>
       <span>{t("全选", "Select all")}</span>
-      <span className="library-selection-count" role="status">{selectedCount ? t("已选 " + selectedCount.toLocaleString(), selectedCount.toLocaleString() + " selected") : total.toLocaleString()}</span>
+      <span className="library-selection-count" role="status">{selectedCount ? t("已选 " + selectedCount.toLocaleString(), selectedCount.toLocaleString() + " selected") : t("共 " + total.toLocaleString(), total.toLocaleString() + " total")}</span>
     </label>
     <CapsuleButton className="primary library-summarize" aria-label={t("生成摘要", "Summarize")} disabled={disabled || pending || !pageIds.length} onClick={onSummarize}><Sparkles size={15}/><span className="action-full">{t("生成摘要", "Summarize")}</span><span className="action-short" aria-hidden="true">{t("生成", "Summarize")}</span></CapsuleButton>
   </div>;
@@ -231,7 +232,7 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, facets
               <option value="selected" disabled={!selectedIds.length}>{t(`已选择的 ${selectedIds.length} 条`, `${selectedIds.length} selected bookmarks`)}</option>
             </select></label>
             <label className="field">{t("文件格式", "Format")}<select value={format} onChange={e => setFormat(e.target.value)}><option value="json">JSON · {t("书签、正文与摘要", "Bookmarks, saved text and summaries")}</option><option value="html">HTML · {t("导入浏览器", "Import into a browser")}</option></select></label>
-            <p className="hint">{t("JSON 包含已保存的正文与摘要，请妥善保管。重新导入只恢复书签信息，正文与 AI 索引需重新处理。HTML 只导出书签信息；含逗号的标签请用 JSON 保留。", "JSON includes saved text and summaries; store it safely. Reimport restores bookmark metadata; page text and AI indexes must be rebuilt. HTML contains bookmark metadata only. Use JSON to preserve tags containing commas.")}</p>
+            <p className="hint">{t("JSON 可恢复收藏、已保存的正文、摘要和范围内的对话；已有本地内容优先。向量索引需重新建立。HTML 只导出书签信息；含逗号的标签请用 JSON 保留。", "JSON restores bookmarks, saved text, summaries and in-scope conversations, keeping existing local content. Vector indexes must be rebuilt. HTML contains bookmark metadata only. Use JSON to preserve tags containing commas.")}</p>
           </>}
           {processing && <>
             {!ids && action.kind === "process" && <label className="field">{mode === "summarize" ? t("摘要处理范围", "Summary scope") : t("正文抓取范围", "Page fetch scope")}<select aria-label={mode === "summarize" ? t("摘要处理范围", "Summary scope") : t("正文抓取范围", "Page fetch scope")} value={processTarget}

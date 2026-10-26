@@ -14,11 +14,12 @@ export type Choice = { id: string; label: string; source: string;
 export type Catalog = { agent?: string; models: Choice[]; default_model: string; warning: string;
   configured_reasoning_effort?: string; default_reasoning_effort?: string };
 
-export function ModelPicker({ name, value, onChange, payload, identity, agent, disabled, autoLoad = false, onCatalogChange }: {
+export function ModelPicker({ name, value, onChange, payload, identity, agent, disabled, autoLoad = false, onCatalogChange, connectionTested = false }: {
   name: string; value: string; onChange: (value: string) => void;
   payload: Record<string, unknown>; identity: string; agent?: string; disabled: boolean;
   autoLoad?: boolean;
   onCatalogChange?: (catalog: Catalog | null) => void;
+  connectionTested?: boolean;
 }) {
   const t = useText();
   const reduced = useReducedMotion();
@@ -37,6 +38,7 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
   const list = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const abort = useRef<AbortController | null>(null);
+  const autoLoadedIdentity = useRef<string | null>(null);
   const latestPayload = useRef(payload);
   latestPayload.current = payload;
   const notifyCatalog = useRef(onCatalogChange);
@@ -61,6 +63,7 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
   }
   useEffect(() => {
     abort.current?.abort();
+    autoLoadedIdentity.current = null;
     setCatalog(null); setError(""); setOpen(false); setSearch(""); setBusy(false);
     notifyCatalog.current?.(null);
     return () => abort.current?.abort();
@@ -68,7 +71,10 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
     // Editing a model does not refetch its own catalog.
   }, [identity]);
   useEffect(() => {
-    if (autoLoad && !disabled) void load();
+    if (autoLoad && !disabled && autoLoadedIdentity.current !== identity) {
+      autoLoadedIdentity.current = identity;
+      void load();
+    }
   }, [identity, autoLoad, disabled]);
   useEffect(() => {
     if (!open) return;
@@ -163,7 +169,9 @@ export function ModelPicker({ name, value, onChange, payload, identity, agent, d
       ? t("正在使用本机缓存的模型目录；可刷新或手动输入。", "Using the local model cache. Refresh or enter a name manually.")
       : catalog.warning === "configured_catalog" ? t("已列出配置中的模型；也可手动输入其他模型。", "Showing configured models. Other models can be entered manually.")
       : t("暂未读到模型目录，可沿用默认或手动输入后测试。", "No model catalog returned. Use the default or enter a name and test it.")}</p>}
-    {catalog && !catalog.warning && <p className="hint model-catalog-note">{agent === "claude"
+    {catalog && !catalog.warning && <p className="hint model-catalog-note">{connectionTested
+      ? t(`已发现 ${catalog.models.length} 个模型；当前选择已保存，无需重复选择。`, `${catalog.models.length} models found. Your current selection is saved.`)
+      : agent === "claude"
       ? t("模型别名与本机配置；实际访问权限以连接测试为准。", "Model aliases and local settings. Test to verify access.")
       : t(`已发现 ${catalog.models.length} 个模型，选择后测试连接。`, `${catalog.models.length} models found. Test your selection to verify access.`)}</p>}
   </div>;

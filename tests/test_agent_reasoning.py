@@ -71,7 +71,7 @@ model_reasoning_effort = "medium"
     inherited = local_agents._codex_configuration(env)
     assert inherited["model"] == "managed-model" and inherited["model_reasoning_effort"] == "medium"
     assert "model_reasoning_effort" not in local_agents._codex_configuration(env, model="selected-model")
-    assert "model" not in local_agents._codex_configuration(env, reasoning_effort="high")
+    assert local_agents._codex_configuration(env, reasoning_effort="high")["model"] == "managed-model"
 
 
 def test_inherited_effort_change_invalidates_same_installation_test(tmp_path, monkeypatch):

@@ -23,7 +23,26 @@ Application/capture 81f310a passed all four cloud workflows, including installed
 tray sizing and the actual Agent queue limit. Current captures remain unapproved
 as an aesthetic direction; precise technical and review scope is in
 [desktop completion](../docs/desktop-completion-2026-10-25.md).
-This brief does not authorize new commits, pushes, PRs, merges or releases.
+The user's current project agreement permits commits, pushes, new or updated PRs
+and required Actions checks for assigned work without asking again. Merges and
+formal releases still follow explicit user instructions.
+
+## Current usability repair — 2026-10-26
+
+The latest user assessment is “现在这个项目完全就用不了”. Repair the actual model
+choice/test/save/reopen journey, make high/xhigh/max directly selectable, and keep
+the saved connection usable when unrelated client defaults or unsaved drafts change.
+Select-all needs a visible capsule hit area, clear count, mixed state and keyboard
+operation in the existing toolbar. Saving sessions own their content-row layout,
+long-text behavior, pagination and failure recovery. Date strips support ordinary
+mouse wheels, visible arrows, keyboard and trackpad input. Organize dated bookmarks
+without requiring AI indexing. Reading text size is local to the reader.
+
+The current implementation and the full reference comparison are in
+[this round's record](../docs/githubstarsmanager-gap-audit-2026-10-26.md).
+Browser and installed evidence for this source are pending. Earlier cloud results
+apply only to their revisions. Continue commit/push/PR and cloud verification under
+the user's current project agreement without asking again. Overall aesthetics remain unapproved.
 
 ## Overall assessment and previous follow-up — 2026-10-24
 
@@ -129,8 +148,9 @@ choose application state colors or break focus, Enter/Space or form behavior.
 
 Local work is limited to source edits, lightweight static checks and small evidence
 inspection. Builds, browsers, package installation, packaging and installed-app
-checks run in GitHub Actions. Do not access real browser profiles. This brief does
-not add commit, push, merge or release authorization.
+checks run in GitHub Actions. Do not access real browser profiles. Commit, push,
+PR and cloud verification proceed under the current project agreement without
+repeated confirmation. Merges and releases follow explicit user instructions.
 
 Inspect the current full screen, short windows, narrow layouts, both themes,
 Chinese/English, relevant actions, failure recovery and intermediate motion in the
