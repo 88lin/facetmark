@@ -131,9 +131,13 @@ test("sessions can be organized from the empty page without configuring AI", asy
   await page.route("**/admin/sessions/rebuild", route => { organized = true; return route.fulfill({ json: { sessions: 1, assigned: 2 } }); });
   await page.goto("/app#sessions");
   await expect(page.locator(".sessions-empty")).toContainText("还没有整理好的批次");
+  await page.reload();
+  await expect(page.locator(".sessions-empty")).toContainText("还没有整理好的批次");
   await page.getByRole("button", { name: "整理浏览批次", exact: true }).click();
   await expect(page.locator(".session-row")).toHaveCount(1);
   await expect(page.locator(".sessions-section .notice")).toContainText("已整理 1 个批次");
+  await page.getByRole("button", { name: "返回收藏", exact: true }).click();
+  await expect(page).toHaveURL(/\/app$/);
 });
 
 test("select all has a visible hit area, mixed state and native keyboard operation", async ({ page }) => {

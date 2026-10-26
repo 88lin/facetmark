@@ -259,11 +259,12 @@ function Workbench({
   const openView = (next: View) => {
     setView(next);
     setNavOpen(false);
-    if (next === "chat" && location.hash !== "#chat")
-      history.replaceState(null, "", location.pathname + location.search + "#chat");
-    else if (next === "settings" && location.hash.startsWith("#chat"))
+    if ((next === "chat" || next === "sessions") && location.hash !== `#${next}`)
+      history.replaceState(null, "", location.pathname + location.search + `#${next}`);
+    else if (next === "settings" && (location.hash === "#chat" || location.hash === "#sessions"))
       history.replaceState(null, "", location.pathname + location.search + "#settings");
-    else if (next !== "settings" && next !== "chat" && (location.hash.startsWith("#settings") || location.hash.startsWith("#chat")))
+    else if (next !== "settings" && next !== "chat" && next !== "sessions"
+      && (location.hash.startsWith("#settings") || location.hash === "#chat" || location.hash === "#sessions"))
       history.replaceState(null, "", location.pathname + location.search);
   };
   const chatWithBookmark = (record: Bookmark) => {
@@ -391,6 +392,8 @@ function Workbench({
         setView("settings"); setNavOpen(false);
       } else if (location.hash === "#chat") {
         setView("chat"); setNavOpen(false);
+      } else if (location.hash === "#sessions") {
+        setView("sessions"); setNavOpen(false);
       }
     };
     route();

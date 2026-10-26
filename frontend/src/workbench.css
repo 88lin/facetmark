@@ -81,8 +81,8 @@
 .page-scroll { flex: 1; width: 100%; min-width: 0; min-height: 0; margin: 0; padding: 12px 6px 24px; overflow: auto; scrollbar-gutter: stable; scroll-padding: 12px; }
 /* Reader geometry only; reader-shell owns its text, layers and scroll behavior. */
 .preview-pane { position: relative; grid-column: 2; grid-row: 1; display: flex; flex-direction: column; min-height: 0; min-width: 0; margin: 0 0 12px; border: 1px solid var(--glass-edge); border-radius: 24px; overflow: hidden; background: var(--canvas); box-shadow: var(--sheet-shadow); }
-.main-workspace.focus-mode { display: block; }
-.focus-mode .workspace-toolbar, .focus-mode .results-column { display: none; }
+/* Keep the hidden index's scroll geometry while the reader covers it. */
+.focus-mode .workspace-toolbar, .focus-mode .results-column { visibility: hidden; }
 .focus-mode .preview-pane { position: absolute; inset: 16px; width: auto; height: auto; margin: 0; }
 .is-reading-focused .collection-sidebar { opacity: .45; pointer-events: none; }
 .is-reading-focused .header-navigation, .is-reading-focused .header-utilities { visibility: hidden; }

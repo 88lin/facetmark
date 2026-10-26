@@ -7,6 +7,7 @@
 推送、创建或更新 PR，无需再询问；其他问题写入文档供下一位 AI 接续。
 
 - 分支：`fix/usability-connections-sessions-2026-10-26`，基线 `9eeefd0`，版本仍为 2.1.0。
+- 修复提交：`7098cc2`；[PR #54](https://github.com/88lin/facetmark/pull/54)。
 - 本地仅源码编辑、静态检查和小型隔离检查；构建、浏览器、安装依赖、打包与安装验证使用 Actions。
 - 使用合成数据，不操作真实浏览器资料。PR 合并、正式发行仍依用户明确指令。
 - 完整源码对照、根因和差距见 [功能审计](githubstarsmanager-gap-audit-2026-10-26.md)。
@@ -32,7 +33,32 @@
 没有为此本地安装依赖。旧 `artifacts/check-source-syntax.cjs` 的 transpile 步骤会异常，
 本轮语法证据来自 TypeScript `createSourceFile` 和 PostCSS 解析，不能与完整类型检查混淆。
 
-云端结果待补录，必须核对运行的 `headSha`。CI 覆盖类型、构建、Python、扩展与浏览器；
+首轮四条工作流针对 `7098cc2`，现已结束。CI 的四组 Python、类型/构建、扩展、镜像、
+wheel 与插件检查通过，浏览器 155 项通过、2 项失败、2 项按场景跳过；收藏取证 88 项
+通过、3 项失败。完整体验在浏览器矩阵中被取消，20 万收藏和后续打包步骤未执行；
+其中真实 OpenCode CLI 的 Linux/Windows、扩展和镜像通过。Windows 打包与安装通过。
+
+| 工作流 | 首轮运行 | 结果 |
+| --- | --- | --- |
+| CI | [40277126433](https://github.com/88lin/facetmark/actions/runs/40277126433) | 浏览器失败 |
+| 收藏界面取证 | [40277128047](https://github.com/88lin/facetmark/actions/runs/40277128047) | 3 项失败 |
+| 完整体验验证 | [40277133381](https://github.com/88lin/facetmark/actions/runs/40277133381) | 已取消 |
+| Windows 打包与安装 | [40277138199](https://github.com/88lin/facetmark/actions/runs/40277138199) | 通过，仅适用于 `7098cc2` |
+
+### 云端失败后的修正
+
+- `#sessions` 未被路由识别：补齐直达、刷新和导航时的 hash 更新，新增刷新后仍在批次页、
+  返回收藏清除 hash 的断言。沿用真实的空批次整理回归，不绕过页面入口。
+- 专注阅读使列表位置偏移 217 像素：移除专注模式的 `display: block/none` 布局切换，
+  隐藏索引仍保留布局，继续使用 `inert` 隔离键盘焦点。原有 `redesign.spec.ts` 验证
+  连续开关、Escape、正文及列表位置；不放宽 1 像素误差断言。
+- 两项摘要语言测试在清理期间出现 `Route is already handled`：该测试仅修改静态配置，
+  因此只读取一次合成 setup 状态，后续刷新直接响应，避免清理时仍在代理请求。
+  保留所有语言请求断言和等待 route 清理的机制。
+- 本地对变更的 3 个 TS/TSX 文件和 1 个 CSS 文件做语法解析，`git diff --check` 通过。
+  新修正的完整构建、浏览器及安装结论仍须由新提交的四条 Actions 补录。
+
+接续时必须核对运行的 `headSha`。CI 覆盖类型、构建、Python、扩展与浏览器；
 collection-review 产生本轮代表性截图；experience 包含真实 CLI 和 20 万收藏场景；
 desktop 包含 Windows 打包、离线安装、启动和原生菜单取证。
 
