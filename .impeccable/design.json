@@ -1252,7 +1252,7 @@
         "date": "2026-10-28",
         "branch": "fix/usability-connections-sessions-2026-10-26",
         "baseRevision": "9eeefd0",
-        "state": "application-verified-pr-open",
+        "state": "application-verified-pr-merged",
         "referenceRepository": "AmintaCCCP/GithubStarsManager",
         "referenceRevision": "22fecdfd957919636f02a20f934bce6b92364b1d",
         "preservation": "Original bookmarks, stored text and model credentials are retained. Connection proofs and saving-session transactions are repaired.",

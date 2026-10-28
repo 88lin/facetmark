@@ -33,24 +33,25 @@
 > 书库保存在本机 SQLite 文件中，**从不写回**浏览器原始书签。关键词检索不需要 AI；
 > 确认使用云端模型索引后，允许处理的标题、网址和已提取正文会发送至你配置的服务。
 
-### Windows 桌面版（v2.1.0）
+### Windows 桌面版（v2.1.1）
 
 Facetmark 提供 Tauri 2 桌面应用与共享 React 工作台：
 三栏检索和阅读、真实书签分页、导入向导、聊天与向量独立配置、后台任务、
 明暗主题、中英文和窄窗口预览抽屉。
 
-v2.1.0 包含目标语言的 AI 标题与摘要、
+v2.1.1 包含目标语言的 AI 标题与摘要、
 可编辑内置提示词、带引用的持久对话（全库或所选）、HTTP MCP、实际并发与重试设置、
 收藏时间轴、链接维护、网站导入、完整导入反馈和 v2 阅读/聊天恢复。
-详见 [功能对照与当前验证](docs/desktop-completion-2026-10-25.md)。冻结桌面包使用
+2.1.1 另修复已保存连接复用、high/xhigh/max 自选、全选反馈、批次长标题、普通鼠标滚动
+和失败重试。详见 [本轮功能对照](docs/githubstarsmanager-gap-audit-2026-10-26.md)。冻结桌面包使用
 HTTP 向量端点；Python 可选安装进程内 SentenceTransformer。
 
-从 [Releases](https://github.com/88lin/facetmark/releases/tag/v2.1.0)
-下载 [Windows x64 安装包](https://github.com/88lin/facetmark/releases/download/v2.1.0/facetmark-2.1.0-windows-x64-setup.exe)。
+从 [Releases](https://github.com/88lin/facetmark/releases/tag/v2.1.1)
+下载 [Windows x64 安装包](https://github.com/88lin/facetmark/releases/download/v2.1.1/facetmark-2.1.1-windows-x64-setup.exe)。
 安装包**未签名**，Windows 可能显示 SmartScreen。安装包携带 Python 后端和 WebView2 离线安装器，
 不包含大型 AI 模型；桌面用户无需安装 Python、Node 或 Rust。
 同一 Release 提供扩展 ZIP、Python wheel、源码分发包和 SHA256 校验文件。
-详见[发行说明与验证边界](docs/releases/v2.1.0.md)。
+详见[发行说明与验证边界](docs/releases/v2.1.1.md)。
 
 CI 构建的 Python wheel 与 Docker 镜像共享同一套 React 静态资源。
 源码开发者在打包前构建 `frontend/`；Python 包用户无需自行运行 Node。
