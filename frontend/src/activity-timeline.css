@@ -24,7 +24,7 @@
 .activity-bucket-count { min-width: 0; font-size: 19px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.4; overflow-wrap: anywhere; }
 .activity-day-meter { width: 100%; height: 3px; overflow: hidden; border-radius: var(--radius-pill); background: var(--rule); }
 .activity-day-meter > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
-.activity-timeline .activity-bucket-month { flex: 0 0 224px; grid-template-columns: minmax(0, 1fr) auto; align-content: center; gap: 5px 12px; padding-inline: 18px; text-align: left; }
+.activity-timeline .activity-bucket-month { flex: 0 0 min(224px, 100%); grid-template-columns: minmax(0, 1fr) auto; align-content: center; gap: 5px 12px; padding-inline: 18px; text-align: left; }
 .activity-bucket-month .activity-bucket-count { text-align: right; }
 .activity-bucket-range { grid-column: 1 / -1; color: var(--secondary-ink); font-size: var(--type-meta); font-variant-numeric: tabular-nums; line-height: 1.7; overflow-wrap: anywhere; }
 .activity-timeline .activity-older { display: inline-flex; align-items: center; gap: 12px; max-width: 100%; min-height: 44px; margin-top: 10px; text-align: left; white-space: normal; }

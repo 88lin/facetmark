@@ -231,6 +231,8 @@ test("Chinese and English activity stays compact at 320px and keyboard focus scr
       return element.scrollHeight <= lineHeight + 1 && element.scrollWidth <= element.clientWidth + 1;
     }));
     expect(rangesFit).toBe(true);
+    expect(await panel.locator(".activity-bucket-month").first().evaluate(element =>
+      element.getBoundingClientRect().width <= element.parentElement!.clientWidth)).toBe(true);
     await settleVisualLayout(page);
     await page.screenshot({ path: "screenshots/collection-review/activity-timeline-" + width + ".png", animations: "disabled" });
   }
