@@ -260,6 +260,7 @@ def build_sessions(
     eps: int | None = None,
     grid: Iterable[int] = DEFAULT_EPS_GRID,
     seed: int = 0,
+    commit: bool = True,
 ) -> SessionBuildResult:
     """Recompute every session from scratch and persist it.
 
@@ -269,12 +270,13 @@ def build_sessions(
     """
     rows = conn.execute(
         "SELECT id, date_added, folder FROM bookmark"
-        " WHERE date_added IS NOT NULL AND indexable = 1"
+        " WHERE date_added > 0 AND indexable = 1"
         " ORDER BY date_added, id"
     ).fetchall()
     if not rows:
         conn.execute("DELETE FROM session")
-        conn.commit()
+        if commit:
+            conn.commit()
         return SessionBuildResult(FALLBACK_EPS, "no dated bookmarks", 0, 0, 0, 0.0)
 
     ids = [int(r["id"]) for r in rows]
@@ -336,7 +338,8 @@ def build_sessions(
             [(bid, sid) for bid, _ in members],
         )
         assigned += len(members)
-    conn.commit()
+    if commit:
+        conn.commit()
 
     return SessionBuildResult(
         eps=eps_used,

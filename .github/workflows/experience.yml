@@ -30,7 +30,9 @@ jobs:
       - run: python scripts/check_opencode.py
   web:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # The full browser matrix and 200k corpus consume up to 25 minutes before
+    # video evidence and wheel packaging. Leave time for those final checks.
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

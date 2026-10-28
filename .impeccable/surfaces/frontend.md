@@ -8,6 +8,10 @@ related_targets:
 - frontend/src/SettingsWorkspace.tsx
 - frontend/src/ModelPicker.tsx
 - frontend/src/ReasoningSettings.tsx
+- frontend/src/SavingSessions.tsx
+- frontend/src/saving-sessions.css
+- frontend/src/ActivityTimeline.tsx
+- frontend/src/activity-timeline.css
 - frontend/src/reasoning.ts
 - frontend/src/reasoning-settings.css
 - frontend/src/SummaryPreferences.tsx
@@ -53,6 +57,23 @@ related_targets:
 # Facetmark frontend — Operate
 
 ## Direction status
+
+2026-10-28 continuation: narrow saving sessions place icon/count above a full-width
+title; month cells use short month/day ranges and retain full accessible dates.
+Tested model drafts save without repeating the test, and saved connections expose
+their existing state. Cloud evidence and unresolved features are tracked in
+docs/handoff-usability-2026-10-26.md. The visual direction remains unapproved.
+
+Latest 2026-10-26 feedback: the product is still unusable. The current repair covers
+saved connection reuse, direct thinking effort selection, a visible select-all
+capsule, content-sized saving sessions, ordinary mouse scrolling, metadata-only
+session organization and local reading text size. Code, remaining reference gaps
+and verification limits are in docs/githubstarsmanager-gap-audit-2026-10-26.md.
+Application/capture dad2966 passed the four current cloud workflows. The review
+matched 163 source fingerprints and 8 downloaded image hashes; 320px month cards
+retain the count and date, and long session titles use the available row width.
+Browser and installed checks establish their tested scope, with no user aesthetic
+approval. The older authorization and successful runs below are historical.
 
 Latest 2026-10-25 request: remove site classification and repeated summary-selection/
 consent UI, combine summary and body into Read, generate target-language titles and

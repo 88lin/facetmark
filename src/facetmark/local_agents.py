@@ -140,8 +140,10 @@ def _codex_configuration(environ, *, model: str = "", reasoning_effort: str = ""
         config = {**config, **profile}
     models = config.get("models", {})
     managed = models.get("new_thread", {}) if isinstance(models, dict) else {}
-    # An explicit model or effort overrides both managed new-thread defaults.
-    if isinstance(managed, dict) and not (model or reasoning_effort or config.get("model")
+    # An explicit model replaces the managed model bundle. Choosing only an
+    # effort must keep the default model shown by our model catalog; the child
+    # invocation overrides the inherited effort separately.
+    if isinstance(managed, dict) and not (model or config.get("model")
                                          or config.get("model_reasoning_effort")):
         for key in ("model", "model_reasoning_effort"):
             if isinstance(managed.get(key), str):
@@ -328,7 +330,7 @@ def build_invocation(agent: str, directory: Path, *, model: str, environ: dict,
     return args, env
 
 
-def configuration_fingerprint(agent: str, *, model: str = "", reasoning_effort: str = "") -> str:
+def legacy_configuration_fingerprint(agent: str, *, model: str = "", reasoning_effort: str = "") -> str:
     """Invalidate tests when inherited model/effort/provider configuration changes.
 
     Only a digest leaves this function. Credentials and configuration contents
@@ -351,6 +353,49 @@ def configuration_fingerprint(agent: str, *, model: str = "", reasoning_effort: 
         else:
             isolated = _opencode_environment(Path(".facetmark-model-fingerprint"), env)
             value = json.loads(isolated["OPENCODE_CONFIG_CONTENT"])
+    except (OSError, ValueError, TypeError, AttributeError, ProviderError):
+        value = {"configuration_unavailable": True}
+    return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
+
+
+def configuration_fingerprint(agent: str, *, model: str = "", reasoning_effort: str = "") -> str:
+    """Hash effective model defaults, not unrelated daily CLI preferences."""
+    env = dict(os.environ)
+    try:
+        if agent == "codex":
+            config = _codex_configuration(env, model=model, reasoning_effort=reasoning_effort)
+            provider = config.get("model_provider", "openai")
+            definition = config.get("model_providers", {}).get(provider, {})
+            value = {"model": model or config.get("model"),
+                     "effort": reasoning_effort or config.get("model_reasoning_effort"),
+                     "provider": provider, "definition": definition}
+            keys = [definition.get("env_key"), *definition.get("env_http_headers", {}).values()]
+            value["environment"] = {key: env.get(key) for key in keys if isinstance(key, str)}
+        elif agent == "claude":
+            config = _claude_configuration(env)
+            configured_env = config.get("env", {})
+            effective = {**(configured_env if isinstance(configured_env, dict) else {}), **env}
+            selected = model or effective.get("ANTHROPIC_MODEL") or config.get("model")
+            model_settings = config.get("modelSettings", {}).get(selected, {})
+            value = {"model": selected,
+                     "effort": reasoning_effort or effective.get("CLAUDE_CODE_EFFORT_LEVEL")
+                     or model_settings.get("effortLevel") or config.get("effortLevel"),
+                     "max_effort": config.get("maxEffortLevel"),
+                     "environment": {key: val for key, val in effective.items() if key in {
+                         "ANTHROPIC_BASE_URL", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"}
+                         or (key.startswith("ANTHROPIC_DEFAULT_") and key.endswith("_MODEL"))}}
+        else:
+            isolated = _opencode_environment(Path(".facetmark-model-fingerprint"), env)
+            value = json.loads(isolated["OPENCODE_CONFIG_CONTENT"])
+            value.pop("small_model", None)
+            if model:
+                value["model"] = model
+            selected = value.get("model", "")
+            if "/" in selected:
+                provider, model_id = selected.split("/", 1)
+                definition = value.get("provider", {}).get(provider, {})
+                value["provider"] = {provider: {**definition, "models": {
+                    model_id: definition.get("models", {}).get(model_id, {})}}}
     except (OSError, ValueError, TypeError, AttributeError, ProviderError):
         value = {"configuration_unavailable": True}
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()

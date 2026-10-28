@@ -34,6 +34,15 @@ be explicitly configured without a key. Mock providers are restricted to demo/te
 
 ## Capabilities and Constraints
 
+The 2026-10-26 usability repair keeps successful connection proofs for the actual
+saved model across settings visits, unsaved draft tests and application restart.
+Explicit model/effort choices do not inherit unrelated CLI defaults. Standard
+efforts remain selectable beyond an incomplete catalog; each service still needs
+to accept the chosen parameter. Saving sessions can be organized from local dated
+bookmarks without AI. Reading text size is a separate, locally saved preference.
+Current fixes, remaining product gaps and verification boundaries are recorded in
+[the source comparison](docs/githubstarsmanager-gap-audit-2026-10-26.md).
+
 Import → search and organize → choose, test and save a summary connection → select
 bookmarks or use the current scope → generate titles, summaries and key points → recover the exact failed
 or unfinished task entries. The selected model must remain consistent across
@@ -98,6 +107,11 @@ contracts remain.
 
 ## Brand Commitments
 
+The latest 2026-10-26 assessment is that the current product is unusable, with many
+unfinished interactions and visual bugs. The select-all control and saving-sessions
+surface require explicit repair. Current source changes remain unreviewed visually;
+earlier technical passing status does not override this feedback.
+
 The overall 2026-10-24 assessment is “还不算好看，能用的样子而已”. On 2026-10-25
 the user requested simpler collection/reading/summary workflows and removal of the
 tray's transparent outer frame while preserving its interior.
@@ -128,8 +142,9 @@ All product choices, implementation, screenshots, bugs, runs and user assessment
 remain in this repository. Do not write project material to
 `E:\design\design-reference-handbook.md` or its general snapshot.
 PR #44 was merged with the user's authorization; this follow-up belongs in a new
-PR. Commit, push and cloud validation follow current session authorization; this
-document adds none. Do not automatically merge a new PR or publish a release.
+PR. The current project agreement permits commits, pushes, PRs and cloud validation
+for assigned work without repeated confirmation. Do not automatically merge a new
+PR or publish a release without an explicit user instruction.
 Application/capture 8af69ae passed checks for the preceding layout/native revision.
 The initial 1696889 cloud run found regressions. Application/capture 81f310a passed
 CI, collection, experience and Windows installation checks for the completed feature

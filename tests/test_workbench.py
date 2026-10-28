@@ -555,7 +555,9 @@ print(json.dumps({"type":"text", "part":{"text":'{"ok":true}'}}))
     assert result.json()["chat"]["model"] == "opencode/configured default"
     assert client.put("/admin/settings", json={"values": values}).status_code == 200
     status = client.get("/admin/setup-status").json()
-    assert status["channels"]["chat"] == {"configured": True, "tested": True}
+    assert status["channels"]["chat"]["configured"] and status["channels"]["chat"]["tested"]
+    assert status["channels"]["chat"]["validation"] == "ready"
+    assert status["channels"]["chat"]["tested_model"] == "opencode/configured default"
     assert client.app.state.fm.settings.chat_agent == "opencode"
     monkeypatch.setattr("facetmark.local_agents.resolve_command", lambda _: None)
     assert not client.get("/admin/setup-status").json()["channels"]["chat"]["tested"]

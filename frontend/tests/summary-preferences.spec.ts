@@ -16,11 +16,15 @@ async function preferences(page: Page, initial: Record<string, unknown> = {}) {
       ? { ...row, value: saved[row.key as keyof typeof saved] } : row);
     return route.fulfill({ response, json: data });
   });
+  // This fixture changes only preference/connection metadata. Capture the
+  // synthetic base once, then answer post-generation refreshes immediately so
+  // no proxied setup request is still being fulfilled during route teardown.
+  let setupSnapshot: Promise<Record<string, unknown>> | undefined;
   await page.route("**/admin/setup-status", async route => {
-    const response = await route.fetch(), data = await response.json();
-    data.demo = false; data.summary_language = saved.summary_language;
-    data.channels = { ...data.channels, chat: { configured: true, tested: true } };
-    return route.fulfill({ response, json: data });
+    const data = await (setupSnapshot ??= route.fetch().then(response => response.json()));
+    return route.fulfill({ json: { ...data, demo: false, summary_language: saved.summary_language,
+      channels: { ...(data.channels as Record<string, unknown>), chat: { configured: true, tested: true } },
+    } });
   });
   return { saved, writes };
 }

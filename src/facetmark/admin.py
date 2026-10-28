@@ -741,7 +741,7 @@ def draft_settings(settings: Settings, changes: dict) -> Settings:
     return result
 
 
-def probe_fingerprint(settings: Settings, channel: str) -> str:
+def _legacy_probe_fingerprint(settings: Settings, channel: str) -> str:
     names = ([f'{channel}_base_url', f'{channel}_api_key', f'{channel}_allow_no_key',
               f'{channel}_model', 'use_mock_provider'] +
              (['embed_dim', 'embed_backend', 'local_embed_path', 'embed_send_dimensions']
@@ -749,15 +749,97 @@ def probe_fingerprint(settings: Settings, channel: str) -> str:
                   'chat_backend', 'chat_agent', 'chat_agent_model', 'chat_agent_reasoning_effort', 'chat_agent_timeout']))
     values = {k: getattr(settings, k) for k in names}
     if channel == 'chat' and settings.chat_backend == 'agent':
-        from .local_agents import configuration_fingerprint, resolve_command, selected_agent
+        from .local_agents import legacy_configuration_fingerprint, resolve_command, selected_agent
         agent = selected_agent(settings.chat_agent)
         values['resolved_agent'] = agent
         values['resolved_command'] = resolve_command(agent) if agent else None
-        values['agent_configuration'] = configuration_fingerprint(
+        values['agent_configuration'] = legacy_configuration_fingerprint(
             agent, model=settings.chat_agent_model, reasoning_effort=settings.chat_agent_reasoning_effort
         ) if agent else None
     return hashlib.sha256(json.dumps(values,
                                     sort_keys=True, default=str).encode()).hexdigest()
+
+
+def probe_fingerprint(settings: Settings, channel: str) -> str:
+    """Fingerprint the connection actually used, excluding inactive providers."""
+    values: dict[str, Any] = {"version": 2, "mock": settings.use_mock_provider}
+    if channel == "chat" and settings.chat_backend == "agent":
+        from .local_agents import configuration_fingerprint, resolve_command, selected_agent
+        agent = selected_agent(settings.chat_agent)
+        values.update(backend="agent", agent=agent,
+                      command=resolve_command(agent) if agent else None,
+                      model=settings.chat_agent_model, effort=settings.chat_agent_reasoning_effort,
+                      configuration=configuration_fingerprint(agent, model=settings.chat_agent_model,
+                          reasoning_effort=settings.chat_agent_reasoning_effort) if agent else None)
+    elif channel == "embed" and settings.embed_backend == "local":
+        values.update(backend="local", model=settings.local_embed_path, dim=settings.embed_dim)
+    else:
+        values.update({name: getattr(settings, name) for name in (
+            f"{channel}_base_url", f"{channel}_api_key", f"{channel}_allow_no_key", f"{channel}_model")})
+        if channel == "chat":
+            values["extra_body"] = json.loads(settings.chat_extra_body or "{}")
+            values["fallbacks"] = [item.strip() for item in settings.chat_model_fallbacks.split(",") if item.strip()]
+        else:
+            values.update(dim=settings.embed_dim, send_dimensions=settings.embed_send_dimensions)
+    return hashlib.sha256(json.dumps(values, sort_keys=True, default=str).encode()).hexdigest()
+
+
+def _probe_records(results: dict, channel: str) -> list[dict]:
+    current = results.get(channel, {})
+    history = current.get("history", [])
+    return [row for row in [current, *(history if isinstance(history, list) else [])]
+            if isinstance(row, dict) and isinstance(row.get("fingerprint"), str)]
+
+
+def matching_probe(settings: Settings, channel: str, results: dict) -> dict | None:
+    records = _probe_records(results, channel)
+    if not records:
+        return None
+    fingerprint = probe_fingerprint(settings, channel)
+    for row in records:
+        if row["fingerprint"] == fingerprint:
+            return row
+    # Existing installations keep their successful test when upgrading. A
+    # legacy record is accepted only if its original fingerprint still matches.
+    legacy = [row for row in records if row.get("version") != 2]
+    if legacy:
+        fingerprint = _legacy_probe_fingerprint(settings, channel)
+        return next((row for row in legacy if row["fingerprint"] == fingerprint), None)
+    return None
+
+
+def remember_probe(results: dict, channel: str, fingerprint: str, result: dict,
+                   saved: Settings) -> None:
+    pinned = matching_probe(saved, channel, results)
+    previous = _probe_records(results, channel)
+    # Keep the saved connection even after trying many unsaved model drafts.
+    ordered = ([pinned] if pinned else []) + previous
+    history, seen = [], {fingerprint}
+    for row in ordered:
+        if row["fingerprint"] not in seen:
+            seen.add(row["fingerprint"])
+            history.append({key: value for key, value in row.items() if key != "history"})
+    results[channel] = {"fingerprint": fingerprint, "version": 2, "result": result,
+                        "tested_at": int(time.time()), "history": history[:8]}
+
+
+def forget_probe(results: dict, channel: str, fingerprint: str) -> None:
+    remaining = [{key: value for key, value in row.items() if key != "history"}
+                 for row in _probe_records(results, channel) if row["fingerprint"] != fingerprint]
+    if remaining:
+        results[channel] = {**remaining[0], "history": remaining[1:9]}
+    else:
+        results.pop(channel, None)
+
+
+def connection_status(settings: Settings, channel: str, results: dict) -> dict:
+    configured = settings.channel_ready(channel)
+    proof = matching_probe(settings, channel, results)
+    return {"configured": configured, "tested": bool(proof),
+            "validation": "ready" if proof else "unconfigured" if not configured
+                else "changed" if _probe_records(results, channel) else "untested",
+            "tested_model": proof.get("result", {}).get("model", "") if proof else "",
+            "tested_at": proof.get("tested_at") if proof else None}
 
 
 def env_locked() -> frozenset[str]:
@@ -1025,7 +1107,7 @@ def register(app: FastAPI, auth: list) -> None:
                     raise HTTPException(409, detail)
                 if not body.confirmed:
                     raise HTTPException(400, 'Confirm sending titles, URLs and extracted text to the configured models')
-                if not all(state.probe_results.get(c, {}).get('fingerprint') == probe_fingerprint(state.settings, c)
+                if not all(matching_probe(state.settings, c, state.probe_results)
                            for c in channels):
                     detail = ('Test both saved model connections before indexing'
                               if body.mode == "index" else 'Test the saved chat connection before summarizing')
@@ -1098,7 +1180,9 @@ def register(app: FastAPI, auth: list) -> None:
     @app.get("/admin/settings", dependencies=deps)
     async def admin_settings(request: Request) -> dict:
         state = _state(request)
-        return settings_view(state.settings, state.pending_settings)
+        candidate = draft_settings(state.settings, state.pending_settings)
+        return {**settings_view(state.settings, state.pending_settings),
+                "channels": {c: connection_status(candidate, c, state.probe_results) for c in ("chat", "embed")}}
 
     @app.put("/admin/settings", dependencies=deps)
     async def admin_settings_write(body: SettingsPatch, request: Request) -> dict:
@@ -1204,10 +1288,13 @@ def register(app: FastAPI, auth: list) -> None:
                 result[channel] = {**result.get(channel, {}), 'ok': False,
                                    'error': 'Model or agent configuration changed during the test. Detect it again and retry.'}
             if result.get(channel, {}).get('ok') and (channel != 'embed' or result[channel]['dim_matches']):
-                state.probe_results[channel] = {'fingerprint': fingerprints[channel],
-                                                'result': result[channel]}
+                remember_probe(state.probe_results, channel, fingerprints[channel], result[channel],
+                               draft_settings(state.settings, state.pending_settings))
             else:
-                state.probe_results.pop(channel, None)
+                previous = matching_probe(settings, channel, state.probe_results)
+                forget_probe(state.probe_results, channel, fingerprints[channel])
+                if previous:
+                    forget_probe(state.probe_results, channel, previous["fingerprint"])
         persist_probes(state.settings.data_dir, state.probe_results)
         return result
 

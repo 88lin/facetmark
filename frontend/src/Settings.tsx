@@ -50,13 +50,18 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
   const preserveDetectionDraft = useRef(false);
   const lastAgent = useRef<{ preference: string; id: string } | null>(null);
   const hasDraft = Object.keys(draft).length > 0;
+  const channelDirty = (channel: string) => Object.keys(draft).some(
+    key => key.startsWith(`${channel}_`) || (channel === "embed" && key === "local_embed_path"));
+  const channelPassed = (channel: string) => results[channel]
+    ? results[channel].ok && results[channel].dim_matches !== false
+    : !channelDirty(channel) && Boolean(setup?.channels[channel]?.tested);
+  const channelPayload = (channel: string) => Object.fromEntries(Object.entries(draft).filter(
+    ([key]) => key.startsWith(`${channel}_`) || (channel === "embed" && key === "local_embed_path")));
   const channelStatus = (channel: string) => {
     if (busy === channel) return t("正在测试…", "Testing…");
     if (results[channel] && (!results[channel].ok || results[channel].dim_matches === false))
       return t("测试未通过", "Test failed");
-    const dirty = Object.keys(draft).some(
-      (key) => key.startsWith(`${channel}_`) || (channel === "embed" && key === "local_embed_path"),
-    );
+    const dirty = channelDirty(channel);
     if (dirty)
       return results[channel]?.ok && results[channel]?.dim_matches !== false
         ? t("草稿已测试 · 尚未保存", "Draft tested · not saved")
@@ -149,6 +154,9 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
     }
   }, [selectedAgent?.id, agentPreference, detecting, detectionError]);
   const change = (key: string, next: unknown) => {
+    // Secret inputs are intentionally blank even when a key is saved. Clearing
+    // one is an explicit edit, not a repeat of the displayed empty value.
+    if (next === value(key) && !row(key)?.secret) return;
     if (key === "chat_agent_model" || key === "chat_agent_reasoning_effort" || key.endsWith("_model")) {
       manualEdits.current.add(selectedAgent?.id || agentPreference);
       agentEditVersion.current++;
@@ -158,7 +166,8 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
       agentEfforts.current[selectedAgent?.id || agentPreference] = String(value("chat_agent_reasoning_effort"));
     }
     const nextAgent = next === "auto" ? agents.find(agent => agent.installed)?.id || "auto" : String(next);
-    setDraft((d) => ({
+    setDraft((d) => {
+      const changed = {
       ...d,
       [key]: next,
       ...(key === "chat_agent" && !row("chat_agent_model")?.locked
@@ -170,7 +179,10 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
       ...(key.endsWith("_allow_no_key") && next
         ? { [key.replace("_allow_no_key", "_api_key")]: "" }
         : {}),
-    }));
+      };
+      return Object.fromEntries(Object.entries(changed).filter(([name, updated]) =>
+        row(name)?.secret || JSON.stringify(updated) !== JSON.stringify(row(name)?.value ?? "")));
+    });
     setNotice("");
     setChannelFeedback(current => Object.fromEntries(Object.entries(current).filter(([channel]) => !key.startsWith(`${channel}_`))));
     setResults(current => Object.fromEntries(Object.entries(current).filter(([channel]) =>
@@ -193,11 +205,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
     setTestingAndSaving(saveAfter);
     setChannelFeedback(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== channel)));
     await run(channel, async () => {
-      const payload = Object.fromEntries(
-        Object.entries(draft).filter(
-          ([key]) => key.startsWith(`${channel}_`) || (channel === "embed" && key === "local_embed_path"),
-        ),
-      );
+      const payload = channelPayload(channel);
       setResults(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== channel)));
       let data: Record<string, Probe>;
       try {
@@ -215,19 +223,30 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
       }
       setResults((r) => ({ ...r, [channel]: data[channel] }));
       if (saveAfter && data[channel]?.ok && data[channel]?.dim_matches !== false) {
-        try {
-          await api("/admin/settings", { method: "PUT", body: JSON.stringify({ values: payload }) });
-        } catch (e) {
-          setChannelFeedback(current => ({ ...current, [channel]: { saved: false, text: t("连接测试成功，但配置未保存。请重试。", "Connection passed, but settings were not saved. Please retry.") + " " + String(e) } }));
-          return;
-        }
-        acknowledgeSaved(payload);
-        await load();
-        setChannelFeedback(current => ({ ...current, [channel]: { saved: true, text: channel === "chat"
-          ? t("连接已验证并保存，可以开始生成摘要。", "Connection verified and saved. Ready to generate summaries.")
-          : t("向量连接已验证并保存；如有配置变更，请继续应用向量配置。", "Embedding connection verified and saved. Apply any embedding configuration changes below.") } }));
+        if (!await persistChannel(channel, payload)) return;
       }
       await refresh();
+    });
+  }
+  async function persistChannel(channel: string, payload: Record<string, unknown>) {
+    try {
+      await api("/admin/settings", { method: "PUT", body: JSON.stringify({ values: payload }) });
+    } catch (e) {
+      setChannelFeedback(current => ({ ...current, [channel]: { saved: false, text: t("连接测试成功，但配置未保存。请重试保存，无需再次测试。", "Connection passed, but settings were not saved. Retry saving without another test.") + " " + String(e) } }));
+      return false;
+    }
+    acknowledgeSaved(payload);
+    await load();
+    setChannelFeedback(current => ({ ...current, [channel]: { saved: true, text: channel === "chat"
+      ? t("连接已验证并保存，可以开始生成摘要。", "Connection verified and saved. Ready to generate summaries.")
+      : t("向量连接已验证并保存；如有配置变更，请继续应用向量配置。", "Embedding connection verified and saved. Apply any embedding configuration changes below.") } }));
+    return true;
+  }
+  async function saveChannel(channel: string) {
+    if (!channelPassed(channel)) return;
+    setTestingAndSaving(false);
+    await run(`save-${channel}`, async () => {
+      if (await persistChannel(channel, channelPayload(channel))) await refresh();
     });
   }
   async function save() {
@@ -238,8 +257,8 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
       await refresh();
       setNotice(
         t(
-          "已保存。连接测试与当前配置匹配后即可应用。",
-          "Saved. Apply after the connection test matches these settings.",
+          "配置已保存，重新打开仍会保留。连接状态显示在各模型下方。",
+          "Settings saved and retained when you reopen the app. See each model's connection status below.",
         ),
       );
     });
@@ -289,9 +308,10 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
   const modelPicker = (channel: string, local = false) => {
     const key = local ? "chat_agent_model" : `${channel}_model`;
     const payload = { channel, ...Object.fromEntries(Object.entries(draft).filter(([key]) => key.startsWith(`${channel}_`))), ...(local ? { chat_agent: selectedAgent?.id || agentPreference } : {}) };
-    const identity = local ? JSON.stringify([agentPreference, selectedAgent?.path, selectedAgent?.id, detecting])
+    const identity = local ? JSON.stringify([agentPreference, selectedAgent?.path, selectedAgent?.id])
       : JSON.stringify([value(`${channel}_base_url`), value(`${channel}_api_key`), value(`${channel}_allow_no_key`)]);
     return <ModelPicker key={local ? "agent" : channel} name={key} value={String(value(key))}
+      connectionTested={Boolean(setup?.channels[channel]?.tested && !channelDirty(channel))}
       onChange={next => change(key, next)} payload={payload} identity={identity}
       onCatalogChange={channel === "chat" ? setChatCatalog : undefined}
       agent={local ? selectedAgent?.id || agentPreference : undefined} autoLoad={local && !agentUnavailable}
@@ -371,7 +391,9 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
                 </label>
                 <div className="agent-discovery">
                   <p className="agent-detection" role="status">{detecting ? t("正在检测本机 Agent…", "Detecting local agents…") : detectionError || (selectedAgent
-                    ? t(`将使用 ${selectedAgent.name}，连接状态以测试结果为准。`, `Will use ${selectedAgent.name}. Test the connection to verify access.`)
+                    ? setup?.channels.chat.tested && !channelDirty("chat")
+                      ? t(`使用 ${selectedAgent.name} · 已保存的连接可直接使用。`, `Using ${selectedAgent.name} · your saved connection is ready.`)
+                      : t(`将使用 ${selectedAgent.name}，连接状态以测试结果为准。`, `Will use ${selectedAgent.name}. Test the connection to verify access.`)
                     : agentPreference === "auto" ? t("未检测到 CLI。支持 Codex、Claude Code 和 OpenCode。安装并登录后重新检测。", "No CLI detected. Codex, Claude Code and OpenCode are supported. Install, sign in and retry detection.")
                     : t("未检测到所选 Agent，请安装后重试，或选择其他 Agent。", "Selected agent not detected. Install it or choose another agent."))}</p>
                   <CapsuleButton className="text-button" disabled={!!busy || detecting} onClick={async () => {
@@ -398,12 +420,27 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
                 {channel === "embed" && field("embed_dim", t("向量维度", "Dimensions"), "number")}
               </>}
             </div>
+            {!channelDirty(channel) && setup?.channels[channel]?.tested && <div className="connection-saved" role="status">
+              <Check size={17} aria-hidden="true"/><div><strong>{t("已保存，可以直接使用", "Saved and ready to use")}</strong>
+                {setup.channels[channel].tested_model && <span className="connection-saved-model">{setup.channels[channel].tested_model}</span>}
+                <p>{t("重新打开无需再选模型或测试。更改连接、模型或思考档位后才需要重新验证。", "No need to reselect or retest when reopening. Verify again after changing the connection, model or thinking level.")}</p>
+              </div>
+            </div>}
+            {!channelDirty(channel) && setup?.channels[channel]?.validation === "changed" && <p className="hint connection-changed" role="status">{t("当前连接与上次测试不一致。请核对模型、思考档位以及 Agent 默认配置，再测试一次。", "This connection differs from the last test. Check the model, thinking level and inherited agent settings, then test once.")}</p>}
             <div className="model-test">
               <CapsuleButton className="secondary" disabled={!!busy || !rows.length || (channel === "chat" && agentUnavailable) || (channel === "embed" && localUnavailable)} onClick={() => test(channel)}>
                 {busy === channel && !testingAndSaving ? <LoaderCircle className="spin" /> : <FlaskConical />}
                 {t("测试连接", "Test connection")}
               </CapsuleButton>
-              <CapsuleButton className="primary" disabled={!!busy || !rows.length || (channel === "chat" && agentUnavailable) || (channel === "embed" && localUnavailable)} onClick={() => test(channel, true)}>{busy === channel && testingAndSaving ? <LoaderCircle size={16} className="spin"/> : <Check size={16}/>} {t("测试并保存", "Test and save")}</CapsuleButton>
+              <CapsuleButton className="primary" disabled={!!busy || !rows.length || loadingSettings
+                || (!channelDirty(channel) && channelPassed(channel) && Boolean(setup?.channels[channel]?.tested))
+                || (channel === "chat" && agentUnavailable) || (channel === "embed" && localUnavailable)}
+                onClick={() => channelPassed(channel) ? saveChannel(channel) : test(channel, true)}>
+                {(busy === channel && testingAndSaving) || busy === `save-${channel}` ? <LoaderCircle size={16} className="spin"/> : <Check size={16}/>}
+                {busy === `save-${channel}` ? t("正在保存…", "Saving…") : channelPassed(channel)
+                  ? !channelDirty(channel) && setup?.channels[channel]?.tested ? t("已保存", "Saved") : t("保存连接", "Save connection")
+                  : t("测试并保存", "Test and save")}
+              </CapsuleButton>
               {results[channel] && (
                 <div
                   role="status"

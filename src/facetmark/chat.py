@@ -169,7 +169,7 @@ async def _sources(state, data: dict, question: str, settings, provider) -> list
     ids = data["bookmark_ids"]
     if not ids:
         ids = []
-        embed_tested = settings.use_mock_provider or state.probe_results.get("embed", {}).get("fingerprint") == admin.probe_fingerprint(settings, "embed")
+        embed_tested = settings.use_mock_provider or bool(admin.matching_probe(settings, "embed", state.probe_results))
         # Retrieval can await embeddings. Give it its own connection so a reply
         # never freezes metadata, MCP operations or explicit cancellation.
         conn = open_db(settings.db_path, same_thread=False)
@@ -389,9 +389,9 @@ def register(app: FastAPI, auth: list) -> None:
                            if state.settings.chat_backend == "agent" else state.settings.chat_concurrency)
             if not cancelled_before_delivery and sum(not task.done() for task in state.chat_runs.values()) >= concurrency:
                 raise HTTPException(409, "Wait for an active reply to finish")
-            tested = state.probe_results.get("chat", {}).get("fingerprint")
+            tested = admin.matching_probe(state.settings, "chat", state.probe_results)
             fingerprint = admin.probe_fingerprint(state.settings, "chat")
-            if not cancelled_before_delivery and not state.settings.use_mock_provider and tested != fingerprint:
+            if not cancelled_before_delivery and not state.settings.use_mock_provider and not tested:
                 raise HTTPException(409, "Test and save the chat connection before starting a conversation")
             if body.retry or body.regenerate:
                 expected = {"complete"} if body.regenerate else {"error", "cancelled"}

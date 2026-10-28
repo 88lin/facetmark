@@ -76,6 +76,8 @@ def main():
                            "src/facetmark/enrich/pipeline.py", "src/facetmark/db.py", "src/facetmark/migrations.py",
                            "src/facetmark/service.py", "src/facetmark/text.py", "src/facetmark/search/pipeline.py",
                            "tests/test_agent_reasoning.py", "tests/test_reading_jobs.py",
+                           "src/facetmark/sessions.py", "src/facetmark/edges.py",
+                           "tests/test_connection_reuse.py", "tests/test_sessions_workflow.py",
                            "src/facetmark/importers/base.py", "tests/test_workbench.py",
                            "desktop/splash/index.html", "desktop/splash/loading.js",
                            "desktop/splash/native-ui.css", "desktop/splash/mark.svg", "desktop/splash/tray.html", "desktop/splash/tray.js",

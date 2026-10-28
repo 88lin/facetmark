@@ -61,7 +61,8 @@ export type Setup = {
   pending_apply: boolean;
   vector_compatible: boolean;
   has_vectors: boolean;
-  channels: Record<string, { configured: boolean; tested: boolean }>;
+  channels: Record<string, { configured: boolean; tested: boolean;
+    validation?: "ready" | "unconfigured" | "changed" | "untested"; tested_model?: string; tested_at?: number | null }>;
   stats: Record<string, unknown>;
 };
 export type Setting = {
