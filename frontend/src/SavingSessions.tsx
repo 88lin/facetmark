@@ -19,6 +19,7 @@ export function SavingSessions({ language, revision, disabled, onBack, onSession
   const [loading, setLoading] = useState(true), [more, setMore] = useState(false);
   const [rebuilding, setRebuilding] = useState(false), [refreshVersion, setRefreshVersion] = useState(0);
   const [error, setError] = useState(""), [notice, setNotice] = useState("");
+  const [retryOffset, setRetryOffset] = useState<number | null>(0);
   const request = useRef<AbortController | null>(null);
   const rebuildingRef = useRef(false);
   const mounted = useRef(true);
@@ -33,7 +34,7 @@ export function SavingSessions({ language, revision, disabled, onBack, onSession
       if (controller.signal.aborted) return;
       setSessions(previous => offset ? [...previous, ...data.filter(row => !previous.some(item => item.session_id === row.session_id))] : data);
       setMore(data.length === 40);
-    } catch (e) { if (!controller.signal.aborted) setError(String(e)); }
+    } catch (e) { if (!controller.signal.aborted) { setRetryOffset(offset); setError(String(e)); } }
     finally { if (!controller.signal.aborted) setLoading(false); }
   }
   useEffect(() => { void load(); return () => request.current?.abort(); }, [revision]);
@@ -49,7 +50,7 @@ export function SavingSessions({ language, revision, disabled, onBack, onSession
         if (mounted.current) setRefreshVersion(value => value + 1);
       }
       await onRebuilt();
-    } catch (e) { if (mounted.current) setError(String(e)); }
+    } catch (e) { if (mounted.current) { setRetryOffset(null); setError(String(e)); } }
     finally { rebuildingRef.current = false; if (mounted.current) setRebuilding(false); }
   }
   const locale = language === "zh" ? "zh-CN" : "en-US";
@@ -74,7 +75,9 @@ export function SavingSessions({ language, revision, disabled, onBack, onSession
         </div>
       </header>
       {error && <div className="sessions-error" role="alert"><p>{t("未能更新浏览批次。", "Could not update saving sessions.")} {error}</p>
-        <CapsuleButton type="button" className="text-button" disabled={loading || rebuilding} onClick={() => load()}>{t("重试浏览批次", "Retry saving sessions")}</CapsuleButton></div>}
+        <CapsuleButton type="button" className="text-button" disabled={loading || rebuilding || (retryOffset === null && disabled)}
+          onClick={() => retryOffset === null ? rebuild() : load(retryOffset)}>
+          {retryOffset === null ? t("重新整理批次", "Retry organizing sessions") : t("重试浏览批次", "Retry saving sessions")}</CapsuleButton></div>}
       {notice && <p className="notice" role="status">{notice}</p>}
       {loading && <p className="sessions-loading" role="status"><LoaderCircle size={16} className="spin"/>{t("正在读取浏览批次…", "Loading saving sessions…")}</p>}
       <div className="sessions-list">

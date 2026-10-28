@@ -52,6 +52,11 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
   const hasDraft = Object.keys(draft).length > 0;
   const channelDirty = (channel: string) => Object.keys(draft).some(
     key => key.startsWith(`${channel}_`) || (channel === "embed" && key === "local_embed_path"));
+  const channelPassed = (channel: string) => results[channel]
+    ? results[channel].ok && results[channel].dim_matches !== false
+    : !channelDirty(channel) && Boolean(setup?.channels[channel]?.tested);
+  const channelPayload = (channel: string) => Object.fromEntries(Object.entries(draft).filter(
+    ([key]) => key.startsWith(`${channel}_`) || (channel === "embed" && key === "local_embed_path")));
   const channelStatus = (channel: string) => {
     if (busy === channel) return t("正在测试…", "Testing…");
     if (results[channel] && (!results[channel].ok || results[channel].dim_matches === false))
@@ -200,11 +205,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
     setTestingAndSaving(saveAfter);
     setChannelFeedback(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== channel)));
     await run(channel, async () => {
-      const payload = Object.fromEntries(
-        Object.entries(draft).filter(
-          ([key]) => key.startsWith(`${channel}_`) || (channel === "embed" && key === "local_embed_path"),
-        ),
-      );
+      const payload = channelPayload(channel);
       setResults(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== channel)));
       let data: Record<string, Probe>;
       try {
@@ -222,19 +223,30 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
       }
       setResults((r) => ({ ...r, [channel]: data[channel] }));
       if (saveAfter && data[channel]?.ok && data[channel]?.dim_matches !== false) {
-        try {
-          await api("/admin/settings", { method: "PUT", body: JSON.stringify({ values: payload }) });
-        } catch (e) {
-          setChannelFeedback(current => ({ ...current, [channel]: { saved: false, text: t("连接测试成功，但配置未保存。请重试。", "Connection passed, but settings were not saved. Please retry.") + " " + String(e) } }));
-          return;
-        }
-        acknowledgeSaved(payload);
-        await load();
-        setChannelFeedback(current => ({ ...current, [channel]: { saved: true, text: channel === "chat"
-          ? t("连接已验证并保存，可以开始生成摘要。", "Connection verified and saved. Ready to generate summaries.")
-          : t("向量连接已验证并保存；如有配置变更，请继续应用向量配置。", "Embedding connection verified and saved. Apply any embedding configuration changes below.") } }));
+        if (!await persistChannel(channel, payload)) return;
       }
       await refresh();
+    });
+  }
+  async function persistChannel(channel: string, payload: Record<string, unknown>) {
+    try {
+      await api("/admin/settings", { method: "PUT", body: JSON.stringify({ values: payload }) });
+    } catch (e) {
+      setChannelFeedback(current => ({ ...current, [channel]: { saved: false, text: t("连接测试成功，但配置未保存。请重试保存，无需再次测试。", "Connection passed, but settings were not saved. Retry saving without another test.") + " " + String(e) } }));
+      return false;
+    }
+    acknowledgeSaved(payload);
+    await load();
+    setChannelFeedback(current => ({ ...current, [channel]: { saved: true, text: channel === "chat"
+      ? t("连接已验证并保存，可以开始生成摘要。", "Connection verified and saved. Ready to generate summaries.")
+      : t("向量连接已验证并保存；如有配置变更，请继续应用向量配置。", "Embedding connection verified and saved. Apply any embedding configuration changes below.") } }));
+    return true;
+  }
+  async function saveChannel(channel: string) {
+    if (!channelPassed(channel)) return;
+    setTestingAndSaving(false);
+    await run(`save-${channel}`, async () => {
+      if (await persistChannel(channel, channelPayload(channel))) await refresh();
     });
   }
   async function save() {
@@ -420,7 +432,15 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
                 {busy === channel && !testingAndSaving ? <LoaderCircle className="spin" /> : <FlaskConical />}
                 {t("测试连接", "Test connection")}
               </CapsuleButton>
-              <CapsuleButton className="primary" disabled={!!busy || !rows.length || (channel === "chat" && agentUnavailable) || (channel === "embed" && localUnavailable)} onClick={() => test(channel, true)}>{busy === channel && testingAndSaving ? <LoaderCircle size={16} className="spin"/> : <Check size={16}/>} {t("测试并保存", "Test and save")}</CapsuleButton>
+              <CapsuleButton className="primary" disabled={!!busy || !rows.length || loadingSettings
+                || (!channelDirty(channel) && channelPassed(channel) && Boolean(setup?.channels[channel]?.tested))
+                || (channel === "chat" && agentUnavailable) || (channel === "embed" && localUnavailable)}
+                onClick={() => channelPassed(channel) ? saveChannel(channel) : test(channel, true)}>
+                {(busy === channel && testingAndSaving) || busy === `save-${channel}` ? <LoaderCircle size={16} className="spin"/> : <Check size={16}/>}
+                {busy === `save-${channel}` ? t("正在保存…", "Saving…") : channelPassed(channel)
+                  ? !channelDirty(channel) && setup?.channels[channel]?.tested ? t("已保存", "Saved") : t("保存连接", "Save connection")
+                  : t("测试并保存", "Test and save")}
+              </CapsuleButton>
               {results[channel] && (
                 <div
                   role="status"

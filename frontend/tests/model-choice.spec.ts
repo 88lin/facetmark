@@ -64,8 +64,10 @@ test("model choice survives test, save and reopen and reaches summary generation
   await page.reload();
   await expect(panel.locator(".model-picker-trigger")).toContainText(/详细阅读|opencode\/careful/);
   await page.setViewportSize({ width: 390, height: 844 });
-  await panel.getByRole("button", { name: "测试并保存", exact: true }).scrollIntoViewIfNeeded();
-  await expect(panel.getByRole("button", { name: "测试并保存", exact: true })).toBeInViewport({ ratio: 1 });
+  const savedConnection = panel.getByRole("button", { name: "已保存", exact: true });
+  await savedConnection.scrollIntoViewIfNeeded();
+  await expect(savedConnection).toBeDisabled();
+  await expect(savedConnection).toBeInViewport({ ratio: 1 });
   await page.screenshot({ path: "screenshots/models-selected-mobile.png", animations: "disabled" });
 });
 

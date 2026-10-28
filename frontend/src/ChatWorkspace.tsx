@@ -58,6 +58,7 @@ export function ChatWorkspace({ active, launch, setup, language, onPreview, onSe
   const [deleteError, setDeleteError] = useState("");
   const currentRef = useRef(currentId), selectionRevision = useRef(0);
   const draftSequence = useRef(Date.now());
+  const optimisticMessageId = useRef(0);
   const requests = useRef(new Map<string, RunningRequest>());
   const cache = useRef(new Map<string, Conversation>());
   const skipLoad = useRef<string | null>(null);
@@ -198,13 +199,15 @@ export function ChatWorkspace({ active, launch, setup, language, onPreview, onSe
       const existing = cache.current.get(id);
       if (existing) {
         const now = Math.floor(Date.now() / 1000);
-        const pending: ChatMessage = { id: -Date.now() - 1, role: "assistant", content: "", status: "pending", sources: [], model: "", created_at: now,
+        // Use distinct local IDs even when the clock ticks between constructing
+        // the question and reply. Server message IDs are positive.
+        const pending: ChatMessage = { id: --optimisticMessageId.current, role: "assistant", content: "", status: "pending", sources: [], model: "", created_at: now,
           request_id: request.requestId };
         const optimistic: ChatMessage[] = retry ? existing.messages.map((item, index) =>
           index === existing.messages.length - 1 ? { ...item, content: "", status: "pending" as const,
             sources: [], model: "", request_id: request.requestId } : item) : regenerate ? [...existing.messages, pending] : [
           ...existing.messages,
-          { id: -Date.now(), role: "user", content: text, status: "complete", sources: [], model: "", created_at: now,
+          { id: --optimisticMessageId.current, role: "user", content: text, status: "complete", sources: [], model: "", created_at: now,
             request_id: request.requestId },
           pending,
         ];

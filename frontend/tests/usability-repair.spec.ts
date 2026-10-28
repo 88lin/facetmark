@@ -10,11 +10,16 @@ test.beforeEach(async ({ page }) => {
 
 test("saved thinking choice remains ready on reopening and can select max outside the catalog", async ({ page }) => {
   const saved: Record<string, unknown> = { chat_backend: "agent", chat_agent: "codex", chat_agent_model: "saved-model", chat_agent_reasoning_effort: "high" };
-  let tests = 0, catalogs = 0;
+  let tests = 0, catalogs = 0, saves = 0;
   await page.route("**/admin/agents", route => route.fulfill({ json: { agents: [{ id: "codex", name: "Codex", installed: true, path: "/synthetic/codex" }] } }));
   await page.route("**/admin/settings/models", route => { catalogs++; return route.fulfill({ json: { agent: "codex", default_model: "daily-model", warning: "", models: [{ id: "saved-model", label: "Saved model", source: "cli", reasoning_levels: [{ id: "low" }, { id: "high" }] }] } }); });
   await page.route("**/admin/settings", async route => {
-    if (route.request().method() === "PUT") { Object.assign(saved, route.request().postDataJSON().values); return route.fulfill({ json: {} }); }
+    if (route.request().method() === "PUT") {
+      saves++;
+      if (saves === 1) return route.fulfill({ status: 503, json: { detail: "Synthetic save failure" } });
+      Object.assign(saved, route.request().postDataJSON().values);
+      return route.fulfill({ json: {} });
+    }
     const response = await route.fetch(), data = await response.json();
     data.channels.chat.configured = true;
     data.settings = data.settings.map((row: { key: string }) => row.key in saved ? { ...row, value: saved[row.key] } : row);
@@ -33,20 +38,31 @@ test("saved thinking choice remains ready on reopening and can select max outsid
   const panel = page.locator(".model-chat"), thinking = panel.getByRole("combobox", { name: "思考模式", exact: true });
   await expect(panel.locator(".connection-saved")).toContainText("重新打开无需再选模型或测试");
   await expect(thinking).toHaveValue("high");
+  await expect(panel.getByRole("button", { name: "已保存", exact: true })).toBeDisabled();
   await panel.getByRole("button", { name: "high", exact: true }).click();
   await expect(panel.locator(".connection-saved")).toBeVisible();
   expect(tests).toBe(0);
   await panel.getByRole("button", { name: "max", exact: true }).click();
   await expect(thinking).toHaveValue("max");
   await expect(panel.locator(".connection-saved")).toHaveCount(0);
-  await panel.getByRole("button", { name: "测试并保存", exact: true }).click();
+  await panel.getByRole("button", { name: "测试连接", exact: true }).click();
+  const save = panel.getByRole("button", { name: "保存连接", exact: true });
+  await expect(save).toBeEnabled();
+  expect(tests).toBe(1);
+  expect(saves).toBe(0);
+  await save.click();
+  await expect(panel.locator(".connection-feedback")).toContainText("重试保存，无需再次测试");
+  expect(saved.chat_agent_reasoning_effort).toBe("high");
+  await save.click();
   await expect(panel.locator(".connection-feedback")).toContainText("连接已验证并保存");
   await expect.poll(() => saved.chat_agent_reasoning_effort).toBe("max");
   expect(tests).toBe(1);
   expect(catalogs).toBe(1);
+  expect(saves).toBe(2);
   await page.reload();
   await expect(thinking).toHaveValue("max");
   await expect(panel.locator(".connection-saved")).toBeVisible();
+  await expect(panel.getByRole("button", { name: "已保存", exact: true })).toBeDisabled();
   expect(tests).toBe(1);
   await page.screenshot({ path: "screenshots/collection-review/connection-reused-max.png", animations: "disabled" });
 });
@@ -108,6 +124,10 @@ test("session rows wrap long titles, keep loaded rows during paging and reset su
     await first.scrollIntoViewIfNeeded();
     expect(await first.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
     expect(await first.locator(".session-copy strong").evaluate(element => element.scrollHeight <= element.clientHeight + 1)).toBe(true);
+    if (width <= 390) {
+      const rowBounds = await first.boundingBox(), copyBounds = await first.locator(".session-copy").boundingBox();
+      expect(copyBounds!.width).toBeGreaterThan(rowBounds!.width - 40);
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: `screenshots/collection-review/sessions-long-${width}.png`, animations: "disabled" });
   }
@@ -125,16 +145,48 @@ test("session rows wrap long titles, keep loaded rows during paging and reset su
   await expect(page.locator('.collection-status [data-status="all"]')).toHaveAttribute("aria-pressed", "true");
 });
 
+test("a failed next session page retries that page and retains the loaded rows", async ({ page }) => {
+  const offsets: number[] = [];
+  let fail = true;
+  await page.route("**/sessions?**", route => {
+    const offset = Number(new URL(route.request().url()).searchParams.get("offset") || 0);
+    offsets.push(offset);
+    if (offset && fail) {
+      fail = false;
+      return route.fulfill({ status: 503, json: { detail: "Synthetic paging failure" } });
+    }
+    return route.fulfill({ json: Array.from({ length: offset ? 1 : 40 }, (_, index) => ({
+      session_id: offset + index + 1, label: "合成批次 " + (offset + index + 1), started_at: 1700000000, size: 3,
+    })) });
+  });
+  await page.goto("/app#sessions");
+  await expect(page.locator(".session-row")).toHaveCount(40);
+  await page.getByRole("button", { name: "加载更多", exact: true }).click();
+  await expect(page.locator(".sessions-error")).toBeVisible();
+  await expect(page.locator(".session-row")).toHaveCount(40);
+  await page.getByRole("button", { name: "重试浏览批次", exact: true }).click();
+  await expect(page.locator(".session-row")).toHaveCount(41);
+  expect(offsets).toEqual([0, 40, 40]);
+  await expect(page.locator(".sessions-error")).toHaveCount(0);
+});
+
 test("sessions can be organized from the empty page without configuring AI", async ({ page }) => {
   let organized = false;
+  let attempts = 0;
   await page.route("**/sessions?**", route => route.fulfill({ json: organized ? [{ session_id: 1, label: "合成批次", started_at: 1700000000, size: 2 }] : [] }));
-  await page.route("**/admin/sessions/rebuild", route => { organized = true; return route.fulfill({ json: { sessions: 1, assigned: 2 } }); });
+  await page.route("**/admin/sessions/rebuild", route => {
+    if (++attempts === 1) return route.fulfill({ status: 503, json: { detail: "Synthetic organize failure" } });
+    organized = true; return route.fulfill({ json: { sessions: 1, assigned: 2 } });
+  });
   await page.goto("/app#sessions");
   await expect(page.locator(".sessions-empty")).toContainText("还没有整理好的批次");
   await page.reload();
   await expect(page.locator(".sessions-empty")).toContainText("还没有整理好的批次");
   await page.getByRole("button", { name: "整理浏览批次", exact: true }).click();
+  await expect(page.locator(".sessions-error")).toBeVisible();
+  await page.getByRole("button", { name: "重新整理批次", exact: true }).click();
   await expect(page.locator(".session-row")).toHaveCount(1);
+  expect(attempts).toBe(2);
   await expect(page.locator(".sessions-section .notice")).toContainText("已整理 1 个批次");
   await page.getByRole("button", { name: "返回收藏", exact: true }).click();
   await expect(page).toHaveURL(/\/app$/);

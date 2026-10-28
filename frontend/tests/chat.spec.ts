@@ -188,6 +188,31 @@ test("reader chat sends once, keeps follow-up drafts through navigation and rest
   }
 });
 
+test("a clock tick between optimistic messages cannot duplicate the question after the reply arrives", async ({ page }) => {
+  const fixture = await chatFixture(page, { delayed: true });
+  await page.goto("/app#chat");
+  const question = page.getByRole("textbox", { name: "对收藏提问", exact: true });
+  await expect(question).toBeEnabled();
+  await page.evaluate(() => {
+    // Make consecutive Date.now calls cross a millisecond deterministically.
+    // The old question/reply keys collided at precisely this boundary.
+    let instant = Date.now();
+    Date.now = () => ++instant;
+  });
+  await question.fill("时钟变化也只能显示一个问题");
+  await question.press("Enter");
+  await expect.poll(() => fixture.sent.length).toBe(1);
+  await expect(page.locator(".chat-message.user")).toHaveCount(1);
+  await expect(page.locator(".chat-message.assistant[data-status=pending]")).toHaveCount(1);
+  fixture.finish("chat-1");
+  await expect(page.locator(".chat-message.assistant")).toContainText("保存目标快照");
+  await expect(page.locator(".chat-message.user")).toHaveCount(1);
+  await page.getByRole("button", { name: "返回收藏", exact: true }).click();
+  await page.locator(".header-navigation").getByRole("button", { name: "AI 对话", exact: true }).click();
+  await expect(page.locator(".chat-message.user")).toHaveCount(1);
+  expect(fixture.sent).toHaveLength(1);
+});
+
 test("background generation can be reopened, stopped and retried without duplicating the question", async ({ page }) => {
   const fixture = await chatFixture(page, { delayed: true });
   await page.goto("/app#chat");

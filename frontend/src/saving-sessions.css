@@ -29,11 +29,12 @@
 .sessions-more { margin-top: 18px; }
 @media (max-width: 719px) {
   .sessions-heading { flex-wrap: wrap; gap: 12px; }
-  .session-row { grid-template-columns: 32px minmax(0, 1fr) auto; gap: 10px; padding: 15px 13px; border-radius: 18px; }
-  .session-symbol { width: 32px; height: 36px; border-radius: 11px; }
-  .session-count { min-width: 42px; font-size: 15px; }
+  .session-row { grid-template-columns: 32px minmax(0, 1fr); gap: 10px; padding: 15px 13px; border-radius: 18px; }
+  .session-symbol { grid-column: 1; grid-row: 1; width: 32px; height: 32px; border-radius: 11px; }
+  .session-count { grid-column: 2; grid-row: 1; display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; min-width: 0; font-size: 15px; }
   .session-count small { font-size: 11px; }
   .session-open { display: none; }
+  .session-copy { grid-column: 1 / -1; grid-row: 2; }
   .session-copy strong { font-size: 15px; }
   .sessions-actions { width: 100%; justify-content: flex-end; }
 }
