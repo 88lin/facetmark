@@ -39,6 +39,15 @@ test("model choice survives test, save and reopen and reaches summary generation
     tested = route.request().postDataJSON();
     return route.fulfill({ json: { chat: { ok: true, model: tested.chat_agent_model, ms: 17 } } });
   });
+  // The fixture must restore the proof for the saved model as the real service
+  // does; mocking only the settings rows leaves setup-status on the demo model.
+  await page.route("**/admin/setup-status", async route => {
+    const response = await route.fetch(), data = await response.json();
+    if (saved.chat_agent_model && saved.chat_agent_model === tested.chat_agent_model) {
+      data.channels.chat = { configured: true, tested: true, validation: "ready", tested_model: saved.chat_agent_model };
+    }
+    return route.fulfill({ response, json: data });
+  });
   await page.goto("/app#settings");
   await page.getByRole("combobox", { name: "摘要来源", exact: true }).selectOption("agent");
   await page.getByRole("combobox", { name: "选择 Agent", exact: true }).selectOption("opencode");
