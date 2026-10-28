@@ -58,6 +58,12 @@ related_targets:
 
 ## Direction status
 
+2026-10-28 continuation: narrow saving sessions place icon/count above a full-width
+title; month cells use short month/day ranges and retain full accessible dates.
+Tested model drafts save without repeating the test, and saved connections expose
+their existing state. Cloud evidence and unresolved features are tracked in
+docs/handoff-usability-2026-10-26.md. The visual direction remains unapproved.
+
 Latest 2026-10-26 feedback: the product is still unusable. The current repair covers
 saved connection reuse, direct thinking effort selection, a visible select-all
 capsule, content-sized saving sessions, ordinary mouse scrolling, metadata-only

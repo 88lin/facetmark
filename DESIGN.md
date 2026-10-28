@@ -195,6 +195,14 @@ components:
 
 ## Current state
 
+The 2026-10-28 continuation gives narrow saving-session titles their own full-width
+row, below the icon/count line. Month cells show compact month/day ranges beneath
+their year/month heading, keeping full ISO dates in the tooltip and accessible name.
+Successful model tests expose Save connection without retesting; saved connections
+show a disabled Saved action. The current source and cloud review status live in
+[the handoff](docs/handoff-usability-2026-10-26.md); technical passes do not establish
+user acceptance of the visual direction.
+
 The latest 2026-10-26 user review is that the product is still unusable. This round
 repairs the select-all capsule and model choice/reopen feedback, and moves saving
 sessions into a component-owned list. Date cells use content-sized 16px corners;

@@ -153,7 +153,7 @@ export function ActivityTimeline({ revision = 0, onSelect }: {
     <span className="activity-bucket-date">{kind === "day" ? dayDate.format(period.from * 1000) : monthDate.format(period.from * 1000)}</span>
     <strong className="activity-bucket-count">{number(period.count)}</strong>
     {kind === "day" ? <span className="activity-day-meter" aria-hidden="true"><span style={{ width: `${period.count / largestDay * 100}%` }}/></span>
-      : <span className="activity-bucket-range">{rangeLabel(period)}</span>}
+      : <span className="activity-bucket-range">{dayDate.format(period.from * 1000)} – {dayDate.format((period.to - 1) * 1000)}</span>}
   </button>;
 
   return <section className="activity-timeline" aria-labelledby={id} aria-busy={loading}>

@@ -97,7 +97,7 @@ test("month navigation excludes the separately displayed week and clears the pre
   const panel = page.locator(".activity-timeline"), month = panel.locator('[data-period="month:2026-10"]');
   await expect(panel.locator(".activity-day-strip button")).toHaveCount(7);
   await expect(panel.locator(".activity-period-heading").first()).toContainText("6 条收藏");
-  await expect(month.locator(".activity-bucket-range")).toHaveText("2026-10-01–2026-10-18");
+  await expect(month.locator(".activity-bucket-range")).toHaveText("10/1 – 10/18");
   await expect(month.locator(".activity-bucket-count")).toHaveText("4");
   await expect(month).toHaveAttribute("aria-label", /2026-10-01–2026-10-18 UTC/);
   await expect(page.locator(".session-row")).toContainText("Existing saving context");
@@ -132,7 +132,8 @@ test("a week crossing a month uses the service cutoff for the partial previous m
   await page.goto("/app"); await enterSessions(page);
   const panel = page.locator(".activity-timeline"), month = panel.locator('[data-period="month:2026-07"]');
   await expect(panel.locator(".activity-period-heading").first()).toContainText("2026-07-29–2026-08-04 · UTC");
-  await expect(month.locator(".activity-bucket-range")).toHaveText("2026-07-01–2026-07-28");
+  await expect(month.locator(".activity-bucket-range")).toHaveText("7/1 – 7/28");
+  await expect(month).toHaveAttribute("aria-label", /2026-07-01–2026-07-28 UTC/);
   await month.focus(); await month.press("Enter");
   await expect(page.locator(".workspace-search input")).toHaveValue("added:>=2026-07-01 added:<2026-07-29");
   await expect(page.locator(".result-count")).toHaveText("4");
@@ -225,6 +226,11 @@ test("Chinese and English activity stays compact at 320px and keyboard focus scr
     await expect(lastDay).toBeInViewport({ ratio: 1 });
     expect(await panel.locator(".activity-day-strip").evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    const rangesFit = await panel.locator(".activity-bucket-range").evaluateAll(elements => elements.every(element => {
+      const lineHeight = parseFloat(getComputedStyle(element).lineHeight);
+      return element.scrollHeight <= lineHeight + 1 && element.scrollWidth <= element.clientWidth + 1;
+    }));
+    expect(rangesFit).toBe(true);
     await settleVisualLayout(page);
     await page.screenshot({ path: "screenshots/collection-review/activity-timeline-" + width + ".png", animations: "disabled" });
   }
