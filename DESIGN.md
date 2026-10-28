@@ -209,8 +209,10 @@ sessions into a component-owned list. Date cells use content-sized 16px corners;
 session rows use 20px corners (18px narrow), while action controls remain capsules.
 Date strips expose arrow buttons and accept ordinary mouse wheels. Reading text
 size has five local levels and a reset, with unchanged default typography.
-These are source changes pending cloud rendering and user review. The complete
-reference comparison and current evidence are in
+Application dad2966 passed CI, collection, experience and installed Windows checks.
+The 320px month cell fits both its date range and count. Representative cloud
+captures were checked against source and image hashes; user review remains open.
+The complete reference comparison and current evidence are in
 [the usability record](docs/githubstarsmanager-gap-audit-2026-10-26.md).
 
 The implemented system uses mist-blue surroundings, porcelain content surfaces,
@@ -228,8 +230,8 @@ frontend build and real OpenCode checks but found regression failures. Follow-up
 adds durable cited chat, compact selected-chat access, actual processing limits,
 optional MCP, timeline/health, detailed imports, bounded site imports and portable
 reading/chat restoration. Each secondary surface owns its CSS and uses the existing
-capsule controls. Follow-up builds, captures and installed checks remain pending;
-see [desktop completion](docs/desktop-completion-2026-10-25.md).
+capsule controls. That earlier follow-up passed at 81f310a; its evidence is
+revision-specific. See [desktop completion](docs/desktop-completion-2026-10-25.md).
 
 Application/capture 8af69ae verified the preceding layout/native revision: 10 CI jobs,
 97 browser passes/2 skips, 21 collection checks and the installed Windows workflow.

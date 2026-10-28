@@ -69,7 +69,10 @@ saved connection reuse, direct thinking effort selection, a visible select-all
 capsule, content-sized saving sessions, ordinary mouse scrolling, metadata-only
 session organization and local reading text size. Code, remaining reference gaps
 and verification limits are in docs/githubstarsmanager-gap-audit-2026-10-26.md.
-Local source changes have no current browser/installed validation or aesthetic
+Application/capture dad2966 passed the four current cloud workflows. The review
+matched 163 source fingerprints and 8 downloaded image hashes; 320px month cards
+retain the count and date, and long session titles use the available row width.
+Browser and installed checks establish their tested scope, with no user aesthetic
 approval. The older authorization and successful runs below are historical.
 
 Latest 2026-10-25 request: remove site classification and repeated summary-selection/

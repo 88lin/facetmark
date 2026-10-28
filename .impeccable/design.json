@@ -1235,33 +1235,35 @@
     "tonalRampProvenance": "Generated 8-step OKLCH strips for the design panel only. They are not shipped palette tokens or verified contrast combinations.",
     "specimenScope": "Static, self-contained HTML/CSS visual states with inline SVG and root-token fallbacks. Runtime controls, selection geometry, layout springs, focus management and data behavior remain in the React application. The bundled font aliases use platform fallbacks if the host has not loaded those fonts.",
     "evidence": {
-      "status": "source-updated-awaiting-cloud-verification-and-user-review",
+      "status": "technically-verified-awaiting-user-review",
       "visualAcceptance": "awaiting-user-review",
-      "sourceState": "Folder/tag directory without site classification; inline select-all and direct summary generation; AI-generated titles, editable writing instructions and target language; merged overview/source reader; endpoint and detected-Agent thinking controls; tray surround padding and native shadow removed.",
-      "sourceBasis": "Current 2026-10-26 usability source changes are based on main 9eeefd0. Browser, full build and installed verification of this revision are pending.",
-      "applicationRevision": null,
-      "captureRevision": null,
-      "lastVerifiedApplicationRevision": "8af69ae4a4820d65d6a0589870428ed58a842fe0",
-      "lastVerifiedCaptureRevision": "8af69ae4a4820d65d6a0589870428ed58a842fe0",
+      "sourceState": "Saved connection and verification reuse; selectable high/xhigh/max; visible select-all capsule; saving-session content rows, retry-safe pagination and metadata-only organization; mouse/keyboard timeline navigation; narrow month cards; persistent reading size; stable chat temporary IDs; final JSON parsing after leading thinking blocks.",
+      "sourceBasis": "Application dad2966 on main 9eeefd0 passed CI, collection, experience and installed Windows workflows. Follow-up documentation changes do not alter the validated application. Review scope is recorded in docs/handoff-usability-2026-10-26.md.",
+      "applicationRevision": "dad2966b32f680073380d254d24ebf5a629565c9",
+      "captureRevision": "dad2966b32f680073380d254d24ebf5a629565c9",
+      "lastVerifiedApplicationRevision": "dad2966b32f680073380d254d24ebf5a629565c9",
+      "lastVerifiedCaptureRevision": "dad2966b32f680073380d254d24ebf5a629565c9",
       "handbookVersion": "0.18",
       "brief": ".impeccable/workbench-direction.md",
       "surface": ".impeccable/surfaces/frontend.md",
       "roundRecord": "docs/githubstarsmanager-gap-audit-2026-10-26.md",
-      "verification": "Eight small isolated checks passed: six connection/effort checks and two saving-session workflows. Ruff and source syntax passed. Full TypeScript checking is blocked by missing local HeroUI dependencies. Browser and installed checks remain on GitHub Actions.",
+      "verification": "CI and experience browser matrix: 159 passed, 2 skipped each. Collection: 93 passed. Separate 200k browser case passed. Full TypeScript/Vite, Python, real OpenCode CLI, frozen service and offline Windows install/startup/tray checks passed in Actions. Local isolated checks: 24 distinct tests, Ruff and syntax checks; no local install/build/browser execution.",
       "currentFollowup": {
-        "date": "2026-10-26",
+        "date": "2026-10-28",
         "branch": "fix/usability-connections-sessions-2026-10-26",
         "baseRevision": "9eeefd0",
-        "state": "local-source-changes-awaiting-cloud-verification",
+        "state": "application-verified-pr-open",
         "referenceRepository": "AmintaCCCP/GithubStarsManager",
-        "referenceRevision": "aa1e3c7473511132758c94a0b2365db6288c1eba",
+        "referenceRevision": "22fecdfd957919636f02a20f934bce6b92364b1d",
         "preservation": "Original bookmarks, stored text and model credentials are retained. Connection proofs and saving-session transactions are repaired.",
-        "authorization": "The user permits commits, pushes, PR creation or updates and required cloud verification for assigned work without repeated confirmation. Automatic merges and formal releases still require an explicit user instruction."
+        "authorization": "The user permits commits, pushes, PR creation or updates and required cloud verification for assigned work without repeated confirmation. Automatic merges and formal releases still require an explicit user instruction.",
+        "applicationRevision": "dad2966b32f680073380d254d24ebf5a629565c9",
+        "pr": "https://github.com/88lin/facetmark/pull/54"
       },
       "latestFeedback": {
         "date": "2026-10-26",
         "scope": "Thinking level choice, repeated model testing after reopening, select-all discoverability, saving sessions, mouse scrolling and broad reference-source comparison.",
-        "assessment": "The user reports the current product is unusable. Current fixes are not yet visually reviewed or accepted.",
+        "assessment": "The user reported the product was unusable. Current repairs have technical and representative visual evidence, with no user acceptance of the overall appearance.",
         "quote": "现在这个项目完全就用不了",
         "recordScope": "Project feedback and evidence remain in this repository only."
       },
@@ -1368,24 +1370,22 @@
         },
         "projectReferenceRecord": "docs/design-reference-project-record.md"
       },
-      "lastVerifiedTestRevision": "8af69ae4a4820d65d6a0589870428ed58a842fe0",
+      "lastVerifiedTestRevision": "dad2966b32f680073380d254d24ebf5a629565c9",
       "lastVerifiedRuns": {
-        "collection": "40084669829",
-        "pageCi": "40084572244",
-        "nativeSourceCi": "40084572244",
-        "windows": "40084665472"
+        "collection": "40665508196",
+        "pageCi": "40664895634",
+        "nativeSourceCi": "40664895634",
+        "experience": "40665514020",
+        "windows": "40665519203"
       },
       "pendingRuns": {},
       "lastVerifiedFingerprintReview": {
-        "sourceMatches": 79,
-        "mediaMatches": 26,
-        "mediaTotal": 95,
+        "applicationRevision": "dad2966b32f680073380d254d24ebf5a629565c9",
+        "sourceMatches": 163,
+        "mediaMatches": 8,
+        "mediaTotal": 121,
         "mismatches": 0,
-        "png": 88,
-        "currentSourceDifferences": [],
-        "installEvidenceArchiveSha256": "e1da84710a64bb9e588b8023b20eefb840ffeb63a9bf430db7987cc8340f02b4",
-        "collectionArchiveActionsDigest": "54f593643adc0a718be29111e4c95076d6f252d3d377ff4af6bd6a97c2e338e9",
-        "scope": "79 fingerprinted sources and 26 selected small media/records verified. Small installed archive digest independently matches Actions. Full collection/video and 297MB installer were not downloaded locally; their archive digests are Actions metadata only."
+        "scope": "All collection provenance source fingerprints and eight downloaded screenshots match this application revision. The eight representative captures were inspected; this is not review of all 121 images. Experience frame data matches 69 frontend sources: 18 action groups, no page errors or unexpected writes. Installed collection, empty reader and tray captures were inspected separately."
       },
       "previousNativeStartupScope": "Installed Enter at 8af69ae occurs with old PID 8308 and lock alive; no new spawn before confirmed exit. Replacement owned PID 7760 passes 12 health checks. CI controls shutdown timing; process, lock, native windows, Enter and service are real.",
       "previousNativeMenuReview": {
@@ -1421,7 +1421,25 @@
           256
         ]
       },
-      "projectReferenceRecord": "docs/design-reference-project-record.md"
+      "projectReferenceRecord": "docs/design-reference-project-record.md",
+      "previousFingerprintReview": {
+        "sourceMatches": 79,
+        "mediaMatches": 26,
+        "mediaTotal": 95,
+        "mismatches": 0,
+        "png": 88,
+        "currentSourceDifferences": [],
+        "installEvidenceArchiveSha256": "e1da84710a64bb9e588b8023b20eefb840ffeb63a9bf430db7987cc8340f02b4",
+        "collectionArchiveActionsDigest": "54f593643adc0a718be29111e4c95076d6f252d3d377ff4af6bd6a97c2e338e9",
+        "scope": "79 fingerprinted sources and 26 selected small media/records verified. Small installed archive digest independently matches Actions. Full collection/video and 297MB installer were not downloaded locally; their archive digests are Actions metadata only."
+      },
+      "currentMotionReview": {
+        "applicationRevision": "dad2966b32f680073380d254d24ebf5a629565c9",
+        "firstTransitionIntermediateValues": 12,
+        "firstTransitionMaxSampleGapMs": 83,
+        "settledOwnedStylesCleared": true,
+        "historicalFailure": "c285d31 recorded only two intermediate opacity/blur values around a 275ms rAF gap. The source of the pause was not isolated. The current full suite passed without changing animation code or relaxing assertions; no all-device frame-rate claim."
+      }
     },
     "componentSources": {
       "button-primary": "frontend/src/ui/controls.css",

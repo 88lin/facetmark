@@ -40,8 +40,10 @@ without requiring AI indexing. Reading text size is local to the reader.
 
 The current implementation and the full reference comparison are in
 [this round's record](../docs/githubstarsmanager-gap-audit-2026-10-26.md).
-Browser and installed evidence for this source are pending. Earlier cloud results
-apply only to their revisions. Continue commit/push/PR and cloud verification under
+Application dad2966 passed all four cloud workflows, including browser and installed
+Windows checks. Representative captures and source fingerprints were reviewed;
+see [the current handoff](../docs/handoff-usability-2026-10-26.md) for exact scope.
+Earlier cloud results apply only to their revisions. Continue commit/push/PR and cloud verification under
 the user's current project agreement without asking again. Overall aesthetics remain unapproved.
 
 ## Overall assessment and previous follow-up — 2026-10-24
