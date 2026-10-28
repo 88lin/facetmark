@@ -650,6 +650,7 @@ class SplitProvider(Provider):
 
 
 _JSON_FENCE = re.compile(r"```(?:json)?\s*(.*?)```", re.S)
+_THINKING_PREFIX = re.compile(r"<think>.*?</think>\s*", re.S | re.I)
 
 
 def parse_json_object(text: str) -> dict:
@@ -663,6 +664,14 @@ def parse_json_object(text: str) -> dict:
     if not isinstance(text, str):
         raise ProviderError("model returned no text JSON content")
     text = text.strip()
+    # Some compatible reasoning models prepend thought blocks to content.
+    # Strip only leading blocks: JSON examples inside them are not the answer,
+    # while literal tags inside a final JSON string must remain untouched.
+    while text[:7].lower() == "<think>":
+        block = _THINKING_PREFIX.match(text)
+        if block is None:
+            raise ProviderError("model returned an unfinished thinking block instead of JSON")
+        text = text[block.end():].strip()
     for candidate in (text, *(m.group(1).strip() for m in _JSON_FENCE.finditer(text))):
         try:
             got = json.loads(candidate)

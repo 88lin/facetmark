@@ -564,6 +564,27 @@ class TestChatAndEmbeddingsNeedNotComeFromTheSamePlace:
 
 class TestJsonRecovery:
     @pytest.mark.parametrize("text", [
+        '<think>Consider {"draft": true}</think>{"a": 1}',
+        '<think>```json\n{"a": 0}\n```</think>```json\n{"a": 1}\n```',
+        '  <THINK>Consider an unmatched {</THINK>\n{"a": 1}',
+        '<think>first</think>\n<think>second {}</think>Here is the result: {"a": 1}',
+    ])
+    def test_inline_thinking_never_becomes_the_answer(self, text):
+        assert parse_json_object(text) == {"a": 1}
+
+    @pytest.mark.parametrize("text", [
+        '<think>{"a": 0}</think>',
+        '<think>```json\n{"a": 0}\n```',
+    ])
+    def test_thinking_without_a_final_answer_is_an_error(self, text):
+        with pytest.raises(ProviderError):
+            parse_json_object(text)
+
+    def test_literal_thinking_tags_in_saved_content_are_preserved(self):
+        text = '{"summary": "The <think>example</think> tag is described here."}'
+        assert parse_json_object(text) == {"summary": "The <think>example</think> tag is described here."}
+
+    @pytest.mark.parametrize("text", [
         '{"a": 1}',
         '```json\n{"a": 1}\n```',
         '```\n{"a": 1}\n```',

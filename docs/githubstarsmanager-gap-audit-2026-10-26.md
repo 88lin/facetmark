@@ -4,6 +4,35 @@
 全选控件不清楚，浏览批次外观、长文本和鼠标横向浏览不可用。用户对当前整体体验未认可。
 这份记录取代“功能已经补齐”作为本轮完成度依据；旧云端通过仅证明旧提交的检查范围。
 
+## 2026-10-28 源码复核与接续修复
+
+参考项目更新到 [`22fecdf`](https://github.com/AmintaCCCP/GithubStarsManager/tree/22fecdfd957919636f02a20f934bce6b92364b1d)。
+与下表原对照版本 `aa1e3c7` 相比，共 19 个提交、27 个文件变化。本次使用 Git tree/blob
+核对已有资料：含 README 在内的 85 份资料中 79 份未变，6 份功能源码变化；另读取
+11 份当前生产源码，覆盖新增流水线及调用它们的设置、搜索和列表入口。没有运行参考
+应用，也没有使用个人账号数据；以下新增结论来自源码，而非 README 的功能描述。
+
+| 新增或变化 | 参考实现 | Facetmark 的实际边界 |
+| --- | --- | --- |
+| 多路搜索与阶段回退 | [vectorSearchPipeline.ts](https://github.com/AmintaCCCP/GithubStarsManager/blob/22fecdfd957919636f02a20f934bce6b92364b1d/src/services/vectorSearchPipeline.ts)：原始查询、HyDE、关键词、结构化信号融合，各阶段预算、取消和回退诊断。 | 已有词法/向量融合、意图理解、上下文、可选重排、图扩展与无向量退化；算法和召回质量不是相同实现，仍需独立语料评测。 |
+| 交叉编码器重排 | [crossEncoderReranker.ts](https://github.com/AmintaCCCP/GithubStarsManager/blob/22fecdfd957919636f02a20f934bce6b92364b1d/src/services/crossEncoderReranker.ts)：仅在配置 SiliconFlow 时使用固定 BGE 模型；校验索引和分数，失败回退。 | 不能把“有重排”写成已支持参考项目的远程 BGE 协议；此远程协议尚未提供独立连接入口。 |
+| 相似内容专用召回 | [similarRepositoryPipeline.ts](https://github.com/AmintaCCCP/GithubStarsManager/blob/22fecdfd957919636f02a20f934bce6b92364b1d/src/services/similarRepositoryPipeline.ts)：源仓库资料、可选 README、本地/AI 画像、语义与关键词召回及重排。修复返回与自定义排序下的相似视图。 | 本项目 `/bookmark/{id}/related` 读取已保存的关系图；它不等价于实时双路相似内容搜索。这是新增明确差距。 |
+| 思考输出中的 JSON | [aiService.ts](https://github.com/AmintaCCCP/GithubStarsManager/blob/22fecdfd957919636f02a20f934bce6b92364b1d/src/services/aiService.ts)：处理模型内容中的思考标签，避免其中括号干扰 JSON 解析。 | 发现本项目同类问题并修复：仅移除开头完整的 `<think>` 块，保留最终 JSON 字符串中的字面标签；只有思考或思考被截断时仍报错，不保存其中的草稿。API 与 Agent 共用此解析入口。 |
+
+本轮完成的具体修正：
+
+1. 测试成功后主操作是“保存连接”，已保存显示“已保存”；保存失败保留测试结果，
+   重试只发送保存请求。更换模型、凭据、思考参数仍需重新测试，未变配置可直接使用。
+2. 聊天临时问题/回答使用不重复的本地编号，消除时间戳跨毫秒导致的 React key 碰撞。
+3. 320/390px 批次行的标题使用整行宽度；加载更多失败后重试原页且保留已加载行，
+   整理失败重试整理操作。日期滚轮、箭头和键盘延续上轮实现并参与回归。
+4. JSON 思考块问题先用合成输出复现 6 项失败，修正后 JSON、请求档位传递和连接复用
+   22 项通过；批次事务另有 2 项通过。语法、Ruff 与 UI 静态检查通过。
+5. 完整体验超时从 25 调整到 40 分钟，覆盖原本来不及执行的视频和发行包内容验证。
+
+当前 Actions、截图复核与遗留项目统一见 [交接记录](handoff-usability-2026-10-26.md)。
+下表保留原固定版本的完整功能对照，以上补充覆盖这两天的生产代码差异。
+
 ## 源码依据和核对方法
 
 - Facetmark 基线：`main@9eeefd0`，发行版本 2.1.0。本轮为其上的未发布修复。
