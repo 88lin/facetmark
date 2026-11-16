@@ -114,7 +114,7 @@ def _record(value: Any) -> dict | None:
     date = value["date_added"]
     if date is not None and (type(date) is not int or not 0 <= date <= 32503680000):
         _fail("Invalid date_added in synchronization file")
-    return {**clean.model_dump(), "tags": sorted(clean.tags), "date_added": date}
+    return {**clean.model_dump(exclude={"request_id"}), "tags": sorted(clean.tags), "date_added": date}
 
 
 def _decode(content: bytes) -> dict:

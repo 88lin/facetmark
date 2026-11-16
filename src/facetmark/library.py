@@ -579,9 +579,11 @@ def register(app: FastAPI, auth: list) -> None:
     deps = [*auth, Depends(admin.admin_gate)]
 
     def writable(state):
-        if (state.jobs.running or state.crawls.running or state.health_running or state.model_users
+        # Link checks revalidate each page's identity before storing results.
+        # Local edits may proceed while those independent requests are waiting.
+        if (state.jobs.running or state.crawls.running or state.model_users
                 or any(not task.done() for task in state.chat_runs.values())):
-            raise HTTPException(409, "Wait for active processing, replies or link checks before changing bookmarks")
+            raise HTTPException(409, "Wait for active processing or replies before changing bookmarks")
 
     def perform(state, request_id: str | None, action: str, content: dict, write: Callable[[], dict]) -> dict:
         fingerprint = hashlib.sha256(json.dumps([action, content], ensure_ascii=False, sort_keys=True,
