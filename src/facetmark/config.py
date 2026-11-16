@@ -66,17 +66,18 @@ class ConfigFileSource(PydanticBaseSettingsSource):
     year.
     """
 
-    def __init__(self, settings_cls: type[BaseSettings]) -> None:
+    def __init__(self, settings_cls: type[BaseSettings], data_dir: Path | None = None) -> None:
         super().__init__(settings_cls)
         self._data: dict[str, object] | None = None
+        self.path = config_path(data_dir)
 
     @property
     def data(self) -> dict[str, object]:
         if self._data is None:
             try:
-                self._data = read_config()
+                self._data = read_config(self.path)
             except Exception as exc:  # noqa: BLE001 - re-raised with the path
-                raise ValueError(f"cannot read {config_path()}: {exc}") from exc
+                raise ValueError(f"cannot read {self.path}: {exc}") from exc
         return self._data
 
     def get_field_value(self, field: object, field_name: str) -> tuple[object, str, bool]:
@@ -105,20 +106,28 @@ class Settings(BaseSettings):
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         """Priority, highest first. The config file is deliberately last."""
-        sources = (
+        external_sources = (
             init_settings,
             env_settings,
             dotenv_settings,
             file_secret_settings,
-            ConfigFileSource(settings_cls),
         )
 
         def channels_by_source() -> dict:
+            values_by_source = [dict(source()) for source in external_sources]
+            directory = next(
+                (values["data_dir"] for values in values_by_source if "data_dir" in values),
+                None,
+            )
+            selected = (
+                Path(os.path.expandvars(str(directory))).expanduser()
+                if directory is not None else default_data_dir()
+            )
+            file_values = ConfigFileSource(settings_cls, selected)()
             # Resolve endpoint/key pairs together, low priority first. A key
             # belongs to an endpoint, never to an arbitrary higher-level URL.
             merged: dict = {}
-            for source in reversed(sources):
-                values = dict(source())
+            for values in reversed([*values_by_source, file_values]):
                 old_url = merged.get('base_url', 'https://api.openai.com/v1')
                 legacy_url = values.get('base_url', old_url)
                 if legacy_url.rstrip('/') != old_url.rstrip('/') and 'api_key' not in values:

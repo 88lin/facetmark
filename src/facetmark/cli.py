@@ -18,6 +18,7 @@ import asyncio
 import json
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 import typer
@@ -85,22 +86,36 @@ err = Console(stderr=True)
 
 
 def _settings(db: Path | None = None, mock: bool = False) -> Settings:
-    st = get_settings()
     over: dict = {}
     if db is not None:
-        over["data_dir"] = str(db.parent if db.suffix else db)
-        if db.suffix:
+        database_file = bool(db.suffix) and not db.is_dir()
+        over["data_dir"] = db.parent if database_file else db
+        if database_file:
             over["db_name"] = db.name
     if mock:
         over["use_mock_provider"] = True
-    if over:
-        st = get_settings(**{**st.model_dump(), **over})
+    st = get_settings(**over)
     st.ensure_dirs()
     return st
 
 
 def _open(st: Settings):
     return open_db(st.db_path)
+
+
+def _write_text_atomically(target: Path, text: str) -> None:
+    """Finish and flush a sibling file before replacing an existing output."""
+    descriptor, name = tempfile.mkstemp(dir=target.parent, prefix=f".{target.name}.", suffix=".tmp")
+    os.close(descriptor)
+    pending = Path(name)
+    try:
+        with pending.open("w", encoding="utf-8", newline="\n") as stream:
+            stream.write(text)
+            stream.flush()
+            os.fsync(stream.fileno())
+        pending.replace(target)
+    finally:
+        pending.unlink(missing_ok=True)
 
 
 def _fmt_ts(ts: int | None) -> str:
@@ -632,7 +647,11 @@ def export(
         # a file that happens to be going to a pipe.
         sys.stdout.write(text + "\n")
         return
-    out.write_text(text + "\n", encoding="utf-8")
+    try:
+        _write_text_atomically(out, text + "\n")
+    except OSError as exc:
+        err.print(f"Could not write backup to {out}: {exc}", markup=False)
+        raise typer.Exit(1) from None
     n = payload["facetmark"]["count"]
     console.print(f"wrote {n} bookmark(s) to {out}")
     console.print("[dim]restore:[/dim] facetmark import "
@@ -1015,7 +1034,7 @@ def eval_cmd(
     ))
     if out:
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        _write_text_atomically(out, json.dumps(payload, ensure_ascii=False, indent=2))
         err.print(f"[dim]wrote {out}[/dim]")
     if _emit(payload, json_out):
         return

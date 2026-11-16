@@ -22,13 +22,14 @@ from __future__ import annotations
 
 import sqlite3
 import time
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from contextlib import AsyncExitStack
 from dataclasses import dataclass, field
 from typing import TypeVar
 
 from ..config import Settings, get_settings
 from ..db import in_chunks, jload
-from ..providers import MockProvider, Provider, get_provider
+from ..providers import MockProvider, Provider, get_chat_provider, get_embed_provider
 from . import abstain
 from .context import ContextSignals, build_context, window_filter
 from .decay import cold_bookmark_ids, decay_hits
@@ -1021,9 +1022,44 @@ async def search(
 ) -> SearchResponse:
     """Run the full retrieval pipeline for one query."""
     s = settings or get_settings()
-    prov = provider or get_provider(s)
     if config is None:
-        config = default_config(s, prov)
+        config = default_config(s, provider)
+    owned: dict[str, Provider] = {}
+    async with AsyncExitStack() as resources:
+        def provider_for(channel: str) -> Provider:
+            if provider is not None:
+                return provider
+            if channel not in owned:
+                created = get_embed_provider(s) if channel == "embed" else get_chat_provider(s)
+                resources.push_async_callback(created.aclose)
+                owned[channel] = created
+            return owned[channel]
+
+        return await _search_with_providers(
+            conn, query, limit=limit, offset=offset, depth=depth, config=config,
+            provider_for=provider_for, settings=s, reranker=reranker,
+            understanding=understanding, assist=assist, now_ts=now_ts,
+            expand_limit=expand_limit,
+        )
+
+
+async def _search_with_providers(
+    conn: sqlite3.Connection,
+    query: str,
+    *,
+    limit: int,
+    offset: int,
+    depth: int | None,
+    config: Config,
+    provider_for: Callable[[str], Provider],
+    settings: Settings,
+    reranker: Reranker | None,
+    understanding: QueryUnderstanding | None,
+    assist: bool,
+    now_ts: int | None,
+    expand_limit: int,
+) -> SearchResponse:
+    s = settings
     config, degraded_from = degrade_for_vector_store(conn, config)
     # The query language splits "what to match" from "what to require": the
     # facets see the free text (phrases intact for the lexical paths, syntax
@@ -1043,8 +1079,8 @@ async def search(
     t0 = time.perf_counter()
     if understanding is None:
         understanding = (
-            await classify_assisted(query, provider=prov, now_ts=now_ts)
-            if assist
+            await classify_assisted(query, provider=provider_for("chat"), now_ts=now_ts)
+            if assist and not parsed.is_browse
             else classify(query, now_ts=now_ts)
         )
     mark("understand", t0)
@@ -1085,6 +1121,10 @@ async def search(
     # to require a filter, so ``sort:date`` answered nothing here while the
     # first paint answered the whole library.
     browse = parsed.is_browse
+    active_vectors = (
+        config.facets & vector_facets_present(conn)
+        if not browse and config.facets & VECTOR_FACETS and embed_query else frozenset()
+    )
     # A positive filter constrains *retrieval*, not just the list retrieval
     # happened to return: `postgres domain:github.com` on a library where the
     # github pages rank 200th for "postgres" used to come back empty from a
@@ -1103,7 +1143,7 @@ async def search(
     gate = None if browse else include_predicate(parsed)
     allow = (
         _eligible_ids(conn, parsed)
-        if not browse and config.facets & VECTOR_FACETS and embed_query
+        if active_vectors
         else None
     )
     if browse:
@@ -1128,12 +1168,12 @@ async def search(
         mark("lexical", t0)
 
         t0 = time.perf_counter()
-        if config.facets & VECTOR_FACETS and embed_query:
+        if active_vectors:
             vrows, _vec = await vector_lists_scored(
-                conn, embed_query, provider=prov, settings=s,
+                conn, embed_query, provider=provider_for("embed"), settings=s,
                 limit=per_facet * (VECTOR_FILTER_OVERFETCH if allow else 1),
-                want_content="content" in config.facets,
-                want_intent="intent" in config.facets,
+                want_content="content" in active_vectors,
+                want_intent="intent" in active_vectors,
             )
             scored.update(_gate_scored(vrows, allow, per_facet))
         mark("vectors", t0)
@@ -1157,12 +1197,12 @@ async def search(
         mark("lexical", t0)
 
         t0 = time.perf_counter()
-        if config.facets & VECTOR_FACETS and embed_query:
+        if active_vectors:
             vlists, _vec = await vector_lists(
-                conn, embed_query, provider=prov, settings=s,
+                conn, embed_query, provider=provider_for("embed"), settings=s,
                 limit=per_facet * (VECTOR_FILTER_OVERFETCH if allow else 1),
-                want_content="content" in config.facets,
-                want_intent="intent" in config.facets,
+                want_content="content" in active_vectors,
+                want_intent="intent" in active_vectors,
             )
             lists.update(_gate_lists(vlists, allow, per_facet))
         mark("vectors", t0)
@@ -1268,7 +1308,9 @@ async def search(
     rr_name = ""
     if config.rerank and hits and not browse:
         t0 = time.perf_counter()
-        rr = reranker or get_reranker(s, prov)
+        rr = reranker or get_reranker(
+            s, provider_for("chat") if s.channel_ready("chat") and not s.use_mock_provider else None,
+        )
         rr_name = rr.name
         # Bound the *scoring*, not just the reorder. `depth=len(hits)` scored
         # the whole page. The reranker is listwise -- one call, a line per
