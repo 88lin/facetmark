@@ -149,6 +149,7 @@ test("narrow reading leaves the collection layout and scroll in place through co
     await expect(page.locator(".result-row")).toHaveCount(30);
     const opener = page.locator(".result-row").nth(12);
     const trigger = opener.locator(".bookmark-preview");
+    await settleVisualLayout(page);
     await trigger.scrollIntoViewIfNeeded();
     await settleVisualLayout(page);
     await expect(trigger).toBeInViewport({ ratio: 1 });
