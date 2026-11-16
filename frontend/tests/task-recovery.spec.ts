@@ -89,7 +89,9 @@ async function realTasks(page: Page, owned: Owned) {
   return control;
 }
 
-test("a lost real summary start survives refresh and an accepted task only rereads after a status failure", async ({ page, request, owned }) => {
+for (const viewport of [{ width: 1280, height: 850 }, { width: 683, height: 384 }, { width: 320, height: 640 }])
+test(`a lost real summary start survives refresh and status failure at ${viewport.width} by ${viewport.height}`, async ({ page, request, owned }) => {
+  await page.setViewportSize(viewport);
   const title = "task" + randomUUID().replaceAll("-", ""), record = await owned.create(title);
   const control = await realTasks(page, owned); control.lostResponse = true; control.failReceipts = true;
   let release!: () => void; control.hold = new Promise(resolve => { release = resolve; });
@@ -109,6 +111,8 @@ test("a lost real summary start survives refresh and an accepted task only rerea
   await expect(recovery.getByRole("button", { name: "读取任务结果", exact: true })).toBeEnabled();
   expect(control.starts).toEqual([original]);
   control.failReceipts = false; control.failCurrent = true;
+  await expect(page.locator(".connection-error")).toBeVisible();
+  await page.screenshot({ path: `screenshots/collection-review/task-connection-error-${viewport.width}-${viewport.height}.png` });
   await recovery.getByRole("button", { name: "读取任务结果", exact: true }).click();
   await expect(recovery).toContainText("操作已接受");
   await expect(recovery.getByRole("button", { name: "继续原任务请求", exact: true })).toHaveCount(0);
@@ -123,6 +127,7 @@ test("a lost real summary start survives refresh and an accepted task only rerea
   await expect(recovery).toHaveCount(0); expect(await pending(page)).toEqual([]); expect(control.starts).toEqual([original]);
   const accepted = await request.get(`/admin/jobs/operations/${original.request_id}`, { headers: owned.headers });
   expect(accepted.ok()).toBeTruthy(); expect((await accepted.json()).result.params.bookmark_ids).toEqual([record.bookmark_id]);
+  await expect(page.locator(".connection-error")).toHaveCount(0);
 });
 
 test("an unaccepted network failure retries the original selection and request ID after changing the visible query", async ({ page, owned }) => {
