@@ -363,9 +363,10 @@ function Workbench({
     },
   });
   const taskBusy = taskOperations.busy || taskOperations.operations.length > 0;
+  const processingBusy = taskBusy || Boolean(job.health_check_running);
   const taskCancelBusy = taskOperations.busy || taskOperations.operations.some(value => value.change.kind === "cancel"
     && value.change.jobId === job.id && value.change.runId === job.run_id);
-  const summaryGeneration = useSummaryGeneration({ setup, running: job.state === "running" || taskBusy, language,
+  const summaryGeneration = useSummaryGeneration({ setup, running: job.state === "running" || processingBusy, language,
     onTask: taskOperations.run });
   function handleLibraryAction(action: LibraryAction) {
     if (action.kind === "process" && action.mode === "summarize") void summaryGeneration.generate(action);
@@ -735,6 +736,7 @@ function Workbench({
       onAction={adminAvailable ? handleLibraryAction : undefined}
       onChat={adminAvailable ? chatWithBookmark : undefined}
       running={job.state === "running"}
+      processingDisabled={processingBusy}
       onQuery={(q) => {
         changeQuery(q);
         if (drawer) closePreview();
@@ -1140,6 +1142,7 @@ function Workbench({
                 {adminAvailable && selected === null && <LibraryToolbar
                   batch={batchMode && !allMatching} ids={selectedIds} pageIds={items.map(item => item.bookmark_id)}
                   disabled={job.state === "running" || summaryGeneration.busy || taskBusy} pending={scopePending || summaryGeneration.busy || taskBusy || chatSelectionBusy}
+                  processingDisabled={processingBusy}
                   onBatch={value => { setBatchMode(value); if (!value || allMatching) { setSelectedIds([]); setAllMatching(false); setExcludedIds([]); } }}
                   onIds={setSelectedIds} onAction={handleLibraryAction} onChat={() => void chatWithSelection()}
                   selectedCount={allMatching ? Math.max(0, (page?.total || 0) - excludedIds.length) : selectedIds.length}
@@ -1163,7 +1166,7 @@ function Workbench({
                 {selected === null && !(search.trim() && searchMode === "semantic" && semantic) && <CollectionTools scope={collectionScope} page={page} display={summaryDisplay} onDisplay={setSummaryDisplay}
                   sort={collectionSort} onSort={value => { setCollectionSort(value); setOffset(0); }}
                   onStatus={value => { setSummaryStatus(value); setOffset(0); }} disabled={scopePending}
-                  job={job} onTask={taskOperations.run} taskBusy={taskBusy} admin={adminAvailable}/>}
+                  job={job} onTask={taskOperations.run} taskBusy={processingBusy} admin={adminAvailable}/>}
                 <div className="search-controls">
                   <div className="search-meta">
                     {semantic && <select className="search-mode-select" aria-label={t("检索方式", "Search mode")} value={searchMode}
@@ -1290,6 +1293,7 @@ function Workbench({
                     indexVisible={!drawer && !focusReading}
                     checked={allMatching ? !excludedIds.includes(record.bookmark_id) : selectedIds.includes(record.bookmark_id)}
                     disabled={scopePending || summaryGeneration.busy || taskBusy} display={summaryDisplay}
+                    processingDisabled={processingBusy}
                     onEdit={adminAvailable && job.state !== "running" && !taskBusy ? () => setLibraryAction({ kind: "edit", record }) : undefined}
                     onCheck={() => {
                       if (allMatching) setExcludedIds(ids => ids.includes(record.bookmark_id) ? ids.filter(id => id !== record.bookmark_id) : [...ids, record.bookmark_id].slice(0, 10000));
@@ -1409,7 +1413,7 @@ function Workbench({
                 job={job}
                 refresh={refreshImportedCollection}
                 onTask={taskOperations.run}
-                taskBusy={taskBusy}
+                taskBusy={processingBusy}
                 cancelBusy={taskCancelBusy}
                 onProcess={(mode) => handleLibraryAction({ kind: "process", mode })}
                 onDone={() => {
@@ -1436,8 +1440,8 @@ function Workbench({
                   <div><h1>{t("任务与诊断", "Tasks and diagnostics")}</h1><p>{t("查看进度，继续处理未完成的收藏。", "Follow progress and resume unfinished work.")}</p></div>
                   <CapsuleButton className="text-button support-back" onClick={() => openView("library")}><ArrowLeft size={16}/>{t("返回收藏", "Back to collection")}</CapsuleButton>
                 </header>
-                <Tasks job={job} setup={setup} onTask={taskOperations.run} taskBusy={taskBusy} cancelBusy={taskCancelBusy} onBack={() => openView("library")} onProcess={(mode) => handleLibraryAction({ kind: "process", mode })} />
-                <HealthTools disabled={job.state === "running"} onPreview={id => { openView("library"); select(id); }} />
+                <Tasks job={job} setup={setup} onTask={taskOperations.run} taskBusy={processingBusy} cancelBusy={taskCancelBusy} onBack={() => openView("library")} onProcess={(mode) => handleLibraryAction({ kind: "process", mode })} />
+                <HealthTools disabled={job.state === "running" || taskBusy} onChanged={() => { void refresh(); }} onPreview={id => { openView("library"); select(id); }} />
               </>
             ) : (
               <SavingSessions language={language} revision={sessionsRevision} disabled={job.state === "running" || job.state === "pausing"}
@@ -1486,7 +1490,7 @@ function Workbench({
         onTask={taskOperations.run}
         facets={facets}
         setup={setup}
-        running={job.state === "running"}
+        running={job.state === "running" || libraryAction?.kind === "process" && processingBusy}
         pageIds={items.map((item) => item.bookmark_id)}
         selectedIds={selectedIds}
         filters={filters}

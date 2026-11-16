@@ -8,9 +8,10 @@ import { useReducedMotion } from "./useReducedMotion";
 import { CollectionFolderIcon } from "./CollectionFolderIcon";
 import "./bookmark-card.css";
 
-export function BookmarkCard({ record, selected, indexVisible, checked, disabled, display, entranceOrder = 0, onCheck, onPreview, onSummarize, onEdit }: {
+export function BookmarkCard({ record, selected, indexVisible, checked, disabled, processingDisabled = false, display, entranceOrder = 0, onCheck, onPreview, onSummarize, onEdit }: {
   record: Bookmark; selected: boolean; checked: boolean; disabled: boolean;
   indexVisible: boolean;
+  processingDisabled?: boolean;
   entranceOrder?: number;
   display: "summary" | "original"; onCheck: () => void;
   onPreview: (button: HTMLButtonElement) => void; onSummarize?: () => void; onEdit?: () => void;
@@ -151,7 +152,7 @@ export function BookmarkCard({ record, selected, indexVisible, checked, disabled
     <div className="bookmark-metadata">
       <div className={`bookmark-status ${status === "failed" ? "summary-failure" : ""}`} data-summary-status={status}>
         <StatusIcon size={14} aria-hidden="true"/><span>{statusLabel}</span>
-        {status === "failed" && onSummarize && <Button type="button" className="bookmark-retry" disabled={disabled}
+        {status === "failed" && onSummarize && <Button type="button" className="bookmark-retry" disabled={disabled || processingDisabled}
           onClick={onSummarize}>{t("重试", "Retry")}</Button>}
       </div>
       {!!record.tags?.length && <ul className="bookmark-tags" aria-label={t("标签", "Tags")}>
@@ -166,7 +167,7 @@ export function BookmarkCard({ record, selected, indexVisible, checked, disabled
       <div className="bookmark-actions">
         {onEdit && <Button type="button" className="bookmark-action" disabled={disabled} onClick={onEdit}
           aria-label={t(`编辑：${title}`, `Edit: ${title}`)} title={t("编辑收藏", "Edit bookmark")}><Pencil size={16}/></Button>}
-        {onSummarize && <Button type="button" className="bookmark-action" disabled={disabled} onClick={onSummarize}
+        {onSummarize && <Button type="button" className="bookmark-action" disabled={disabled || processingDisabled} onClick={onSummarize}
           aria-label={t("生成此条摘要", "Summarize this bookmark")} title={t("生成摘要", "Summarize")}><Sparkles size={16}/></Button>}
         <Button ref={previewControl} type="button" className="bookmark-preview" disabled={disabled} onClick={event => onPreview(event.currentTarget)}
           onKeyDown={event => {

@@ -338,6 +338,20 @@ CREATE TABLE IF NOT EXISTS client_operation (
     created_at INTEGER NOT NULL
 );
 
+-- Network checks belong to one original request, including after its response is lost.
+CREATE TABLE IF NOT EXISTS health_run (
+    request_id TEXT PRIMARY KEY,
+    fingerprint TEXT NOT NULL,
+    params TEXT NOT NULL,
+    targets TEXT NOT NULL,
+    state TEXT NOT NULL,
+    started_at INTEGER NOT NULL,
+    finished_at INTEGER,
+    report TEXT,
+    error TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS ix_health_run_started ON health_run(started_at DESC,request_id DESC);
+
 CREATE TABLE IF NOT EXISTS import_run (
     id TEXT PRIMARY KEY,
     source TEXT NOT NULL,

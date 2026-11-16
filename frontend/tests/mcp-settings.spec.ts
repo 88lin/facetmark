@@ -131,14 +131,20 @@ test("five settings categories retain keyboard focus, drafts and narrow-window w
 
 test("link health shows saved and confirmed results without automatically checking URLs", async ({ page }) => {
   const checks: Record<string, unknown>[] = [];
+  let healthRun: Record<string, unknown> | null = null;
+  const libraryId = "a".repeat(64);
+  await page.route("**/link-health/runs/current", route => route.fulfill({ json: { library_id: libraryId, running: false, run: healthRun } }));
   await page.route("**/link-health/summary", route => route.fulfill({ json: { alive: 12, gone: 2, unchecked: 4 } }));
   await page.route("**/graveyard?**", route => route.fulfill({ json: [{ bookmark_id: 1, title: "Saved page",
     ai_title: "保留的旧页面", url: "https://synthetic.invalid/dead", domain: "synthetic.invalid", folder: "",
     health: { status: "gone", checked_at: 1792882800, archive_url: "https://archive.example/saved" } }] }));
   await page.route("**/link-health/check", route => {
-    checks.push(route.request().postDataJSON());
-    return route.fulfill({ json: { considered: 18, probed: 18, escalated: 2, recovered_bodies: 1,
-      by_status: { alive: 16, restricted: 1, gone: 1 }, confirmed_gone: [1], errors: [] } });
+    const original = route.request().postDataJSON(); checks.push(original);
+    healthRun = { request_id: original.request_id, state: "done", params: { limit: original.limit, ids: null, expected_library: libraryId },
+      targets_count: 18, started_at: 1794900000, finished_at: 1794900001, error: "", report: {
+        considered: 18, probed: 18, escalated: 2, recovered_bodies: 1,
+        by_status: { alive: 16, restricted: 1, gone: 1 }, confirmed_gone: [1], errors: [] } };
+    return route.fulfill({ json: healthRun });
   });
   await page.route("**/bookmark/1?body=true", route => route.fulfill({ json: { bookmark_id: 1, title: "Saved page",
     ai_title: "保留的旧页面", url: "https://synthetic.invalid/dead", domain: "synthetic.invalid", folder: "",
@@ -152,7 +158,7 @@ test("link health shows saved and confirmed results without automatically checki
   expect(checks).toHaveLength(0);
   await health.getByRole("combobox", { name: "链接检查数量", exact: true }).selectOption("50");
   await health.getByRole("button", { name: "检查链接", exact: true }).click();
-  await expect.poll(() => checks).toEqual([{ limit: 50 }]);
+  await expect.poll(() => checks).toEqual([{ limit: 50, request_id: expect.stringMatching(/^health-[a-f0-9-]+$/), expected_library: libraryId }]);
   await expect(health.locator(".health-latest")).toContainText("检查了 18 条链接");
   await expect(health.locator(".health-latest")).toContainText("找回 1 条正文");
   await expect(health.locator("pre")).toHaveCount(0);

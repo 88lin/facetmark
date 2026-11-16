@@ -24,12 +24,13 @@ export type LibraryAction =
   | { kind: "process"; mode: "fetch" | "summarize"; ids?: number[]; scope?: CollectionScope; scopeLabel?: string; reprocess?: boolean };
 
 export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch, onIds, onAction, onSummarize,
-  selectedCount, allSelected, total, crossPage, onAll, onClear, onChat }: {
+  selectedCount, allSelected, total, crossPage, onAll, onClear, onChat, processingDisabled = false }: {
   batch: boolean; ids: number[]; pageIds: number[]; disabled: boolean; pending: boolean;
   onBatch: (value: boolean) => void; onIds: (ids: number[]) => void;
   onAction: (action: LibraryAction) => void;
   onSummarize: () => void;
   onChat?: () => void;
+  processingDisabled?: boolean;
   selectedCount: number; allSelected: boolean; total: number; crossPage: boolean; onAll: () => void; onClear: () => void;
 }) {
   const t = useText();
@@ -78,7 +79,7 @@ export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch
       <span>{t("全选", "Select all")}</span>
       <span className="library-selection-count" role="status">{selectedCount ? t("已选 " + selectedCount.toLocaleString(), selectedCount.toLocaleString() + " selected") : t("共 " + total.toLocaleString(), total.toLocaleString() + " total")}</span>
     </label>
-    <CapsuleButton className="primary library-summarize" aria-label={t("生成摘要", "Summarize")} disabled={disabled || pending || !pageIds.length} onClick={onSummarize}><Sparkles size={15}/><span className="action-full">{t("生成摘要", "Summarize")}</span><span className="action-short" aria-hidden="true">{t("生成", "Summarize")}</span></CapsuleButton>
+    <CapsuleButton className="primary library-summarize" aria-label={t("生成摘要", "Summarize")} disabled={disabled || processingDisabled || pending || !pageIds.length} onClick={onSummarize}><Sparkles size={15}/><span className="action-full">{t("生成摘要", "Summarize")}</span><span className="action-short" aria-hidden="true">{t("生成", "Summarize")}</span></CapsuleButton>
   </div>;
 }
 

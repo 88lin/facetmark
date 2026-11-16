@@ -372,6 +372,13 @@ def _v16_browser_delivery(conn: sqlite3.Connection) -> None:
                  "action TEXT NOT NULL, fingerprint TEXT NOT NULL, result TEXT NOT NULL, created_at INTEGER NOT NULL)")
 
 
+def _v17_health_runs(conn: sqlite3.Connection) -> None:
+    conn.execute("CREATE TABLE IF NOT EXISTS health_run (request_id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, "
+                 "params TEXT NOT NULL, targets TEXT NOT NULL, state TEXT NOT NULL, started_at INTEGER NOT NULL, "
+                 "finished_at INTEGER, report TEXT, error TEXT NOT NULL DEFAULT '')")
+    conn.execute("CREATE INDEX IF NOT EXISTS ix_health_run_started ON health_run(started_at DESC,request_id DESC)")
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(2, "browser queue remembers when a retry is allowed", _v2_browser_queue_backoff),
     Migration(3, "content vectors remember what they were built from",
@@ -392,6 +399,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(14, "sync previews and accepted metadata deliveries survive restart", _v14_sync_delivery),
     Migration(15, "personal reading notes survive fetches, indexing and portable backups", _v15_reading_notes),
     Migration(16, "browser deliveries retain original leases and accepted save receipts", _v16_browser_delivery),
+    Migration(17, "link checks retain their accepted run and result across navigation and restart", _v17_health_runs),
 )
 
 #: What this build writes into a new database. Derived from the migration list
