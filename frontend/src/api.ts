@@ -79,6 +79,7 @@ export type Probe = {
   ms?: number;
   model: string;
   error?: string;
+  warning?: string;
   dim?: number;
   expected_dim?: number;
   dim_matches?: boolean;

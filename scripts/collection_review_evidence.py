@@ -44,6 +44,8 @@ def main():
                        check=True, capture_output=True)
     sources = [*Path("frontend/src").rglob("*.tsx"), *Path("frontend/src").rglob("*.ts"),
                *Path("frontend/src").rglob("*.css"),
+               *Path("src/facetmark").rglob("*.py"),
+               *Path("frontend/tests").rglob("*.ts"), *Path("frontend/tests").rglob("*.mjs"),
                *map(Path, ["frontend/tests/collection-review.spec.ts",
                            "frontend/tests/workspace-polish.spec.ts", "frontend/tests/startup.spec.ts",
                            "frontend/tests/workspace-layout.spec.ts", "frontend/tests/native-menu.spec.ts",
