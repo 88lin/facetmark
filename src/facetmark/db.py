@@ -87,6 +87,16 @@ CREATE INDEX IF NOT EXISTS ix_bookmark_folder ON bookmark(folder);
 CREATE INDEX IF NOT EXISTS ix_bookmark_browse ON bookmark(COALESCE(date_added,created_at) DESC,id DESC);
 CREATE INDEX IF NOT EXISTS ix_bookmark_folder_browse ON bookmark(folder,COALESCE(date_added,created_at) DESC,id DESC);
 
+-- Owner-authored reading notes are independent of page fetches and AI output.
+-- Empty, explicitly saved notes retain their revision so imports cannot undo a clear.
+CREATE TABLE IF NOT EXISTS bookmark_note (
+    bookmark_id INTEGER PRIMARY KEY REFERENCES bookmark(id) ON DELETE CASCADE,
+    note TEXT NOT NULL DEFAULT '',
+    revision INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL DEFAULT 0,
+    legacy_extra TEXT NOT NULL DEFAULT ''
+);
+
 -- Fetched page body. Separated from `bookmark` so a re-fetch never rewrites
 -- bookmark identity, and so the big TEXT column stays out of scan-heavy paths.
 CREATE TABLE IF NOT EXISTS content (

@@ -257,6 +257,10 @@ aria-hidden lists never auto-scroll; focus-mode reversal restores the settled in
 Read combines the AI overview/key points and saved source text. Original title and
 retrieval questions remain in expandable details. Missing-body inference and source
 labels remain explicit; failed regeneration retains the previous derived content.
+Read also has an independent personal-note section, with an inline editor, exact
+local drafts, full text disclosure, original-save confirmation and explicit review
+of another window's saved version. Note controls remain usable without a model and
+own their CSS in reader-notes.css. Older import text is disclosed separately.
 Only reading with saved body text has an in-flow progress footer; related/empty states
 do not show an idle “reading preview” box.
  Keep actual heading navigation, article progress,

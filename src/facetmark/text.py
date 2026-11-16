@@ -240,7 +240,11 @@ def sync_fts(
     the exact-match view over the same vocabulary, read straight off the JSON
     column instead.
     """
-    extra = _extra_blob(topics, entities, key_points, tags)
+    stored_note = conn.execute("SELECT note,legacy_extra FROM bookmark_note WHERE bookmark_id=?", (bookmark_id,)).fetchone()
+    extra = "\n".join(value for value in (
+        _extra_blob(topics, entities, key_points, tags),
+        stored_note["note"] if stored_note else "", stored_note["legacy_extra"] if stored_note else "",
+    ) if value)
     seg_body = body_seg if body_seg is not None else segment(body)
     title_text = "\n".join(value for value in (title, ai_title) if value)
     seg_title = segment(title_text)

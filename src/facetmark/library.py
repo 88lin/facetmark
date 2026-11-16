@@ -109,6 +109,18 @@ class EditBookmark(OperationRequest):
         return self
 
 
+class EditNote(OperationRequest):
+    request_id: RequestId
+    note: Annotated[str, Field(strict=True, max_length=60_000)]
+    base_revision: Annotated[int, Field(strict=True, ge=0, le=2**53 - 2)]
+
+    @field_validator("note")
+    @classmethod
+    def preserve_note(cls, value):
+        from .reading_notes import validate_note
+        return validate_note(value)
+
+
 class BulkRequest(OperationRequest):
     ids: Ids
     action: Literal["move", "tag-add", "tag-remove", "delete"]
@@ -585,7 +597,7 @@ def register(app: FastAPI, auth: list) -> None:
                 or any(not task.done() for task in state.chat_runs.values())):
             raise HTTPException(409, "Wait for active processing or replies before changing bookmarks")
 
-    def perform(state, request_id: str | None, action: str, content: dict, write: Callable[[], dict]) -> dict:
+    def perform(state, request_id: str | None, action: str, content: dict, write: Callable[[], dict], *, requires_idle: bool = True) -> dict:
         fingerprint = hashlib.sha256(json.dumps([action, content], ensure_ascii=False, sort_keys=True,
                                                 separators=(",", ":")).encode("utf-8")).hexdigest()
         with transaction(state.conn):
@@ -596,7 +608,8 @@ def register(app: FastAPI, auth: list) -> None:
                     if row["fingerprint"] != fingerprint:
                         raise HTTPException(409, "This request ID belongs to a different collection operation")
                     return json.loads(row["result"])
-            writable(state)
+            if requires_idle:
+                writable(state)
             result = write()
             if request_id:
                 state.conn.execute("INSERT INTO library_operation(request_id,fingerprint,action,result,created_at) "
@@ -628,6 +641,21 @@ def register(app: FastAPI, auth: list) -> None:
             return perform(state, body.request_id, f"edit:{bookmark_id}",
                            body.model_dump(exclude_unset=True, exclude={"request_id"}),
                            lambda: update_bookmark(state.conn, bookmark_id, body, settings=state.settings))
+
+    @app.get("/admin/library/bookmarks/{bookmark_id}/note", dependencies=deps)
+    async def read_note(request: Request, bookmark_id: int = Path(gt=0, le=2**63 - 1)):
+        from .reading_notes import read_note
+        state = request.app.state.fm
+        async with state.lock:
+            return read_note(state.conn, bookmark_id)
+
+    @app.patch("/admin/library/bookmarks/{bookmark_id}/note", dependencies=deps)
+    async def edit_note(body: EditNote, request: Request, bookmark_id: int = Path(gt=0, le=2**63 - 1)):
+        from .reading_notes import save_note
+        state = request.app.state.fm
+        async with state.lock:
+            return perform(state, body.request_id, f"note:{bookmark_id}", body.model_dump(exclude={"request_id"}),
+                           lambda: save_note(state.conn, bookmark_id, body.note, body.base_revision), requires_idle=False)
 
     @app.delete("/admin/library/bookmarks/{bookmark_id}", dependencies=deps)
     async def delete(request: Request, bookmark_id: int = Path(gt=0, le=2**63 - 1),

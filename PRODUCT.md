@@ -52,6 +52,12 @@ detected agents expose available model effort levels or variants and known defau
 
 The collection supports manual create/edit, tags and folders, confirmed deletion,
 JSON/HTML export, direct original links and independent page-fetch or summary tasks.
+Personal reading notes remain local and independently editable without a model.
+Fetches, generated summaries and index rebuilds preserve them. A revision check
+protects edits from another window; exact local drafts and original save receipts
+survive navigation. Full JSON includes notes, while metadata exports and shared-folder
+sync retain their existing metadata contract. Older unmatched import-index text is
+preserved separately for review, without relabeling classification text as a note.
 Version 2 full JSON restores missing saved reading content and conversations as well
 as bookmark metadata; existing local content takes precedence. Keys, vectors,
 browser state, configuration and task logs are excluded from portable JSON.

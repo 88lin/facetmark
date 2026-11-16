@@ -14,6 +14,10 @@ export type Bookmark = {
   tags?: string[];
   date_added?: number;
   body_text?: string;
+  note?: string;
+  note_revision?: number;
+  note_updated_at?: number;
+  legacy_note_text?: string;
   key_points?: string[];
   intent_queries?: string[];
   privacy_skipped?: boolean;
