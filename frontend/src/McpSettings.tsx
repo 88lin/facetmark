@@ -14,6 +14,7 @@ export function McpSettings({ active = true }: { active?: boolean }) {
   const [status, setStatus] = useState<McpStatus | null>(null);
   const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false);
   const [error, setError] = useState(""), [copied, setCopied] = useState("");
+  const [actionError, setActionError] = useState("");
   const [showToken, setShowToken] = useState(false), [resetting, setResetting] = useState(false);
   const [operations, setOperations] = useState<McpOperation[]>([]), [absent, setAbsent] = useState("");
   const [recoveryError, setRecoveryError] = useState(""), [notice, setNotice] = useState("");
@@ -34,7 +35,7 @@ export function McpSettings({ active = true }: { active?: boolean }) {
   function confirmed(next: McpStatus, operation: McpOperation, closed = false) {
     clearMcpOperation(operation.requestId);
     if (!mounted.current) return;
-    readOriginals(); setAbsent(""); setStatus(next); setShowToken(false); setResetting(false);
+    readOriginals(); setAbsent(""); setStatus(next); setShowToken(false); setResetting(false); setActionError("");
     setNotice(closed ? t("原修改已关闭，以下显示当前配置。", "The original change is closed. The current configuration is shown below.")
       : t("已确认原修改，以下显示当前配置。", "The original change is confirmed. The current configuration is shown below."));
   }
@@ -92,7 +93,7 @@ export function McpSettings({ active = true }: { active?: boolean }) {
   async function sendOriginal(operation: McpOperation, closing = false) {
     if (gate.current) return;
     gate.current = true; const current = ++revision.current;
-    setBusy(true); setError(""); setCopied(""); setNotice(""); setAbsent(""); setShowToken(false);
+    setBusy(true); setActionError(""); setError(""); setCopied(""); setNotice(""); setAbsent(""); setShowToken(false);
     try {
       saveMcpOperation(operation); readOriginals();
       const path = closing ? `/admin/mcp/operations/${encodeURIComponent(operation.requestId)}/close` : "/admin/mcp";
@@ -102,7 +103,7 @@ export function McpSettings({ active = true }: { active?: boolean }) {
       if (current === revision.current && mounted.current) confirmed(next, operation, closing && (result as { state: string }).state === "closed");
       else clearMcpOperation(operation.requestId);
     } catch (failure) {
-      if (current === revision.current && mounted.current) setError(errorText(failure));
+      if (current === revision.current && mounted.current) setActionError(errorText(failure));
     } finally {
       gate.current = false;
       if (mounted.current) {
@@ -114,12 +115,12 @@ export function McpSettings({ active = true }: { active?: boolean }) {
   async function change(values: McpChange | { probe: true }) {
     if (gate.current || !status) return;
     if ("probe" in values) {
-      gate.current = true; const current = ++revision.current; setBusy(true); setError("");
+      gate.current = true; const current = ++revision.current; setBusy(true); setActionError(""); setError("");
       try {
         const next = await api<unknown>("/admin/mcp", { method: "POST", body: JSON.stringify(values), timeoutMs: 20_000 });
         if (!validMcpStatus(next)) throw invalidResult();
         if (current === revision.current && mounted.current) setStatus(next);
-      } catch (failure) { if (current === revision.current && mounted.current) setError(errorText(failure)); }
+      } catch (failure) { if (current === revision.current && mounted.current) setActionError(errorText(failure)); }
       finally { gate.current = false; if (mounted.current) setBusy(false); }
       return;
     }
@@ -140,6 +141,7 @@ export function McpSettings({ active = true }: { active?: boolean }) {
   const uncertain = Boolean(original || recoveryError);
   const copyUnavailable = busy || uncertain;
   const lastRequest = status?.last_request_at ? new Date(status.last_request_at * 1000).toLocaleString(t("zh-CN", "en-US")) : "";
+  const visibleError = [actionError, error].filter(Boolean).join(" · ");
 
   return <div className="mcp-integrations">
     <section className="mcp-settings" aria-labelledby="mcp-settings-heading">
@@ -189,7 +191,7 @@ export function McpSettings({ active = true }: { active?: boolean }) {
         </div>
       </section>}
       {notice && <p className="mcp-note" role="status">{notice}</p>}
-      {error && <p className="error" role="alert">{error}</p>}
+      {visibleError && <p className="error" role="alert">{visibleError}</p>}
       {status?.error && <p className="error" role="alert">{status.error}</p>}
       {status?.probe && <div className={`mcp-probe ${status.probe.ok ? "is-ready" : "has-error"}`} role={status.probe.ok ? "status" : "alert"}>
         {status.probe.ok ? <><Check size={17}/><span>{t("协议自检通过", "Protocol self-check passed")}

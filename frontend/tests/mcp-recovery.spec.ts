@@ -219,6 +219,9 @@ test("a malformed read receipt keeps the accepted original and never offers an u
 
 test("failed local persistence sends no token reset and an explicit retry works after storage recovers", async ({ page, server }) => {
   const initial = await server.change({ enabled: true }), control = await intercept(page);
+  await page.clock.install();
+  let statusReads = 0;
+  page.on("response", response => { if (response.url().endsWith("/admin/mcp") && response.request().method() === "GET") statusReads++; });
   await open(page);
   await page.evaluate(() => {
     const original = Storage.prototype.setItem;
@@ -230,7 +233,17 @@ test("failed local persistence sends no token reset and an explicit retry works 
   });
   await reset(page); await expect(panel(page).getByRole("alert")).toContainText("Synthetic MCP storage full");
   expect(control.writes).toEqual([]); expect((await server.read()).token).toBe(initial.token);
+  const beforeRefresh = statusReads;
+  await page.clock.runFor(5_000);
+  await expect.poll(() => statusReads).toBeGreaterThan(beforeRefresh);
+  await expect(panel(page).getByRole("alert")).toContainText("Synthetic MCP storage full");
+  const beforeManualRead = statusReads;
+  await panel(page).getByRole("button", { name: "刷新状态", exact: true }).click();
+  await expect.poll(() => statusReads).toBeGreaterThan(beforeManualRead);
+  await expect(panel(page).getByRole("alert")).toContainText("Synthetic MCP storage full");
+  expect(control.writes).toEqual([]);
   await page.evaluate(() => (window as unknown as { restoreMcpStorage: () => void }).restoreMcpStorage());
   await panel(page).getByRole("button", { name: "确认重置", exact: true }).click();
   await expect.poll(() => control.accepted.length).toBe(1); await expect(recovery(page)).toHaveCount(0);
+  await expect(panel(page).getByRole("alert")).toHaveCount(0);
 });
