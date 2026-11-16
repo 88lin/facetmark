@@ -10,6 +10,11 @@
 .mcp-service-status.is-ready { background: var(--soft); color: var(--accent); }
 .mcp-actions, .mcp-token-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 18px 0 12px; }
 .mcp-note { margin: 10px 0; color: var(--muted); font-size: var(--type-meta); line-height: 1.8; overflow-wrap: anywhere; }
+.mcp-recovery { display: grid; min-width: 0; gap: 10px; margin: 16px 0; padding: 18px; border: 1px solid var(--rule); border-radius: 22px; background: var(--soft); }
+.mcp-recovery h3, .mcp-recovery p { margin: 0; font-size: var(--type-ui); line-height: 1.8; overflow-wrap: anywhere; }
+.mcp-recovery p { color: var(--secondary-ink); }
+.mcp-recovery .mcp-original-change { color: var(--ink); }
+.mcp-recovery .mcp-actions { margin: 0; }
 .mcp-connection-fields { display: grid; min-width: 0; gap: 14px; padding: 22px; margin: 18px 0; border: 1px solid var(--rule); border-radius: 24px; background: var(--canvas); }
 .mcp-field { display: grid; gap: 8px; min-width: 0; font-size: var(--type-ui); font-weight: 600; }
 .mcp-copy-field { display: flex; gap: 10px; min-width: 0; }
@@ -46,4 +51,5 @@
   .mcp-copy-field input { flex-basis: 100%; font-size: 16px; }
   .mcp-field textarea { font-size: 16px; }
   .mcp-actions .secondary, .mcp-actions .text-button, .mcp-token-actions button { min-height: 44px; }
+  .mcp-recovery { padding: 15px; }
 }

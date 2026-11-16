@@ -8,18 +8,18 @@ from __future__ import annotations
 
 import hmac
 import json
-import secrets
 import time
 from contextlib import asynccontextmanager
 from urllib.parse import urlsplit
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 from starlette.responses import JSONResponse
 
+from . import mcp_operations
 from .admin import admin_gate
-from .configfile import config_path, external_setting_keys, update_config
+from .configfile import external_setting_keys
 from .mcp_server import Ctx, create_server
 
 LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
@@ -102,7 +102,8 @@ class MCPBridge:
         status = ("disabled" if not enabled else "unconfigured" if not token
                   else "ready" if self.transport_ready else "starting")
         config = {"type": "http", "url": endpoint, "headers": {"Authorization": "Bearer " + token}}
-        return {"enabled": enabled, "configured": bool(token),
+        return {"revision": mcp_operations.configuration_revision(state.settings),
+                "enabled": enabled, "configured": bool(token),
                 "running": enabled and bool(token) and self.transport_ready,
                 "transport_ready": self.transport_ready, "status": status,
                 "error": (self.last_probe or {}).get("error", ""), "endpoint": endpoint,
@@ -151,6 +152,14 @@ class MCPPatch(BaseModel):
     enabled: bool | None = None
     rotate_token: bool = False
     probe: bool = False
+    request_id: str | None = Field(default=None, pattern=r"^[a-zA-Z0-9_.-]{1,128}$")
+    expected_revision: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
+
+    @model_validator(mode="after")
+    def original_request(self):
+        if self.request_id and (self.expected_revision is None or self.enabled is None and not self.rotate_token):
+            raise ValueError("An original MCP change needs its configuration revision and action")
+        return self
 
 
 def register(app: FastAPI, auth: list) -> MCPBridge:
@@ -163,24 +172,54 @@ def register(app: FastAPI, auth: list) -> MCPBridge:
     async def status(request: Request):
         return JSONResponse(bridge.view(request), headers={"Cache-Control": "no-store"})
 
+    @app.get("/admin/mcp/operations/{request_id}", dependencies=deps)
+    async def original_operation(request_id: str, request: Request):
+        state = app.state.fm
+        async with state.lock:
+            try:
+                found = mcp_operations.receipt(state.settings, request_id)
+            except mcp_operations.McpOperationConflict as error:
+                raise HTTPException(409, str(error)) from error
+            if found is None:
+                raise HTTPException(404, "Original MCP change has not been accepted")
+            view = mcp_operations.public_receipt(found, state.settings)
+            return JSONResponse({**view, "status": bridge.view(request)}, headers={"Cache-Control": "no-store"})
+
+    @app.post("/admin/mcp/operations/{request_id}/close", dependencies=deps)
+    async def close_original_operation(request_id: str, body: MCPPatch, request: Request):
+        if body.request_id != request_id or body.expected_revision is None:
+            raise HTTPException(409, "Closing needs the original MCP change and request ID")
+        state = app.state.fm
+        async with state.lock:
+            try:
+                found = mcp_operations.close_configuration(state.settings, request_id=request_id,
+                    enabled=body.enabled, rotate_token=body.rotate_token, expected_revision=body.expected_revision)
+            except mcp_operations.McpOperationConflict as error:
+                raise HTTPException(409, str(error)) from error
+            return JSONResponse({**mcp_operations.public_receipt(found, state.settings), "status": bridge.view(request)},
+                                headers={"Cache-Control": "no-store"})
+
     @app.post("/admin/mcp", dependencies=deps)
     async def configure(body: MCPPatch, request: Request):
         state = app.state.fm
-        changes = {}
         async with state.lock:
-            if body.enabled is not None and body.enabled != state.settings.mcp_enabled:
-                changes["mcp_enabled"] = body.enabled
-            if body.rotate_token or (body.enabled and not state.settings.mcp_token):
-                changes["mcp_token"] = secrets.token_urlsafe(32)
-            locked = external_setting_keys(set(changes))
-            if locked:
-                raise HTTPException(409, "MCP settings are set by the environment; unset the variables to edit here")
+            try:
+                changes, found = mcp_operations.accept_configuration(state.settings, enabled=body.enabled,
+                    rotate_token=body.rotate_token, request_id=body.request_id, expected_revision=body.expected_revision)
+            except mcp_operations.McpOperationConflict as error:
+                raise HTTPException(409, str(error)) from error
             if changes:
-                update_config(changes, config_path(state.settings.data_dir))
                 state.settings = state.settings.model_copy(update=changes)
                 for key in changes:
                     state.pending_settings.pop(key, None)
                 bridge.last_probe = None
-        if body.probe:
-            bridge.last_probe = await bridge.probe(request)
-        return JSONResponse(bridge.view(request), headers={"Cache-Control": "no-store"})
+            probe_revision = mcp_operations.configuration_revision(state.settings)
+        if body.probe and not found:
+            probe = await bridge.probe(request)
+            async with state.lock:
+                if probe_revision == mcp_operations.configuration_revision(state.settings):
+                    bridge.last_probe = probe
+        view = bridge.view(request)
+        if found:
+            view["operation"] = mcp_operations.public_receipt(found, state.settings)
+        return JSONResponse(view, headers={"Cache-Control": "no-store"})

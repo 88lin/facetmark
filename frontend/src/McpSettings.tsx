@@ -1,17 +1,12 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Check, Copy, KeyRound, Link2, LoaderCircle, RefreshCw, ShieldCheck } from "lucide-react";
-import { api, getToken, post } from "./api";
+import { api, ApiError, getToken } from "./api";
+import { clearMcpOperation, loadMcpOperations, mcpAcceptedStatus, mcpReceiptStatus, mcpRequest,
+  saveMcpOperation, validMcpStatus, type McpChange, type McpOperation, type McpStatus } from "./mcp-local-state";
 import { useText } from "./locale";
 import { CapsuleButton } from "./ui/controls";
 import "./mcp-settings.css";
 
-type McpStatus = {
-  enabled: boolean; configured: boolean; running: boolean; transport_ready: boolean;
-  status: "disabled" | "ready" | "starting" | "unconfigured"; error: string;
-  endpoint: string; token: string; client_config: Record<string, unknown>; codex_config?: string;
-  locked: { enabled: boolean; token: boolean }; last_request_at: number | null;
-  probe?: { ok: boolean; server?: string; tools?: number; resources?: number; templates?: number; error?: string } | null;
-};
 type KarakeepStats = { documents: number; users: number; with_body: number };
 
 export function McpSettings({ active = true }: { active?: boolean }) {
@@ -20,17 +15,55 @@ export function McpSettings({ active = true }: { active?: boolean }) {
   const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false);
   const [error, setError] = useState(""), [copied, setCopied] = useState("");
   const [showToken, setShowToken] = useState(false), [resetting, setResetting] = useState(false);
+  const [operations, setOperations] = useState<McpOperation[]>([]), [absent, setAbsent] = useState("");
+  const [recoveryError, setRecoveryError] = useState(""), [notice, setNotice] = useState("");
   const [karakeep, setKarakeep] = useState<KarakeepStats | null>(null), [karakeepError, setKarakeepError] = useState("");
   const revision = useRef(0), gate = useRef(false), abort = useRef<AbortController | null>(null);
+  const mounted = useRef(true);
+  const invalidResult = () => new Error(t("MCP 返回了无法确认的结果，请保留原修改并重新读取。", "MCP returned an unreadable result. Keep the original change and read it again."));
+  const errorText = (failure: unknown) => failure instanceof Error ? failure.message : String(failure);
+
+  function readOriginals() {
+    try {
+      const saved = loadMcpOperations(); setOperations(saved); setRecoveryError(""); return saved;
+    } catch {
+      setRecoveryError(t("无法读取已保存的原修改。重新读取成功前不会发送新的配置修改。", "Saved changes could not be read. Read them successfully before making another change."));
+      return null;
+    }
+  }
+  function confirmed(next: McpStatus, operation: McpOperation, closed = false) {
+    clearMcpOperation(operation.requestId);
+    if (!mounted.current) return;
+    readOriginals(); setAbsent(""); setStatus(next); setShowToken(false); setResetting(false);
+    setNotice(closed ? t("原修改已关闭，以下显示当前配置。", "The original change is closed. The current configuration is shown below.")
+      : t("已确认原修改，以下显示当前配置。", "The original change is confirmed. The current configuration is shown below."));
+  }
 
   async function load(signal?: AbortSignal) {
     if (gate.current) return;
     const current = ++revision.current;
+    const saved = readOriginals();
     try {
-      const next = await api<McpStatus>("/admin/mcp", { signal });
-      if (current === revision.current && !signal?.aborted) { setStatus(next); setError(""); }
+      const next = await api<unknown>("/admin/mcp", { signal });
+      if (!validMcpStatus(next)) throw invalidResult();
+      if (current !== revision.current || signal?.aborted) return;
+      setStatus(next); setError("");
+      const original = saved?.[0];
+      if (original) {
+        try {
+          const receipt = await api<unknown>(`/admin/mcp/operations/${encodeURIComponent(original.requestId)}`, { signal });
+          if (current !== revision.current || signal?.aborted) return;
+          const checked = mcpReceiptStatus(receipt, original);
+          if (!checked) throw invalidResult();
+          confirmed(checked, original, (receipt as { state: string }).state === "closed");
+        } catch (failure) {
+          if (current !== revision.current || signal?.aborted) return;
+          if (failure instanceof ApiError && failure.status === 404) setAbsent(original.requestId);
+          else { setAbsent(""); throw failure; }
+        }
+      } else setAbsent("");
     } catch (failure) {
-      if (current === revision.current && !signal?.aborted) setError(String(failure));
+      if (current === revision.current && !signal?.aborted) setError(errorText(failure));
     } finally {
       if (current === revision.current && !signal?.aborted) setLoading(false);
     }
@@ -48,20 +81,52 @@ export function McpSettings({ active = true }: { active?: boolean }) {
     const request = new AbortController(); abort.current = request;
     void load(request.signal); void loadKarakeep(request.signal);
     const timer = setInterval(() => { void load(request.signal); }, 5000);
-    return () => { request.abort(); clearInterval(timer); };
+    const storage = (event: StorageEvent) => {
+      if (event.storageArea === localStorage && (event.key === null || event.key.startsWith("fm-mcp-operation:"))) void load(request.signal);
+    };
+    window.addEventListener("storage", storage);
+    return () => { request.abort(); clearInterval(timer); revision.current++; window.removeEventListener("storage", storage); };
   }, [active]);
-  useEffect(() => () => abort.current?.abort(), []);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; abort.current?.abort(); }; }, []);
 
-  async function change(values: { enabled?: boolean; rotate_token?: boolean; probe?: boolean }) {
+  async function sendOriginal(operation: McpOperation, closing = false) {
     if (gate.current) return;
     gate.current = true; const current = ++revision.current;
-    setBusy(true); setError(""); setCopied("");
+    setBusy(true); setError(""); setCopied(""); setNotice(""); setAbsent(""); setShowToken(false);
     try {
-      const next = await post<McpStatus>("/admin/mcp", values);
-      if (current === revision.current) { setStatus(next); setResetting(false); }
+      saveMcpOperation(operation); readOriginals();
+      const path = closing ? `/admin/mcp/operations/${encodeURIComponent(operation.requestId)}/close` : "/admin/mcp";
+      const result = await api<unknown>(path, { method: "POST", body: JSON.stringify(mcpRequest(operation)), timeoutMs: 20_000 });
+      const next = closing ? mcpReceiptStatus(result, operation) : mcpAcceptedStatus(result, operation);
+      if (!next) throw invalidResult();
+      if (current === revision.current && mounted.current) confirmed(next, operation, closing && (result as { state: string }).state === "closed");
+      else clearMcpOperation(operation.requestId);
     } catch (failure) {
-      if (current === revision.current) setError(String(failure));
-    } finally { gate.current = false; setBusy(false); }
+      if (current === revision.current && mounted.current) setError(errorText(failure));
+    } finally {
+      gate.current = false;
+      if (mounted.current) {
+        setBusy(false);
+        if (!abort.current?.signal.aborted) void load(abort.current?.signal);
+      }
+    }
+  }
+  async function change(values: McpChange | { probe: true }) {
+    if (gate.current || !status) return;
+    if ("probe" in values) {
+      gate.current = true; const current = ++revision.current; setBusy(true); setError("");
+      try {
+        const next = await api<unknown>("/admin/mcp", { method: "POST", body: JSON.stringify(values), timeoutMs: 20_000 });
+        if (!validMcpStatus(next)) throw invalidResult();
+        if (current === revision.current && mounted.current) setStatus(next);
+      } catch (failure) { if (current === revision.current && mounted.current) setError(errorText(failure)); }
+      finally { gate.current = false; if (mounted.current) setBusy(false); }
+      return;
+    }
+    const saved = readOriginals();
+    if (!saved || saved.length) return;
+    await sendOriginal({ version: 1, requestId: `mcp-${crypto.randomUUID()}`, createdAt: Date.now(),
+      expectedRevision: status.revision, change: { ...values } });
   }
   async function copy(value: string, message: string) {
     try { await navigator.clipboard.writeText(value); setCopied(message); }
@@ -71,6 +136,9 @@ export function McpSettings({ active = true }: { active?: boolean }) {
   try { if (status?.endpoint) serviceOrigin = new URL(status.endpoint).origin; } catch { /* Keep the actual page origin while loading. */ }
   const config = status ? JSON.stringify(status.client_config, null, 2) : "";
   const running = Boolean(status?.enabled && status.running && status.transport_ready);
+  const original = operations[0];
+  const uncertain = Boolean(original || recoveryError);
+  const copyUnavailable = busy || uncertain;
   const lastRequest = status?.last_request_at ? new Date(status.last_request_at * 1000).toLocaleString(t("zh-CN", "en-US")) : "";
 
   return <div className="mcp-integrations">
@@ -87,11 +155,11 @@ export function McpSettings({ active = true }: { active?: boolean }) {
       </header>
       <div className="mcp-actions">
         <CapsuleButton type="button" className={status?.enabled ? "secondary" : "primary"}
-          disabled={!status || busy || status.locked.enabled} onClick={() => change({ enabled: !status?.enabled })}>
+          disabled={!status || busy || uncertain || status.locked.enabled} onClick={() => change({ enabled: !status?.enabled })}>
           {busy ? <LoaderCircle size={16} className="spin"/> : <Link2 size={16}/>}
           {status?.enabled ? t("停用 MCP", "Disable MCP") : t("开启 MCP", "Enable MCP")}
         </CapsuleButton>
-        <CapsuleButton type="button" className="secondary" disabled={!running || busy} onClick={() => change({ probe: true })}>
+        <CapsuleButton type="button" className="secondary" disabled={!running || busy || uncertain} onClick={() => change({ probe: true })}>
           <ShieldCheck size={16}/>{t("检查接入", "Test connection")}
         </CapsuleButton>
         <CapsuleButton type="button" className="text-button" disabled={busy} onClick={() => load()}>
@@ -99,6 +167,28 @@ export function McpSettings({ active = true }: { active?: boolean }) {
         </CapsuleButton>
       </div>
       {status?.locked.enabled && <p className="mcp-note">{t("MCP 开关由运行环境配置控制。", "The MCP switch is controlled by environment configuration.")}</p>}
+      {recoveryError && <p className="error" role="alert">{recoveryError}</p>}
+      {original && !busy && <section className="mcp-recovery" aria-labelledby={id + "-recovery"}>
+        <h3 id={id + "-recovery"}>{t("确认原来的 MCP 修改", "Confirm the original MCP change")}</h3>
+        <p>{t("重新打开只读取保存结果。确认后显示当前配置，避免再次重置令牌或覆盖之后的修改。",
+          "Reopening checks what was saved. Confirmation shows the current configuration and preserves later changes.")}</p>
+        <p className="mcp-original-change">{t("原修改：", "Original change: ")}
+          <strong>{original.change.rotate_token ? t("重置访问令牌", "Reset access token")
+            : original.change.enabled ? t("开启 MCP", "Enable MCP") : t("停用 MCP", "Disable MCP")}</strong>
+          {operations.length > 1 && <span>{t(` · 另有 ${operations.length - 1} 项待确认`, ` · ${operations.length - 1} more to confirm`)}</span>}</p>
+        {absent === original.requestId && <p>{status?.revision === original.expectedRevision
+          ? t("尚未查到保存结果。可以继续原修改，或关闭原修改并回到当前配置。", "No saved result was found. Continue the original change, or close it and return to the current configuration.")
+          : t("配置已经变化，不能继续旧修改。可以关闭原修改，再使用当前配置。", "The configuration changed. Close the original change before working with the current configuration.")}</p>}
+        <div className="mcp-actions">
+          <CapsuleButton type="button" className="secondary" onClick={() => load()}>{t("重新读取原修改", "Read original change")}</CapsuleButton>
+          {absent === original.requestId && <>
+            <CapsuleButton type="button" className="secondary" disabled={!status || status.revision !== original.expectedRevision}
+              onClick={() => sendOriginal(original)}>{t("继续原修改", "Continue original change")}</CapsuleButton>
+            <CapsuleButton type="button" className="text-button" onClick={() => sendOriginal(original, true)}>{t("返回当前配置", "Return to current configuration")}</CapsuleButton>
+          </>}
+        </div>
+      </section>}
+      {notice && <p className="mcp-note" role="status">{notice}</p>}
       {error && <p className="error" role="alert">{error}</p>}
       {status?.error && <p className="error" role="alert">{status.error}</p>}
       {status?.probe && <div className={`mcp-probe ${status.probe.ok ? "is-ready" : "has-error"}`} role={status.probe.ok ? "status" : "alert"}>
@@ -118,31 +208,31 @@ export function McpSettings({ active = true }: { active?: boolean }) {
         <div className="mcp-field"><label htmlFor={id + "-token"}>{t("独立访问令牌", "Separate access token")}</label>
           <div className="mcp-copy-field"><input id={id + "-token"} type={showToken ? "text" : "password"} value={status.token} readOnly autoComplete="off"
             aria-label={t("MCP 访问令牌", "MCP access token")}/>
-            <CapsuleButton type="button" className="secondary" disabled={!status.configured} onClick={() => copy(status.token, t("MCP 令牌已复制", "MCP token copied"))}>
+            <CapsuleButton type="button" className="secondary" disabled={!status.configured || copyUnavailable} onClick={() => copy(status.token, t("MCP 令牌已复制", "MCP token copied"))}>
               <Copy size={15}/>{t("复制令牌", "Copy token")}</CapsuleButton></div>
         </div>
         <div className="mcp-token-actions">
-          <CapsuleButton type="button" className="text-button" disabled={!status.configured} aria-pressed={showToken} onClick={() => setShowToken(!showToken)}>
+          <CapsuleButton type="button" className="text-button" disabled={!status.configured || copyUnavailable} aria-pressed={showToken} onClick={() => setShowToken(!showToken)}>
             {showToken ? t("隐藏令牌", "Hide token") : t("显示令牌", "Show token")}</CapsuleButton>
-          <CapsuleButton type="button" className="text-button" disabled={busy || status.locked.token} onClick={() => setResetting(!resetting)}>
+          <CapsuleButton type="button" className="text-button" disabled={busy || uncertain || status.locked.token} onClick={() => setResetting(!resetting)}>
             <KeyRound size={15}/>{t("重置令牌", "Reset token")}</CapsuleButton>
         </div>
         {resetting && <div className="mcp-token-reset" role="group" aria-label={t("重置 MCP 令牌", "Reset MCP token")}>
           <p>{t("重置后，已连接的客户端需要更新令牌。", "Connected clients must update their token after a reset.")}</p>
-          <CapsuleButton type="button" className="secondary" disabled={busy} onClick={() => change({ rotate_token: true })}>{t("确认重置", "Confirm reset")}</CapsuleButton>
+          <CapsuleButton type="button" className="secondary" disabled={busy || uncertain} onClick={() => change({ rotate_token: true })}>{t("确认重置", "Confirm reset")}</CapsuleButton>
           <CapsuleButton type="button" className="text-button" disabled={busy} onClick={() => setResetting(false)}>{t("取消", "Cancel")}</CapsuleButton>
         </div>}
         <label className="mcp-field"><span>{t("AI 客户端配置", "AI client configuration")}</span>
           <textarea value={config} readOnly rows={7} aria-label={t("MCP 客户端配置", "MCP client configuration")} spellCheck={false}/>
         </label>
-        <CapsuleButton type="button" className="secondary mcp-copy-config" disabled={!status.configured} onClick={() => copy(config, t("客户端配置已复制", "Client configuration copied"))}>
+        <CapsuleButton type="button" className="secondary mcp-copy-config" disabled={!status.configured || copyUnavailable} onClick={() => copy(config, t("客户端配置已复制", "Client configuration copied"))}>
           <Copy size={16}/>{t("复制客户端配置", "Copy client configuration")}</CapsuleButton>
         {status.codex_config && <details className="mcp-codex-config">
           <summary>{t("Codex 配置", "Codex configuration")}</summary>
           <label className="mcp-field"><span>{t("添加到 Codex config.toml", "Add to Codex config.toml")}</span>
             <textarea value={status.codex_config} readOnly rows={4} aria-label={t("Codex MCP 配置", "Codex MCP configuration")} spellCheck={false}/>
           </label>
-          <CapsuleButton type="button" className="secondary" disabled={!status.configured}
+          <CapsuleButton type="button" className="secondary" disabled={!status.configured || copyUnavailable}
             onClick={() => copy(status.codex_config || "", t("Codex 配置已复制", "Codex configuration copied"))}>
             <Copy size={16}/>{t("复制 Codex 配置", "Copy Codex configuration")}</CapsuleButton>
         </details>}

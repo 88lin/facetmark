@@ -10,14 +10,22 @@ const codexConfiguration = (token: string) => '[mcp_servers.facetmark]\nurl = "'
   + '"\nhttp_headers = { Authorization = "Bearer ' + token + '" }\n';
 
 async function mcpFixture(page: Page, initial: Record<string, unknown> = {}) {
-  const status = { enabled: false, configured: false, running: false, transport_ready: true,
+  const status = { revision: "0".repeat(64), enabled: false, configured: false, running: false, transport_ready: true,
     status: "disabled", error: "", endpoint, token: "", client_config: configuration(""),
     codex_config: codexConfiguration(""), locked: { enabled: false, token: false },
     last_request_at: null, probe: null as Record<string, unknown> | null, ...initial };
   const writes: Record<string, unknown>[] = [];
   await page.route("**/admin/mcp", route => {
+    let operation: Record<string, unknown> | undefined;
     if (route.request().method() === "POST") {
       const values = route.request().postDataJSON(); writes.push(values);
+      if ("enabled" in values || values.rotate_token) {
+        expect(values.expected_revision).toBe(status.revision);
+        expect(values.request_id).toMatch(/^mcp-[a-f0-9-]+$/);
+        status.revision = String(writes.length).padStart(64, "0");
+        operation = { request_id: values.request_id, action: "configure", state: "accepted",
+          accepted_revision: status.revision, accepted_at: 1794900000, superseded: false };
+      }
       if ("enabled" in values) {
         status.enabled = values.enabled;
         if (status.enabled && !status.token) status.token = "synthetic-mcp-only";
@@ -30,7 +38,7 @@ async function mcpFixture(page: Page, initial: Record<string, unknown> = {}) {
       status.codex_config = codexConfiguration(status.token);
       if (values.probe) status.probe = { ok: true, server: "facetmark", tools: 9, resources: 2, templates: 1 };
     }
-    return route.fulfill({ json: status });
+    return route.fulfill({ json: { ...status, ...(operation ? { operation } : {}) } });
   });
   await page.route("**/karakeep/stats", route => route.fulfill({ json: { documents: 12, users: 1, with_body: 8 } }));
   return { status, writes };
@@ -56,7 +64,8 @@ test("MCP has a separate token, truthful status and current-port client configur
   await expect(panel.getByRole("button", { name: "检查接入", exact: true })).toBeDisabled();
   await expect(panel.getByRole("textbox", { name: "MCP 地址", exact: true })).toHaveValue(endpoint);
   await panel.getByRole("button", { name: "开启 MCP", exact: true }).click();
-  await expect.poll(() => writes[0]).toEqual({ enabled: true });
+  await expect.poll(() => writes[0]).toEqual({ enabled: true, request_id: expect.stringMatching(/^mcp-[a-f0-9-]+$/),
+    expected_revision: "0".repeat(64) });
   await expect(panel.locator(".mcp-service-status")).toHaveText("MCP 服务已启动");
   await expect(panel.locator(".mcp-probe")).toHaveCount(0);
   await panel.getByRole("button", { name: "检查接入", exact: true }).click();
