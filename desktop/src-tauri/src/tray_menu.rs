@@ -29,7 +29,25 @@ fn record_window_event(app: &tauri::AppHandle, details: serde_json::Value) {
 pub fn focus_changed(window: &tauri::Window, focused: bool) {
     record_window_event(window.app_handle(), serde_json::json!({ "event": "focus", "focused": focused,
         "visible_before": window.is_visible().ok() }));
-    if !focused { let _ = window.hide(); }
+    if !focused {
+        // WebView2 can deliver the previous opening's LostFocus after a new
+        // show/set_focus has already made this HWND the native foreground.
+        // Only that stale notification is ignored; moving to another native
+        // window must still dismiss the menu immediately.
+        #[cfg(windows)]
+        {
+            use windows_sys::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
+            if window.hwnd().ok().is_some_and(|hwnd| {
+                hwnd.0 as usize == unsafe { GetForegroundWindow() } as usize
+            }) {
+                record_window_event(window.app_handle(), serde_json::json!({
+                    "event": "stale-focus-loss-ignored", "visible": window.is_visible().ok()
+                }));
+                return;
+            }
+        }
+        let _ = window.hide();
+    }
 }
 
 fn packaged_tray_url(url: &tauri::Url) -> bool {
@@ -156,6 +174,26 @@ pub fn start_ci_inspection(app: &tauri::AppHandle) {
                     previous = sequence;
                     let app = handle.clone();
                     let _ = handle.run_on_main_thread(move || {
+                        if record["action"].as_str() == Some("replay-tray-focus-loss") {
+                            // Replay the recorded stale LostFocus with the real
+                            // installed HWND still in front. Only this explicit
+                            // disposable-VM harness can request the replay.
+                            #[cfg(windows)]
+                            if let Some(menu) = app.get_webview_window("tray-menu") {
+                                use windows_sys::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
+                                let hwnd = menu.hwnd().ok().map(|hwnd| hwnd.0 as usize);
+                                let foreground_before = unsafe { GetForegroundWindow() } as usize;
+                                focus_changed(&menu.as_ref().window(), false);
+                                ci_record("tray-focus-replay-native.json", serde_json::json!({
+                                    "process": std::process::id(), "sequence": sequence,
+                                    "menu_hwnd": hwnd, "foreground_before": foreground_before,
+                                    "foreground_after": unsafe { GetForegroundWindow() } as usize,
+                                    "visible": menu.is_visible().ok(),
+                                    "scope": "CI-only replay of the recorded stale LostFocus; real native foreground"
+                                }));
+                            }
+                            return;
+                        }
                         if record["action"].as_str() == Some("hide-main") {
                             if let Some(main) = app.get_webview_window("main") {
                                 // Test preparation must use the same window API
