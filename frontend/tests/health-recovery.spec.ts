@@ -50,14 +50,20 @@ async function pending(page: Page) {
   return page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith("fm-health-operation:"))
     .map(key => JSON.parse(localStorage.getItem(key)!))) as Promise<HealthOperation[]>;
 }
-async function open(page: Page) {
-  await page.goto("/app"); await page.getByRole("button", { name: /^(任务|Tasks)$/, exact: true }).click();
+async function open(page: Page, waitForResults = true) {
+  await page.goto("/app");
+  const navigation = page.getByRole("button", { name: /^(打开导航|Open navigation)$/, exact: true });
+  if (await navigation.isVisible()) {
+    await navigation.press("Enter");
+    await expect(page.getByRole("dialog", { name: /^(导航|Navigation)$/, exact: true })).toBeVisible();
+  }
+  await page.getByRole("button", { name: /^(任务|Tasks)$/, exact: true }).click();
   const details = health(page);
   if (!await details.getAttribute("open")) {
     // The open attribute is an empty string when present.
     if (!(await details.evaluate(element => (element as HTMLDetailsElement).open))) await details.locator(":scope > summary").press("Enter");
   }
-  await expect(details.locator(".health-saved-summary")).toBeVisible();
+  if (waitForResults) await expect(details.locator(".health-saved-summary")).toBeVisible();
 }
 async function stableCalls(owned: Owned) {
   let prior = -1;
@@ -211,12 +217,14 @@ test("a slow status read is not repeatedly cancelled by polling and visits no UR
     const response = await route.fetch(); return route.fulfill({ response });
   });
   try {
-    await open(page); await expect.poll(() => reads).toBe(1);
+    await open(page, false); await expect.poll(() => reads).toBe(1);
+    await expect(health(page).locator(".health-saved-summary")).toHaveCount(0);
     await page.clock.runFor(7_000);
     expect(reads).toBe(1);
     await expect(health(page).getByRole("button", { name: "检查链接", exact: true })).toBeDisabled();
     release();
     await expect(health(page).getByRole("button", { name: "检查链接", exact: true })).toBeEnabled();
+    await expect(health(page).locator(".health-saved-summary")).toBeVisible();
     expect(control.writes).toEqual([]); expect(await owned.calls()).toBe(0);
   } finally { release(); }
 });
