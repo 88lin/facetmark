@@ -8,7 +8,7 @@ import threading
 import pytest
 
 from facetmark import admin, job_operations, service
-from facetmark.db import open_db, set_meta
+from facetmark.db import SCHEMA_VERSION, open_db, set_meta
 from facetmark.fetch import store as fetchstore
 from tests.test_reading_jobs import client as client
 from tests.test_reading_jobs import configure_chat, fake_fetch, save, wait_job
@@ -330,7 +330,7 @@ def test_v13_upgrade_preserves_the_highest_number_across_all_legacy_files_and_re
     upgraded = open_db(path)
     try:
         assert upgraded.execute("SELECT value FROM meta WHERE key='bookmark_id_highwater'").fetchone()[0] == "9000"
-        assert upgraded.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()[0] == "13"
+        assert upgraded.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()[0] == str(SCHEMA_VERSION)
         result = service.save_bookmark(upgraded, "https://reading.test/after-legacy-upgrade", title="new")
         assert result["bookmark_id"] == 9001
         for source, content in files.items():
