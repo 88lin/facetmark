@@ -105,22 +105,75 @@ def reserve_port(preferred: int) -> socket.socket:
     return sock
 
 
+def _publish_upgrade_file(source: Path, target: Path) -> None:
+    if os.name == 'nt':
+        source.rename(target)  # Windows rename refuses to replace an existing file.
+    else:
+        os.link(source, target)
+
+
+def _flush_upgrade_file(path: Path) -> None:
+    import stat
+
+    mode = path.stat().st_mode
+    readonly = not mode & stat.S_IWUSR
+    if readonly:
+        path.chmod(mode | stat.S_IWUSR)
+    try:
+        # Windows _commit/fsync requires a writable CRT descriptor. A copied
+        # read-only config is temporarily writable only inside private staging.
+        with path.open('rb+') as stream:
+            os.fsync(stream.fileno())
+    finally:
+        if readonly:
+            path.chmod(mode)
+
+
 def backup_on_upgrade(settings) -> None:
+    import shutil
+    import tempfile
+    import uuid
+
     stamp = settings.data_dir / 'desktop-version.json'
     previous = read_manifest(stamp).get('version')
-    if previous != __version__ and settings.db_path.is_file():
-        # SQLite's backup API includes committed WAL pages; copying .db alone does not.
-        backup_dir = settings.data_dir / 'backups'
-        backup_dir.mkdir(exist_ok=True)
-        suffix = time.strftime('%Y%m%d-%H%M%S')
-        with contextlib.closing(sqlite3.connect(settings.db_path)) as source, contextlib.closing(
-            sqlite3.connect(backup_dir / f'before-{__version__}-{suffix}.db')
+    if previous == __version__ or not settings.db_path.is_file():
+        return
+    backup_dir = settings.data_dir / 'backups'
+    backup_dir.mkdir(exist_ok=True)
+    suffix = f"{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex}"
+    database = backup_dir / f'before-{__version__}-{suffix}.db'
+    configuration = database.with_suffix('.toml')
+    with tempfile.TemporaryDirectory(prefix='.upgrade-', dir=backup_dir) as staging:
+        pending_db = Path(staging) / 'library.db'
+        pending_config = Path(staging) / 'config.toml'
+        # Backup includes committed WAL pages. Read-only URI also prevents a
+        # disappeared source from silently becoming a new empty database.
+        source_uri = settings.db_path.resolve().as_uri() + '?mode=ro'
+        with contextlib.closing(sqlite3.connect(source_uri, uri=True)) as source, contextlib.closing(
+            sqlite3.connect(pending_db)
         ) as dest:
             source.backup(dest)
-        config = settings.data_dir / 'config.toml'
-        if config.is_file():
-            import shutil
-            shutil.copy2(config, backup_dir / f'before-{__version__}-{suffix}.toml')
+        _flush_upgrade_file(pending_db)
+        config = settings.config_file_path
+        has_config = config.is_file()
+        if has_config:
+            shutil.copy2(config, pending_config)
+            _flush_upgrade_file(pending_config)
+        # Both copies are complete before either becomes a recovery file. If
+        # publication of the second fails, remove only our just-published DB.
+        published: list[Path] = []
+        complete = False
+        try:
+            _publish_upgrade_file(pending_db, database)
+            published.append(database)
+            if has_config:
+                _publish_upgrade_file(pending_config, configuration)
+                published.append(configuration)
+            complete = True
+        finally:
+            if not complete:
+                for target in reversed(published):
+                    target.unlink(missing_ok=True)
     # Written only after startup succeeds; failed migrations keep the old stamp.
 
 
