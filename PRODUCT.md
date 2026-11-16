@@ -34,6 +34,21 @@ be explicitly configured without a key. Mock providers are restricted to demo/te
 
 ## Capabilities and Constraints
 
+The 2026-11-16 reliability work keeps the product personal and local-first. The
+provided enrollment introduction is reference material. Batch pasted URLs have
+preview, deduplication and a durable import history. Tested chat and embedding
+connections can be named, reused and selected independently for a conversation;
+their actual configuration source stays with the chosen local library.
+
+Import, management, chat, tasks, notes, sync, extensions and MCP retain the
+original accepted operation and provide explicit recovery when its response is
+lost. Reading and local drafts remain available during remote failures. Settings
+that were saved successfully are confirmed before subsequent status reads;
+retrying that read does not repeat the write. Upgrade backups finish before
+publication and preserve existing recovery files. Current implementation and
+revision-specific verification are in
+[the full product repair record](docs/full-product-repair-2026-11-16.md).
+
 The 2026-10-26 usability repair keeps successful connection proofs for the actual
 saved model across settings visits, unsaved draft tests and application restart.
 Explicit model/effort choices do not inherit unrelated CLI defaults. Standard
@@ -114,10 +129,12 @@ contracts remain.
 
 ## Brand Commitments
 
-The latest 2026-10-26 assessment is that the current product is unusable, with many
-unfinished interactions and visual bugs. The select-all control and saving-sessions
-surface require explicit repair. Current source changes remain unreviewed visually;
-earlier technical passing status does not override this feedback.
+The latest 2026-11-16 assessment is that repeated iterations still leave many
+problems and require the user to check the whole product again. The user asks for
+comprehensive repair and polish, with verification owned by the implementation
+workflow. Current cloud reviews establish layout and interaction for their exact
+source; the user's aesthetic acceptance remains open. Earlier technical passing
+status does not override this feedback.
 
 The overall 2026-10-24 assessment is “还不算好看，能用的样子而已”. On 2026-10-25
 the user requested simpler collection/reading/summary workflows and removal of the
@@ -166,8 +183,9 @@ isolated patches. Continue the comprehensive detection → model choice → test
 summary → recovery workflow while replacing the rejected appearance, without
 another preference interview. The user has not approved the current aesthetics.
 
-Current source-matched verification and the visual review disposition are recorded once in
-[desktop validation](docs/desktop-validation.md). Historical green runs and scoped
+Current source-matched verification and the visual review disposition are recorded in
+[the full product repair record](docs/full-product-repair-2026-11-16.md).
+[Desktop validation](docs/desktop-validation.md) retains its historical baseline. Historical green runs and scoped
 review verdicts establish only their recorded revision and scope; they do not
 accept the current implementation. Synthetic corpus, catalog and model fixtures
 must be identified as such. Never show personal bookmarks in evidence.

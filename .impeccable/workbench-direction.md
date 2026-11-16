@@ -1,6 +1,27 @@
 # Facetmark — current workspace refinement
 
-## Latest feedback — 2026-10-25
+## Current full-product repair — 2026-11-16
+
+The user reports many remaining problems after repeated iterations and asks us to
+own the full audit, repair, polish and regression work. Keep the product personal
+and local-first; the enrollment introduction is reference material only. Review
+the actual first launch, import, collection, search, reading, model setup, tasks,
+chat, notes, sync, extension, CLI/MCP and native desktop journeys, including failure
+and recovery. Keep one visual system with component-owned capsule states, blue
+feedback, interruptible motion, readable dense content and reachable controls in
+narrow and short windows.
+
+The user explicitly authorizes commits, pushes, PRs, Actions and merging each PR
+after its complete checks and current source-matched evidence pass. Formal Release
+publication still requires an explicit request. Do not run a build, browser or
+installer locally or touch real browser data. Historical results and technical
+passing status do not establish user approval of the overall appearance.
+
+Use [the full product repair record](../docs/full-product-repair-2026-11-16.md)
+for current implementation, failures and exact verification scope. The dated
+records below retain their historical scope.
+
+## Previous feedback — 2026-10-25
 
 Remove the tray's transparent outer frame while preserving its interior. Expose
 thinking defaults and customization for endpoint models and automatically detected
@@ -159,7 +180,7 @@ Chinese/English, relevant actions, failure recovery and intermediate motion in t
 allowed environment. Native splash HTML with a synthetic bridge is distinct from
 installed Windows evidence. Old green checks do not verify the current source.
 
-[Current follow-up](../docs/summary-reading-reasoning-2026-10-25.md),
+[Current repair](../docs/full-product-repair-2026-11-16.md),
 [DESIGN.md](../DESIGN.md), [sidecar](design.json) and
 [frontend brief](surfaces/frontend.md) describe the same revision and review state.
 The repository handbook is a snapshot of general master v0.18. Update project
