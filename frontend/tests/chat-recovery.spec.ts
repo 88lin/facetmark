@@ -54,6 +54,35 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/*", route => new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort());
 });
 
+test("a draft written before the connection is ready stays unsent until an explicit send", async ({ page, owned }) => {
+  const control = await realRecovery(page, owned);
+  let release!: () => void;
+  const ready = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/admin/setup-status", async route => {
+    const response = await route.fetch();
+    await ready;
+    return route.fulfill({ response });
+  });
+  try {
+    await page.goto("/app#chat");
+    const question = page.locator("#chat-question");
+    const send = page.getByRole("button", { name: "发送问题", exact: true });
+    await question.fill("连接读取完成前先保留这个问题");
+    await expect(send).toBeDisabled();
+    await question.press("Enter");
+    await expect(question).toHaveValue("连接读取完成前先保留这个问题");
+    expect(control.creations).toHaveLength(0); expect(control.messages).toHaveLength(0);
+    release();
+    await expect(send).toBeEnabled();
+    expect(control.creations).toHaveLength(0); expect(control.messages).toHaveLength(0);
+    await send.click();
+    await expect(page.locator(".chat-message.assistant")).toBeVisible();
+    await expect(page.locator(".chat-message.assistant")).not.toHaveAttribute("data-status", "pending");
+    await expect(page.locator(".chat-message.user")).toHaveText(/连接读取完成前先保留这个问题/);
+    expect(control.creations).toHaveLength(1); expect(control.messages).toHaveLength(1);
+  } finally { release(); }
+});
+
 test("a lost creation response retains its exact send and selected page through refresh", async ({ page, owned }) => {
   const control = await realRecovery(page, owned);
   control.lostCreation = true; control.failReads = true;
@@ -63,7 +92,9 @@ test("a lost creation response retains its exact send and selected page through 
   await page.locator(".bookmark-preview").first().click();
   await page.getByRole("button", { name: "聊这篇", exact: true }).click();
   const question = page.locator("#chat-question");
-  await question.fill("先整理这篇收藏的结论"); await question.press("Enter");
+  await question.fill("先整理这篇收藏的结论");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
+  await question.press("Enter");
   await expect.poll(() => owned.ids.size).toBe(1);
   await question.fill("发送期间准备好的下一问");
   release(); control.creationWait = null;
@@ -103,7 +134,9 @@ test("reading a lost message receipt after refresh confirms the answer without a
   control.lostMessage = true; control.failReads = true;
   await page.goto("/app#chat");
   const question = page.locator("#chat-question");
-  await question.fill("只发送一次的问题"); await question.press("Enter");
+  await question.fill("只发送一次的问题");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
+  await question.press("Enter");
   await expect(page.locator(".chat-delivery-recovery")).toBeVisible();
   await question.fill("未提交的下一问");
   await page.reload();

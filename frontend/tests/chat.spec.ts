@@ -218,7 +218,9 @@ test("background generation can be reopened, stopped and retried without duplica
   await page.goto("/app#chat");
   const question = page.getByRole("textbox", { name: "对收藏提问", exact: true });
   await expect(question).toBeEnabled();
-  await question.fill("第一个问题"); await question.press("Enter");
+  await question.fill("第一个问题");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
+  await question.press("Enter");
   await expect(page.getByRole("button", { name: "停止生成", exact: true })).toBeVisible();
   await expect.poll(() => fixture.sent.length).toBe(1);
   await page.getByRole("button", { name: "新对话", exact: true }).click();
@@ -246,7 +248,9 @@ test("a finishing reply preserves the next draft typed while it was running", as
   await page.goto("/app#chat");
   const question = page.getByRole("textbox", { name: "对收藏提问", exact: true });
   await expect(question).toBeEnabled();
-  await question.fill("先回答这个问题"); await question.press("Enter");
+  await question.fill("先回答这个问题");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
+  await question.press("Enter");
   await expect.poll(() => fixture.sent.length).toBe(1);
   await question.fill("我准备接着问这个问题");
   fixture.finish("chat-1");
@@ -298,7 +302,9 @@ test("a restored running conversation retains its request ID and a failed stop k
   await page.goto("/app#chat");
   const question = page.getByRole("textbox", { name: "对收藏提问", exact: true });
   await expect(question).toBeEnabled();
-  await question.fill("刷新后仍然能够停止这个问题"); await question.press("Enter");
+  await question.fill("刷新后仍然能够停止这个问题");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
+  await question.press("Enter");
   await expect.poll(() => fixture.sent.length).toBe(1);
   const requestId = fixture.sent[0].request_id as string;
   await page.reload();
