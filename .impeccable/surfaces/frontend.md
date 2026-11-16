@@ -6,6 +6,7 @@ related_targets:
 - frontend/src/App.tsx
 - frontend/src/Settings.tsx
 - frontend/src/SettingsWorkspace.tsx
+- frontend/src/settings-maintenance.css
 - frontend/src/ModelPicker.tsx
 - frontend/src/ReasoningSettings.tsx
 - frontend/src/SavingSessions.tsx
@@ -231,7 +232,14 @@ or inherited-default changes invalidate stale catalogs and tests; changing the m
 or effort requires a fresh test. Empty effort inherits the client/model default;
 OpenCode exposes available variants. Endpoint thinking controls preserve unrelated
 advanced JSON options and explain format compatibility.
-A failed save remains visibly unsaved.
+A failed save remains visibly unsaved. Once preference saving succeeds, a later
+settings/status read failure preserves that acknowledgement and offers a read-only
+recovery action. Processing changes share the parent action gate and preserve
+unrelated model drafts. Extension status belongs to the visible category, keeps
+the last confirmed connection fact after read failures, and never overlaps slow
+reads. Pairing copies remain available. Update checks show their in-flight state,
+bounded error details and separate release/CI download links. These recovery styles
+belong to settings-maintenance.css and retain native keyboard semantics.
 
 The native select-all checkbox and one Generate button occupy the existing action
 toolbar; individual selection does not add a row or enter bulk management. Generation

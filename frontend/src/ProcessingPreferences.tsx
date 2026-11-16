@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from "react";
+import { useId, useRef, useState, type FormEvent } from "react";
 import { Gauge, LoaderCircle, RotateCcw, Save } from "lucide-react";
 import type { Setting } from "./api";
 import { useText } from "./locale";
@@ -68,6 +68,7 @@ export function ProcessingPreferences({ settings, disabled = false, onSave }: {
   const t = useText(), id = useId();
   const [draft, setDraft] = useState<Partial<Record<ProcessingKey, string>>>({});
   const [saving, setSaving] = useState(false), [error, setError] = useState(""), [notice, setNotice] = useState("");
+  const savingGate = useRef(false);
   const row = (key: string) => settings.find(setting => setting.key === key);
   const saved = (key: ProcessingKey) => numeric(row(key)?.value);
   const value = (field: ProcessingField) => draft[field.key] ?? String(row(field.key)?.value ?? "");
@@ -85,13 +86,14 @@ export function ProcessingPreferences({ settings, disabled = false, onSave }: {
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (saving || disabled || !dirty.length || invalid) return;
+    if (savingGate.current || saving || disabled || !dirty.length || invalid) return;
     const values: ProcessingValues = {};
     for (const field of dirty) {
       const number = bounded(draft[field.key], field);
       if (number === null) return;
       values[field.key] = number;
     }
+    savingGate.current = true;
     setSaving(true); setError(""); setNotice("");
     try {
       await onSave(values);
@@ -99,7 +101,7 @@ export function ProcessingPreferences({ settings, disabled = false, onSave }: {
       setNotice(t("处理设置已保存，用于之后启动的任务。", "Processing limits saved for tasks started from now on."));
     } catch (e) {
       setError(t("处理设置未保存，请重试。", "Processing limits were not saved. Please retry.") + " " + String(e));
-    } finally { setSaving(false); }
+    } finally { savingGate.current = false; setSaving(false); }
   }
 
   const renderFields = (group: ProcessingField["group"]) => <div className="processing-fields">

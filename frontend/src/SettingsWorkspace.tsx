@@ -64,7 +64,7 @@ export function SettingsWorkspace({ setup, refresh, onChanged, onBack, onSummari
       aria-labelledby={`settings-tab-${id}`} hidden={active !== id} tabIndex={0} className="settings-panel">
       {id === "models" ? <Models setup={setup} refresh={refresh} showHeading={false} onSummarize={onSummarize}/> :
         id === "sync" ? <SyncSettings onChanged={onChanged}/> :
-        id === "extension" ? <ExtensionSettings/> : id === "mcp" ? <McpSettings active={active === id}/> : <>
+        id === "extension" ? <ExtensionSettings active={active === id}/> : id === "mcp" ? <McpSettings active={active === id}/> : <>
           <UpdateSettings/>
           <p className="credits">{t("界面组件致谢：", "Interface credits: ")}<a href="https://heroui.com" target="_blank" rel="noreferrer">HeroUI</a> · <a href="https://rareui.com" target="_blank" rel="noreferrer">Rare UI</a></p>
         </>}

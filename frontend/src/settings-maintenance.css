@@ -1,0 +1,9 @@
+.extension-status-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 16px; margin:16px 0; }
+.extension-status-row .extension-connection-status { flex:1 1 250px; min-width:0; margin:0; }
+.extension-status-row .fm-button { display:inline-flex; align-items:center; gap:7px; flex:none; }
+.extension-status-error, .desktop-note .update-status-error { margin:12px 0 20px; color:var(--danger); font-size:var(--type-ui); line-height:1.7; }
+.extension-status-error > p, .desktop-note .update-status-error > p { margin:0 0 4px; color:inherit; }
+.extension-status-error summary, .desktop-note .update-status-error summary { width:fit-content; max-width:100%; padding:6px 0; cursor:pointer; }
+.extension-status-error summary:focus-visible, .desktop-note .update-status-error summary:focus-visible { outline:2px solid var(--accent); outline-offset:3px; border-radius:4px; }
+.extension-status-error details p, .desktop-note .update-status-error details p { margin:6px 0 0; color:var(--secondary-ink); white-space:pre-wrap; overflow-wrap:anywhere; }
+@media(max-width:719px) { .extension-status-row .fm-button { min-height:44px; } }
