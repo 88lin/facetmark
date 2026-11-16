@@ -48,7 +48,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: npm ci || npm install
+      - run: npm ci
         working-directory: extension
       - run: npx tsc --noEmit
         working-directory: extension
@@ -265,3 +265,33 @@ jobs:
       - name: logs, on failure
         if: failure()
         run: docker logs fm || true
+
+  collection-review:
+    # The shipped interaction/render matrix is part of every proposed merge.
+    # Manual dispatch remains available for diagnosis and evidence review.
+    uses: ./.github/workflows/collection-review.yml
+
+  experience-validation:
+    uses: ./.github/workflows/experience.yml
+
+  desktop-install:
+    uses: ./.github/workflows/desktop.yml
+
+  product-quality:
+    name: Product quality gate
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [python, extension, webui, browser, wheel, karakeep-plugin, image, collection-review, experience-validation, desktop-install]
+    steps:
+      - name: Require every distribution and interaction check to pass
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json, os
+          results = json.loads(os.environ['RESULTS'])
+          failed = {name: job['result'] for name, job in results.items() if job['result'] != 'success'}
+          if failed:
+              raise SystemExit(f'Product validation did not pass: {failed}')
+          print('All backend, Web, extension, integration, container and installed Windows checks passed.')
+          PY

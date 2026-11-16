@@ -225,6 +225,8 @@ def bookmark_record(
     if not rec["summary"]:
         rec["summary"] = _clip(row["body_head"], SUMMARY_CHARS)
     if include_body:
+        if row["summary"]:
+            rec["summary"] = row["summary"].strip()
         body = conn.execute(
             "SELECT body_text FROM content WHERE bookmark_id=?", (bookmark_id,)
         ).fetchone()
@@ -748,33 +750,9 @@ def sync_fts_tag_refresh(conn: sqlite3.Connection, bookmark_id: int) -> None:
     nothing keeps the rest of the lexical row exactly as the last pipeline
     stage wrote it.
     """
-    from .db import jload
+    from .text import sync_stored_fts
 
-    b = conn.execute(
-        "SELECT title, tags FROM bookmark WHERE id=?", (bookmark_id,)
-    ).fetchone()
-    if b is None:
-        return
-    body_row = conn.execute(
-        "SELECT body_text, body_seg FROM content WHERE bookmark_id=?", (bookmark_id,)
-    ).fetchone()
-    enr = conn.execute(
-        "SELECT ai_title, summary, topics, entities, key_points FROM enrichment WHERE bookmark_id=?",
-        (bookmark_id,),
-    ).fetchone()
-    sync_fts(
-        conn,
-        bookmark_id,
-        title=b["title"] or "",
-        ai_title=(enr["ai_title"] if enr else "") or "",
-        body=(body_row["body_text"] if body_row else "") or "",
-        body_seg=(body_row["body_seg"] if body_row else None),
-        summary=(enr["summary"] if enr else "") or "",
-        topics=jload(enr["topics"]) if enr else [],
-        entities=jload(enr["entities"]) if enr else [],
-        key_points=jload(enr["key_points"]) if enr else [],
-        tags=jload(b["tags"], []),
-    )
+    sync_stored_fts(conn, bookmark_id)
 
 
 def save_bookmark(

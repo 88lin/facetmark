@@ -346,36 +346,9 @@ def _import_bookmarks(
             )
             stats.updated += 1
 
-        # Title-only lexical index so search works before any fetching happens.
-        # The note (<DD>) is genuine user-authored text, so it goes into `extra`
-        # where it gets the same weight as topics and entities. Tags go in too:
-        # a tag the user typed is recall vocabulary like any other word, and the
-        # `tag:` filter is the precision instrument on top of that.
-        body_row = conn.execute(
-            "SELECT body_text, body_seg FROM content WHERE bookmark_id=?", (bid,)
-        ).fetchone()
-        enr = conn.execute(
-            "SELECT ai_title,summary, topics, entities, key_points FROM enrichment WHERE bookmark_id=?",
-            (bid,),
-        ).fetchone()
-        from ..db import jload
-
-        merged_tags = (
-            keep_tags if existing is not None else row["tags"]
-        )
-        textmod.sync_fts(
-            conn,
-            bid,
-            title=row["title"],
-            ai_title=(enr["ai_title"] if enr else "") or "",
-            body=(body_row["body_text"] if body_row else "") or "",
-            body_seg=(body_row["body_seg"] if body_row else None),
-            summary=(enr["summary"] if enr else "") or "",
-            topics=jload(enr["topics"]) if enr else [],
-            entities=jload(enr["entities"]) if enr else [],
-            key_points=([*jload(enr["key_points"]), row["note"]] if enr else [row["note"]]),
-            tags=merged_tags,
-        )
+        # Use the values actually saved above, including a retained local title
+        # when the new export supplied none, and all previously saved reading.
+        textmod.sync_stored_fts(conn, bid, extra_topics=[row["note"]] if row["note"] else [])
 
     backup.restore(conn, prepared, stats)
     return stats

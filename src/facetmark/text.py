@@ -253,6 +253,32 @@ def sync_fts(
     conn.execute(_FTS_UPSERT_SEG, (bookmark_id, seg_title, seg_body, seg_summary, seg_extra))
 
 
+def sync_stored_fts(conn: sqlite3.Connection, bookmark_id: int, *, extra_topics: Iterable[str] = ()) -> None:
+    """Rebuild recall from the saved record, including retained derived data.
+
+    A fetch updates only the body. Supplying sync_fts's empty defaults there
+    used to erase every other field from the index, despite keeping it in SQL.
+    Import and tag refresh use the same saved values so their indexes agree.
+    """
+    from .db import jload
+
+    row = conn.execute(
+        "SELECT b.title,b.folder,b.tags,c.body_text,c.body_seg,e.ai_title,e.summary,"
+        "e.topics,e.entities,e.key_points FROM bookmark b "
+        "LEFT JOIN content c ON c.bookmark_id=b.id "
+        "LEFT JOIN enrichment e ON e.bookmark_id=b.id WHERE b.id=?", (bookmark_id,),
+    ).fetchone()
+    if row is None:
+        return
+    sync_fts(
+        conn, bookmark_id, title=row["title"] or "", ai_title=row["ai_title"] or "",
+        body=row["body_text"] or "", body_seg=row["body_seg"], summary=row["summary"] or "",
+        topics=[*jload(row["topics"], []), *([row["folder"]] if row["folder"] else []), *extra_topics],
+        entities=jload(row["entities"], []), key_points=jload(row["key_points"], []),
+        tags=jload(row["tags"], []),
+    )
+
+
 def drop_fts(conn: sqlite3.Connection, bookmark_id: int) -> None:
     conn.execute("DELETE FROM fts_tri WHERE rowid=?", (bookmark_id,))
     conn.execute("DELETE FROM fts_seg WHERE rowid=?", (bookmark_id,))

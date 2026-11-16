@@ -13,6 +13,7 @@ on:
       - 'scripts/experience_server.py'
       - '.github/workflows/collection-review.yml'
   workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 concurrency:
@@ -38,7 +39,9 @@ jobs:
       - name: Stage shared native text faces
         run: python scripts/stage_native_ui.py
       - working-directory: frontend
-        run: npm run build
+        run: |
+          npm run test:unit
+          npm run build
       - run: ruff check scripts/collection_review_fixture.py scripts/collection_review_evidence.py
       - working-directory: frontend
         run: npx playwright install --with-deps chromium
