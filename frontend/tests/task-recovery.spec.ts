@@ -52,6 +52,14 @@ async function openTasks(page: Page) {
   await page.goto("/app");
   await page.getByRole("button", { name: "任务", exact: true }).click();
 }
+async function openSetupTasks(page: Page) {
+  await page.goto("/app");
+  await page.getByRole("button", { name: "导入", exact: true }).click();
+  await page.getByRole("button", { name: "打开完整向导", exact: true }).click();
+  const steps = page.getByRole("navigation", { name: "设置步骤", exact: true });
+  await steps.getByRole("button", { name: /连接模型/ }).click();
+  await steps.getByRole("button", { name: /建立索引/ }).click();
+}
 async function generate(page: Page, title: string, id: number) {
   await page.goto("/app");
   await page.getByRole("textbox", { name: "搜索书签", exact: true }).fill(title);
@@ -208,12 +216,13 @@ test("a refusal survives receipt failure and revising rechecks whether another w
   expect(await pending(page)).toEqual([]); expect(control.job.pause_requested).toBe(false);
 });
 
-test("an unresolved original start still allows cancelling the visible current run", async ({ page }) => {
+for (const entry of ["tasks", "setup"] as const) test("an unresolved original start still allows cancelling the visible current run from " + entry, async ({ page }) => {
   const original: TaskOperation = { version: 1, requestId: "unconfirmed-original-start", createdAt: Date.now(), confirmed: false,
     change: { kind: "start", values: { mode: "summarize", confirmed: true, bookmark_ids: [17], force: true } } };
   await page.addInitScript(({ original, prefix }) => localStorage.setItem(prefix + original.requestId, JSON.stringify(original)), { original, prefix });
   const control = await controlled(page); control.failReceipts = true;
-  await openTasks(page); const recovery = page.locator(".task-recovery"); await expect(recovery).toBeVisible();
+  await (entry === "setup" ? openSetupTasks(page) : openTasks(page));
+  const recovery = page.locator(".task-recovery"); await expect(recovery).toBeVisible();
   await expect(recovery.getByRole("button", { name: "读取任务结果", exact: true })).toBeEnabled();
   await expect(page.getByRole("button", { name: "暂停任务", exact: true })).toBeDisabled();
   const cancel = page.getByRole("button", { name: "取消任务", exact: true }); await expect(cancel).toBeEnabled();

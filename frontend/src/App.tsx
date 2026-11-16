@@ -1408,6 +1408,9 @@ function Workbench({
                 setup={setup}
                 job={job}
                 refresh={refreshImportedCollection}
+                onTask={taskOperations.run}
+                taskBusy={taskBusy}
+                cancelBusy={taskCancelBusy}
                 onProcess={(mode) => handleLibraryAction({ kind: "process", mode })}
                 onDone={() => {
                   remember("fm-setup-skipped", "1");

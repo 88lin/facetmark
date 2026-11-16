@@ -4,6 +4,7 @@ import { AlertCircle, ArrowRight, Check, FolderOpen, LoaderCircle, RotateCcw, Up
 import { ApiError, api, post, type Job, type Setup } from "./api";
 import { Models } from "./Settings";
 import { Tasks } from "./Tasks";
+import type { TaskChange } from "./task-local-state";
 import { useText } from "./locale";
 import { SelectionPill, useContentMotion } from "./InteractionMotion";
 import { SiteImport } from "./SiteImport";
@@ -238,12 +239,18 @@ export default function SetupFlow({
   setup,
   job,
   refresh,
+  onTask,
+  taskBusy,
+  cancelBusy,
   onDone,
   onProcess,
 }: {
   setup: Setup | null;
   job: Job;
   refresh: () => Promise<void>;
+  onTask: (change: TaskChange) => Promise<boolean>;
+  taskBusy: boolean;
+  cancelBusy: boolean;
   onDone: () => void;
   onProcess: (mode: "fetch" | "summarize") => void;
 }) {
@@ -295,7 +302,7 @@ export default function SetupFlow({
         <Models setup={setup} refresh={refresh} onSummarize={() => onProcess("summarize")} />
       </div>}
       {visited.has(2) && <div className="setup-panel" hidden={step !== 2}>
-        <Tasks setup={setup} job={job} refresh={refresh} onProcess={onProcess} onBack={onDone} />
+        <Tasks setup={setup} job={job} onTask={onTask} taskBusy={taskBusy} cancelBusy={cancelBusy} onProcess={onProcess} onBack={onDone} />
       </div>}
       {visited.has(3) && <div className="setup-panel" hidden={step !== 3}>
         <section className="ready">
