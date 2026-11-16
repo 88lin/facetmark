@@ -20,6 +20,7 @@ export function McpSettings({ active = true }: { active?: boolean }) {
   const [recoveryError, setRecoveryError] = useState(""), [notice, setNotice] = useState("");
   const [karakeep, setKarakeep] = useState<KarakeepStats | null>(null), [karakeepError, setKarakeepError] = useState("");
   const revision = useRef(0), gate = useRef(false), abort = useRef<AbortController | null>(null);
+  const reading = useRef<{ signal?: AbortSignal } | null>(null);
   const mounted = useRef(true);
   const invalidResult = () => new Error(t("MCP 返回了无法确认的结果，请保留原修改并重新读取。", "MCP returned an unreadable result. Keep the original change and read it again."));
   const errorText = (failure: unknown) => failure instanceof Error ? failure.message : String(failure);
@@ -40,8 +41,13 @@ export function McpSettings({ active = true }: { active?: boolean }) {
       : t("已确认原修改，以下显示当前配置。", "The original change is confirmed. The current configuration is shown below."));
   }
 
-  async function load(signal?: AbortSignal) {
-    if (gate.current) return;
+  async function load(signal = abort.current?.signal) {
+    if (gate.current || signal?.aborted || reading.current && !reading.current.signal?.aborted) return;
+    const owner = { signal }; reading.current = owner;
+    try { await readSavedStatus(signal); }
+    finally { if (reading.current === owner) reading.current = null; }
+  }
+  async function readSavedStatus(signal?: AbortSignal) {
     const current = ++revision.current;
     const saved = readOriginals();
     try {

@@ -217,6 +217,29 @@ test("a malformed read receipt keeps the accepted original and never offers an u
   await expect(recovery(page)).toHaveCount(0); expect(control.writes).toHaveLength(1);
 });
 
+test("a slow initial status read survives polling without overlapping reads or accepting a new change", async ({ page, server }) => {
+  await server.change({ enabled: true }); const control = await intercept(page);
+  await page.clock.install();
+  let release!: () => void, reads = 0;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/admin/mcp", async route => {
+    if (route.request().method() !== "GET") return route.fallback();
+    reads++; await held;
+    const response = await route.fetch(); return route.fulfill({ response });
+  });
+  try {
+    await page.goto("/app#settings/mcp");
+    await expect.poll(() => reads).toBe(1);
+    await expect(panel(page).locator(".mcp-service-status")).toHaveText("正在读取状态…");
+    await page.clock.runFor(6_000);
+    expect(reads).toBe(1);
+    await expect(panel(page).getByRole("button", { name: "开启 MCP", exact: true })).toBeDisabled();
+    release();
+    await expect(panel(page).locator(".mcp-service-status")).toHaveText("MCP 服务已启动");
+    expect(control.writes).toEqual([]);
+  } finally { release(); }
+});
+
 test("failed local persistence sends no token reset and an explicit retry works after storage recovers", async ({ page, server }) => {
   const initial = await server.change({ enabled: true }), control = await intercept(page);
   await page.clock.install();
