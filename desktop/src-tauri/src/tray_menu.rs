@@ -29,7 +29,25 @@ fn record_window_event(app: &tauri::AppHandle, details: serde_json::Value) {
 pub fn focus_changed(window: &tauri::Window, focused: bool) {
     record_window_event(window.app_handle(), serde_json::json!({ "event": "focus", "focused": focused,
         "visible_before": window.is_visible().ok() }));
-    if !focused { let _ = window.hide(); }
+    if !focused {
+        // WebView2 can deliver the previous opening's LostFocus after a new
+        // show/set_focus has already made this HWND the native foreground.
+        // Only that stale notification is ignored; moving to another native
+        // window must still dismiss the menu immediately.
+        #[cfg(windows)]
+        {
+            use windows_sys::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
+            if window.hwnd().ok().is_some_and(|hwnd| {
+                hwnd.0 as usize == unsafe { GetForegroundWindow() } as usize
+            }) {
+                record_window_event(window.app_handle(), serde_json::json!({
+                    "event": "stale-focus-loss-ignored", "visible": window.is_visible().ok()
+                }));
+                return;
+            }
+        }
+        let _ = window.hide();
+    }
 }
 
 fn packaged_tray_url(url: &tauri::Url) -> bool {

@@ -149,6 +149,7 @@ with sync_playwright() as playwright:
     opening_sources = []
     activation_history = []
     hide_history = []
+    reopen_history = []
     tray_connection = None
 
     def cdp_targets():
@@ -344,6 +345,30 @@ with sync_playwright() as playwright:
         assert menu.locator(".tray-shell").evaluate("el => getComputedStyle(el).animationName") == "none"
         menu.keyboard.press("Escape")
         wait_for(lambda: not user32.IsWindowVisible(handle), "Escape did not hide the native tray window")
+        # Exercise the original Escape/reopen race repeatedly against the same
+        # installed HWND. Sample the native foreground after opening so a late
+        # LostFocus cannot pass merely because the window was visible briefly.
+        # Escape here is real OS input; neither show nor focus is patched.
+        for cycle in range(8):
+            menu = open_menu()
+            reopened_handle = native_window("Facetmark tray")
+            assert reopened_handle == handle, "Tray reopen replaced the installed native window"
+            samples = []
+            deadline = time.monotonic() + .5
+            while time.monotonic() < deadline:
+                sample = {"visible": bool(user32.IsWindowVisible(handle)),
+                          "foreground_hwnd": user32.GetForegroundWindow()}
+                samples.append(sample)
+                assert sample["visible"] and sample["foreground_hwnd"] == handle, (
+                    f"Reopened tray lost its native foreground in cycle {cycle + 1}: {samples}")
+                time.sleep(.05)
+            user32.keybd_event(0x1B, 0, 0, 0)
+            user32.keybd_event(0x1B, 0, 2, 0)
+            wait_for(lambda: not user32.IsWindowVisible(handle), "Native Escape did not hide the reopened tray")
+            reopen_history.append({"cycle": cycle + 1, "hwnd": handle,
+                                   "native_foreground_samples": samples, "native_escape_hid_menu": True})
+            report("installed-tray-reopen.json", {"same_native_window": True,
+                "completed_cycles": len(reopen_history), "cycles": reopen_history})
         menu = open_menu()
         hide_main()
         assert not user32.IsWindowVisible(main_handle), "Open-workspace regression needs a hidden main window"
@@ -379,6 +404,7 @@ with sync_playwright() as playwright:
         report("installed-tray.json", {"native_geometry": geometry, "initial_state": initial,
             "measured_outer": measured_geometry, "work_area": work_area, "whole_frame_visible": True,
             "layout": tray_layout, "native_hide_history": hide_history,
+            "native_reopen_history": reopen_history,
             "startup_toggled_and_restored": True, "shortcut_toggled_persisted_and_restored": True,
             "real_global_shortcut": True, "open_workspace": True, "escape_hides_menu": True,
             "native_focus_loss_hides_menu": True, "update_opens_desktop_settings": True,
