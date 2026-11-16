@@ -52,4 +52,3 @@ export async function putDelivery(delivery: PendingDelivery): Promise<void> {
 export async function removeDelivery(requestId: string): Promise<void> {
   await chrome.storage.local.set({ [KEY]: (await readDeliveries()).filter((item) => item.body.request_id !== requestId) });
 }
-

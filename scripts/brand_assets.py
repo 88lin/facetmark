@@ -91,4 +91,3 @@ def icon_evidence(icon, directory):
             preview.paste(scaled, (x + (52 - size) // 2, y + 35 + (64 - size) // 2), scaled)
             draw.text((x + 8, y + 99), str(size), font=font, fill=ink)
     preview.save(directory / 'desktop-icon-preview.png')
-

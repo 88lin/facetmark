@@ -17,6 +17,17 @@ function serve() {
   stub.routes.set("/queue/release", () => ({ status: 200, json: { released: 1 } }));
 }
 
+async function tabStarted() {
+  // The connection owner uses native WebCrypto, which is not flushed by one
+  // setImmediate. Advance fake page clocks only after the real async setup
+  // reaches tabs.create; otherwise a failed test leaves its drain in the next
+  // test's reset storage and permission state.
+  const deadline = performance.now() + 2_000;
+  while (!stub.tabs.created.length && performance.now() < deadline) await setImmediate();
+  assert.equal(stub.tabs.created.length, 1, "the drain must reach the original tab before advancing its clock");
+  await setImmediate();
+}
+
 test("manual reading reports a real API failure instead of claiming an empty queue", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout"] });
   t.after(async () => { t.mock.timers.tick(25_000); await setImmediate(); });
@@ -65,11 +76,10 @@ test("a fully loaded tab is read without relying on another load event", async (
   serve();
   stub.tabs.behaviour = "complete";
   const pending = drainQueue();
-  await setImmediate();
+  await tabStarted();
   t.mock.timers.tick(1_500);
-  await setImmediate();
-  assert.equal(stub.tabs.scripts, 1, "already-complete pages must not wait for a missing event");
   assert.equal(await pending, 1);
+  assert.equal(stub.tabs.scripts, 1, "already-complete pages must not wait for a missing event");
 });
 
 test("missing page permission does not lease work or open tabs", async (t) => {
@@ -79,11 +89,10 @@ test("missing page permission does not lease work or open tabs", async (t) => {
   stub.tabs.behaviour = "complete";
   stub.permissions.allowed = false;
   const pending = drainQueue();
-  await setImmediate();
+  assert.equal(await pending, 0);
   assert.deepEqual(stub.calls, []);
   assert.deepEqual(stub.tabs.created, []);
   assert.deepEqual(stub.permissions.requested, [], "permission is requested only from a user gesture");
-  assert.equal(await pending, 0);
 });
 
 test("pausing closes the current tab and releases its unprocessed lease", async (t) => {
@@ -92,12 +101,11 @@ test("pausing closes the current tab and releases its unprocessed lease", async 
   serve();
   stub.tabs.behaviour = "loading";
   const pending = drainQueue();
-  await setImmediate();
+  await tabStarted();
   assert.equal(stub.tabs.created.length, 1);
   await stub.setSettings({ paused: true });
-  await setImmediate();
-  assert.equal(stub.tabs.removed.length, 1, "pause must close an in-progress page immediately");
   assert.equal(await pending, 0);
+  assert.equal(stub.tabs.removed.length, 1, "pause must close an in-progress page immediately");
   assert.equal(stub.calls.filter((call) => call.path === "/queue/complete").length, 0);
   assert.equal(stub.calls.filter((call) => call.path === "/queue/release").length, 1);
 });
@@ -111,14 +119,13 @@ test("delivery failure preserves the page and never invents a fetch error", asyn
   stub.routes.set("/queue/complete", () => ({ status: ++delivered === 1 ? 503 : 200,
     json: { bookmark_id: 7, stored: true, changed: true, queue: { done: 1 } } }));
   const pending = drainQueue();
-  await setImmediate();
+  await tabStarted();
   t.mock.timers.tick(0);
   await setImmediate();
   t.mock.timers.tick(1_500);
-  await setImmediate();
+  assert.equal(await pending, 0);
   const completions = stub.calls.filter((call) => call.path === "/queue/complete");
   assert.equal(completions.length, 1, "delivery failure must not be posted as a second page failure");
   assert.equal((completions[0].body as Record<string, unknown>).body, "the body of the page");
   assert.ok(stub.settings["fetch-deliveries"], "exact text stays local until the server acknowledges it");
-  assert.equal(await pending, 0);
 });
