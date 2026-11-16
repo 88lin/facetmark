@@ -353,6 +353,14 @@ with sync_playwright() as playwright:
             menu = open_menu()
             reopened_handle = native_window("Facetmark tray")
             assert reopened_handle == handle, "Tray reopen replaced the installed native window"
+            requested = native_request(action="replay-tray-focus-loss")
+            def replay_result(expected_sequence=requested):
+                record = read_json(output / "tray-focus-replay-native.json")
+                return record if record.get("process") == process and record.get("sequence") == expected_sequence else None
+            replay = wait_for(replay_result, "Recorded stale focus event was not replayed by the native handler")
+            assert replay["menu_hwnd"] == handle and replay["foreground_before"] == handle, replay
+            assert replay["visible"] and replay["foreground_after"] == handle, (
+                f"Recorded stale focus loss hid the current native menu: {replay}")
             samples = []
             deadline = time.monotonic() + .5
             while time.monotonic() < deadline:
@@ -366,7 +374,8 @@ with sync_playwright() as playwright:
             user32.keybd_event(0x1B, 0, 2, 0)
             wait_for(lambda: not user32.IsWindowVisible(handle), "Native Escape did not hide the reopened tray")
             reopen_history.append({"cycle": cycle + 1, "hwnd": handle,
-                                   "native_foreground_samples": samples, "native_escape_hid_menu": True})
+                                   "native_foreground_samples": samples, "stale_focus_replay": replay,
+                                   "native_escape_hid_menu": True})
             report("installed-tray-reopen.json", {"same_native_window": True,
                 "completed_cycles": len(reopen_history), "cycles": reopen_history})
         menu = open_menu()
