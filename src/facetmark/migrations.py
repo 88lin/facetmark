@@ -323,6 +323,15 @@ def _v13_task_delivery(conn: sqlite3.Connection) -> None:
                  "CAST(excluded.value AS INTEGER)) AS TEXT)", (str(highest),))
 
 
+def _v14_sync_delivery(conn: sqlite3.Connection) -> None:
+    conn.execute("CREATE TABLE IF NOT EXISTS library_sync_operation (request_id TEXT PRIMARY KEY,"
+                 "fingerprint TEXT NOT NULL,action TEXT NOT NULL,state TEXT NOT NULL,result TEXT NOT NULL,"
+                 "delivery TEXT NOT NULL DEFAULT '{}',error TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL)")
+    conn.execute("CREATE INDEX IF NOT EXISTS ix_library_sync_operation_state ON library_sync_operation(state)")
+    conn.execute("CREATE TABLE IF NOT EXISTS library_sync_preview (preview_id TEXT PRIMARY KEY,"
+                 "expires_at REAL NOT NULL,plan TEXT NOT NULL)")
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(2, "browser queue remembers when a retry is allowed", _v2_browser_queue_backoff),
     Migration(3, "content vectors remember what they were built from",
@@ -340,6 +349,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(11, "conversations retain delivery receipts and independent named connections", _v11_chat_delivery),
     Migration(12, "collection edits retain atomic receipts and durable bookmark identifiers", _v12_library_delivery),
     Migration(13, "task acceptance and controls retain their original run across restart", _v13_task_delivery),
+    Migration(14, "sync previews and accepted metadata deliveries survive restart", _v14_sync_delivery),
 )
 
 #: What this build writes into a new database. Derived from the migration list
