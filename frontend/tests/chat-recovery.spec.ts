@@ -69,6 +69,8 @@ test("a draft written before the connection is ready stays unsent until an expli
     const send = page.getByRole("button", { name: "发送问题", exact: true });
     await question.fill("连接读取完成前先保留这个问题");
     await expect(send).toBeDisabled();
+    await expect(page.locator(".chat-connection-notice")).toHaveText("正在读取已保存的聊天连接，草稿会保留。");
+    await expect(page.locator(".chat-connection-notice").getByRole("button", { name: "设置 AI 连接", exact: true })).toHaveCount(0);
     await question.press("Enter");
     await expect(question).toHaveValue("连接读取完成前先保留这个问题");
     expect(control.creations).toHaveLength(0); expect(control.messages).toHaveLength(0);
@@ -258,12 +260,15 @@ test("a per-conversation connection survives refresh and rejected work can retur
   await page.goto("/app#chat");
   const choice = page.locator("#chat-connection"), question = page.locator("#chat-question");
   await expect(choice.locator('option[value="careful"]')).toHaveCount(1);
-  await choice.selectOption("careful"); await question.fill("使用独立连接提问"); await question.press("Enter");
+  await choice.selectOption("careful"); await question.fill("使用独立连接提问");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
+  await question.press("Enter");
   await expect(page.locator(".chat-message.assistant")).toContainText("careful-model");
   await question.fill("刷新后保留的追问"); await page.reload();
   await expect(choice).toHaveValue("careful"); await expect(question).toHaveValue("刷新后保留的追问");
   expect(control.globalWrites).toBe(0);
   control.rejectNext = true; control.failReads = true;
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
   await question.press("Enter");
   await expect(page.locator(".chat-delivery-recovery")).toBeVisible();
   await expect(choice).toBeDisabled();
@@ -271,7 +276,9 @@ test("a per-conversation connection survives refresh and rejected work can retur
   await page.locator(".chat-delivery-recovery").getByRole("button", { name: "重新读取对话", exact: true }).click();
   await expect(page.locator(".chat-delivery-recovery")).toHaveCount(0);
   await expect(choice).toBeEnabled(); await expect(question).toHaveValue("刷新后保留的追问");
-  await choice.selectOption(""); await question.press("Enter");
+  await choice.selectOption("");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
+  await question.press("Enter");
   await expect(page.locator(".chat-message.user")).toHaveCount(2);
   expect(control.generations).toBe(2); expect(control.messages[1].profile_id).toBe("careful");
   expect(control.messages[2].profile_id).toBe(""); expect(control.globalWrites).toBe(0);
@@ -282,7 +289,9 @@ test("a per-conversation connection survives refresh and rejected work can retur
 test("an accepted older retry is settled even after another window replaces its message request ID", async ({ page }) => {
   const control = await namedFixture(page);
   await page.goto("/app#chat");
-  await page.locator("#chat-question").fill("跨窗口的原问题"); await page.locator("#chat-question").press("Enter");
+  await page.locator("#chat-question").fill("跨窗口的原问题");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
+  await page.locator("#chat-question").press("Enter");
   await expect(page.locator(".chat-message.user")).toHaveCount(1);
   const value = [...control.values.values()][0]; control.accepted.add("old-retry");
   value.messages[1].request_id = "newer-retry";
@@ -306,7 +315,9 @@ test("removed and untested connections keep saved answers without silently using
   await page.goto("/app#chat");
   await expect(page.locator('#chat-connection option[value="careful"]')).toHaveCount(1);
   await page.locator("#chat-connection").selectOption("careful");
-  await page.locator("#chat-question").fill("保留这个独立连接的回答"); await page.locator("#chat-question").press("Enter");
+  await page.locator("#chat-question").fill("保留这个独立连接的回答");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
+  await page.locator("#chat-question").press("Enter");
   await expect(page.locator(".chat-message.assistant")).toHaveCount(1);
   control.profiles = control.profiles.filter(item => item.id !== "careful");
   await page.reload();
@@ -327,7 +338,9 @@ test("chat controls and long connection states remain reachable in both themes a
   await page.goto("/app#chat");
   await expect(page.locator('#chat-connection option[value="careful"]')).toHaveCount(1);
   await page.locator("#chat-connection").selectOption("careful");
-  await page.locator("#chat-question").fill("查看这个长回答并继续阅读"); await page.locator("#chat-question").press("Enter");
+  await page.locator("#chat-question").fill("查看这个长回答并继续阅读");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
+  await page.locator("#chat-question").press("Enter");
   await expect(page.locator(".chat-message.assistant")).toHaveCount(1);
   await page.locator("#chat-connection").selectOption("untested");
   for (const language of ["zh", "en"] as const) for (const theme of ["light", "dark"] as const) {

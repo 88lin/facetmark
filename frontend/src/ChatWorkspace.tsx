@@ -543,8 +543,9 @@ export function ChatWorkspace({ active, launch, setup, language, onPreview, onSe
           : profilesError ? t("暂时无法确认这个连接，请重新读取连接后再发送。草稿会保留。", "This connection could not be confirmed. Reload connections before sending; your draft is retained.")
             : !chosenProfile ? t("这段对话的连接已移除，请选择其他连接。已保存的回答和草稿会保留。", "This conversation's connection was removed. Choose another connection; saved answers and your draft are retained.")
               : t("这个连接尚未通过测试。可以先写问题，再到设置中测试，或选择其他连接。", "This connection needs a test. You can draft a question, then test it in Settings or choose another connection.")
-        : t("可以先写问题，测试并保存聊天连接后再发送。", "Draft a question now, then test and save a chat connection before sending.")}</span>
-        <CapsuleButton type="button" className="text-button" onClick={onSettings}>{t("设置 AI 连接", "Set up AI connection")}</CapsuleButton></div>}
+        : setup === null ? t("正在读取已保存的聊天连接，草稿会保留。", "Loading your saved chat connection. Your draft is retained.")
+          : t("可以先写问题，测试并保存聊天连接后再发送。", "Draft a question now, then test and save a chat connection before sending.")}</span>
+        {(profileId || setup !== null) && <CapsuleButton type="button" className="text-button" onClick={onSettings}>{t("设置 AI 连接", "Set up AI connection")}</CapsuleButton>}</div>}
       {canRetry && !running && !operation && <div className="chat-retry"><span>{t("继续刚才的问题", "Continue your last question")}</span>
         <CapsuleButton type="button" className="secondary" disabled={!ready || loading || readFailure === currentId} onClick={() => void send("retry")}><RotateCcw size={15}/>{t("重试回答", "Retry answer")}</CapsuleButton></div>}
       {canRegenerate && !running && !operation && <div className="chat-retry chat-regenerate">

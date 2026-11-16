@@ -39,6 +39,10 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+test.afterEach(async ({ page }) => {
+  await page.unrouteAll({ behavior: "wait" });
+});
+
 test("detected model levels, default and selected effort survive testing and saving", async ({ page }) => {
   const saved = await settings(page, { chat_backend: "agent", chat_agent: "codex", chat_agent_model: "", chat_agent_reasoning_effort: "" });
   let tested: Record<string, unknown> = {};
@@ -152,6 +156,7 @@ test("compatible services receive their thinking parameter shape and keep other 
     if (method === "enable_thinking") expect(body.enable_thinking).toBe(false);
     if (method === "chat_template_kwargs") expect(body.chat_template_kwargs.enable_thinking).toBe(false);
     expect(body.reasoning_effort).toBeUndefined();
+    await expect(panel.getByRole("button", { name: "测试连接", exact: true })).toBeEnabled();
   }
 });
 
