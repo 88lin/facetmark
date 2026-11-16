@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from .db import in_chunks, jdump, jload, now
 from .normalize import normalize_url
-from .text import sync_fts
+from .text import sync_stored_fts
 
 Short = Annotated[str, Field(max_length=2048)]
 Stamp = Annotated[int, Field(ge=0, le=2**63 - 1)]
@@ -47,6 +47,9 @@ class SavedEnrichment(BaseModel):
 
 class ReadingRecord(BaseModel):
     url: str = Field(max_length=8192)
+    note: str = Field(default="", strict=True, max_length=60_000)
+    note_saved: bool = Field(default=False, strict=True)
+    legacy_note_text: str = Field(default="", strict=True, max_length=2_000_000)
     content: SavedBody | None = None
     derived: SavedEnrichment | None = None
 
@@ -148,6 +151,8 @@ def restore(conn: sqlite3.Connection, prepared, stats) -> None:
         if bookmark is None:
             continue
         bid = bookmark["id"]
+        from .reading_notes import import_note
+        import_note(conn, bid, record.note, legacy_text=record.legacy_note_text, saved=record.note_saved)
         body = conn.execute("SELECT body_text,body_hash FROM content WHERE bookmark_id=?", (bid,)).fetchone()
         incoming = record.content
         if incoming and incoming.body_text and not (body and body["body_text"]):
@@ -179,12 +184,7 @@ def restore(conn: sqlite3.Connection, prepared, stats) -> None:
                 conn.executemany("INSERT INTO intent_query(bookmark_id,text,kept,created_at) VALUES(?,?,0,?)",
                                  [(bid, text, now()) for text in dict.fromkeys(derived.intent_queries)])
                 stats.restored_summaries += 1
-        enrichment = conn.execute("SELECT * FROM enrichment WHERE bookmark_id=?", (bid,)).fetchone()
-        sync_fts(conn, bid, title=bookmark["title"], ai_title=enrichment["ai_title"] if enrichment else "",
-                 body=body["body_text"] if body else "", summary=enrichment["summary"] if enrichment else "",
-                 topics=jload(enrichment["topics"]) if enrichment else [],
-                 entities=jload(enrichment["entities"]) if enrichment else [],
-                 key_points=jload(enrichment["key_points"]) if enrichment else [], tags=jload(bookmark["tags"]))
+        sync_stored_fts(conn, bid)
     for record in conversations:
         if conn.execute("SELECT 1 FROM chat_conversation WHERE id=?", (record.id,)).fetchone():
             continue

@@ -332,6 +332,36 @@ def _v14_sync_delivery(conn: sqlite3.Connection) -> None:
                  "expires_at REAL NOT NULL,plan TEXT NOT NULL)")
 
 
+def _v15_reading_notes(conn: sqlite3.Connection) -> None:
+    conn.execute("CREATE TABLE IF NOT EXISTS bookmark_note ("
+                 "bookmark_id INTEGER PRIMARY KEY REFERENCES bookmark(id) ON DELETE CASCADE,"
+                 "note TEXT NOT NULL DEFAULT '',revision INTEGER NOT NULL DEFAULT 0,"
+                 "updated_at INTEGER NOT NULL DEFAULT 0,legacy_extra TEXT NOT NULL DEFAULT '')")
+    # Old importers put notes only in FTS.extra, mixed with classification text.
+    # Preserve unmatched original text without claiming it is an authored note.
+    # A rebuilt index cannot recover text an earlier version already erased.
+    from .text import _extra_blob
+
+    def words(value):
+        try:
+            parsed = json.loads(value or "[]")
+            return [item for item in parsed if isinstance(item, str)] if isinstance(parsed, list) else []
+        except (ValueError, TypeError):
+            return []
+
+    for row in conn.execute(
+        "SELECT b.id,b.folder,b.tags,f.extra,e.topics,e.entities,e.key_points FROM bookmark b "
+        "JOIN fts_tri f ON f.rowid=b.id LEFT JOIN enrichment e ON e.bookmark_id=b.id "
+        "WHERE b.source IS NOT NULL AND b.source NOT IN ('api','karakeep') AND COALESCE(f.extra,'')<>''"
+    ):
+        topics, entities, points, tags = (words(row[key]) for key in ("topics", "entities", "key_points", "tags"))
+        known = {_extra_blob(topics, entities, points, tags),
+                 _extra_blob([*topics, *([row["folder"]] if row["folder"] else [])], entities, points, tags)}
+        if row["extra"] not in known:
+            conn.execute("INSERT OR IGNORE INTO bookmark_note(bookmark_id,legacy_extra) VALUES(?,?)",
+                         (row["id"], row["extra"]))
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(2, "browser queue remembers when a retry is allowed", _v2_browser_queue_backoff),
     Migration(3, "content vectors remember what they were built from",
@@ -350,6 +380,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(12, "collection edits retain atomic receipts and durable bookmark identifiers", _v12_library_delivery),
     Migration(13, "task acceptance and controls retain their original run across restart", _v13_task_delivery),
     Migration(14, "sync previews and accepted metadata deliveries survive restart", _v14_sync_delivery),
+    Migration(15, "personal reading notes survive fetches, indexing and portable backups", _v15_reading_notes),
 )
 
 #: What this build writes into a new database. Derived from the migration list

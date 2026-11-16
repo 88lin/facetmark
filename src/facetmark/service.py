@@ -225,6 +225,10 @@ def bookmark_record(
     if not rec["summary"]:
         rec["summary"] = _clip(row["body_head"], SUMMARY_CHARS)
     if include_body:
+        from .reading_notes import read_note
+        note = read_note(conn, bookmark_id)
+        rec.update(note=note["note"], note_revision=note["revision"], note_updated_at=note["updated_at"],
+                   legacy_note_text=note["legacy_text"])
         if row["summary"]:
             rec["summary"] = row["summary"].strip()
         body = conn.execute(
@@ -886,14 +890,15 @@ def export_reading_data(conn: sqlite3.Connection, ids: Sequence[int]) -> dict[in
             "SELECT b.id, b.source, e.ai_title, e.summary, e.topics, e.entities, e.key_points, e.utility,"
             " e.content_type, e.basis, e.model, e.source_hash, e.created_at, e.language, e.prompt_hash,"
             " c.bookmark_id AS content_id, c.body_text, c.body_hash, c.char_count, c.lang,"
-            " c.extractor, c.fetch_channel, c.http_status, c.final_url, c.fetched_at,"
+            " c.extractor, c.fetch_channel, c.http_status, c.final_url, c.fetched_at,n.note,n.revision,n.legacy_extra,"
             " (SELECT json_group_array(i.text) FROM intent_query i WHERE i.bookmark_id=b.id"
             " AND e.source_hash=COALESCE(c.body_hash,fm_title_hash(b.title,b.url))) AS intent_queries"
             " FROM bookmark b LEFT JOIN enrichment e ON e.bookmark_id=b.id"
             " LEFT JOIN content c ON c.bookmark_id=b.id"
+            " LEFT JOIN bookmark_note n ON n.bookmark_id=b.id"
             f" WHERE b.id IN ({marks})", batch,
         ):
-            reading: dict = {"derived": {
+            reading: dict = {"note": row["note"] or "", "note_saved": bool(row["revision"]), "derived": {
                 "source": row["source"] or "",
                 "ai_title": row["ai_title"] or "",
                 "summary": row["summary"] or "",
@@ -917,6 +922,8 @@ def export_reading_data(conn: sqlite3.Connection, ids: Sequence[int]) -> dict[in
                     "body_text", "body_hash", "char_count", "lang", "extractor",
                     "fetch_channel", "http_status", "final_url", "fetched_at",
                 )}
+            if row["legacy_extra"]:
+                reading["legacy_note_text"] = row["legacy_extra"]
             out[row["id"]] = reading
     return out
 

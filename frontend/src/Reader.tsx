@@ -27,6 +27,7 @@ import { ScrollProgress } from "./components/ui/scroll-progress";
 import { ReaderOutline } from "./components/ui/reader-outline";
 import { useTabIndicator } from "./motion";
 import { type LibraryAction } from "./LibraryTools";
+import ReaderNotes from "./ReaderNotes";
 
 export function Skeleton({ rows = false }: { rows?: boolean }) {
   return (
@@ -517,6 +518,7 @@ export default function Reader({
                   aria-labelledby={`preview-tab-${tab}`}
                   tabIndex={0}
                 >
+                  {tab === "body" && !pending && !error && record && <ReaderNotes key={record.bookmark_id} record={record}/>}
                   {content}
                 </div>
                 {record?.privacy_skipped && (

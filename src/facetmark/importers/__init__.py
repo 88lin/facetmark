@@ -197,8 +197,10 @@ def _import_bookmarks(
         content = read_text(path)
 
     parsed = detect_and_parse(content)
-    from .. import backup
+    from .. import backup, reading_notes
     prepared = backup.prepare(parsed.reading_data, parsed.conversations)
+    for bookmark in parsed.bookmarks:
+        reading_notes.validate_note(bookmark.note)
     stats = ImportStats(
         total_parsed=len(parsed.bookmarks),
         timestamp_unit=parsed.timestamp_unit,
@@ -349,7 +351,9 @@ def _import_bookmarks(
 
         # Use the values actually saved above, including a retained local title
         # when the new export supplied none, and all previously saved reading.
-        textmod.sync_stored_fts(conn, bid, extra_topics=[row["note"]] if row["note"] else [])
+        if row["note"]:
+            reading_notes.import_note(conn, bid, row["note"])
+        textmod.sync_stored_fts(conn, bid)
 
     backup.restore(conn, prepared, stats)
     return stats

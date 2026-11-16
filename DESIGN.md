@@ -195,6 +195,12 @@ components:
 
 ## Current state
 
+The 2026-11-17 reading-note continuation adds one local note section within Read.
+It shares the reader's type and material, uses capsule actions, and owns its editor,
+full-text disclosure, drafts, save confirmation and explicit conflict review in
+`ReaderNotes.tsx`/`reader-notes.css`. It requires no model configuration or new tab.
+The current code and pending cloud verification are in the full-product repair record.
+
 The 2026-11-16 continuation follows the user's assessment that repeated iterations
 still leave many problems. URL import and local import history have component-owned
 forms, rows, status and disclosure styles in `url-import.css`. Preview distinguishes
