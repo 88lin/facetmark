@@ -105,11 +105,16 @@ function expectContentMotion(step: MotionEvidence, selector: string, direction?:
   const grouped = new Map<string, MotionNode[]>();
   for (const node of samples) grouped.set(node.key, [...(grouped.get(node.key) || []), node]);
   // GSAP writes inline styles and does not appear in getAnimations(). Require
-  // multiple intermediate values for all three properties on one actual node.
+  // three painted values for each property and two jointly intermediate frames
+  // on one actual node. Opacity is serialized to four decimals: a late painted
+  // frame can round to 1 while travel and blur still approach their endpoint.
   expect([...grouped.values()].some(values =>
     new Set(values.map(node => node.transform)).size > 2 &&
-    new Set(values.filter(node => +node.opacity > 0 && +node.opacity < 1).map(node => node.opacity)).size > 2 &&
-    new Set(values.filter(node => node.filter !== "none" && node.filter !== "blur(0px)").map(node => node.filter)).size > 2),
+    new Set(values.map(node => node.opacity)).size > 2 &&
+    new Set(values.map(node => node.filter)).size > 2 &&
+    values.filter(node => +node.opacity > 0 && +node.opacity < 1 &&
+      node.filter !== "none" && node.filter !== "blur(0px)" &&
+      (Math.abs(node.translateX) > .001 || Math.abs(node.translateY) > .001)).length >= 2),
   `${step.action}: same node paints travel, opacity and bounded focus`).toBe(true);
   if (direction) expect(samples.some(node => node.translateX * direction > 1),
     `${step.action}: travel follows destination order`).toBe(true);

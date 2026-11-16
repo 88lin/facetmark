@@ -52,7 +52,6 @@ from .enrich.prompts import (
     summary_prompt_hash,
 )
 from .fetch import store as fetchstore
-from .importers import decode_bookmark_bytes
 from .privacy import refresh_privacy
 from .providers import (
     MockProvider,
@@ -1045,17 +1044,14 @@ def register(app: FastAPI, auth: list) -> None:
         # as UTF-8 with `errors="replace"` instead returns 200 and stores
         # `Caf\ufffd` -- an import that reports success and has already damaged
         # the title it indexed, summarised and embedded.
-        content = decode_bookmark_bytes(raw)
         state = _state(request)
         async with state.lock:
-            if state.jobs.running or state.crawls.running:
-                raise HTTPException(409, "Stop the processing job before importing bookmarks")
-            if any(not task.done() for task in state.chat_runs.values()):
-                raise HTTPException(409, "Stop active replies before importing a backup")
-            try:
-                stats = service.import_content(state.conn, content, settings=state.settings)
-            except ValueError:
-                raise HTTPException(400, "Invalid backup contents; no changes were applied") from None
+            from .import_workflow import ensure_idle, filename_label, import_bytes
+
+            ensure_idle(state)
+            stats = import_bytes(state.conn, raw, settings=state.settings, source="file",
+                                 label=filename_label(request.headers.get("x-filename", "")),
+                                 request_id=request.headers.get("x-import-id"))
         stats["filename"] = request.headers.get("x-filename", "")
         stats["bytes"] = len(raw)
         return stats

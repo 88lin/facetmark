@@ -195,6 +195,15 @@ components:
 
 ## Current state
 
+The 2026-11-16 continuation follows the user's assessment that repeated iterations
+still leave many problems. URL import and local import history have component-owned
+forms, rows, status and disclosure styles in `url-import.css`. Preview distinguishes
+new, existing, duplicate and invalid items; successful receipts remain visible when
+collection refresh fails. History details have their own retry and cancellation
+states. File, URL and site controls reflect competing work, preserving the existing
+capsules and input semantics. Current cloud verification is recorded in
+[the repair record](docs/full-product-repair-2026-11-16.md); this is not aesthetic approval.
+
 The 2026-10-28 continuation gives narrow saving-session titles their own full-width
 row, below the icon/count line. Month cells show compact month/day ranges beneath
 their year/month heading, keeping full ISO dates in the tooltip and accessible name.
@@ -426,6 +435,8 @@ cannot expose an actual right-click.
 thinking controls; `useSummaryGeneration.ts`: direct summary starts and feedback;
 `desktop/splash/native-ui.css`: native startup/tray paint;
 `desktop/src-tauri/src/tray_menu.rs`: privileged native actions.
+`UrlImport.tsx`/`url-import.css`: URL preview, item receipts and local import history;
+`SiteImport.tsx`/`site-import.css`: bounded website import, progress and reload recovery.
 
 Sidecar specimens show static source-defined visual states. They do not reproduce
 React, native APIs, focus management or motion controllers, and are not runtime

@@ -257,6 +257,18 @@ CREATE INDEX IF NOT EXISTS ix_fetch_queue_state ON fetch_queue(state, queued_at)
 CREATE INDEX IF NOT EXISTS ix_fetch_queue_ready
     ON fetch_queue(state, next_attempt_at, queued_at);
 
+CREATE TABLE IF NOT EXISTS import_run (
+    id TEXT PRIMARY KEY,
+    source TEXT NOT NULL,
+    label TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    state TEXT NOT NULL,
+    request_hash TEXT NOT NULL DEFAULT '',
+    result TEXT NOT NULL DEFAULT '{}',
+    error TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS ix_import_run_created ON import_run(created_at DESC,id DESC);
+
 CREATE TABLE IF NOT EXISTS interaction (
     id          INTEGER PRIMARY KEY,
     bookmark_id INTEGER REFERENCES bookmark(id) ON DELETE CASCADE,

@@ -137,7 +137,6 @@
   .app-shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: 60px minmax(0, 1fr); padding: 8px 12px 12px; }
   .app-header, .has-collection .app-header { grid-column: 1; gap: 8px; padding-bottom: 10px; }
   .nav-trigger { display: inline-flex; border: 1px solid var(--glass-edge); background: var(--glass); }
-  .has-collection .nav-trigger { display: none; }
   .header-navigation, .header-import, .collection-sidebar { display: none; }
   .header-utilities { height: auto; }
   .header-utilities .demo-label { display: none; }

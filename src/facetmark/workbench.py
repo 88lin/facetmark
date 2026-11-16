@@ -18,7 +18,6 @@ from pydantic import BaseModel
 from . import admin, service
 from .collection import CollectionScope, predicate
 from .db import SchemaMismatch, vec_tables_exist
-from .importers import decode_bookmark_bytes
 from .importers.discovery import discover_bookmark_files
 from .modelspace import space_id, validate_space
 
@@ -167,6 +166,7 @@ def browse_folder_children(conn, *, parent="", limit=50, offset=0):
 
 class SourceRequest(BaseModel):
     source_id: str
+    request_id: str | None = None
 
 
 class ApplyRequest(BaseModel):
@@ -316,16 +316,17 @@ def register(app: FastAPI, auth: list) -> None:
     @app.post("/admin/import/source", dependencies=deps)
     async def import_source(body: SourceRequest, request: Request):
         state = request.app.state.fm
-        selected = next(
+        selected_source = next(
             (
-                path
-                for sid, path, _, _ in sources(state)
+                (path, browser, profile)
+                for sid, path, browser, profile in sources(state)
                 if hmac.compare_digest(sid, body.source_id)
             ),
             None,
         )
-        if selected is None:
+        if selected_source is None:
             raise HTTPException(404, "Source is no longer available; discover sources again")
+        selected, browser, profile = selected_source
         try:
             with selected.open("rb") as stream:
                 raw = stream.read(admin.MAX_UPLOAD_BYTES + 1)
@@ -336,11 +337,11 @@ def register(app: FastAPI, auth: list) -> None:
         if len(raw) > admin.MAX_UPLOAD_BYTES:
             raise HTTPException(413, "Source exceeds 64 MB; export a smaller library")
         async with state.lock:
-            if state.jobs.running or state.crawls.running:
-                raise HTTPException(409, "Stop the processing job before importing bookmarks")
-            return service.import_content(
-                state.conn, decode_bookmark_bytes(raw), settings=state.settings
-            )
+            from .import_workflow import ensure_idle, import_bytes
+
+            ensure_idle(state)
+            return import_bytes(state.conn, raw, settings=state.settings, source="browser",
+                                label=browser + " · " + profile, request_id=body.request_id)
 
     @app.get("/admin/setup-status", dependencies=deps)
     async def setup_status(request: Request):
