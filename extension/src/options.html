@@ -22,17 +22,17 @@
         <h2 data-i18n="opt.connection">Your local connection</h2>
         <p class="hint" data-i18n="opt.hint">Copy the address and pairing token from Facetmark Settings → Browser extension, or from facetmark serve.</p>
         <label class="field-label" for="endpoint" data-i18n="opt.server">Server address</label>
-        <input class="ext-input" id="endpoint" type="url" placeholder="http://127.0.0.1:8787" autocomplete="url" spellcheck="false" required aria-describedby="endpoint-hint" />
+        <input class="ext-input" id="endpoint" type="url" placeholder="http://127.0.0.1:8787" autocomplete="url" spellcheck="false" required aria-describedby="endpoint-hint" disabled />
         <p class="field-hint" id="endpoint-hint" data-i18n="opt.endpointHint">Use the address of your running Facetmark service.</p>
         <label class="field-label" for="token" data-i18n="opt.token">Pairing token</label>
         <div class="token-field">
-          <input class="ext-input" id="token" type="password" autocomplete="off" spellcheck="false" data-i18n-attr="placeholder:opt.tokenPh" placeholder="Paste the pairing token" aria-describedby="token-hint" />
+          <input class="ext-input" id="token" type="password" autocomplete="off" spellcheck="false" data-i18n-attr="placeholder:opt.tokenPh" placeholder="Paste the pairing token" aria-describedby="token-hint" disabled />
           <button id="show-token" class="ext-button" type="button" aria-pressed="false" aria-controls="token" data-i18n="opt.showToken">Show</button>
         </div>
         <p class="field-hint" id="token-hint" data-i18n="opt.tokenHint">Stored in this browser only. Keep the token private.</p>
         <p id="connection-draft" class="field-hint draft-note" hidden data-i18n="opt.draft">Connection changes are not saved yet.</p>
         <div class="actions">
-          <button id="save" type="submit" class="ext-button primary" data-i18n="opt.save">Save connection</button>
+          <button id="save" type="submit" class="ext-button primary" data-i18n="opt.save" disabled>Save connection</button>
           <button id="reload-settings" type="button" class="ext-button" hidden data-i18n="opt.reloadSettings">Read changed settings</button>
         </div>
       </form>
@@ -40,12 +40,12 @@
       <section class="opt-section" aria-labelledby="reading-heading">
         <h2 id="reading-heading" data-i18n="opt.options">Reading through the browser</h2>
         <p class="hint" data-i18n="opt.readingHint">Optional. Read queued pages in temporary tabs using the browser's current access, then save the text to your local library.</p>
-        <label class="check-row"><input id="channelB" type="checkbox" /><span data-i18n="opt.channelB">Allow browser page reading</span></label>
-        <label class="check-row"><input id="paused" type="checkbox" /><span data-i18n="opt.paused">Pause background reading</span></label>
+        <label class="check-row"><input id="channelB" type="checkbox" disabled /><span data-i18n="opt.channelB">Allow browser page reading</span></label>
+        <label class="check-row"><input id="paused" type="checkbox" disabled /><span data-i18n="opt.paused">Pause background reading</span></label>
         <p class="field-hint" data-i18n="opt.switchHint">These switches take effect immediately on the saved connection. Pausing closes the current temporary tab.</p>
         <div class="actions">
-          <button id="drain" type="button" class="ext-button" data-i18n="opt.drain">Read queued pages now</button>
-          <button id="refresh" type="button" class="ext-button" data-i18n="opt.refresh">Refresh status</button>
+          <button id="drain" type="button" class="ext-button" data-i18n="opt.drain" disabled>Read queued pages now</button>
+          <button id="refresh" type="button" class="ext-button" data-i18n="opt.refresh" disabled>Refresh status</button>
         </div>
       </section>
 

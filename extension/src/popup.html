@@ -11,10 +11,10 @@
     <header class="popup-head">
       <img class="popup-mark" src="icons/favicon.svg" width="30" height="30" alt="" />
       <span class="popup-title">Facetmark</span>
-      <button id="save" type="button" class="ext-button primary" data-i18n="pop.save">Save this page</button>
+      <button id="save" type="button" class="ext-button primary" data-i18n="pop.save" disabled>Save this page</button>
     </header>
     <div class="popup-search">
-      <input id="q" class="ext-input" type="search" data-i18n-attr="placeholder:pop.placeholder,aria-label:pop.placeholder" placeholder="Search your saved pages" autocomplete="off" aria-controls="results" />
+      <input id="q" class="ext-input" type="search" data-i18n-attr="placeholder:pop.placeholder,aria-label:pop.placeholder" placeholder="Search your saved pages" autocomplete="off" aria-controls="results" disabled />
     </div>
     <div id="save-status" role="status" aria-live="polite" aria-atomic="true"></div>
     <a id="save-recovery" href="options.html#pending-panel" target="_blank" rel="noopener noreferrer" hidden data-i18n="pop.recovery">Confirm the original save in settings</a>

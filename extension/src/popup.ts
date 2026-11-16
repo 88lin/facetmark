@@ -403,6 +403,8 @@ async function showPending(): Promise<void> {
 // Deep link from the omnibox: popup.html?q=...
 applyI18n();
 initLangToggle();
+input.disabled = false;
+saveBtn.disabled = false;
 const preset = new URLSearchParams(location.search).get("q");
 if (preset) {
   input.value = preset;

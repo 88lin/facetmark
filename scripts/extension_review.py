@@ -103,7 +103,7 @@ def review(context, worker, report: dict):
     def popup():
         page = context.new_page()
         page.goto(root + "/popup.html")
-        expect(page.locator("#q")).to_be_visible()
+        expect(page.locator("#q")).to_be_enabled()
         return page
 
     search = popup()
@@ -344,6 +344,8 @@ def main() -> None:
         except BaseException:
             report["status"] = "failed"
             report["error"] = traceback.format_exc()
+            with suppress(Exception):
+                report["server_state"] = server()
             raise
         finally:
             process.terminate()
