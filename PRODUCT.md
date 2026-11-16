@@ -102,7 +102,8 @@ describe what is sent. Vector-space changes require backup and explicit rebuild.
 
 Never modify the original browser profile or library. Desktop packaging, large
 downloads, builds, browser execution and installation tests run in GitHub Actions.
-No automatic main merge or production release. Existing CLI and integration
+The 2026-11-16 task explicitly authorizes merging reviewed PRs after all checks
+pass. Production releases still require an explicit request. Existing CLI and integration
 contracts remain.
 
 ## Brand Commitments

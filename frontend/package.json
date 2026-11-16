@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
-    "test": "playwright test"
+    "test": "playwright test",
+    "test:unit": "node --test tests/unit/*.test.mjs"
   },
   "dependencies": {
     "@gsap/react": "2.1.2",

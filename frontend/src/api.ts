@@ -96,26 +96,55 @@ export class ApiError extends Error {
     super(message);
   }
 }
-export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(path, {
-    ...options,
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(typeof options.body === "string" ? { "Content-Type": "application/json" } : {}),
-      ...options.headers,
-    },
-  });
-  const data = await response.json();
-  if (!response.ok)
-    throw new ApiError(
-      response.status,
-      typeof data.detail === "string"
-        ? data.detail
-        : Array.isArray(data.detail)
-          ? data.detail.map((item: { msg?: string }) => item.msg || "Invalid value").join("; ")
-          : `HTTP ${response.status}`,
-    );
-  return data as T;
+const serviceMessage = (zh: string, en: string) =>
+  typeof document !== "undefined" && document.documentElement.lang.startsWith("zh") ? zh : en;
+
+async function responseError(response: Response): Promise<ApiError> {
+  let data: { detail?: unknown } | null = null;
+  try { data = await response.json(); } catch { /* A proxy error page is not JSON. */ }
+  const detail = data?.detail;
+  const message = typeof detail === "string" ? detail
+    : Array.isArray(detail) ? detail.map(item => typeof item?.msg === "string" ? item.msg : "Invalid value").join("; ")
+      : serviceMessage("服务请求失败（HTTP " + response.status + "），请重试。",
+        "Service request failed (HTTP " + response.status + "). Please retry.");
+  return new ApiError(response.status, message);
+}
+
+type ApiOptions = RequestInit & { timeoutMs?: number };
+export async function api<T>(path: string, options: ApiOptions = {}): Promise<T> {
+  // Reads should recover from an unresponsive local service. Writes and model
+  // operations keep their server-side budgets; aborting them does not undo them.
+  const { timeoutMs = (options.method || "GET").toUpperCase() === "GET" ? 20_000 : 0, ...init } = options;
+  const headers = new Headers(init.headers);
+  if (token && !headers.has("Authorization")) headers.set("Authorization", "Bearer " + token);
+  if (typeof init.body === "string" && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  const abort = new AbortController();
+  const cancel = () => abort.abort(init.signal?.reason);
+  if (init.signal?.aborted) cancel();
+  else init.signal?.addEventListener("abort", cancel, { once: true });
+  let timedOut = false;
+  const timer = timeoutMs > 0 ? setTimeout(() => { timedOut = true; abort.abort(); }, timeoutMs) : undefined;
+  try {
+    const response = await fetch(path, { cache: "no-store", ...init, headers, signal: abort.signal });
+    if (!response.ok) throw await responseError(response);
+    if (response.status === 204 || response.status === 205) return undefined as T;
+    try { return await response.json() as T; }
+    catch (cause) {
+      if (abort.signal.aborted) throw cause;
+      throw new ApiError(response.status, serviceMessage("服务返回了无法读取的结果，请重试。",
+        "The service returned an unreadable response. Please retry."));
+    }
+  } catch (cause) {
+    if (init.signal?.aborted) throw init.signal.reason;
+    if (timedOut) throw new ApiError(0, serviceMessage("服务响应超时，请重试。",
+      "The service did not respond in time. Please retry."));
+    if (cause instanceof ApiError) throw cause;
+    throw new ApiError(0, serviceMessage("无法连接本地服务，请检查服务是否运行后重试。",
+      "Cannot reach the local service. Check that it is running, then retry."));
+  } finally {
+    clearTimeout(timer);
+    init.signal?.removeEventListener("abort", cancel);
+  }
 }
 export const post = <T>(path: string, body: unknown, signal?: AbortSignal) =>
   api<T>(path, { method: "POST", body: JSON.stringify(body), signal });
@@ -127,8 +156,7 @@ export async function downloadExport(body: unknown) {
     body: JSON.stringify(body),
   });
   if (!response.ok) {
-    const data = await response.json();
-    throw new ApiError(response.status, typeof data.detail === "string" ? data.detail : `HTTP ${response.status}`);
+    throw await responseError(response);
   }
   const blob = await response.blob();
   const address = URL.createObjectURL(blob);

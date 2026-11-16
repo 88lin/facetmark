@@ -25,7 +25,7 @@ import httpx
 from ..config import Settings, get_settings
 from ..db import now
 from ..normalize import body_hash
-from ..text import detect_lang, segment, sync_fts
+from ..text import detect_lang, segment, sync_stored_fts
 from .client import DEFER_TO_BROWSER, BatchResult, FetchPolicy, FetchResult, Verdict, fetch_many
 
 #: A leased queue item is reclaimed after this long. Long enough for a slow page
@@ -111,9 +111,7 @@ def store_body(
         (bookmark_id, body, seg, bh, len(body), detect_lang(body), extractor,
          channel, http_status, final_url, now(), error),
     )
-    row = conn.execute("SELECT title FROM bookmark WHERE id=?", (bookmark_id,)).fetchone()
-    sync_fts(conn, bookmark_id, title=(row["title"] if row else title) or title,
-             body=body, body_seg=seg)
+    sync_stored_fts(conn, bookmark_id)
     return SaveOutcome(bookmark_id, stored=True, changed=changed, body_hash=bh)
 
 
