@@ -19,7 +19,17 @@ const test = base.extend<{ owned: Owned }>({
 
 async function open(page: Page, language: "zh" | "en" = "zh") {
   await page.goto("/app");
-  await page.getByRole("button", { name: language === "zh" ? "导入书签" : "Import bookmarks", exact: true }).click();
+  const label = language === "zh" ? "导入书签" : "Import bookmarks";
+  if ((page.viewportSize()?.width || 1280) < 960) {
+    const trigger = page.getByRole("button", { name: language === "zh" ? "打开导航" : "Open navigation", exact: true });
+    await expect(trigger).toBeVisible();
+    await trigger.focus(); await trigger.press("Enter");
+    const navigation = page.getByRole("dialog", { name: language === "zh" ? "导航" : "Navigation", exact: true });
+    await expect(navigation).toBeVisible();
+    const entry = navigation.getByRole("button", { name: label, exact: true });
+    await entry.focus(); await entry.press("Enter");
+    await expect(navigation).toHaveCount(0);
+  } else await page.getByRole("button", { name: label, exact: true }).click();
   const panel = page.locator(".url-import");
   await panel.locator("summary").click();
   await expect(panel.getByRole("textbox")).toBeVisible();
