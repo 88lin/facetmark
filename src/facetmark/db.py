@@ -209,6 +209,23 @@ CREATE TABLE IF NOT EXISTS processing_operation (
     created_at INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS library_sync_operation (
+    request_id TEXT PRIMARY KEY,
+    fingerprint TEXT NOT NULL,
+    action TEXT NOT NULL,
+    state TEXT NOT NULL,
+    result TEXT NOT NULL,
+    delivery TEXT NOT NULL DEFAULT '{}',
+    error TEXT NOT NULL DEFAULT '',
+    created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_library_sync_operation_state ON library_sync_operation(state);
+CREATE TABLE IF NOT EXISTS library_sync_preview (
+    preview_id TEXT PRIMARY KEY,
+    expires_at REAL NOT NULL,
+    plan TEXT NOT NULL
+);
+
 -- Facet 2: hypothetical queries generated from the page (doc2query), then
 -- filtered for self-consistency. `kept=1` rows are the ones that get embedded.
 CREATE TABLE IF NOT EXISTS intent_query (

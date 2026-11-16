@@ -23,6 +23,8 @@ from typing import Any, Literal
 from urllib.parse import urlsplit
 
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Path as PathParam
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from . import admin, library
@@ -48,12 +50,15 @@ class SyncConfig(BaseModel):
     enabled: bool = False
     auto_sync: bool = False
     poll_seconds: int = Field(default=60, ge=30, le=3600, strict=True)
+    request_id: str | None = Field(default=None, min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_.-]+$")
+    expected_revision: str | None = Field(default=None, min_length=64, max_length=64, pattern=r"^[0-9a-f]+$")
 
 
 class ApplyRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     preview_id: str = Field(min_length=1, max_length=64)
     resolutions: dict[str, str] = Field(default_factory=dict)
+    request_id: str | None = Field(default=None, min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_.-]+$")
 
 
 def _fail(message: str, status: int = 400) -> None:
@@ -66,6 +71,28 @@ def _json(value: Any) -> str:
 
 def _digest(value: Any) -> str:
     return hashlib.sha256(_json(value).encode("utf-8")).hexdigest()
+
+
+def _pack(value: Any) -> Any:
+    if value is ABSENT:
+        return {"$absent": True}
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, dict):
+        return {key: _pack(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_pack(item) for item in value]
+    return value
+
+
+def _unpack(value: Any) -> Any:
+    if value == {"$absent": True}:
+        return ABSENT
+    if isinstance(value, dict):
+        return {key: _unpack(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_unpack(item) for item in value]
+    return value
 
 
 def _uuid(value: Any) -> str:
@@ -267,17 +294,62 @@ class SharedFolderSync:
                           "ON CONFLICT(key) DO UPDATE SET value=excluded.value "
                           "WHERE library_sync_state.value<>excluded.value", (key, _json(value)))
 
+    def accepted(self, action: str, body: SyncConfig | ApplyRequest):
+        request_id = body.request_id or (body.preview_id if isinstance(body, ApplyRequest) else None)
+        if not request_id:
+            return None
+        row = self.conn.execute("SELECT * FROM library_sync_operation WHERE request_id=?", (request_id,)).fetchone()
+        if row is not None and row["fingerprint"] != _digest([action, body.model_dump(exclude={"request_id"})]):
+            _fail("This request ID belongs to a different synchronization operation", 409)
+        return row
+
+    def _pending(self) -> list[dict]:
+        result = []
+        for row in self.conn.execute("SELECT * FROM library_sync_operation WHERE state='pending' ORDER BY created_at,request_id"):
+            saved = json.loads(row["result"])
+            delivery = json.loads(row["delivery"])
+            result.append({"request_id": row["request_id"], "created_at": row["created_at"],
+                           "folder": delivery.get("folder", saved.get("folder", "")), "counts": saved["counts"],
+                           "backup_path": saved["backup_path"], "error": row["error"]})
+        return result
+
+    def _application_result(self, row) -> dict:
+        saved = json.loads(row["result"])
+        return {**{key: value for key, value in saved.items() if key not in {"channel", "seen"}},
+                "request_id": row["request_id"], "accepted": True,
+                "complete": row["state"] == "done", "error": row["error"], "status": self.status()}
+
+    def operation(self, request_id: str) -> dict:
+        row = self.conn.execute("SELECT * FROM library_sync_operation WHERE request_id=?", (request_id,)).fetchone()
+        if row is None:
+            _fail("No accepted synchronization operation has this request ID", 404)
+        result = self._application_result(row) if row["action"] == "apply" else json.loads(row["result"])
+        return {"request_id": request_id, "action": row["action"], "state": row["state"],
+                "result": result, "current_status": self.status()}
+
+    def _require_ready(self) -> None:
+        if self._pending():
+            _fail("Finish the already accepted synchronization before previewing or applying another", 409)
+
     def status(self) -> dict:
-        config = self._get("config", SyncConfig().model_dump())
+        config = self._get("config", SyncConfig().model_dump(exclude={"request_id", "expected_revision"}))
         return {**config, "configured": bool(config["folder"]), "device_id": self._get("device_id"),
                 "last_sync_at": self._get("last_sync_at"), "last_error": self._get("last_error", ""),
+                "last_sync_id": self._get("last_sync_id"),
                 "pending_conflicts": self._get("pending_conflicts", 0),
                 "needs_review": self._get("needs_review", True), "metadata_only": True,
-                "transport_directory": DIRECTORY}
+                "transport_directory": DIRECTORY, "pending_operations": self._pending(), "config_revision": _digest(config)}
 
     def configure(self, body: SyncConfig) -> dict:
-        old = self._get("config", {})
-        values = body.model_dump()
+        replay = self.accepted("configure", body)
+        if replay is not None:
+            return json.loads(replay["result"])
+        old = self._get("config", SyncConfig().model_dump(exclude={"request_id", "expected_revision"}))
+        if body.expected_revision is not None and body.expected_revision != _digest(old):
+            _fail("Synchronization settings changed in another window; read them before saving again", 409)
+        if self._pending() and (body.enabled or body.folder != old.get("folder")):
+            _fail("Finish the original synchronization before changing its shared folder; disabling is still available", 409)
+        values = body.model_dump(exclude={"request_id", "expected_revision"})
         if body.folder and (body.enabled or body.folder != old.get("folder")):
             directory = _transport(body.folder, self.settings.data_dir, create=True)
             values["folder"] = str(directory.parent)
@@ -289,8 +361,34 @@ class SharedFolderSync:
             if old.get("folder") != values["folder"]:
                 self._set("needs_review", True)
                 self._set("pending_conflicts", 0)
-        self.previews.clear()
-        return self.status()
+            result = self.status()
+            if body.request_id:
+                self.conn.execute("INSERT INTO library_sync_operation(request_id,fingerprint,action,state,result,created_at) "
+                                  "VALUES(?,?,'configure','done',?,?)", (body.request_id,
+                                  _digest(["configure", body.model_dump(exclude={"request_id"})]), _json(result), int(time.time())))
+        return result
+
+    def _plan(self, preview_id: str, *, allow_expired: bool = False) -> dict:
+        plan = self.previews.get(preview_id)
+        if plan is None:
+            row = self.conn.execute("SELECT plan FROM library_sync_preview WHERE preview_id=?", (preview_id,)).fetchone()
+            if row is not None:
+                plan = _unpack(json.loads(row["plan"]))
+                plan["directory"] = Path(plan["directory"])
+        if not plan or (not allow_expired and plan["expires"] < time.time()):
+            _fail("Synchronization preview expired; preview again", 409)
+        return plan
+
+    def read_preview(self, preview_id: str) -> dict:
+        plan = self._plan(preview_id, allow_expired=True)
+        stale = (self._revision() != plan["local_revision"] or plan["expires"] < time.time()
+                 or plan.get("config_revision") != self.status()["config_revision"])
+        try:
+            _, channel, remote = self._context()
+            stale = stale or channel != plan["channel"] or remote["revision"] != plan["remote"]["revision"]
+        except (HTTPException, OSError):
+            stale = True
+        return {**plan["public"], "stale": stale}
 
     def _context(self) -> tuple[Path, str, dict]:
         config = self._get("config", {})
@@ -372,7 +470,8 @@ class SharedFolderSync:
                 counts["unchanged"] += 1
         return counts
 
-    def preview(self) -> dict:
+    def preview(self, *, transient: bool = False) -> dict:
+        self._require_ready()
         directory, channel, remote = self._context()
         local, ids, blocked, blocked_ids, excluded, unsupported = self._local(channel)
         baseline = {row["sync_id"]: json.loads(row["payload"]) for row in self.conn.execute(
@@ -460,17 +559,26 @@ class SharedFolderSync:
         token = str(uuid.uuid4())
         now = time.time()
         self.previews = {key: value for key, value in self.previews.items() if value["expires"] > now}
-        if len(self.previews) >= 8:
+        if not transient and len(self.previews) >= 8:
             self.previews.pop(next(iter(self.previews)))
-        self.previews[token] = {"expires": now + PREVIEW_SECONDS, "directory": directory,
-                                "channel": channel, "remote": remote, "local_revision": self._revision(),
-                                "entries": entries, "choices": choices, "conflicts": conflicts, "aliases": aliases}
+        public = {"preview_id": token, "expires_at": int(now + PREVIEW_SECONDS),
+                  "counts": self._counts(entries, choices), "conflicts": conflicts, "changes": changes,
+                  "excluded_karakeep": excluded, "excluded_unsupported": unsupported, "metadata_only": True, "stale": False}
+        plan = {"expires": now + PREVIEW_SECONDS, "directory": directory,
+                "channel": channel, "remote": {"revision": remote["revision"]}, "local_revision": self._revision(),
+                "config_revision": self.status()["config_revision"],
+                "entries": entries, "choices": choices, "conflicts": conflicts, "aliases": aliases, "public": public}
         with self.conn:
             self._set("pending_conflicts", len(conflicts))
             self._set("last_error", "")
-        return {"preview_id": token, "expires_at": int(now + PREVIEW_SECONDS),
-                "counts": self._counts(entries, choices), "conflicts": conflicts, "changes": changes,
-                "excluded_karakeep": excluded, "excluded_unsupported": unsupported, "metadata_only": True}
+            if not transient:
+                self.conn.execute("DELETE FROM library_sync_preview WHERE expires_at<?", (now,))
+                size = self.conn.execute("SELECT count(*) FROM library_sync_preview").fetchone()[0]
+                self.conn.execute("DELETE FROM library_sync_preview WHERE preview_id IN "
+                                  "(SELECT preview_id FROM library_sync_preview ORDER BY expires_at LIMIT ?)", (max(0, size - 7),))
+                self.conn.execute("INSERT INTO library_sync_preview VALUES(?,?,?)", (token, plan["expires"], _json(_pack(plan))))
+        self.previews[token] = plan
+        return public
 
     def _backup(self) -> str:
         directory = self.settings.data_dir / "backups"
@@ -484,7 +592,7 @@ class SharedFolderSync:
             self.conn.backup(destination)
         return str(path)
 
-    def _publish(self, directory: Path, remote: dict, changes: dict) -> str | None:
+    def _prepare_publish(self, remote: dict, changes: dict) -> dict | None:
         if not changes:
             return None
         cid = str(uuid.uuid4())
@@ -498,7 +606,23 @@ class SharedFolderSync:
                 or remote.get("size_bytes", 0) + len(content) > MAX_TOTAL_BYTES
                 or len(set(remote.get("versions", ())) | changes.keys()) > MAX_RECORDS):
             _fail("Synchronization history has reached its supported size; keep it intact for recovery", 409)
-        temporary, target = directory / f".pending-{cid}.tmp", directory / f"commit-{cid}.json"
+        return {"id": cid, "content": content.decode("utf-8"), "sha256": hashlib.sha256(content).hexdigest()}
+
+    def _publish(self, directory: Path, remote: dict, publication: dict) -> str:
+        cid = _uuid(publication["id"])
+        content = publication["content"].encode("utf-8")
+        if hashlib.sha256(content).hexdigest() != publication["sha256"]:
+            _fail("Saved synchronization delivery is damaged; keep the local backup", 409)
+        target = directory / f"commit-{cid}.json"
+        if target.exists():
+            if _read(target, MAX_FILE_BYTES) != content:
+                _fail("The original synchronization commit was changed; restore its immutable content", 409)
+            return cid
+        commit = _decode(content)
+        if (len(remote["commits"]) >= MAX_COMMITS or remote["size_bytes"] + len(content) > MAX_TOTAL_BYTES
+                or len(set(remote["versions"]) | commit["changes"].keys()) > MAX_RECORDS):
+            _fail("Synchronization history has reached its supported size; keep it intact for recovery", 409)
+        temporary = directory / f".pending-{cid}-{uuid.uuid4().hex}.tmp"
         try:
             with temporary.open("xb") as stream:
                 stream.write(content)
@@ -512,13 +636,61 @@ class SharedFolderSync:
                 temporary.unlink()
         return cid
 
+    def _deliver(self, request_id: str) -> dict:
+        row = self.conn.execute("SELECT * FROM library_sync_operation WHERE request_id=?", (request_id,)).fetchone()
+        if row is None or row["action"] != "apply":
+            _fail("No accepted synchronization delivery has this request ID", 404)
+        if row["state"] == "done":
+            return self._application_result(row)
+        delivery = json.loads(row["delivery"])
+        try:
+            if delivery:
+                directory = _transport(delivery["folder"], self.settings.data_dir)
+                remote = _history(directory)
+                if any(remote["hashes"].get(cid) != digest for cid, digest in delivery["hashes"].items()):
+                    _fail("Original synchronization history is missing or changed; restore it before retrying", 409)
+                self._publish(directory, remote, delivery["publication"])
+            self.conn.execute("BEGIN IMMEDIATE")
+            if delivery:
+                seen = {**delivery["hashes"], delivery["publication"]["id"]: delivery["publication"]["sha256"]}
+                self._set(f"seen:{delivery['channel']}", seen)
+            else:
+                saved = json.loads(row["result"])
+                self._set(f"seen:{saved['channel']}", saved["seen"])
+            self._set("last_sync_at", int(time.time()))
+            self._set("last_sync_id", request_id)
+            self._set("last_error", "")
+            self._set("pending_conflicts", 0)
+            self._set("needs_review", False)
+            self.conn.execute("UPDATE library_sync_operation SET state='done',delivery='{}',error='' WHERE request_id=?", (request_id,))
+            self.conn.commit()
+        except (HTTPException, OSError, sqlite3.Error) as exc:
+            self.conn.rollback()
+            message = str(exc.detail) if isinstance(exc, HTTPException) else str(exc)
+            # Acceptance has already committed. A failed delivery or failed
+            # finalization cannot roll it back or turn it into a new apply.
+            try:
+                self.conn.execute("BEGIN IMMEDIATE")
+                self.conn.execute("UPDATE library_sync_operation SET error=? WHERE request_id=?", (message, request_id))
+                self._set("last_error", message)
+                self.conn.commit()
+            except sqlite3.Error:
+                self.conn.rollback()
+        row = self.conn.execute("SELECT * FROM library_sync_operation WHERE request_id=?", (request_id,)).fetchone()
+        return self._application_result(row)
+
+    def retry(self, request_id: str) -> dict:
+        return self._deliver(request_id)
+
     def apply(self, body: ApplyRequest, *, automatic: bool = False) -> dict:
-        plan = self.previews.get(body.preview_id)
-        if not plan or plan["expires"] < time.time():
-            _fail("Synchronization preview expired; preview again", 409)
+        replay = self.accepted("apply", body)
+        if replay is not None:
+            return self._deliver(replay["request_id"])
+        self._require_ready()
+        plan = self._plan(body.preview_id)
         directory, channel, remote = self._context()
         if (channel != plan["channel"] or remote["revision"] != plan["remote"]["revision"]
-                or self._revision() != plan["local_revision"]):
+                or self._revision() != plan["local_revision"] or self.status()["config_revision"] != plan["config_revision"]):
             _fail("The local library or shared folder changed; preview again", 409)
         if automatic and (self.status()["needs_review"] or plan["conflicts"]):
             _fail("Synchronization needs a manual review", 409)
@@ -553,7 +725,14 @@ class SharedFolderSync:
         counts = self._counts(plan["entries"], choices)
         imports = sum(counts[key] for key in ("download_new", "download_update", "download_delete"))
         backup = self._backup() if imports else None
-        published = None
+        changes = {}
+        for entry in plan["entries"]:
+            sid, target, versions = entry["id"], choices[entry["id"]], entry["versions"]
+            if (target is not ABSENT and (len(versions) != 1 or versions[0][1] != target)
+                    and not (not versions and target is None)):
+                changes[sid] = target
+        publication = self._prepare_publish(remote, changes)
+        request_id = body.request_id or body.preview_id
         try:
             self.conn.execute("BEGIN IMMEDIATE")
             if self._revision() != plan["local_revision"]:
@@ -573,7 +752,6 @@ class SharedFolderSync:
                         and entry["local"] and target["url"] != entry["local"]["url"]):
                     self.conn.execute("UPDATE bookmark SET url_hash=? WHERE id=?",
                                       (f"sync-reserved-{uuid.uuid4()}", entry["bookmark_id"]))
-            changes = {}
             session_ids = set()
             for entry in plan["entries"]:
                 sid, bid, target = entry["id"], entry["bookmark_id"], choices[entry["id"]]
@@ -595,9 +773,6 @@ class SharedFolderSync:
                                       (target["date_added"], now, now, bid, target["date_added"]))
                 if target is None:
                     self.conn.execute("INSERT OR IGNORE INTO library_sync_identity VALUES(?,?,NULL)", (channel, sid))
-                versions = entry["versions"]
-                if (len(versions) != 1 or versions[0][1] != target) and not (not versions and target is None):
-                    changes[sid] = target
                 self.conn.execute("INSERT OR REPLACE INTO library_sync_baseline VALUES(?,?,?)", (channel, sid, _json(target)))
             library._repair_sessions(self.conn, list(session_ids))
             # Detect ordinary preview/apply races. A cloud write arriving after
@@ -605,21 +780,20 @@ class SharedFolderSync:
             checked = _history(_transport(str(directory.parent), self.settings.data_dir))
             if checked["revision"] != remote["revision"]:
                 _fail("The shared folder changed during synchronization; preview again", 409)
-            published = self._publish(directory, remote, changes)
-            seen = dict(remote["hashes"])
-            if published:
-                seen[published] = hashlib.sha256(_read(directory / f"commit-{published}.json", MAX_FILE_BYTES)).hexdigest()
-            self._set(f"seen:{channel}", seen)
-            self._set("last_sync_at", int(time.time()))
-            self._set("last_error", "")
-            self._set("pending_conflicts", 0)
-            self._set("needs_review", False)
+            result = {"counts": counts, "backup_path": backup, "published_commit": publication["id"] if publication else None,
+                      "folder": str(directory.parent), "channel": channel, "seen": remote["hashes"]}
+            delivery = {"folder": str(directory.parent), "channel": channel, "hashes": remote["hashes"],
+                        "publication": publication} if publication else {}
+            self.conn.execute("INSERT INTO library_sync_operation(request_id,fingerprint,action,state,result,delivery,created_at) "
+                              "VALUES(?,?,'apply','pending',?,?,?)", (request_id,
+                              _digest(["apply", body.model_dump(exclude={"request_id"})]), _json(result), _json(delivery), int(time.time())))
+            self.conn.execute("DELETE FROM library_sync_preview")
             self.conn.commit()
         except BaseException:
             self.conn.rollback()
             raise
         self.previews.clear()
-        return {"counts": counts, "backup_path": backup, "published_commit": published, "status": self.status()}
+        return self._deliver(request_id)
 
 
 def manager(state) -> SharedFolderSync:
@@ -628,6 +802,11 @@ def manager(state) -> SharedFolderSync:
         existing = SharedFolderSync(state.conn, state.settings)
         state.library_sync = existing
     return existing
+
+
+def _busy(state) -> bool:
+    return bool(state.jobs.running or state.crawls.running or getattr(state, "model_users", 0)
+                or any(not task.done() for task in getattr(state, "chat_runs", {}).values()))
 
 
 async def poll(state) -> None:
@@ -639,9 +818,11 @@ async def poll(state) -> None:
                 sync = manager(state)
                 status = sync.status()
                 delay = status["poll_seconds"]
-                if (status["enabled"] and status["auto_sync"] and not status["needs_review"]
-                        and not status["pending_conflicts"] and not state.jobs.running and not state.crawls.running):
-                    plan = sync.preview()
+                if status["enabled"] and status["auto_sync"] and status["pending_operations"] and not _busy(state):
+                    sync.retry(status["pending_operations"][0]["request_id"])
+                elif (status["enabled"] and status["auto_sync"] and not status["needs_review"]
+                        and not status["pending_conflicts"] and not _busy(state)):
+                    plan = sync.preview(transient=True)
                     if not plan["conflicts"] and plan["changes"]:
                         sync.apply(ApplyRequest(preview_id=plan["preview_id"]), automatic=True)
                     else:
@@ -660,17 +841,20 @@ async def poll(state) -> None:
 def register(app: FastAPI, auth: list) -> None:
     deps = [*auth, Depends(admin.admin_gate)]
 
-    async def call(request: Request, action: Literal["status", "configure", "preview", "apply"], body=None):
+    async def call(request: Request, action: Literal["status", "configure", "preview", "apply", "operation", "read_preview", "retry"], body=None):
         state = request.app.state.fm
         async with state.lock:
-            if action != "status" and (state.jobs.running or state.crawls.running):
-                _fail("Stop the index job before synchronizing bookmarks", 409)
             sync = manager(state)
+            reads = {"status", "operation", "read_preview"}
+            replay = sync.accepted(action, body) if action in {"configure", "apply"} else None
+            if action not in reads and action != "retry" and replay is None and _busy(state):
+                _fail("Wait for active processing or replies before synchronizing bookmarks", 409)
             try:
                 return getattr(sync, action)(body) if body is not None else getattr(sync, action)()
             except HTTPException as exc:
-                with state.conn:
-                    sync._set("last_error", str(exc.detail))
+                if action not in reads:
+                    with state.conn:
+                        sync._set("last_error", str(exc.detail))
                 raise
             except OSError as exc:
                 with state.conn:
@@ -689,6 +873,20 @@ def register(app: FastAPI, auth: list) -> None:
     async def preview(request: Request):
         return await call(request, "preview")
 
+    @app.get("/admin/library/sync/previews/{preview_id}", dependencies=deps)
+    async def read_preview(request: Request, preview_id: str = PathParam(min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_.-]+$")):
+        return await call(request, "read_preview", preview_id)
+
+    @app.get("/admin/library/sync/operations/{request_id}", dependencies=deps)
+    async def operation(request: Request, request_id: str = PathParam(min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_.-]+$")):
+        return await call(request, "operation", request_id)
+
+    @app.post("/admin/library/sync/operations/{request_id}/retry", dependencies=deps)
+    async def retry(request: Request, request_id: str = PathParam(min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_.-]+$")):
+        result = await call(request, "retry", request_id)
+        return JSONResponse(result, status_code=200 if result["complete"] else 202)
+
     @app.post("/admin/library/sync/apply", dependencies=deps)
     async def apply(body: ApplyRequest, request: Request):
-        return await call(request, "apply", body)
+        result = await call(request, "apply", body)
+        return JSONResponse(result, status_code=200 if result["complete"] else 202)
