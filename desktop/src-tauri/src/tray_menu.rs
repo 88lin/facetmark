@@ -179,11 +179,11 @@ pub fn start_ci_inspection(app: &tauri::AppHandle) {
                             // installed HWND still in front. Only this explicit
                             // disposable-VM harness can request the replay.
                             #[cfg(windows)]
-                            if let Some(menu) = app.get_window("tray-menu") {
+                            if let Some(menu) = app.get_webview_window("tray-menu") {
                                 use windows_sys::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
                                 let hwnd = menu.hwnd().ok().map(|hwnd| hwnd.0 as usize);
                                 let foreground_before = unsafe { GetForegroundWindow() } as usize;
-                                focus_changed(&menu, false);
+                                focus_changed(menu.as_ref(), false);
                                 ci_record("tray-focus-replay-native.json", serde_json::json!({
                                     "process": std::process::id(), "sequence": sequence,
                                     "menu_hwnd": hwnd, "foreground_before": foreground_before,
