@@ -32,6 +32,9 @@
 .collection-sidebar .facet-browser { flex: 1; }
 .main-workspace { position: relative; grid-column: 2; grid-row: 2; display: flex; flex-direction: column; min-height: 0; min-width: 0; margin: 0; padding: 12px 20px 0; border: 1px solid var(--glass-edge); border-radius: 28px; background: linear-gradient(150deg, var(--glass), color-mix(in srgb, var(--canvas) 42%, transparent)); box-shadow: inset 0 1px 0 var(--glass-edge), 0 20px 60px -42px #24487650; }
 .main-workspace.with-preview { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 0 18px; }
+.main-workspace.with-preview.has-connection-error { grid-template-rows: auto minmax(0, 1fr); }
+.main-workspace.with-preview.has-connection-error > .connection-error { grid-column: 1 / -1; grid-row: 1; }
+.main-workspace.with-preview.has-connection-error > :is(.results-column, .preview-pane) { grid-row: 2; }
 .main-workspace.has-reader-index.with-preview { grid-template-columns: var(--index-width) minmax(0, 1fr); }
 .app-shell:not(.has-collection) .main-workspace, .main-workspace.focus-mode { grid-column: 1 / -1; }
 .collection-subtitle { display: flex; align-items: center; gap: 4px; min-width: 0; color: var(--secondary-ink); font-size: .75rem; white-space: nowrap; }
