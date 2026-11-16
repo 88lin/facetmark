@@ -9,20 +9,22 @@ can use the same editing semantics inside its own atomic operation.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import html
 import json
 import sqlite3
 import time
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from typing import Annotated, Literal
 from urllib.parse import urlsplit
 
-from fastapi import Depends, FastAPI, HTTPException, Path, Request, Response
+from fastapi import Depends, FastAPI, HTTPException, Path, Query, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from . import admin, service
+from .collection import CollectionScope, predicate
 from .config import Settings
-from .db import in_chunks, jload
+from .db import in_chunks, jload, next_bookmark_id
 from .normalize import host_excluded, normalize_url, registrable_domain
 
 MAX_IDS = 1000
@@ -32,6 +34,7 @@ Text = Annotated[str, Field(strict=True, max_length=2048)]
 Url = Annotated[str, Field(strict=True, min_length=1, max_length=8192)]
 Ids = Annotated[list[BookmarkId], Field(min_length=1, max_length=MAX_IDS)]
 Tags = Annotated[list[Tag], Field(max_length=100)]
+RequestId = Annotated[str, Field(strict=True, min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_.-]+$")]
 
 
 def _clean_text(value: str) -> str:
@@ -67,7 +70,11 @@ class RequestModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class CreateBookmark(RequestModel):
+class OperationRequest(RequestModel):
+    request_id: RequestId | None = None
+
+
+class CreateBookmark(OperationRequest):
     url: Url
     title: Text = ""
     folder: Text = ""
@@ -78,7 +85,7 @@ class CreateBookmark(RequestModel):
     _tags = field_validator("tags")(_clean_tags)
 
 
-class EditBookmark(RequestModel):
+class EditBookmark(OperationRequest):
     url: Url | None = None
     title: Text | None = None
     folder: Text | None = None
@@ -97,12 +104,12 @@ class EditBookmark(RequestModel):
 
     @model_validator(mode="after")
     def nonempty(self):
-        if not self.model_fields_set:
+        if not self.model_fields_set.difference({"request_id"}):
             raise ValueError("provide at least one field to edit")
         return self
 
 
-class BulkRequest(RequestModel):
+class BulkRequest(OperationRequest):
     ids: Ids
     action: Literal["move", "tag-add", "tag-remove", "delete"]
     folder: Text | None = None
@@ -132,7 +139,7 @@ class BulkRequest(RequestModel):
         return self
 
 
-class TaxonomyRequest(RequestModel):
+class TaxonomyRequest(OperationRequest):
     kind: Literal["folder", "tag"]
     action: Literal["rename", "delete"]
     name: Text
@@ -166,6 +173,14 @@ class ExportRequest(RequestModel):
     ids: Ids | None = None
     filters: ExportFilters = Field(default_factory=ExportFilters)
     query: Annotated[str, Field(strict=True, max_length=4096)] = ""
+    scope: CollectionScope | None = None
+
+    @model_validator(mode="after")
+    def unambiguous_scope(self):
+        if self.scope is not None and (self.ids is not None or self.query.strip()
+                                       or self.filters.model_dump(exclude_none=True)):
+            raise ValueError("scope cannot be combined with ids, query or category filters")
+        return self
 
 
 @contextlib.contextmanager
@@ -276,10 +291,10 @@ def create_bookmark(conn: sqlite3.Connection, values: CreateBookmark, *, setting
         if duplicate:
             raise HTTPException(409, {"message": "This URL is already saved", "bookmark_id": duplicate[0]})
         cursor = conn.execute(
-            "INSERT INTO bookmark(url,url_norm,url_hash,title,folder,folder_depth,host,domain,"
+            "INSERT INTO bookmark(id,url,url_norm,url_hash,title,folder,folder_depth,host,domain,"
             "date_added,date_modified,source,indexable,privacy_skipped,tags,created_at,updated_at) "
-            "VALUES(?,?,?,?,?,?,?,?,?,?,'api',?,?,?,?,?)",
-            (nu.original, nu.normalized, nu.hash, values.title, values.folder,
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,'api',?,?,?,?,?)",
+            (next_bookmark_id(conn), nu.original, nu.normalized, nu.hash, values.title, values.folder,
              _destination_depth(conn, values.folder), nu.host, registrable_domain(nu.host), now, now,
              int(nu.indexable), int(host_excluded(nu.host, settings.privacy_excluded_domains)),
              json.dumps(values.tags, ensure_ascii=False), now, now),
@@ -294,7 +309,7 @@ def update_bookmark(conn: sqlite3.Connection, bookmark_id: int, values: EditBook
                     *, settings: Settings, _repair: bool = True) -> dict:
     with transaction(conn):
         old = _rows(conn, [bookmark_id])[0]
-        changes = values.model_dump(exclude_unset=True)
+        changes = values.model_dump(exclude_unset=True, exclude={"request_id"})
         changed = {key for key, value in changes.items()
                    if value != (jload(old[key], []) if key == "tags" else old[key])}
         if not changed:
@@ -475,28 +490,38 @@ def export_library(conn: sqlite3.Connection, body: ExportRequest) -> dict:
     from .importers.facetmark_json import FORMAT_VERSION, MARKER
     from .search.querylang import filter_sets, parse_query
 
-    parsed = parse_query(body.query)
-    if parsed.text:
-        raise HTTPException(422, "Export query must contain filters only; export selected results for a text search")
-    include, exclude, ignored = filter_sets(conn, parsed)
-    if parsed.ignored or ignored:
-        raise HTTPException(422, {"message": "Invalid export filters", "filters": [*parsed.ignored, *ignored]})
-    if body.ids is not None:
-        _rows(conn, body.ids, editable=False)
-        include = set(body.ids) if include is None else include.intersection(body.ids)
-    clauses, params = [], []
-    for key in ("folder", "domain"):
-        value = getattr(body.filters, key)
-        if value is not None:
-            clauses.append(f"b.{key}=?")
-            params.append(value)
-    if body.filters.tag is not None:
-        clauses.append("EXISTS (SELECT 1 FROM json_each(b.tags) WHERE value=?)")
-        params.append(body.filters.tag)
-    if body.filters.session is not None:
-        clauses.append("EXISTS (SELECT 1 FROM bookmark_session bs WHERE bs.bookmark_id=b.id AND bs.session_id=?)")
-        params.append(body.filters.session)
-    where = " WHERE " + " AND ".join(clauses) if clauses else ""
+    if body.scope is not None:
+        try:
+            sql, params = predicate(body.scope)
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
+        where = " WHERE " + sql
+        include, exclude = None, set()
+        all_scope = sql == "1"
+    else:
+        parsed = parse_query(body.query)
+        if parsed.text:
+            raise HTTPException(422, "Export query must contain filters only; use scope for a text search")
+        include, exclude, ignored = filter_sets(conn, parsed)
+        if parsed.ignored or ignored:
+            raise HTTPException(422, {"message": "Invalid export filters", "filters": [*parsed.ignored, *ignored]})
+        if body.ids is not None:
+            _rows(conn, body.ids, editable=False)
+            include = set(body.ids) if include is None else include.intersection(body.ids)
+        clauses, params = [], []
+        for key in ("folder", "domain"):
+            value = getattr(body.filters, key)
+            if value is not None:
+                clauses.append(f"b.{key}=?")
+                params.append(value)
+        if body.filters.tag is not None:
+            clauses.append("EXISTS (SELECT 1 FROM json_each(b.tags) WHERE value=?)")
+            params.append(body.filters.tag)
+        if body.filters.session is not None:
+            clauses.append("EXISTS (SELECT 1 FROM bookmark_session bs WHERE bs.bookmark_id=b.id AND bs.session_id=?)")
+            params.append(body.filters.session)
+        where = " WHERE " + " AND ".join(clauses) if clauses else ""
+        all_scope = body.ids is None and not body.query.strip() and not body.filters.model_dump(exclude_none=True)
     records = []
     record_ids = []
     for row in conn.execute("SELECT b.* FROM bookmark b" + where + " ORDER BY b.id", params):
@@ -516,9 +541,10 @@ def export_library(conn: sqlite3.Connection, body: ExportRequest) -> dict:
                      "exported_at": int(time.time()), "count": len(records), "query": body.query,
                      "full": body.format == "json", "restorable": body.format == "json", "filters": body.filters.model_dump(exclude_none=True)},
             "bookmarks": records}
+    if body.scope is not None:
+        result[MARKER]["scope"] = body.scope.model_dump(exclude_none=True)
     if body.format == "json":
         from .backup import export_conversations
-        all_scope = body.ids is None and not body.query.strip() and not body.filters.model_dump(exclude_none=True)
         result["conversations"] = export_conversations(conn, record_ids, all_scope=all_scope)
     return result
 
@@ -553,43 +579,76 @@ def register(app: FastAPI, auth: list) -> None:
     deps = [*auth, Depends(admin.admin_gate)]
 
     def writable(state):
-        if state.jobs.running or state.crawls.running:
-            raise HTTPException(409, "Stop the index job before changing bookmarks")
+        if (state.jobs.running or state.crawls.running or state.health_running or state.model_users
+                or any(not task.done() for task in state.chat_runs.values())):
+            raise HTTPException(409, "Wait for active processing, replies or link checks before changing bookmarks")
+
+    def perform(state, request_id: str | None, action: str, content: dict, write: Callable[[], dict]) -> dict:
+        fingerprint = hashlib.sha256(json.dumps([action, content], ensure_ascii=False, sort_keys=True,
+                                                separators=(",", ":")).encode("utf-8")).hexdigest()
+        with transaction(state.conn):
+            if request_id:
+                row = state.conn.execute("SELECT fingerprint,result FROM library_operation WHERE request_id=?",
+                                         (request_id,)).fetchone()
+                if row is not None:
+                    if row["fingerprint"] != fingerprint:
+                        raise HTTPException(409, "This request ID belongs to a different collection operation")
+                    return json.loads(row["result"])
+            writable(state)
+            result = write()
+            if request_id:
+                state.conn.execute("INSERT INTO library_operation(request_id,fingerprint,action,result,created_at) "
+                                   "VALUES(?,?,?,?,?)", (request_id, fingerprint, action,
+                                                        json.dumps(result, ensure_ascii=False), int(time.time())))
+        return result
+
+    @app.get("/admin/library/operations/{request_id}", dependencies=deps)
+    async def operation(request: Request, request_id: str = Path(min_length=1, max_length=128,
+                                                                pattern=r"^[a-zA-Z0-9_.-]+$")):
+        state = request.app.state.fm
+        async with state.lock:
+            row = state.conn.execute("SELECT action,result FROM library_operation WHERE request_id=?", (request_id,)).fetchone()
+            if row is None:
+                raise HTTPException(404, "No saved collection operation has this request ID")
+            return {"request_id": request_id, "action": row["action"], "result": json.loads(row["result"])}
 
     @app.post("/admin/library/bookmarks", dependencies=deps)
     async def create(body: CreateBookmark, request: Request):
         state = request.app.state.fm
         async with state.lock:
-            writable(state)
-            return create_bookmark(state.conn, body, settings=state.settings)
+            return perform(state, body.request_id, "create", body.model_dump(exclude={"request_id"}),
+                           lambda: create_bookmark(state.conn, body, settings=state.settings))
 
     @app.patch("/admin/library/bookmarks/{bookmark_id}", dependencies=deps)
     async def edit(body: EditBookmark, request: Request, bookmark_id: int = Path(gt=0, le=2**63 - 1)):
         state = request.app.state.fm
         async with state.lock:
-            writable(state)
-            return update_bookmark(state.conn, bookmark_id, body, settings=state.settings)
+            return perform(state, body.request_id, f"edit:{bookmark_id}",
+                           body.model_dump(exclude_unset=True, exclude={"request_id"}),
+                           lambda: update_bookmark(state.conn, bookmark_id, body, settings=state.settings))
 
     @app.delete("/admin/library/bookmarks/{bookmark_id}", dependencies=deps)
-    async def delete(request: Request, bookmark_id: int = Path(gt=0, le=2**63 - 1)):
+    async def delete(request: Request, bookmark_id: int = Path(gt=0, le=2**63 - 1),
+                     request_id: str | None = Query(default=None, min_length=1, max_length=128,
+                                                    pattern=r"^[a-zA-Z0-9_.-]+$")):
         state = request.app.state.fm
         async with state.lock:
-            writable(state)
-            return delete_bookmarks(state.conn, [bookmark_id])
+            return perform(state, request_id, "delete", {"ids": [bookmark_id]},
+                           lambda: delete_bookmarks(state.conn, [bookmark_id]))
 
     @app.post("/admin/library/bulk", dependencies=deps)
     async def bulk(body: BulkRequest, request: Request):
         state = request.app.state.fm
         async with state.lock:
-            writable(state)
-            return bulk_edit(state.conn, body, settings=state.settings)
+            return perform(state, body.request_id, "bulk", body.model_dump(exclude={"request_id"}),
+                           lambda: bulk_edit(state.conn, body, settings=state.settings))
 
     @app.post("/admin/library/taxonomy", dependencies=deps)
     async def taxonomy(body: TaxonomyRequest, request: Request):
         state = request.app.state.fm
         async with state.lock:
-            writable(state)
-            return edit_taxonomy(state.conn, body, settings=state.settings)
+            return perform(state, body.request_id, "taxonomy", body.model_dump(exclude={"request_id"}),
+                           lambda: edit_taxonomy(state.conn, body, settings=state.settings))
 
     @app.post("/admin/library/export", dependencies=deps)
     async def export(body: ExportRequest, request: Request):

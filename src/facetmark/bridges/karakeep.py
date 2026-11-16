@@ -69,7 +69,7 @@ from datetime import datetime
 from typing import Any
 
 from ..config import Settings, get_settings
-from ..db import jdump, jload, now
+from ..db import jdump, jload, next_bookmark_id, now
 from ..enrich.vectors import embed_content
 from ..fetch.store import store_body
 from ..normalize import host_excluded, normalize_url, registrable_domain
@@ -210,11 +210,11 @@ def _upsert_one(
             bid = int(prior["id"])
         else:
             cur = conn.execute(
-                "INSERT INTO bookmark(url, url_norm, url_hash, title, folder, folder_depth,"
+                "INSERT INTO bookmark(id, url, url_norm, url_hash, title, folder, folder_depth,"
                 " host, domain, date_added, source, indexable, privacy_skipped,"
                 " tags, created_at, updated_at)"
-                " VALUES(?,?,?,?,?,?,?,?,?,'karakeep',?,?,?,?,?)",
-                (nu.original, nu.normalized, nu.hash, doc.display_title, doc.folder,
+                " VALUES(?,?,?,?,?,?,?,?,?,?,'karakeep',?,?,?,?,?)",
+                (next_bookmark_id(conn), nu.original, nu.normalized, nu.hash, doc.display_title, doc.folder,
                  len(doc.tags), nu.host, registrable_domain(nu.host), ts,
                  1 if nu.indexable else 0, privacy, jdump(doc.tags), now(), now()),
             )

@@ -250,6 +250,45 @@ def _v11_chat_delivery(conn: sqlite3.Connection) -> None:
                  "conversation_id TEXT REFERENCES chat_conversation(id) ON DELETE SET NULL)")
 
 
+BOOKMARK_IDENTITY_TRIGGER_SQL = """
+CREATE TRIGGER IF NOT EXISTS bookmark_identity_before_delete BEFORE DELETE ON bookmark
+BEGIN
+    INSERT INTO meta(key,value) VALUES('bookmark_id_highwater',CAST(OLD.id AS TEXT))
+    ON CONFLICT(key) DO UPDATE SET value=CAST(MAX(CAST(meta.value AS INTEGER),
+        CAST(excluded.value AS INTEGER)) AS TEXT);
+END;
+"""
+
+
+def _v12_library_delivery(conn: sqlite3.Connection) -> None:
+    conn.execute("CREATE TABLE IF NOT EXISTS library_operation ("
+                 "request_id TEXT PRIMARY KEY,fingerprint TEXT NOT NULL,action TEXT NOT NULL,"
+                 "result TEXT NOT NULL,created_at INTEGER NOT NULL)")
+    # Deleted pages can still appear in saved conversations and citations.
+    # Those numbers must stay unavailable even when upgrading an older file.
+    historic = conn.execute("""
+        WITH sources AS (
+            SELECT CASE WHEN j.type='object' THEN j.value ELSE '{}' END AS value
+            FROM chat_message m, json_each(CASE WHEN json_valid(m.sources) THEN m.sources ELSE '[]' END) j
+        ), numbers AS (
+            SELECT id AS number FROM bookmark
+            UNION ALL
+            SELECT j.value FROM chat_conversation c,
+                json_each(CASE WHEN json_valid(c.bookmark_ids) THEN c.bookmark_ids ELSE '[]' END) j
+            WHERE j.type='integer' AND j.value>0 AND j.value<=9223372036854775807
+            UNION ALL
+            SELECT json_extract(value,'$.bookmark_id') FROM sources
+            WHERE json_type(value,'$.bookmark_id')='integer'
+                AND json_extract(value,'$.bookmark_id')>0
+                AND json_extract(value,'$.bookmark_id')<=9223372036854775807
+        ) SELECT COALESCE(MAX(number),0) FROM numbers
+    """).fetchone()[0]
+    conn.execute("INSERT INTO meta(key,value) VALUES('bookmark_id_highwater',?) "
+                 "ON CONFLICT(key) DO UPDATE SET value=CAST(MAX(CAST(meta.value AS INTEGER),"
+                 "CAST(excluded.value AS INTEGER)) AS TEXT)", (str(historic),))
+    conn.execute(BOOKMARK_IDENTITY_TRIGGER_SQL)
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(2, "browser queue remembers when a retry is allowed", _v2_browser_queue_backoff),
     Migration(3, "content vectors remember what they were built from",
@@ -265,6 +304,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(9, "collection conversations retain messages and verified sources", _v9_chat_history),
     Migration(10, "imports retain local history and atomic retry receipts", _v10_import_history),
     Migration(11, "conversations retain delivery receipts and independent named connections", _v11_chat_delivery),
+    Migration(12, "collection edits retain atomic receipts and durable bookmark identifiers", _v12_library_delivery),
 )
 
 #: What this build writes into a new database. Derived from the migration list

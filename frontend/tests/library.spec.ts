@@ -307,7 +307,7 @@ test("delete requires fresh consent and cancellation leaves the bookmark intact"
   await expect(row(page, first.bookmark_id)).toHaveCount(0);
   await expect(row(page, second.bookmark_id)).toBeVisible();
   await expect(page.locator(".preview-pane")).toHaveCount(0);
-  expect(deleted).toEqual([{ ids: [first.bookmark_id], action: "delete" }]);
+  expect(deleted).toEqual([{ ids: [first.bookmark_id], action: "delete", request_id: expect.any(String) }]);
   expect((await request.get(`/bookmark/${first.bookmark_id}`, { headers: library.headers })).status()).toBe(404);
 });
 
@@ -369,8 +369,9 @@ test("export downloads honor search-page, selected and category scopes", async (
   await page.locator(".library-manage > summary").click();
   await page.getByRole("button", { name: "导出", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "导出收藏", exact: true });
-  await expect(dialog.getByRole("combobox", { name: "导出范围", exact: true })).toHaveValue("page");
-  await expect(dialog.locator('option[value="filtered"]')).toHaveJSProperty("disabled", true);
+  await expect(dialog.getByRole("combobox", { name: "导出范围", exact: true })).toHaveValue("filtered");
+  await expect(dialog.locator('option[value="filtered"]')).toHaveJSProperty("disabled", false);
+  await dialog.getByRole("combobox", { name: "导出范围", exact: true }).selectOption("page");
   const wholePage = await download(page, dialog);
   expect(wholePage.filename).toMatch(/^facetmark-.*\.json$/);
   expect([...wholePage.request.ids].sort()).toEqual([first.bookmark_id, second.bookmark_id, outside.bookmark_id].sort());
@@ -404,7 +405,7 @@ test("export downloads honor search-page, selected and category scopes", async (
   await page.getByRole("button", { name: "导出", exact: true }).click();
   await expect(dialog.getByRole("combobox", { name: "导出范围", exact: true })).toHaveValue("filtered");
   const filtered = await download(page, dialog);
-  expect(filtered.request).toMatchObject({ filters: { folder } });
+  expect(filtered.request).toMatchObject({ scope: { folder } });
   expect(filtered.request.ids).toBeUndefined();
   expect(JSON.parse(filtered.content).bookmarks.map((bookmark: Bookmark) => bookmark.url).sort()).toEqual([first.url, second.url].sort());
 });
@@ -447,7 +448,7 @@ test("creation, organization and export start in the category the user is browsi
   dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("combobox", { name: "导出范围", exact: true })).toHaveValue("filtered");
   const exported = await download(page, dialog);
-  expect(exported.request).toMatchObject({ filters: { folder, tag } });
+  expect(exported.request).toMatchObject({ scope: { folder, tag } });
   expect(JSON.parse(exported.content).bookmarks.map((bookmark: Bookmark) => bookmark.url).sort())
     .toEqual([first.url, created.url].sort());
   expect(exported.content).not.toContain(outside.url);
@@ -632,7 +633,8 @@ test("failed saves retain the draft and allow a successful retry", async ({ page
   await expect(dialog.getByRole("alert")).toContainText("Synthetic save failure");
   await expect(dialog.getByLabel("收藏标题", { exact: true })).toHaveValue(`${record.title} retry`);
   expect((await library.read(record.bookmark_id)).title).toBe(record.title);
-  await save(dialog);
+  await dialog.getByRole("button", { name: "重试同一次操作", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
   expect((await library.read(record.bookmark_id)).title).toBe(`${record.title} retry`);
 });
 

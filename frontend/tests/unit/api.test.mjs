@@ -15,6 +15,12 @@ test("HTTP error pages retain their status and give a recoverable message", asyn
   await assert.rejects(api("/stats"), error => error instanceof ApiError && error.status === 502 && !error.message.includes("<html>"));
 });
 
+test("structured collection conflicts keep their concrete message and recovery record ID", async () => {
+  mock.method(globalThis, "fetch", async () => Response.json({ detail: { message: "This URL is already saved", bookmark_id: 37 } }, { status: 409 }));
+  await assert.rejects(api("/admin/library/bookmarks", { method: "POST", body: "{}" }), error =>
+    error instanceof ApiError && error.status === 409 && error.message === "This URL is already saved" && error.details.bookmark_id === 37);
+});
+
 test("Headers instances survive with the pairing token and JSON content type", async () => {
   setToken("synthetic-token");
   mock.method(globalThis, "fetch", async (_path, init) => {

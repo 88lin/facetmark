@@ -247,7 +247,7 @@ test("representative collection, responsive states, exact scopes, save recovery 
     await expect(dialog.getByRole("alert")).toContainText("保存暂未完成");
     await expect(dialog.getByRole("textbox", { name: "收藏标题", exact: true })).toHaveValue(addedTitle);
     await capture(page, evidence, "save-failure", "One injected HTTP failure preserves the form draft");
-    await dialog.getByRole("button", { name: "保存", exact: true }).click();
+    await dialog.getByRole("button", { name: "重试同一次操作", exact: true }).click();
     await expect(dialog).toHaveCount(0);
     await search.fill("url:review.example/new-bookmark");
     await expect(page.locator(".result-row")).toHaveCount(1);
