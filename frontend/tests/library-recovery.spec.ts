@@ -1,5 +1,5 @@
 import { expect, test as base, type Locator, type Page } from "@playwright/test";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile } from "node:fs/promises";
 import type { Bookmark } from "../src/api";
 import { settleVisualLayout } from "./visual-layout";
@@ -264,12 +264,18 @@ test("keyword selection exports every matching pending page across pagination an
   const token = marker(), pending: Bookmark[] = [];
   for (let index = 0; index < 35; index++) pending.push(await owned.create({ title: `${token} Pending ${index}` }));
   const doneUrl = `https://library-recovery.example/${token}/summarized`;
+  const doneTitle = `${token} Already summarized`;
+  const sourceHash = "t:" + createHash("sha256").update(`${doneTitle}\0${doneUrl}`).digest("hex");
   const imported = await request.post("/admin/import", { headers: { ...owned.headers, "Content-Type": "application/json" },
     data: JSON.stringify({ facetmark: { version: 2, full: true, restorable: true }, bookmarks: [{ url: doneUrl,
-      title: `${token} Already summarized`, folder: "", tags: [], derived: { summary: "Saved synthetic summary", basis: "title", model: "synthetic" } }] }) });
-  expect(imported.ok()).toBeTruthy(); expect((await imported.json()).restored_summaries).toBe(1);
+      title: doneTitle, folder: "", tags: [], date_added: 1792886400,
+      derived: { summary: "Saved synthetic summary", basis: "title", model: "synthetic", source_hash: sourceHash } }] }) });
+  expect(imported.ok()).toBeTruthy();
+  const importResult = await imported.json();
   const done = await request.get(`/bookmarks?q=${token}&limit=100`, { headers: owned.headers }); expect(done.ok()).toBeTruthy();
   const doneRow = (await done.json()).items.find((item: Bookmark) => item.url === doneUrl) as Bookmark; expect(doneRow).toBeTruthy(); owned.remember(doneRow.bookmark_id);
+  expect(importResult.restored_summaries).toBe(1);
+  expect(importResult.warnings).toEqual([]);
   await page.goto("/app"); await search(page, token, 30);
   const changed = page.waitForResponse(response => { const url = new URL(response.url()); return url.pathname === "/bookmarks" && url.searchParams.get("q") === token && url.searchParams.get("status") === "pending"; });
   await page.locator('.collection-status button[data-status="pending"]').click();
@@ -313,8 +319,9 @@ test("long recovered content stays complete while keyboard controls remain reach
     await page.evaluate(({ language, theme }) => { localStorage.setItem("fm-language", language); localStorage.setItem("fm-theme", theme); }, { language, theme });
     const dialog = await reopenRecovery(page, language);
     const fullTitleName = language === "zh" ? "查看完整标题" : "View full Title";
-    const detail = dialog.locator(".library-operation-detail").filter({ has: page.getByRole("button", { name: fullTitleName, exact: true }) });
-    const summary = detail.getByRole("button", { name: fullTitleName, exact: true });
+    const summary = dialog.locator(`.library-operation-detail > summary[aria-label="${fullTitleName}"]`);
+    const detail = summary.locator("..");
+    await expect(summary).toHaveCount(1);
     await summary.focus(); await summary.press("Enter"); await expect(detail).toHaveAttribute("open", "");
     expect(await detail.locator(":scope > div").textContent()).toBe(title);
     for (const size of [{ width: 1280, height: 850 }, { width: 390, height: 844 }, { width: 320, height: 640 }, { width: 683, height: 384 }]) {

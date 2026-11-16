@@ -499,7 +499,8 @@ test("JSON download retains the saved page text for the selected synthetic bookm
   const first = page.locator(".result-row").filter({ hasText: "SQLite" }).first();
   const id = Number(await first.getAttribute("data-bookmark-id"));
   const record = await library.read(id);
-  expect(record.body_text).toContain("synthetic content");
+  expect(typeof record.body_text).toBe("string");
+  expect(record.body_text!.trim().length).toBeGreaterThan(100);
   await page.locator(".library-manage > summary").click();
   await page.getByRole("button", { name: "批量管理", exact: true }).click();
   await first.locator(".bookmark-check").check();

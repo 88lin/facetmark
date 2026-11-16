@@ -89,6 +89,8 @@ test("processing limits save independently and preserve connection drafts and su
   expect(probes).toHaveLength(1);
   await connection.getByRole("button", { name: "测试连接", exact: true }).click();
   await expect.poll(() => probes.length).toBe(2);
+  await expect(connection.getByRole("button", { name: "测试连接", exact: true })).toBeEnabled();
+  await expect(connection.locator(".tested-model")).toHaveText("connection-draft-kept");
   expect(probes[1].chat_model).toBe("connection-draft-kept");
   for (const key of Object.keys(defaults)) expect(probes[1]).not.toHaveProperty(key);
 });

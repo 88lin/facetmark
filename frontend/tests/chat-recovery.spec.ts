@@ -54,6 +54,10 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/*", route => new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort());
 });
 
+test.afterEach(async ({ page }) => {
+  await page.unrouteAll({ behavior: "wait" });
+});
+
 test("a draft written before the connection is ready stays unsent until an explicit send", async ({ page, owned }) => {
   const control = await realRecovery(page, owned);
   let release!: () => void;
@@ -96,10 +100,11 @@ test("a lost creation response retains its exact send and selected page through 
   const question = page.locator("#chat-question");
   await question.fill("先整理这篇收藏的结论");
   await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
-  await question.press("Enter");
-  await expect.poll(() => owned.ids.size).toBe(1);
-  await question.fill("发送期间准备好的下一问");
-  release(); control.creationWait = null;
+  try {
+    await question.press("Enter");
+    await expect.poll(() => owned.ids.size).toBe(1);
+    await question.fill("发送期间准备好的下一问");
+  } finally { release(); control.creationWait = null; }
   await expect(page.locator(".chat-delivery-recovery")).toBeVisible();
   expect(control.messages).toHaveLength(0);
   const original = control.creations[0];
