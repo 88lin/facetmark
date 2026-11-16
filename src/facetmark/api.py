@@ -36,7 +36,7 @@ from fastapi import Path as ApiPath
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from . import __version__, admin, client_operations, service
 from . import health as healthmod
@@ -99,6 +99,8 @@ class AppState:
         self._provider = None
         self.model_users = 0
         self.health_running = False
+        from .health_runs import HealthRuns
+        self.health_runs = HealthRuns(self)
         self.extension_seen_at: int | None = None
         self.chat_runs: dict[str, asyncio.Task] = {}
         self.chat_requests: dict[str, str] = {}
@@ -335,6 +337,15 @@ class KarakeepSearchRequest(BaseModel):
 class HealthCheckRequest(BaseModel):
     ids: list[int] | None = None
     limit: int = Field(default=50, ge=1, le=1000)
+    request_id: str | None = Field(default=None, strict=True, min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_.-]+$")
+    expected_library: str | None = Field(default=None, strict=True, pattern=r"^[a-f0-9]{64}$")
+
+    @field_validator("request_id")
+    @classmethod
+    def original_id(cls, value):
+        if value == "current":
+            raise ValueError("Choose a distinct original link check ID; current is a status route")
+        return value
 
 
 # ---------------------------------------------------------------------------
@@ -357,6 +368,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             with contextlib.suppress(asyncio.CancelledError):
                 await sync_task
             await chat.shutdown(app.state.fm)
+            await app.state.fm.health_runs.shutdown()
             await app.state.fm.crawls.shutdown()
             await app.state.fm.jobs.shutdown()
             if app.state.fm._provider is not None:
@@ -693,8 +705,35 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
     async def health_check(
         req: HealthCheckRequest, state: AppState = Depends(get_state)
     ) -> dict:
+        if req.request_id is not None:
+            value = await state.health_runs.start(request_id=req.request_id, ids=req.ids, limit=req.limit, expected_library=req.expected_library)
+            return JSONResponse(value, headers={"Cache-Control": "no-store"})
         rep = await state.check_links(ids=req.ids, limit=req.limit)
         return rep.as_dict()
+
+    @app.get("/link-health/runs/current", dependencies=auth)
+    async def current_health_run(state: AppState = Depends(get_state)) -> dict:
+        async with state.lock:
+            return JSONResponse(state.health_runs.current(), headers={"Cache-Control": "no-store"})
+
+    @app.get("/link-health/runs/{request_id}", dependencies=auth)
+    async def original_health_run(request_id: str, state: AppState = Depends(get_state)) -> dict:
+        async with state.lock:
+            found = state.health_runs.read(request_id)
+            if found is None:
+                raise HTTPException(404, "Original link check has not been accepted")
+            return JSONResponse(found, headers={"Cache-Control": "no-store"})
+
+    @app.post("/link-health/runs/{request_id}/stop", dependencies=auth)
+    async def stop_health_run(request_id: str, state: AppState = Depends(get_state)) -> dict:
+        return JSONResponse(await state.health_runs.stop(request_id), headers={"Cache-Control": "no-store"})
+
+    @app.post("/link-health/runs/{request_id}/close", dependencies=auth)
+    async def close_health_run(request_id: str, req: HealthCheckRequest, state: AppState = Depends(get_state)) -> dict:
+        if req.request_id != request_id:
+            raise HTTPException(409, "Closing needs the original link check and request ID")
+        value = await state.health_runs.close(request_id=request_id, ids=req.ids, limit=req.limit, expected_library=req.expected_library)
+        return JSONResponse(value, headers={"Cache-Control": "no-store"})
 
     @app.get("/graveyard", dependencies=auth)
     async def graveyard(

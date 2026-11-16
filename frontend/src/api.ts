@@ -43,6 +43,7 @@ export type Job = {
   run_id?: string;
   resumable?: boolean;
   pause_requested?: boolean;
+  health_check_running?: boolean;
   state: string;
   current?: string;
   done?: string[];

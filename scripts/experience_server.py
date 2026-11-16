@@ -129,8 +129,11 @@ def main():
             from large_collection_fixture import populate
             populate(conn)
         conn.close()
+        app = create_app(settings)
+        from experience_health_fixture import install
+        install(app)
         uvicorn.run(
-            create_app(settings), host=settings.host, port=settings.port, log_level="warning"
+            app, host=settings.host, port=settings.port, log_level="warning"
         )
 
 

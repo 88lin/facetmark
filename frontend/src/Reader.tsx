@@ -71,6 +71,7 @@ export default function Reader({
   onAction,
   onChat,
   running,
+  processingDisabled = false,
 }: {
   record: Bookmark | null;
   selected: number | null;
@@ -99,6 +100,7 @@ export default function Reader({
   onAction?: (action: LibraryAction) => void;
   onChat?: (record: Bookmark) => void;
   running: boolean;
+  processingDisabled?: boolean;
 }) {
   const t = useText();
   const scales = [.88, 1, 1.12, 1.24, 1.36];
@@ -158,7 +160,7 @@ export default function Reader({
     <div><p>{record?.body_text ? t("最近一次提取失败，已保留保存的正文。", "The last fetch failed. Your saved source text is retained.")
       : t("正文提取失败，可以重试或打开原网页。", "Source text could not be fetched. Retry or open the original page.")}</p>
       <p className="reader-fetch-reason">{fetchError}</p></div>
-    {canProcess && <CapsuleButton type="button" className="secondary" disabled={running}
+    {canProcess && <CapsuleButton type="button" className="secondary" disabled={running || processingDisabled}
       onClick={() => onAction?.({ kind: "process", mode: "fetch", ids: [record!.bookmark_id] })}>{t("重试提取正文", "Retry fetching text")}</CapsuleButton>}
   </div>;
   const original = safeUrl(visibleRecord?.url || "");
@@ -190,7 +192,7 @@ export default function Reader({
       {hasSummary ? <section id="reader-summary" className="reader-summary" aria-label={t("AI 概览", "AI overview")}>
         <div className="reader-section-heading">
           <h2><Sparkles size={16}/>{t("AI 概览", "AI overview")}</h2>
-          {canProcess && <CapsuleButton className="text-button" disabled={running}
+          {canProcess && <CapsuleButton className="text-button" disabled={running || processingDisabled}
             aria-label={t("重新生成这篇摘要", "Regenerate this summary")}
             onClick={() => onAction?.({ kind: "process", mode: "summarize", ids: [selected!] })}>
             {t("重新生成", "Regenerate")}
@@ -204,7 +206,7 @@ export default function Reader({
         {!!record?.key_points?.length && <ul>{record.key_points.map((point, i) => <li key={i}>{point}</li>)}</ul>}
       </section> : canProcess && <div className="reader-summary-invitation">
         <span>{t("为这篇收藏生成标题、摘要和要点", "Generate a title, summary and key points for this page")}</span>
-        <CapsuleButton className="secondary" disabled={running}
+        <CapsuleButton className="secondary" disabled={running || processingDisabled}
           onClick={() => onAction?.({ kind: "process", mode: "summarize", ids: [selected!] })}>
           <Sparkles size={15}/>{t("生成这篇摘要", "Summarize this page")}
         </CapsuleButton>
@@ -228,7 +230,7 @@ export default function Reader({
         )}
       </div> : <div className="reader-source-missing">
         <p>{t("正文尚未保存，提取后可在这里接着读。", "Source text has not been saved. Fetch it to continue reading here.")}</p>
-        {canProcess && <CapsuleButton className="secondary" disabled={running}
+        {canProcess && <CapsuleButton className="secondary" disabled={running || processingDisabled}
           onClick={() => onAction?.({ kind: "process", mode: "fetch", ids: [selected!] })}>
           <FileText size={15}/>{t("提取这篇正文", "Fetch this page")}
         </CapsuleButton>}
@@ -248,8 +250,8 @@ export default function Reader({
         {fetchFeedback}
         {record?.summary_error && <p className="error" role="status">{record.summary_error}</p>}
         {canProcess && <div className="reader-empty-actions">
-          {!fetchError && <CapsuleButton className="secondary" disabled={running} onClick={() => onAction?.({ kind: "process", mode: "fetch", ids: [selected!] })}><FileText size={15}/>{t("提取这篇正文", "Fetch this page")}</CapsuleButton>}
-          <CapsuleButton className="secondary" disabled={running} onClick={() => onAction?.({ kind: "process", mode: "summarize", ids: [selected!] })}><Sparkles size={15}/>{t("生成这篇摘要", "Summarize this page")}</CapsuleButton>
+          {!fetchError && <CapsuleButton className="secondary" disabled={running || processingDisabled} onClick={() => onAction?.({ kind: "process", mode: "fetch", ids: [selected!] })}><FileText size={15}/>{t("提取这篇正文", "Fetch this page")}</CapsuleButton>}
+          <CapsuleButton className="secondary" disabled={running || processingDisabled} onClick={() => onAction?.({ kind: "process", mode: "summarize", ids: [selected!] })}><Sparkles size={15}/>{t("生成这篇摘要", "Summarize this page")}</CapsuleButton>
         </div>}
       </div>
     );
@@ -496,8 +498,8 @@ export default function Reader({
                     </div>}
                     {record && onAction && <div className="reader-manage-actions">
                       {canProcess && <>
-                        <CapsuleButton className="secondary" disabled={running} onClick={() => onAction({ kind: "process", mode: "fetch", ids: [record.bookmark_id] })}><FileText size={14}/>{t("提取正文", "Fetch text")}</CapsuleButton>
-                        <CapsuleButton className="secondary" disabled={running} onClick={() => onAction({ kind: "process", mode: "summarize", ids: [record.bookmark_id] })}><Sparkles size={14}/>{t("生成摘要", "Summarize")}</CapsuleButton>
+                        <CapsuleButton className="secondary" disabled={running || processingDisabled} onClick={() => onAction({ kind: "process", mode: "fetch", ids: [record.bookmark_id] })}><FileText size={14}/>{t("提取正文", "Fetch text")}</CapsuleButton>
+                        <CapsuleButton className="secondary" disabled={running || processingDisabled} onClick={() => onAction({ kind: "process", mode: "summarize", ids: [record.bookmark_id] })}><Sparkles size={14}/>{t("生成摘要", "Summarize")}</CapsuleButton>
                       </>}
                       {!managed && <CapsuleButton className="text-button delete-bookmark" disabled={running} onClick={() => onAction({ kind: "delete", ids: [record.bookmark_id] })}><Trash2 size={14}/>{t("删除收藏", "Delete bookmark")}</CapsuleButton>}
                       {managed && <p className="hint">{t("这条收藏由 Karakeep 管理，请在来源端编辑或删除。", "This bookmark is managed by Karakeep. Edit or delete it there.")}</p>}

@@ -1304,7 +1304,7 @@ def register(app: FastAPI, auth: list) -> None:
     @app.get("/admin/jobs/current", dependencies=deps)
     async def admin_job(request: Request) -> dict:
         state = _state(request)
-        return state.jobs.current(conn=state.conn)
+        return {**state.jobs.current(conn=state.conn), "health_check_running": state.health_running}
 
     @app.get("/admin/jobs", dependencies=deps)
     async def admin_saved_jobs(request: Request) -> dict:
