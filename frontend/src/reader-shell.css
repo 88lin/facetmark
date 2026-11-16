@@ -208,6 +208,11 @@
 .body-text p {
   margin-bottom: 1.25em;
 }
+.reader-fetch-feedback { display:flex; align-items:flex-start; flex-wrap:wrap; gap:10px 16px; margin:16px 0; padding:14px 16px; border:1px solid var(--rule); border-radius:18px; background:var(--inset); color:var(--secondary-ink); text-align:left; }
+.reader-fetch-feedback > div { flex:1; min-width:180px; max-width:100%; }
+.reader-fetch-feedback p { margin:0; font-size:var(--type-ui); line-height:1.75; }
+.reader-fetch-feedback .reader-fetch-reason { margin-top:4px; color:var(--danger); overflow-wrap:anywhere; }
+.reader-fetch-feedback .fm-button { min-height:40px; padding:7px 13px; font-size:var(--type-ui); }
 .body-text h2 {
   font-size: calc(1.3125rem * var(--reader-font-scale, 1));
   font-weight: 700;

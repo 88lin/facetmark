@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import hashlib
 import json
 import re
 import sqlite3
@@ -45,8 +46,11 @@ required target language for claims and gaps; retain essential proper names."""
 
 
 class ConversationRequest(BaseModel):
+    id: str = Field(default="", max_length=64, pattern=r"^[a-zA-Z0-9_-]*$")
+    request_id: str = Field(default="", max_length=128, pattern=r"^[\w.-]*$")
     title: str = Field(default="", max_length=120)
     bookmark_ids: list[int] = Field(default_factory=list, max_length=MAX_SOURCES)
+    profile_id: str = Field(default="", max_length=64, pattern=r"^[a-zA-Z0-9_-]*$")
 
 
 class MessageRequest(BaseModel):
@@ -55,6 +59,7 @@ class MessageRequest(BaseModel):
     regenerate: bool = False
     language: Literal["zh", "en"] = "zh"
     request_id: str = Field(default="", max_length=128, pattern=r"^[\w.-]*$")
+    profile_id: str | None = Field(default=None, max_length=64, pattern=r"^[a-zA-Z0-9_-]*$")
 
     @model_validator(mode="after")
     def valid_action(self):
@@ -82,13 +87,32 @@ def _prune_cancellations(state) -> None:
         state.chat_cancellations.pop(next(iter(state.chat_cancellations)))
 
 
+def _fingerprint(values: dict) -> str:
+    return hashlib.sha256(json.dumps(values, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+
+
+def _connection(state, profile_id: str):
+    settings = state.settings.model_copy(deep=True)
+    if not profile_id:
+        return settings, admin.matching_probe(settings, "chat", state.probe_results)
+    from .model_profiles import profile_settings, read_profiles, saved_proof
+    profile = next((row for row in read_profiles(settings.data_dir)
+                    if row["id"] == profile_id and row["channel"] == "chat"), None)
+    if profile is None:
+        raise HTTPException(404, "This conversation's saved connection is missing. Choose another connection.")
+    candidate = profile_settings(settings, profile)
+    if any(getattr(candidate, key) != getattr(settings, key) for key in set(profile["values"]) & admin.env_locked()):
+        raise HTTPException(409, "Connection fields are controlled by environment variables")
+    return candidate, admin.matching_probe(candidate, "chat", state.probe_results) or saved_proof(candidate, profile)
+
+
 def _metadata(conn: sqlite3.Connection, row, runs: dict) -> dict:
     return {**dict(row), "bookmark_ids": jload(row["bookmark_ids"]),
             "message_count": conn.execute("SELECT COUNT(*) FROM chat_message WHERE conversation_id=?", (row["id"],)).fetchone()[0],
             "running": row["id"] in runs and not runs[row["id"]].done()}
 
 
-def conversation(conn: sqlite3.Connection, conversation_id: str, runs: dict) -> dict:
+def conversation(conn: sqlite3.Connection, conversation_id: str, runs: dict, request_id: str = "") -> dict:
     row = conn.execute("SELECT * FROM chat_conversation WHERE id=?", (conversation_id,)).fetchone()
     if row is None:
         raise HTTPException(404, "Conversation no longer exists")
@@ -96,6 +120,13 @@ def conversation(conn: sqlite3.Connection, conversation_id: str, runs: dict) -> 
     data["messages"] = [{**dict(message), "sources": jload(message["sources"])}
                         for message in conn.execute("SELECT * FROM chat_message WHERE conversation_id=? ORDER BY id LIMIT ?",
                                                     (conversation_id, MAX_MESSAGES))]
+    if request_id:
+        accepted = conn.execute("SELECT 1 FROM chat_operation WHERE conversation_id=? AND request_id=?",
+                                (conversation_id, request_id)).fetchone() is not None
+        matching = [message for message in data["messages"] if message["request_id"] == request_id]
+        data["delivery"] = {"request_id": request_id, "accepted": accepted or bool(matching),
+                            "running": bool(data["running"] and any(message["role"] == "assistant" and
+                                            message["status"] == "pending" for message in matching))}
     return data
 
 
@@ -165,7 +196,7 @@ def _history(conn: sqlite3.Connection, messages: list[dict]) -> list[dict]:
     return list(reversed(selected))
 
 
-async def _sources(state, data: dict, question: str, settings, provider) -> list[dict]:
+async def _sources(state, data: dict, question: str, settings, provider, isolated_chat: bool = False) -> list[dict]:
     ids = data["bookmark_ids"]
     if not ids:
         ids = []
@@ -178,7 +209,8 @@ async def _sources(state, data: dict, question: str, settings, provider) -> list
                 from .workbench import validate_space
                 try:
                     validate_space(conn, settings)
-                    response = await service.search(conn, question, limit=8, provider=provider, settings=settings, assist=False)
+                    response = await service.search(conn, question, limit=8,
+                        provider=state.provider if isolated_chat else provider, settings=settings, assist=False)
                     ids = [hit.bookmark_id for hit in response.hits]
                 except (ProviderError, RuntimeError):
                     pass  # Saved keyword evidence remains usable without vectors.
@@ -215,8 +247,11 @@ def _answer(raw: dict, sources: list[dict], language: str) -> tuple[str, list[di
 async def _complete(state, conversation_id: str, assistant_id: int, data: dict, question: str, language: str,
                     settings, provider, fingerprint: str) -> None:
     status, content, sources, model = "complete", "", [], ""
+    owns_provider = provider is None
     try:
-        sources = await _sources(state, data, question, settings, provider)
+        if owns_provider:
+            provider = admin.get_chat_provider(settings)
+        sources = await _sources(state, data, question, settings, provider, owns_provider)
         async with state.lock:
             history = _history(state.conn, data["messages"])
         if fingerprint != admin.probe_fingerprint(settings, "chat"):
@@ -246,6 +281,9 @@ async def _complete(state, conversation_id: str, assistant_id: int, data: dict, 
         content = "回答暂时不可用，请重试。" if language == "zh" else "Reply unavailable. Please retry."
         sources = []
     finally:
+        if owns_provider and provider is not None:
+            with contextlib.suppress(Exception):
+                await provider.aclose()
         async with state.lock:
             state.conn.execute("UPDATE chat_message SET content=?,status=?,sources=?,model=? WHERE id=? AND conversation_id=?",
                                (content, status, jdump(sources), model, assistant_id, conversation_id))
@@ -300,21 +338,38 @@ def register(app: FastAPI, auth: list) -> None:
         state = request.app.state.fm
         async with state.lock:
             ids = list(dict.fromkeys(body.bookmark_ids))
+            fingerprint = _fingerprint({"id": body.id, "title": body.title.strip(), "bookmark_ids": ids,
+                                        "profile_id": body.profile_id})
+            receipt = state.conn.execute("SELECT * FROM chat_creation WHERE request_id=?", (body.request_id,)).fetchone() if body.request_id else None
+            if receipt is not None:
+                if receipt["fingerprint"] != fingerprint:
+                    raise HTTPException(409, "This creation request ID belongs to a different conversation")
+                if not receipt["conversation_id"]:
+                    raise HTTPException(410, "This conversation was deleted. Start a new conversation.")
+                return conversation(state.conn, receipt["conversation_id"], state.chat_runs)
             if any(not isinstance(value, int) or value <= 0 for value in ids):
                 raise HTTPException(422, "Bookmark IDs must be positive")
             if _allowed(state.conn, ids) != ids:
                 raise HTTPException(404, "A selected bookmark is missing or excluded from AI processing")
-            conversation_id = uuid.uuid4().hex
-            state.conn.execute("INSERT INTO chat_conversation(id,title,bookmark_ids,created_at,updated_at) VALUES(?,?,?,?,?)",
-                               (conversation_id, body.title.strip(), jdump(ids), now(), now()))
+            if body.profile_id:
+                _connection(state, body.profile_id)  # Creating a draft never calls or tests its model.
+            conversation_id = body.id or uuid.uuid4().hex
+            if state.conn.execute("SELECT 1 FROM chat_conversation WHERE id=?", (conversation_id,)).fetchone():
+                raise HTTPException(409, "This conversation ID is already in use")
+            state.conn.execute("INSERT INTO chat_conversation(id,title,bookmark_ids,created_at,updated_at,profile_id) VALUES(?,?,?,?,?,?)",
+                               (conversation_id, body.title.strip(), jdump(ids), now(), now(), body.profile_id))
+            if body.request_id:
+                state.conn.execute("INSERT INTO chat_creation(request_id,fingerprint,conversation_id) VALUES(?,?,?)",
+                                   (body.request_id, fingerprint, conversation_id))
             state.conn.commit()
             return conversation(state.conn, conversation_id, state.chat_runs)
 
     @app.get("/chat/conversations/{conversation_id}", dependencies=auth)
-    async def get_conversation(conversation_id: str, request: Request) -> dict:
+    async def get_conversation(conversation_id: str, request: Request,
+                               request_id: str = Query(default="", max_length=128, pattern=r"^[\w.-]*$")) -> dict:
         state = request.app.state.fm
         async with state.lock:
-            return conversation(state.conn, conversation_id, state.chat_runs)
+            return conversation(state.conn, conversation_id, state.chat_runs, request_id)
 
     @app.delete("/chat/conversations/{conversation_id}", dependencies=auth)
     async def delete_conversation(conversation_id: str, request: Request) -> dict:
@@ -372,7 +427,14 @@ def register(app: FastAPI, auth: list) -> None:
         state = request.app.state.fm
         request_id = body.request_id or uuid.uuid4().hex
         async with state.lock:
-            data = conversation(state.conn, conversation_id, state.chat_runs)
+            data = conversation(state.conn, conversation_id, state.chat_runs, request_id)
+            delivery_fingerprint = _fingerprint({**body.model_dump(exclude={"request_id"}), "text": body.text.strip()})
+            receipt = state.conn.execute("SELECT fingerprint FROM chat_operation WHERE conversation_id=? AND request_id=?",
+                                         (conversation_id, request_id)).fetchone()
+            if receipt is not None:
+                if receipt["fingerprint"] != delivery_fingerprint:
+                    raise HTTPException(409, "This request ID belongs to a different chat action, language or connection")
+                return data
             previous = state.conn.execute("SELECT role,content FROM chat_message WHERE conversation_id=? AND request_id=? ORDER BY CASE role WHEN 'user' THEN 0 ELSE 1 END,id LIMIT 1",
                                           (conversation_id, request_id)).fetchone()
             if previous:
@@ -385,13 +447,14 @@ def register(app: FastAPI, auth: list) -> None:
             cancelled_before_delivery = cancellation_key in state.chat_cancellations
             if data["running"]:
                 raise HTTPException(409, "A reply is already running in this conversation")
-            concurrency = (min(state.settings.chat_concurrency, state.settings.agent_concurrency)
-                           if state.settings.chat_backend == "agent" else state.settings.chat_concurrency)
+            profile_id = data["profile_id"] if body.profile_id is None else body.profile_id
+            settings, tested = _connection(state, profile_id)
+            concurrency = (min(settings.chat_concurrency, settings.agent_concurrency)
+                           if settings.chat_backend == "agent" else settings.chat_concurrency)
             if not cancelled_before_delivery and sum(not task.done() for task in state.chat_runs.values()) >= concurrency:
                 raise HTTPException(409, "Wait for an active reply to finish")
-            tested = admin.matching_probe(state.settings, "chat", state.probe_results)
-            fingerprint = admin.probe_fingerprint(state.settings, "chat")
-            if not cancelled_before_delivery and not state.settings.use_mock_provider and not tested:
+            fingerprint = admin.probe_fingerprint(settings, "chat")
+            if not cancelled_before_delivery and not settings.use_mock_provider and not tested:
                 raise HTTPException(409, "Test and save the chat connection before starting a conversation")
             if body.retry or body.regenerate:
                 expected = {"complete"} if body.regenerate else {"error", "cancelled"}
@@ -428,15 +491,19 @@ def register(app: FastAPI, auth: list) -> None:
             if not data["title"]:
                 state.conn.execute("UPDATE chat_conversation SET title=? WHERE id=?", (question[:80], conversation_id))
             state.conn.execute("UPDATE chat_conversation SET updated_at=? WHERE id=?", (now(), conversation_id))
+            state.conn.execute("UPDATE chat_conversation SET profile_id=? WHERE id=?", (profile_id, conversation_id))
+            state.conn.execute("INSERT INTO chat_operation(conversation_id,request_id,fingerprint) VALUES(?,?,?)",
+                               (conversation_id, request_id, delivery_fingerprint))
             if cancelled_before_delivery:
                 content = "回答已停止，可以重试这个问题。" if body.language == "zh" else "Reply stopped. You can retry this question."
                 state.conn.execute("UPDATE chat_message SET content=?,status='cancelled' WHERE id=?", (content, assistant_id))
             state.conn.commit()
             if cancelled_before_delivery:
                 state.chat_cancellations.pop(cancellation_key, None)
-                return conversation(state.conn, conversation_id, state.chat_runs)
-            settings = state.settings.model_copy(deep=True)
-            provider = state.provider
+                return conversation(state.conn, conversation_id, state.chat_runs, request_id)
+            # Named connections own a chat-only client. The shared provider is
+            # consulted for embeddings only when verified vectors actually exist.
+            provider = None if profile_id else state._provider
             task = asyncio.create_task(_complete(state, conversation_id, assistant_id, data, question,
                                                  body.language, settings, provider, fingerprint))
             state.chat_runs[conversation_id] = task
@@ -453,4 +520,4 @@ def register(app: FastAPI, auth: list) -> None:
         with contextlib.suppress(asyncio.CancelledError):
             await asyncio.shield(task)
         async with state.lock:
-            return conversation(state.conn, conversation_id, state.chat_runs)
+            return conversation(state.conn, conversation_id, state.chat_runs, request_id)

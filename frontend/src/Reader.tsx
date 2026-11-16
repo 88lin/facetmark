@@ -152,6 +152,14 @@ export default function Reader({
   const visibleRecord = record || hit;
   const managed = Boolean(record?.managed_externally || record?.source === "karakeep");
   const canProcess = Boolean(record && !record.privacy_skipped && onAction);
+  const fetchError = record?.indexed?.error || "";
+  const fetchFeedback = fetchError && <div className="reader-fetch-feedback" role="status">
+    <div><p>{record?.body_text ? t("最近一次提取失败，已保留保存的正文。", "The last fetch failed. Your saved source text is retained.")
+      : t("正文提取失败，可以重试或打开原网页。", "Source text could not be fetched. Retry or open the original page.")}</p>
+      <p className="reader-fetch-reason">{fetchError}</p></div>
+    {canProcess && <CapsuleButton type="button" className="secondary" disabled={running}
+      onClick={() => onAction?.({ kind: "process", mode: "fetch", ids: [record!.bookmark_id] })}>{t("重试提取正文", "Retry fetching text")}</CapsuleButton>}
+  </div>;
   const original = safeUrl(visibleRecord?.url || "");
   let content: ReactNode;
   if (pending)
@@ -206,6 +214,7 @@ export default function Reader({
       </p>}
       <section id="reader-source" className="reader-source" aria-label={t("保存的原文", "Saved source text")}>
       <div className="reader-section-heading"><h2><FileText size={16}/>{t("保存的原文", "Saved source text")}</h2></div>
+      {fetchFeedback}
       {record?.body_text ? <div className="body-text">
         {paragraphs.map((p, i) =>
           /^#{1,3}\s+[^\n]+$/.test(p.trim()) ? (
@@ -235,9 +244,10 @@ export default function Reader({
             "Fetch source text to read here, or generate an AI overview from the title and URL first.",
           )}
         </p>
+        {fetchFeedback}
         {record?.summary_error && <p className="error" role="status">{record.summary_error}</p>}
         {canProcess && <div className="reader-empty-actions">
-          <CapsuleButton className="secondary" disabled={running} onClick={() => onAction?.({ kind: "process", mode: "fetch", ids: [selected!] })}><FileText size={15}/>{t("提取这篇正文", "Fetch this page")}</CapsuleButton>
+          {!fetchError && <CapsuleButton className="secondary" disabled={running} onClick={() => onAction?.({ kind: "process", mode: "fetch", ids: [selected!] })}><FileText size={15}/>{t("提取这篇正文", "Fetch this page")}</CapsuleButton>}
           <CapsuleButton className="secondary" disabled={running} onClick={() => onAction?.({ kind: "process", mode: "summarize", ids: [selected!] })}><Sparkles size={15}/>{t("生成这篇摘要", "Summarize this page")}</CapsuleButton>
         </div>}
       </div>

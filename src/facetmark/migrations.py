@@ -240,6 +240,16 @@ def _v10_import_history(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE INDEX IF NOT EXISTS ix_import_run_created ON import_run(created_at DESC,id DESC)")
 
 
+def _v11_chat_delivery(conn: sqlite3.Connection) -> None:
+    if "profile_id" not in _columns(conn, "chat_conversation"):
+        conn.execute("ALTER TABLE chat_conversation ADD COLUMN profile_id TEXT NOT NULL DEFAULT ''")
+    conn.execute("CREATE TABLE IF NOT EXISTS chat_operation ("
+                 "conversation_id TEXT NOT NULL REFERENCES chat_conversation(id) ON DELETE CASCADE,"
+                 "request_id TEXT NOT NULL,fingerprint TEXT NOT NULL,PRIMARY KEY(conversation_id,request_id))")
+    conn.execute("CREATE TABLE IF NOT EXISTS chat_creation (request_id TEXT PRIMARY KEY,fingerprint TEXT NOT NULL,"
+                 "conversation_id TEXT REFERENCES chat_conversation(id) ON DELETE SET NULL)")
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(2, "browser queue remembers when a retry is allowed", _v2_browser_queue_backoff),
     Migration(3, "content vectors remember what they were built from",
@@ -254,6 +264,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(8, "summaries retain AI titles, output language and prompt provenance", _v8_summary_preferences),
     Migration(9, "collection conversations retain messages and verified sources", _v9_chat_history),
     Migration(10, "imports retain local history and atomic retry receipts", _v10_import_history),
+    Migration(11, "conversations retain delivery receipts and independent named connections", _v11_chat_delivery),
 )
 
 #: What this build writes into a new database. Derived from the migration list

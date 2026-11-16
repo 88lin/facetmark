@@ -148,6 +148,7 @@ test("reader chat sends once, keeps follow-up drafts through navigation and rest
   await expect(question).toBeVisible();
   expect(fixture.created).toHaveLength(0);
   await question.fill("如何保存可恢复任务？");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
   await question.dispatchEvent("keydown", { key: "Enter", isComposing: true, keyCode: 229 });
   expect(fixture.sent).toHaveLength(0);
   await question.press("Enter");
@@ -160,6 +161,7 @@ test("reader chat sends once, keeps follow-up drafts through navigation and rest
   await page.getByRole("button", { name: "返回收藏", exact: true }).click();
   await page.locator(".header-navigation").getByRole("button", { name: "AI 对话", exact: true }).click();
   await expect(question).toHaveValue("下一步该注意什么？");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
   await question.press("End"); await question.press("Shift+Enter");
   await question.press("a");
   await question.press("Enter");
@@ -200,6 +202,7 @@ test("a clock tick between optimistic messages cannot duplicate the question aft
     Date.now = () => ++instant;
   });
   await question.fill("时钟变化也只能显示一个问题");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
   await question.press("Enter");
   await expect.poll(() => fixture.sent.length).toBe(1);
   await expect(page.locator(".chat-message.user")).toHaveCount(1);
@@ -218,11 +221,15 @@ test("background generation can be reopened, stopped and retried without duplica
   await page.goto("/app#chat");
   const question = page.getByRole("textbox", { name: "对收藏提问", exact: true });
   await expect(question).toBeEnabled();
-  await question.fill("第一个问题"); await question.press("Enter");
+  await question.fill("第一个问题");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
+  await question.press("Enter");
   await expect(page.getByRole("button", { name: "停止生成", exact: true })).toBeVisible();
   await expect.poll(() => fixture.sent.length).toBe(1);
   await page.getByRole("button", { name: "新对话", exact: true }).click();
-  await question.fill("另一个问题"); await question.press("Enter");
+  await question.fill("另一个问题");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
+  await question.press("Enter");
   await expect(page.locator(".chat-message.user")).toHaveText(/另一个问题/);
   await expect(page.locator(".chat-message.assistant")).toContainText("恢复时保留");
   await page.getByRole("button", { name: "历史", exact: true }).click();
@@ -246,7 +253,9 @@ test("a finishing reply preserves the next draft typed while it was running", as
   await page.goto("/app#chat");
   const question = page.getByRole("textbox", { name: "对收藏提问", exact: true });
   await expect(question).toBeEnabled();
-  await question.fill("先回答这个问题"); await question.press("Enter");
+  await question.fill("先回答这个问题");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
+  await question.press("Enter");
   await expect.poll(() => fixture.sent.length).toBe(1);
   await question.fill("我准备接着问这个问题");
   fixture.finish("chat-1");
@@ -259,7 +268,9 @@ test("stop before message registration uses its request ID and an old cancel can
   await page.goto("/app#chat");
   const question = page.getByRole("textbox", { name: "对收藏提问", exact: true });
   await expect(question).toBeEnabled();
-  await question.fill("在登记之前停止这个问题"); await question.press("Enter");
+  await question.fill("在登记之前停止这个问题");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
+  await question.press("Enter");
   await expect.poll(() => fixture.sent.length).toBe(1);
   expect(fixture.values.get("chat-1")?.messages).toHaveLength(0);
   await page.getByRole("button", { name: "停止生成", exact: true }).click();
@@ -271,7 +282,9 @@ test("stop before message registration uses its request ID and an old cancel can
   await expect(page.locator(".chat-message.user .chat-message-content")).toHaveText("在登记之前停止这个问题");
   await expect(page.locator(".chat-message.assistant")).toHaveAttribute("data-status", "cancelled");
 
-  await question.fill("这是一个新的问题"); await question.press("Enter");
+  await question.fill("这是一个新的问题");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
+  await question.press("Enter");
   await expect.poll(() => fixture.sent.length).toBe(2);
   const secondId = fixture.sent[1].request_id as string;
   expect(secondId).not.toBe(firstId);
@@ -298,7 +311,9 @@ test("a restored running conversation retains its request ID and a failed stop k
   await page.goto("/app#chat");
   const question = page.getByRole("textbox", { name: "对收藏提问", exact: true });
   await expect(question).toBeEnabled();
-  await question.fill("刷新后仍然能够停止这个问题"); await question.press("Enter");
+  await question.fill("刷新后仍然能够停止这个问题");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
+  await question.press("Enter");
   await expect.poll(() => fixture.sent.length).toBe(1);
   const requestId = fixture.sent[0].request_id as string;
   await page.reload();
@@ -324,7 +339,12 @@ test("missing models lead to settings and deleting history requires confirmation
   const fixture = await chatFixture(page, { tested: false, seed: true });
   await page.addInitScript(() => localStorage.setItem("fm-chat-current", "saved-chat"));
   await page.goto("/app#chat");
-  await expect(page.getByRole("textbox", { name: "对收藏提问", exact: true })).toBeDisabled();
+  const question = page.getByRole("textbox", { name: "对收藏提问", exact: true });
+  await expect(question).toBeEnabled();
+  await question.fill("先保留问题，再配置模型"); await question.press("Enter");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeDisabled();
+  await page.reload(); await expect(question).toHaveValue("先保留问题，再配置模型");
+  expect(fixture.sent).toHaveLength(0);
   await expect(page.getByRole("button", { name: "设置 AI 连接", exact: true })).toBeVisible();
   await expect(page.locator(".chat-message.assistant")).toContainText("将任务目标保存为快照");
   await page.getByRole("button", { name: "历史", exact: true }).click();
@@ -368,7 +388,9 @@ test("answer again keeps old replies and drafts through cancellation, failed ret
   await page.goto("/app#chat");
   const question = page.getByRole("textbox", { name: "对收藏提问", exact: true });
   await expect(question).toBeEnabled();
-  await question.fill("先整理这个任务"); await question.press("Enter");
+  await question.fill("先整理这个任务");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
+  await question.press("Enter");
   await expect(page.locator(".chat-message.assistant")).toContainText("保存目标快照");
   await question.fill("我还想接着问这个问题");
   const regenerate = page.getByRole("button", { name: "重新回答", exact: true });
