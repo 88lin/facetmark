@@ -12,7 +12,7 @@ import secrets
 import time
 
 from .config import Settings
-from .configfile import config_path, external_setting_keys, read_config, update_config
+from .configfile import external_setting_keys, read_config, update_config
 
 HISTORY_KEY = "_mcp_operations"
 GENERATION_KEY = "_mcp_generation"
@@ -27,7 +27,7 @@ def _digest(values) -> str:
 
 
 def configuration_revision(settings: Settings, values: dict | None = None) -> str:
-    saved = read_config(config_path(settings.data_dir)) if values is None else values
+    saved = read_config(settings.config_file_path) if values is None else values
     return _digest([str(settings.data_dir.resolve()), settings.mcp_enabled, settings.mcp_token, saved.get("mcp_enabled"),
                     saved.get("mcp_token"), saved.get(GENERATION_KEY),
                     sorted(external_setting_keys({"mcp_enabled", "mcp_token"}))])
@@ -53,7 +53,7 @@ def history(values: dict) -> dict:
 
 
 def receipt(settings: Settings, request_id: str) -> dict | None:
-    saved = read_config(config_path(settings.data_dir))
+    saved = read_config(settings.config_file_path)
     found = history(saved).get(request_id)
     return {"request_id": request_id, **found} if found else None
 
@@ -68,7 +68,7 @@ def public_receipt(found: dict, settings: Settings) -> dict:
 def accept_configuration(settings: Settings, *, enabled: bool | None, rotate_token: bool,
                          request_id: str | None, expected_revision: str | None) -> tuple[dict, dict | None]:
     """Called under the service metadata lock; no network wait owns that lock."""
-    path = config_path(settings.data_dir)
+    path = settings.config_file_path
     saved = read_config(path)
     receipts = history(saved)
     fingerprint = _digest([enabled, rotate_token, expected_revision])
@@ -113,7 +113,7 @@ def close_configuration(settings: Settings, *, request_id: str, enabled: bool | 
 If acceptance won the race, return its receipt and leave the current settings
 alone. Closing an ID never revokes a token or rewrites an accepted operation.
 """
-    path = config_path(settings.data_dir)
+    path = settings.config_file_path
     saved = read_config(path)
     receipts = history(saved)
     fingerprint = _digest([enabled, rotate_token, expected_revision])

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import io
 import os
 from pathlib import Path
 
@@ -325,7 +324,8 @@ def test_a_partial_export_write_preserves_the_previous_backup(tmp_path, monkeypa
     target = directory / "previous-backup.json"
     original = b'{"previous":"complete synthetic backup"}\n'
     target.write_bytes(original)
-    real_open = io.open
+    real_open = Path.open
+    interrupted_paths = []
 
     class PartialWrite:
         def __init__(self, stream):
@@ -348,12 +348,17 @@ def test_a_partial_export_write_preserves_the_previous_backup(tmp_path, monkeypa
 
     def interrupted(file, mode="r", *args, **kwargs):
         stream = real_open(file, mode, *args, **kwargs)
-        if isinstance(file, (str, os.PathLike)) and Path(file).parent == directory and "w" in mode:
+        if file.parent == directory and "w" in mode:
+            interrupted_paths.append(file)
             return PartialWrite(stream)
         return stream
 
-    monkeypatch.setattr(io, "open", interrupted)
+    # Python 3.10's Path accessor captures io.open at import time. Inject at
+    # the public file-opening boundary so every supported runtime interrupts
+    # the actual export write instead of silently missing the failure.
+    monkeypatch.setattr(Path, "open", interrupted)
     result = CliRunner().invoke(app, ["export", str(target), "--db", str(settings.db_path)])
+    assert len(interrupted_paths) == 1 and interrupted_paths[0] != target
     assert result.exit_code == 1
     assert target.read_bytes() == original
     assert list(directory.iterdir()) == [target]

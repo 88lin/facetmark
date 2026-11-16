@@ -634,7 +634,7 @@ async def test_saved_chat_concurrency_is_persisted_and_controls_new_reply_capaci
         assert response.status_code == 200, response.text
         assert "chat_concurrency" in response.json()["applied"]
         assert next(row for row in response.json()["settings"] if row["key"] == "chat_concurrency")["value"] == limit
-        assert state.settings.chat_concurrency == limit and read_config()["chat_concurrency"] == limit
+        assert state.settings.chat_concurrency == limit and read_config(state.settings.config_file_path)["chat_concurrency"] == limit
         assert settings_for(tmp_path).chat_concurrency == limit
         assert previous_provider.closed
         provider = ReplyProvider(state.settings)
@@ -678,14 +678,14 @@ async def test_active_chat_rejects_settings_without_persisting_or_closing_its_pr
         source = seed(state, "settings-during-chat")
         data = (await local.post("/chat/conversations", json={"bookmark_ids": [source]})).json()
         path = f"/chat/conversations/{data['id']}"
-        before_settings, before_config = state.settings.model_dump(), read_config()
+        before_settings, before_config = state.settings.model_dump(), read_config(state.settings.config_file_path)
         sent = asyncio.create_task(local.post(path + "/messages", json={"text": "Keep this provider open", "request_id": "settings-active"}))
         try:
             await asyncio.wait_for(entered.wait(), timeout=5)
             rejected = await local.put("/admin/settings", json={"values": {
                 "chat_concurrency": 1, "chat_model": "changed-model", "privacy_excluded_domains": "source.test"}})
             assert rejected.status_code == 409 and "stop active replies" in rejected.json()["detail"]
-            assert state.settings.model_dump() == before_settings and read_config() == before_config
+            assert state.settings.model_dump() == before_settings and read_config(state.settings.config_file_path) == before_config
             assert state._provider is provider and not provider.closed
             saved = (await local.get(path)).json()
             assert saved["running"] and saved["messages"][-1]["status"] == "pending"
@@ -700,7 +700,7 @@ async def test_active_chat_rejects_settings_without_persisting_or_closing_its_pr
 
         accepted = await local.put("/admin/settings", json={"values": {"chat_concurrency": 1}})
         assert accepted.status_code == 200 and state.settings.chat_concurrency == 1
-        assert read_config()["chat_concurrency"] == 1
+        assert read_config(state.settings.config_file_path)["chat_concurrency"] == 1
         assert provider.closed and state._provider is None
 
 

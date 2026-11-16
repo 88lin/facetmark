@@ -13,10 +13,17 @@ import contextlib
 import json
 import os
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 from urllib.parse import urlsplit
 
-from pydantic import Field, field_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    ModelWrapValidatorHandler,
+    PrivateAttr,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 from .configfile import config_path, read_config
@@ -95,6 +102,33 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+    _config_file_path: Path | None = PrivateAttr(default=None)
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def remember_config_source(cls, values: Any, handler: ModelWrapValidatorHandler[Settings]) -> Settings:
+        path = values.get("_config_source_path") if isinstance(values, dict) else None
+        result = handler(values)
+        if path is not None:
+            result._config_file_path = Path(path)
+        return result
+
+    @property
+    def config_file_path(self) -> Path:
+        """The file actually read, even when its data_dir moves the database."""
+        return self._config_file_path or config_path(self.data_dir)
+
+    def validated_copy(self, changes: dict[str, Any]) -> Settings:
+        """Validate a complete live snapshot without reopening settings sources.
+
+        BaseSettings.__init__ and model_validate both load sources. Calling the
+        BaseModel initializer on a fresh instance retains our field validators
+        without reading another TOML file or re-inheriting environment values.
+        """
+        result = self.model_construct()
+        BaseModel.__init__(result, **{**self.model_dump(), **changes})
+        result._config_file_path = self.config_file_path
+        return result
 
     @classmethod
     def settings_customise_sources(
@@ -123,7 +157,8 @@ class Settings(BaseSettings):
                 Path(os.path.expandvars(str(directory))).expanduser()
                 if directory is not None else default_data_dir()
             )
-            file_values = ConfigFileSource(settings_cls, selected)()
+            file_source = ConfigFileSource(settings_cls, selected)
+            file_values = file_source()
             # Resolve endpoint/key pairs together, low priority first. A key
             # belongs to an endpoint, never to an arbitrary higher-level URL.
             merged: dict = {}
@@ -151,6 +186,9 @@ class Settings(BaseSettings):
                     if changed and flag not in values:
                         values[flag] = False
                 merged.update(values)
+            # This internal marker is assigned after all external/file values;
+            # it is not a configurable field and never enters model_dump.
+            merged["_config_source_path"] = file_source.path
             return merged
 
         return (channels_by_source,)
