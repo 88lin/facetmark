@@ -7,7 +7,7 @@ test("200k actual records stay paginated and all matching selection survives dee
   let started: Record<string, unknown> | null = null;
   await page.route("**/admin/jobs/start", route => {
     started = route.request().postDataJSON();
-    return route.fulfill({ json: { id: "synthetic-summary", state: "done", params: started } });
+    return route.fulfill({ json: { id: "synthetic-summary", run_id: "synthetic-summary-run", state: "done", params: started } });
   });
   await page.goto("/app");
   await expect(page.locator(".result-row")).toHaveCount(30);

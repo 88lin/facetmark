@@ -539,7 +539,7 @@ test("fetch needs no model and tested chat generates directly from the reading p
   await page.route("**/admin/jobs/start", async (route) => {
     const body = route.request().postDataJSON();
     starts.push(body);
-    job = { id: "synthetic-processing-task", state: "done", params: body, planned: [body.mode === "fetch" ? "fetch" : "enrich"], done: [body.mode === "fetch" ? "fetch" : "enrich"], items: { done: 1, total: 1 }, log: [] };
+    job = { id: "synthetic-processing-task", run_id: `synthetic-processing-run-${starts.length}`, state: "done", params: body, planned: [body.mode === "fetch" ? "fetch" : "enrich"], done: [body.mode === "fetch" ? "fetch" : "enrich"], items: { done: 1, total: 1 }, log: [] };
     await route.fulfill({ json: job });
   });
   await page.goto("/app");

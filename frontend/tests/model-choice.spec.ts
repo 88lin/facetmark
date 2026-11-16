@@ -23,7 +23,7 @@ test("model choice survives test, save and reopen and reaches summary generation
   await page.route("**/admin/jobs/preview", route => route.fulfill({ json: { total: 1, revision: "synthetic-model-preview" } }));
   await page.route("**/admin/jobs/start", route => {
     generated = route.request().postDataJSON();
-    return route.fulfill({ json: { id: "synthetic-summary", state: "done", params: generated } });
+    return route.fulfill({ json: { id: "synthetic-summary", run_id: "synthetic-summary-run", state: "done", params: generated } });
   });
   await page.route("**/admin/settings", async route => {
     if (route.request().method() === "PUT") {

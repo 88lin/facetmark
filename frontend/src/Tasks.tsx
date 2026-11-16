@@ -1,19 +1,24 @@
 import { CapsuleButton } from "./ui/controls";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Check, Circle, Download, LoaderCircle, Pause, Play, RefreshCw, Sparkles, X } from "lucide-react";
-import { api, post, type Job, type Setup } from "./api";
+import { api, type Job, type Setup } from "./api";
 import { Locale, useText } from "./locale";
+import type { TaskChange } from "./task-local-state";
 
 export function Tasks({
   job,
   setup,
-  refresh,
+  onTask,
+  taskBusy,
+  cancelBusy,
   onProcess,
   onBack,
 }: {
   job: Job;
   setup: Setup | null;
-  refresh: () => Promise<void>;
+  onTask: (change: TaskChange) => Promise<boolean>;
+  taskBusy: boolean;
+  cancelBusy: boolean;
   onProcess: (mode: "fetch" | "summarize") => void;
   onBack: () => void;
 }) {
@@ -21,6 +26,8 @@ export function Tasks({
   const [consent, setConsent] = useState(false);
   const [fetchPages, setFetchPages] = useState(true);
   const [busy, setBusy] = useState(false);
+  const gate = useRef(false);
+  const blocked = busy || taskBusy;
   const [error, setError] = useState("");
   const [saved, setSaved] = useState<Job[]>([]);
   const [savedError, setSavedError] = useState(false);
@@ -32,7 +39,7 @@ export function Tasks({
       .then(data => { if (!abort.signal.aborted) setSaved(data.items); })
       .catch(() => { if (!abort.signal.aborted) setSavedError(true); });
     return () => abort.abort();
-  }, [job.id, job.state, savedRevision]);
+  }, [job.id, job.run_id, job.state, savedRevision]);
   const mode = job.params?.mode || "index";
   const running = job.state === "running";
   const taskName =
@@ -70,16 +77,18 @@ export function Tasks({
     cancelled: t("处理已取消，已完成的内容仍然保留。", "Processing was cancelled. Completed content has been kept."),
     interrupted: t("上次处理已中断，请继续已保存的任务或重新运行。", "Processing was interrupted. Resume the saved task or run it again."),
   };
-  async function action(path: string, body: unknown) {
+  async function action(change: TaskChange) {
+    if (gate.current || (change.kind === "cancel" ? cancelBusy : taskBusy)) return;
+    gate.current = true;
     setBusy(true);
     setError("");
     try {
-      await post(path, body);
-      await refresh();
+      await onTask(change);
     } catch (e) {
       setError(String(e));
     } finally {
       setBusy(false);
+      gate.current = false;
     }
   }
   const canIndex =
@@ -121,8 +130,8 @@ export function Tasks({
       )}
       {running ? (
         <div className="task-current-actions">
-          {mode !== "index" && <CapsuleButton className="secondary" disabled={busy || job.pause_requested}
-            onClick={() => action("/admin/jobs/pause", {})}><Pause/>{job.pause_requested ? t("正在暂停…", "Pausing…") : t("暂停任务", "Pause task")}</CapsuleButton>}
+          {mode !== "index" && <CapsuleButton className="secondary" disabled={blocked || job.pause_requested || job.cancel_requested || !job.id || !job.run_id}
+            onClick={() => job.id && job.run_id && action({ kind: "pause", jobId: job.id, runId: job.run_id })}><Pause/>{job.pause_requested ? t("正在暂停…", "Pausing…") : t("暂停任务", "Pause task")}</CapsuleButton>}
           <p role="status">
             {job.cancel_requested
               ? t(
@@ -136,8 +145,8 @@ export function Tasks({
           </p>
           <CapsuleButton
             className="secondary"
-            disabled={busy || job.cancel_requested}
-            onClick={() => action("/admin/job/cancel", {})}
+            disabled={busy || cancelBusy || job.cancel_requested || !job.id || !job.run_id}
+            onClick={() => job.id && job.run_id && action({ kind: "cancel", jobId: job.id, runId: job.run_id })}
           >
             <X />
             {t("取消任务", "Cancel task")}
@@ -145,8 +154,8 @@ export function Tasks({
         </div>
       ) : (
         <div className="task-current-actions">
-          {job.resumable && <CapsuleButton className="primary" disabled={busy}
-            onClick={() => action("/admin/jobs/resume", { resume_id: job.id, confirmed: true })}><Play/>{job.state === "partial" ? t("重试此任务失败项", "Retry this task's failures") : t("继续上次任务", "Resume saved task")}</CapsuleButton>}
+          {job.resumable && <CapsuleButton className="primary" disabled={blocked || !job.id}
+            onClick={() => job.id && action({ kind: "resume", jobId: job.id, ...(job.run_id ? { runId: job.run_id } : {}) })}><Play/>{job.state === "partial" ? t("重试此任务失败项", "Retry this task's failures") : t("继续上次任务", "Resume saved task")}</CapsuleButton>}
           {job.state !== "idle" && <CapsuleButton className="secondary" onClick={onBack}>{t("返回收藏查看内容", "Return to collection")}</CapsuleButton>}
         </div>
       )}
@@ -157,14 +166,14 @@ export function Tasks({
       )}
       <div className="task-shortcuts" aria-label={t("处理操作", "Processing actions")}>
         <div className="task-operation">
-        <CapsuleButton className="secondary" disabled={busy || running} onClick={() => onProcess("fetch")}>
+        <CapsuleButton className="secondary" disabled={blocked || running} onClick={() => onProcess("fetch")}>
           <Download />
           {t("抓取网页正文", "Fetch page text")}
         </CapsuleButton>
         <p>{t("读取原网页，保存可供阅读和生成摘要的正文。无需模型。", "Save original page text for reading and summaries. No model needed.")}</p>
         </div>
         <div className="task-operation">
-        <CapsuleButton className="secondary" disabled={busy || running} onClick={() => onProcess("summarize")}>
+        <CapsuleButton className="secondary" disabled={blocked || running} onClick={() => onProcess("summarize")}>
           <Sparkles />
           {t("生成阅读摘要", "Generate summaries")}
         </CapsuleButton>
@@ -176,7 +185,8 @@ export function Tasks({
       {saved.filter(item => item.id !== job.id).map(item => <div className="collection-job" key={item.id}>
         <span>{item.params?.mode === "summarize" ? t("已保存的摘要任务", "Saved summary task") : t("已保存的抓取任务", "Saved fetch task")} · {item.items?.done ?? 0} / {item.items?.total ?? 0}
           {!!item.items?.failed && t(` · ${item.items.failed} 条失败`, ` · ${item.items.failed} failed`)}</span>
-        <CapsuleButton className="secondary" disabled={busy || running} onClick={() => action("/admin/jobs/resume", { resume_id: item.id, confirmed: true })}><Play/>{t("继续", "Resume")}</CapsuleButton>
+        <CapsuleButton className="secondary" disabled={blocked || running || !item.id} onClick={() => item.id && action({ kind: "resume", jobId: item.id,
+          ...(item.run_id ? { runId: item.run_id } : {}) })}><Play/>{t("继续", "Resume")}</CapsuleButton>
       </div>)}
       {job.state !== "idle" && mode === "index" && (
         <p className="hint">
@@ -247,10 +257,10 @@ export function Tasks({
           )}
           <CapsuleButton
             className="primary"
-            disabled={!consent || !canIndex || busy}
-            onClick={() => action("/admin/index", { fetch: fetchPages, confirmed: true,
+            disabled={!consent || !canIndex || blocked}
+            onClick={() => action({ kind: "start", values: { mode: "index", fetch: fetchPages, confirmed: true,
               summary_language: setup?.summary_language === "zh" || setup?.summary_language === "en"
-                ? setup.summary_language : language })}
+                ? setup.summary_language : language } })}
           >
             {job.state === "idle" ? <Play /> : <RefreshCw />}
             {t("开始索引", "Start indexing")}

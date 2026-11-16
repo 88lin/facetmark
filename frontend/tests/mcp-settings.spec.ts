@@ -164,30 +164,34 @@ for (const [target, expected] of [["auto", "en"], ["zh", "zh"]]) {
       return route.fulfill({ response, json: { ...setup, summary_language: target, demo: true } });
     });
     let started: Record<string, unknown> = {};
-    await page.route("**/admin/index", route => {
-      started = route.request().postDataJSON(); return route.fulfill({ json: { state: "done" } });
+    await page.route("**/admin/jobs/start", route => {
+      started = route.request().postDataJSON(); return route.fulfill({ json: {
+        id: "synthetic-full-index", run_id: "synthetic-full-index-run", state: "done", params: started,
+      } });
     });
     await page.goto("/app");
     await page.getByRole("button", { name: "Tasks", exact: true }).click();
     await page.locator(".index-consent > summary").click();
     await page.getByRole("checkbox", { name: "I understand and confirm processing", exact: true }).check();
     await page.getByRole("button", { name: "Start indexing", exact: true }).click();
-    await expect.poll(() => started).toEqual({ fetch: true, confirmed: true, summary_language: expected });
+    await expect.poll(() => started).toEqual({ mode: "index", fetch: true, confirmed: true, summary_language: expected, request_id: expect.any(String) });
   });
 }
 
 test("resuming a saved task does not replace its language with the interface language", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("fm-language", "en"));
-  const job = { id: "saved-chinese-task", state: "paused", resumable: true,
+  let job = { id: "saved-chinese-task", run_id: "saved-chinese-run", state: "paused", resumable: true,
     params: { mode: "summarize", summary_language: "zh" }, items: { done: 1, total: 2, failed: 0 } };
   await page.route("**/admin/job", route => route.fulfill({ json: job }));
   await page.route("**/admin/jobs", route => route.fulfill({ json: { items: [job] } }));
   let resumed: Record<string, unknown> = {};
   await page.route("**/admin/jobs/resume", route => {
-    resumed = route.request().postDataJSON(); return route.fulfill({ json: job });
+    resumed = route.request().postDataJSON();
+    job = { ...job, run_id: "resumed-chinese-run", state: "done", resumable: false };
+    return route.fulfill({ json: job });
   });
   await page.goto("/app");
   await page.getByRole("button", { name: "Tasks", exact: true }).click();
   await page.getByRole("button", { name: "Resume saved task", exact: true }).click();
-  await expect.poll(() => resumed).toEqual({ resume_id: "saved-chinese-task", confirmed: true });
+  await expect.poll(() => resumed).toEqual({ resume_id: "saved-chinese-task", resume_run_id: "saved-chinese-run", confirmed: true, request_id: expect.any(String) });
 });

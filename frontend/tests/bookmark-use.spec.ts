@@ -80,7 +80,7 @@ test("display options and inline selection generate the current scope without co
   });
   await page.route("**/admin/jobs/start", route => {
     const body = route.request().postDataJSON(); starts.push(body);
-    return route.fulfill({ json: { id: "synthetic-summary", state: "done", params: body } });
+    return route.fulfill({ json: { id: "synthetic-summary", run_id: "synthetic-summary-run", state: "done", params: body } });
   });
   await page.goto("/app");
   await expect(page.locator(".result-row")).toHaveCount(30);

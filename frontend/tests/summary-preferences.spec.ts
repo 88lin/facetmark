@@ -89,7 +89,7 @@ for (const [ui, target, expected] of [["zh", "auto", "zh"], ["en", "auto", "en"]
     } }));
     await page.route("**/admin/jobs/start", route => {
       generated = route.request().postDataJSON();
-      return route.fulfill({ json: { id: "synthetic-language-summary", state: "done", params: generated } });
+      return route.fulfill({ json: { id: "synthetic-language-summary", run_id: "synthetic-language-run", state: "done", params: generated } });
     });
     await page.goto("/app");
     await expect(page.locator(".result-row")).toHaveCount(30);
@@ -126,7 +126,7 @@ test("semantic paging keeps actual selections and unselected generation skips co
   } }));
   await page.route("**/admin/jobs/start", route => {
     const body = route.request().postDataJSON(); starts.push(body);
-    return route.fulfill({ json: { state: "done", params: body } });
+    return route.fulfill({ json: { id: "synthetic-semantic-summary", run_id: "synthetic-semantic-run", state: "done", params: body } });
   });
   await page.goto("/app");
   await page.getByRole("textbox", { name: "搜索书签", exact: true }).fill("recoverable task");

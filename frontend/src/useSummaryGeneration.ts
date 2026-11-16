@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { post, type Setup } from "./api";
+import { api, type Setup } from "./api";
 import type { LibraryAction } from "./LibraryTools";
 import type { Language } from "./locale";
+import type { TaskChange } from "./task-local-state";
 
 type SummaryAction = Extract<LibraryAction, { kind: "process" }>;
 
-export function useSummaryGeneration({ setup, running, language, onStarted }: {
-  setup: Setup | null; running: boolean; language: Language; onStarted: () => Promise<void>;
+export function useSummaryGeneration({ setup, running, language, onTask }: {
+  setup: Setup | null; running: boolean; language: Language; onTask: (change: TaskChange) => Promise<boolean>;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -25,20 +26,20 @@ export function useSummaryGeneration({ setup, running, language, onStarted }: {
     if (action.ids && !action.ids.length) return;
     gate.current = true; setBusy(true);
     const request = new AbortController(); abort.current = request;
-    const values = { mode: "summarize", bookmark_ids: action.ids ? [...action.ids] : undefined,
+    const values = { mode: "summarize" as const, bookmark_ids: action.ids ? [...action.ids] : undefined,
       scope: action.scope ? { ...action.scope, exclude_ids: action.scope.exclude_ids ? [...action.scope.exclude_ids] : undefined } : undefined,
       force: action.reprocess ?? Boolean(action.ids?.length),
       summary_language: setup?.summary_language === "zh" || setup?.summary_language === "en" ? setup.summary_language : language };
     try {
-      const preview = await post<{ total: number; revision: string; prompt_hash?: string }>("/admin/jobs/preview", values, request.signal);
+      const preview = await api<{ total: number; revision: string; prompt_hash?: string }>("/admin/jobs/preview",
+        { method: "POST", body: JSON.stringify(values), signal: request.signal, timeoutMs: 20_000 });
       if (!preview.total) {
         setError(t("当前范围没有待生成内容。勾选收藏后可重新生成。", "There is nothing pending in this scope. Select bookmarks to regenerate them."));
         return;
       }
       // The explicit Generate action authorizes the described model request.
-      await post("/admin/jobs/start", { ...values, confirmed: true, preview_revision: preview.revision,
-        preview_prompt_hash: preview.prompt_hash }, request.signal);
-      if (!request.signal.aborted) await onStarted();
+      if (!request.signal.aborted) await onTask({ kind: "start", values: { ...values, confirmed: true,
+        preview_revision: preview.revision, preview_prompt_hash: preview.prompt_hash } });
     } catch (failure) {
       if (!request.signal.aborted) setError(String(failure));
     } finally {

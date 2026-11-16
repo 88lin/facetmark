@@ -44,6 +44,8 @@ import type { CollectionScope } from "./api";
 import { LibraryDialog, LibraryRecoveryBanner, LibraryToolbar, type LibraryAction } from "./LibraryTools";
 import { clearLibraryOperation, libraryStoragePrefix, loadLibraryOperations, saveLibraryOperation, type LibraryOperation } from "./library-local-state";
 import { useSummaryGeneration } from "./useSummaryGeneration";
+import { useTaskOperations } from "./useTaskOperations";
+import { TaskRecovery } from "./TaskRecovery";
 import { ChatWorkspace } from "./ChatWorkspace";
 import type { ChatLaunch } from "./chat-types";
 import { HealthTools } from "./HealthTools";
@@ -351,12 +353,20 @@ function Workbench({
     }
   }, [invalidateLibrary]);
   const refreshImportedCollection = useCallback(() => refresh(true), [refresh]);
-  const summaryGeneration = useSummaryGeneration({ setup, running: job.state === "running", language,
-    onStarted: async () => {
-      setSelectedIds([]); setAllMatching(false); setExcludedIds([]); setBatchMode(false);
-      invalidateLibrary(); await refresh();
+  const taskOperations = useTaskOperations({ enabled: paired && adminAvailable, language,
+    onAccepted: async change => {
+      if (change.kind === "start" || change.kind === "resume") {
+        setSelectedIds([]); setAllMatching(false); setExcludedIds([]); setBatchMode(false);
+        invalidateLibrary();
+      }
+      await refresh(true);
     },
   });
+  const taskBusy = taskOperations.busy || taskOperations.operations.length > 0;
+  const taskCancelBusy = taskOperations.busy || taskOperations.operations.some(value => value.change.kind === "cancel"
+    && value.change.jobId === job.id && value.change.runId === job.run_id);
+  const summaryGeneration = useSummaryGeneration({ setup, running: job.state === "running" || taskBusy, language,
+    onTask: taskOperations.run });
   function handleLibraryAction(action: LibraryAction) {
     if (action.kind === "process" && action.mode === "summarize") void summaryGeneration.generate(action);
     else if (action.kind !== "export" && action.kind !== "process" && action.kind !== "recover" && libraryOperations.length)
@@ -747,7 +757,7 @@ function Workbench({
     />
   );
   return (
-    <div className={`app-shell ${paired && view === "library" ? "has-collection" : ""} ${focusReading ? "is-reading-focused" : ""}`}>
+    <div className={`app-shell ${paired && view === "library" ? "has-collection" : ""} ${focusReading ? "is-reading-focused" : ""} ${paired && adminAvailable && taskOperations.showRecovery && taskOperations.operations.length ? "has-task-recovery" : ""}`}>
       <header className="app-header" inert={navOpen} aria-hidden={navOpen}>
         <CapsuleButton
           className="icon-button nav-trigger"
@@ -1028,7 +1038,7 @@ function Workbench({
         ref={workspace}
         inert={navOpen}
         aria-hidden={navOpen}
-        className={`main-workspace ${paired && view === "library" ? "with-preview" : ""} ${selected !== null ? "has-selection" : "browse-mode"} ${selected !== null && !drawer ? "has-reader-index" : ""} ${collectionLayout === "list" ? "list-mode" : ""} ${focusReading && view === "library" ? "focus-mode" : ""}`}
+        className={`main-workspace ${paired && view === "library" ? "with-preview" : ""} ${connectionError ? "has-connection-error" : ""} ${selected !== null ? "has-selection" : "browse-mode"} ${selected !== null && !drawer ? "has-reader-index" : ""} ${collectionLayout === "list" ? "list-mode" : ""} ${focusReading && view === "library" ? "focus-mode" : ""}`}
       >
         {connectionError && (
           <div className="connection-error" role="alert">
@@ -1129,7 +1139,7 @@ function Workbench({
                   onOpen={operation => setLibraryAction({ kind: "recover", operation })}/>}
                 {adminAvailable && selected === null && <LibraryToolbar
                   batch={batchMode && !allMatching} ids={selectedIds} pageIds={items.map(item => item.bookmark_id)}
-                  disabled={job.state === "running" || summaryGeneration.busy} pending={scopePending || summaryGeneration.busy || chatSelectionBusy}
+                  disabled={job.state === "running" || summaryGeneration.busy || taskBusy} pending={scopePending || summaryGeneration.busy || taskBusy || chatSelectionBusy}
                   onBatch={value => { setBatchMode(value); if (!value || allMatching) { setSelectedIds([]); setAllMatching(false); setExcludedIds([]); } }}
                   onIds={setSelectedIds} onAction={handleLibraryAction} onChat={() => void chatWithSelection()}
                   selectedCount={allMatching ? Math.max(0, (page?.total || 0) - excludedIds.length) : selectedIds.length}
@@ -1153,7 +1163,7 @@ function Workbench({
                 {selected === null && !(search.trim() && searchMode === "semantic" && semantic) && <CollectionTools scope={collectionScope} page={page} display={summaryDisplay} onDisplay={setSummaryDisplay}
                   sort={collectionSort} onSort={value => { setCollectionSort(value); setOffset(0); }}
                   onStatus={value => { setSummaryStatus(value); setOffset(0); }} disabled={scopePending}
-                  job={job} refresh={refresh} admin={adminAvailable}/>}
+                  job={job} onTask={taskOperations.run} taskBusy={taskBusy} admin={adminAvailable}/>}
                 <div className="search-controls">
                   <div className="search-meta">
                     {semantic && <select className="search-mode-select" aria-label={t("检索方式", "Search mode")} value={searchMode}
@@ -1279,8 +1289,8 @@ function Workbench({
                     selected={selected === record.bookmark_id}
                     indexVisible={!drawer && !focusReading}
                     checked={allMatching ? !excludedIds.includes(record.bookmark_id) : selectedIds.includes(record.bookmark_id)}
-                    disabled={scopePending || summaryGeneration.busy} display={summaryDisplay}
-                    onEdit={adminAvailable && job.state !== "running" ? () => setLibraryAction({ kind: "edit", record }) : undefined}
+                    disabled={scopePending || summaryGeneration.busy || taskBusy} display={summaryDisplay}
+                    onEdit={adminAvailable && job.state !== "running" && !taskBusy ? () => setLibraryAction({ kind: "edit", record }) : undefined}
                     onCheck={() => {
                       if (allMatching) setExcludedIds(ids => ids.includes(record.bookmark_id) ? ids.filter(id => id !== record.bookmark_id) : [...ids, record.bookmark_id].slice(0, 10000));
                       else { setSelectedIds(ids => ids.includes(record.bookmark_id) ? ids.filter(id => id !== record.bookmark_id) : [...ids, record.bookmark_id].slice(0, 1000)); }
@@ -1398,6 +1408,9 @@ function Workbench({
                 setup={setup}
                 job={job}
                 refresh={refreshImportedCollection}
+                onTask={taskOperations.run}
+                taskBusy={taskBusy}
+                cancelBusy={taskCancelBusy}
                 onProcess={(mode) => handleLibraryAction({ kind: "process", mode })}
                 onDone={() => {
                   remember("fm-setup-skipped", "1");
@@ -1423,7 +1436,7 @@ function Workbench({
                   <div><h1>{t("任务与诊断", "Tasks and diagnostics")}</h1><p>{t("查看进度，继续处理未完成的收藏。", "Follow progress and resume unfinished work.")}</p></div>
                   <CapsuleButton className="text-button support-back" onClick={() => openView("library")}><ArrowLeft size={16}/>{t("返回收藏", "Back to collection")}</CapsuleButton>
                 </header>
-                <Tasks job={job} setup={setup} refresh={refresh} onBack={() => openView("library")} onProcess={(mode) => handleLibraryAction({ kind: "process", mode })} />
+                <Tasks job={job} setup={setup} onTask={taskOperations.run} taskBusy={taskBusy} cancelBusy={taskCancelBusy} onBack={() => openView("library")} onProcess={(mode) => handleLibraryAction({ kind: "process", mode })} />
                 <HealthTools disabled={job.state === "running"} onPreview={id => { openView("library"); select(id); }} />
               </>
             ) : (
@@ -1444,6 +1457,15 @@ function Workbench({
           onSettings={() => { openView("settings"); location.hash = "settings/models"; }}
           onBack={() => openView("library")} />}
       </main>
+      {paired && adminAvailable && taskOperations.showRecovery && <TaskRecovery operations={taskOperations.operations} busy={taskOperations.busy} error={taskOperations.error}
+        onCheck={id => { void taskOperations.check(id); }} onRetry={id => { void taskOperations.check(id, true); }} onEdit={async id => {
+          const change = await taskOperations.abandon(id);
+          if (!change) return;
+          if (change.kind === "start" && change.values.mode !== "index") {
+            setLibraryAction({ kind: "process", mode: change.values.mode, ids: change.values.bookmark_ids,
+              scope: change.values.scope ?? undefined, reprocess: change.values.force });
+          } else openView("tasks");
+        }}/>}
       {summaryGeneration.error && <div className="summary-generation-feedback" role="alert">
         <span>{summaryGeneration.error}</span>
         {summaryGeneration.needsConnection && <CapsuleButton className="text-button" onClick={() => {
@@ -1461,7 +1483,7 @@ function Workbench({
         onPending={updateLibraryOperation}
         onRestoreDraft={setLibraryAction}
         onPreview={id => setSelected(id)}
-        onJobStarted={async () => { await refresh(); setRequestRevision(v => v + 1); }}
+        onTask={taskOperations.run}
         facets={facets}
         setup={setup}
         running={job.state === "running"}

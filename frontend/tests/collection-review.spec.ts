@@ -42,7 +42,7 @@ test("representative collection, responsive states, exact scopes, save recovery 
     const body = route.request().postDataJSON();
     if (body.mode !== "summarize") return route.continue();
     summaryStarts.push(body);
-    return route.fulfill({ json: { id: "synthetic-review-summary", state: "done", params: body } });
+    return route.fulfill({ json: { id: "synthetic-review-summary", run_id: "synthetic-review-run", state: "done", params: body } });
   });
   page.setDefaultTimeout(15000);
   const video = page.video();
