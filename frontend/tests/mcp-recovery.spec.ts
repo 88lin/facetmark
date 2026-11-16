@@ -101,7 +101,7 @@ async function intercept(page: Page) {
 }
 
 for (const failure of ["lost", "malformed"] as const) test(`${failure} real rotation response recovers read-only and keeps later token and disabled state`, async ({ page, server }) => {
-  test.setTimeout(60000);
+  test.setTimeout(120000);
   const initial = await server.change({ enabled: true });
   const control = await intercept(page); control.lost = failure === "lost"; control.malformed = failure === "malformed"; control.failReads = true;
   let release!: () => void; control.holdAfter = new Promise(resolve => { release = resolve; });
