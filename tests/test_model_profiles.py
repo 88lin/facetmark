@@ -116,7 +116,7 @@ def test_retry_keeps_the_original_snapshot_even_if_current_settings_have_changed
     assert client.post("/admin/model-profiles", json={**body, "name": "different"}).status_code == 409
 
 
-@pytest.mark.parametrize("result", [{}, {"ok": False}, {"ok": True, "dim_matches": False}])
+@pytest.mark.parametrize("result", [None, {}, {"ok": "true"}, {"ok": False}, {"ok": True, "dim_matches": False}])
 def test_failed_or_incomplete_probe_files_never_show_a_ready_connection(tmp_path, result):
     settings = Settings(data_dir=tmp_path, chat_api_key="synthetic-key")
     probes = {"chat": {"fingerprint": admin.probe_fingerprint(settings, "chat"), "result": result}}
