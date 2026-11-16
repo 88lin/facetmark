@@ -14,6 +14,7 @@ import {
 import { api, getToken, post, type Probe, type Setting, type Setup } from "./api";
 import { useText, type Language } from "./locale";
 import { ModelPicker, type Catalog } from "./ModelPicker";
+import { ModelProfiles, type AppliedProfile } from "./ModelProfiles";
 import { ReasoningSettings } from "./ReasoningSettings";
 import { SummaryPreferences } from "./SummaryPreferences";
 import { ProcessingPreferences } from "./ProcessingPreferences";
@@ -45,18 +46,23 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
   const agentEfforts = useRef<Record<string, string>>({});
   const [chatCatalog, setChatCatalog] = useState<Catalog | null>(null);
   const [summaryDefaults, setSummaryDefaults] = useState<Partial<Record<Language, string>>>({});
+  const [needsReload, setNeedsReload] = useState(false);
+  const [profileRevision, setProfileRevision] = useState(0);
+  const actionGate = useRef(false);
   const detectionAbort = useRef<AbortController | null>(null);
   const agentEditVersion = useRef(0);
   const preserveDetectionDraft = useRef(false);
   const lastAgent = useRef<{ preference: string; id: string } | null>(null);
   const hasDraft = Object.keys(draft).length > 0;
+  const connectionField = (key: string, channel: string) =>
+    (key.startsWith(`${channel}_`) && key !== "chat_concurrency") || (channel === "embed" && key === "local_embed_path");
   const channelDirty = (channel: string) => Object.keys(draft).some(
-    key => key.startsWith(`${channel}_`) || (channel === "embed" && key === "local_embed_path"));
+    key => connectionField(key, channel));
   const channelPassed = (channel: string) => results[channel]
     ? results[channel].ok && results[channel].dim_matches !== false
     : !channelDirty(channel) && Boolean(setup?.channels[channel]?.tested);
   const channelPayload = (channel: string) => Object.fromEntries(Object.entries(draft).filter(
-    ([key]) => key.startsWith(`${channel}_`) || (channel === "embed" && key === "local_embed_path")));
+    ([key]) => connectionField(key, channel)));
   const channelStatus = (channel: string) => {
     if (busy === channel) return t("正在测试…", "Testing…");
     if (results[channel] && (!results[channel].ok || results[channel].dim_matches === false))
@@ -109,8 +115,10 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
           && !data.settings.find(r => r.key === "chat_backend")?.locked)
           setDraft(current => ({ chat_backend: "agent", ...current }));
       }
+      return true;
     } catch {
       setLoadError(t("未能读取已保存的设置，请重试。", "Saved settings could not be loaded. Please retry."));
+      return false;
     } finally { setLoadingSettings(false); }
   }
   useEffect(() => {
@@ -184,12 +192,14 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
         row(name)?.secret || JSON.stringify(updated) !== JSON.stringify(row(name)?.value ?? "")));
     });
     setNotice("");
-    setChannelFeedback(current => Object.fromEntries(Object.entries(current).filter(([channel]) => !key.startsWith(`${channel}_`))));
+    setChannelFeedback(current => Object.fromEntries(Object.entries(current).filter(([channel]) => !connectionField(key, channel))));
     setResults(current => Object.fromEntries(Object.entries(current).filter(([channel]) =>
-      !key.startsWith(`${channel}_`) && !(channel === "embed" && key === "local_embed_path"))));
+      !connectionField(key, channel))));
     setConsent(false);
   };
   async function run(name: string, work: () => Promise<void>) {
+    if (actionGate.current) return;
+    actionGate.current = true;
     setBusy(name);
     setError("");
     setNotice("");
@@ -198,13 +208,14 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
     } catch (e) {
       setError(String(e));
     } finally {
+      actionGate.current = false;
       setBusy("");
     }
   }
   async function test(channel: string, saveAfter = false) {
-    setTestingAndSaving(saveAfter);
-    setChannelFeedback(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== channel)));
     await run(channel, async () => {
+      setTestingAndSaving(saveAfter);
+      setChannelFeedback(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== channel)));
       const payload = channelPayload(channel);
       setResults(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== channel)));
       let data: Record<string, Probe>;
@@ -222,10 +233,12 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
         return;
       }
       setResults((r) => ({ ...r, [channel]: data[channel] }));
+      setProfileRevision(value => value + 1);
       if (saveAfter && data[channel]?.ok && data[channel]?.dim_matches !== false) {
-        if (!await persistChannel(channel, payload)) return;
+        await persistChannel(channel, payload);
+        return;
       }
-      await refresh();
+      await reloadSaved();
     });
   }
   async function persistChannel(channel: string, payload: Record<string, unknown>) {
@@ -236,32 +249,50 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
       return false;
     }
     acknowledgeSaved(payload);
-    await load();
     setChannelFeedback(current => ({ ...current, [channel]: { saved: true, text: channel === "chat"
       ? t("连接已验证并保存，可以开始生成摘要。", "Connection verified and saved. Ready to generate summaries.")
       : t("向量连接已验证并保存；如有配置变更，请继续应用向量配置。", "Embedding connection verified and saved. Apply any embedding configuration changes below.") } }));
+    await reloadSaved();
     return true;
   }
   async function saveChannel(channel: string) {
     if (!channelPassed(channel)) return;
     setTestingAndSaving(false);
     await run(`save-${channel}`, async () => {
-      if (await persistChannel(channel, channelPayload(channel))) await refresh();
+      await persistChannel(channel, channelPayload(channel));
     });
   }
   async function save() {
     await run("save", async () => {
       await api("/admin/settings", { method: "PUT", body: JSON.stringify({ values: draft }) });
       acknowledgeSaved(draft);
-      await load();
-      await refresh();
       setNotice(
         t(
           "配置已保存，重新打开仍会保留。连接状态显示在各模型下方。",
           "Settings saved and retained when you reopen the app. See each model's connection status below.",
         ),
       );
+      await reloadSaved();
     });
+  }
+  async function reloadSaved() {
+    const loaded = await load();
+    let refreshed = false;
+    try { await refresh(); refreshed = true; } catch { /* Saved values and successful test results remain usable. */ }
+    setNeedsReload(!loaded || !refreshed);
+    if (loaded) setProfileRevision(value => value + 1);
+    return loaded && refreshed;
+  }
+  async function profileApplied(result: AppliedProfile) {
+    const channel = result.profile.channel;
+    setRows(result.settings);
+    setDraft(previous => Object.fromEntries(Object.entries(previous).filter(([key]) => !connectionField(key, channel))));
+    setResults(previous => Object.fromEntries(Object.entries(previous).filter(([key]) => key !== channel)));
+    setChannelFeedback(previous => ({ ...previous, [channel]: { saved: true, text: result.restart_required.length && channel === "embed"
+      ? t("连接已切换并保存。请在下方应用向量配置；已有索引仍按原配置运行。", "Connection switched and saved. Apply embedding settings below; the current index still uses its original settings.")
+      : result.profile.tested ? t("连接已切换并保存，无需再次测试。", "Connection switched and saved; no repeat test is needed.")
+      : t("连接已切换并保存，请测试后使用。", "Connection switched and saved. Test it before use.") } }));
+    await reloadSaved();
   }
   function acknowledgeSaved(values: Record<string, unknown>) {
     setRows(current => current.map(item => item.key in values ? { ...item,
@@ -479,6 +510,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
                       </CapsuleButton>
                     </p>
                   )}
+                  {results[channel].warning && <p role="alert">{results[channel].warning}</p>}
                 </div>
               )}
               {channelFeedback[channel] && <div className={channelFeedback[channel].saved ? "notice connection-feedback" : "error connection-feedback"} role={channelFeedback[channel].saved ? "status" : "alert"}>
@@ -486,6 +518,9 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
                 {channel === "chat" && channelFeedback[channel].saved && onSummarize && <CapsuleButton type="button" className="text-button" onClick={onSummarize}>{t("前往生成摘要", "Start generating summaries")}</CapsuleButton>}
               </div>}
             </div>
+            <ModelProfiles channel={channel as "chat" | "embed"} values={channelPayload(channel)}
+              revision={String(profileRevision)} hasDraft={channelDirty(channel)} disabled={!!busy || loadingSettings || !rows.length}
+              run={run} onApplied={profileApplied}/>
             {channel === "chat" && value("chat_backend") === "agent" && <div className="model-options">
               <p className="hint">{t("使用已有登录，无需再填 Key。摘要会发送到所选 Agent 的模型服务。", "Uses your existing sign-in. Summaries are sent to the selected agent's model service.")}</p>
               <details className="agent-details">
@@ -591,6 +626,12 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
           )}
         </span>
       </div>
+      {needsReload && <div className="settings-read-recovery" role="status">
+        <p>{t("状态未能完整刷新。已保存的配置和测试结果仍保留，请重新读取设置后继续。", "Status could not fully refresh. Saved settings and test results are retained. Reload settings to continue.")}</p>
+        <CapsuleButton type="button" className="secondary" disabled={!!busy} onClick={() => run("reload", async () => { await reloadSaved(); })}>
+          <RefreshCw size={16}/>{t("重新读取设置状态", "Reload settings status")}
+        </CapsuleButton>
+      </div>}
       {(setup?.pending_apply || setup?.vector_compatible === false) && (
         <section className="apply-panel">
           <h3>{t("应用向量配置", "Apply embedding settings")}</h3>
@@ -624,13 +665,13 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
                 const result = await post<{ backup: string | null }>("/admin/settings/apply", {
                   confirm_rebuild: consent,
                 });
-                await refresh();
-                await load();
                 setNotice(
                   result.backup
                     ? `${t("备份已保存：", "Backup saved: ")}${result.backup}`
                     : t("配置已应用", "Settings applied"),
                 );
+                setConsent(false);
+                await reloadSaved();
               })
             }
           >

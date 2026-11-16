@@ -791,7 +791,9 @@ def _probe_records(results: dict, channel: str) -> list[dict]:
 
 
 def matching_probe(settings: Settings, channel: str, results: dict) -> dict | None:
-    records = _probe_records(results, channel)
+    records = [row for row in _probe_records(results, channel)
+               if isinstance(row.get("result"), dict) and row["result"].get("ok") is True
+               and row["result"].get("dim_matches") is not False]
     if not records:
         return None
     fingerprint = probe_fingerprint(settings, channel)
@@ -1180,8 +1182,9 @@ def register(app: FastAPI, auth: list) -> None:
         return {**settings_view(state.settings, state.pending_settings),
                 "channels": {c: connection_status(candidate, c, state.probe_results) for c in ("chat", "embed")}}
 
-    @app.put("/admin/settings", dependencies=deps)
-    async def admin_settings_write(body: SettingsPatch, request: Request) -> dict:
+    async def write_settings(body: SettingsPatch, request: Request) -> dict:
+        # Both callers hold the shared lock while validating the snapshot and
+        # persisting it, so queued writes cannot apply an earlier draft.
         unknown = sorted(set(body.values) - set(WRITABLE))
         if unknown:
             raise HTTPException(400, f"not writable from the UI: {', '.join(unknown)}")
@@ -1235,36 +1238,43 @@ def register(app: FastAPI, auth: list) -> None:
             for key, value in changes.items()
         }
         applied = [k for k in changes if k not in NEEDS_RESTART]
-        async with state.lock:
-            # A job already selected its targets. Applying privacy rules while
-            # it runs would claim to protect requests already queued by it.
-            if state.jobs.running or state.crawls.running:
-                raise HTTPException(409, "stop the index job before changing settings or privacy rules")
-            if any(not task.done() for task in state.chat_runs.values()):
-                raise HTTPException(409, "stop active replies before changing settings or privacy rules")
-            if state.model_users or state.health_running:
-                raise HTTPException(409, "wait for active model requests or link checks before changing settings")
-            update_config(persisted)
-            state.settings = state.settings.model_copy(update={
-                key: getattr(validated, key) for key in applied
-            })
-            for key in set(changes) & NEEDS_RESTART:
-                if getattr(validated, key) == getattr(state.settings, key):
-                    state.pending_settings.pop(key, None)
-                else:
-                    state.pending_settings[key] = getattr(validated, key)
-            if "privacy_excluded_domains" in changes:
-                refresh_privacy(state.conn, state.settings)
-            old_provider, state._provider = state._provider, None
-            if old_provider is not None:
-                with contextlib.suppress(Exception):
-                    await old_provider.aclose()
+        # A job already selected its targets. Applying privacy rules while
+        # it runs would claim to protect requests already queued by it.
+        if state.jobs.running or state.crawls.running:
+            raise HTTPException(409, "stop the index job before changing settings or privacy rules")
+        if any(not task.done() for task in state.chat_runs.values()):
+            raise HTTPException(409, "stop active replies before changing settings or privacy rules")
+        if state.model_users or state.health_running:
+            raise HTTPException(409, "wait for active model requests or link checks before changing settings")
+        update_config(persisted)
+        state.settings = state.settings.model_copy(update={
+            key: getattr(validated, key) for key in applied
+        })
+        for key in set(changes) & NEEDS_RESTART:
+            if getattr(validated, key) == getattr(state.settings, key):
+                state.pending_settings.pop(key, None)
+            else:
+                state.pending_settings[key] = getattr(validated, key)
+        if "privacy_excluded_domains" in changes:
+            refresh_privacy(state.conn, state.settings)
+        old_provider, state._provider = state._provider, None
+        if old_provider is not None:
+            with contextlib.suppress(Exception):
+                await old_provider.aclose()
         view = settings_view(state.settings, state.pending_settings)
         return {
             **view,
             "applied": applied,
             "restart_required": sorted(row["key"] for row in view["settings"] if row["pending_restart"]),
         }
+
+    @app.put("/admin/settings", dependencies=deps)
+    async def admin_settings_write(body: SettingsPatch, request: Request) -> dict:
+        async with _state(request).lock:
+            return await write_settings(body, request)
+
+    from .model_profiles import register as register_profiles
+    register_profiles(app, deps, write_settings)
 
     @app.post("/admin/settings/test", dependencies=deps)
     async def admin_settings_test(body: ProbeRequest, request: Request) -> dict:
@@ -1278,7 +1288,12 @@ def register(app: FastAPI, auth: list) -> None:
             raise HTTPException(400, 'Invalid model settings; check endpoint URLs and field types') from None
         channels = ('chat', 'embed') if body.channel is None else (body.channel,)
         fingerprints = {channel: probe_fingerprint(settings, channel) for channel in channels}
-        result = await probe(settings, body.channel) if body.channel else await probe(settings)
+        async with state.lock:
+            state.model_users += 1
+        try:
+            result = await probe(settings, body.channel) if body.channel else await probe(settings)
+        finally:
+            state.model_users -= 1
         for channel in channels:
             if fingerprints[channel] != probe_fingerprint(settings, channel):
                 result[channel] = {**result.get(channel, {}), 'ok': False,
@@ -1291,7 +1306,14 @@ def register(app: FastAPI, auth: list) -> None:
                 forget_probe(state.probe_results, channel, fingerprints[channel])
                 if previous:
                     forget_probe(state.probe_results, channel, previous["fingerprint"])
-        persist_probes(state.settings.data_dir, state.probe_results)
+        from .model_profiles import update_profile_proofs
+        async with state.lock:
+            try:
+                update_profile_proofs(state, settings, result)
+            except (HTTPException, OSError):
+                for channel in channels:
+                    result[channel]["warning"] = "The test completed, but saved connection status could not be updated. Reload saved connections."
+            persist_probes(state.settings.data_dir, state.probe_results)
         return result
 
     @app.get("/admin/agents", dependencies=deps)

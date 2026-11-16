@@ -103,7 +103,8 @@ def configure_chat(client, monkeypatch, *, fail=False, payload=None):
         "chat_base_url": "https://chat.test/v1", "chat_api_key": "synthetic-secret",
         "embed_api_key": "", "embed_backend": "local", "local_embed_path": "",
     })
-    state.probe_results["chat"] = {"fingerprint": admin.probe_fingerprint(state.settings, "chat")}
+    admin.remember_probe(state.probe_results, "chat", admin.probe_fingerprint(state.settings, "chat"),
+                         {"ok": True, "model": state.settings.chat_model}, state.settings)
     instances = []
 
     class ChatOnly(Provider):
@@ -222,7 +223,8 @@ def test_summary_requires_only_chat_test_and_consent(client, monkeypatch):
     state = client.app.state.fm
     state.probe_results.clear()
     assert client.post("/admin/jobs/start", json={**body, "confirmed": True}).status_code == 409
-    state.probe_results["chat"] = {"fingerprint": admin.probe_fingerprint(state.settings, "chat")}
+    admin.remember_probe(state.probe_results, "chat", admin.probe_fingerprint(state.settings, "chat"),
+                         {"ok": True, "model": state.settings.chat_model}, state.settings)
     assert client.post("/admin/jobs/start", json={**body, "confirmed": True}).status_code == 200
     assert wait_job(client)["state"] == "done"
     assert len(instances[0].prompts) == 1
