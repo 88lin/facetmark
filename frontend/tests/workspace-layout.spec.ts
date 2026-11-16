@@ -148,15 +148,17 @@ test("narrow reading leaves the collection layout and scroll in place through co
     await page.goto("/app");
     await expect(page.locator(".result-row")).toHaveCount(30);
     const opener = page.locator(".result-row").nth(12);
-    await opener.scrollIntoViewIfNeeded();
+    const trigger = opener.locator(".bookmark-preview");
+    await trigger.scrollIntoViewIfNeeded();
     await settleVisualLayout(page);
+    await expect(trigger).toBeInViewport({ ratio: 1 });
     const before = await page.locator(".result-list").evaluate(element => ({
       scroll: element.scrollTop,
       extent: element.scrollHeight,
       columns: getComputedStyle(element).gridTemplateColumns,
     }));
     expect(before.scroll).toBeGreaterThan(0);
-    await opener.locator(".bookmark-preview").click();
+    await trigger.click();
     await expect(page.locator(".body-text")).toBeVisible();
     const toolbars = [];
     for (const action of [null, "下一条收藏", "上一条收藏"] as const) {
@@ -167,7 +169,6 @@ test("narrow reading leaves the collection layout and scroll in place through co
         extent: element.scrollHeight,
         columns: getComputedStyle(element).gridTemplateColumns,
       }));
-      expect(current).toEqual(before);
       const toolbar = await page.locator(".preview-drawer .preview-heading").evaluate(element => {
         const header = element.getBoundingClientRect();
         const count = element.querySelector(".reader-count")!;
@@ -183,6 +184,11 @@ test("narrow reading leaves the collection layout and scroll in place through co
           return { left: box.left, right: box.right, top: box.top, bottom: box.bottom };
         }), left: header.left, right: header.right, top: header.top, bottom: header.bottom };
       });
+      await test.info().attach(`reader-context-${width}-${height}-${action ?? "open"}`, {
+        body: JSON.stringify({ viewport: { width, height }, before, current, toolbar }),
+        contentType: "application/json",
+      });
+      expect(current).toEqual(before);
       expect(toolbar.countLines).toBe(1);
       for (const rect of toolbar.countRects) {
         expect(rect.left).toBeGreaterThanOrEqual(toolbar.left);
