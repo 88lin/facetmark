@@ -36,6 +36,7 @@ export type Page = {
 };
 export type Job = {
   id?: string;
+  run_id?: string;
   resumable?: boolean;
   pause_requested?: boolean;
   state: string;

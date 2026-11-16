@@ -6,6 +6,7 @@ import { BookOpen, Check, ChevronDown, Download, Folder, ListChecks, LoaderCircl
 import { api, ApiError, downloadExport, post, safeUrl, type Bookmark, type CollectionScope, type Setup } from "./api";
 import { exportRequest, libraryRequest, type BookmarkValues, type ExportContext, type LibraryChange, type LibraryOperation, type LibraryReceipt } from "./library-local-state";
 import { useText } from "./locale";
+import type { TaskChange } from "./task-local-state";
 import { FolderPicker } from "./FolderPicker";
 import { OverlayMotion } from "./overlay-motion";
 import "./library-tools.css";
@@ -140,10 +141,10 @@ function validWriteResult(value: unknown, change: LibraryChange): value is Libra
   return true;
 }
 
-export function LibraryDialog({ action, onClose, onChanged, onJobStarted, onPending, onPreview, onRestoreDraft, facets, setup, running,
+export function LibraryDialog({ action, onClose, onChanged, onTask, onPending, onPreview, onRestoreDraft, facets, setup, running,
   pageIds, selectedIds, filters, searching, currentScope, allMatching, selectedCount, semantic }: {
   action: LibraryAction; onClose: () => void;
-  onChanged: (deleted?: number[]) => Promise<void>; onJobStarted: () => Promise<void>;
+  onChanged: (deleted?: number[]) => Promise<void>; onTask: (change: TaskChange) => Promise<boolean>;
   onPending: (value: LibraryOperation | null, requestId: string) => boolean; onPreview: (id: number) => void;
   onRestoreDraft: (action: LibraryAction) => void;
   facets: Record<string, Facet[]>; setup: Setup | null; running: boolean;
@@ -189,7 +190,7 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, onPend
   const idsKey = JSON.stringify(ids ?? null);
   const processing = action.kind === "process" || (action.kind === "bulk" && operation === "fetch");
   const mode = action.kind === "process" ? action.mode : operation;
-  const force = processing && Boolean(ids?.length || (action.kind === "process" && action.reprocess));
+  const force = processing && (action.kind === "process" ? action.reprocess ?? Boolean(ids?.length) : Boolean(ids?.length));
   const [processTarget, setProcessTarget] = useState("current");
   const processScope = action.kind === "process" ? processTarget === "all" ? {} : processTarget === "current" ? action.scope
     : { ...action.scope, status: processTarget as "pending" | "failed" } : undefined;
@@ -201,7 +202,8 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, onPend
     if (!processing) return;
     const abort = new AbortController();
     setTargetCount(null); setCountError("");
-    post<{ total: number; revision: string }>("/admin/jobs/preview", { mode, bookmark_ids: ids, scope: processScope, force }, abort.signal)
+    api<{ total: number; revision: string }>("/admin/jobs/preview", { method: "POST",
+      body: JSON.stringify({ mode, bookmark_ids: ids, scope: processScope, force }), signal: abort.signal, timeoutMs: 20_000 })
       .then(data => { if (!abort.signal.aborted) { setTargetCount(data.total); setPreviewRevision(data.revision); } }).catch(e => { if (!abort.signal.aborted) setCountError(String(e)); });
     return () => abort.abort();
   }, [processing, mode, idsKey, processScopeKey, force]);
@@ -331,8 +333,8 @@ export function LibraryDialog({ action, onClose, onChanged, onJobStarted, onPend
       if (action.kind === "export") {
         await downloadExport(exportRequest(frozen, scope, format));
       } else if (processing) {
-        await post("/admin/jobs/start", { mode, ...(ids ? { bookmark_ids: ids } : {}), confirmed: confirmed || mode === "summarize", force, scope: processScope, preview_revision: previewRevision });
-        await onJobStarted();
+        await onTask({ kind: "start", values: { mode: mode as "fetch" | "summarize", ...(ids ? { bookmark_ids: [...ids] } : {}),
+          confirmed: confirmed || mode === "summarize", force, scope: processScope, preview_revision: previewRevision } });
       }
       setOpen(false);
     } catch (e) { setError(String(e)); } finally { submitGate.current = false; setBusy(false); }

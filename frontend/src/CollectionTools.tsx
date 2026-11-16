@@ -1,20 +1,22 @@
 import { CapsuleButton } from "./ui/controls";
 import { useEffect, useRef, useState } from "react";
 import { ArrowDownWideNarrow, ChevronDown, SlidersHorizontal, Pause, Play } from "lucide-react";
-import { post, type CollectionScope, type Job, type Page } from "./api";
+import type { CollectionScope, Job, Page } from "./api";
+import type { TaskChange } from "./task-local-state";
 import { useText } from "./locale";
 import { SelectionPill } from "./InteractionMotion";
 
 export function CollectionTools({ scope, page, display, onDisplay, sort, onSort, onStatus, disabled,
-  job, refresh, admin }: {
+  job, onTask, taskBusy, admin }: {
   scope: CollectionScope; page: Page | null; display: "summary" | "original";
   onDisplay: (value: "summary" | "original") => void; sort: string; onSort: (value: string) => void;
   onStatus: (value: CollectionScope["status"]) => void; disabled: boolean;
-  job: Job; refresh: () => Promise<void>; admin: boolean;
+  job: Job; onTask: (change: TaskChange) => Promise<boolean>; taskBusy: boolean; admin: boolean;
 }) {
   const t = useText();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const gate = useRef(false);
   const displayMenu = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
     const dismiss = (event: PointerEvent) => { if (event.target instanceof Node && displayMenu.current && !displayMenu.current.contains(event.target)) displayMenu.current.open = false; };
@@ -23,11 +25,13 @@ export function CollectionTools({ scope, page, display, onDisplay, sort, onSort,
   }, []);
   const counts = page?.summary_counts;
   async function taskAction() {
+    if (gate.current || taskBusy || !job.id || (job.state === "running" && !job.run_id)) return;
+    gate.current = true;
     setBusy(true); setError("");
     try {
-      await post(job.state === "running" ? "/admin/jobs/pause" : "/admin/jobs/resume", { resume_id: job.id, confirmed: true });
-      await refresh();
-    } catch (e) { setError(String(e)); } finally { setBusy(false); }
+      await onTask(job.state === "running" ? { kind: "pause", jobId: job.id, runId: job.run_id! }
+        : { kind: "resume", jobId: job.id, ...(job.run_id ? { runId: job.run_id } : {}) });
+    } catch (e) { setError(String(e)); } finally { gate.current = false; setBusy(false); }
   }
   return <div className="collection-tools">
     <div className="collection-status" role="group" aria-label={t("摘要状态", "Summary status")}>
@@ -53,7 +57,7 @@ export function CollectionTools({ scope, page, display, onDisplay, sort, onSort,
     {admin && job.params?.mode !== "index" && (job.state === "running" || job.resumable) && <div className="collection-job">
       <span>{job.state === "running" ? t("正在处理", "Processing") : t("任务已保存，可继续", "Task saved; ready to resume")} · {job.items?.done.toLocaleString() || 0} / {job.items?.total.toLocaleString() || 0}
         {!!job.items?.failed && t(` · ${job.items.failed} 条失败`, ` · ${job.items.failed} failed`)}</span>
-      <CapsuleButton className="secondary" disabled={busy || job.pause_requested} onClick={taskAction}>{job.state === "running" ? <Pause size={15}/> : <Play size={15}/>}
+      <CapsuleButton className="secondary" disabled={busy || taskBusy || job.pause_requested || job.cancel_requested || !job.id || (job.state === "running" && !job.run_id)} onClick={taskAction}>{job.state === "running" ? <Pause size={15}/> : <Play size={15}/>}
         {job.pause_requested ? t("正在暂停…", "Pausing…") : job.state === "running" ? t("暂停", "Pause") : t("继续任务", "Resume")}</CapsuleButton>
     </div>}
     {error && <p className="error" role="alert">{error}</p>}

@@ -36,7 +36,7 @@ def preview(conn, **kwargs):
     return conn.execute("SELECT count(*) FROM (" + sql + ")", params).fetchone()[0]
 
 
-def snapshot(conn, job, planned_ids=None):
+def snapshot(conn, job, planned_ids=None, *, commit=True):
     existing = conn.execute("SELECT count(*) FROM processing_item WHERE job_id=?", (job.id,)).fetchone()[0]
     if not existing and not job.snapshot_ready:
         selected = planned_ids if planned_ids is not None else job.bookmark_ids
@@ -53,7 +53,8 @@ def snapshot(conn, job, planned_ids=None):
                                        force=job.force, limit=job.limit, prompt_hash=job.summary_prompt_hash)
             conn.execute("INSERT INTO processing_item(job_id,bookmark_id) SELECT ?,id FROM (" + sql + ")",
                          [job.id, *params])
-        conn.commit()
+        if commit:
+            conn.commit()
     job.snapshot_ready = True
     update_counts(conn, job)
 

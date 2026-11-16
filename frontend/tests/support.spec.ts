@@ -98,12 +98,15 @@ test("idle and paused tasks show truthful status and recover failed saved-task r
 });
 
 test("partial task recovery resumes the saved scope without starting broad work", async ({ page }) => {
-  const current = { id: "original-scoped-task", state: "partial", resumable: true, params: { mode: "summarize", scope: { folder: "Research", status: "pending" } }, items: { done: 4, total: 5, failed: 1 } };
+  let current = { id: "original-scoped-task", run_id: "original-scoped-run", state: "partial", resumable: true, params: { mode: "summarize", scope: { folder: "Research", status: "pending" } }, items: { done: 4, total: 5, failed: 1 } };
   let resumed: unknown;
   let started = false;
   await page.route("**/admin/job", route => route.fulfill({ json: current }));
   await page.route("**/admin/jobs", route => route.fulfill({ json: { items: [current] } }));
-  await page.route("**/admin/jobs/resume", route => { resumed = route.request().postDataJSON(); return route.fulfill({ json: {} }); });
+  await page.route("**/admin/jobs/resume", route => {
+    resumed = route.request().postDataJSON(); current = { ...current, run_id: "resumed-scoped-run" };
+    return route.fulfill({ json: current });
+  });
   await page.route("**/admin/jobs/start", route => { started = true; return route.fulfill({ json: {} }); });
   await page.goto("/app");
   await page.getByRole("button", { name: "任务", exact: true }).click();
@@ -112,7 +115,7 @@ test("partial task recovery resumes the saved scope without starting broad work"
   await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/support-tasks-partial-mobile.png", animations: "disabled" });
   await page.getByRole("button", { name: "重试此任务失败项", exact: true }).click();
-  await expect.poll(() => resumed).toEqual({ resume_id: current.id, confirmed: true });
+  await expect.poll(() => resumed).toEqual({ resume_id: current.id, resume_run_id: "original-scoped-run", confirmed: true, request_id: expect.any(String) });
   expect(started).toBe(false);
   await page.getByRole("button", { name: "抓取网页正文", exact: true }).click();
   const scope = page.getByRole("combobox", { name: "正文抓取范围", exact: true });

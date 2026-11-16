@@ -31,14 +31,16 @@ import sqlite3
 import time
 import uuid
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Annotated, Any, Literal, get_args, get_origin
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from pydantic import BaseModel, Field, field_validator
+from fastapi import Path as ApiPath
+from pydantic import BaseModel, Field, field_validator, model_validator
 
-from . import service
+from . import job_operations, service
 from .collection import CollectionScope
 from .config import Settings, split_list
 from .configfile import config_path, external_setting_keys, read_config, update_config
@@ -161,6 +163,7 @@ class IndexJob:
     force: bool
     started_at: float
     planned: tuple[str, ...]
+    run_id: str = field(default_factory=lambda: uuid.uuid4().hex)
     mode: str = "index"
     bookmark_ids: tuple[int, ...] | None = None
     items_done: int = 0
@@ -183,6 +186,7 @@ class IndexJob:
         done = [s.name for s in self.stages]
         return {
             "id": self.id,
+            "run_id": self.run_id,
             "state": self.state,
             "planned": list(self.planned),
             "done": done,
@@ -232,6 +236,7 @@ class JobRunner:
     def __init__(self, data_dir: Path | None = None) -> None:
         self.job: IndexJob | None = None
         self._task: asyncio.Task | None = None
+        self._durable = False
         self.path = data_dir / 'last-index-job.json' if data_dir else None
         self.previous = None
         # The resolved id list of the last snapshot. Kept on disk because the
@@ -257,7 +262,18 @@ class JobRunner:
             except (OSError, ValueError, AttributeError):
                 self.previous = None
 
-    def persist(self) -> None:
+    def persist(self, conn=None) -> None:
+        if conn is not None and self.job is not None:
+            self._durable = job_operations.save_run(conn, self.job) or self._durable
+        if self._durable:
+            # These files remain a legacy mirror. SQLite holds the authoritative
+            # run, including a terminal state committed with processing counts.
+            with contextlib.suppress(OSError):
+                self._persist_files()
+        else:
+            self._persist_files()
+
+    def _persist_files(self) -> None:
         if self.path and self.job:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             tmp = self.path.with_suffix('.tmp')
@@ -276,7 +292,7 @@ class JobRunner:
 
     def record_planned(self, conn: sqlite3.Connection, job: IndexJob) -> None:
         """Store the snapshot's ids so a later resume has something to replay."""
-        if not self.planned_path:
+        if self._durable or not self.planned_path:
             return
         rows = [row[0] for row in conn.execute(
             "SELECT bookmark_id FROM processing_item WHERE job_id=? ORDER BY bookmark_id", (job.id,))]
@@ -289,9 +305,13 @@ class JobRunner:
             tmp.chmod(0o600)
         tmp.replace(self.planned_path)
 
-    def saved(self, job_id: str) -> dict | None:
+    def saved(self, job_id: str, *, conn=None) -> dict | None:
         if not re.fullmatch(r"[0-9a-f]{12}", job_id):
             return None
+        if conn is not None and (stored := job_operations.saved_run(conn, job_id=job_id)):
+            if self.job is not None and stored.get("run_id") == self.job.run_id:
+                return self.job.as_dict()
+            return job_operations.recovered(stored)
         current = self.job.as_dict() if self.job else self.previous
         if current and current.get("id") == job_id:
             return current
@@ -305,14 +325,30 @@ class JobRunner:
                 pass
         return None
 
-    def resumable_jobs(self) -> list[dict]:
-        if not self.path:
-            return []
-        paths = sorted((self.path.parent / "jobs").glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    def current(self, *, conn=None) -> dict:
+        if self.job is not None:
+            return self.job.as_dict()
+        if conn is not None and (stored := job_operations.saved_run(conn)):
+            return job_operations.recovered(stored)
+        return self.previous or {"state": "idle", "planned": list(INDEX_STAGES)}
+
+    def resumable_jobs(self, *, conn=None) -> list[dict]:
         result = []
+        if conn is not None:
+            for item in job_operations.resumable(conn):
+                row = self.saved(item["id"], conn=conn)
+                if row is not None and row.get("resumable"):
+                    result.append(row)
+        if not self.path:
+            return result
+        if len(result) >= 50:
+            return result[:50]
+        paths = sorted((self.path.parent / "jobs").glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+        known = {row["id"] for row in result}
         for path in paths:
-            if (row := self.saved(path.stem)) and row.get("resumable"):
+            if path.stem not in known and (row := self.saved(path.stem, conn=conn)) and row.get("resumable"):
                 result.append(row)
+                known.add(path.stem)
                 if len(result) == 50:
                     break
         return result
@@ -331,7 +367,8 @@ class JobRunner:
               mode: str = "index", bookmark_ids: list[int] | None = None,
               scope: dict | None = None, resume_id: str | None = None,
               snapshot_ready: bool = False, summary_language: str | None = None,
-              summary_prompt: str | None = None) -> IndexJob:
+              summary_prompt: str | None = None,
+              before_schedule: Callable[[IndexJob], None] | None = None) -> IndexJob:
         if self.running:
             raise RuntimeError("an index job is already running")
         if mode not in {"index", "fetch", "summarize"}:
@@ -365,19 +402,25 @@ class JobRunner:
         )
         scope = f"{len(bookmark_ids)} selected" if bookmark_ids is not None else "library"
         job.log.append(f"started: mode={mode} scope={scope} fetch={job.fetch} limit={limit} force={force}")
+        if before_schedule is not None:
+            before_schedule(job)
+            self._durable = True
+        else:
+            self._durable = False
         self.job = job
         self.persist()
         self._task = asyncio.create_task(self._run(job, pinned_settings))
         return job
 
-    def pause(self) -> bool:
-        if not self.running or self.job.mode == "index":
+    def pause(self, *, persist: bool = True) -> bool:
+        if not self.running or self.job.mode == "index" or self.job.cancel_requested:
             return False
         self.job.pause_requested = True
-        self.persist()
+        if persist:
+            self.persist()
         return True
 
-    def cancel(self) -> bool:
+    def cancel(self, *, persist: bool = True) -> bool:
         """Ask the running job to stop at the next stage boundary.
 
         Not a kill. :func:`service.index_all` reports progress between stages
@@ -388,9 +431,13 @@ class JobRunner:
         """
         if not self.running or self.job is None:
             return False
+        if self.job.cancel_requested:
+            return True
         self.job.cancel_requested = True
+        self.job.pause_requested = False
         self.job.log.append("cancel requested; stopping after the current stage")
-        self.persist()
+        if persist:
+            self.persist()
         return True
 
     async def _run(self, job: IndexJob, settings: Settings) -> None:
@@ -407,7 +454,7 @@ class JobRunner:
             now = time.monotonic()
             job.stages.append(Stage(name=name, value=value, seconds=now - last))
             job.log.append(_summarise(name, value))
-            self.persist()
+            self.persist(conn)
             last = now
             if job.cancel_requested:
                 raise _Cancelled
@@ -451,27 +498,35 @@ class JobRunner:
             job.error = safe_error(exc, settings)
             job.log.append(job.error)
         finally:
-            if conn is not None and job.mode != "index":
-                from .processing import update_counts
-                with contextlib.suppress(Exception):
-                    update_counts(conn, job)
-                    if job.state == "done":
-                        conn.execute("DELETE FROM processing_item WHERE job_id=?", (job.id,))
-                        conn.commit()
             job.finished_at = time.monotonic()
-            self.persist()
-            if provider is not None:
+            try:
+                if conn is not None and job.mode != "index":
+                    from .processing import update_counts
+                    with job_operations.atomic(conn):
+                        update_counts(conn, job)
+                        job_operations.save_run(conn, job)
+                        if job.state == "done":
+                            conn.execute("DELETE FROM processing_item WHERE job_id=?", (job.id,))
+                self.persist(conn)
+            except Exception as exc:  # noqa: BLE001 - keep results, report persistence failure
+                job.state = "failed"
+                job.error = "Could not save task status: " + safe_error(exc, settings)
+                job.log.append(job.error)
                 with contextlib.suppress(Exception):
-                    await provider.aclose()
-            with contextlib.suppress(Exception):
-                conn.close()
+                    self.persist(conn)
+            finally:
+                if provider is not None:
+                    with contextlib.suppress(Exception):
+                        await provider.aclose()
+                with contextlib.suppress(Exception):
+                    conn.close()
 
     async def _fetch(self, conn, job: IndexJob, settings: Settings, progress):
         from . import processing
 
         processing.snapshot(conn, job, planned_ids=self.planned_ids if job.snapshot_ready else None)
         self.record_planned(conn, job)
-        self.persist()
+        self.persist(conn)
         totals = {"attempted": 0, "stored": 0, "changed": 0, "queued_for_browser": 0}
         while batch := processing.pending_batch(conn, job):
             if job.cancel_requested:
@@ -533,7 +588,7 @@ class JobRunner:
 
         processing.snapshot(conn, job, planned_ids=self.planned_ids if job.snapshot_ready else None)
         self.record_planned(conn, job)
-        self.persist()
+        self.persist(conn)
 
         def finished(target, enrichment, _error):
             if enrichment is not None:
@@ -550,7 +605,7 @@ class JobRunner:
                 service.sync_fts_tag_refresh(conn, target.bookmark_id)
             processing.finished(conn, job, target.bookmark_id, _error or None)
         def after_commit():
-            self.persist()
+            self.persist(conn)
 
         queries = 0
         width = min(64, max(1, settings.enrich_concurrency))
@@ -572,11 +627,11 @@ class JobRunner:
                 result = await enrich_all(conn, provider=provider, settings=settings,
                     ids=list(eligible), force=job.force, progress=finished, after_commit=after_commit)
                 queries += result.queries_generated
-            self.persist()
-            if job.pause_requested:
-                raise _Paused
+            self.persist(conn)
             if job.cancel_requested:
                 raise _Cancelled
+            if job.pause_requested:
+                raise _Paused
             await asyncio.sleep(0)
         value = {"considered": job.items_total, "enriched": job.items_done - job.items_failed,
                  "failed": job.items_failed, "queries": queries, "usage": provider.usage.as_dict()}
@@ -596,6 +651,8 @@ class IndexRequest(BaseModel):
     )
     scope: CollectionScope | None = None
     resume_id: str | None = None
+    resume_run_id: str | None = Field(default=None, strict=True, min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
+    request_id: str | None = Field(default=None, strict=True, min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_.-]+$")
     preview_revision: str | None = None
     preview_prompt_hash: str | None = None
     summary_language: Literal["zh", "en"] | None = None
@@ -613,6 +670,24 @@ class IndexRequest(BaseModel):
         if value is not None and len(value) != len(set(value)):
             raise ValueError("bookmark_ids must be unique")
         return value
+
+    @model_validator(mode="after")
+    def resume_target(self):
+        if self.resume_run_id is not None and self.resume_id is None:
+            raise ValueError("resume_run_id requires a saved task ID")
+        return self
+
+
+class TaskControl(BaseModel):
+    job_id: str | None = Field(default=None, strict=True, min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
+    run_id: str | None = Field(default=None, strict=True, min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
+    request_id: str | None = Field(default=None, strict=True, min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_.-]+$")
+
+    @model_validator(mode="after")
+    def target(self):
+        if bool(self.job_id) != bool(self.run_id) or (self.request_id is not None and self.job_id is None):
+            raise ValueError("A task operation must identify its job and run together")
+        return self
 
 
 class SettingsPatch(BaseModel):
@@ -1064,15 +1139,26 @@ def register(app: FastAPI, auth: list) -> None:
     async def admin_index(body: IndexRequest, request: Request) -> dict:
         state = _state(request)
         async with state.lock:
+            action = "resume" if body.resume_id else "start"
+            request_id = body.request_id
+            digest = job_operations.fingerprint(action, body.model_dump(exclude={"request_id"}))
+            if saved := job_operations.receipt(state.conn, request_id, action=action, digest=digest):
+                return saved["result"]
             if state.jobs.running or state.crawls.running or state.health_running:
                 raise HTTPException(409, "an index job is already running")
+            if state.model_users or any(not task.done() for task in state.chat_runs.values()):
+                raise HTTPException(409, "Wait for active replies or model requests before starting a task")
             if body.preview_revision is not None and body.preview_revision != library_revision(state.conn):
                 raise HTTPException(409, "The library changed. Generate again to use the updated selection.")
             snapshot_ready = False
             if body.resume_id:
-                previous = state.jobs.saved(body.resume_id)
+                previous = state.jobs.saved(body.resume_id, conn=state.conn)
                 if not previous or previous.get("id") != body.resume_id or not previous.get("resumable"):
                     raise HTTPException(409, "This job is no longer resumable")
+                if request_id is not None and previous.get("run_id") and body.resume_run_id is None:
+                    raise HTTPException(409, "Read the saved task's current run before resuming")
+                if body.resume_run_id is not None and previous.get("run_id") != body.resume_run_id:
+                    raise HTTPException(409, "This task has a newer run. Read its current state before resuming")
                 body = IndexRequest(**previous["params"], confirmed=body.confirmed, resume_id=body.resume_id)
                 snapshot_ready = previous.get("snapshot_ready", False)
             language = resolve_summary_language(body.summary_language or state.settings.summary_language)
@@ -1114,20 +1200,33 @@ def register(app: FastAPI, auth: list) -> None:
                 from .workbench import validate_space
 
                 validate_space(state.conn, state.settings)
-            if body.resume_id and snapshot_ready:
-                # Retry exactly the failed members of the original snapshot;
-                # completed items and later additions to the library stay out.
-                state.conn.execute("UPDATE processing_item SET state='pending',error=NULL "
-                                   "WHERE job_id=? AND state='failed'", (body.resume_id,))
-                state.conn.commit()
+            accepted = None
+
+            def before_schedule(job: IndexJob) -> None:
+                from .processing import snapshot
+
+                nonlocal accepted
+                with job_operations.atomic(state.conn):
+                    if body.resume_id and snapshot_ready:
+                        # The original snapshot and failed-item reset commit
+                        # together with acceptance, before any work is scheduled.
+                        state.conn.execute("UPDATE processing_item SET state='pending',error=NULL "
+                                           "WHERE job_id=? AND state='failed'", (body.resume_id,))
+                    if job.mode != "index":
+                        snapshot(state.conn, job, commit=False)
+                    job_operations.save_run(state.conn, job, create=True)
+                    accepted = job.as_dict()
+                    job_operations.accept(state.conn, request_id, action=action, digest=digest, job=job, result=accepted)
+
             job = state.jobs.start(
                 state.settings, fetch=body.fetch, limit=body.limit, force=body.force,
                 mode=body.mode, bookmark_ids=body.bookmark_ids,
                 scope=body.scope.model_dump() if body.scope is not None else None,
                 resume_id=body.resume_id, snapshot_ready=snapshot_ready,
                 summary_language=language, summary_prompt=prompt,
+                before_schedule=before_schedule,
             )
-        return job.as_dict()
+        return accepted if accepted is not None else job.as_dict()
 
     @app.post("/admin/jobs/preview", dependencies=deps)
     async def admin_job_preview(body: IndexRequest, request: Request) -> dict:
@@ -1151,29 +1250,71 @@ def register(app: FastAPI, auth: list) -> None:
         return {"total": count, "revision": revision, "prompt_hash": prompt_hash}
 
     @app.post("/admin/jobs/pause", dependencies=deps)
-    async def admin_job_pause(request: Request) -> dict:
-        runner = _state(request).jobs
-        if not runner.pause():
-            raise HTTPException(409, "No pausable task is running")
-        return runner.job.as_dict()
+    async def admin_job_pause(request: Request, body: TaskControl | None = None) -> dict:
+        return await task_control(request, body or TaskControl(), "pause")
+
+    async def task_control(request: Request, body: TaskControl, action: str) -> dict:
+        state = _state(request)
+        async with state.lock:
+            digest = job_operations.fingerprint(action, body.model_dump(exclude={"request_id"}))
+            if saved := job_operations.receipt(state.conn, body.request_id, action=action, digest=digest):
+                return saved["result"]
+            runner, job = state.jobs, state.jobs.job
+            if body.job_id is not None and (job is None or job.id != body.job_id or job.run_id != body.run_id
+                                             or job.state != "running"):
+                raise HTTPException(409, "The original task run has stopped or changed. Read its current state")
+            if action == "pause" and (not runner.running or job.mode == "index" or job.cancel_requested):
+                raise HTTPException(409, "No pausable task is running")
+            if job is None:
+                return {"cancel_requested": False, "job": None}
+            prior_pause, prior_cancel, prior_log = job.pause_requested, job.cancel_requested, deque(job.log, maxlen=200)
+            try:
+                with job_operations.atomic(state.conn):
+                    if action == "pause":
+                        runner.pause(persist=False)
+                        result = job.as_dict()
+                    else:
+                        cancelled = runner.cancel(persist=False)
+                        result = {"cancel_requested": cancelled, "job": job.as_dict()}
+                    exists = job_operations.saved_run(state.conn, run_id=job.run_id) is not None
+                    job_operations.save_run(state.conn, job, create=not exists)
+                    job_operations.accept(state.conn, body.request_id, action=action, digest=digest, job=job, result=result)
+            except BaseException:
+                job.pause_requested, job.cancel_requested, job.log = prior_pause, prior_cancel, prior_log
+                raise
+            runner.persist()
+            return result
+
+    @app.get("/admin/jobs/operations/{request_id}", dependencies=deps)
+    async def admin_task_operation(request: Request, request_id: str = ApiPath(
+        min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_.-]+$",
+    )) -> dict:
+        state = _state(request)
+        async with state.lock:
+            saved = job_operations.receipt(state.conn, request_id)
+            if saved is None:
+                raise HTTPException(404, "No accepted task operation has this request ID")
+            stored = job_operations.saved_run(state.conn, run_id=saved["run_id"])
+            if stored is not None:
+                job = state.jobs.job
+                saved["job"] = job.as_dict() if job is not None and job.run_id == saved["run_id"] else job_operations.recovered(stored)
+            return saved
 
     @app.get("/admin/job", dependencies=deps)
     @app.get("/admin/jobs/current", dependencies=deps)
     async def admin_job(request: Request) -> dict:
-        runner = _state(request).jobs
-        return runner.job.as_dict() if runner.job else (runner.previous or {"state": "idle", "planned": list(INDEX_STAGES)})
+        state = _state(request)
+        return state.jobs.current(conn=state.conn)
 
     @app.get("/admin/jobs", dependencies=deps)
     async def admin_saved_jobs(request: Request) -> dict:
-        return {"items": _state(request).jobs.resumable_jobs()}
+        state = _state(request)
+        return {"items": state.jobs.resumable_jobs(conn=state.conn)}
 
     @app.post("/admin/job/cancel", dependencies=deps)
     @app.post("/admin/jobs/cancel", dependencies=deps)
-    async def admin_job_cancel(request: Request) -> dict:
-        runner = _state(request).jobs
-        cancelled = runner.cancel()
-        job = runner.job
-        return {"cancel_requested": cancelled, "job": job.as_dict() if job else None}
+    async def admin_job_cancel(request: Request, body: TaskControl | None = None) -> dict:
+        return await task_control(request, body or TaskControl(), "cancel")
 
     @app.get("/admin/settings", dependencies=deps)
     async def admin_settings(request: Request) -> dict:

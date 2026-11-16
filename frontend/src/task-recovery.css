@@ -1,0 +1,19 @@
+.task-recovery { grid-column: 2; grid-row: 2; min-width: 0; max-height: min(42dvh, 320px); overflow: auto; overscroll-behavior: contain; margin: 0 0 12px; padding: 16px 20px; border: 1px solid var(--rule); border-radius: 24px; background: var(--canvas); }
+.task-recovery-item { display: flex; align-items: center; flex-wrap: wrap; gap: 14px 24px; }
+.task-recovery-item + .task-recovery-item { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rule); }
+.task-recovery-copy { flex: 1 1 320px; min-width: 0; }
+.task-recovery-copy strong { display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: .9375rem; }
+.task-recovery-copy p { margin: 6px 0 0; color: var(--secondary-ink); font-size: .875rem; line-height: 1.6; overflow-wrap: anywhere; }
+.task-recovery-copy .task-recovery-scope { color: var(--muted); }
+.task-recovery-copy details.task-recovery-scope { margin-top: 8px; font-size: .875rem; }
+.task-recovery-scope > summary { cursor: pointer; padding-block: 4px; }
+.task-recovery-scope > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 8px; }
+.task-recovery-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.task-recovery-actions button { min-height: 44px; }
+.task-recovery > .error { margin: 12px 0 0; overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .task-recovery { padding: 14px; border-radius: 20px; }
+  .task-recovery-actions { width: 100%; }
+  .task-recovery-actions button { flex: 1 1 160px; min-height: 44px; }
+}
+@media (max-width: 959px) { .task-recovery { grid-column: 1; } }

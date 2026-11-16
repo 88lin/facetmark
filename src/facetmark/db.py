@@ -190,6 +190,25 @@ CREATE TABLE IF NOT EXISTS library_operation (
     created_at INTEGER NOT NULL
 );
 
+-- Each resume is a new attempt; controls and receipts refer to that attempt.
+CREATE TABLE IF NOT EXISTS processing_run (
+    run_id TEXT PRIMARY KEY,
+    job_id TEXT NOT NULL,
+    snapshot TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_processing_run_job ON processing_run(job_id);
+CREATE TABLE IF NOT EXISTS processing_operation (
+    request_id TEXT PRIMARY KEY,
+    fingerprint TEXT NOT NULL,
+    action TEXT NOT NULL,
+    job_id TEXT NOT NULL,
+    run_id TEXT NOT NULL REFERENCES processing_run(run_id),
+    result TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+);
+
 -- Facet 2: hypothetical queries generated from the page (doc2query), then
 -- filtered for self-consistency. `kept=1` rows are the ones that get embedded.
 CREATE TABLE IF NOT EXISTS intent_query (
