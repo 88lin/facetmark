@@ -97,13 +97,23 @@ def test_metadata_roundtrip_stable_identity_url_edit_and_local_backup(peers):
             assert record is None or set(record) == set(library_sync.FIELDS)
 
 
-def test_delete_tombstone_survives_sqlite_id_reuse_and_cannot_resurrect(peers):
+@pytest.mark.parametrize("legacy_reuse", [False, True])
+def test_delete_tombstone_survives_new_and_legacy_reused_ids_and_cannot_resurrect(peers, legacy_reuse):
     a, b, _ = peers
     old, _ = converge(a, b)
     old_sid = a.conn.execute("SELECT sync_id FROM library_sync_identity WHERE bookmark_id=?", (old,)).fetchone()[0]
     library.delete_bookmarks(a.conn, [old])
     new = add(a, url="https://example.test/new", title="New identity")
-    assert new == old  # INTEGER PRIMARY KEY IDs may be reused after a deletion.
+    assert new > old  # Normal creation keeps the removed bookmark's number retired.
+    if legacy_reuse:
+        # Old databases or direct writers can contain explicitly reused IDs.
+        # The synchronization UUID and its tombstone must still protect them.
+        saved = dict(a.conn.execute("SELECT * FROM bookmark WHERE id=?", (new,)).fetchone())
+        library.delete_bookmarks(a.conn, [new])
+        saved["id"] = old
+        a.conn.execute("INSERT INTO bookmark(" + ",".join(saved) + ") VALUES(" + ",".join("?" for _ in saved) + ")",
+                       list(saved.values()))
+        a.conn.commit()
     preview = a.preview()
     assert preview["counts"]["upload_delete"] == 1
     a.apply(ApplyRequest(preview_id=preview["preview_id"]))

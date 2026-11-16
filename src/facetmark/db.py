@@ -26,6 +26,7 @@ import sqlite_vec
 # SCHEMA_VERSION is derived from the migration list, not declared here, so the
 # two cannot drift. Re-exported because callers have always imported it from db.
 from .migrations import (  # noqa: F401  (re-export)
+    BOOKMARK_IDENTITY_TRIGGER_SQL,
     SCHEMA_VERSION,
     SchemaTooNew,
     apply_pending,
@@ -180,6 +181,15 @@ CREATE TABLE IF NOT EXISTS chat_creation (
     conversation_id TEXT REFERENCES chat_conversation(id) ON DELETE SET NULL
 );
 
+-- A retry confirms the original collection edit, even after its targets change.
+CREATE TABLE IF NOT EXISTS library_operation (
+    request_id TEXT PRIMARY KEY,
+    fingerprint TEXT NOT NULL,
+    action TEXT NOT NULL,
+    result TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+);
+
 -- Facet 2: hypothetical queries generated from the page (doc2query), then
 -- filtered for self-consistency. `kept=1` rows are the ones that get embedded.
 CREATE TABLE IF NOT EXISTS intent_query (
@@ -305,7 +315,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS fts_tri USING fts5(
 CREATE VIRTUAL TABLE IF NOT EXISTS fts_seg USING fts5(
     title, body, summary, extra, tokenize='unicode61 remove_diacritics 2'
 );
-"""
+""" + BOOKMARK_IDENTITY_TRIGGER_SQL
 
 
 class SchemaMismatch(RuntimeError):
@@ -414,6 +424,23 @@ def open_db(
 def get_meta(conn: sqlite3.Connection, key: str) -> str | None:
     row = conn.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
     return row["value"] if row else None
+
+
+def next_bookmark_id(conn: sqlite3.Connection) -> int:
+    """Reserve a durable ID atomically, including across separate writers.
+
+    SQLite's plain INTEGER PRIMARY KEY reuses the highest removed row ID.
+    Stale views, chat pins and processing snapshots must not acquire a different
+    page that happens to receive that number. The high-water mark is in this
+    same database and transaction, so rolled-back writes cannot expose it.
+    """
+    row = conn.execute(
+        "INSERT INTO meta(key,value) VALUES('bookmark_id_highwater',"
+        "CAST((SELECT COALESCE(MAX(id),0)+1 FROM bookmark) AS TEXT)) "
+        "ON CONFLICT(key) DO UPDATE SET value=CAST(MAX(CAST(meta.value AS INTEGER),"
+        "(SELECT COALESCE(MAX(id),0) FROM bookmark))+1 AS TEXT) RETURNING value"
+    ).fetchone()
+    return int(row[0])
 
 
 def set_meta(conn: sqlite3.Connection, key: str, value: str) -> None:

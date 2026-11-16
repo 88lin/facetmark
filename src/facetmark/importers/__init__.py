@@ -18,7 +18,7 @@ from pathlib import Path
 
 from .. import text as textmod
 from ..config import Settings, get_settings
-from ..db import now
+from ..db import next_bookmark_id, now
 from ..normalize import host_excluded, normalize_url, registrable_domain
 from . import chrome_json, facetmark_json, netscape_html, timestamps
 from .base import ImportResult, RawBookmark, folder_collisions
@@ -281,11 +281,12 @@ def _import_bookmarks(
 
         if existing is None:
             cur = conn.execute(
-                "INSERT INTO bookmark(url, url_norm, url_hash, title, folder, folder_depth,"
+                "INSERT INTO bookmark(id, url, url_norm, url_hash, title, folder, folder_depth,"
                 " host, domain, date_added, date_modified, source, indexable,"
                 " privacy_skipped, tags, created_at, updated_at)"
-                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
+                    next_bookmark_id(conn),
                     row["url"],
                     row["url_norm"],
                     row["url_hash"],

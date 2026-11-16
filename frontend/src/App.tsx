@@ -41,7 +41,8 @@ import { Tasks } from "./Tasks";
 import { BookmarkCard } from "./BookmarkCard";
 import { CollectionTools } from "./CollectionTools";
 import type { CollectionScope } from "./api";
-import { LibraryDialog, LibraryToolbar, type LibraryAction } from "./LibraryTools";
+import { LibraryDialog, LibraryRecoveryBanner, LibraryToolbar, type LibraryAction } from "./LibraryTools";
+import { clearLibraryOperation, libraryStoragePrefix, loadLibraryOperations, saveLibraryOperation, type LibraryOperation } from "./library-local-state";
 import { useSummaryGeneration } from "./useSummaryGeneration";
 import { ChatWorkspace } from "./ChatWorkspace";
 import type { ChatLaunch } from "./chat-types";
@@ -160,6 +161,17 @@ function Workbench({
   const [connectionError, setConnectionError] = useState("");
   const [selected, setSelected] = useState<number | null>(null);
   const [libraryAction, setLibraryAction] = useState<LibraryAction | null>(null);
+  const [libraryOperations, setLibraryOperations] = useState(loadLibraryOperations);
+  useEffect(() => {
+    const update = (event: StorageEvent) => { if (event.key === null || event.key.startsWith(libraryStoragePrefix)) setLibraryOperations(loadLibraryOperations()); };
+    window.addEventListener("storage", update);
+    return () => window.removeEventListener("storage", update);
+  }, []);
+  const updateLibraryOperation = (value: LibraryOperation | null, requestId: string) => {
+    const saved = value ? saveLibraryOperation(value) : clearLibraryOperation(requestId);
+    if (value || saved) setLibraryOperations(previous => [...(value ? [value] : []), ...previous.filter(item => item.requestId !== requestId)]);
+    return saved;
+  };
   const [batchMode, setBatchMode] = useState(false);
   const [summaryStatus, setSummaryStatus] = useState<CollectionScope["status"]>("all");
   const [searchMode, setSearchMode] = useState("keyword");
@@ -305,36 +317,36 @@ function Workbench({
     const id = ++refreshId.current;
     try {
       const data = await api<Record<string, Facet[]>>("/bookmarks/facets");
-      if (id !== refreshId.current) return;
-      setFacets(data);
-      setConnectionError("");
+      if (id !== refreshId.current && !reportFailure) return;
+      if (id === refreshId.current) { setFacets(data); setConnectionError(""); }
       try {
         const [status, task] = await Promise.all([
           api<Setup>("/admin/setup-status"),
           api<Job>("/admin/job"),
         ]);
-        if (id !== refreshId.current) return;
-        setSetup(status);
-        setJob(task);
-        if (libraryRevision.current === undefined) {
-          libraryRevision.current = status.library_revision;
-        } else if (status.library_revision !== libraryRevision.current) {
-          invalidateLibrary();
-          libraryRevision.current = status.library_revision;
-        }
-        setAdminAvailable(true);
-        if (firstRefresh.current) {
-          firstRefresh.current = false;
-          if (!status.bookmarks && !remember("fm-setup-skipped")) setView("setup");
+        if (id === refreshId.current) {
+          setSetup(status);
+          setJob(task);
+          if (libraryRevision.current === undefined) {
+            libraryRevision.current = status.library_revision;
+          } else if (status.library_revision !== libraryRevision.current) {
+            invalidateLibrary();
+            libraryRevision.current = status.library_revision;
+          }
+          setAdminAvailable(true);
+          if (firstRefresh.current) {
+            firstRefresh.current = false;
+            if (!status.bookmarks && !remember("fm-setup-skipped")) setView("setup");
+          }
         }
       } catch (e) {
-        if (id !== refreshId.current) return;
-        if (e instanceof ApiError && e.status === 403) setAdminAvailable(false);
+        if (id !== refreshId.current && !reportFailure) return;
+        if (id === refreshId.current && e instanceof ApiError && e.status === 403) setAdminAvailable(false);
         if (reportFailure || !(e instanceof ApiError && e.status === 403)) throw e;
       }
     } catch (e) {
-      if (id !== refreshId.current) return;
-      setConnectionError(String(e));
+      if (id !== refreshId.current && !reportFailure) return;
+      if (id === refreshId.current) setConnectionError(String(e));
       if (reportFailure) throw e;
     }
   }, [invalidateLibrary]);
@@ -347,6 +359,8 @@ function Workbench({
   });
   function handleLibraryAction(action: LibraryAction) {
     if (action.kind === "process" && action.mode === "summarize") void summaryGeneration.generate(action);
+    else if (action.kind !== "export" && action.kind !== "process" && action.kind !== "recover" && libraryOperations.length)
+      setLibraryAction({ kind: "recover", operation: libraryOperations[0] });
     else setLibraryAction(action);
   }
   async function libraryChanged(deleted?: number[]) {
@@ -356,7 +370,7 @@ function Workbench({
     setAllMatching(false);
     setExcludedIds([]);
     invalidateLibrary();
-    await refresh();
+    await refresh(true);
     setLibraryNotice(t("收藏已更新", "Collection updated"));
   }
   useEffect(() => {
@@ -1111,6 +1125,8 @@ function Workbench({
             </header>
             <section className="results-column" inert={focusReading}>
               <header className="search-header">
+                {adminAvailable && selected === null && <LibraryRecoveryBanner operations={libraryOperations}
+                  onOpen={operation => setLibraryAction({ kind: "recover", operation })}/>}
                 {adminAvailable && selected === null && <LibraryToolbar
                   batch={batchMode && !allMatching} ids={selectedIds} pageIds={items.map(item => item.bookmark_id)}
                   disabled={job.state === "running" || summaryGeneration.busy} pending={scopePending || summaryGeneration.busy || chatSelectionBusy}
@@ -1438,10 +1454,13 @@ function Workbench({
       </div>}
       {libraryNotice && <div className="library-toast" role="status"><Check size={16}/>{libraryNotice}</div>}
       {libraryAction && <LibraryDialog
-        key={`${libraryAction.kind}-${libraryAction.kind === "edit" ? libraryAction.record.bookmark_id : ""}`}
+        key={`${libraryAction.kind}-${libraryAction.kind === "edit" ? libraryAction.record.bookmark_id : libraryAction.kind === "recover" ? libraryAction.operation.requestId : ""}`}
         action={libraryAction}
         onClose={() => setLibraryAction(null)}
         onChanged={libraryChanged}
+        onPending={updateLibraryOperation}
+        onRestoreDraft={setLibraryAction}
+        onPreview={id => setSelected(id)}
         onJobStarted={async () => { await refresh(); setRequestRevision(v => v + 1); }}
         facets={facets}
         setup={setup}
@@ -1450,6 +1469,10 @@ function Workbench({
         selectedIds={selectedIds}
         filters={filters}
         searching={Boolean(search.trim())}
+        currentScope={collectionScope}
+        allMatching={allMatching}
+        selectedCount={allMatching ? Math.max(0, (page?.total || 0) - excludedIds.length) : selectedIds.length}
+        semantic={semanticSelection}
       />}
     </div>
   );

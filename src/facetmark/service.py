@@ -809,11 +809,11 @@ def save_bookmark(
     # a single level. It is emphatically not folder.count("/"): folder names
     # legitimately contain slashes, which is why the display path is never split.
     cur = conn.execute(
-        "INSERT INTO bookmark(url, url_norm, url_hash, title, folder, folder_depth, "
+        "INSERT INTO bookmark(id, url, url_norm, url_hash, title, folder, folder_depth, "
         "  host, domain, date_added, source, indexable, privacy_skipped, tags, "
         "  created_at, updated_at) "
-        "VALUES(?,?,?,?,?,?,?,?,?,'api',?,?,?,?,?)",
-        (nu.original, nu.normalized, nu.hash, title, folder,
+        "VALUES(?,?,?,?,?,?,?,?,?,?,'api',?,?,?,?,?)",
+        (dbmod.next_bookmark_id(conn), nu.original, nu.normalized, nu.hash, title, folder,
          1 if folder else 0, host, domain,
          date_added if date_added is not None else ts,
          1 if nu.indexable else 0, privacy,

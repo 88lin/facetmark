@@ -93,6 +93,7 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    public readonly details?: Readonly<Record<string, unknown>>,
   ) {
     super(message);
   }
@@ -104,11 +105,14 @@ async function responseError(response: Response): Promise<ApiError> {
   let data: { detail?: unknown } | null = null;
   try { data = await response.json(); } catch { /* A proxy error page is not JSON. */ }
   const detail = data?.detail;
+  const details = detail && typeof detail === "object" && !Array.isArray(detail)
+    ? detail as Record<string, unknown> : undefined;
   const message = typeof detail === "string" ? detail
     : Array.isArray(detail) ? detail.map(item => typeof item?.msg === "string" ? item.msg : "Invalid value").join("; ")
+      : typeof details?.message === "string" && details.message ? details.message
       : serviceMessage("服务请求失败（HTTP " + response.status + "），请重试。",
         "Service request failed (HTTP " + response.status + "). Please retry.");
-  return new ApiError(response.status, message);
+  return new ApiError(response.status, message, details);
 }
 
 type ApiOptions = RequestInit & { timeoutMs?: number };
