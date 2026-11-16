@@ -17,19 +17,24 @@ const defaults: Options = { start_url: "", max_pages: 25, same_domain: true };
 function savedDraft(): Options {
   try {
     const value = JSON.parse(sessionStorage.getItem("fm-site-import-draft") || "null");
-    return value && typeof value.start_url === "string" && typeof value.max_pages === "number"
+    return value && typeof value.start_url === "string" && value.start_url.length <= 8192
+      && Number.isInteger(value.max_pages) && value.max_pages >= 1 && value.max_pages <= 500
       && typeof value.same_domain === "boolean" ? value : defaults;
   } catch { return defaults; }
 }
 
-export function SiteImport({ refresh, onDone }: { refresh: () => Promise<void>; onDone?: () => void }) {
+export function SiteImport({ refresh, onDone, disabled = false, onActiveChange }: {
+  refresh: () => Promise<void>; onDone?: () => void; disabled?: boolean; onActiveChange?: (active: boolean) => void;
+}) {
   const t = useText();
   const [open, setOpen] = useState(false), [options, setOptions] = useState<Options>(savedDraft);
   const [job, setJob] = useState<SiteJob>({ state: "idle" });
   const [busy, setBusy] = useState(""), [loading, setLoading] = useState(false), [error, setError] = useState("");
+  const [needsRefresh, setNeedsRefresh] = useState(false);
   const gate = useRef(false), revision = useRef(0), request = useRef<AbortController | null>(null);
   const mounted = useRef(true), finished = useRef("");
   const running = job.state === "running";
+  useEffect(() => { onActiveChange?.(running || !!busy); return () => onActiveChange?.(false); }, [running, busy, onActiveChange]);
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; request.current?.abort(); revision.current++; };
@@ -41,8 +46,8 @@ export function SiteImport({ refresh, onDone }: { refresh: () => Promise<void>; 
   async function accept(value: SiteJob) {
     setJob(value);
     if (value.id && value.state !== "running" && finished.current !== value.id) {
-      finished.current = value.id;
-      try { await refresh(); } catch (failure) { if (mounted.current) setError(String(failure)); }
+      try { await refresh(); if (mounted.current) { finished.current = value.id; setNeedsRefresh(false); } }
+      catch { if (mounted.current) { setNeedsRefresh(true); setError(t("网站导入结果已保存，但收藏列表未能刷新。请重新读取收藏。", "Site import results were saved, but the collection could not refresh. Reload it.")); } }
     }
   }
   async function load() {
@@ -56,7 +61,10 @@ export function SiteImport({ refresh, onDone }: { refresh: () => Promise<void>; 
       if (!pending.signal.aborted && version === revision.current) setError(String(failure));
     } finally { if (!pending.signal.aborted && version === revision.current) setLoading(false); }
   }
-  useEffect(() => { if (open) void load(); }, [open]);
+  useEffect(() => {
+    if (open) void load(); else setLoading(false);
+    return () => { request.current?.abort(); revision.current++; };
+  }, [open]);
   useEffect(() => {
     if (!open || !running || busy || loading) return;
     const timer = window.setTimeout(() => void load(), 1200);
@@ -64,7 +72,7 @@ export function SiteImport({ refresh, onDone }: { refresh: () => Promise<void>; 
   }, [open, running, job, busy, loading]);
 
   async function run(kind: "start" | "stop", params = options) {
-    if (gate.current) return;
+    if (gate.current || (kind === "start" && disabled)) return;
     if (kind === "start") {
       try {
         const url = new URL(params.start_url);
@@ -76,11 +84,18 @@ export function SiteImport({ refresh, onDone }: { refresh: () => Promise<void>; 
       }
     }
     gate.current = true; request.current?.abort(); revision.current++;
-    setBusy(kind); setLoading(false); setError("");
+    setBusy(kind); setLoading(false); setError(""); setNeedsRefresh(false);
     try {
       const value = await post<SiteJob>(kind === "start" ? "/admin/crawl" : "/admin/crawl/cancel", kind === "start" ? params : {});
       if (mounted.current) await accept(value);
     } catch (failure) { if (mounted.current) setError(String(failure)); }
+    finally { gate.current = false; if (mounted.current) setBusy(""); }
+  }
+  async function reloadCollection() {
+    if (gate.current) return;
+    gate.current = true; setBusy("reload");
+    try { await refresh(); if (mounted.current) { finished.current = job.id || ""; setNeedsRefresh(false); setError(""); } }
+    catch { if (mounted.current) setError(t("收藏列表仍未能刷新，请重试读取。", "The collection still could not refresh. Retry loading it.")); }
     finally { gate.current = false; if (mounted.current) setBusy(""); }
   }
   const status = ({ idle: t("按需导入一个网站", "Import a site when needed"),
@@ -96,21 +111,21 @@ export function SiteImport({ refresh, onDone }: { refresh: () => Promise<void>; 
     <p className="site-import-intro">{t("适合把一小段文档或文章目录加入收藏。默认最多扫描 25 页，只跟随同站点链接；会遵守抓取设置和隐私排除规则。", "Add a documentation section or article directory to your library. Scan up to 25 pages by default, follow links on the same site, and use your fetch settings and privacy exclusions.")}</p>
     <form className="site-import-form" onSubmit={event => { event.preventDefault(); void run("start"); }}>
       <label className="site-import-url">{t("起始网址", "Starting URL")}
-        <input type="url" required placeholder="https://example.com/docs/" value={options.start_url}
-          disabled={running || Boolean(busy)} onChange={event => setOptions(value => ({ ...value, start_url: event.target.value }))}/>
+        <input type="url" required maxLength={8192} placeholder="https://example.com/docs/" value={options.start_url}
+          disabled={disabled || running || Boolean(busy)} onChange={event => setOptions(value => ({ ...value, start_url: event.target.value }))}/>
       </label>
       <label>{t("最多扫描页数", "Maximum pages to scan")}
         <input type="number" min={1} max={500} step={1} required value={options.max_pages}
-          disabled={running || Boolean(busy)} onChange={event => setOptions(value => ({ ...value, max_pages: Number(event.target.value) }))}/>
+          disabled={disabled || running || Boolean(busy)} onChange={event => setOptions(value => ({ ...value, max_pages: Number(event.target.value) }))}/>
       </label>
       <label className="check-row site-import-scope"><input type="checkbox" checked={options.same_domain}
-        disabled={running || Boolean(busy)} onChange={event => setOptions(value => ({ ...value, same_domain: event.target.checked }))}/>
+        disabled={disabled || running || Boolean(busy)} onChange={event => setOptions(value => ({ ...value, same_domain: event.target.checked }))}/>
         {t("只跟随同站点链接", "Follow same-site links only")}</label>
       <div className="site-import-actions">
         {running ? <CapsuleButton type="button" className="secondary" disabled={Boolean(busy)} onClick={() => run("stop")}>
           {busy === "stop" ? <LoaderCircle className="spin" size={16}/> : <Square size={15}/>}
           {busy === "stop" ? t("正在停止…", "Stopping…") : t("停止网站导入", "Stop site import")}
-        </CapsuleButton> : <CapsuleButton type="submit" className="primary" disabled={Boolean(busy) || loading}>
+        </CapsuleButton> : <CapsuleButton type="submit" className="primary" disabled={disabled || Boolean(busy) || loading}>
           {busy === "start" ? <LoaderCircle className="spin" size={16}/> : <Globe size={16}/>}
           {busy === "start" ? t("正在开始…", "Starting…") : t("开始网站导入", "Import site")}</CapsuleButton>}
         <CapsuleButton type="button" className="text-button" disabled={Boolean(busy) || loading} onClick={() => load()}>
@@ -131,13 +146,15 @@ export function SiteImport({ refresh, onDone }: { refresh: () => Promise<void>; 
       </dl>}
       {!running && job.retryable && job.params && <div className="site-import-rerun">
         <p>{t("重新导入会从起点扫描，并按网址去重，保留已有正文。", "Rerun scans from the starting URL, deduplicates pages, and preserves existing page text.")}</p>
-        <CapsuleButton type="button" className="secondary" disabled={Boolean(busy)} onClick={() => run("start", job.params!)}>
+        <CapsuleButton type="button" className="secondary" disabled={disabled || Boolean(busy)} onClick={() => run("start", job.params!)}>
           <RefreshCw size={15}/>{t("重新导入这个网站", "Rerun this site import")}</CapsuleButton>
       </div>}
-      {!running && (report?.inserted || report?.bodies_stored) && onDone ? <CapsuleButton type="button" className="text-button" onClick={onDone}>
+      {!running && (report?.inserted || report?.bodies_stored) && onDone ? <CapsuleButton type="button" className="text-button" disabled={!!busy || needsRefresh} onClick={onDone}>
         {t("查看已导入的收藏", "View imported bookmarks")}<ArrowRight size={15}/></CapsuleButton> : null}
     </div>
     {(error || job.error) && <p className="error" role="alert">{error || job.error}</p>}
+    {needsRefresh && <CapsuleButton type="button" className="secondary" disabled={!!busy} onClick={() => void reloadCollection()}>
+      <RefreshCw size={15}/>{t("重新读取收藏", "Reload collection")}</CapsuleButton>}
     {report?.notes?.length ? <details className="site-import-notes"><summary>{t("查看未导入原因", "Review import notes")}</summary>
       <ul>{report.notes.map((note, index) => <li key={index}>{note}</li>)}</ul></details> : null}
   </details>;

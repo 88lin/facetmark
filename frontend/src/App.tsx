@@ -301,7 +301,7 @@ function Workbench({
     setSessionsRevision((value) => value + 1);
     setDepth(undefined);
   }, []);
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (reportFailure = false) => {
     const id = ++refreshId.current;
     try {
       const data = await api<Record<string, Facet[]>>("/bookmarks/facets");
@@ -330,13 +330,15 @@ function Workbench({
       } catch (e) {
         if (id !== refreshId.current) return;
         if (e instanceof ApiError && e.status === 403) setAdminAvailable(false);
-        else throw e;
+        if (reportFailure || !(e instanceof ApiError && e.status === 403)) throw e;
       }
     } catch (e) {
       if (id !== refreshId.current) return;
       setConnectionError(String(e));
+      if (reportFailure) throw e;
     }
   }, [invalidateLibrary]);
+  const refreshImportedCollection = useCallback(() => refresh(true), [refresh]);
   const summaryGeneration = useSummaryGeneration({ setup, running: job.state === "running", language,
     onStarted: async () => {
       setSelectedIds([]); setAllMatching(false); setExcludedIds([]); setBatchMode(false);
@@ -1379,7 +1381,7 @@ function Workbench({
               <SetupFlow
                 setup={setup}
                 job={job}
-                refresh={refresh}
+                refresh={refreshImportedCollection}
                 onProcess={(mode) => handleLibraryAction({ kind: "process", mode })}
                 onDone={() => {
                   remember("fm-setup-skipped", "1");
@@ -1395,7 +1397,7 @@ function Workbench({
                     <ArrowRight size={14} />
                   </CapsuleButton>
                 </header>
-                <Importer refresh={refresh} onDone={() => openView("library")} />
+                <Importer refresh={refreshImportedCollection} onDone={() => openView("library")} />
               </>
             ) : view === "settings" ? (
               <SettingsWorkspace setup={setup} refresh={refresh} onChanged={libraryChanged} onBack={() => openView("library")} onSummarize={() => handleLibraryAction({ kind: "process", mode: "summarize", scope: collectionScope, scopeLabel: t("当前收藏范围", "Current collection scope") })} />

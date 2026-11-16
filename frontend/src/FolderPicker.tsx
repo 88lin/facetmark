@@ -21,9 +21,9 @@ export function FolderPath({ value }: { value: string }) {
 
 /** Uses the complete paginated directory, never the overview's top-200 facets.
  * Search is only a draft: a folder changes only after an explicit selection. */
-export function FolderPicker({ value, onChange, label, allowCreate = true, allowUnfiled = true }: {
+export function FolderPicker({ value, onChange, label, allowCreate = true, allowUnfiled = true, disabled = false }: {
   value: string; onChange: (value: string) => void; label: string;
-  allowCreate?: boolean; allowUnfiled?: boolean;
+  allowCreate?: boolean; allowUnfiled?: boolean; disabled?: boolean;
 }) {
   const t = useText();
   const reduced = useReducedMotion();
@@ -32,6 +32,7 @@ export function FolderPicker({ value, onChange, label, allowCreate = true, allow
   const trigger = useRef<HTMLButtonElement>(null);
   const search = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
+  useEffect(() => { if (disabled) setOpen(false); }, [disabled]);
   const [request, setRequest] = useState({ q: "", offset: 0 });
   const [page, setPage] = useState<FolderPage>({ items: [], total: 0, has_more: false });
   const [loading, setLoading] = useState(false);
@@ -67,6 +68,7 @@ export function FolderPicker({ value, onChange, label, allowCreate = true, allow
   }, [open, request.q, request.offset, retry]);
 
   function choose(folder: string) {
+    if (disabled) return;
     onChange(folder); setOpen(false); trigger.current?.focus({ preventScroll: true });
   }
 
@@ -96,9 +98,10 @@ export function FolderPicker({ value, onChange, label, allowCreate = true, allow
   return <div className="folder-picker field" ref={root} data-open={open} onKeyDown={onKeyDown}
     onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
     <span id={`${id}-label`}>{label}</span>
-    <Button data-overlay-motion type="button" className="folder-picker-trigger" ref={trigger} aria-expanded={open}
+    <Button data-overlay-motion type="button" className="folder-picker-trigger" ref={trigger} aria-expanded={open} disabled={disabled}
       aria-controls={`${id}-panel`} aria-labelledby={`${id}-label ${id}-value`}
       onClick={() => {
+        if (disabled) return;
         if (!open) { setRequest({ q: "", offset: 0 }); setPage({ items: [], total: 0, has_more: false }); setLoading(true); }
         setOpen(!open);
       }}>

@@ -104,6 +104,9 @@ class AppState:
         self.chat_cancellations: dict[tuple[str, str], float] = {}
         # An interrupted assistant reply must be retryable after service restart.
         self.conn.execute("UPDATE chat_message SET status='cancelled' WHERE status='pending'")
+        self.conn.execute("UPDATE import_run SET state='interrupted',"
+                          "error=CASE WHEN error='' THEN 'Previous site import interrupted; saved pages remain available.' "
+                          "ELSE error END WHERE source='site' AND state='running'")
         self.conn.commit()
 
     @property
@@ -395,9 +398,10 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
     # Import, index and settings. Token-gated like everything else, plus a hard
     # loopback check and an off switch. See `facetmark.admin`.
     admin.register(app, auth)
-    from . import chat, library, library_sync, mcp_http, workbench
+    from . import chat, import_workflow, library, library_sync, mcp_http, workbench
 
     library.register(app, auth)
+    import_workflow.register(app, auth)
     library_sync.register(app, auth)
     workbench.register(app, auth)
     chat.register(app, auth)

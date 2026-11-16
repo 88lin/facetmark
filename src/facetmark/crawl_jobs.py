@@ -64,6 +64,7 @@ class CrawlRunner:
         self.task: asyncio.Task | None = None
         self.previous: dict | None = None
         self.stopping = False
+        self.history_settings: Settings | None = None
         with contextlib.suppress(OSError, ValueError, TypeError):
             saved = json.loads(self.path.read_text(encoding="utf-8"))
             if isinstance(saved, dict) and isinstance(saved.get("params"), dict):
@@ -88,12 +89,32 @@ class CrawlRunner:
         temporary.write_text(json.dumps(self.job.as_dict(), ensure_ascii=False), encoding="utf-8")
         temporary.replace(self.path)
 
-    def start(self, request: CrawlRequest, settings: Settings) -> dict:
+    def _record_history(self, job: CrawlJob, conn=None) -> None:
+        from .import_workflow import record
+        from .library import transaction
+
+        if self.history_settings is None:
+            return
+        owned = conn is None
+        if owned:
+            conn = open_db(self.history_settings.db_path, same_thread=False)
+        try:
+            with transaction(conn):
+                record(conn, source="site", label=job.params["start_url"],
+                       result={**job.report, "warnings": job.report.get("notes", [])},
+                       request_id=job.id, state=job.state, error=job.error)
+        finally:
+            if owned:
+                conn.close()
+
+    def start(self, request: CrawlRequest, settings: Settings, *, conn=None) -> dict:
         if self.running:
             raise HTTPException(409, "A site import is already running")
         self.stopping = False
+        self.history_settings = settings.model_copy(deep=True)
         self.job = CrawlJob(params=request.model_dump(), report=CrawlReport(request.start_url).as_dict())
         self.persist()
+        self._record_history(self.job, conn)
         self.task = asyncio.create_task(self._run(self.job, settings.model_copy(deep=True)))
         return self.job.as_dict()
 
@@ -105,6 +126,7 @@ class CrawlRunner:
 
             def progress(report):
                 job.report = report.as_dict()
+                self._record_history(job, conn)
                 self.persist()
 
             def saved_page(url, _title, _has_body):
@@ -122,6 +144,11 @@ class CrawlRunner:
             job.state = "failed"
             job.error = admin.safe_error(exc, settings)
         finally:
+            try:
+                self._record_history(job, conn)
+            except Exception as exc:  # noqa: BLE001 - retain the crawl's primary result
+                job.report.setdefault("notes", []).append(
+                    "Import history could not be saved: " + admin.safe_error(exc, settings))
             if conn is not None:
                 # crawl_site joins every child before propagating cancellation.
                 conn.commit()
@@ -141,6 +168,7 @@ class CrawlRunner:
             if job and job.state == "running":
                 job.state = "interrupted" if shutdown else "cancelled"
                 job.finished_at = int(time.time())
+                self._record_history(job)
                 self.persist()
         return self.current()
 
@@ -164,7 +192,7 @@ def register(app: FastAPI, auth: list) -> None:
                 raise HTTPException(409, "Wait for active processing, model requests or link checks before importing a site")
             if host_excluded(urlsplit(body.start_url).hostname or "", state.settings.privacy_excluded_domains):
                 raise HTTPException(400, "This site is excluded in your privacy settings")
-            return state.crawls.start(body, state.settings)
+            return state.crawls.start(body, state.settings, conn=state.conn)
 
     @app.post("/admin/crawl/cancel", dependencies=deps)
     async def cancel(request: Request):

@@ -232,6 +232,14 @@ def _v9_chat_history(conn: sqlite3.Connection) -> None:
                  "WHERE role='user' AND request_id!=''")
 
 
+def _v10_import_history(conn: sqlite3.Connection) -> None:
+    conn.execute("CREATE TABLE IF NOT EXISTS import_run ("
+                 "id TEXT PRIMARY KEY,source TEXT NOT NULL,label TEXT NOT NULL,created_at INTEGER NOT NULL,"
+                 "state TEXT NOT NULL,request_hash TEXT NOT NULL DEFAULT '',"
+                 "result TEXT NOT NULL DEFAULT '{}',error TEXT NOT NULL DEFAULT '')")
+    conn.execute("CREATE INDEX IF NOT EXISTS ix_import_run_created ON import_run(created_at DESC,id DESC)")
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(2, "browser queue remembers when a retry is allowed", _v2_browser_queue_backoff),
     Migration(3, "content vectors remember what they were built from",
@@ -245,6 +253,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(7, "large collections retain processing snapshots and failures", _v7_collection_processing),
     Migration(8, "summaries retain AI titles, output language and prompt provenance", _v8_summary_preferences),
     Migration(9, "collection conversations retain messages and verified sources", _v9_chat_history),
+    Migration(10, "imports retain local history and atomic retry receipts", _v10_import_history),
 )
 
 #: What this build writes into a new database. Derived from the migration list

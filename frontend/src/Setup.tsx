@@ -7,6 +7,7 @@ import { Tasks } from "./Tasks";
 import { useText } from "./locale";
 import { SelectionPill, useContentMotion } from "./InteractionMotion";
 import { SiteImport } from "./SiteImport";
+import { UrlImport, ImportHistory } from "./UrlImport";
 import "./setup.css";
 
 type ImportReport = {
@@ -25,6 +26,8 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
   const [report, setReport] = useState<ImportReport | null>(null);
   const [error, setError] = useState("");
   const [needsRefresh, setNeedsRefresh] = useState(false);
+  const [historyRevision, setHistoryRevision] = useState(0);
+  const [urlActive, setUrlActive] = useState(false), [siteActive, setSiteActive] = useState(false);
   const lastWork = useRef<(() => Promise<unknown>) | null>(null);
   const [finding, setFinding] = useState(false);
   const findingInFlight = useRef(false);
@@ -32,8 +35,9 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
   const [sources, setSources] = useState<{ id: string; browser: string; profile: string }[] | null>(
     null,
   );
+  const blocked = busy || finding || urlActive || siteActive;
   async function run(work: () => Promise<unknown>) {
-    if (inFlight.current || findingInFlight.current) return;
+    if (inFlight.current || findingInFlight.current || urlActive || siteActive) return;
     inFlight.current = true;
     setBusy(true);
     setError("");
@@ -50,10 +54,11 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
     } finally {
       inFlight.current = false;
       setBusy(false);
+      setHistoryRevision(value => value + 1);
     }
   }
   async function upload(file?: File) {
-    if (!file || inFlight.current || findingInFlight.current) return;
+    if (!file || inFlight.current || findingInFlight.current || urlActive || siteActive) return;
     setReport(null); setNeedsRefresh(false); lastWork.current = null;
     if (!/\.(html?|json)$/i.test(file.name)) {
       setError(t("请选择 HTML 或 JSON 书签导出文件。", "Choose an HTML or JSON bookmark export."));
@@ -63,11 +68,12 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
       setError(t("请选择不超过 64 MB 的导出文件。", "Choose an export up to 64 MB."));
       return;
     }
+    const importId = crypto.randomUUID();
     await run(() =>
       api("/admin/import", {
         method: "POST",
         body: file,
-        headers: { "x-filename": encodeURIComponent(file.name) },
+        headers: { "x-filename": encodeURIComponent(file.name), "x-import-id": importId },
       }),
     );
   }
@@ -115,8 +121,8 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
       </p>
       <div
         className={`dropzone ${dragging ? "is-dragging" : ""}`}
-        aria-busy={busy || finding}
-        onDragOver={(e) => { e.preventDefault(); if (!busy && !finding) setDragging(true); }}
+        aria-busy={blocked}
+        onDragOver={(e) => { e.preventDefault(); if (!blocked) setDragging(true); }}
         onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false); }}
         onDrop={(e) => {
           e.preventDefault();
@@ -131,10 +137,11 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
           ref={input}
           type="file"
           accept=".html,.htm,.json"
+          disabled={blocked}
           hidden
           onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; upload(file); }}
         />
-        <CapsuleButton type="button" className="primary" disabled={busy || finding} onClick={() => input.current?.click()}>
+        <CapsuleButton type="button" className="primary" disabled={blocked} onClick={() => input.current?.click()}>
           {busy ? <LoaderCircle className="spin"/> : <FolderOpen />}
           {busy ? t("正在导入…", "Importing…") : t("选择文件", "Choose a file")}
         </CapsuleButton>
@@ -146,9 +153,9 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
       <CapsuleButton
         type="button"
         className="text-button"
-        disabled={busy || finding}
+        disabled={blocked}
         onClick={async () => {
-          if (inFlight.current || findingInFlight.current) return;
+          if (inFlight.current || findingInFlight.current || urlActive || siteActive) return;
           findingInFlight.current = true;
           setError(""); setReport(null); setNeedsRefresh(false); lastWork.current = null; setSources(null); setDragging(false);
           setFinding(true);
@@ -180,10 +187,13 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
             sources.map((source) => (
               <CapsuleButton
                 type="button"
-                disabled={busy || finding}
+                disabled={blocked}
                 className="source"
                 key={source.id}
-                onClick={() => run(() => post("/admin/import/source", { source_id: source.id }))}
+                onClick={() => {
+                  const request_id = crypto.randomUUID();
+                  void run(() => post("/admin/import/source", { source_id: source.id, request_id }));
+                }}
               >
                 <FolderOpen />
                 <span>
@@ -213,9 +223,13 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
         </div>
       )}
       {error && <div className="import-error" role="alert"><p className="error">{error}</p>
-        {lastWork.current && <CapsuleButton type="button" className="secondary" disabled={busy || finding} onClick={() => void retry()}><RotateCcw size={15}/>{needsRefresh ? t("重新读取收藏", "Reload collection") : t("重试导入", "Retry import")}</CapsuleButton>}
+        {lastWork.current && <CapsuleButton type="button" className="secondary" disabled={blocked} onClick={() => void retry()}><RotateCcw size={15}/>{needsRefresh ? t("重新读取收藏", "Reload collection") : t("重试导入", "Retry import")}</CapsuleButton>}
       </div>}
-      <SiteImport refresh={refresh} onDone={onDone}/>
+      <UrlImport refresh={async () => { setHistoryRevision(value => value + 1); await refresh(); }} onDone={onDone}
+        disabled={busy || finding || siteActive} onActiveChange={setUrlActive}/>
+      <SiteImport refresh={async () => { setHistoryRevision(value => value + 1); await refresh(); }} onDone={onDone}
+        disabled={busy || finding || urlActive} onActiveChange={setSiteActive}/>
+      <ImportHistory revision={historyRevision}/>
     </section>
   );
 }
