@@ -119,13 +119,14 @@ class AppState:
         return self._provider
 
     @asynccontextmanager
-    async def model_operation(self, *, writing: bool = False):
+    async def model_operation(self, *, writing: bool = False, needs_provider: bool = True):
         # Keep the client alive and its settings stable, without holding the
         # root metadata lock across a remote response or a rate-limit wait.
         async with self.lock:
             if writing and (self.jobs.running or self.crawls.running):
                 raise HTTPException(409, "Wait for the processing task before updating the index")
-            settings, provider = self.settings.model_copy(deep=True), self.provider
+            settings = self.settings.model_copy(deep=True)
+            provider = self.provider if needs_provider else self._provider
             self.model_users += 1
         conn = None
         try:
@@ -497,9 +498,7 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
 
     @app.post("/search", dependencies=auth)
     async def full_search(req: SearchRequest, state: AppState = Depends(get_state)) -> dict:
-        async with state.model_operation() as (conn, provider, settings):
-            if settings.channel_ready('embed') or settings.use_mock_provider:
-                workbench.validate_space(conn, settings)
+        async with state.model_operation(needs_provider=False) as (conn, provider, settings):
             cfg = (default_config(settings, provider) if req.config in ("", "full") else ALL_CONFIGS.get(req.config))
             if cfg is None:
                 raise HTTPException(400, f"unknown config {req.config!r}")
@@ -517,7 +516,7 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
 
     @app.post("/synthesize", dependencies=auth)
     async def synthesize(req: SynthesizeRequest, state: AppState = Depends(get_state)) -> dict:
-        async with state.model_operation() as (conn, provider, settings):
+        async with state.model_operation(needs_provider=False) as (conn, provider, settings):
             out = await service.synthesize(
                 conn, req.q, limit=req.limit,
                 provider=provider, settings=settings,

@@ -139,7 +139,7 @@ def get_reranker(settings, provider: Provider | None) -> Reranker:
     """Pick a reranker. Mock or credential-less setups get the offline one."""
     if provider is None or getattr(settings, "use_mock_provider", False):
         return OverlapReranker()
-    if not getattr(settings, "api_key", ""):
+    if not settings.channel_ready("chat"):
         return OverlapReranker()
     return LLMReranker(provider, model_name=getattr(settings, "chat_model", ""))
 

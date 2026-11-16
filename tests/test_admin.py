@@ -19,7 +19,7 @@ from facetmark import service
 from facetmark.admin import INDEX_STAGES, TUPLE_FIELDS, WRITABLE, mask, settings_view
 from facetmark.api import create_app
 from facetmark.config import Settings
-from facetmark.configfile import config_path, read_config
+from facetmark.configfile import read_config
 
 NETSCAPE = """<!DOCTYPE NETSCAPE-Bookmark-file-1>
 <DL><p>
@@ -572,13 +572,7 @@ class TestSettings:
 
 
 class TestTheConfigFilePath:
-    """Which ``config.toml`` the settings page is looking at.
-
-    Worth its own class because the obvious reading of ``serve --db`` is wrong
-    in a way that is expensive: the page reports a path outside the data
-    directory it was started with, which looks like a bug and is the only
-    correct answer.
-    """
+    """The page, save and next boot must all use the selected library's file."""
 
     @pytest.fixture()
     def two_dirs(self, tmp_path, monkeypatch):
@@ -591,36 +585,31 @@ class TestTheConfigFilePath:
         return default, instance
 
     def test_the_page_names_the_file_the_next_boot_will_read(self, two_dirs):
-        """Not ``settings.data_dir``, on purpose.
-
-        ``facetmark serve --db /elsewhere/x.db`` moves the database and leaves
-        the config file where it was, because :class:`ConfigFileSource` resolves
-        its own path from the environment -- a file cannot choose its own
-        location without the resolution becoming circular. So the loader reads
-        the default directory, and the settings page has to name the same file
-        it does. Reporting ``/elsewhere/config.toml`` would look tidier and
-        would write settings that nothing ever reads.
-        """
         default, instance = two_dirs
         (default / "config.toml").write_text('chat_model = "from-default-dir"\n', encoding="utf-8")
         (instance / "config.toml").write_text('chat_model = "from-instance-dir"\n', encoding="utf-8")
         st = Settings(data_dir=instance, use_mock_provider=True)
         assert st.data_dir == instance
-        assert st.chat_model == "from-default-dir"
-        assert settings_view(st)["path"] == str(config_path())
-        assert settings_view(st)["path"] == str(default / "config.toml")
+        assert st.chat_model == "from-instance-dir"
+        view = settings_view(st)
+        assert view["path"] == str(instance / "config.toml")
+        row = next(row for row in view["settings"] if row["key"] == "chat_model")
+        assert row["value"] == "from-instance-dir" and row["source"] == "file"
 
     def test_a_write_goes_to_that_same_file(self, two_dirs):
         default, instance = two_dirs
+        default_file = default / "config.toml"
+        original = b'chat_model = "keep-default-model"\n'
+        default_file.write_bytes(original)
         st = Settings(data_dir=instance, use_mock_provider=True)
         with TestClient(create_app(st), client=("127.0.0.1", 40404)) as c:
             headers = {"Authorization": f"Bearer {c.app.state.fm.token}"}
             r = c.put("/admin/settings", json={"values": {"chat_model": "written"}},
                       headers=headers)
             assert r.status_code == 200
-            assert r.json()["path"] == str(default / "config.toml")
-        assert (default / "config.toml").exists()
-        assert not (instance / "config.toml").exists()
+            assert r.json()["path"] == str(instance / "config.toml")
+        assert default_file.read_bytes() == original
+        assert read_config(instance / "config.toml")["chat_model"] == "written"
         # And the value comes back on the next boot of the same instance.
         assert Settings(data_dir=instance, use_mock_provider=True).chat_model == "written"
 

@@ -216,15 +216,15 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
                 settings=ctx.settings,
             )
         elif ctx.state_getter is not None and hasattr(ctx.state_getter(), "model_operation"):
-            async with ctx.state_getter().model_operation() as (conn, provider, configured):
+            async with ctx.state_getter().model_operation(needs_provider=False) as (conn, provider, configured):
                 resp = await service.search(conn, query, limit=limit, offset=offset, depth=depth,
                     config=default_config(configured, provider), provider=provider, settings=configured,
                     expand_limit=8 if include_related else 0)
         else:
             resp = await service.search(
                 ctx.conn, query, limit=limit, offset=offset, depth=depth,
-                config=default_config(ctx.settings, ctx.provider),
-                provider=ctx.provider, settings=ctx.settings,
+                config=default_config(ctx.settings, ctx._provider),
+                provider=ctx._provider, settings=ctx.settings,
                 expand_limit=8 if include_related else 0,
             )
         out = resp.as_dict()
@@ -324,11 +324,11 @@ def create_server(  # noqa: C901 - a tool table, not a branchy function
         means the model was unavailable and the claims are raw excerpts.
         """
         if ctx.state_getter is not None and hasattr(ctx.state_getter(), "model_operation"):
-            async with ctx.state_getter().model_operation() as (conn, provider, configured):
+            async with ctx.state_getter().model_operation(needs_provider=False) as (conn, provider, configured):
                 out = await service.synthesize(conn, query, limit=limit, provider=provider, settings=configured)
         else:
             out = await service.synthesize(
-                ctx.conn, query, limit=limit, provider=ctx.provider, settings=ctx.settings
+                ctx.conn, query, limit=limit, provider=ctx._provider, settings=ctx.settings
             )
         return out.as_dict()
 

@@ -701,6 +701,19 @@ def get_embed_provider(settings: Settings) -> Provider:
     return UnconfiguredProvider(settings, 'embedding')
 
 
+def get_chat_provider(settings: Settings, **kw) -> Provider:
+    """Create the chat channel without loading an unrelated local encoder."""
+    s = settings
+    if s.use_mock_provider:
+        return MockProvider(s)
+    chat = s.channel_settings('chat')
+    if s.chat_backend == 'agent':
+        from .local_agents import LocalAgentProvider
+        return LocalAgentProvider(s) if s.channel_ready('chat') else UnconfiguredProvider(s, 'chat')
+    return (OpenAICompatibleProvider(chat, **kw) if s.channel_ready('chat')
+            else UnconfiguredProvider(s, 'chat'))
+
+
 def get_provider(settings: Settings | None = None, **kw) -> Provider:
     s = settings or get_settings()
     # Validate local configuration before allocating any HTTP resources.
@@ -710,12 +723,7 @@ def get_provider(settings: Settings | None = None, **kw) -> Provider:
         return SplitProvider(base, local, settings=s) if local is not None else base
     chat = s.channel_settings('chat')
     embed = s.channel_settings('embed')
-    if s.chat_backend == 'agent':
-        from .local_agents import LocalAgentProvider
-        chat_provider = LocalAgentProvider(s) if s.channel_ready('chat') else UnconfiguredProvider(s, 'chat')
-    else:
-        chat_provider = (OpenAICompatibleProvider(chat, **kw) if s.channel_ready('chat')
-                         else UnconfiguredProvider(s, 'chat'))
+    chat_provider = get_chat_provider(s, **kw)
     if local is not None:
         embedding = local
     elif s.channel_ready('embed'):

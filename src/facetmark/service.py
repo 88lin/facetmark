@@ -45,7 +45,7 @@ from .enrich import (
 from .fetch import store as fetchstore
 from .importers import import_bookmarks
 from .normalize import host_excluded, normalize_url, registrable_domain
-from .providers import Provider, get_provider
+from .providers import Provider, get_chat_provider, get_provider
 from .search import graph as graphmod
 from .search.decay import cold_census
 from .search.pipeline import (
@@ -664,7 +664,7 @@ async def synthesize(
             model="none",
         )
 
-    prov = provider or get_provider(st)
+    prov = provider or get_chat_provider(st)
     user = f"Question: {query}\n\nExcerpts:\n{_source_block(sources)}"
     try:
         raw = await prov.chat_json(_SYNTH_SYSTEM, user)
@@ -672,6 +672,9 @@ async def synthesize(
         return Synthesis(query=query, claims=_extractive(sources), sources=sources,
                          gaps=[*gaps, f"model unavailable: {exc}"], degraded=True,
                          model=prov.name)
+    finally:
+        if provider is None:
+            await prov.aclose()
 
     claims = _coerce_claims(raw, len(sources))
     if not claims:

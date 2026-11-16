@@ -43,7 +43,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from . import job_operations, service
 from .collection import CollectionScope
 from .config import Settings, split_list
-from .configfile import config_path, external_setting_keys, read_config, update_config
+from .configfile import external_setting_keys, read_config, update_config
 from .db import open_db
 from .enrich import enrich_all
 from .enrich import targets as enrichment_targets
@@ -790,7 +790,6 @@ def get_chat_provider(settings: Settings):
 
 def draft_settings(settings: Settings, changes: dict) -> Settings:
     """Validate a snapshot without re-inheriting keys from the environment."""
-    values = settings.model_dump()
     effective = dict(changes)
     for key, value in list(effective.items()):
         if value is None:
@@ -807,9 +806,7 @@ def draft_settings(settings: Settings, changes: dict) -> Settings:
             effective[key] = ''
         if key in effective and effective[key] is None:
             effective[key] = ''
-    # model_validate bypasses settings sources, while retaining field validators.
-    # All fields are passed explicitly so no process/file source can fill holes.
-    result = Settings(**{**values, **effective})
+    result = settings.validated_copy(effective)
     result.channel_settings('chat')
     result.channel_settings('embed')
     return result
@@ -940,20 +937,17 @@ def settings_view(settings: Settings, pending: dict[str, Any] | None = None) -> 
     value not change is baffling until you learn that an exported environment
     variable outranks the file, so the UI is told which keys it cannot win.
 
-    ``path`` is resolved from the environment, not from ``settings.data_dir``,
-    and that is deliberate: :class:`~facetmark.config.ConfigFileSource` reads
-    the same environment-resolved path, so this is the file the next boot will
-    actually read. Pointing it at ``settings.data_dir`` would look tidier under
-    ``serve --db /elsewhere/x.db`` and would write settings nothing ever reads.
+    ``path`` is the source retained by this instance. An explicit library uses
+    its own config file; a data_dir inside TOML may move only the database. The
+    view and write path must retain that same origin across live snapshots.
     """
     from .embedding_runtime import local_embedding_runtime
 
     locked = env_locked()
-    file_values = read_config()
+    file_values = read_config(settings.config_file_path)
     # Restart-only fields are edited as their saved values. Keep the active
     # value alongside them so a reload never makes a successful save vanish.
-    saved = Settings(**{
-        **settings.model_dump(),
+    saved = settings.validated_copy({
         **{k: v for k, v in file_values.items() if k in NEEDS_RESTART and k not in locked},
         **(pending or {}),
     })
@@ -979,7 +973,7 @@ def settings_view(settings: Settings, pending: dict[str, Any] | None = None) -> 
             "active_value": mask(active or '') if name in SECRETS else active,
             "pending_restart": pending_restart,
         })
-    return {"path": str(config_path()), "settings": rows,
+    return {"path": str(settings.config_file_path), "settings": rows,
             "local_embedding_runtime": local_embedding_runtime(),
             "summary_prompt_defaults": DEFAULT_SUMMARY_PROMPTS,
             "channels": {name: {"configured": saved.channel_ready(name),
@@ -1387,7 +1381,7 @@ def register(app: FastAPI, auth: list) -> None:
             raise HTTPException(409, "stop active replies before changing settings or privacy rules")
         if state.model_users or state.health_running:
             raise HTTPException(409, "wait for active model requests or link checks before changing settings")
-        update_config(persisted)
+        update_config(persisted, state.settings.config_file_path)
         state.settings = state.settings.model_copy(update={
             key: getattr(validated, key) for key in applied
         })
