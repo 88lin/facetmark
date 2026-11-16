@@ -1038,7 +1038,7 @@ function Workbench({
         ref={workspace}
         inert={navOpen}
         aria-hidden={navOpen}
-        className={`main-workspace ${paired && view === "library" ? "with-preview" : ""} ${selected !== null ? "has-selection" : "browse-mode"} ${selected !== null && !drawer ? "has-reader-index" : ""} ${collectionLayout === "list" ? "list-mode" : ""} ${focusReading && view === "library" ? "focus-mode" : ""}`}
+        className={`main-workspace ${paired && view === "library" ? "with-preview" : ""} ${connectionError ? "has-connection-error" : ""} ${selected !== null ? "has-selection" : "browse-mode"} ${selected !== null && !drawer ? "has-reader-index" : ""} ${collectionLayout === "list" ? "list-mode" : ""} ${focusReading && view === "library" ? "focus-mode" : ""}`}
       >
         {connectionError && (
           <div className="connection-error" role="alert">
