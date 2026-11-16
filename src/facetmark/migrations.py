@@ -362,6 +362,16 @@ def _v15_reading_notes(conn: sqlite3.Connection) -> None:
                          (row["id"], row["extra"]))
 
 
+def _v16_browser_delivery(conn: sqlite3.Connection) -> None:
+    for column in ("lease_id", "lease_url"):
+        if column not in _columns(conn, "fetch_queue"):
+            conn.execute(f"ALTER TABLE fetch_queue ADD COLUMN {column} TEXT")
+    conn.execute("UPDATE fetch_queue SET state='pending', leased_at=NULL, attempts=MAX(0,attempts-1) "
+                 "WHERE state='leased' AND lease_id IS NULL")
+    conn.execute("CREATE TABLE IF NOT EXISTS client_operation (request_id TEXT PRIMARY KEY, "
+                 "action TEXT NOT NULL, fingerprint TEXT NOT NULL, result TEXT NOT NULL, created_at INTEGER NOT NULL)")
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(2, "browser queue remembers when a retry is allowed", _v2_browser_queue_backoff),
     Migration(3, "content vectors remember what they were built from",
@@ -381,6 +391,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(13, "task acceptance and controls retain their original run across restart", _v13_task_delivery),
     Migration(14, "sync previews and accepted metadata deliveries survive restart", _v14_sync_delivery),
     Migration(15, "personal reading notes survive fetches, indexing and portable backups", _v15_reading_notes),
+    Migration(16, "browser deliveries retain original leases and accepted save receipts", _v16_browser_delivery),
 )
 
 #: What this build writes into a new database. Derived from the migration list

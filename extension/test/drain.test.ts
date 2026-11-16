@@ -15,7 +15,7 @@ const stub: Stub = install();
 let drainQueue: () => Promise<number>;
 
 const ITEM = { bookmark_id: 7, url: "https://example.com/a", title: "A", reason: "wall",
-               attempt: 1 };
+               attempt: 1, lease_id: "current-lease" };
 
 function serveOneItem(): void {
   stub.routes.set("/queue/next", () => ({
@@ -47,7 +47,11 @@ describe("drainQueue", () => {
     const n = await within(8000, drainQueue());
     assert.equal(n, 1);
     assert.deepEqual(stub.tabs.created, ["https://example.com/a"]);
-    assert.deepEqual(completions(), [
+    const [{ request_id, lease_id, source_url, ...complete }] = completions();
+    assert.match(String(request_id), /^ext-[a-f0-9-]+$/);
+    assert.equal(lease_id, "current-lease");
+    assert.equal(source_url, ITEM.url);
+    assert.deepEqual([complete], [
       { bookmark_id: 7, body: "the body of the page", title: "A Page",
         final_url: "http://127.0.0.1:8787/final" },
     ]);

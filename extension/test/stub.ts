@@ -14,13 +14,19 @@ export interface FetchCall {
   body: unknown;
 }
 
-export type TabBehaviour = "ok" | "lastError" | "noTab" | "silent";
+export type TabBehaviour = "ok" | "lastError" | "noTab" | "silent" | "complete" | "loading";
+
+type Reply = { status: number; json: unknown; raw?: string } | Response;
 
 export interface Stub {
   calls: FetchCall[];
-  routes: Map<string, () => { status: number; json: unknown }>;
+  routes: Map<string, (init: RequestInit) => Reply | Promise<Reply>>;
   settings: Record<string, unknown>;
-  tabs: { behaviour: TabBehaviour; created: string[]; removed: number[] };
+  tabs: { behaviour: TabBehaviour; created: string[]; removed: number[]; scripts: number;
+    update: (id: number, status: string) => void };
+  permissions: { allowed: boolean; grant: boolean; requested: string[][] };
+  setSettings: (patch: Record<string, unknown>) => Promise<void>;
+  sendMessage: (message: Record<string, unknown>) => Promise<Record<string, unknown>>;
   /** What `extractFromPage` would have returned. `null` renders an empty page. */
   page: { text: string; title: string; url: string } | null;
   badges: string[];
@@ -29,12 +35,23 @@ export interface Stub {
 
 const BASE = "http://127.0.0.1:8787";
 
+function browserValue<T>(value: T): T {
+  // Chrome's JSON-backed storage uses ordered dictionary keys and omits
+  // undefined object fields. structuredClone preserves the input key order,
+  // which hid a real request-identity failure on the shipped extension.
+  return JSON.parse(JSON.stringify(value, (_key, item) => item && typeof item === "object" && !Array.isArray(item)
+    ? Object.fromEntries(Object.keys(item).sort().map(key => [key, item[key]])) : item));
+}
+
 export function install(): Stub {
   const stub: Stub = {
     calls: [],
     routes: new Map(),
     settings: { endpoint: BASE, token: "t", channelB: true, paused: false },
-    tabs: { behaviour: "ok", created: [], removed: [] },
+    tabs: { behaviour: "ok", created: [], removed: [], scripts: 0, update: () => undefined },
+    permissions: { allowed: true, grant: true, requested: [] },
+    setSettings: async () => undefined,
+    sendMessage: async () => ({}),
     page: { text: "the body of the page", title: "A Page", url: `${BASE}/final` },
     badges: [],
     titles: [],
@@ -42,6 +59,8 @@ export function install(): Stub {
 
   let nextTabId = 100;
   const updated: ((id: number, info: { status?: string }) => void)[] = [];
+  const changed: ((changes: Record<string, { newValue: unknown }>, area: string) => void)[] = [];
+  const messages: ((message: Record<string, unknown>, sender: object, respond: (response: Record<string, unknown>) => void) => boolean)[] = [];
   const noop = () => undefined;
   const listener = { addListener: noop, removeListener: noop };
 
@@ -50,19 +69,39 @@ export function install(): Stub {
       id: "stub",
       lastError: undefined as { message: string } | undefined,
       onInstalled: listener,
-      onMessage: listener,
-      sendMessage: async () => ({ ok: true }),
+      onMessage: { addListener: (fn: typeof messages[number]) => messages.push(fn) },
+      sendMessage: (message: Record<string, unknown>): Promise<Record<string, unknown>> => new Promise((resolve) => {
+        for (const handle of messages) if (handle(message, {}, resolve)) return;
+        if (!messages.length) resolve({});
+      }),
     },
     contextMenus: { create: noop, onClicked: listener },
     omnibox: { onInputChanged: listener, onInputEntered: listener },
     alarms: { create: noop, onAlarm: listener },
     storage: {
+      onChanged: { addListener: (fn: typeof changed[number]) => changed.push(fn) },
       local: {
-        get: async (defaults: Record<string, unknown>) => ({ ...defaults, ...stub.settings }),
+        get: async (defaults: Record<string, unknown>) => browserValue(Object.fromEntries(
+          Object.entries(defaults).map(([key, value]) => [key, stub.settings[key] ?? value]),
+        )),
         set: async (patch: Record<string, unknown>) => {
-          Object.assign(stub.settings, patch);
+          Object.assign(stub.settings, browserValue(patch));
+          const changes = Object.fromEntries(Object.entries(patch).map(([key, newValue]) => [key, { newValue }]));
+          for (const fn of changed) fn(changes, "local");
+        },
+        remove: async (keys: string | string[]) => {
+          for (const key of typeof keys === "string" ? [keys] : keys) delete stub.settings[key];
         },
       },
+    },
+    permissions: {
+      contains: async () => stub.permissions.allowed,
+      request: async (value: { origins: string[] }) => {
+        stub.permissions.requested.push(value.origins);
+        if (stub.permissions.grant) stub.permissions.allowed = true;
+        return stub.permissions.grant;
+      },
+      onRemoved: listener,
     },
     action: {
       setBadgeText: async (o: { text: string }) => {
@@ -74,7 +113,10 @@ export function install(): Stub {
       },
     },
     scripting: {
-      executeScript: async () => [{ result: stub.page ?? { text: "", title: "", url: "" } }],
+      executeScript: async () => {
+        stub.tabs.scripts += 1;
+        return [{ result: stub.page ?? { text: "", title: "", url: "" } }];
+      },
     },
     tabs: {
       onUpdated: {
@@ -86,7 +128,8 @@ export function install(): Stub {
           if (i >= 0) updated.splice(i, 1);
         },
       },
-      create: (props: { url: string }, cb?: (tab: { id?: number } | undefined) => void) => {
+      get: async (id: number) => ({ id, status: stub.tabs.behaviour === "loading" ? "loading" : "complete" }),
+      create: (props: { url: string }, cb?: (tab: { id?: number; status?: string } | undefined) => void) => {
         stub.tabs.created.push(props.url);
         const id = nextTabId++;
         if (!cb) return Promise.resolve({ id });
@@ -104,7 +147,8 @@ export function install(): Stub {
           cb({});
           return undefined;
         }
-        cb({ id });
+        cb({ id, status: stub.tabs.behaviour === "complete" ? "complete" : "loading" });
+        if (stub.tabs.behaviour === "complete" || stub.tabs.behaviour === "loading") return undefined;
         // The worker registers its listener after `create` returns, so the
         // load event has to arrive on a later turn, as it does in a browser.
         setTimeout(() => {
@@ -127,18 +171,17 @@ export function install(): Stub {
       body: init.body ? JSON.parse(String(init.body)) : null,
     });
     const key = [...stub.routes.keys()].find((k) => path.startsWith(k));
-    const made = key ? stub.routes.get(key)!() : { status: 404, json: {} };
-    return {
-      ok: made.status >= 200 && made.status < 300,
-      status: made.status,
-      statusText: String(made.status),
-      json: async () => made.json,
-    };
+    const made = key ? await stub.routes.get(key)!(init) : { status: 404, json: {} };
+    if (made instanceof Response) return made;
+    return new Response(made.raw ?? JSON.stringify(made.json), { status: made.status });
   };
 
   const g = globalThis as unknown as Record<string, unknown>;
   g.chrome = chrome;
   g.fetch = fetchStub;
+  stub.setSettings = chrome.storage.local.set;
+  stub.sendMessage = chrome.runtime.sendMessage;
+  stub.tabs.update = (id, status) => { for (const fn of [...updated]) fn(id, { status }); };
   return stub;
 }
 
@@ -148,9 +191,14 @@ export function reset(stub: Stub): void {
   stub.tabs.created.length = 0;
   stub.tabs.removed.length = 0;
   stub.tabs.behaviour = "ok";
+  stub.tabs.scripts = 0;
+  stub.permissions.allowed = true;
+  stub.permissions.grant = true;
+  stub.permissions.requested.length = 0;
   stub.badges.length = 0;
   stub.titles.length = 0;
   stub.page = { text: "the body of the page", title: "A Page", url: `${BASE}/final` };
+  for (const key of Object.keys(stub.settings)) delete stub.settings[key];
   Object.assign(stub.settings, { endpoint: BASE, token: "t", channelB: true, paused: false });
 }
 

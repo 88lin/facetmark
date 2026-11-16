@@ -1,46 +1,70 @@
 <!doctype html>
-<html lang="en" data-palette="I">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
-    <title>Facetmark settings</title>
-    <link rel="stylesheet" href="palettes.css" />
+    <title>Facetmark · Browser extension</title>
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body class="options">
-    <header class="opt-head">
-      <img class="opt-mark" src="icons/favicon.svg" alt="" width="28" height="28" />
-      <div class="opt-head-text">
-        <h2>Facetmark</h2>
-        <p class="hint" data-i18n="opt.hint">
-          Start the server with <code>facetmark serve</code>. It prints a pairing token on
-          first run; paste it below. Nothing leaves your machine except the model calls you
-          configure on the server side.
-        </p>
-      </div>
-      <button class="lang-toggle" type="button" data-lang-toggle title="中文 / English">中文</button>
-    </header>
+    <main class="options-main">
+      <header class="opt-head">
+        <img class="opt-mark" src="icons/favicon.svg" alt="" width="44" height="44" />
+        <div class="opt-head-text">
+          <h1 data-i18n="opt.heading">Browser extension</h1>
+          <p class="hint" data-i18n="opt.intro">Search and save to your own Facetmark library.</p>
+        </div>
+        <button class="ext-button lang-toggle" type="button" data-lang-toggle title="中文 / English">中文</button>
+      </header>
 
-    <section class="opt-card">
-      <h3 class="opt-title" data-i18n="opt.connection">Connection</h3>
-      <label for="endpoint" data-i18n="opt.server">Server</label>
-      <input id="endpoint" type="text" placeholder="http://127.0.0.1:8787" />
-      <label for="token" data-i18n="opt.token">Pairing token</label>
-      <input id="token" type="text" data-i18n-attr="placeholder:opt.tokenPh" placeholder="paste the token printed by facetmark serve" />
-    </section>
+      <form id="connection-form" class="opt-section">
+        <h2 data-i18n="opt.connection">Your local connection</h2>
+        <p class="hint" data-i18n="opt.hint">Copy the address and pairing token from Facetmark Settings → Browser extension, or from facetmark serve.</p>
+        <label class="field-label" for="endpoint" data-i18n="opt.server">Server address</label>
+        <input class="ext-input" id="endpoint" type="url" placeholder="http://127.0.0.1:8787" autocomplete="url" spellcheck="false" required aria-describedby="endpoint-hint" disabled />
+        <p class="field-hint" id="endpoint-hint" data-i18n="opt.endpointHint">Use the address of your running Facetmark service.</p>
+        <label class="field-label" for="token" data-i18n="opt.token">Pairing token</label>
+        <div class="token-field">
+          <input class="ext-input" id="token" type="password" autocomplete="off" spellcheck="false" data-i18n-attr="placeholder:opt.tokenPh" placeholder="Paste the pairing token" aria-describedby="token-hint" disabled />
+          <button id="show-token" class="ext-button" type="button" aria-pressed="false" aria-controls="token" data-i18n="opt.showToken">Show</button>
+        </div>
+        <p class="field-hint" id="token-hint" data-i18n="opt.tokenHint">Stored in this browser only. Keep the token private.</p>
+        <p id="connection-draft" class="field-hint draft-note" hidden data-i18n="opt.draft">Connection changes are not saved yet.</p>
+        <div class="actions">
+          <button id="save" type="submit" class="ext-button primary" data-i18n="opt.save" disabled>Save connection</button>
+          <button id="reload-settings" type="button" class="ext-button" hidden data-i18n="opt.reloadSettings">Read changed settings</button>
+        </div>
+      </form>
 
-    <section class="opt-card">
-      <h3 class="opt-title" data-i18n="opt.options">Options</h3>
-      <label class="row"><input id="channelB" type="checkbox" /> <span data-i18n="opt.channelB">Let Facetmark read pages the server cannot fetch</span></label>
-      <label class="row"><input id="paused" type="checkbox" /> <span data-i18n="opt.paused">Pause background fetching</span></label>
-    </section>
+      <section class="opt-section" aria-labelledby="reading-heading">
+        <h2 id="reading-heading" data-i18n="opt.options">Reading through the browser</h2>
+        <p class="hint" data-i18n="opt.readingHint">Optional. Read queued pages in temporary tabs using the browser's current access, then save the text to your local library.</p>
+        <label class="check-row"><input id="channelB" type="checkbox" disabled /><span data-i18n="opt.channelB">Allow browser page reading</span></label>
+        <label class="check-row"><input id="paused" type="checkbox" disabled /><span data-i18n="opt.paused">Pause background reading</span></label>
+        <p class="field-hint" data-i18n="opt.switchHint">These switches take effect immediately on the saved connection. Pausing closes the current temporary tab.</p>
+        <div class="actions">
+          <button id="drain" type="button" class="ext-button" data-i18n="opt.drain" disabled>Read queued pages now</button>
+          <button id="refresh" type="button" class="ext-button" data-i18n="opt.refresh" disabled>Refresh status</button>
+        </div>
+      </section>
 
-    <div id="state" role="status" aria-live="polite"></div>
-    <div class="actions">
-      <button id="save" type="button" class="primary" data-i18n="opt.save">save</button>
-      <button id="drain" type="button" data-i18n="opt.drain">fetch queued pages now</button>
-    </div>
+      <div id="state" class="connection-status" role="status" aria-live="polite" aria-atomic="true"></div>
 
+      <section id="pending-panel" class="opt-section pending-panel" aria-labelledby="pending-heading" hidden>
+        <div class="section-heading">
+          <h2 id="pending-heading" data-i18n="opt.pendingHeading">Original requests to confirm</h2>
+          <span id="pending-count" class="pending-count"></span>
+        </div>
+        <p class="hint" data-i18n="opt.pendingHint">The original request stays here when its result is unclear. Confirming only checks what was accepted. Continuing sends the original content.</p>
+        <div id="pending-results"></div>
+        <div class="actions pending-actions">
+          <button id="confirm" type="button" class="ext-button" data-i18n="opt.confirm">Check accepted results</button>
+          <button id="retry-results" type="button" class="ext-button" hidden data-i18n="opt.retryResults">Send original reading results</button>
+          <button id="discard" type="button" class="ext-button danger" data-i18n="opt.discard">Clear these local requests</button>
+        </div>
+      </section>
+    </main>
     <script type="module" src="options.js"></script>
   </body>
 </html>
