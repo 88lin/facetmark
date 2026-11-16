@@ -54,7 +54,7 @@ async function openTasks(page: Page) {
 }
 async function openSetupTasks(page: Page) {
   await page.goto("/app");
-  await page.getByRole("button", { name: "导入", exact: true }).click();
+  await page.getByRole("button", { name: "导入书签", exact: true }).click();
   await page.getByRole("button", { name: "打开完整向导", exact: true }).click();
   const steps = page.getByRole("navigation", { name: "设置步骤", exact: true });
   await steps.getByRole("button", { name: /连接模型/ }).click();
