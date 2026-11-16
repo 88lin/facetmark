@@ -798,10 +798,10 @@ def config_show_cmd(json_out: bool = typer.Option(False, "--json")) -> None:
     always a variable exported in one shell and not another, and the only way
     to see that is to print the winner alongside its origin.
     """
-    from .configfile import config_path, external_setting_keys, read_config
+    from .configfile import external_setting_keys, read_config
 
-    file_keys = set(read_config())
     st = get_settings()
+    file_keys = set(read_config(st.config_file_path))
     external = external_setting_keys(Settings.model_fields)
     rows = []
     for name in sorted(Settings.model_fields):
@@ -815,7 +815,7 @@ def config_show_cmd(json_out: bool = typer.Option(False, "--json")) -> None:
         if name in {"api_key", "chat_api_key", "embed_api_key", "mcp_token"}:
             value = _mask(str(value or ""))
         rows.append({"key": name, "value": value, "source": source})
-    if _emit({"path": str(config_path()), "settings": rows}, json_out):
+    if _emit({"path": str(st.config_file_path), "settings": rows}, json_out):
         return
     from rich import box
 
@@ -826,7 +826,7 @@ def config_show_cmd(json_out: bool = typer.Option(False, "--json")) -> None:
     for row in rows:
         table.add_row(row["key"], str(row["value"]), row["source"])
     console.print(table)
-    err.print(f"[dim]file: {config_path()}[/dim]")
+    err.print(f"[dim]file: {st.config_file_path}[/dim]")
 
 
 @app.command()
