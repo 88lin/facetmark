@@ -1,5 +1,6 @@
 import { api, ApiError, loadSettings, normalizeEndpoint, type SaveBody, type SaveResult, type Settings } from "./api.ts";
 import { FETCH_DELIVERIES_KEY, ownerKey } from "./delivery.ts";
+import { sameRequest } from "./request-value.ts";
 
 export interface PendingSave {
   version: 1;
@@ -37,7 +38,7 @@ async function put(value: PendingSave): Promise<void> {
     if (all.length >= 24) throw new Error("Confirm pending saves before saving another page");
     all.push(value);
   } else {
-    if (all[index].owner !== value.owner || JSON.stringify(all[index].body) !== JSON.stringify(value.body)) {
+    if (all[index].owner !== value.owner || !sameRequest(all[index].body, value.body)) {
       throw new Error("The original saved-page request changed; keep it for review");
     }
     all[index] = value;

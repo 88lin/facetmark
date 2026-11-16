@@ -1,4 +1,5 @@
 import { type CompleteBody, normalizeEndpoint, type Settings } from "./api.ts";
+import { sameRequest } from "./request-value.ts";
 
 export interface PendingDelivery {
   version: 1;
@@ -41,7 +42,7 @@ export async function putDelivery(delivery: PendingDelivery): Promise<void> {
     if (all.length >= LIMIT) throw new Error("Finish pending browser results before reading more pages");
     all.push(delivery);
   } else {
-    if (all[index].owner !== delivery.owner || JSON.stringify(all[index].body) !== JSON.stringify(delivery.body)) {
+    if (all[index].owner !== delivery.owner || !sameRequest(all[index].body, delivery.body)) {
       throw new Error("The original browser result changed; keep it for review");
     }
     all[index] = delivery;

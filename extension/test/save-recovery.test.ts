@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, beforeEach, test } from "node:test";
 import { api, ApiError } from "../src/api.ts";
-import { ownerKey, putDelivery } from "../src/delivery.ts";
+import { ownerKey, putDelivery, readDeliveries } from "../src/delivery.ts";
 import { confirmSaves, readSaves, retrySave, savePage } from "../src/save-delivery.ts";
 import { install, reset } from "./stub.ts";
 
@@ -14,6 +14,27 @@ function lostSave(): void {
   stub.routes.set("/bookmark", () => ({ status: 503, json: { detail: "Synthetic response lost" } }));
   stub.routes.set("/client/operations/", () => ({ status: 404, json: {} }));
 }
+
+test("Chrome storage key ordering preserves the real delivery failure and original retry", async () => {
+  lostSave();
+  await assert.rejects(savePage(page), /Synthetic response lost/);
+  const [stored] = await readSaves();
+  assert.deepEqual(stub.calls[0].body, stored.body);
+  stub.routes.set("/bookmark", () => ({ status: 200, json: { bookmark_id: 8, created: true } }));
+  assert.equal((await retrySave(stored.body.request_id)).bookmark_id, 8);
+  assert.deepEqual(stub.calls.filter(call => call.path === "/bookmark").map(call => call.body), [stored.body, stored.body]);
+});
+
+test("browser text updates ignore stored key order and still reject changed original text", async () => {
+  const original = { version: 1 as const, owner: "original-owner", savedAt: 100, body: {
+    source_url: page.url, lease_id: "original-lease", bookmark_id: 7, request_id: "reading-original", body: "Original page body", title: undefined,
+  } };
+  await putDelivery(original);
+  await putDelivery({ ...original, error: "Synthetic delivery error" });
+  assert.equal((await readDeliveries())[0].body.body, "Original page body");
+  await assert.rejects(putDelivery({ ...original, body: { ...original.body, body: "Later different body" } }), /changed/);
+  assert.equal((await readDeliveries())[0].body.body, "Original page body");
+});
 
 test("the page payload is frozen before the first await including nested tags", async () => {
   lostSave();

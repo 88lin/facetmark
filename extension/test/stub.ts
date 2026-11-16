@@ -35,6 +35,14 @@ export interface Stub {
 
 const BASE = "http://127.0.0.1:8787";
 
+function browserValue<T>(value: T): T {
+  // Chrome's JSON-backed storage uses ordered dictionary keys and omits
+  // undefined object fields. structuredClone preserves the input key order,
+  // which hid a real request-identity failure on the shipped extension.
+  return JSON.parse(JSON.stringify(value, (_key, item) => item && typeof item === "object" && !Array.isArray(item)
+    ? Object.fromEntries(Object.keys(item).sort().map(key => [key, item[key]])) : item));
+}
+
 export function install(): Stub {
   const stub: Stub = {
     calls: [],
@@ -73,11 +81,11 @@ export function install(): Stub {
     storage: {
       onChanged: { addListener: (fn: typeof changed[number]) => changed.push(fn) },
       local: {
-        get: async (defaults: Record<string, unknown>) => structuredClone(Object.fromEntries(
+        get: async (defaults: Record<string, unknown>) => browserValue(Object.fromEntries(
           Object.entries(defaults).map(([key, value]) => [key, stub.settings[key] ?? value]),
         )),
         set: async (patch: Record<string, unknown>) => {
-          Object.assign(stub.settings, structuredClone(patch));
+          Object.assign(stub.settings, browserValue(patch));
           const changes = Object.fromEntries(Object.entries(patch).map(([key, newValue]) => [key, { newValue }]));
           for (const fn of changed) fn(changes, "local");
         },
