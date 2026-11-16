@@ -29,8 +29,12 @@ export type ConversationSummary = {
   updated_at: number;
   message_count?: number;
   running: boolean;
+  profile_id?: string;
 };
 
-export type Conversation = ConversationSummary & { messages: ChatMessage[] };
+export type Conversation = ConversationSummary & {
+  messages: ChatMessage[];
+  delivery?: { request_id: string; accepted: boolean; running: boolean };
+};
 
 export type ChatLaunch = { nonce: number; bookmark_ids: number[]; title?: string };

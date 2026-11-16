@@ -76,6 +76,21 @@ def test_replaying_an_earlier_retry_after_a_later_retry_never_buys_an_extra_repl
     assert len(state._provider.calls) == 3
     assert repeated.json()["messages"][-1]["request_id"] == "retry-two"
     assert repeated.json()["messages"][-1]["status"] == "error"
+    assert repeated.json()["delivery"] == {"request_id": "retry-one", "accepted": True, "running": False}
+    restored = client.get(f"/chat/conversations/{cid}", params={"request_id": "retry-one"})
+    assert restored.json()["delivery"] == repeated.json()["delivery"]
+    assert len(state._provider.calls) == 3
+
+
+def test_unknown_delivery_read_does_not_submit_a_question_or_infer_acceptance_from_another_reply(client):
+    state = client.app.state.fm
+    cid = create(client, [seed(state, "read-only-recovery")])["id"]
+    ask(client, cid, request_id="accepted-question")
+    result = client.get(f"/chat/conversations/{cid}", params={"request_id": "never-submitted"})
+    assert result.status_code == 200, result.text
+    assert result.json()["delivery"] == {"request_id": "never-submitted", "accepted": False, "running": False}
+    assert len(result.json()["messages"]) == 2 and len(state._provider.calls) == 1
+    assert client.get(f"/chat/conversations/{cid}", params={"request_id": "/invalid"}).status_code == 422
 
 
 def saved_connection(client, monkeypatch, name="Detailed answers", model="chat-only-model", **overrides):
@@ -157,3 +172,15 @@ def test_named_chat_does_not_construct_an_unavailable_local_encoder(client, monk
     cid = create(client, [seed(state, "chat-without-encoder")])["id"]
     answer = ask(client, cid, profile_id=profile["id"])
     assert answer["messages"][-1]["model"] == "chat-only-model"
+
+
+def test_environment_controlled_chat_fields_reject_a_different_named_connection(client, monkeypatch):
+    state = client.app.state.fm
+    profile = saved_connection(client, monkeypatch)
+    cid = create(client, [seed(state, "environment-owned-connection")])["id"]
+    monkeypatch.setattr(admin, "env_locked", lambda: frozenset({"chat_model"}))
+    response = client.post(f"/chat/conversations/{cid}/messages",
+                           json={"text": "Use the named connection", "profile_id": profile["id"], "request_id": "environment-rejected"})
+    assert response.status_code == 409, response.text
+    result = client.get(f"/chat/conversations/{cid}", params={"request_id": "environment-rejected"}).json()
+    assert result["messages"] == [] and not result["delivery"]["accepted"] and not state._provider.calls

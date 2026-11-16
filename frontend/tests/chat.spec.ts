@@ -324,7 +324,12 @@ test("missing models lead to settings and deleting history requires confirmation
   const fixture = await chatFixture(page, { tested: false, seed: true });
   await page.addInitScript(() => localStorage.setItem("fm-chat-current", "saved-chat"));
   await page.goto("/app#chat");
-  await expect(page.getByRole("textbox", { name: "对收藏提问", exact: true })).toBeDisabled();
+  const question = page.getByRole("textbox", { name: "对收藏提问", exact: true });
+  await expect(question).toBeEnabled();
+  await question.fill("先保留问题，再配置模型"); await question.press("Enter");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeDisabled();
+  await page.reload(); await expect(question).toHaveValue("先保留问题，再配置模型");
+  expect(fixture.sent).toHaveLength(0);
   await expect(page.getByRole("button", { name: "设置 AI 连接", exact: true })).toBeVisible();
   await expect(page.locator(".chat-message.assistant")).toContainText("将任务目标保存为快照");
   await page.getByRole("button", { name: "历史", exact: true }).click();

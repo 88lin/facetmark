@@ -112,7 +112,7 @@ def _metadata(conn: sqlite3.Connection, row, runs: dict) -> dict:
             "running": row["id"] in runs and not runs[row["id"]].done()}
 
 
-def conversation(conn: sqlite3.Connection, conversation_id: str, runs: dict) -> dict:
+def conversation(conn: sqlite3.Connection, conversation_id: str, runs: dict, request_id: str = "") -> dict:
     row = conn.execute("SELECT * FROM chat_conversation WHERE id=?", (conversation_id,)).fetchone()
     if row is None:
         raise HTTPException(404, "Conversation no longer exists")
@@ -120,6 +120,13 @@ def conversation(conn: sqlite3.Connection, conversation_id: str, runs: dict) -> 
     data["messages"] = [{**dict(message), "sources": jload(message["sources"])}
                         for message in conn.execute("SELECT * FROM chat_message WHERE conversation_id=? ORDER BY id LIMIT ?",
                                                     (conversation_id, MAX_MESSAGES))]
+    if request_id:
+        accepted = conn.execute("SELECT 1 FROM chat_operation WHERE conversation_id=? AND request_id=?",
+                                (conversation_id, request_id)).fetchone() is not None
+        matching = [message for message in data["messages"] if message["request_id"] == request_id]
+        data["delivery"] = {"request_id": request_id, "accepted": accepted or bool(matching),
+                            "running": bool(data["running"] and any(message["role"] == "assistant" and
+                                            message["status"] == "pending" for message in matching))}
     return data
 
 
@@ -358,10 +365,11 @@ def register(app: FastAPI, auth: list) -> None:
             return conversation(state.conn, conversation_id, state.chat_runs)
 
     @app.get("/chat/conversations/{conversation_id}", dependencies=auth)
-    async def get_conversation(conversation_id: str, request: Request) -> dict:
+    async def get_conversation(conversation_id: str, request: Request,
+                               request_id: str = Query(default="", max_length=128, pattern=r"^[\w.-]*$")) -> dict:
         state = request.app.state.fm
         async with state.lock:
-            return conversation(state.conn, conversation_id, state.chat_runs)
+            return conversation(state.conn, conversation_id, state.chat_runs, request_id)
 
     @app.delete("/chat/conversations/{conversation_id}", dependencies=auth)
     async def delete_conversation(conversation_id: str, request: Request) -> dict:
@@ -419,7 +427,7 @@ def register(app: FastAPI, auth: list) -> None:
         state = request.app.state.fm
         request_id = body.request_id or uuid.uuid4().hex
         async with state.lock:
-            data = conversation(state.conn, conversation_id, state.chat_runs)
+            data = conversation(state.conn, conversation_id, state.chat_runs, request_id)
             delivery_fingerprint = _fingerprint({**body.model_dump(exclude={"request_id"}), "text": body.text.strip()})
             receipt = state.conn.execute("SELECT fingerprint FROM chat_operation WHERE conversation_id=? AND request_id=?",
                                          (conversation_id, request_id)).fetchone()
@@ -492,7 +500,7 @@ def register(app: FastAPI, auth: list) -> None:
             state.conn.commit()
             if cancelled_before_delivery:
                 state.chat_cancellations.pop(cancellation_key, None)
-                return conversation(state.conn, conversation_id, state.chat_runs)
+                return conversation(state.conn, conversation_id, state.chat_runs, request_id)
             # Named connections own a chat-only client. The shared provider is
             # consulted for embeddings only when verified vectors actually exist.
             provider = None if profile_id else state._provider
@@ -512,4 +520,4 @@ def register(app: FastAPI, auth: list) -> None:
         with contextlib.suppress(asyncio.CancelledError):
             await asyncio.shield(task)
         async with state.lock:
-            return conversation(state.conn, conversation_id, state.chat_runs)
+            return conversation(state.conn, conversation_id, state.chat_runs, request_id)

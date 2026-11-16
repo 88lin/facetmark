@@ -24,8 +24,8 @@ async function fixture(page: Page, count = 2) {
         total: conversation ? 1 : 0 } });
     if (path.endsWith("/messages") && request.method() === "POST") {
       conversation = { ...conversation, running: false, messages: [
-        { id: 1, role: "user", content: "一起讨论", sources: [], status: "complete", model: "", created_at: 1792886400 },
-        { id: 2, role: "assistant", content: "来自两篇收藏的回答。", sources: [], status: "complete", model: "synthetic", created_at: 1792886400 },
+        { id: 1, role: "user", content: "一起讨论", request_id: request.postDataJSON().request_id, sources: [], status: "complete", model: "", created_at: 1792886400 },
+        { id: 2, role: "assistant", content: "来自两篇收藏的回答。", request_id: request.postDataJSON().request_id, sources: [], status: "complete", model: "synthetic", created_at: 1792886400 },
       ] };
       return route.fulfill({ json: conversation });
     }
