@@ -68,6 +68,14 @@ retains editable drafts while sending remains gated by the real connection state
 The user authorized per-module PRs and merges after verification; formal releases
 remain separate. The overall visual direction still has no user aesthetic approval.
 
+2026-11-17 workspace refinement preserves usable keyword results when semantic
+ranking fails and provides an explicit retry beside that stage. Paging waits for
+the same ranking snapshot; selection and reading stay available after the keyword
+first paint. Narrow reader controls use compact visible copy with full accessible
+names and a single-line position. Narrow chat places the connection label and
+native selector on one row. Current source and cloud verification are recorded in
+docs/full-product-repair-2026-11-16.md; static checks do not approve the visuals.
+
 2026-10-28 continuation: narrow saving sessions place icon/count above a full-width
 title; month cells use short month/day ranges and retain full accessible dates.
 Tested model drafts save without repeating the test, and saved connections expose

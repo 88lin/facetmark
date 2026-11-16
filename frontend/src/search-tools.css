@@ -1,3 +1,27 @@
+.search-ranking-recovery {
+  flex: none;
+  min-width: 0;
+  margin: 2px 5px 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--selected-edge);
+  border-radius: 18px;
+  background: var(--inset);
+  color: var(--secondary-ink);
+  font-size: var(--type-meta);
+  line-height: 1.7;
+}
+.search-ranking-recovery > p { margin: 0 0 8px; }
+.search-ranking-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.search-ranking-actions .fm-button { min-height: 36px; padding: 6px 12px; font-size: inherit; }
+.search-ranking-actions details { min-width: 0; max-width: 100%; }
+.search-ranking-actions summary { padding: 6px 0; color: var(--accent); cursor: pointer; }
+.search-ranking-actions summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.search-ranking-actions details[open] { flex-basis: 100%; }
+.search-ranking-actions details p { margin: 4px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+@media (max-width: 719px) {
+  .search-ranking-recovery { margin-inline: 0; padding: 10px 12px; }
+  .search-ranking-actions .fm-button { min-height: 44px; }
+}
 .query-tool .query-help.query-suggestions,
 .query-tool .query-help.query-suggestions[open] {
   position: relative;

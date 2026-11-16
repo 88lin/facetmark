@@ -139,10 +139,12 @@ test("reader index reveals the whole selection after layout motion and restores 
 });
 
 test("narrow reading leaves the collection layout and scroll in place through consecutive previews", async ({ page }) => {
+  test.setTimeout(60_000);
   await savedTextFixture(page);
   const measurements = [];
-  for (const width of [390, 1024]) {
-    await page.setViewportSize({ width, height: 900 });
+  for (const { width, height } of [{ width: 390, height: 900 }, { width: 1024, height: 900 },
+    { width: 320, height: 640 }, { width: 320, height: 384 }]) {
+    await page.setViewportSize({ width, height });
     await page.goto("/app");
     await expect(page.locator(".result-row")).toHaveCount(30);
     const opener = page.locator(".result-row").nth(12);
@@ -165,13 +167,30 @@ test("narrow reading leaves the collection layout and scroll in place through co
         columns: getComputedStyle(element).gridTemplateColumns,
       }));
       expect(current).toEqual(before);
+      const toolbar = await page.locator(".preview-drawer .preview-heading").evaluate(element => {
+        const header = element.getBoundingClientRect();
+        const count = element.querySelector(".reader-count")!;
+        const text = document.createRange(); text.selectNodeContents(count);
+        return { countLines: text.getClientRects().length, buttons: [...element.querySelectorAll("button")].map(button => {
+          const box = button.getBoundingClientRect();
+          return { left: box.left, right: box.right, top: box.top, bottom: box.bottom };
+        }), left: header.left, right: header.right, top: header.top, bottom: header.bottom };
+      });
+      expect(toolbar.countLines).toBe(1);
+      for (const button of toolbar.buttons) {
+        expect(button.left).toBeGreaterThanOrEqual(toolbar.left);
+        expect(button.right).toBeLessThanOrEqual(toolbar.right);
+        expect(button.top).toBeGreaterThanOrEqual(toolbar.top);
+        expect(button.bottom).toBeLessThanOrEqual(toolbar.bottom);
+      }
     }
-    await capture(page, `reader-background-context-${width}`);
+    await expect(page.getByRole("button", { name: "返回收藏", exact: true })).toBeVisible();
+    await capture(page, `reader-background-context-${width}-${height}`);
     await page.keyboard.press("Escape");
     await settleVisualLayout(page);
     expect(await page.locator(".result-list").evaluate(element => element.scrollTop)).toBe(before.scroll);
     await expect(opener.locator(".bookmark-preview")).toBeFocused();
-    measurements.push({ width, ...before });
+    measurements.push({ width, height, ...before });
   }
   await writeFile(`${output}/reader-background-context.json`, JSON.stringify(measurements, null, 2));
 });

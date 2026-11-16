@@ -299,9 +299,11 @@ export default function Reader({
     <>
       <header className="preview-heading">
         {selected !== null && (
-          <CapsuleButton className="reader-back" onClick={onClose}>
+          <CapsuleButton className="reader-back" onClick={onClose}
+            aria-label={t("返回收藏", "Back to collection")} title={t("返回收藏", "Back to collection")}>
             <ArrowLeft size={17} />
-            <span>{t("返回收藏", "Back to collection")}</span>
+            <span className="reader-back-label">{t("返回收藏", "Back to collection")}</span>
+            <span className="reader-back-compact" aria-hidden="true">{t("返回", "Back")}</span>
           </CapsuleButton>
         )}
         <div className="reader-actions">

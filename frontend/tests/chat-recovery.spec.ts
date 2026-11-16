@@ -358,11 +358,22 @@ test("chat controls and long connection states remain reachable in both themes a
         const messages = element.querySelector(".chat-messages")!.getBoundingClientRect();
         const composer = element.querySelector(".chat-composer")!.getBoundingClientRect();
         const status = element.querySelector(".chat-composer-status")!.getBoundingClientRect();
+        const choice = element.querySelector(".chat-model-choice label")!.getBoundingClientRect();
+        const label = element.querySelector(".chat-model-choice label > span")!.getBoundingClientRect();
+        const connection = element.querySelector("#chat-connection")!.getBoundingClientRect();
         return { messagesBottom: messages.bottom, messagesHeight: messages.height, composerTop: composer.top,
-          composerBottom: composer.bottom, statusBottom: status.bottom, viewport: innerHeight };
+          composerBottom: composer.bottom, statusBottom: status.bottom, viewport: innerHeight,
+          choiceHeight: choice.height, labelRight: label.right, connectionLeft: connection.left,
+          connectionHeight: connection.height };
       });
       expect(bounds.messagesHeight).toBeGreaterThan(40); expect(bounds.messagesBottom).toBeLessThanOrEqual(bounds.composerTop);
       expect(bounds.statusBottom).toBeLessThanOrEqual(bounds.composerTop); expect(bounds.composerBottom).toBeLessThanOrEqual(bounds.viewport);
+      if (size.width < 720) {
+        expect(bounds.choiceHeight).toBeLessThanOrEqual(bounds.connectionHeight + 1);
+        expect(bounds.labelRight).toBeLessThanOrEqual(bounds.connectionLeft);
+        expect(bounds.connectionHeight).toBeGreaterThanOrEqual(44);
+      }
+      await expect(page.getByRole("combobox", { name: language === "zh" ? "本段对话的模型连接" : "Connection for this conversation", exact: true })).toBeVisible();
       await page.screenshot({ path: `screenshots/collection-review/chat-connections-${language}-${theme}-${size.width}-${size.height}.png`, animations: "disabled" });
     }
   }
