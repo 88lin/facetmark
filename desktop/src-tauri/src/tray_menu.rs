@@ -183,7 +183,7 @@ pub fn start_ci_inspection(app: &tauri::AppHandle) {
                                 use windows_sys::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
                                 let hwnd = menu.hwnd().ok().map(|hwnd| hwnd.0 as usize);
                                 let foreground_before = unsafe { GetForegroundWindow() } as usize;
-                                focus_changed(menu.as_ref(), false);
+                                focus_changed(&menu.as_ref().window(), false);
                                 ci_record("tray-focus-replay-native.json", serde_json::json!({
                                     "process": std::process::id(), "sequence": sequence,
                                     "menu_hwnd": hwnd, "foreground_before": foreground_before,
