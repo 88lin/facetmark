@@ -148,7 +148,8 @@ CREATE TABLE IF NOT EXISTS chat_conversation (
     title TEXT NOT NULL,
     bookmark_ids TEXT NOT NULL DEFAULT '[]',
     created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+    updated_at INTEGER NOT NULL,
+    profile_id TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS ix_chat_conversation_updated ON chat_conversation(updated_at DESC,id);
 CREATE TABLE IF NOT EXISTS chat_message (
@@ -165,6 +166,19 @@ CREATE TABLE IF NOT EXISTS chat_message (
 CREATE INDEX IF NOT EXISTS ix_chat_messages ON chat_message(conversation_id,id);
 CREATE UNIQUE INDEX IF NOT EXISTS ix_chat_request ON chat_message(conversation_id,request_id)
     WHERE role='user' AND request_id!='';
+
+-- HTTP delivery receipts outlive assistant retries, whose message row is reused.
+CREATE TABLE IF NOT EXISTS chat_operation (
+    conversation_id TEXT NOT NULL REFERENCES chat_conversation(id) ON DELETE CASCADE,
+    request_id TEXT NOT NULL,
+    fingerprint TEXT NOT NULL,
+    PRIMARY KEY(conversation_id,request_id)
+);
+CREATE TABLE IF NOT EXISTS chat_creation (
+    request_id TEXT PRIMARY KEY,
+    fingerprint TEXT NOT NULL,
+    conversation_id TEXT REFERENCES chat_conversation(id) ON DELETE SET NULL
+);
 
 -- Facet 2: hypothetical queries generated from the page (doc2query), then
 -- filtered for self-consistency. `kept=1` rows are the ones that get embedded.
