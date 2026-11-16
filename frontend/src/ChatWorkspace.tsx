@@ -351,7 +351,10 @@ export function ChatWorkspace({ active, launch, setup, language, onPreview, onSe
         <label className="sr-only" htmlFor="chat-question">{t("对收藏提问", "Ask about bookmarks")}</label>
         <textarea id="chat-question" ref={editor} value={draft} maxLength={4000} rows={2} disabled={loading || !ready || Boolean(cancelling)}
           placeholder={pinned.length ? t("追问这篇收藏的内容…", "Ask about this saved page…") : t("想从收藏里了解什么？", "What would you like to learn from your bookmarks?")}
-          onChange={event => setDrafts(previous => ({ ...previous, [currentKey]: event.target.value }))}
+          onChange={event => {
+            const text = event.currentTarget.value;
+            setDrafts(previous => ({ ...previous, [currentKey]: text }));
+          }}
           onKeyDown={event => {
             if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) {
               event.preventDefault(); if (!running) void send();

@@ -112,14 +112,23 @@ export function SiteImport({ refresh, onDone, disabled = false, onActiveChange }
     <form className="site-import-form" onSubmit={event => { event.preventDefault(); void run("start"); }}>
       <label className="site-import-url">{t("起始网址", "Starting URL")}
         <input type="url" required maxLength={8192} placeholder="https://example.com/docs/" value={options.start_url}
-          disabled={disabled || running || Boolean(busy)} onChange={event => setOptions(value => ({ ...value, start_url: event.target.value }))}/>
+          disabled={disabled || running || Boolean(busy)} onChange={event => {
+            const start_url = event.currentTarget.value;
+            setOptions(value => ({ ...value, start_url }));
+          }}/>
       </label>
       <label>{t("最多扫描页数", "Maximum pages to scan")}
         <input type="number" min={1} max={500} step={1} required value={options.max_pages}
-          disabled={disabled || running || Boolean(busy)} onChange={event => setOptions(value => ({ ...value, max_pages: Number(event.target.value) }))}/>
+          disabled={disabled || running || Boolean(busy)} onChange={event => {
+            const max_pages = Number(event.currentTarget.value);
+            setOptions(value => ({ ...value, max_pages }));
+          }}/>
       </label>
       <label className="check-row site-import-scope"><input type="checkbox" checked={options.same_domain}
-        disabled={disabled || running || Boolean(busy)} onChange={event => setOptions(value => ({ ...value, same_domain: event.target.checked }))}/>
+        disabled={disabled || running || Boolean(busy)} onChange={event => {
+          const same_domain = event.currentTarget.checked;
+          setOptions(value => ({ ...value, same_domain }));
+        }}/>
         {t("只跟随同站点链接", "Follow same-site links only")}</label>
       <div className="site-import-actions">
         {running ? <CapsuleButton type="button" className="secondary" disabled={Boolean(busy)} onClick={() => run("stop")}>

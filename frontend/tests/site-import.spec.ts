@@ -63,6 +63,22 @@ test("site import defaults to a small same-site budget and shows real outcomes",
   await page.screenshot({ path: "screenshots/collection-review/polish-site-import-partial.png", fullPage: true });
 });
 
+test("quick edits keep the full URL, page budget and same-site choice in the submitted snapshot", async ({ page }) => {
+  const control = await fixture(page), panel = await enter(page);
+  const url = panel.getByLabel("起始网址", { exact: true });
+  await url.pressSequentially("https://docs.synthetic.invalid/guide/?page=12");
+  const budget = panel.getByLabel("最多扫描页数", { exact: true });
+  await budget.fill("120");
+  await budget.press("End");
+  await budget.press("Backspace");
+  await budget.press("8");
+  await panel.getByLabel("只跟随同站点链接", { exact: true }).uncheck();
+  await panel.getByRole("button", { name: "开始网站导入", exact: true }).click();
+  await expect.poll(() => control.starts[0]).toEqual({
+    start_url: "https://docs.synthetic.invalid/guide/?page=12", max_pages: 128, same_domain: false,
+  });
+});
+
 test("Stop joins the active task once and retains imported pages and the rerun parameters", async ({ page }) => {
   const control = await fixture(page), panel = await enter(page);
   await panel.getByLabel("起始网址", { exact: true }).fill("https://docs.synthetic.invalid/");
