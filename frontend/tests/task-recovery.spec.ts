@@ -106,11 +106,13 @@ test(`a lost real summary start survives refresh and status failure at ${viewpor
   await expect(recovery.getByRole("button", { name: "读取任务结果", exact: true })).toBeEnabled();
   const original = structuredClone(control.starts[0]); expect(original.bookmark_ids).toEqual([record.bookmark_id]);
   await expect.poll(async () => (await pending(page))[0]?.requestId).toBe(original.request_id);
-  const previousReads = control.reads; await page.reload();
+  // Activate the status outage before reload's initial status read. Waiting
+  // for an unrelated 4-second poll made this state timing-dependent at 320px.
+  const previousReads = control.reads; control.failCurrent = true; await page.reload();
   await expect(recovery).toBeVisible(); await expect.poll(() => control.reads).toBeGreaterThan(previousReads);
   await expect(recovery.getByRole("button", { name: "读取任务结果", exact: true })).toBeEnabled();
   expect(control.starts).toEqual([original]);
-  control.failReceipts = false; control.failCurrent = true;
+  control.failReceipts = false;
   await expect(page.locator(".connection-error")).toBeVisible();
   await page.screenshot({ path: `screenshots/collection-review/task-connection-error-${viewport.width}-${viewport.height}.png` });
   await recovery.getByRole("button", { name: "读取任务结果", exact: true }).click();
