@@ -158,6 +158,7 @@ test("narrow reading leaves the collection layout and scroll in place through co
     expect(before.scroll).toBeGreaterThan(0);
     await opener.locator(".bookmark-preview").click();
     await expect(page.locator(".body-text")).toBeVisible();
+    const toolbars = [];
     for (const action of [null, "下一条收藏", "上一条收藏"] as const) {
       if (action) await page.getByRole("button", { name: action, exact: true }).press("Enter");
       await settleVisualLayout(page);
@@ -171,18 +172,31 @@ test("narrow reading leaves the collection layout and scroll in place through co
         const header = element.getBoundingClientRect();
         const count = element.querySelector(".reader-count")!;
         const text = document.createRange(); text.selectNodeContents(count);
-        return { countLines: text.getClientRects().length, buttons: [...element.querySelectorAll("button")].map(button => {
+        const countRects = [...text.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0)
+          .map(rect => ({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom }));
+        // React renders the two numbers and separator as separate text nodes.
+        // Count their actual vertical lines, retaining every measured fragment.
+        const lineTops: number[] = [];
+        for (const rect of countRects) if (!lineTops.some(top => Math.abs(top - rect.top) <= 1)) lineTops.push(rect.top);
+        return { countRects, countLines: lineTops.length, buttons: [...element.querySelectorAll("button")].map(button => {
           const box = button.getBoundingClientRect();
           return { left: box.left, right: box.right, top: box.top, bottom: box.bottom };
         }), left: header.left, right: header.right, top: header.top, bottom: header.bottom };
       });
       expect(toolbar.countLines).toBe(1);
+      for (const rect of toolbar.countRects) {
+        expect(rect.left).toBeGreaterThanOrEqual(toolbar.left);
+        expect(rect.right).toBeLessThanOrEqual(toolbar.right);
+        expect(rect.top).toBeGreaterThanOrEqual(toolbar.top);
+        expect(rect.bottom).toBeLessThanOrEqual(toolbar.bottom);
+      }
       for (const button of toolbar.buttons) {
         expect(button.left).toBeGreaterThanOrEqual(toolbar.left);
         expect(button.right).toBeLessThanOrEqual(toolbar.right);
         expect(button.top).toBeGreaterThanOrEqual(toolbar.top);
         expect(button.bottom).toBeLessThanOrEqual(toolbar.bottom);
       }
+      toolbars.push({ action: action ?? "open", ...toolbar });
     }
     await expect(page.getByRole("button", { name: "返回收藏", exact: true })).toBeVisible();
     await capture(page, `reader-background-context-${width}-${height}`);
@@ -190,7 +204,7 @@ test("narrow reading leaves the collection layout and scroll in place through co
     await settleVisualLayout(page);
     expect(await page.locator(".result-list").evaluate(element => element.scrollTop)).toBe(before.scroll);
     await expect(opener.locator(".bookmark-preview")).toBeFocused();
-    measurements.push({ width, height, ...before });
+    measurements.push({ width, height, ...before, toolbars });
   }
   await writeFile(`${output}/reader-background-context.json`, JSON.stringify(measurements, null, 2));
 });

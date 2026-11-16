@@ -70,7 +70,7 @@ test("keyword first paint remains usable while paging waits for the same ranked 
     await expect(page.locator(".collection-hint")).toHaveText("语义检索结果");
     await expect(page.getByRole("button", { name: "下一页", exact: true })).toBeEnabled();
     await expect(page.locator(".library-selection-count")).toHaveText("已选 1");
-    expect(requests).toEqual([{ q: "synthetic staged retrieval ", offset: 0, limit: 30, depth: 120 }]);
+    expect(requests).toEqual([{ q: "synthetic staged retrieval", offset: 0, limit: 30, depth: 120 }]);
   } finally { release(); }
 });
 
@@ -142,7 +142,7 @@ test("both failed reads show a real failure and a late response cannot restore a
     await received;
     await page.getByRole("textbox", { name: "搜索书签", exact: true }).fill("");
     release();
-    await expect(page.locator(".toolbar-location h1")).toHaveText("你的收藏");
+    await expect(page.locator(".toolbar-location h1")).toHaveText("我的收藏");
     await expect(page.locator(".result-list")).toHaveAttribute("aria-busy", "false");
     await expect(page.locator(".result-title").first()).toHaveText(title(records[0]));
     await expect(page.locator(".search-error, .search-ranking-recovery")).toHaveCount(0);
