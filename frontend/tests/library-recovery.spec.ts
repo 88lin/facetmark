@@ -310,7 +310,7 @@ test("page export keeps the page shown when opened even after a background colle
 test("long recovered content stays complete while keyboard controls remain reachable in both themes and languages", async ({ page, owned }) => {
   test.setTimeout(120_000);
   const control = await recovery(page, owned), token = marker(); control.loseNext = true; control.failReceipts = true;
-  const title = `${token} ` + "保存完整的阅读线索和原来的修改内容。 Keep the full original draft and saved reading context. ".repeat(20);
+  const title = (`${token} ` + "保存完整的阅读线索和原来的修改内容。 Keep the full original draft and saved reading context. ".repeat(20)).trim();
   const url = `https://library-recovery.example/${token}?note=` + "long-original-reading-context-".repeat(30);
   await page.goto("/app"); const create = await openCreate(page, url, title);
   await create.getByRole("button", { name: "保存", exact: true }).click(); await expect(create.locator(".library-write-recovery")).toBeVisible();
