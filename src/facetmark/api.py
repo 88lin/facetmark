@@ -32,12 +32,13 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi import Path as ApiPath
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import __version__, admin, service
+from . import __version__, admin, client_operations, service
 from . import health as healthmod
 from .bridges import karakeep as kkbridge
 from .config import Settings, get_settings
@@ -258,6 +259,18 @@ class CompleteRequest(BaseModel):
     title: str = ""
     final_url: str = ""
     error: str = ""
+    lease_id: str | None = Field(default=None, strict=True, min_length=1, max_length=128)
+    source_url: str = ""
+    request_id: str | None = Field(default=None, strict=True, min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_.-]+$")
+
+
+class ReleaseLease(BaseModel):
+    bookmark_id: int = Field(gt=0)
+    lease_id: str = Field(strict=True, min_length=1, max_length=128)
+
+
+class ReleaseRequest(BaseModel):
+    items: list[ReleaseLease] = Field(max_length=10)
 
 
 class SaveRequest(BaseModel):
@@ -268,6 +281,7 @@ class SaveRequest(BaseModel):
     #: free text, and queryable exactly via ``tag:`` in the search box.
     tags: list[str] = Field(default_factory=list)
     date_added: int | None = None
+    request_id: str | None = Field(default=None, strict=True, min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_.-]+$")
 
 
 class OpenRequest(BaseModel):
@@ -571,12 +585,30 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
     @app.post("/bookmark", dependencies=auth)
     async def save(req: SaveRequest, state: AppState = Depends(get_state)) -> dict:
         async with state.lock:
-            if state.jobs.running or state.crawls.running:
-                raise HTTPException(409, "Wait for the running task before changing bookmarks")
-            return service.save_bookmark(
-                state.conn, req.url, title=req.title, folder=req.folder,
-                tags=req.tags, date_added=req.date_added, settings=state.settings,
-            )
+            try:
+                digest = client_operations.fingerprint("save", req.model_dump(exclude={"request_id"}))
+                with client_operations.transaction(state.conn):
+                    if saved := client_operations.receipt(state.conn, req.request_id, digest=digest):
+                        return saved["result"]
+                    if state.jobs.running or state.crawls.running:
+                        raise HTTPException(409, "Wait for the running task before changing bookmarks")
+                    result = service.save_bookmark(
+                        state.conn, req.url, title=req.title, folder=req.folder,
+                        tags=req.tags, date_added=req.date_added, settings=state.settings, commit=False,
+                    )
+                    client_operations.accept(state.conn, req.request_id, action="save", digest=digest, result=result)
+                    return result
+            except client_operations.ClientOperationConflict as error:
+                raise HTTPException(409, str(error)) from error
+
+    @app.get("/client/operations/{request_id}", dependencies=auth)
+    async def client_receipt(request_id: str = ApiPath(min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_.-]+$"),
+                             state: AppState = Depends(get_state)) -> dict:
+        async with state.lock:
+            saved = client_operations.receipt(state.conn, request_id)
+            if saved is None:
+                raise HTTPException(404, "No accepted browser operation has this request ID")
+            return saved
 
     @app.post("/open", dependencies=auth)
     async def opened(req: OpenRequest, state: AppState = Depends(get_state)) -> dict:
@@ -598,6 +630,9 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
         able to watch this happen and stop it.
         """
         async with state.lock:
+            if state.jobs.running or state.crawls.running:
+                return {"items": [], "queue": fetchstore.queue_stats(state.conn),
+                        "waiting": fetchstore.queue_waiting(state.conn), "busy": True}
             items = fetchstore.lease_browser_batch(state.conn, n)
             state.conn.commit()
         return {"items": items, "queue": fetchstore.queue_stats(state.conn),
@@ -608,15 +643,34 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
         req: CompleteRequest, state: AppState = Depends(get_state)
     ) -> dict:
         async with state.lock:
-            if state.jobs.running or state.crawls.running:
-                raise HTTPException(409, "Wait for the running task before updating page text")
-            out = fetchstore.complete_browser_item(
-                state.conn, req.bookmark_id, body=req.body, title=req.title,
-                final_url=req.final_url, error=req.error,
-            )
-            state.conn.commit()
-        return {"bookmark_id": out.bookmark_id, "stored": out.stored, "changed": out.changed,
-                "queue": fetchstore.queue_stats(state.conn)}
+            try:
+                digest = client_operations.fingerprint("complete", req.model_dump(exclude={"request_id"}))
+                with client_operations.transaction(state.conn):
+                    saved = client_operations.receipt(state.conn, req.request_id, digest=digest)
+                    if saved is not None:
+                        result = saved["result"]
+                    else:
+                        if state.jobs.running or state.crawls.running:
+                            raise HTTPException(409, "Wait for the running task before updating page text")
+                        fetchstore.validate_browser_delivery(state.conn, req.bookmark_id, lease_id=req.lease_id,
+                                                            source_url=req.source_url)
+                        out = fetchstore.complete_browser_item(
+                            state.conn, req.bookmark_id, body=req.body, title=req.title,
+                            final_url=req.final_url, error=req.error,
+                        )
+                        result = {"bookmark_id": out.bookmark_id, "stored": out.stored, "changed": out.changed}
+                        client_operations.accept(state.conn, req.request_id, action="complete", digest=digest, result=result)
+            except ValueError as error:
+                raise HTTPException(409, str(error)) from error
+            return {**result, "queue": fetchstore.queue_stats(state.conn)}
+
+    @app.post("/queue/release", dependencies=auth)
+    async def queue_release(req: ReleaseRequest, state: AppState = Depends(get_state)) -> dict:
+        async with state.lock:
+            with client_operations.transaction(state.conn):
+                released = sum(fetchstore.release_browser_lease(state.conn, item.bookmark_id, item.lease_id)
+                               for item in req.items)
+            return {"released": released, "queue": fetchstore.queue_stats(state.conn)}
 
     @app.get("/queue/stats", dependencies=auth)
     async def queue_status(state: AppState = Depends(get_state)) -> dict:

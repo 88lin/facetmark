@@ -19,6 +19,7 @@ import sqlite3
 from collections import defaultdict, deque
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from uuid import uuid4
 
 import httpx
 
@@ -189,7 +190,7 @@ def enqueue_for_browser(conn: sqlite3.Connection, bookmark_id: int, *, reason: s
         INSERT INTO fetch_queue(bookmark_id, reason, state, attempts, queued_at)
         VALUES(?,?, 'pending', 0, ?)
         ON CONFLICT(bookmark_id) DO UPDATE SET
-            reason=excluded.reason, state='pending', leased_at=NULL,
+            reason=excluded.reason, state='pending', leased_at=NULL, lease_id=NULL, lease_url=NULL,
             next_attempt_at=NULL
         """,
         (bookmark_id, reason, now()),
@@ -210,7 +211,7 @@ def lease_browser_batch(
     ts = now()
     cutoff = ts - ttl_s
     conn.execute(
-        "UPDATE fetch_queue SET state='pending', leased_at=NULL "
+        "UPDATE fetch_queue SET state='pending', leased_at=NULL, lease_id=NULL, lease_url=NULL "
         "WHERE state='leased' AND (leased_at IS NULL OR leased_at < ?)",
         (cutoff,),
     )
@@ -224,18 +225,38 @@ def lease_browser_batch(
         """,
         (ts, n),
     ).fetchall()
-    ids = [r["bookmark_id"] for r in rows]
-    if ids:
+    items = [{"bookmark_id": r["bookmark_id"], "url": r["url"], "title": r["title"],
+              "reason": r["reason"], "attempt": r["attempts"] + 1, "lease_id": uuid4().hex}
+             for r in rows]
+    if items:
         conn.executemany(
-            "UPDATE fetch_queue SET state='leased', leased_at=?, attempts=attempts+1 "
+            "UPDATE fetch_queue SET state='leased', leased_at=?, lease_id=?, lease_url=?, attempts=attempts+1 "
             "WHERE bookmark_id=?",
-            [(now(), i) for i in ids],
+            [(ts, item["lease_id"], item["url"], item["bookmark_id"]) for item in items],
         )
-    return [
-        {"bookmark_id": r["bookmark_id"], "url": r["url"], "title": r["title"],
-         "reason": r["reason"], "attempt": r["attempts"] + 1}
-        for r in rows
-    ]
+    return items
+
+
+def validate_browser_delivery(conn: sqlite3.Connection, bookmark_id: int, *, lease_id: str | None = None,
+                              source_url: str = "") -> None:
+    row = conn.execute("SELECT q.state,q.lease_id,q.lease_url,b.url,b.indexable,b.privacy_skipped "
+                       "FROM fetch_queue q JOIN bookmark b ON b.id=q.bookmark_id WHERE q.bookmark_id=?",
+                       (bookmark_id,)).fetchone()
+    if row is None or row["state"] != "leased":
+        raise ValueError("This browser request is no longer leased; read the queue again")
+    if lease_id is not None and row["lease_id"] != lease_id:
+        raise ValueError("This result belongs to an earlier browser request")
+    if row["lease_url"] != row["url"] or (source_url and source_url != row["lease_url"]):
+        raise ValueError("The saved URL changed while the browser was reading it")
+    if not row["indexable"] or row["privacy_skipped"]:
+        raise ValueError("This page is no longer eligible for browser reading")
+
+
+def release_browser_lease(conn: sqlite3.Connection, bookmark_id: int, lease_id: str) -> bool:
+    result = conn.execute("UPDATE fetch_queue SET state='pending',leased_at=NULL,lease_id=NULL,lease_url=NULL,"
+                          "next_attempt_at=NULL,attempts=MAX(0,attempts-1) "
+                          "WHERE bookmark_id=? AND state='leased' AND lease_id=?", (bookmark_id, lease_id))
+    return result.rowcount == 1
 
 
 def complete_browser_item(
@@ -261,7 +282,7 @@ def complete_browser_item(
     state = "failed" if attempts >= MAX_BROWSER_ATTEMPTS else "pending"
     retry_at = None if state == "failed" else now() + retry_delay_s(attempts)
     conn.execute(
-        "UPDATE fetch_queue SET state=?, leased_at=NULL, last_error=?, next_attempt_at=? "
+        "UPDATE fetch_queue SET state=?, leased_at=NULL, lease_id=NULL, lease_url=NULL, last_error=?, next_attempt_at=? "
         "WHERE bookmark_id=?",
         (state, error or "empty body from extension", retry_at, bookmark_id),
     )
@@ -272,7 +293,7 @@ def complete_browser_item(
 
 def clear_queue_item(conn: sqlite3.Connection, bookmark_id: int, *, state: str = "done") -> None:
     conn.execute(
-        "UPDATE fetch_queue SET state=?, leased_at=NULL, next_attempt_at=NULL "
+        "UPDATE fetch_queue SET state=?, leased_at=NULL, lease_id=NULL, lease_url=NULL, next_attempt_at=NULL "
         "WHERE bookmark_id=?",
         (state, bookmark_id),
     )

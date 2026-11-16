@@ -515,12 +515,15 @@ def _ts_source() -> str:
 
 
 def _ts_paths(src: str) -> set[str]:
-    """Every request path in the client, query strings stripped."""
+    """Normalize URL-encoded template parameters to the server's route syntax."""
     import re
 
     out = set()
     for lit in re.findall(r"[\"`](/[^\"`]*)[\"`]", src):
-        out.add(lit.split("?", 1)[0])
+        path = lit.split("?", 1)[0]
+        path = re.sub(r"\$\{encodeURIComponent\((\w+)\)\}", r"{\1}", path)
+        path = re.sub(r"\$\{(\w+)\}", r"{\1}", path)
+        out.add(path)
     return out
 
 

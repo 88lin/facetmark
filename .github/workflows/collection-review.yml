@@ -8,6 +8,7 @@ on:
       - 'desktop/src-tauri/tauri.conf.json'
       - 'src/facetmark/workbench.py'
       - 'scripts/desktop_assets.py'
+      - 'scripts/brand_assets.py'
       - 'scripts/check_workspace_polish.cjs'
       - 'scripts/collection_review_*.py'
       - 'scripts/experience_server.py'

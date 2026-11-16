@@ -1,23 +1,29 @@
 <!doctype html>
-<html lang="en" data-palette="I">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <title>Facetmark</title>
-    <link rel="stylesheet" href="palettes.css" />
     <link rel="stylesheet" href="popup.css" />
   </head>
-  <body>
-    <header>
-      <input id="q" type="search" data-i18n-attr="placeholder:pop.placeholder" placeholder="what were you looking for?" autocomplete="off" />
-      <button id="save" type="button" class="primary" data-i18n="pop.save">save this page</button>
+  <body class="popup">
+    <header class="popup-head">
+      <img class="popup-mark" src="icons/favicon.svg" width="30" height="30" alt="" />
+      <span class="popup-title">Facetmark</span>
+      <button id="save" type="button" class="ext-button primary" data-i18n="pop.save">Save this page</button>
     </header>
+    <div class="popup-search">
+      <input id="q" class="ext-input" type="search" data-i18n-attr="placeholder:pop.placeholder,aria-label:pop.placeholder" placeholder="Search your saved pages" autocomplete="off" aria-controls="results" />
+    </div>
+    <div id="save-status" role="status" aria-live="polite" aria-atomic="true"></div>
+    <a id="save-recovery" href="options.html#pending-panel" target="_blank" rel="noopener noreferrer" hidden data-i18n="pop.recovery">Confirm the original save in settings</a>
     <div id="status" role="status" aria-live="polite"></div>
-    <ul id="results"></ul>
-    <footer>
+    <ul id="results" data-i18n-attr="aria-label:pop.results" aria-label="Search results"></ul>
+    <footer class="extension-footer">
       <span id="queue"></span>
-      <button class="lang-toggle" type="button" data-lang-toggle title="中文 / English">中文</button>
-      <a href="options.html" target="_blank" data-i18n="pop.settings">settings</a>
+      <button class="ext-button lang-toggle" type="button" data-lang-toggle title="中文 / English">中文</button>
+      <a href="options.html" target="_blank" rel="noopener noreferrer" data-i18n="pop.settings">Settings</a>
     </footer>
     <script type="module" src="popup.js"></script>
   </body>

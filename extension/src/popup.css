@@ -1,470 +1,227 @@
-/* Facetmark extension design system.
-   One stylesheet feeds both the popup and the options page. The colours are
-   not this file's own any more: `palettes.css` is linked first and this sheet
-   maps its semantic tokens onto the handful of roles a 420px panel needs, so
-   the extension, the served page and the site all move together when the
-   palette moves. The type scale is deliberately small -- a search box, not a
-   dashboard. Dark mode follows the browser.
-
-   The overrides below depend on load order: palettes.css, then this file.
-   Both HTML entry points link them in that order. */
-
-:root {
-  /* Surfaces. The panel sits on the page colour and everything you can type
-     in or click sits one step up, exactly as on /app. */
-  --paper: var(--cream);
-  --surface: var(--card-bg);
-
-  /* Text comes straight from the palette: --ink for prose, --ink-light for a
-     row that is a neighbour rather than an answer. Only the faintest step
-     needs a local name, because this file calls it --muted throughout. */
-  --muted: var(--ink-faint);
-
-  /* Two edges. --line separates (rules, scrollbar); --line-strong draws the
-     boundary of something interactive, where a 1.24:1 hairline was too faint
-     to say "this is a field". 1.40:1 against the fill it encloses. */
-  --line: var(--border);
-  --line-strong: var(--border-strong);
-
-  /* One accent, in the four jobs it does. --accent fills and borders,
-     --accent-ink is the same hue at a weight text can be read at (9.53:1 on
-     --surface, where --accent alone is 6.16:1), --accent-line rings a pill so
-     it survives being drawn on its own wash, --accent-soft is that wash. */
-  --accent: var(--brand);
-  --accent-ink: var(--brand-deep);
-  --accent-line: rgba(var(--brand-rgb), 0.35);
-  --accent-soft: var(--info-soft);
-  --on-accent: var(--on-brand);
-
-  /* Two steps the vendored palette does carry but not in a family this
-     project ships: its --success is a green and its --warning an olive. These
-     are the same two values `app.css` names, so "connected" and "cold" read
-     the same in the panel as on the page. */
-  --ok: #233c68;
-  --warn-ink: #5b2349;
-  --warn-soft: var(--highlight-soft);
-
-  --radius: 10px;
-  --radius-sm: 7px;
-  --shadow: 0 1px 2px rgba(var(--ink-rgb), 0.05);
-  --font: "Liberation Sans", Arimo, system-ui, -apple-system, "Segoe UI",
-    "PingFang SC", "Microsoft YaHei", sans-serif;
+/* Extension-owned surfaces follow the collection workspace's blue controls,
+   porcelain fields and offline type. No vendored page palette or global form skin. */
+@font-face {
+  font-family: "Facetmark Latin";
+  src: url("fonts/inter-latin.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
 }
-
-/* Night moves the palette steps underneath the map above, rather than the map
-   itself: --paper, --muted, --accent-soft and the rest follow on their own.
-   The ladder is the one `app.css` already ships, so a dark panel and a dark
-   page are the same dark. --brand-deep moves too because the vendored
-   :focus-visible ring is built from it, and at #523776 on this paper it was
-   1.76:1 -- a focus ring you could not see. */
+@font-face {
+  font-family: "Facetmark CJK";
+  src: url("fonts/noto-sans-sc.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+:root {
+  color-scheme: light dark;
+  --desk: #e9eff5;
+  --surface: #ffffff;
+  --inset: #f3f7fc;
+  --ink: #162b43;
+  --muted: #526379;
+  --rule: #d9e3ef;
+  --field-edge: #8a9bb0;
+  --accent: #235fe5;
+  --accent-hover: #164bc2;
+  --accent-soft: #e8f0ff;
+  --on-accent: #ffffff;
+  --danger: #b73754;
+  --danger-soft: #fff0f3;
+  --success: #235fe5;
+  --shadow: 0 6px 20px #2946690f;
+  --font: "Facetmark Latin", "Facetmark CJK", "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
 @media (prefers-color-scheme: dark) {
   :root {
-    --cream: #241f2e;
-    --card-bg: #3d3747;
-    --ink: #dfdbe3;
-    --ink-light: #cbc5d2;
-    --ink-faint: #afa9b6;
-    --ink-rgb: 223, 219, 227;
-    --border: rgba(223, 219, 227, 0.16);
-    --border-strong: rgba(223, 219, 227, 0.26);
-    --brand: #c9bdd9;
-    --brand-deep: #c9bdd9;
-    --on-brand: #241f2e;
-    --info-soft: rgba(var(--brand-rgb), 0.42);
-    --highlight-soft: rgba(246, 220, 142, 0.16);
-    --accent-line: rgba(201, 189, 217, 0.45);
-    --ok: #bdc4d2;
-    --warn-ink: #f6dc8e;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --desk: #0c1420;
+    --surface: #152236;
+    --inset: #1c2e46;
+    --ink: #eff6ff;
+    --muted: #b7c8df;
+    --rule: #304561;
+    --field-edge: #68809e;
+    --accent: #92bcff;
+    --accent-hover: #b3d1ff;
+    --accent-soft: #213c61;
+    --on-accent: #10223d;
+    --danger: #ffa6bc;
+    --danger-soft: #412635;
+    --success: #92bcff;
+    --shadow: 0 6px 20px #02071029;
   }
 }
-
 * { box-sizing: border-box; }
-
 html, body { margin: 0; }
-
+html { background: var(--desk); color: var(--ink); }
 body {
+  font: 14px/1.65 var(--font);
+  -webkit-font-smoothing: antialiased;
+  scrollbar-width: thin;
+  scrollbar-color: var(--field-edge) var(--inset);
+}
+[hidden] { display: none !important; }
+::selection { background: var(--accent-soft); color: var(--ink); }
+.ext-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 9px 15px;
+  border: 1px solid var(--field-edge);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  caret-color: var(--accent);
+  font: inherit;
+  transition: background 180ms ease, border-color 180ms ease;
+}
+.ext-input::placeholder { color: var(--muted); opacity: 1; }
+.ext-input:focus { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: 2px; }
+.ext-input:disabled { background: var(--inset); color: var(--muted); }
+.ext-button {
+  min-height: 40px;
+  padding: 9px 16px;
+  border: 1px solid var(--field-edge);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 600 13px/1.5 var(--font);
+  text-align: center;
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+.ext-button:hover:not(:disabled) { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.ext-button:active:not(:disabled) { background: var(--accent-soft); transform: translateY(1px); }
+.ext-button:disabled { background: var(--inset); color: var(--muted); cursor: default; }
+.ext-button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.ext-button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--on-accent); }
+.ext-button.primary:disabled { background: var(--accent-soft); border-color: var(--rule); color: var(--muted); }
+.ext-button.danger { color: var(--danger); }
+.ext-button.danger:hover:not(:disabled) { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
+.ext-button:focus-visible, .hit:focus-visible, .extension-footer a:focus-visible,
+.pending-content a:focus-visible, .pending-result summary:focus-visible, .pending-content pre:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.lang-toggle { flex: none; background: var(--accent-soft); border-color: var(--rule); color: var(--accent); }
+.popup {
   width: 420px;
-  max-height: 560px;
+  max-width: 100vw;
+  min-height: 240px;
+  max-height: 600px;
   display: flex;
   flex-direction: column;
-  padding: 12px;
+  padding: 14px;
   gap: 10px;
-  background: var(--paper);
-  color: var(--ink);
-  font: 13px/1.5 var(--font);
-  -webkit-font-smoothing: antialiased;
-}
-
-/* ---- header: the search box is the product ---- */
-
-header { display: flex; gap: 8px; }
-
-#q {
-  flex: 1;
-  min-width: 0;
-  padding: 9px 12px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
   background: var(--surface);
-  color: var(--ink);
-  font-size: 14px;
-  box-shadow: var(--shadow);
-  transition: border-color 120ms ease, box-shadow 120ms ease;
 }
-#q::placeholder { color: var(--muted); }
-/* Focus doubles the edge with an inset ring instead of a thicker border, so
-   the field does not move, and the accent reads 6.16:1 against the fill. */
-#q:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-soft);
-}
-
-button {
-  padding: 9px 12px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--ink);
-  font: 600 12px/1 var(--font);
-  cursor: pointer;
-  white-space: nowrap;
-  box-shadow: var(--shadow);
-  transition: border-color 120ms ease, background 120ms ease, transform 60ms ease;
-}
-button:hover { border-color: var(--accent); color: var(--accent-ink); }
-button:active { transform: translateY(1px); }
-button:disabled { opacity: 0.55; cursor: default; transform: none; }
-
-button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
-}
-button.primary:hover { filter: brightness(1.08); color: var(--on-accent); }
-
-/* ---- status line ---- */
-
-#status {
-  padding: 0 4px;
-  color: var(--muted);
-  font-size: 11px;
-  min-height: 16px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-#status .dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  flex: none;
-  animation: pulse 900ms ease-in-out infinite alternate;
-}
-@keyframes pulse { from { opacity: 0.35; } to { opacity: 1; } }
-
-/* ---- results ---- */
-
-ul#results {
+.popup-head { display: flex; gap: 8px; align-items: center; }
+.popup-mark { width: 30px; height: 30px; flex: none; }
+.popup-title { font-size: 15px; font-weight: 700; flex: 1; }
+.popup-search { display: flex; }
+.popup #q { padding-left: 17px; }
+.popup #save { padding-inline: 13px; min-height: 38px; }
+.popup #status, .popup #save-status { min-width: 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.popup #status { min-height: 18px; padding: 0 3px; }
+.popup #save-status:empty { display: none; }
+.popup #save-status.bad { color: var(--danger); }
+.popup #save-status.ok { color: var(--success); }
+.popup #save-recovery { color: var(--accent); font-size: 12px; text-underline-offset: 3px; }
+.popup #results {
   list-style: none;
   margin: 0;
-  padding: 4px;
+  padding: 3px;
   flex: 1;
   min-height: 0;
-  max-height: 430px;
+  max-height: 350px;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
   scrollbar-width: thin;
-  scrollbar-color: var(--line-strong) transparent;
+  scrollbar-color: var(--field-edge) var(--inset);
 }
-
 .hit {
   display: block;
-  padding: 8px 10px;
-  border-radius: var(--radius-sm);
-  color: inherit;
-  text-decoration: none;
+  padding: 10px 11px;
   border: 1px solid transparent;
-  transition: background 100ms ease, border-color 100ms ease;
-}
-/* The hovered row takes the accent wash rather than the card colour: on this
-   paper --surface is 1.02:1 away from the page, which is not a state change
-   anyone can see. The wash is 1.15:1 and it carries a ring. Keyboard focus
-   gets the same wash plus the palette's outline, pulled inside the row's own
-   border so a scrolling list never clips it. */
-.hit:hover, .hit:focus-visible {
-  background: var(--accent-soft);
-  border-color: var(--accent-line);
-}
-.hit:focus-visible { outline-offset: -1px; }
-
-.title {
-  font-weight: 600;
-  font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.meta {
-  color: var(--muted);
-  font-size: 11px;
-  margin-top: 1px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-.snippet {
-  color: var(--muted);
-  font-size: 12px;
-  margin-top: 3px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Why-is-this-here chips: the facet that retrieved the row, in words. The
-   ring is what keeps the pill a pill on a hovered row, where its wash and the
-   row's wash are the same colour. */
-.chip {
-  display: inline-block;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  box-shadow: inset 0 0 0 1px var(--accent-line);
-  color: var(--accent-ink);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
-/* A tag is the user's own word, not one of ours, so it reads as neutral: the
-   facet chips are a claim the ranker makes and earn the accent, a tag is
-   metadata the user typed and earns the same quiet treatment as the domain
-   beside it. */
-.chip.tag {
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--line-strong);
-  color: var(--muted);
-  font-weight: 500;
-}
-
-/* "cold" -- the page is saved but its body has not been fetched yet. A caveat
-   on a row, not an alarm, so it reads as the gold wash the page uses for the
-   same thing. It used to be white on solid orange: 2.21:1. */
-.badge {
-  display: inline-block;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: var(--warn-soft);
-  color: var(--warn-ink);
-  font-size: 10px;
-  font-weight: 600;
-}
-
-/* The expansion group is a different claim from a hit -- neighbours of the
-   answers, not answers -- so it reads as a different thing. */
-.group {
-  padding: 10px 10px 4px;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  border-top: 1px solid var(--line);
-  margin-top: 6px;
-}
-/* A neighbour is quieter by title weight and by ink step. It used to be
-   quieter by `opacity: 0.8`, which also faded the meta line to 3.54:1 --
-   under AA -- because opacity fades a subtree, not a colour. */
-.hit.neighbour .title { font-weight: 500; color: var(--ink-light); }
-
-/* "load more". A row in the list rather than a control above it, because the
-   thing it continues is the list, and it has to stay reachable by scrolling
-   to the bottom of what you have already read. */
-.more {
-  display: flex;
-  justify-content: center;
-  padding: 8px 10px 4px;
-}
-.more button {
-  width: 100%;
-  font-size: 11px;
-  color: var(--muted);
-}
-
-/* Empty state: a query that matched nothing, or nothing typed yet. */
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 220px;
-  padding: 28px 12px;
-  text-align: center;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.7;
-}
-.empty .glyph { font-size: 26px; display: block; margin-bottom: 8px; opacity: 0.75; }
-
-/* ---- footer ---- */
-
-/* Two colours rather than one colour at 72% opacity: the old rule faded the
-   settings link to 4.37:1, and `footer a { opacity: 1 }` could not undo it --
-   a parent's opacity composites the whole subtree. */
-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 11px;
-}
-footer a {
-  color: var(--accent-ink);
-  text-decoration: none;
-  font-weight: 600;
-}
-footer a:hover { text-decoration: underline; }
-
-/* ---- options page (shares this stylesheet) ---- */
-
-body.options {
-  width: 560px;
-  max-height: none;
-  padding: 20px 24px;
-  gap: 0;
-}
-.options h2 { margin: 0 0 4px; font-size: 18px; }
-.options .hint { color: var(--muted); font-size: 12px; margin: 0 0 8px; }
-.options code {
-  background: var(--accent-soft);
-  color: var(--accent-ink);
-  padding: 1px 5px;
-  border-radius: 5px;
-  font-size: 11px;
-}
-.options label { display: block; margin: 14px 0 5px; font-weight: 600; font-size: 12px; }
-.options input[type="text"] {
-  width: 100%;
-  padding: 9px 12px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
+  border-radius: 14px;
   color: var(--ink);
-  font: 13px var(--font);
-  transition: border-color 120ms ease, box-shadow 120ms ease;
+  text-decoration: none;
+  transition: background 180ms ease, border-color 180ms ease;
 }
-.options input[type="text"]::placeholder { color: var(--muted); opacity: 1; }
-.options input[type="text"]:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-soft);
+.hit:hover, .hit:focus-visible { background: var(--accent-soft); border-color: var(--field-edge); }
+.hit:focus-visible { outline-offset: -2px; }
+.hit .title { font-size: 14px; font-weight: 650; overflow-wrap: anywhere; line-height: 1.55; }
+.hit .meta { color: var(--muted); font-size: 11px; margin-top: 3px; display: flex; gap: 4px; flex-wrap: wrap; overflow-wrap: anywhere; }
+.hit .snippet { color: var(--muted); font-size: 12px; margin-top: 5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.chip, .badge { padding: 1px 6px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 10px; }
+.chip.tag { background: var(--inset); color: var(--muted); }
+.badge { background: var(--inset); color: var(--muted); }
+.hit.neighbour .title { font-weight: 500; color: var(--muted); }
+.group { margin-top: 8px; padding: 10px 11px 4px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 12px; font-weight: 600; }
+.more { padding: 8px 10px; }
+.more .ext-button { width: 100%; }
+.empty { min-height: 142px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; text-align: center; color: var(--muted); font-size: 13px; padding: 20px; }
+.empty svg { width: 28px; height: 28px; color: var(--accent); }
+.extension-footer { display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--rule); padding-top: 10px; font-size: 12px; color: var(--muted); }
+.extension-footer #queue { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.extension-footer a { flex: none; color: var(--accent); text-underline-offset: 3px; }
+.extension-footer .lang-toggle { min-height: 32px; padding: 5px 10px; font-size: 12px; }
+.options { padding: 40px 24px 56px; }
+.options-main { width: min(100%, 680px); margin: 0 auto; }
+.opt-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 30px; }
+.opt-mark { flex: none; width: 44px; height: 44px; }
+.opt-head-text { flex: 1; min-width: 0; }
+.opt-head h1 { margin: 0 0 5px; font-size: 24px; font-weight: 720; line-height: 1.35; text-wrap: balance; }
+.hint { margin: 0; color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+.opt-section { padding: 24px 0; border-top: 1px solid var(--rule); }
+.opt-section h2 { margin: 0 0 9px; font-size: 17px; font-weight: 680; line-height: 1.5; text-wrap: balance; }
+.field-label { display: block; margin: 20px 0 7px; font-size: 14px; font-weight: 600; }
+.field-hint { margin: 7px 0 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.token-field { display: flex; gap: 8px; align-items: stretch; }
+.token-field .ext-input { flex: 1; }
+.token-field .ext-button { flex: none; }
+.draft-note { color: var(--accent); }
+.actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 18px; }
+.check-row { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; cursor: pointer; font-size: 14px; }
+.check-row:first-of-type { margin-top: 10px; }
+.check-row input { width: 19px; height: 19px; flex: none; margin: 3px 0; accent-color: var(--accent); }
+.check-row input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.connection-status { padding: 14px 17px; margin: 0 0 22px; background: var(--surface); border: 1px solid var(--field-edge); border-radius: 16px; box-shadow: var(--shadow); color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.connection-status.ok { color: var(--success); }
+.connection-status.bad { color: var(--danger); background: var(--danger-soft); }
+.section-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.pending-count { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+#pending-results { margin-top: 16px; }
+.pending-result { border-bottom: 1px solid var(--rule); padding: 0; }
+.pending-result summary { min-height: 44px; cursor: pointer; padding: 12px 4px; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.pending-result summary:hover { color: var(--accent); }
+.pending-content { padding: 0 4px 17px; overflow-wrap: anywhere; }
+.pending-content a { color: var(--accent); text-underline-offset: 3px; }
+.pending-meta { margin: 7px 0 12px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.pending-error { margin: 8px 0 12px; color: var(--danger); font-size: 13px; }
+.pending-content .ext-button { margin-top: 5px; }
+.pending-content pre { max-height: 240px; overflow: auto; padding: 14px; border-radius: 12px; background: var(--inset); font: 13px/1.8 var(--font); white-space: pre-wrap; overflow-wrap: anywhere; scrollbar-width: thin; scrollbar-color: var(--field-edge) var(--inset); }
+.pending-actions .danger { margin-left: auto; }
+@media (max-width: 480px) {
+  .options { padding: 24px 16px 36px; }
+  .opt-head { gap: 8px; margin-bottom: 20px; }
+  .opt-head h1 { font-size: 21px; }
+  .opt-mark { width: 36px; height: 36px; }
+  .opt-head .lang-toggle { padding-inline: 11px; }
+  .opt-section { padding-block: 20px; }
+  .pending-actions { flex-direction: column; align-items: stretch; }
+  .pending-actions .danger { margin-left: 0; }
+  .actions .ext-button { min-height: 44px; }
+  .popup-head { flex-wrap: wrap; }
+  .popup #save { flex: 0 1 auto; }
 }
-.options .row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  font-weight: 400;
-  cursor: pointer;
+@media (max-height: 440px) {
+  .options { padding-top: 18px; }
+  .popup { max-height: 100vh; gap: 6px; padding: 10px; }
+  .popup #results { max-height: 180px; }
+  .empty { min-height: 92px; padding-block: 12px; }
 }
-.options .row input { accent-color: var(--accent); }
-.options #state {
-  margin: 16px 0 12px;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  font-size: 12px;
-  min-height: 20px;
+@media (prefers-reduced-motion: reduce) {
+  .ext-button, .ext-input, .hit { transition: none; }
+  .ext-button:active:not(:disabled) { transform: none; }
 }
-.options #state:empty { display: none; }
-/* Connected reads indigo, a failure reads plum: 10.77:1 and 11.60:1 on the
-   field colour, where the green and the orange they replace were 3.08:1 and
-   2.21:1. */
-.options #state.ok { border-color: var(--ok); color: var(--ok); }
-.options #state.bad { border-color: var(--warn-ink); color: var(--warn-ink); }
-.options .actions { display: flex; gap: 8px; }
-
-/* Grouped cards: the four fields are two different kinds of question -- where
-   the server is, and what the extension is allowed to do -- so they sit in two
-   labelled cards rather than one undifferentiated column. The card is the
-   surface the inputs already sit on, pulled into a frame with a hairline and
-   the same shadow a field carries, so the grouping reads as structure without
-   inventing a new material. */
-.options .opt-head {
-  display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px;
-}
-.options .opt-mark {
-  width: 28px; height: 28px; border-radius: 8px; flex: none; margin-top: -1px;
-  background: var(--accent-soft); padding: 3px; box-sizing: content-box;
-}
-.options .opt-head-text { flex: 1; min-width: 0; }
-.options .opt-head-text h2 { margin: 0 0 4px; }
-.options .opt-head-text .hint { margin: 0; }
-.options .opt-card {
-  background: var(--surface); border: 1px solid var(--line);
-  border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px;
-  box-shadow: var(--shadow);
-  transition: border-color 160ms ease, box-shadow 160ms ease;
-}
-.options .opt-card:hover {
-  border-color: var(--line-strong);
-  box-shadow: 0 2px 6px rgba(var(--ink-rgb), 0.07);
-}
-/* a small tracked-caps label rather than a third heading weight: the card
-   already has the h2 above the page, and a 15px section title inside would
-   compete with the field labels below it */
-.options .opt-title {
-  margin: 0 0 10px; font-size: 11px; font-weight: 700;
-  letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
-}
-.options .opt-card label { margin-top: 12px; }
-.options .opt-card .opt-title + label { margin-top: 0; }
-.options .opt-card .row { margin-top: 10px; }
-.options .opt-card .opt-title + .row { margin-top: 0; }
-/* the actions sit below the cards; give the primary save a touch more weight
-   so the affordance reads through the panel at a glance */
-.options .actions { margin-top: 4px; }
-.options .actions .primary { flex: 1; }
-
-/* ---- language toggle ---- */
-
-/* A small pill, not a full button: it sits in the footer beside the settings
-   link and in the options header beside the title, and the 9px padding a
-   button carries would dwarf both. The pill borrows the accent wash so it
-   reads as an affordance without competing with the primary action. */
-.lang-toggle {
-  padding: 3px 10px;
-  border: 1px solid var(--accent-line);
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-ink);
-  font-size: 11px;
-  font-weight: 600;
-  box-shadow: none;
-  transition: border-color 120ms ease, background 120ms ease;
-}
-.lang-toggle:hover {
-  border-color: var(--accent);
-  background: var(--surface);
-}
-.lang-toggle:active { transform: translateY(1px); }
-
-/* In the options header the toggle aligns with the title row. */
-.options .opt-head .lang-toggle {
-  margin-top: 2px;
-  flex: none;
-}
-/* In the popup footer the toggle sits between the queue line and the settings
-   link, so it should not stretch. */
-footer .lang-toggle { flex: none; }

@@ -768,6 +768,7 @@ def save_bookmark(
     tags: Sequence[str] = (),
     date_added: int | None = None,
     settings: Settings | None = None,
+    commit: bool = True,
 ) -> dict:
     """Insert one bookmark, or return the existing row for the same URL.
 
@@ -798,7 +799,8 @@ def save_bookmark(
                 (json.dumps(union, ensure_ascii=False), int(time.time()), row["id"]),
             )
             sync_fts_tag_refresh(conn, row["id"])
-            conn.commit()
+            if commit:
+                conn.commit()
         rec = bookmark_record(conn, row["id"], settings=st)
         assert rec is not None
         rec["created"] = False
@@ -828,7 +830,8 @@ def save_bookmark(
         conn, bid, title=title, body="", summary="",
         topics=([folder] if folder else ()), tags=clean_tags,
     )
-    conn.commit()
+    if commit:
+        conn.commit()
     rec = bookmark_record(conn, bid, settings=st)
     assert rec is not None
     rec["created"] = True

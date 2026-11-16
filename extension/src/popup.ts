@@ -11,15 +11,19 @@ import {
   type PageCursor,
   advance,
   api,
-  describePage,
-  describeQueue,
   type Hit,
+  loadSettings,
   nextRequest,
   type QueryFilters,
+  type QueueSummary,
+  type RequestContext,
+  type Settings,
   startCursor,
   summarizeQueue,
 } from "./api.ts";
 import { applyI18n, initLangToggle, t } from "./i18n.ts";
+import { readSaves } from "./save-delivery.ts";
+import { describeError, queueText, workerRequest } from "./ui.ts";
 
 const DEBOUNCE_MS = 150;
 const PAGE = 20;
@@ -35,40 +39,82 @@ const saveBtn = $<HTMLButtonElement>("#save");
 let timer: number | undefined;
 let generation = 0;
 let lastQuery = "";
-let lastNote = "";
+let lastNote: () => string = () => "";
+let reading: AbortController | undefined;
+let composing = false;
+let paging = false;
+let saving = false;
+let saveNote = "";
+let saveError: unknown;
+let queue: QueueSummary | undefined;
+let searchSettings: Settings | undefined;
 // The rendered list is state now, not a function argument: "load more" appends
 // to it, so the previous pages have to survive the next render.
 let rows: Hit[] = [];
 let neighbours: Hit[] = [];
 let cursor: PageCursor = startCursor("");
 
-input.addEventListener("input", () => {
+function invalidate(): void {
+  generation += 1;
+  reading?.abort();
   window.clearTimeout(timer);
-  timer = window.setTimeout(() => void run(input.value.trim()), DEBOUNCE_MS);
+  rows = []; neighbours = []; paging = false; lastQuery = "";
+  searchSettings = undefined;
+  cursor = startCursor("");
+  list.replaceChildren();
+  lastNote = () => input.value.trim() ? t("pop.searching") : "";
+  status.textContent = lastNote();
+  if (!input.value.trim()) empty(t("pop.start"));
+}
+
+input.addEventListener("input", (event) => {
+  const value = input.value.trim();
+  invalidate();
+  if (composing || (event as InputEvent).isComposing || !value) return;
+  timer = window.setTimeout(() => void run(value), DEBOUNCE_MS);
+});
+input.addEventListener("compositionstart", () => { composing = true; invalidate(); });
+input.addEventListener("compositionend", () => {
+  composing = false;
+  const value = input.value.trim();
+  invalidate();
+  if (value) timer = window.setTimeout(() => void run(value), DEBOUNCE_MS);
 });
 
 input.addEventListener("keydown", (e) => {
+  if (e.isComposing || composing || e.keyCode === 229) return;
+  if (e.key === "Escape") { input.value = ""; invalidate(); return; }
   if (e.key === "Enter") {
+    e.preventDefault();
     const first = list.querySelector<HTMLAnchorElement>("a[data-id]");
-    if (first) first.click();
+    if (first && lastQuery === input.value.trim()) first.click();
+    else { window.clearTimeout(timer); void run(input.value.trim()); }
   }
 });
 
 async function run(q: string): Promise<void> {
+  const mine = ++generation;
+  reading?.abort();
+  const controller = reading = new AbortController();
+  const context: RequestContext = { signal: controller.signal };
   if (!q) {
     rows = [];
     neighbours = [];
     cursor = startCursor("");
     list.innerHTML = "";
     status.textContent = "";
-    lastNote = "";
+    lastNote = () => "";
+    lastQuery = "";
+    empty(t("pop.start"));
     return;
   }
-  const mine = ++generation;
   lastQuery = q;
   cursor = startCursor(q);
   try {
-    const quick = await api.quick(q, 10);
+    context.settings = await loadSettings();
+    if (mine !== generation) return;
+    searchSettings = context.settings;
+    const quick = await api.quick(q, 10, 0, undefined, context);
     if (mine === generation) {
       rows = quick.hits;
       neighbours = [];
@@ -76,7 +122,7 @@ async function run(q: string): Promise<void> {
       // different ranking from the full pipeline -- different facets, its own
       // depth -- so paging from it would continue a list that is about to be
       // replaced.
-      render(withFilters(
+      render(() => withFilters(
         `${quick.hits.length} · ${ms(quick.took_ms)} ms · ${t("pop.lexical")}`,
         quick.filters,
       ));
@@ -85,45 +131,53 @@ async function run(q: string): Promise<void> {
     if (mine === generation) fail(e);
     return;
   }
+  if (mine !== generation || controller.signal.aborted) return;
   try {
-    const full = await api.search(q, PAGE);
+    const full = await api.search(q, PAGE, 0, undefined, context);
     if (mine === generation) {
       rows = full.hits;
       neighbours = full.expanded ?? [];
       cursor = advance(cursor, full);
       const labels = full.understanding?.labels?.join(" + ") ?? "";
-      render(withFilters(
-        `${describePage(cursor)} · ${ms(full.took_ms)} ms · ${labels || t("pop.ranked")}`,
+      render(() => withFilters(
+        `${pageText(cursor)} · ${ms(full.took_ms)} ms · ${labels || t("pop.ranked")}`,
         full.filters,
       ));
     }
   } catch (e) {
-    if (mine === generation) status.textContent = describe(e);
+    if (mine === generation) { lastNote = () => describe(e); status.textContent = lastNote(); }
   }
 }
 
 async function loadMore(button: HTMLButtonElement): Promise<void> {
   const req = nextRequest(cursor, PAGE);
-  if (!req) return;
+  if (!req || paging) return;
   const mine = generation;
+  paging = true;
   button.disabled = true;
   button.textContent = t("pop.loading");
   try {
     // `req.depth` is the whole point: it pins the candidate depth to the one
     // page 1 was ranked at, so this page continues that ranking rather than
     // re-fusing at a deeper pool and disagreeing about what page 1 was.
-    const more = await api.search(cursor.query, req.limit, req.offset, req.depth);
+    const more = await api.search(cursor.query, req.limit, req.offset, req.depth, { signal: reading?.signal, settings: searchSettings });
     if (mine !== generation) return;
     const known = new Set(rows.map((h) => h.bookmark_id));
     rows = rows.concat(more.hits.filter((h) => !known.has(h.bookmark_id)));
     cursor = advance(cursor, more);
-    render(`${describePage(cursor)} · ${ms(more.took_ms)} ms`);
+    paging = false;
+    render(() => `${pageText(cursor)} · ${ms(more.took_ms)} ms`);
   } catch (e) {
     if (mine === generation) {
-      button.disabled = false;
-      button.textContent = describe(e);
+      lastNote = () => describe(e);
+      paging = false;
+      render(lastNote);
     }
-  }
+  } finally { if (mine === generation) paging = false; }
+}
+
+function pageText(value: PageCursor): string {
+  return value.more ? t(value.capped ? "pop.pageCapped" : "pop.page", value.seen, value.total) : t("pop.resultCount", value.seen);
 }
 
 /** `took_ms` is a per-stage breakdown. Printing the object gives "[object Object]". */
@@ -166,21 +220,14 @@ const FACET_KEY: Record<string, string> = {
   lex_tri: "pop.substring",
 };
 
-function render(note: string): void {
+function render(note: () => string): void {
   const hits = rows;
   const expanded = neighbours;
   lastNote = note;
-  status.textContent = note;
+  status.textContent = note();
   list.innerHTML = "";
   if (!hits.length && !expanded.length) {
-    const li = document.createElement("li");
-    li.className = "empty";
-    const glyph = document.createElement("span");
-    glyph.className = "glyph";
-    glyph.textContent = "○";
-    li.appendChild(glyph);
-    li.appendChild(document.createTextNode(t("pop.empty")));
-    list.appendChild(li);
+    empty(t("pop.empty"));
     return;
   }
   for (const h of hits) list.appendChild(row(h));
@@ -198,14 +245,33 @@ function render(note: string): void {
   }
 }
 
+function empty(message: string): void {
+  const li = document.createElement("li");
+  li.className = "empty";
+  const glyph = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  glyph.setAttribute("viewBox", "0 0 24 24");
+  glyph.setAttribute("fill", "none");
+  glyph.setAttribute("stroke", "currentColor");
+  glyph.setAttribute("stroke-width", "1.5");
+  glyph.setAttribute("stroke-linecap", "round");
+  glyph.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "M21 21l-5-5M18 10.5a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0");
+  glyph.appendChild(path);
+  li.append(glyph, document.createTextNode(message));
+  list.replaceChildren(li);
+}
+
 function moreRow(): HTMLLIElement {
   const li = document.createElement("li");
   li.className = "more";
   const b = document.createElement("button");
   b.type = "button";
+  b.className = "ext-button";
+  b.disabled = paging;
   b.textContent = cursor.capped
-    ? `${t("pop.more")} (${cursor.seen} of ${cursor.total}+)`
-    : `${t("pop.more")} (${cursor.seen} of ${cursor.total})`;
+    ? `${t("pop.more")} · ${t("pop.pageCapped", cursor.seen, cursor.total)}`
+    : `${t("pop.more")} · ${t("pop.page", cursor.seen, cursor.total)}`;
   b.addEventListener("click", () => void loadMore(b));
   li.appendChild(b);
   return li;
@@ -221,8 +287,8 @@ function row(h: Hit, neighbour = false): HTMLLIElement {
   // href unless it is http(s), and `chrome.tabs.create` refuses those schemes
   // anyway, which is the second reason the row simply does not open.
   const openable = /^https?:\/\//i.test(h.url);
-  if (openable) a.href = h.url;
-  else a.tabIndex = 0;
+  if (openable) { a.href = h.url; a.target = "_blank"; a.rel = "noopener noreferrer"; }
+  else { a.tabIndex = 0; a.setAttribute("role", "link"); a.setAttribute("aria-disabled", "true"); }
   a.dataset.id = String(h.bookmark_id);
   a.className = neighbour ? "hit neighbour" : "hit";
 
@@ -274,65 +340,99 @@ function row(h: Hit, neighbour = false): HTMLLIElement {
   }
 
   a.addEventListener("click", (e) => {
+    if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
     if (!openable) return;
-    void api.opened(h.bookmark_id, lastQuery).catch(() => undefined);
-    void chrome.tabs.create({ url: h.url });
-    window.close();
+    const query = lastQuery;
+    void workerRequest({ type: "open-page", url: h.url, bookmark_id: h.bookmark_id, query, settings: searchSettings }).then(() => {
+      window.close();
+    }).catch(error => { status.textContent = describe(error); });
   });
   li.appendChild(a);
   return li;
 }
 
-function describe(e: unknown): string {
-  if (e instanceof ApiError && e.status === 401) return t("pop.tokenRejected");
-  if (e instanceof ApiError && e.status === 0) return t("pop.serverUnreachable");
-  return e instanceof Error ? e.message : String(e);
-}
+const describe = describeError;
 
 function fail(e: unknown): void {
   list.innerHTML = "";
-  status.textContent = describe(e);
+  lastNote = () => describe(e);
+  status.textContent = lastNote();
 }
 
 saveBtn.addEventListener("click", async () => {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.url) return;
+  if (saving) return;
+  saving = true;
   saveBtn.disabled = true;
+  saveNote = "pop.saving";
+  saveError = undefined;
+  renderSave();
   try {
-    const res = await api.save({ url: tab.url, title: tab.title ?? tab.url });
-    saveBtn.textContent = res.created === false ? t("pop.alreadySaved") : t("pop.saved");
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.url || !/^https?:\/\//i.test(tab.url)) throw new Error(t("pop.unsupportedPage"));
+    const value = await workerRequest<{ result: { bookmark_id: number; created?: boolean } }>({
+      type: "save-page", body: { url: tab.url, title: tab.title ?? tab.url },
+    });
+    const res = value.result;
+    if (!res || !Number.isSafeInteger(res.bookmark_id) || res.bookmark_id <= 0
+      || (res.created !== undefined && typeof res.created !== "boolean")) throw new ApiError(t("opt.badResponse"), 200, "invalid");
+    saveNote = res.created === false ? "pop.alreadySaved" : "pop.saved";
   } catch (e) {
-    saveBtn.textContent = describe(e);
+    saveNote = "";
+    saveError = e;
   } finally {
-    window.setTimeout(() => {
-      saveBtn.disabled = false;
-      saveBtn.textContent = t("pop.save");
-    }, 1800);
+    saving = false;
+    saveBtn.disabled = false;
+    renderSave();
+    await showPending();
   }
 });
 
+function renderSave(): void {
+  saveBtn.textContent = t(saving ? "pop.saving" : "pop.save");
+  const message = $("#save-status");
+  message.textContent = saveError ? describe(saveError) : saveNote ? t(saveNote) : "";
+  message.className = saveError ? "bad" : saveNote && !saving ? "ok" : "";
+}
+
+async function showPending(): Promise<void> {
+  try { $("#save-recovery").hidden = !(await readSaves()).length; }
+  catch { $("#save-recovery").hidden = false; }
+}
+
 // Deep link from the omnibox: popup.html?q=...
+applyI18n();
+initLangToggle();
 const preset = new URLSearchParams(location.search).get("q");
 if (preset) {
   input.value = preset;
   void run(preset);
-}
+} else empty(t("pop.start"));
 input.focus();
 
 void api
   .queueStats()
   .then((s) => {
-    const line = describeQueue(summarizeQueue(s));
-    if (line) $("#queue").textContent = line;
+    queue = summarizeQueue(s);
+    $("#queue").textContent = queueText(queue);
   })
   .catch(() => undefined);
 
-applyI18n();
-initLangToggle();
+void showPending();
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local") return;
+  if (changes["save-deliveries"]) void showPending();
+  if (changes.endpoint || changes.token) {
+    invalidate();
+    if (input.value.trim()) { lastNote = () => t("pop.connectionChanged"); status.textContent = lastNote(); }
+  }
+});
 // Re-render the list in the new language without a round trip: the chips, the
 // group heading and the empty state are all translated at draw time.
 document.addEventListener("langchange", () => {
   applyI18n();
-  if (rows.length || neighbours.length) render(lastNote);
+  renderSave();
+  if (rows.length || neighbours.length || lastQuery) render(lastNote);
+  else { status.textContent = lastNote(); if (!input.value.trim()) empty(t("pop.start")); }
+  if (queue) $("#queue").textContent = queueText(queue);
 });

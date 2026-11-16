@@ -1,6 +1,6 @@
 // One place that knows how to talk to the local server.
 //
-// Every request goes out from the service worker, never from a content script.
+// Requests go out from extension contexts, never from a content script.
 // Chrome 142 tightened Local Network Access: a page-context fetch to 127.0.0.1
 // can be blocked or prompted, while an extension worker holding an explicit
 // host permission is not. Keeping the transport here also means the pairing
@@ -16,13 +16,18 @@ export interface Settings {
 export const DEFAULTS: Settings = {
   endpoint: "http://127.0.0.1:8787",
   token: "",
-  channelB: true,
+  channelB: false,
   paused: false,
 };
 
 export async function loadSettings(): Promise<Settings> {
   const got = await chrome.storage.local.get(DEFAULTS);
-  return { ...DEFAULTS, ...got } as Settings;
+  return {
+    endpoint: typeof got.endpoint === "string" && got.endpoint.trim() ? got.endpoint : DEFAULTS.endpoint,
+    token: typeof got.token === "string" ? got.token : "",
+    channelB: got.channelB === true,
+    paused: got.paused === true,
+  };
 }
 
 export async function saveSettings(patch: Partial<Settings>): Promise<void> {
@@ -35,28 +40,94 @@ export async function saveSettings(patch: Partial<Settings>): Promise<void> {
 // import the shipping source rather than a compiled copy of it.
 export class ApiError extends Error {
   status: number;
+  code: string;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, code = "http") {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const s = await loadSettings();
+export interface RequestContext {
+  signal?: AbortSignal;
+  settings?: Settings;
+}
+
+export const REQUEST_TIMEOUT_MS = 20_000;
+export const PAGE_ORIGINS = ["http://*/*", "https://*/*"];
+
+export function normalizeEndpoint(raw: string): string {
+  let url: URL;
+  try { url = new URL(raw.trim() || DEFAULTS.endpoint); }
+  catch { throw new ApiError("Enter a valid http:// or https:// server address", 0, "endpoint"); }
+  if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.search || url.hash) {
+    throw new ApiError("Use an http:// or https:// server address without credentials, query or fragment", 0, "endpoint");
+  }
+  return url.href.replace(/\/+$/, "");
+}
+
+export function requiredOrigins(endpoint: string, pages: boolean): string[] {
+  const server = new URL(normalizeEndpoint(endpoint));
+  return [...new Set([`${server.protocol}//${server.hostname}/*`, ...(pages ? PAGE_ORIGINS : [])])];
+}
+
+async function request<T>(path: string, init: RequestInit = {}, context: RequestContext = {}): Promise<T> {
+  const s = context.settings ?? await loadSettings();
+  const endpoint = normalizeEndpoint(s.endpoint);
+  const external = context.signal ?? init.signal;
+  const controller = new AbortController();
   const headers = new Headers(init.headers ?? {});
   headers.set("Content-Type", "application/json");
   headers.set("X-Facetmark-Client", "extension");
   if (s.token) headers.set("Authorization", `Bearer ${s.token}`);
-  let res: Response;
+  let timedOut = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let rejectAbort: (error: Error) => void = () => undefined;
+  const aborted = new Promise<never>((_resolve, reject) => { rejectAbort = reject; });
+  const onAbort = () => {
+    controller.abort();
+    rejectAbort(new DOMException("Request cancelled", "AbortError"));
+  };
+  external?.addEventListener("abort", onAbort, { once: true });
+  if (external?.aborted) onAbort();
+  const deadline = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+      reject(new ApiError("Server request timed out; check the connection and retry", 0, "timeout"));
+    }, REQUEST_TIMEOUT_MS);
+  });
+  const read = async (): Promise<T> => {
+    if (external?.aborted) throw new DOMException("Request cancelled", "AbortError");
+    const res = await fetch(`${endpoint}${path}`, { ...init, signal: controller.signal, headers });
+    const raw = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(raw); }
+    catch {
+      if (res.ok) throw new ApiError("Server returned an unreadable response; keep the original operation and retry", res.status, "invalid");
+    }
+    if (res.status === 401) throw new ApiError("Pairing token rejected; open settings", 401);
+    if (!res.ok) {
+      const record = parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {};
+      const detail = record.detail;
+      const message = typeof detail === "string" ? detail : detail && typeof detail === "object"
+        && typeof (detail as Record<string, unknown>).message === "string" ? String((detail as Record<string, unknown>).message) : "";
+      throw new ApiError(message || `Server returned HTTP ${res.status}; retry when it is available`, res.status);
+    }
+    return parsed as T;
+  };
   try {
-    res = await fetch(`${s.endpoint}${path}`, { ...init, headers });
-  } catch {
-    throw new ApiError("server unreachable - is `facetmark serve` running?", 0);
+    return await Promise.race([read(), deadline, aborted]);
+  } catch (error) {
+    if (external?.aborted) throw new DOMException("Request cancelled", "AbortError");
+    if (timedOut) throw new ApiError("Server request timed out; check the connection and retry", 0, "timeout");
+    if (error instanceof ApiError) throw error;
+    throw new ApiError("Server unreachable; start Facetmark and check the saved address", 0, "network");
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+    external?.removeEventListener("abort", onAbort);
   }
-  if (res.status === 401) throw new ApiError("pairing token rejected", 401);
-  if (!res.ok) throw new ApiError(`${res.status} ${res.statusText}`, res.status);
-  return (await res.json()) as T;
 }
 
 // These mirror `SearchHit.as_dict` and `SearchResponse.as_dict` in
@@ -138,51 +209,136 @@ export interface SearchResponse {
   sort: string;
 }
 
+export interface QueueItem {
+  bookmark_id: number;
+  url: string;
+  title: string;
+  reason: string;
+  attempt: number;
+  lease_id: string;
+}
+
+export interface CompleteBody {
+  bookmark_id: number;
+  body?: string;
+  title?: string;
+  final_url?: string;
+  error?: string;
+  lease_id: string;
+  source_url: string;
+  request_id: string;
+}
+
+export interface SaveBody {
+  url: string;
+  title: string;
+  folder?: string;
+  tags?: string[];
+  request_id?: string;
+}
+
+export interface SaveResult { bookmark_id: number; created?: boolean; tags?: string[] }
+
+function validate<T>(value: T, valid: boolean, message = "Server response is incomplete; keep the original operation and retry"): T {
+  if (!valid) throw new ApiError(message, 200, "invalid");
+  return value;
+}
+
+function record(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function strings(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function validHit(hit: unknown): boolean {
+  return record(hit) && Number.isSafeInteger(hit.bookmark_id) && Number(hit.bookmark_id) > 0
+    && typeof hit.url === "string" && typeof hit.title === "string"
+    && typeof hit.domain === "string" && typeof hit.folder === "string"
+    && typeof hit.snippet === "string" && typeof hit.cold === "boolean"
+    && strings(hit.tags) && strings(hit.facets)
+    && (hit.via_kind === undefined || typeof hit.via_kind === "string");
+}
+
+function validFilters(value: unknown): boolean {
+  if (value === null || value === undefined) return true;
+  return record(value) && (value.sort === undefined || typeof value.sort === "string")
+    && (value.exclude === undefined || strings(value.exclude))
+    && (value.ignored === undefined || strings(value.ignored))
+    && (value.fields === undefined || (Array.isArray(value.fields) && value.fields.every(
+      (field) => record(field) && typeof field.field === "string" && typeof field.value === "string"
+        && typeof field.negate === "boolean",
+    )));
+}
+
+function searchResult(value: SearchResponse): SearchResponse {
+  return validate(value, record(value) && Array.isArray(value.hits) && value.hits.every(validHit)
+    && Array.isArray(value.expanded) && value.expanded.every(validHit)
+    && record(value.took_ms) && Object.values(value.took_ms).every((ms) => typeof ms === "number" && Number.isFinite(ms) && ms >= 0)
+    && [value.limit, value.offset, value.depth, value.total].every((n) => Number.isSafeInteger(n) && n >= 0)
+    && typeof value.has_more === "boolean" && typeof value.depth_capped === "boolean"
+    && validFilters(value.filters)
+    && (value.understanding === null || value.understanding === undefined
+      || (record(value.understanding) && strings(value.understanding.labels))),
+  "Search returned an incomplete response; retry the search");
+}
+
 export const api = {
-  health: () =>
-    request<{ ok: boolean; version: string; bookmarks: number; provider: string }>("/health"),
+  health: (context?: RequestContext) =>
+    request<{ ok: boolean; version: string; bookmarks: number; provider: string }>("/health", {}, context),
   stats: () => request<Record<string, unknown>>("/stats"),
-  quick: (q: string, limit = 10, offset = 0, depth?: number) =>
+  quick: (q: string, limit = 10, offset = 0, depth?: number, context?: RequestContext) =>
     request<SearchResponse>(
       `/quick?q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}` +
         (depth ? `&depth=${depth}` : ""),
-    ),
-  search: (q: string, limit = 20, offset = 0, depth?: number) =>
+      {}, context,
+    ).then(searchResult),
+  search: (q: string, limit = 20, offset = 0, depth?: number, context?: RequestContext) =>
     request<SearchResponse>("/search", {
       method: "POST",
       body: JSON.stringify(depth ? { q, limit, offset, depth } : { q, limit, offset }),
-    }),
-  save: (body: { url: string; title: string; folder?: string; tags?: string[] }) =>
-    request<{ bookmark_id: number; created?: boolean; tags?: string[] }>("/bookmark", {
+    }, context).then(searchResult),
+  save: (body: SaveBody, context?: RequestContext) =>
+    request<SaveResult>("/bookmark", {
       method: "POST",
       body: JSON.stringify(body),
-    }),
-  opened: (bookmark_id: number, query: string) =>
+    }, context).then((value) => validate(value, !!value && Number.isSafeInteger(value.bookmark_id) && value.bookmark_id > 0
+      && (value.created === undefined || typeof value.created === "boolean"))),
+  opened: (bookmark_id: number, query: string, context?: RequestContext) =>
     request<{ ok: boolean }>("/open", {
       method: "POST",
       body: JSON.stringify({ bookmark_id, query }),
-    }),
-  queueNext: (n = 3) =>
+    }, context),
+  queueNext: (n = 3, context?: RequestContext) =>
     request<{
-      items: { bookmark_id: number; url: string; title: string; reason: string;
-               attempt: number }[];
+      items: QueueItem[];
       queue: Record<string, number>;
       waiting: number;
-    }>(`/queue/next?n=${n}`),
-  queueComplete: (body: {
-    bookmark_id: number;
-    body?: string;
-    title?: string;
-    final_url?: string;
-    error?: string;
-  }) =>
+      busy?: boolean;
+    }>(`/queue/next?n=${n}`, {}, context).then((value) => validate(value, !!value && Array.isArray(value.items)
+      && value.items.every((item) => record(item) && Number.isSafeInteger(item.bookmark_id) && item.bookmark_id > 0
+        && typeof item.url === "string" && /^https?:\/\//i.test(item.url) && typeof item.title === "string"
+        && typeof item.lease_id === "string" && !!item.lease_id)
+      && (value.busy === undefined || typeof value.busy === "boolean"),
+    "Update Facetmark to support recoverable browser reading")),
+  queueComplete: (body: CompleteBody, context?: RequestContext) =>
     request<{ bookmark_id: number; stored: boolean; changed: boolean;
               queue: Record<string, number> }>("/queue/complete", {
       method: "POST",
       body: JSON.stringify(body),
-    }),
+    }, context).then((value) => validate(value, !!value && value.bookmark_id === body.bookmark_id
+      && typeof value.stored === "boolean" && typeof value.changed === "boolean")),
+  queueRelease: (items: Pick<QueueItem, "bookmark_id" | "lease_id">[], context?: RequestContext) =>
+    request<{ released: number }>("/queue/release", { method: "POST", body: JSON.stringify({ items }) }, context),
+  receipt: (request_id: string, context?: RequestContext) =>
+    request<{ request_id: string; action: string; result: Record<string, unknown> }>(
+      `/client/operations/${encodeURIComponent(request_id)}`, {}, context,
+    ).then((value) => validate(value, !!value && value.request_id === request_id
+      && ["save", "complete"].includes(value.action) && record(value.result))),
   // Only the states that have rows are present, plus `waiting`. Read with `??`.
-  queueStats: () => request<Record<string, number>>("/queue/stats"),
+  queueStats: (context?: RequestContext) => request<Record<string, number>>("/queue/stats", {}, context)
+    .then(value => validate(value, record(value) && Object.values(value).every(n => Number.isSafeInteger(n) && n >= 0))),
 };
 
 // ---------------------------------------------------------------------------

@@ -320,12 +320,23 @@ CREATE TABLE IF NOT EXISTS fetch_queue (
     attempts    INTEGER NOT NULL DEFAULT 0,
     queued_at   INTEGER NOT NULL,
     leased_at   INTEGER,
+    lease_id    TEXT,
+    lease_url   TEXT,
     last_error  TEXT,
     next_attempt_at INTEGER   -- NULL = ready now; else the backoff deadline
 );
 CREATE INDEX IF NOT EXISTS ix_fetch_queue_state ON fetch_queue(state, queued_at);
 CREATE INDEX IF NOT EXISTS ix_fetch_queue_ready
     ON fetch_queue(state, next_attempt_at, queued_at);
+
+-- Receipts survive a removed bookmark and prevent a late retry from recreating it.
+CREATE TABLE IF NOT EXISTS client_operation (
+    request_id TEXT PRIMARY KEY,
+    action TEXT NOT NULL,
+    fingerprint TEXT NOT NULL,
+    result TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS import_run (
     id TEXT PRIMARY KEY,
