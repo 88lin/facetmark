@@ -100,6 +100,9 @@ form.addEventListener("submit", (event) => {
   catch (error) { showError(error); endpoint.focus(); return; }
   const baseline = saved;
   lock(true, "save");
+  setNote("opt.awaitPermission");
+  state.textContent = t("opt.awaitPermission");
+  state.className = "connection-status";
   // Request access in the original gesture, before any asynchronous work.
   const permission = chrome.permissions.request({ origins: requiredOrigins(snapshot.endpoint, snapshot.channelB) });
   const operation = (async () => {
@@ -147,6 +150,11 @@ channelB.addEventListener("change", () => {
   const baseline = saved;
   const permission = enabled ? chrome.permissions.request({ origins: requiredOrigins(baseline.endpoint, true) }) : Promise.resolve(true);
   lock(true, "permission");
+  if (enabled) {
+    setNote("opt.awaitPermission");
+    state.textContent = t("opt.awaitPermission");
+    state.className = "connection-status";
+  }
   void (async () => {
     try {
       if (!await permission) throw new ApiError(t("opt.permissionDenied"), 0, "permission");

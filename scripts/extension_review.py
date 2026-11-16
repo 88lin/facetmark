@@ -82,6 +82,22 @@ def capture(page, name: str):
 def review(context, worker, report: dict):
     extension_id = worker.url.split("/")[2]
     root = f"chrome-extension://{extension_id}"
+
+    def grant_page_access():
+        # Headless Chromium cannot accept its native permission dialog. Set up
+        # the disposable profile through Chromium's real extension-management
+        # API, then exercise request/contains/remove in the shipped extension.
+        manager = context.new_page()
+        try:
+            manager.goto("chrome://extensions/")
+            manager.evaluate("""async id => {
+              await chrome.developerPrivate.addHostPermission(id, 'http://*/*');
+              await chrome.developerPrivate.addHostPermission(id, 'https://*/*');
+            }""", extension_id)
+        finally:
+            manager.close()
+
+    grant_page_access()
     options = context.new_page()
     options.goto(root + "/options.html")
     expect(options.locator("#endpoint")).to_be_enabled()
@@ -98,7 +114,7 @@ def review(context, worker, report: dict):
     options.locator("#channelB").check()
     expect(options.locator("#state")).to_contain_text("已允许")
     assert options.evaluate("chrome.permissions.contains({origins:['http://*/*','https://*/*']})")
-    report["scenarios"].append("real options startup, Enter save, token visibility and granted optional permission")
+    report["scenarios"].append("real options startup, Enter save, token visibility and actual permission APIs with a pregranted disposable profile")
 
     def popup():
         page = context.new_page()
@@ -232,6 +248,7 @@ def review(context, worker, report: dict):
     options.locator("#channelB").uncheck()
     expect(options.locator("#drain")).to_be_enabled()
     report["scenarios"].append("pause while the real tab is loading, exact lease release without spending an attempt and revoked permissions before leasing")
+    grant_page_access()
     options.locator("#channelB").check()
     expect(options.locator("#state")).to_contain_text("已允许")
     server("/_test/flags", {"queue_failure": True})
@@ -301,7 +318,8 @@ def main() -> None:
         raise SystemExit("Extension browser validation requires a disposable GitHub-hosted runner")
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     report: dict = {"status": "running", "revision": os.environ.get("GITHUB_SHA"), "scenarios": [],
-                    "profile": "temporary synthetic Chromium only", "permission_prompts": "automatic acceptance in isolated test runner",
+                    "profile": "temporary synthetic Chromium only",
+                    "permission_prompts": "native prompt excluded; actual Chromium manager API pregrants only the disposable profile",
                     "sources": {str(path.relative_to(ROOT)).replace("\\", "/"): hashlib.sha256(path.read_bytes()).hexdigest()
                                 for path in sorted((ROOT / "extension/src").rglob("*")) if path.is_file()}}
     runtime_errors: list[str] = []
@@ -320,8 +338,8 @@ def main() -> None:
                     time.sleep(0.1)
             with sync_playwright() as playwright:
                 context = playwright.chromium.launch_persistent_context(profile, channel="chromium", headless=True,
-                    args=[f"--disable-extensions-except={ROOT / 'extension/dist'}", f"--load-extension={ROOT / 'extension/dist'}",
-                          "--auto-accept-this-extension-permission-request"], ignore_default_args=["--disable-extensions"])
+                    args=[f"--disable-extensions-except={ROOT / 'extension/dist'}", f"--load-extension={ROOT / 'extension/dist'}"],
+                    ignore_default_args=["--disable-extensions"])
                 context.add_init_script("if(location.protocol==='chrome-extension:' && !localStorage.getItem('fm-lang')) localStorage.setItem('fm-lang','zh')")
                 context.on("page", lambda page: page.on("pageerror", lambda error: runtime_errors.append(str(error))))
                 context.tracing.start(screenshots=True, snapshots=True, sources=True)

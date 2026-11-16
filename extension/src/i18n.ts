@@ -32,6 +32,7 @@ const STRINGS: Record<string, { en: string; zh: string }> = {
   "opt.refresh": { en: "Refresh status", zh: "刷新状态" },
   "opt.reading": { en: "Checking the saved connection…", zh: "正在读取已保存连接的状态…" },
   "opt.saved": { en: "Connection saved", zh: "连接已保存" },
+  "opt.awaitPermission": { en: "Waiting for browser access. Respond to the browser's permission request to continue.", zh: "正在等待浏览器访问授权。请在浏览器的权限提示中选择后继续。" },
   "opt.draft": { en: "Connection changes are not saved yet.", zh: "连接信息已修改，尚未保存。" },
   "opt.reloadSettings": { en: "Read changed settings", zh: "读取其他窗口的新设置" },
   "opt.reloadConfirm": { en: "Replace these unsaved connection fields with the currently saved settings?", zh: "读取当前已保存设置，并替换此处尚未保存的连接输入？" },
