@@ -677,6 +677,9 @@ function Workbench({
   }, [selected, previewRevision]);
   const items = page?.items || page?.hits || [];
   const semanticSelection = Boolean(search.trim() && searchMode === "semantic" && semantic);
+  // The modal reader covers the collection. Retain the underlying controls so
+  // its nested scroll ranges stay unchanged until the drawer closes.
+  const showCollectionControls = selected === null || drawer;
   function selectFilter(key: keyof Filters, value: string | number | undefined) {
     setView("library");
     setNavOpen(false);
@@ -1156,9 +1159,9 @@ function Workbench({
             </header>
             <section className="results-column" inert={focusReading}>
               <header className="search-header">
-                {adminAvailable && selected === null && <LibraryRecoveryBanner operations={libraryOperations}
+                {adminAvailable && showCollectionControls && <LibraryRecoveryBanner operations={libraryOperations}
                   onOpen={operation => setLibraryAction({ kind: "recover", operation })}/>}
-                {adminAvailable && selected === null && <LibraryToolbar
+                {adminAvailable && showCollectionControls && <LibraryToolbar
                   batch={batchMode && !allMatching} ids={selectedIds} pageIds={items.map(item => item.bookmark_id)}
                   disabled={job.state === "running" || summaryGeneration.busy || taskBusy} pending={scopePending || summaryGeneration.busy || taskBusy || chatSelectionBusy}
                   processingDisabled={processingBusy}
@@ -1182,7 +1185,7 @@ function Workbench({
                         : semanticSelection ? { ids: items.map(item => item.bookmark_id), reprocess: false }
                           : { scope: collectionScope }) })}
                 />}
-                {selected === null && !(search.trim() && searchMode === "semantic" && semantic) && <CollectionTools scope={collectionScope} page={page} display={summaryDisplay} onDisplay={setSummaryDisplay}
+                {showCollectionControls && !(search.trim() && searchMode === "semantic" && semantic) && <CollectionTools scope={collectionScope} page={page} display={summaryDisplay} onDisplay={setSummaryDisplay}
                   sort={collectionSort} onSort={value => { setCollectionSort(value); setOffset(0); }}
                   onStatus={value => { setSummaryStatus(value); setOffset(0); }} disabled={scopePending}
                   job={job} onTask={taskOperations.run} taskBusy={processingBusy} admin={adminAvailable}/>}
@@ -1202,7 +1205,7 @@ function Workbench({
                           : t("全部关键词匹配", "All keyword matches")
                         : t("直接打开原网页 · 摘要就地浏览", "Open original pages · Read summaries here")}
                     </span>
-                    {selected === null && <div className="collection-view-switch" role="group" aria-label={t("收藏显示方式", "Collection layout")}>
+                    {showCollectionControls && <div className="collection-view-switch" role="group" aria-label={t("收藏显示方式", "Collection layout")}>
                       {[{ value: "grid", label: t("卡片视图", "Card view"), Icon: LayoutGrid },
                         { value: "list", label: t("列表视图", "List view"), Icon: List }].map(({ value, label, Icon }) =>
                         <CapsuleButton key={value} type="button" aria-label={label} title={label} aria-pressed={collectionLayout === value}
@@ -1352,7 +1355,7 @@ function Workbench({
                   <span className="collection-count-label">{t("条收藏", "saved pages")}</span>
                 </div>
                 <div>
-                  {selected === null && pageCount > 1 && !paginationPage?.depth_capped && <form className="page-jump"
+                  {showCollectionControls && pageCount > 1 && !paginationPage?.depth_capped && <form className="page-jump"
                     onSubmit={event => {
                       event.preventDefault();
                       const target = Number(pageInput);
