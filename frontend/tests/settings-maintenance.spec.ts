@@ -196,9 +196,29 @@ for (const kind of ["summary", "processing"] as const) for (const failedRead of 
     if (kind === "summary") await expect(page.locator(".models > .notice")).toContainText("摘要设置已保存");
     else await expect(panel.locator(".processing-footer [role=status]")).toContainText("处理设置已保存");
     await expect(connectionDraft).toHaveValue("keep-this-unrelated-local-draft");
-    fail = false;
     const reload = page.getByRole("button", { name: "重新读取设置状态", exact: true });
     await expect(reload).toBeEnabled();
+    await reload.focus(); await reload.press("Space");
+    await expect(reload).toBeEnabled();
+    await expect(page.locator(".settings-read-recovery")).toBeVisible();
+    expect(writes).toHaveLength(1); expect(probes).toBe(0);
+    await expect(connectionDraft).toHaveValue("keep-this-unrelated-local-draft");
+    if (kind === "summary") await expect(page.locator(".models > .notice")).toContainText("摘要设置已保存");
+    else await expect(panel.locator(".processing-footer [role=status]")).toContainText("处理设置已保存");
+    await reload.scrollIntoViewIfNeeded(); await noHorizontalOverflow(page);
+    await page.screenshot({ path: `screenshots/collection-review/settings-saved-${kind}-${failedRead}-zh-light-1280.png`, animations: "disabled" });
+    if (kind === "processing" && failedRead === "setup") {
+      await page.getByRole("button", { name: "切换语言", exact: true }).click();
+      await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+      await page.setViewportSize({ width: 320, height: 640 });
+      await page.getByRole("button", { name: "Reload settings status", exact: true }).scrollIntoViewIfNeeded();
+      await noHorizontalOverflow(page);
+      await page.screenshot({ path: "screenshots/collection-review/settings-saved-processing-setup-en-dark-320.png", animations: "disabled" });
+      await page.setViewportSize({ width: 1280, height: 850 });
+      await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+      await page.getByRole("button", { name: "Switch language", exact: true }).click();
+    }
+    fail = false;
     await reload.focus(); await reload.press("Space");
     await expect(page.locator(".settings-read-recovery")).toHaveCount(0);
     await expect(save).toBeDisabled();

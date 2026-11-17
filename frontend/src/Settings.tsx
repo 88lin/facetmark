@@ -203,7 +203,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
     actionGate.current = true;
     setBusy(name);
     setError("");
-    setNotice("");
+    if (name !== "reload") setNotice("");
     try {
       await work();
     } catch (e) {

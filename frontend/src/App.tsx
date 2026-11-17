@@ -355,6 +355,7 @@ function Workbench({
     }
   }, [invalidateLibrary]);
   const refreshImportedCollection = useCallback(() => refresh(true), [refresh]);
+  const refreshSettingsState = useCallback(() => refresh(true), [refresh]);
   const taskOperations = useTaskOperations({ enabled: paired && adminAvailable, language,
     onAccepted: async change => {
       if (change.kind === "start" || change.kind === "resume") {
@@ -1469,7 +1470,7 @@ function Workbench({
                 <Importer refresh={refreshImportedCollection} onDone={() => openView("library")} />
               </>
             ) : view === "settings" ? (
-              <SettingsWorkspace setup={setup} refresh={refresh} onChanged={libraryChanged} onBack={() => openView("library")} onSummarize={() => handleLibraryAction({ kind: "process", mode: "summarize", scope: collectionScope, scopeLabel: t("当前收藏范围", "Current collection scope") })} />
+              <SettingsWorkspace setup={setup} refresh={refreshSettingsState} onChanged={libraryChanged} onBack={() => openView("library")} onSummarize={() => handleLibraryAction({ kind: "process", mode: "summarize", scope: collectionScope, scopeLabel: t("当前收藏范围", "Current collection scope") })} />
             ) : view === "tasks" ? (
               <>
                 <header className="page-heading">
