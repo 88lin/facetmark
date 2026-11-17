@@ -139,23 +139,49 @@ test("reader index reveals the whole selection after layout motion and restores 
 });
 
 test("narrow reading leaves the collection layout and scroll in place through consecutive previews", async ({ page }) => {
+  test.setTimeout(60_000);
   await savedTextFixture(page);
   const measurements = [];
-  for (const width of [390, 1024]) {
-    await page.setViewportSize({ width, height: 900 });
+  for (const { width, height } of [{ width: 390, height: 900 }, { width: 1024, height: 900 },
+    { width: 320, height: 640 }, { width: 320, height: 384 }]) {
+    await page.setViewportSize({ width, height });
     await page.goto("/app");
     await expect(page.locator(".result-row")).toHaveCount(30);
     const opener = page.locator(".result-row").nth(12);
-    await opener.scrollIntoViewIfNeeded();
+    const trigger = opener.locator(".bookmark-preview");
     await settleVisualLayout(page);
+    // The short workspace has nested scroll regions. Center the real control
+    // rather than leaving a fractional edge clipped by the outer viewport.
+    await trigger.evaluate(element => element.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" }));
+    await settleVisualLayout(page);
+    await test.info().attach(`reader-trigger-${width}-${height}`, {
+      body: JSON.stringify(await trigger.evaluate(element => {
+        const ancestors = [];
+        for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+          const style = getComputedStyle(parent);
+          if (/(auto|scroll|hidden|clip)/.test(`${style.overflowX} ${style.overflowY}`)) {
+            ancestors.push({ className: parent.className, rect: parent.getBoundingClientRect().toJSON(),
+              scroll: parent.scrollTop, extent: parent.scrollHeight, clientHeight: parent.clientHeight });
+          }
+        }
+        return { viewport: { width: innerWidth, height: innerHeight }, rect: element.getBoundingClientRect().toJSON(), ancestors };
+      })), contentType: "application/json",
+    });
+    await expect(trigger).toBeInViewport({ ratio: 1 });
     const before = await page.locator(".result-list").evaluate(element => ({
       scroll: element.scrollTop,
       extent: element.scrollHeight,
       columns: getComputedStyle(element).gridTemplateColumns,
+      workspaceScroll: element.closest<HTMLElement>(".main-workspace")!.scrollTop,
+      workspaceExtent: element.closest<HTMLElement>(".main-workspace")!.scrollHeight,
+      workspaceClientHeight: element.closest<HTMLElement>(".main-workspace")!.clientHeight,
     }));
     expect(before.scroll).toBeGreaterThan(0);
-    await opener.locator(".bookmark-preview").click();
+    await trigger.click();
     await expect(page.locator(".body-text")).toBeVisible();
+    await expect(page.locator(".collection-view-switch")).toHaveCount(1);
+    await expect(page.getByRole("group", { name: "收藏显示方式", exact: true })).toHaveCount(0);
+    const toolbars = [];
     for (const action of [null, "下一条收藏", "上一条收藏"] as const) {
       if (action) await page.getByRole("button", { name: action, exact: true }).press("Enter");
       await settleVisualLayout(page);
@@ -163,15 +189,80 @@ test("narrow reading leaves the collection layout and scroll in place through co
         scroll: element.scrollTop,
         extent: element.scrollHeight,
         columns: getComputedStyle(element).gridTemplateColumns,
+        workspaceScroll: element.closest<HTMLElement>(".main-workspace")!.scrollTop,
+        workspaceExtent: element.closest<HTMLElement>(".main-workspace")!.scrollHeight,
+        workspaceClientHeight: element.closest<HTMLElement>(".main-workspace")!.clientHeight,
       }));
+      const toolbar = await page.locator(".preview-drawer .preview-heading").evaluate(element => {
+        const header = element.getBoundingClientRect();
+        const count = element.querySelector(".reader-count")!;
+        const text = document.createRange(); text.selectNodeContents(count);
+        const countRects = [...text.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0)
+          .map(rect => ({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom }));
+        // React renders the two numbers and separator as separate text nodes.
+        // Count their actual vertical lines, retaining every measured fragment.
+        const lineTops: number[] = [];
+        for (const rect of countRects) if (!lineTops.some(top => Math.abs(top - rect.top) <= 1)) lineTops.push(rect.top);
+        return { countRects, countLines: lineTops.length, buttons: [...element.querySelectorAll("button")].map(button => {
+          const box = button.getBoundingClientRect();
+          const style = getComputedStyle(button);
+          const focusOutset = style.outlineStyle === "none" ? 0
+            : Math.max(0, parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset));
+          return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, focusOutset };
+        }), left: header.left, right: header.right, top: header.top, bottom: header.bottom };
+      });
+      await test.info().attach(`reader-context-${width}-${height}-${action ?? "open"}`, {
+        body: JSON.stringify({ viewport: { width, height }, before, current, toolbar }),
+        contentType: "application/json",
+      });
       expect(current).toEqual(before);
+      expect(toolbar.countLines).toBe(1);
+      for (const rect of toolbar.countRects) {
+        expect(rect.left).toBeGreaterThanOrEqual(toolbar.left);
+        expect(rect.right).toBeLessThanOrEqual(toolbar.right);
+        expect(rect.top).toBeGreaterThanOrEqual(toolbar.top);
+        expect(rect.bottom).toBeLessThanOrEqual(toolbar.bottom);
+      }
+      for (const button of toolbar.buttons) {
+        expect(button.left).toBeGreaterThanOrEqual(toolbar.left);
+        expect(button.right).toBeLessThanOrEqual(toolbar.right);
+        expect(button.top).toBeGreaterThanOrEqual(toolbar.top);
+        expect(button.bottom).toBeLessThanOrEqual(toolbar.bottom);
+        if (button.focusOutset > 0) {
+          const focus = { left: button.left - button.focusOutset, right: button.right + button.focusOutset,
+            top: button.top - button.focusOutset, bottom: button.bottom + button.focusOutset };
+          expect(focus.left).toBeGreaterThanOrEqual(toolbar.left);
+          expect(focus.right).toBeLessThanOrEqual(toolbar.right);
+          expect(focus.top).toBeGreaterThanOrEqual(toolbar.top);
+          expect(focus.bottom).toBeLessThanOrEqual(toolbar.bottom);
+          for (const neighbor of [...toolbar.countRects, ...toolbar.buttons.filter(other => other !== button)]) {
+            const overlaps = Math.min(focus.right, neighbor.right) > Math.max(focus.left, neighbor.left)
+              && Math.min(focus.bottom, neighbor.bottom) > Math.max(focus.top, neighbor.top);
+            expect(overlaps).toBe(false);
+          }
+        }
+      }
+      if (action) expect(toolbar.buttons.some(button => button.focusOutset > 0)).toBe(true);
+      toolbars.push({ action: action ?? "open", ...toolbar });
     }
-    await capture(page, `reader-background-context-${width}`);
+    await expect(page.getByRole("button", { name: "返回收藏", exact: true })).toBeVisible();
+    await capture(page, `reader-background-context-${width}-${height}`);
     await page.keyboard.press("Escape");
     await settleVisualLayout(page);
-    expect(await page.locator(".result-list").evaluate(element => element.scrollTop)).toBe(before.scroll);
+    const restored = await page.locator(".result-list").evaluate(element => ({
+      scroll: element.scrollTop,
+      extent: element.scrollHeight,
+      columns: getComputedStyle(element).gridTemplateColumns,
+      workspaceScroll: element.closest<HTMLElement>(".main-workspace")!.scrollTop,
+      workspaceExtent: element.closest<HTMLElement>(".main-workspace")!.scrollHeight,
+      workspaceClientHeight: element.closest<HTMLElement>(".main-workspace")!.clientHeight,
+    }));
+    await test.info().attach(`reader-return-${width}-${height}`, {
+      body: JSON.stringify({ viewport: { width, height }, before, current: restored }), contentType: "application/json",
+    });
+    expect(restored).toEqual(before);
     await expect(opener.locator(".bookmark-preview")).toBeFocused();
-    measurements.push({ width, ...before });
+    measurements.push({ width, height, ...before, toolbars });
   }
   await writeFile(`${output}/reader-background-context.json`, JSON.stringify(measurements, null, 2));
 });

@@ -160,6 +160,8 @@ function Workbench({
   const [collectionLayout, setCollectionLayout] = useState(() => remember("fm-collection-layout") === "list" ? "list" : "grid");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [ranking, setRanking] = useState(false);
+  const [rankingError, setRankingError] = useState("");
   const [connectionError, setConnectionError] = useState("");
   const [selected, setSelected] = useState<number | null>(null);
   const [libraryAction, setLibraryAction] = useState<LibraryAction | null>(null);
@@ -536,6 +538,7 @@ function Workbench({
       ? loadedPage
       : null;
   const scopePending = loading || !page || Boolean(error);
+  const pagingPending = scopePending || ranking;
   const activeFilters = Object.entries(filters).filter(([, value]) => value !== undefined);
   const pageSize = page?.limit || 30;
   const currentPage = Math.floor(offset / pageSize) + 1;
@@ -572,9 +575,9 @@ function Workbench({
     const id = ++requestId.current;
     const abort = new AbortController();
     abortRef.current = abort;
-    const update = (data: Page) => {
+    const update = (data: Page, provisional = false) => {
       if (id === requestId.current && !abort.signal.aborted) {
-        if (offset > 0 && offset >= data.total) {
+        if (!provisional && offset > 0 && offset >= data.total) {
           setOffset(Math.max(0, Math.ceil(data.total / 30) - 1) * 30);
           return;
         }
@@ -587,13 +590,26 @@ function Workbench({
     };
     setLoading(true);
     setError("");
+    setRankingError("");
+    const wantsRanking = Boolean(search.trim() && searchMode === "semantic" && semantic);
+    setRanking(wantsRanking);
     const timer = setTimeout(
       async () => {
         try {
-          if (search.trim() && searchMode === "semantic" && semantic) {
-            const fast = await api<Page>(`/quick?${query({ q: searchTerms, offset, limit: 30, depth })}`, { signal: abort.signal });
-            update(fast);
-            update(await post<Page>("/search", { q: searchTerms, offset, limit: 30, depth: depth ?? fast.depth }, abort.signal));
+          if (wantsRanking) {
+            let fast: Page | undefined;
+            try {
+              fast = await api<Page>(`/quick?${query({ q: searchTerms, offset, limit: 30, depth })}`, { signal: abort.signal });
+              update(fast, true);
+            } catch {
+              if (abort.signal.aborted || id !== requestId.current) return;
+            }
+            try {
+              update(await post<Page>("/search", { q: searchTerms, offset, limit: 30, depth: depth ?? fast?.depth }, abort.signal));
+            } catch (failure) {
+              if (!fast) throw failure;
+              if (id === requestId.current && !abort.signal.aborted) setRankingError(String(failure));
+            }
             return;
           }
           update(await api<Page>(`/bookmarks?${query({ ...filters, q: search, status: summaryStatus, sort: collectionSort, offset, limit: 30 })}`, {
@@ -604,6 +620,8 @@ function Workbench({
             setError(String(e));
             setLoading(false);
           }
+        } finally {
+          if (id === requestId.current && !abort.signal.aborted) setRanking(false);
         }
       },
       search ? 240 : 0,
@@ -658,6 +676,9 @@ function Workbench({
   }, [selected, previewRevision]);
   const items = page?.items || page?.hits || [];
   const semanticSelection = Boolean(search.trim() && searchMode === "semantic" && semantic);
+  // The modal reader covers the collection. Retain the underlying controls so
+  // its nested scroll ranges stay unchanged until the drawer closes.
+  const showCollectionControls = selected === null || drawer;
   function selectFilter(key: keyof Filters, value: string | number | undefined) {
     setView("library");
     setNavOpen(false);
@@ -674,7 +695,7 @@ function Workbench({
     setDepth(undefined);
   }
   function paginate(next: number) {
-    if (next === offset) return;
+    if (next === offset || pagingPending) return;
     abortRef.current?.abort();
     requestId.current++;
     setSelected(null);
@@ -1137,9 +1158,9 @@ function Workbench({
             </header>
             <section className="results-column" inert={focusReading}>
               <header className="search-header">
-                {adminAvailable && selected === null && <LibraryRecoveryBanner operations={libraryOperations}
+                {adminAvailable && showCollectionControls && <LibraryRecoveryBanner operations={libraryOperations}
                   onOpen={operation => setLibraryAction({ kind: "recover", operation })}/>}
-                {adminAvailable && selected === null && <LibraryToolbar
+                {adminAvailable && showCollectionControls && <LibraryToolbar
                   batch={batchMode && !allMatching} ids={selectedIds} pageIds={items.map(item => item.bookmark_id)}
                   disabled={job.state === "running" || summaryGeneration.busy || taskBusy} pending={scopePending || summaryGeneration.busy || taskBusy || chatSelectionBusy}
                   processingDisabled={processingBusy}
@@ -1163,7 +1184,7 @@ function Workbench({
                         : semanticSelection ? { ids: items.map(item => item.bookmark_id), reprocess: false }
                           : { scope: collectionScope }) })}
                 />}
-                {selected === null && !(search.trim() && searchMode === "semantic" && semantic) && <CollectionTools scope={collectionScope} page={page} display={summaryDisplay} onDisplay={setSummaryDisplay}
+                {showCollectionControls && !(search.trim() && searchMode === "semantic" && semantic) && <CollectionTools scope={collectionScope} page={page} display={summaryDisplay} onDisplay={setSummaryDisplay}
                   sort={collectionSort} onSort={value => { setCollectionSort(value); setOffset(0); }}
                   onStatus={value => { setSummaryStatus(value); setOffset(0); }} disabled={scopePending}
                   job={job} onTask={taskOperations.run} taskBusy={processingBusy} admin={adminAvailable}/>}
@@ -1176,10 +1197,14 @@ function Workbench({
                     </select>}
                     <span className="collection-hint">
                       {search
-                        ? searchMode === "semantic" && semantic ? t("语义检索结果", "Semantic results") : t("全部关键词匹配", "All keyword matches")
+                        ? searchMode === "semantic" && semantic
+                          ? ranking ? t("正在语义检索，先显示关键词结果", "Ranking; showing keyword matches first")
+                            : rankingError || page?.degraded_from ? t("当前显示关键词结果", "Showing keyword matches")
+                              : t("语义检索结果", "Semantic results")
+                          : t("全部关键词匹配", "All keyword matches")
                         : t("直接打开原网页 · 摘要就地浏览", "Open original pages · Read summaries here")}
                     </span>
-                    {selected === null && <div className="collection-view-switch" role="group" aria-label={t("收藏显示方式", "Collection layout")}>
+                    {showCollectionControls && <div className="collection-view-switch" role="group" aria-label={t("收藏显示方式", "Collection layout")}>
                       {[{ value: "grid", label: t("卡片视图", "Card view"), Icon: LayoutGrid },
                         { value: "list", label: t("列表视图", "List view"), Icon: List }].map(({ value, label, Icon }) =>
                         <CapsuleButton key={value} type="button" aria-label={label} title={label} aria-pressed={collectionLayout === value}
@@ -1212,6 +1237,20 @@ function Workbench({
                   </div>
                 )}
               </header>
+              {rankingError && (
+                <div className="search-ranking-recovery" role="status">
+                  <p>{t("语义检索未完成，关键词结果仍可使用。", "Semantic search did not finish. Keyword matches remain available.")}</p>
+                  <div className="search-ranking-actions">
+                    <CapsuleButton type="button" className="secondary" onClick={() => setRequestRevision(value => value + 1)}>
+                      {t("重试语义检索", "Retry semantic search")}
+                    </CapsuleButton>
+                    <CapsuleButton type="button" className="text-button" onClick={() => { setSearchMode("keyword"); setOffset(0); setDepth(undefined); }}>
+                      {t("使用关键词检索", "Use keyword search")}
+                    </CapsuleButton>
+                    <details><summary>{t("查看原因", "View reason")}</summary><p>{rankingError}</p></details>
+                  </div>
+                </div>
+              )}
               {error && (
                 <div className="error search-error" role="alert">
                   <strong>
@@ -1230,7 +1269,7 @@ function Workbench({
                 className="result-list"
                 ref={list}
                 aria-label={t("书签列表", "Bookmark results")}
-                aria-busy={loading}
+                aria-busy={loading || ranking}
               >
                 {search.trim() && (
                   <SearchAnswer
@@ -1242,7 +1281,7 @@ function Workbench({
                     onSelect={(id) => select(id)}
                   />
                 )}
-                {error && !items.length ? null : (loading || !page) && !items.length ? (
+                {error && !items.length ? null : (loading || ranking || !page) && !items.length ? (
                   <>
                     <span role="status" className="sr-only">
                       {t("正在检索…", "Searching…")}
@@ -1315,22 +1354,22 @@ function Workbench({
                   <span className="collection-count-label">{t("条收藏", "saved pages")}</span>
                 </div>
                 <div>
-                  {selected === null && pageCount > 1 && !paginationPage?.depth_capped && <form className="page-jump"
+                  {showCollectionControls && pageCount > 1 && !paginationPage?.depth_capped && <form className="page-jump"
                     onSubmit={event => {
                       event.preventDefault();
                       const target = Number(pageInput);
-                      if (!scopePending && Number.isInteger(target) && target >= 1 && target <= pageCount)
+                      if (!pagingPending && Number.isInteger(target) && target >= 1 && target <= pageCount)
                         paginate((target - 1) * pageSize);
                     }}>
                     <input type="number" min={1} max={pageCount} required inputMode="numeric"
-                      aria-label={t("跳转页码", "Page to jump to")} value={pageInput} disabled={scopePending}
+                      aria-label={t("跳转页码", "Page to jump to")} value={pageInput} disabled={pagingPending}
                       onChange={event => setPageInput(event.target.value)} />
                     <span aria-label={t(`共 ${pageCount} 页`, `${pageCount} pages`)}>/ {pageCount}</span>
-                    <CapsuleButton type="submit" disabled={scopePending}>{t("跳转", "Go")}</CapsuleButton>
+                    <CapsuleButton type="submit" disabled={pagingPending}>{t("跳转", "Go")}</CapsuleButton>
                   </form>}
                   <CapsuleButton
                     className="icon-button"
-                    disabled={!page?.offset || loading}
+                    disabled={!page?.offset || pagingPending}
                     aria-label={t("上一页", "Previous page")}
                     onClick={() => paginate(Math.max(0, (page?.offset || 0) - (page?.limit || 30)))}
                   >
@@ -1338,7 +1377,7 @@ function Workbench({
                   </CapsuleButton>
                   <CapsuleButton
                     className="icon-button"
-                    disabled={!page?.has_more || loading || page.depth_capped}
+                    disabled={!page?.has_more || pagingPending || page.depth_capped}
                     aria-label={t("下一页", "Next page")}
                     onClick={() => paginate((page?.offset || 0) + (page?.limit || 30))}
                   >

@@ -518,8 +518,12 @@ export function ChatWorkspace({ active, launch, setup, language, onPreview, onSe
     <div className="chat-composer-area">
       <div className="chat-composer-status">
       <div className="chat-model-choice">
-        <label htmlFor="chat-connection"><span>{t("本段对话的模型连接", "Connection for this conversation")}</span>
-          <select id="chat-connection" value={profileId} disabled={running || loading || Boolean(operation) || stopping}
+        <label htmlFor="chat-connection"><span aria-hidden="true">
+          <span className="chat-model-label">{t("本段对话的模型连接", "Connection for this conversation")}</span>
+          <span className="chat-model-label-compact">{t("模型连接", "Connection")}</span>
+        </span>
+          <select id="chat-connection" value={profileId} aria-label={t("本段对话的模型连接", "Connection for this conversation")}
+            disabled={running || loading || Boolean(operation) || stopping}
             onChange={event => saveLocal({ connections: { ...stored.current!.connections, [currentKey]: event.currentTarget.value } })}>
             <option value="">{t("使用摘要连接", "Use the summary connection")}</option>
             {profileId && !chosenProfile && <option value={profileId}>{profilesBusy ? t("正在读取连接…", "Loading connection…") : t("连接已移除或暂时无法读取", "Connection removed or unavailable")}</option>}

@@ -33,7 +33,8 @@
   display: none;
 }
 .reader-actions {
-  gap: 4px;
+  gap: 8px;
+  flex-shrink: 0;
 }
 .reader-actions .icon-button {
   background: var(--inset);
@@ -59,6 +60,8 @@
   color: var(--muted);
   padding-right: 8px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex: none;
 }
 .preview-tabs {
   height: 56px;
@@ -347,6 +350,14 @@
 .reader-back:hover {
   background: var(--inset);
   color: var(--accent);
+}
+.reader-back-compact { display: none; }
+@media (max-width: 419px) {
+  .preview-drawer .preview-heading { padding-inline: 14px; }
+  .reader-back { gap: 5px; margin-left: -6px; padding-inline: 6px; flex: none; }
+  .reader-back-label { display: none; }
+  .reader-back-compact { display: inline; }
+  .reader-count { padding-right: 0; font-size: .6875rem; }
 }
 .preview-drawer .preview-tabs {
   height: 56px;

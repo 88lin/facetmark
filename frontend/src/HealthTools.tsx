@@ -10,7 +10,9 @@ import "./health-tools.css";
 type HealthBookmark = Bookmark & { health?: { status: string; checked_at?: number | null; archive_url?: string } };
 export function HealthTools({ onPreview, onChanged, disabled = false }: { onPreview?: (bookmarkId: number) => void; onChanged?: () => void; disabled?: boolean } = {}) {
   const t = useText();
-  const [limit, setLimit] = useState(20), [busy, setBusy] = useState(false), [loading, setLoading] = useState(false);
+  const [limit, setLimit] = useState(20), [loading, setLoading] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"check" | "close" | "stop" | null>(null);
+  const busy = pendingAction !== null;
   const [opened, setOpened] = useState(() => { try { return loadHealthOperations().length > 0; } catch { return false; } });
   const [known, setKnown] = useState(false), [remoteBusy, setRemoteBusy] = useState(false);
   const [libraryId, setLibraryId] = useState("");
@@ -121,7 +123,7 @@ export function HealthTools({ onPreview, onChanged, disabled = false }: { onPrev
   }
   async function send(original: HealthOperation, closing = false) {
     if (gate.current || !closing && disabled) return;
-    gate.current = true; setBusy(true); setError(""); setActionFailure(null);
+    gate.current = true; setPendingAction(closing ? "close" : "check"); setError(""); setActionFailure(null);
     request.current?.abort(); const current = ++revision.current;
     try {
       saveHealthOperation(original); originals(original.libraryId);
@@ -138,7 +140,7 @@ export function HealthTools({ onPreview, onChanged, disabled = false }: { onPrev
     }
     finally {
       gate.current = false;
-      if (mounted.current) { setBusy(false); if (visible.current) void load(); }
+      if (mounted.current) { setPendingAction(null); if (visible.current) void load(); }
     }
   }
   async function check() {
@@ -148,7 +150,7 @@ export function HealthTools({ onPreview, onChanged, disabled = false }: { onPrev
   }
   async function stop() {
     if (!run || gate.current) return;
-    const originalId = run.request_id; gate.current = true; setBusy(true); setError(""); setActionFailure(null);
+    const originalId = run.request_id; gate.current = true; setPendingAction("stop"); setError(""); setActionFailure(null);
     request.current?.abort(); const current = ++revision.current;
     try {
       const result = await api<unknown>(`/link-health/runs/${encodeURIComponent(originalId)}/stop`, { method: "POST", timeoutMs: 20_000 });
@@ -157,7 +159,7 @@ export function HealthTools({ onPreview, onChanged, disabled = false }: { onPrev
     } catch (failure) {
       if (mounted.current && current === revision.current) setActionFailure({ requestId: originalId, kind: "stop", message: String(failure) });
     }
-    finally { gate.current = false; if (mounted.current) { setBusy(false); if (visible.current) void load(); } }
+    finally { gate.current = false; if (mounted.current) { setPendingAction(null); if (visible.current) void load(); } }
   }
   const original = operations[0];
   const accepted = original && run?.request_id === original.requestId;
@@ -187,15 +189,18 @@ export function HealthTools({ onPreview, onChanged, disabled = false }: { onPrev
     </div>
     {disabled && <p className="health-note">{t("当前处理任务结束后可以检查链接。", "Check links when the current processing task finishes.")}</p>}
     {visibleError && <p className="error" role="alert">{visibleError}</p>}
-    {original && uncertain && !busy && <section className="health-recovery" aria-label={t("原链接检查恢复", "Original link check recovery")}>
+    {original && uncertain && <section className="health-recovery" aria-busy={busy} aria-label={t("原链接检查恢复", "Original link check recovery")}>
       <h3>{t("确认原链接检查", "Confirm the original link check")}</h3>
       <p>{t(`原请求最多检查 ${original.limit} 条到期链接。重开页面只读取结果，不会再次访问网址。`,
         `The original request checks up to ${original.limit} due links. Reopening reads the result without visiting URLs again.`)}</p>
+      {busy && <p className="health-note" role="status">{pendingAction === "close"
+        ? t("正在关闭原检查请求，确认后返回已保存结果。", "Closing the original check request before returning to saved results.")
+        : t("正在确认原检查是否已开始…", "Confirming whether the original check has started…")}</p>}
       <div className="health-actions">
-        <CapsuleButton type="button" className="secondary" onClick={() => load()}>{t("读取原检查", "Read original check")}</CapsuleButton>
+        <CapsuleButton type="button" className="secondary" disabled={busy || loading} onClick={() => load()}>{t("读取原检查", "Read original check")}</CapsuleButton>
         {absent === original.requestId && <>
-          <CapsuleButton type="button" className="secondary" disabled={disabled || remoteBusy} onClick={() => send(original)}>{t("继续原检查", "Continue original check")}</CapsuleButton>
-          <CapsuleButton type="button" className="text-button" onClick={() => send(original, true)}>{t("返回已保存结果", "Return to saved results")}</CapsuleButton>
+          <CapsuleButton type="button" className="secondary" disabled={busy || disabled || remoteBusy} onClick={() => send(original)}>{t("继续原检查", "Continue original check")}</CapsuleButton>
+          <CapsuleButton type="button" className="text-button" disabled={busy} onClick={() => send(original, true)}>{t("返回已保存结果", "Return to saved results")}</CapsuleButton>
         </>}
       </div>
     </section>}
