@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Bookmark as BookmarkIcon,
   Check,
+  CircleAlert,
   Clock3,
   Folder,
   Import,
@@ -1030,14 +1031,14 @@ function Workbench({
             </CapsuleButton>
             <span className="local-status">
               {connectionError ? (
-                <WifiOff size={13} />
+                paired ? <CircleAlert size={13} /> : <WifiOff size={13} />
               ) : paired ? (
                 <Check size={13} />
               ) : (
                 <LoaderCircle size={13} className="spin" />
               )}
               {connectionError
-                ? t("连接中断", "Disconnected")
+                ? paired ? t("状态待更新", "Status unavailable") : t("连接中断", "Disconnected")
                 : paired
                   ? t("书库已连接", "Connected")
                   : t("连接中", "Connecting")}
@@ -1066,9 +1067,12 @@ function Workbench({
       >
         {connectionError && (
           <div className="connection-error" role="alert">
-            <WifiOff size={16} />
+            {paired ? <CircleAlert size={16} /> : <WifiOff size={16} />}
             <span>
-              {t(
+              {paired ? t(
+                "应用状态暂时无法读取，请重新读取。",
+                "App status is temporarily unavailable. Please reload it.",
+              ) : t(
                 "服务连接中断。请确认 Facetmark 正在运行。",
                 "Connection lost. Check that Facetmark is running.",
               )}{" "}
@@ -1077,6 +1081,8 @@ function Workbench({
             <CapsuleButton
               ref={connectionRetry}
               className="secondary"
+              aria-label={paired ? t("重新读取应用状态", "Reload app status") : t("重新连接", "Reconnect")}
+              title={paired ? t("重新读取应用状态", "Reload app status") : t("重新连接", "Reconnect")}
               disabled={!paired && bootBusy}
               onClick={() => {
                 if (paired) {
@@ -1085,7 +1091,7 @@ function Workbench({
                 } else boot();
               }}
             >
-              {t("重新连接", "Reconnect")}
+              {paired ? t("重新读取", "Reload") : t("重新连接", "Reconnect")}
             </CapsuleButton>
           </div>
         )}

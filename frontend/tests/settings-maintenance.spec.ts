@@ -202,6 +202,22 @@ for (const kind of ["summary", "processing"] as const) for (const failedRead of 
     await expect(reload).toBeEnabled();
     await expect(page.locator(".settings-read-recovery")).toBeVisible();
     expect(writes).toHaveLength(1); expect(probes).toBe(0);
+    if (failedRead === "setup") {
+      const appStatus = page.locator(".connection-error");
+      await expect(appStatus).toContainText("应用状态暂时无法读取，请重新读取。");
+      await expect(appStatus).not.toContainText("服务连接中断");
+      await expect(page.locator(".local-status")).toHaveText("状态待更新");
+      const appReload = appStatus.getByRole("button", { name: "重新读取应用状态", exact: true });
+      await expect(appReload).toHaveText("重新读取");
+      await appReload.focus();
+      const [response] = await Promise.all([
+        page.waitForResponse(response => new URL(response.url()).pathname === "/admin/setup-status"),
+        appReload.press("Enter"),
+      ]);
+      expect(response.status()).toBe(503);
+      await expect(appStatus).toContainText("应用状态暂时无法读取，请重新读取。");
+      expect(writes).toHaveLength(1); expect(probes).toBe(0);
+    }
     await expect(connectionDraft).toHaveValue("keep-this-unrelated-local-draft");
     if (kind === "summary") await expect(page.locator(".models > .notice")).toContainText("摘要设置已保存");
     else await expect(panel.locator(".processing-footer [role=status]")).toContainText("处理设置已保存");
@@ -212,6 +228,9 @@ for (const kind of ["summary", "processing"] as const) for (const failedRead of 
       await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
       await page.setViewportSize({ width: 320, height: 640 });
       await page.getByRole("button", { name: "Reload settings status", exact: true }).scrollIntoViewIfNeeded();
+      await expect(page.locator(".connection-error")).toContainText("App status is temporarily unavailable. Please reload it.");
+      await expect(page.locator(".connection-error")).not.toContainText("Connection lost");
+      await expect(page.locator(".connection-error").getByRole("button", { name: "Reload app status", exact: true })).toHaveText("Reload");
       await noHorizontalOverflow(page);
       await page.screenshot({ path: "screenshots/collection-review/settings-saved-processing-setup-en-dark-320.png", animations: "disabled" });
       await page.setViewportSize({ width: 1280, height: 850 });
@@ -221,6 +240,8 @@ for (const kind of ["summary", "processing"] as const) for (const failedRead of 
     fail = false;
     await reload.focus(); await reload.press("Space");
     await expect(page.locator(".settings-read-recovery")).toHaveCount(0);
+    await expect(page.locator(".connection-error")).toHaveCount(0);
+    await expect(page.locator(".local-status")).toHaveText("书库已连接");
     await expect(save).toBeDisabled();
     expect(writes).toHaveLength(1); expect(probes).toBe(0);
     await expect(connectionDraft).toHaveValue("keep-this-unrelated-local-draft");
