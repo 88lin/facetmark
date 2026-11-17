@@ -160,10 +160,33 @@ test("returning from an absent original closes its ID and a late direct request 
   await health(page).getByRole("button", { name: "检查链接", exact: true }).click();
   await expect(recovery(page).getByRole("button", { name: "返回已保存结果", exact: true })).toBeEnabled();
   const [original] = await pending(page), body = healthRequest(original), count = await owned.calls();
-  await recovery(page).getByRole("button", { name: "返回已保存结果", exact: true }).click();
-  await expect(recovery(page)).toHaveCount(0); expect(await pending(page)).toEqual([]); expect(control.closes).toEqual([body]);
-  const late = await owned.request.post("/link-health/check", { headers: owned.headers, data: body });
-  expect(late.status()).toBe(409); expect(await owned.calls()).toBe(count); expect(control.writes).toEqual([body]);
+  let releaseClose!: () => void;
+  const closeGate = new Promise<void>(resolve => { releaseClose = resolve; });
+  await page.route(/\/link-health\/runs\/[^/?]+\/close$/, async route => {
+    control.closes.push(route.request().postDataJSON());
+    const response = await route.fetch();
+    await closeGate;
+    await route.fulfill({ response });
+  });
+  try {
+    await recovery(page).getByRole("button", { name: "返回已保存结果", exact: true }).click();
+    await expect.poll(() => control.closes).toEqual([body]);
+    await expect(recovery(page)).toBeVisible();
+    await expect(recovery(page)).toHaveAttribute("aria-busy", "true");
+    await expect(recovery(page).getByRole("status")).toContainText("正在关闭原检查请求");
+    expect(await pending(page)).toEqual([original]);
+    for (const name of ["读取原检查", "继续原检查", "返回已保存结果"]) {
+      const button = recovery(page).getByRole("button", { name, exact: true });
+      await expect(button).toBeDisabled();
+      await button.evaluate(element => (element as HTMLButtonElement).click());
+    }
+    expect(control.closes).toEqual([body]); expect(control.writes).toEqual([body]);
+    await page.screenshot({ path: "screenshots/collection-review/health-closing-original.png", animations: "disabled" });
+    releaseClose();
+    await expect(recovery(page)).toHaveCount(0); expect(await pending(page)).toEqual([]); expect(control.closes).toEqual([body]);
+    const late = await owned.request.post("/link-health/check", { headers: owned.headers, data: body });
+    expect(late.status()).toBe(409); expect(await owned.calls()).toBe(count); expect(control.writes).toEqual([body]);
+  } finally { releaseClose(); }
 });
 
 test("another local library's unresolved original stays stored and is not sent to this collection", async ({ page, owned }) => {
