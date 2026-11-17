@@ -163,7 +163,8 @@ test("leaving extension settings cancels its read and a late response cannot rep
 for (const kind of ["summary", "processing"] as const) for (const failedRead of ["settings", "setup"] as const) {
   test(`${kind} saves once and only rereads after a ${failedRead} refresh failure`, async ({ page, server }) => {
     const writes: Record<string, unknown>[] = [];
-    let fail = false, probes = 0;
+    let fail = false, probes = 0, statusReads = 0, statusCompleted = 0;
+    let statusHold: Promise<void> | null = null;
     await page.route("**/admin/settings", async route => {
       if (route.request().method() === "PUT") {
         writes.push(route.request().postDataJSON().values);
@@ -171,8 +172,13 @@ for (const kind of ["summary", "processing"] as const) for (const failedRead of 
       }
       return fail && failedRead === "settings" ? route.fulfill({ status: 503, json: { detail: "Synthetic post-save settings read failure" } }) : route.continue();
     });
-    await page.route("**/admin/setup-status", route => fail && failedRead === "setup"
-      ? route.fulfill({ status: 503, json: { detail: "Synthetic post-save shared status read failure" } }) : route.continue());
+    await page.route("**/admin/setup-status", async route => {
+      statusReads++;
+      if (statusHold) await statusHold;
+      if (fail && failedRead === "setup") await route.fulfill({ status: 503, json: { detail: "Synthetic post-save shared status read failure" } });
+      else await route.continue();
+      statusCompleted++;
+    });
     await page.route("**/admin/settings/test", route => { probes++; return route.abort("failed"); });
     await page.goto("/app#settings/models");
     const panel = page.locator(kind === "summary" ? ".summary-preferences" : ".processing-preferences");
@@ -209,12 +215,18 @@ for (const kind of ["summary", "processing"] as const) for (const failedRead of 
       await expect(page.locator(".local-status")).toHaveText("状态待更新");
       const appReload = appStatus.getByRole("button", { name: "重新读取应用状态", exact: true });
       await expect(appReload).toHaveText("重新读取");
+      const held = heldResponse(page);
+      statusHold = held.wait;
+      const readsBefore = statusReads, completedBefore = statusCompleted;
       await appReload.focus();
-      const [response] = await Promise.all([
-        page.waitForResponse(response => new URL(response.url()).pathname === "/admin/setup-status"),
-        appReload.press("Enter"),
-      ]);
-      expect(response.status()).toBe(503);
+      await appReload.press("Enter");
+      await expect.poll(() => statusReads).toBeGreaterThan(readsBefore);
+      await expect(appStatus).toContainText("应用状态暂时无法读取，请重新读取。");
+      await expect(page.locator(".local-status")).toHaveText("状态待更新");
+      await expect(appReload).toBeFocused();
+      expect(statusCompleted).toBe(completedBefore);
+      held.release(); statusHold = null;
+      await expect.poll(() => statusCompleted).toBeGreaterThan(completedBefore);
       await expect(appStatus).toContainText("应用状态暂时无法读取，请重新读取。");
       expect(writes).toHaveLength(1); expect(probes).toBe(0);
     }

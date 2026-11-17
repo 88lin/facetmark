@@ -323,7 +323,7 @@ function Workbench({
     try {
       const data = await api<Record<string, Facet[]>>("/bookmarks/facets");
       if (id !== refreshId.current && !reportFailure) return;
-      if (id === refreshId.current) { setFacets(data); setConnectionError(""); }
+      if (id === refreshId.current) setFacets(data);
       try {
         const [status, task] = await Promise.all([
           api<Setup>("/admin/setup-status"),
@@ -332,6 +332,7 @@ function Workbench({
         if (id === refreshId.current) {
           setSetup(status);
           setJob(task);
+          setConnectionError("");
           if (libraryRevision.current === undefined) {
             libraryRevision.current = status.library_revision;
           } else if (status.library_revision !== libraryRevision.current) {
@@ -346,7 +347,10 @@ function Workbench({
         }
       } catch (e) {
         if (id !== refreshId.current && !reportFailure) return;
-        if (id === refreshId.current && e instanceof ApiError && e.status === 403) setAdminAvailable(false);
+        if (id === refreshId.current && e instanceof ApiError && e.status === 403) {
+          setAdminAvailable(false);
+          if (!reportFailure) setConnectionError("");
+        }
         if (reportFailure || !(e instanceof ApiError && e.status === 403)) throw e;
       }
     } catch (e) {
