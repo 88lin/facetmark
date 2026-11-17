@@ -150,13 +150,29 @@ test("narrow reading leaves the collection layout and scroll in place through co
     const opener = page.locator(".result-row").nth(12);
     const trigger = opener.locator(".bookmark-preview");
     await settleVisualLayout(page);
-    await trigger.scrollIntoViewIfNeeded();
+    // The short workspace has nested scroll regions. Center the real control
+    // rather than leaving a fractional edge clipped by the outer viewport.
+    await trigger.evaluate(element => element.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" }));
     await settleVisualLayout(page);
+    await test.info().attach(`reader-trigger-${width}-${height}`, {
+      body: JSON.stringify(await trigger.evaluate(element => {
+        const ancestors = [];
+        for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+          const style = getComputedStyle(parent);
+          if (/(auto|scroll|hidden|clip)/.test(`${style.overflowX} ${style.overflowY}`)) {
+            ancestors.push({ className: parent.className, rect: parent.getBoundingClientRect().toJSON(),
+              scroll: parent.scrollTop, extent: parent.scrollHeight, clientHeight: parent.clientHeight });
+          }
+        }
+        return { viewport: { width: innerWidth, height: innerHeight }, rect: element.getBoundingClientRect().toJSON(), ancestors };
+      })), contentType: "application/json",
+    });
     await expect(trigger).toBeInViewport({ ratio: 1 });
     const before = await page.locator(".result-list").evaluate(element => ({
       scroll: element.scrollTop,
       extent: element.scrollHeight,
       columns: getComputedStyle(element).gridTemplateColumns,
+      workspaceScroll: element.closest<HTMLElement>(".main-workspace")!.scrollTop,
     }));
     expect(before.scroll).toBeGreaterThan(0);
     await trigger.click();
@@ -169,6 +185,7 @@ test("narrow reading leaves the collection layout and scroll in place through co
         scroll: element.scrollTop,
         extent: element.scrollHeight,
         columns: getComputedStyle(element).gridTemplateColumns,
+        workspaceScroll: element.closest<HTMLElement>(".main-workspace")!.scrollTop,
       }));
       const toolbar = await page.locator(".preview-drawer .preview-heading").evaluate(element => {
         const header = element.getBoundingClientRect();
@@ -210,6 +227,7 @@ test("narrow reading leaves the collection layout and scroll in place through co
     await page.keyboard.press("Escape");
     await settleVisualLayout(page);
     expect(await page.locator(".result-list").evaluate(element => element.scrollTop)).toBe(before.scroll);
+    expect(await page.locator(".main-workspace").evaluate(element => element.scrollTop)).toBe(before.workspaceScroll);
     await expect(opener.locator(".bookmark-preview")).toBeFocused();
     measurements.push({ width, height, ...before, toolbars });
   }
