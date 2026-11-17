@@ -205,7 +205,10 @@ test("narrow reading leaves the collection layout and scroll in place through co
         for (const rect of countRects) if (!lineTops.some(top => Math.abs(top - rect.top) <= 1)) lineTops.push(rect.top);
         return { countRects, countLines: lineTops.length, buttons: [...element.querySelectorAll("button")].map(button => {
           const box = button.getBoundingClientRect();
-          return { left: box.left, right: box.right, top: box.top, bottom: box.bottom };
+          const style = getComputedStyle(button);
+          const focusOutset = style.outlineStyle === "none" ? 0
+            : Math.max(0, parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset));
+          return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, focusOutset };
         }), left: header.left, right: header.right, top: header.top, bottom: header.bottom };
       });
       await test.info().attach(`reader-context-${width}-${height}-${action ?? "open"}`, {
@@ -225,7 +228,21 @@ test("narrow reading leaves the collection layout and scroll in place through co
         expect(button.right).toBeLessThanOrEqual(toolbar.right);
         expect(button.top).toBeGreaterThanOrEqual(toolbar.top);
         expect(button.bottom).toBeLessThanOrEqual(toolbar.bottom);
+        if (button.focusOutset > 0) {
+          const focus = { left: button.left - button.focusOutset, right: button.right + button.focusOutset,
+            top: button.top - button.focusOutset, bottom: button.bottom + button.focusOutset };
+          expect(focus.left).toBeGreaterThanOrEqual(toolbar.left);
+          expect(focus.right).toBeLessThanOrEqual(toolbar.right);
+          expect(focus.top).toBeGreaterThanOrEqual(toolbar.top);
+          expect(focus.bottom).toBeLessThanOrEqual(toolbar.bottom);
+          for (const neighbor of [...toolbar.countRects, ...toolbar.buttons.filter(other => other !== button)]) {
+            const overlaps = Math.min(focus.right, neighbor.right) > Math.max(focus.left, neighbor.left)
+              && Math.min(focus.bottom, neighbor.bottom) > Math.max(focus.top, neighbor.top);
+            expect(overlaps).toBe(false);
+          }
+        }
       }
+      if (action) expect(toolbar.buttons.some(button => button.focusOutset > 0)).toBe(true);
       toolbars.push({ action: action ?? "open", ...toolbar });
     }
     await expect(page.getByRole("button", { name: "返回收藏", exact: true })).toBeVisible();
