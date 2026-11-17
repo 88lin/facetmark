@@ -173,10 +173,14 @@ test("narrow reading leaves the collection layout and scroll in place through co
       extent: element.scrollHeight,
       columns: getComputedStyle(element).gridTemplateColumns,
       workspaceScroll: element.closest<HTMLElement>(".main-workspace")!.scrollTop,
+      workspaceExtent: element.closest<HTMLElement>(".main-workspace")!.scrollHeight,
+      workspaceClientHeight: element.closest<HTMLElement>(".main-workspace")!.clientHeight,
     }));
     expect(before.scroll).toBeGreaterThan(0);
     await trigger.click();
     await expect(page.locator(".body-text")).toBeVisible();
+    await expect(page.locator(".collection-view-switch")).toHaveCount(1);
+    await expect(page.getByRole("group", { name: "收藏显示方式", exact: true })).toHaveCount(0);
     const toolbars = [];
     for (const action of [null, "下一条收藏", "上一条收藏"] as const) {
       if (action) await page.getByRole("button", { name: action, exact: true }).press("Enter");
@@ -186,6 +190,8 @@ test("narrow reading leaves the collection layout and scroll in place through co
         extent: element.scrollHeight,
         columns: getComputedStyle(element).gridTemplateColumns,
         workspaceScroll: element.closest<HTMLElement>(".main-workspace")!.scrollTop,
+        workspaceExtent: element.closest<HTMLElement>(".main-workspace")!.scrollHeight,
+        workspaceClientHeight: element.closest<HTMLElement>(".main-workspace")!.clientHeight,
       }));
       const toolbar = await page.locator(".preview-drawer .preview-heading").evaluate(element => {
         const header = element.getBoundingClientRect();
@@ -226,8 +232,18 @@ test("narrow reading leaves the collection layout and scroll in place through co
     await capture(page, `reader-background-context-${width}-${height}`);
     await page.keyboard.press("Escape");
     await settleVisualLayout(page);
-    expect(await page.locator(".result-list").evaluate(element => element.scrollTop)).toBe(before.scroll);
-    expect(await page.locator(".main-workspace").evaluate(element => element.scrollTop)).toBe(before.workspaceScroll);
+    const restored = await page.locator(".result-list").evaluate(element => ({
+      scroll: element.scrollTop,
+      extent: element.scrollHeight,
+      columns: getComputedStyle(element).gridTemplateColumns,
+      workspaceScroll: element.closest<HTMLElement>(".main-workspace")!.scrollTop,
+      workspaceExtent: element.closest<HTMLElement>(".main-workspace")!.scrollHeight,
+      workspaceClientHeight: element.closest<HTMLElement>(".main-workspace")!.clientHeight,
+    }));
+    await test.info().attach(`reader-return-${width}-${height}`, {
+      body: JSON.stringify({ viewport: { width, height }, before, current: restored }), contentType: "application/json",
+    });
+    expect(restored).toEqual(before);
     await expect(opener.locator(".bookmark-preview")).toBeFocused();
     measurements.push({ width, height, ...before, toolbars });
   }
