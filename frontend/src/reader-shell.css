@@ -33,7 +33,7 @@
   display: none;
 }
 .reader-actions {
-  gap: 4px;
+  gap: 8px;
   flex-shrink: 0;
 }
 .reader-actions .icon-button {
@@ -358,7 +358,6 @@
   .reader-back-label { display: none; }
   .reader-back-compact { display: inline; }
   .reader-count { padding-right: 0; font-size: .6875rem; }
-  .reader-actions { gap: 3px; }
 }
 .preview-drawer .preview-tabs {
   height: 56px;
