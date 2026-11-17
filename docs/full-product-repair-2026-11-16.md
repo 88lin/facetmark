@@ -764,8 +764,8 @@ CI 顶层增加按实际 PR/main ref 的并发归属，新提交取消该 ref �
 | 模型设置 | 命名连接、验证证明复用、独立草稿、保存回执与即时提交锁 | [#57](https://github.com/88lin/facetmark/pull/57) |
 | 对话与阅读恢复 | 原创建/发送回执、独立连接、保留草稿、正文失败与原文入口 | [#58](https://github.com/88lin/facetmark/pull/58) |
 | 收藏管理与导出 | 原范围、跨页选择、原动作恢复、确认删除及完整内容恢复 | [#59](https://github.com/88lin/facetmark/pull/59) |
-| 原生托盘 | 同一窗口连续重开、真实焦点、可中断动效与完整客户区 | [#60](https://github.com/88lin/facetmark/pull/60) |
-| 生成与任务 | 原任务和运行编号、目标快照、暂停/取消、重启与显式恢复 | [#61](https://github.com/88lin/facetmark/pull/61) |
+| 原生托盘 | 同一窗口连续重开、真实焦点、可中断动效与完整客户区 | [#61](https://github.com/88lin/facetmark/pull/61) |
+| 生成与任务 | 原任务和运行编号、目标快照、暂停/取消、重启与显式恢复 | [#60](https://github.com/88lin/facetmark/pull/60) |
 | 同步与备份 | 原预览与冲突选择、接受后发送、完整旧恢复文件、只读确认 | [#62](https://github.com/88lin/facetmark/pull/62) |
 | 本机笔记 | 独立编辑、版本冲突、原草稿/保存回执、索引及完整导出 | [#63](https://github.com/88lin/facetmark/pull/63) |
 | 浏览器扩展 | 真实表单与原保存恢复、搜索取消、配对/权限状态、原正文结果 | [#64](https://github.com/88lin/facetmark/pull/64) |
