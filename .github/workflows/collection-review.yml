@@ -61,6 +61,12 @@ jobs:
           FACETMARK_REVIEW_CORPUS: '1'
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report-focused
         run: npx playwright test workspace-layout.spec.ts settings-maintenance.spec.ts --output=test-results-focused
+      - name: Original link check closure remains visible until confirmed
+        working-directory: frontend
+        env:
+          FACETMARK_REVIEW_CORPUS: '1'
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report-health
+        run: npx playwright test health-recovery.spec.ts --grep 'returning from an absent original' --output=test-results-health
       - name: Representative page and interaction review
         working-directory: frontend
         env:
@@ -79,4 +85,6 @@ jobs:
             frontend/test-results/
             frontend/playwright-report-focused/
             frontend/test-results-focused/
+            frontend/playwright-report-health/
+            frontend/test-results-health/
           retention-days: 14
