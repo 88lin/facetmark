@@ -19,6 +19,7 @@ import { ReasoningSettings } from "./ReasoningSettings";
 import { SummaryPreferences } from "./SummaryPreferences";
 import { ProcessingPreferences } from "./ProcessingPreferences";
 import "./local-embedding.css";
+import "./settings-maintenance.css";
 
 type LocalAgent = { id: string; name: string; installed: boolean; path?: string | null };
 type ModelSetting = Setting & { active_value?: unknown };
@@ -202,7 +203,7 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
     actionGate.current = true;
     setBusy(name);
     setError("");
-    setNotice("");
+    if (name !== "reload") setNotice("");
     try {
       await work();
     } catch (e) {
@@ -569,19 +570,21 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
           const values = Object.fromEntries(Object.entries(draft).filter(([key]) =>
             key === "summary_language" || key === "summary_prompt"));
           await api("/admin/settings", { method: "PUT", body: JSON.stringify({ values }) });
-          acknowledgeSaved(values); await load(); await refresh();
+          acknowledgeSaved(values);
           setNotice(t("摘要设置已保存，下次生成时生效。已保存的内容可勾选后重新生成。",
             "Summary settings saved for the next generation. Select saved items to regenerate them."));
+          await reloadSaved();
         })}/>
       <ProcessingPreferences settings={rows} disabled={!!busy || loadingSettings || !!loadError}
         onSave={async values => {
+          if (actionGate.current) throw new Error(t("另一项设置操作正在进行，请稍后再保存。", "Another settings operation is in progress. Save again after it finishes."));
+          actionGate.current = true;
           setBusy("processing"); setError("");
           try {
             await api("/admin/settings", { method: "PUT", body: JSON.stringify({ values }) });
-            acknowledgeSaved(values); await load();
-            await refresh().catch(e => setError(t("处理设置已保存，但状态刷新失败。请重新读取设置。",
-              "Processing limits were saved, but status refresh failed. Reload settings.") + " " + String(e)));
-          } finally { setBusy(""); }
+            acknowledgeSaved(values);
+            await reloadSaved();
+          } finally { actionGate.current = false; setBusy(""); }
         }}/>
       <details className="advanced">
         <summary>
@@ -683,19 +686,46 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
   );
 }
 
-export function ExtensionSettings() {
+export function ExtensionSettings({ active = true }: { active?: boolean }) {
   const t = useText();
   const [copied, setCopied] = useState("");
-  const [connected, setConnected] = useState(false);
+  const [connected, setConnected] = useState<boolean | null>(null);
+  const [reading, setReading] = useState(false);
+  const [readError, setReadError] = useState("");
+  const currentRead = useRef<AbortController | null>(null);
+  async function refresh() {
+    if (!active || currentRead.current) return;
+    const request = new AbortController();
+    currentRead.current = request;
+    setReading(true);
+    try {
+      const data = await api<{ recently_connected: boolean }>("/admin/extension-status", { signal: request.signal });
+      if (request.signal.aborted || currentRead.current !== request) return;
+      if (!data || typeof data.recently_connected !== "boolean") throw new Error("Invalid extension status response");
+      setConnected(data.recently_connected);
+      setReadError("");
+    } catch (error) {
+      if (!request.signal.aborted && currentRead.current === request) setReadError(String(error));
+    } finally {
+      if (currentRead.current === request) {
+        currentRead.current = null;
+        setReading(false);
+      }
+    }
+  }
   useEffect(() => {
-    const refresh = () =>
-      api<{ recently_connected: boolean }>("/admin/extension-status")
-        .then((data) => setConnected(data.recently_connected))
-        .catch(() => setConnected(false));
-    refresh();
-    const timer = setInterval(refresh, 5000);
-    return () => clearInterval(timer);
-  }, []);
+    if (!active) return;
+    void refresh();
+    const timer = setInterval(() => void refresh(), 5000);
+    return () => {
+      clearInterval(timer);
+      currentRead.current?.abort();
+      currentRead.current = null;
+      setReading(false);
+    };
+    // The read belongs to this visible category; localized copy renders below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
   async function copy(value: string, name: string) {
     try {
       await navigator.clipboard.writeText(value);
@@ -707,14 +737,28 @@ export function ExtensionSettings() {
   return (
     <section className="extension-settings">
       <h2>{t("连接浏览器扩展", "Connect the browser extension")}</h2>
-      <p role="status">
-        {connected
-          ? t("扩展最近已连接此书库", "Extension recently connected to this library")
-          : t(
-              "尚未收到扩展连接。安装并配对后，在扩展中执行一次操作。",
-              "No extension connection received. After installing and pairing, perform an action in the extension.",
-            )}
-      </p>
+      <div className="extension-status-row">
+        <p role="status" className="extension-connection-status">
+          {connected === null
+            ? readError ? t("扩展连接状态尚未确认。", "The extension connection state has not been confirmed.")
+              : t("正在读取扩展连接状态…", "Reading the extension connection state…")
+            : readError ? connected
+              ? t("上次成功读取：扩展最近已连接此书库。", "Last confirmed state: the extension recently connected to this library.")
+              : t("上次成功读取：尚未收到最近的扩展连接。", "Last confirmed state: no recent extension connection was received.")
+              : connected
+                ? t("扩展最近已连接此书库", "Extension recently connected to this library")
+                : t("尚未收到扩展连接。安装并配对后，在扩展中执行一次操作。",
+                    "No extension connection received. After installing and pairing, perform an action in the extension.")}
+        </p>
+        <CapsuleButton type="button" className="secondary" disabled={reading || !active} onClick={() => void refresh()}>
+          {reading ? <LoaderCircle className="spin" size={16}/> : <RefreshCw size={16}/>}
+          {reading ? t("正在读取…", "Reading…") : t("重新读取扩展状态", "Reload extension status")}
+        </CapsuleButton>
+      </div>
+      {readError && <div className="extension-status-error" role="alert">
+        <p>{t("暂时无法读取扩展状态。配对设置仍保留，请重新读取状态。", "The extension status could not be read. Pairing settings are retained; reload the status.")}</p>
+        <details><summary>{t("查看原因", "View reason")}</summary><p>{readError}</p></details>
+      </div>}
       <p>
         {t(
           "扩展帮助保存页面，并在你启用后读取需要浏览器的页面。请从测试产物下载扩展，在浏览器扩展管理页开启开发者模式并加载解压后的文件夹。",
@@ -757,6 +801,8 @@ export function UpdateSettings() {
   const t = useText();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const updateGate = useRef(false);
   return (
     <section className="desktop-note">
       <h2>{t("桌面与更新", "Desktop and updates")}</h2>
@@ -777,13 +823,18 @@ export function UpdateSettings() {
           className="secondary"
           disabled={busy}
           onClick={async () => {
+            if (updateGate.current) return;
+            updateGate.current = true;
             setBusy(true);
+            setMessage(""); setError("");
             try {
               const data = await post<{
                 current: string;
                 latest: string | null;
                 available: boolean;
               }>("/admin/updates/check", {});
+              if (!data || typeof data.current !== "string" || !data.current.trim() || typeof data.available !== "boolean"
+                || (data.latest === null ? data.available : typeof data.latest !== "string" || !data.latest.trim())) throw new Error("Invalid update check response");
               setMessage(
                 data.latest
                   ? data.available
@@ -801,17 +852,26 @@ export function UpdateSettings() {
                     ),
               );
             } catch (e) {
-              setMessage(String(e));
+              setError(String(e));
             } finally {
+              updateGate.current = false;
               setBusy(false);
             }
           }}
         >
           {busy ? <LoaderCircle className="spin" /> : <ExternalLink />}
-          {t("检查更新", "Check for updates")}
+          {busy ? t("正在检查…", "Checking…") : t("检查更新", "Check for updates")}
         </CapsuleButton>
         <a
-          href="https://github.com/88lin/facetmark/actions/workflows/desktop.yml"
+          href="https://github.com/88lin/facetmark/releases/latest"
+          target="_blank"
+          rel="noreferrer"
+        >
+          {t("正式版本下载", "Release downloads")}
+          <ExternalLink size={14} />
+        </a>
+        <a
+          href="https://github.com/88lin/facetmark/actions/workflows/ci.yml"
           target="_blank"
           rel="noreferrer"
         >
@@ -820,6 +880,10 @@ export function UpdateSettings() {
         </a>
       </div>
       <p role="status">{message}</p>
+      {error && <div className="update-status-error" role="alert">
+        <p>{t("暂时无法检查更新，请重试或打开版本下载页。", "Updates could not be checked. Retry or open the release downloads.")}</p>
+        <details><summary>{t("查看原因", "View reason")}</summary><p>{error}</p></details>
+      </div>}
     </section>
   );
 }

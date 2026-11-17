@@ -483,11 +483,23 @@ def test_update_check_and_extension_connection_are_observed(client):
     with respx.mock as router:
         route = router.get("https://api.github.com/repos/88lin/facetmark/releases/latest")
         route.respond(404)
-        assert client.post("/admin/updates/check").json()["latest"] is None
+        missing = client.post("/admin/updates/check").json()
+        assert missing["latest"] is None
+        assert missing["url"] == "https://github.com/88lin/facetmark/actions/workflows/ci.yml"
         route.respond(200, json={"tag_name": "v999.0.0"})
         assert client.post("/admin/updates/check").json()["available"]
         route.respond(503)
         assert client.post("/admin/updates/check").status_code == 502
+
+
+@pytest.mark.parametrize("payload", [[], None, {}, {"tag_name": None}, {"tag_name": 12},
+                                      {"tag_name": {}}, {"tag_name": ""}, {"tag_name": "not-a-version"}])
+def test_malformed_update_metadata_reports_a_retryable_read_failure(client, payload):
+    with respx.mock as router:
+        router.get("https://api.github.com/repos/88lin/facetmark/releases/latest").respond(200, json=payload)
+        response = client.post("/admin/updates/check")
+    assert response.status_code == 502
+    assert "retry or open the downloads" in response.json()["detail"]
 
 
 def test_real_provider_setup_apply_index_and_search(client):

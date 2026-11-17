@@ -7,6 +7,7 @@ import contextlib
 import hashlib
 import hmac
 import json
+import re
 import sqlite3
 import time
 import uuid
@@ -188,14 +189,18 @@ def register(app: FastAPI, auth: list) -> None:
                     headers={'Accept': 'application/vnd.github+json', 'User-Agent': 'Facetmark'})
             if response.status_code == 404:
                 return {'current': __version__, 'latest': None, 'available': False,
-                        'url': 'https://github.com/88lin/facetmark/actions/workflows/desktop.yml'}
+                        'url': 'https://github.com/88lin/facetmark/actions/workflows/ci.yml'}
             response.raise_for_status()
-            version = str(response.json().get('tag_name', '')).removeprefix('v')
+            release = response.json()
+            tag = release.get('tag_name') if isinstance(release, dict) else None
+            if not isinstance(tag, str) or not re.fullmatch(r'v?\d+(?:\.\d+)*(?:[-+][A-Za-z0-9][A-Za-z0-9.+-]*)?', tag):
+                raise ValueError('GitHub release did not include a valid version tag')
+            version = tag.removeprefix('v')
             def parts(value):
                 # Pad to three components so "2.0" and "2.0.0" compare equal;
                 # a pre-release tag compares as its numeric hull, which is the
                 # conservative answer for an update prompt.
-                numbers = [int(n) for n in value.split('-')[0].split('.') if n.isdecimal()]
+                numbers = [int(n) for n in value.split('-')[0].split('+')[0].split('.')]
                 return tuple((numbers + [0, 0, 0])[:max(3, len(numbers))])
             return {'current': __version__, 'latest': version, 'available': parts(version) > parts(__version__),
                     'url': 'https://github.com/88lin/facetmark/releases/latest'}

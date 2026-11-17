@@ -35,8 +35,11 @@ column, which is what stops those two from drifting apart.
 from __future__ import annotations
 
 import json
+import os
 import re
 import sqlite3
+import tempfile
+import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -497,14 +500,34 @@ def backup_database(conn: sqlite3.Connection, *, suffix: str) -> Path | None:
     ``VACUUM INTO`` is used rather than a file copy because it takes a
     transactionally consistent snapshot -- a plain copy of a WAL database can
     catch it mid-checkpoint.
+    Publish only the flushed snapshot, under a new name if a prior backup
+    already exists. Failure retains all previous backups and the source file.
     """
     src = database_path(conn)
     if src is None:
         return None
     dest = src.with_name(f"{src.name}.{suffix}")
-    dest.unlink(missing_ok=True)
-    conn.execute("VACUUM INTO ?", (str(dest),))
-    return dest
+    descriptor, name = tempfile.mkstemp(dir=src.parent, prefix=f".{dest.name}.", suffix=".tmp")
+    os.close(descriptor)
+    pending = Path(name)
+    try:
+        conn.execute("VACUUM INTO ?", (str(pending),))
+        with pending.open("r+b") as snapshot:
+            os.fsync(snapshot.fileno())
+        for _ in range(8):
+            try:
+                # Windows rename refuses an existing target. POSIX rename can
+                # replace it, so publish with an exclusive hard link there.
+                if os.name == "nt":
+                    pending.rename(dest)
+                else:
+                    os.link(pending, dest)
+                return dest
+            except FileExistsError:
+                dest = src.with_name(f"{src.name}.{suffix}.{uuid.uuid4().hex}")
+        raise FileExistsError("Cannot reserve a unique database backup")
+    finally:
+        pending.unlink(missing_ok=True)
 
 
 def apply_pending(

@@ -55,12 +55,12 @@ jobs:
           ln -s "$(python -c 'import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())')" "$RUNNER_TEMP/facetmark-encoder/ffmpeg"
           echo "$RUNNER_TEMP/facetmark-encoder" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/facetmark-encoder/ffmpeg" -version
-      - name: Focused reading regression
+      - name: Focused reading and settings recovery regression
         working-directory: frontend
         env:
           FACETMARK_REVIEW_CORPUS: '1'
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report-focused
-        run: npx playwright test workspace-layout.spec.ts --output=test-results-focused
+        run: npx playwright test workspace-layout.spec.ts settings-maintenance.spec.ts --output=test-results-focused
       - name: Original link check closure remains visible until confirmed
         working-directory: frontend
         env:
@@ -71,7 +71,7 @@ jobs:
         working-directory: frontend
         env:
           FACETMARK_REVIEW_CORPUS: '1'
-        run: npx playwright test collection-review.spec.ts workspace-polish.spec.ts workspace-layout.spec.ts search-recovery.spec.ts native-menu.spec.ts startup.spec.ts reasoning.spec.ts summary-preferences.spec.ts model-choice.spec.ts model-profiles.spec.ts bookmark-use.spec.ts library.spec.ts library-recovery.spec.ts reading-notes.spec.ts task-recovery.spec.ts health-recovery.spec.ts chat.spec.ts chat-scope.spec.ts chat-recovery.spec.ts mcp-settings.spec.ts mcp-recovery.spec.ts processing-preferences.spec.ts activity-timeline.spec.ts usability-repair.spec.ts import-report.spec.ts url-import.spec.ts site-import.spec.ts local-embedding.spec.ts
+        run: npx playwright test collection-review.spec.ts workspace-polish.spec.ts workspace-layout.spec.ts search-recovery.spec.ts settings-maintenance.spec.ts native-menu.spec.ts startup.spec.ts reasoning.spec.ts summary-preferences.spec.ts model-choice.spec.ts model-profiles.spec.ts bookmark-use.spec.ts library.spec.ts library-recovery.spec.ts reading-notes.spec.ts task-recovery.spec.ts health-recovery.spec.ts chat.spec.ts chat-scope.spec.ts chat-recovery.spec.ts mcp-settings.spec.ts mcp-recovery.spec.ts processing-preferences.spec.ts activity-timeline.spec.ts usability-repair.spec.ts import-report.spec.ts url-import.spec.ts site-import.spec.ts local-embedding.spec.ts
       - name: Package viewable source-matched evidence
         if: always()
         run: python scripts/collection_review_evidence.py
