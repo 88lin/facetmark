@@ -260,6 +260,9 @@ for (const [language, theme, width, height] of [
     expect(box.width).toBeGreaterThanOrEqual(44); expect(box.height).toBeGreaterThanOrEqual(44);
   }
   expect(await footer.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  expect((await footer.boundingBox())!.height).toBeLessThanOrEqual(52);
+  await expect(footer.locator(".result-count")).toBeInViewport({ ratio: 1 });
+  await expect(footer.locator(".collection-count-label")).toBeInViewport({ ratio: 1 });
   await expect(page.locator(".result-row").first()).toBeInViewport({ ratio: 1 });
   expect((await page.locator(".result-row").first().boundingBox())!.height).toBeLessThan(300);
   expect((await page.locator(".search-header").boundingBox())!.height).toBeLessThan(130);

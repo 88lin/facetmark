@@ -179,7 +179,8 @@
   .result-list { gap: 12px; padding: 5px 5px 12px; scrollbar-gutter: auto; }
   .results-footer { min-height: 48px; font-size: .6875rem; flex-wrap: wrap; gap: 4px; }
   .results-footer > div { gap: 3px; }
-  .results-footer > div:last-child { margin-left: auto; }
+  .results-footer > .collection-subtitle { flex: 1; min-width: 0; flex-wrap: wrap; gap: 0 3px; }
+  .results-footer > div:last-child { flex: none; margin-left: auto; }
   .result-range { display: none; }
   .collection-subtitle { font-size: .6875rem; }
   .results-footer .icon-button { width: 44px; min-width: 44px; height: 44px; flex: none; }
