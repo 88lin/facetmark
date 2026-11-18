@@ -118,9 +118,13 @@ test("representative collection, responsive states, exact scopes, save recovery 
       await expect(page.locator(".result-title").first()).toBeInViewport();
       await expect(page.locator(".result-row").first()).toBeInViewport({ ratio: 1 });
       if (viewport.width === 320) {
-        const rows = await page.locator(".collection-status .fm-button").evaluateAll(buttons =>
-          buttons.map(button => Math.round(button.getBoundingClientRect().top)));
-        expect(new Set(rows).size).toBe(1);
+        const status = page.locator(".collection-status-menu");
+        await status.locator(":scope > summary").press("Space");
+        await expect(status.locator(".collection-status .fm-button")).toHaveCount(4);
+        for (const button of await status.locator(".collection-status .fm-button").all()) await expect(button).toBeInViewport({ ratio: 1 });
+        await page.keyboard.press("Escape");
+        await expect(status.locator(":scope > summary")).toBeFocused();
+        expect((await page.locator(".search-header").boundingBox())!.height).toBeLessThan(130);
       }
     }
     await page.setViewportSize({ width: 390, height: 844 });

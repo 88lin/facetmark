@@ -348,6 +348,8 @@ test("chat controls and long connection states remain reachable in both themes a
   await page.locator("#chat-question").press("Enter");
   await expect(page.locator(".chat-message.assistant")).toHaveCount(1);
   await page.locator("#chat-connection").selectOption("untested");
+  const draft = "继续保留未发送的阅读草稿";
+  await page.locator("#chat-question").fill(draft);
   for (const language of ["zh", "en"] as const) for (const theme of ["light", "dark"] as const) {
     await page.evaluate(({ language, theme }) => { localStorage.setItem("fm-language", language); localStorage.setItem("fm-theme", theme); }, { language, theme });
     await page.reload(); await expect(page.locator(".chat-message.assistant")).toHaveCount(1);
@@ -362,12 +364,16 @@ test("chat controls and long connection states remain reachable in both themes a
         const label = element.querySelector(".chat-model-choice label > span")!.getBoundingClientRect();
         const connection = element.querySelector("#chat-connection")!.getBoundingClientRect();
         return { messagesBottom: messages.bottom, messagesHeight: messages.height, composerTop: composer.top,
+          controlsHeight: element.querySelector(".chat-composer-area")!.getBoundingClientRect().height,
           composerBottom: composer.bottom, statusBottom: status.bottom, viewport: innerHeight,
           choiceHeight: choice.height, labelRight: label.right, connectionLeft: connection.left,
           connectionHeight: connection.height };
       });
       expect(bounds.messagesHeight).toBeGreaterThan(40); expect(bounds.messagesBottom).toBeLessThanOrEqual(bounds.composerTop);
-      if (size.width === 320 && size.height === 640) expect(bounds.messagesHeight).toBeGreaterThanOrEqual(180);
+      if (size.width === 320 && size.height === 640) {
+        expect(bounds.messagesHeight).toBeGreaterThanOrEqual(240);
+        expect(bounds.controlsHeight).toBeLessThan(230);
+      }
       expect(bounds.statusBottom).toBeLessThanOrEqual(bounds.composerTop); expect(bounds.composerBottom).toBeLessThanOrEqual(bounds.viewport);
       if (size.width < 720) {
         expect(bounds.choiceHeight).toBeLessThanOrEqual(bounds.connectionHeight + 1);
@@ -381,6 +387,13 @@ test("chat controls and long connection states remain reachable in both themes a
         await status.focus(); await page.keyboard.press("Tab");
         await expect(page.locator("#chat-connection")).toBeFocused();
         await page.keyboard.press("Tab");
+        const detail = page.locator(".chat-connection-details"), disclosure = detail.locator(":scope > summary");
+        await expect(disclosure).toBeFocused(); await disclosure.press("Enter");
+        await expect(detail.locator(":scope > p")).toBeVisible();
+        await expect(detail).toContainText(language === "zh" ? "可以继续写草稿" : "you can keep drafting");
+        await disclosure.press("Space"); await expect(detail).toHaveJSProperty("open", false);
+        await expect(page.locator("#chat-question")).toHaveValue(draft);
+        await page.keyboard.press("Tab");
         const setup = page.getByRole("button", { name: language === "zh" ? "设置 AI 连接" : "Set up AI connection", exact: true });
         await expect(setup).toBeFocused(); await expect(setup).toBeInViewport({ ratio: 1 });
         await page.screenshot({ path: `screenshots/collection-review/quality-chat-state-action-${language}-${theme}-320.png` });
@@ -388,6 +401,7 @@ test("chat controls and long connection states remain reachable in both themes a
       }
     }
   }
+  expect(control.generations).toBe(1); expect(control.globalWrites).toBe(0);
 });
 
 for (const retained of [false, true]) test(`reader fetch failures explain ${retained ? "retained source text" : "missing source text"} and retry the exact page`, async ({ page }) => {

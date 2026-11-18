@@ -353,10 +353,14 @@ export function LibraryDialog({ action, onClose, onChanged, onTask, onPending, o
     <AnimatePresence onExitComplete={onClose}>
     {open && <Dialog.Overlay forceMount asChild key="overlay"><OverlayMotion kind="scrim" className="library-dialog-overlay"/></Dialog.Overlay>}
     {open && <Dialog.Content forceMount asChild key="content" onCloseAutoFocus={e => { e.preventDefault(); requestAnimationFrame(() => { const target = returnFocus.current?.isConnected && !(returnFocus.current as HTMLButtonElement).disabled ? returnFocus.current : document.querySelector<HTMLElement>(".library-tools button:not(:disabled), .app-header button:not(:disabled), .workspace-search input"); target?.focus({ preventScroll: true }); }); }} onEscapeKeyDown={e => { if (e.target instanceof Element && e.target.closest('.folder-picker[data-open="true"]')) { e.preventDefault(); return; } e.stopPropagation(); if (busy || submitGate.current) e.preventDefault(); }} onInteractOutside={e => { if (busy || submitGate.current) e.preventDefault(); }}>
-      <OverlayMotion kind="dialog" className="library-dialog" aria-busy={busy}>
+      <OverlayMotion kind="dialog" className={`library-dialog${pendingWrite ? " has-write-recovery" : ""}`} aria-busy={busy}>
       <div className="library-dialog-heading"><Dialog.Title>{heading}</Dialog.Title><Dialog.Close className="icon-button" disabled={busy} aria-label={t("关闭操作窗口", "Close actions")}><X size={18}/></Dialog.Close></div>
       <Dialog.Description className="library-dialog-description">{action.kind === "export" ? t("JSON 副本保留分类、标签、正文、AI 阅读内容和所选范围内的对话，导入时补齐缺失内容；已有本地副本优先。模型密钥和向量不在副本内。", "JSON copies preserve folders, tags, page text, AI reading content and conversations wholly within the export scope. Import fills missing content and keeps existing local copies. Model keys and vectors are excluded.") : t("管理 Facetmark 中的收藏，浏览器中的原始书签保持原样。", "Manage your Facetmark collection. Original browser bookmarks stay untouched.")}</Dialog.Description>
       <form onSubmit={submit} className="library-dialog-form">
+        {pendingWrite && <div className="library-write-recovery" role="status"><p>{pendingWrite.confirmed
+          ? t("这次操作已经保存。重新读取收藏状态即可，不会重复修改收藏。", "This operation was saved. Reload the collection status to continue.")
+          : rejectedWrite ? t("这次操作未保存。可以恢复原来的内容和选择，修改后再提交。", "This operation was not saved. Restore its original content and selection, then edit before submitting.")
+          : t("这次操作的结果尚未确认。先读取已保存的结果，或重试同一次操作；原来的内容和选择会保持一致。", "This operation has not been confirmed. Read the saved result or retry the same operation with its original content and selection.")}</p></div>}
         <div className="library-dialog-body">
         <fieldset disabled={busy || Boolean(pendingWrite)}>
           {action.kind === "recover" && <OperationSummary change={action.operation.change}/>}
@@ -420,10 +424,6 @@ export function LibraryDialog({ action, onClose, onChanged, onTask, onPending, o
         {action.kind === "create" && action.notice && <p className="notice" role="status">{action.notice}</p>}
         {error && <p className="error" role="alert">{error}</p>}
         {duplicateId !== null && <CapsuleButton type="button" className="secondary library-open-existing" disabled={busy} onClick={() => { setOpen(false); onPreview(duplicateId); }}><BookOpen size={16}/>{t("打开已有收藏", "Open saved bookmark")}</CapsuleButton>}
-        {pendingWrite && <div className="library-write-recovery" role="status"><p>{pendingWrite.confirmed
-          ? t("这次操作已经保存。重新读取收藏状态即可，不会重复修改收藏。", "This operation was saved. Reload the collection status to continue.")
-          : rejectedWrite ? t("这次操作未保存。可以恢复原来的内容和选择，修改后再提交。", "This operation was not saved. Restore its original content and selection, then edit before submitting.")
-          : t("这次操作的结果尚未确认。先读取已保存的结果，或重试同一次操作；原来的内容和选择会保持一致。", "This operation has not been confirmed. Read the saved result or retry the same operation with its original content and selection.")}</p></div>}
         {storageWarning && <p className="notice" role="status">{t("恢复记录暂时无法保存到本机，请保留当前窗口。", "The recovery record could not be saved on this device. Keep this window open.")}</p>}
         {running && action.kind !== "export" && !pendingWrite && <p className="notice">{t("请等待当前任务完成，再修改收藏或启动新任务。", "Wait for the current task before editing or starting another task.")}</p>}
         </div>

@@ -166,6 +166,8 @@ test("a saved change with a failed collection refresh remains confirmed through 
   expect(control.writes).toHaveLength(1);
   const reopened = await reopenRecovery(page);
   await expect(reopened.locator(".library-write-recovery")).toContainText("这次操作已经保存");
+  await page.setViewportSize({ width: 320, height: 640 }); await settleVisualLayout(page);
+  await expect(reopened.locator(".library-write-recovery")).toBeInViewport({ ratio: 1 });
   failFacets = false;
   await reopened.getByRole("button", { name: "重新读取收藏", exact: true }).click();
   await expect(reopened).toHaveCount(0);
@@ -207,6 +209,8 @@ for (const kind of ["create", "edit"] as const) test(`a rejected recovered ${kin
   const reopened = await reopenRecovery(page); control.rejectNext = 409; control.failReceipts = false;
   await reopened.getByRole("button", { name: "重试同一次操作", exact: true }).click();
   await expect(reopened.locator(".library-write-recovery")).toContainText("这次操作未保存");
+  await page.setViewportSize({ width: 320, height: 640 }); await settleVisualLayout(page);
+  await expect(reopened.locator(".library-write-recovery")).toBeInViewport({ ratio: 1 });
   await reopened.getByRole("button", { name: "修改原操作", exact: true }).click();
   const editable = page.getByRole("dialog", { name: record ? "编辑收藏" : "新增收藏", exact: true });
   await expect(editable.getByLabel("收藏标题", { exact: true })).toHaveValue(originalTitle);
@@ -336,6 +340,11 @@ test("long recovered content stays complete while keyboard controls remain reach
           buttons: [...footer.querySelectorAll("button")].map(button => ({ height: button.getBoundingClientRect().height, bottom: button.getBoundingClientRect().bottom })) };
       });
       expect(bounds.bodyHeight).toBeGreaterThan(24); expect(bounds.bodyBottom).toBeLessThanOrEqual(bounds.footerTop);
+      const state = dialog.locator(".library-write-recovery");
+      await expect(state).toBeInViewport({ ratio: 1 });
+      expect(await state.evaluate(element => Boolean(element.closest(".library-dialog-body")))).toBe(false);
+      const stateBox = (await state.boundingBox())!;
+      expect(stateBox.y + stateBox.height).toBeLessThanOrEqual((await dialog.locator(".library-dialog-body").boundingBox())!.y);
       expect(bounds.footerBottom).toBeLessThanOrEqual(bounds.viewport); expect(bounds.horizontal).toBe(false); expect(bounds.scrolls).toBe(true);
       for (const button of bounds.buttons) { expect(button.height).toBeGreaterThanOrEqual(44); expect(button.bottom).toBeLessThanOrEqual(bounds.viewport); }
       await page.screenshot({ path: `screenshots/collection-review/library-recovery-${language}-${theme}-${size.width}-${size.height}.png`, animations: "disabled" });

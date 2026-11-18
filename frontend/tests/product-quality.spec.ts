@@ -250,12 +250,53 @@ for (const [language, theme, width, height] of [
   }
   await expect(page.locator(".result-row").first()).toBeInViewport({ ratio: 1 });
   expect((await page.locator(".result-row").first().boundingBox())!.height).toBeLessThan(300);
-  if (height >= 760) await expect(page.locator(".bookmark-heading").nth(1)).toBeInViewport({ ratio: 1 });
+  expect((await page.locator(".search-header").boundingBox())!.height).toBeLessThan(130);
+  await expect(page.locator(".bookmark-heading").nth(1)).toBeInViewport({ ratio: height >= 760 ? 1 : .4 });
   await page.locator(".library-manage > summary").focus(); await page.keyboard.press("Space");
   await expect(page.locator(".library-manage-menu")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.locator(".library-manage > summary")).toBeFocused();
   await page.screenshot({ path: `screenshots/collection-review/quality-collection-${language}-${theme}-${width}-${height}.png` });
+});
+
+test("compact collection menus retain status, sorting and layout across the breakpoint without writes", async ({ page }) => {
+  const queries: { status: string | null; sort: string | null }[] = []; let writes = 0;
+  page.on("request", request => {
+    const url = new URL(request.url());
+    if (url.pathname === "/bookmarks" && request.method() === "GET") queries.push({ status: url.searchParams.get("status"), sort: url.searchParams.get("sort") });
+    if (url.pathname.startsWith("/admin/bookmarks") && request.method() !== "GET") writes++;
+  });
+  await page.setViewportSize({ width: 320, height: 640 }); await collection(page);
+  const status = page.locator(".collection-status-menu"), display = page.locator(".collection-options-menu");
+  await status.locator(":scope > summary").focus(); await page.keyboard.press("Space");
+  await expect(status.locator(".collection-status .fm-button")).toHaveCount(4);
+  await status.locator('[data-status="pending"]').press("Enter");
+  await expect(status).toHaveJSProperty("open", false);
+  await expect(status.locator(":scope > summary")).toBeFocused();
+  await expect(status.locator(":scope > summary")).toHaveAttribute("aria-label", /待生成/);
+  await display.locator(":scope > summary").press("Enter");
+  await display.getByRole("combobox", { name: "排序", exact: true }).selectOption("oldest");
+  await expect.poll(() => queries.some(value => value.status === "pending" && value.sort === "oldest")).toBe(true);
+  await display.getByRole("button", { name: "原文摘录", exact: true }).click();
+  await expect(display.getByRole("button", { name: "原文摘录", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await settleVisualLayout(page);
+  await page.screenshot({ path: "screenshots/collection-review/quality-collection-browse-menu-320.png" });
+  await display.getByRole("button", { name: "列表视图", exact: true }).press("Space");
+  await expect(display).toHaveJSProperty("open", false); await expect(display.locator(":scope > summary")).toBeFocused();
+  await expect(page.locator(".main-workspace")).toHaveClass(/list-mode/);
+  await page.setViewportSize({ width: 720, height: 850 });
+  await expect(status).toHaveCount(0);
+  await expect(page.locator('.collection-status [data-status="pending"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("combobox", { name: "排序", exact: true })).toHaveValue("oldest");
+  await expect(page.locator(".collection-view-switch").getByRole("button", { name: "列表视图", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.setViewportSize({ width: 719, height: 640 });
+  await expect(status.locator(":scope > summary")).toHaveAttribute("aria-label", /待生成/);
+  await display.locator(":scope > summary").press("Enter");
+  await expect(display.getByRole("combobox", { name: "排序", exact: true })).toHaveValue("oldest");
+  await expect(display.getByRole("button", { name: "原文摘录", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(display.getByRole("button", { name: "列表视图", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("Escape"); await expect(display.locator(":scope > summary")).toBeFocused();
+  expect(writes).toBe(0);
 });
 
 for (const [language, theme] of [["zh", "light"], ["en", "dark"]] as const)
@@ -335,10 +376,16 @@ test("an empty note stays compact while source navigation and retained drafts re
 
 for (const language of ["zh", "en"] as const)
 test(`overview actions and saved source remain reachable in a narrow reader ${language}`, async ({ page }) => {
+  const previews: Record<string, unknown>[] = []; let readingId = 0;
+  await page.route("**/admin/jobs/preview", async route => {
+    previews.push(route.request().postDataJSON());
+    await route.fulfill({ status: 503, json: { detail: "Synthetic reading menu refusal" } });
+  });
   await page.addInitScript(language => localStorage.setItem("fm-language", language), language);
   await page.setViewportSize({ width: 320, height: 760 });
   await page.route("**/bookmark/*?body=true", async route => {
     const response = await route.fetch(), record = await response.json();
+    readingId = record.bookmark_id;
     await route.fulfill({ json: { ...record, summary: "A concise overview of the saved source.",
       key_points: ["Keep the full source reachable."], body_text: "Saved source text.\n\n" + "Readable content. ".repeat(80) } });
   });
@@ -356,11 +403,29 @@ test(`overview actions and saved source remain reachable in a narrow reader ${la
     expect(control.left).toBeGreaterThanOrEqual(control.parentLeft - 1);
     expect(control.right).toBeLessThanOrEqual(control.parentRight + 1);
   }
+  expect((await page.locator(".reader-summary-text").boundingBox())!.y).toBeLessThan(530);
+  const tools = page.locator(".reader-options-menu"), trigger = tools.locator(":scope > summary");
   await page.screenshot({ path: `screenshots/collection-review/quality-reader-actions-${language}-320.png` });
+  await trigger.focus(); await page.keyboard.press("Space");
+  await expect(tools).toHaveJSProperty("open", true);
+  await tools.getByRole("button", { name: language === "zh" ? "增大阅读字号" : "Increase reading text size", exact: true }).press("Enter");
+  await expect(tools.locator(".reader-type-reset")).toHaveText("112%");
+  await tools.getByRole("button", { name: language === "zh" ? "恢复默认阅读字号" : "Reset reading text size", exact: true }).press("Space");
+  await expect(tools.locator(".reader-type-reset")).toHaveText("100%");
+  await page.keyboard.press("Escape"); await expect(trigger).toBeFocused();
+  await trigger.press("Enter"); await tools.locator(".reader-edit").press("Space");
+  const edit = page.getByRole("dialog", { name: language === "zh" ? "编辑收藏" : "Edit bookmark", exact: true });
+  await expect(edit).toBeVisible(); await edit.getByRole("button", { name: language === "zh" ? "取消" : "Cancel", exact: true }).click();
+  await expect(edit).toHaveCount(0); await settleVisualLayout(page); await expect(trigger).toBeFocused();
   await page.getByRole("button", { name: language === "zh" ? "跳到保存的原文" : "Jump to saved source text", exact: true }).focus();
   await page.keyboard.press("Enter");
   await expect(page.locator(".reader-source h2")).toBeFocused();
   await expect(page.locator(".reader-source h2")).toBeInViewport({ ratio: 1 });
+  await trigger.focus(); await trigger.press("Enter");
+  await tools.getByRole("button", { name: language === "zh" ? "重新生成这篇摘要" : "Regenerate this summary", exact: true }).press("Space");
+  await expect.poll(() => previews.length).toBe(1);
+  expect(previews[0]).toEqual(expect.objectContaining({ mode: "summarize", bookmark_ids: [readingId], force: true }));
+  await expect(page.locator(".summary-generation-feedback")).toContainText("Synthetic reading menu refusal");
 });
 
 for (const tags of [

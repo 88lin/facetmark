@@ -1,5 +1,5 @@
 import { CapsuleButton } from "./ui/controls";
-import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   ArrowDown,
   ArrowLeft,
@@ -17,6 +17,7 @@ import {
   Pencil,
   Plus,
   Sparkles,
+  SlidersHorizontal,
   Tags,
   Trash2,
 } from "lucide-react";
@@ -30,6 +31,7 @@ import { useTabIndicator } from "./motion";
 import { type LibraryAction } from "./LibraryTools";
 import ReaderNotes from "./ReaderNotes";
 import { useReducedMotion } from "./useReducedMotion";
+import { useMediaQuery } from "./useMediaQuery";
 
 export function Skeleton({ rows = false }: { rows?: boolean }) {
   return (
@@ -106,6 +108,8 @@ export default function Reader({
 }) {
   const t = useText();
   const reduced = useReducedMotion();
+  const compact = useMediaQuery("(max-width: 719px)");
+  const readingMenu = useRef<HTMLDetailsElement>(null);
   const [noteToolbar, setNoteToolbar] = useState<HTMLDivElement | null>(null);
   const scales = [.88, 1, 1.12, 1.24, 1.36];
   const [readingSize, setReadingSize] = useState(() => {
@@ -118,6 +122,18 @@ export default function Reader({
     setReadingSize(size);
     try { localStorage.setItem("fm-reading-size", String(size)); } catch { /* Reading remains usable without storage. */ }
   };
+  const readingAction = (action: LibraryAction) => {
+    if (readingMenu.current) { readingMenu.current.open = false; readingMenu.current.querySelector("summary")?.focus(); }
+    onAction?.(action);
+  };
+  useEffect(() => {
+    const dismiss = (event: PointerEvent) => {
+      if (event.target instanceof Node && readingMenu.current && !readingMenu.current.contains(event.target)) readingMenu.current.open = false;
+    };
+    document.addEventListener("pointerdown", dismiss);
+    return () => document.removeEventListener("pointerdown", dismiss);
+  }, []);
+  useLayoutEffect(() => { if (readingMenu.current) readingMenu.current.open = false; }, [selected, tab, compact]);
   const scroller = useRef<HTMLDivElement>(null);
   const scrollPositions = useRef<Record<string, number>>({});
   const tabs = useTabIndicator(`${tab}-${language}`);
@@ -205,7 +221,7 @@ export default function Reader({
               heading.focus({ preventScroll: true });
               scrollToReaderSection(container, heading, reduced ? "instant" : "smooth");
             }}><FileText size={15}/>{t("原文", "Source")}</CapsuleButton>}
-          {canProcess && <CapsuleButton className="text-button" disabled={running || processingDisabled}
+          {canProcess && !compact && <CapsuleButton className="text-button" disabled={running || processingDisabled}
             aria-label={t("重新生成这篇摘要", "Regenerate this summary")}
             onClick={() => onAction?.({ kind: "process", mode: "summarize", ids: [selected!] })}>
             {t("重新生成", "Regenerate")}
@@ -483,8 +499,8 @@ export default function Reader({
                   </h1>
                   <div className="article-options" ref={setNoteToolbar}>
                   <details className="article-details">
-                    <summary>
-                      {t("收藏信息与检索线索", "Saved details & search context")}
+                    <summary aria-label={t("收藏信息与检索线索", "Saved details & search context")}>
+                      {compact ? t("收藏信息", "Saved details") : t("收藏信息与检索线索", "Saved details & search context")}
                       <ChevronDown size={13} aria-hidden="true" />
                     </summary>
                     {record?.ai_title && record.title && record.ai_title !== record.title && <p className="reader-original-title">
@@ -521,12 +537,27 @@ export default function Reader({
                       {managed && <p className="hint">{t("这条收藏由 Karakeep 管理，请在来源端编辑或删除。", "This bookmark is managed by Karakeep. Edit or delete it there.")}</p>}
                     </div>}
                   </details>
-                  {tab === "body" && <div className="reader-type-controls" role="group" aria-label={t("阅读字号", "Reading text size")}>
+                  {compact && <details ref={readingMenu} className="reader-options-menu"
+                    onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}
+                    onKeyDown={event => { if (event.key === "Escape") { event.stopPropagation(); event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }}>
+                    <summary aria-label={t("阅读设置", "Reading tools")}><SlidersHorizontal size={15}/>{t("阅读设置", "Reading")}<ChevronDown size={13} aria-hidden="true"/></summary>
+                    <div className="reader-options-panel">
+                      {tab === "body" && <div className="reader-type-controls" role="group" aria-label={t("阅读字号", "Reading text size")}>
+                        <CapsuleButton type="button" className="reader-type-step" disabled={readingSize === 0} aria-label={t("减小阅读字号", "Decrease reading text size")} onClick={() => resizeText(readingSize - 1)}><Minus size={14}/></CapsuleButton>
+                        <CapsuleButton type="button" className="reader-type-reset" aria-label={t("恢复默认阅读字号", "Reset reading text size")} title={t("点击恢复默认字号", "Reset text size")} onClick={() => resizeText(1)}>{Math.round(scales[readingSize] * 100)}%</CapsuleButton>
+                        <CapsuleButton type="button" className="reader-type-step" disabled={readingSize === scales.length - 1} aria-label={t("增大阅读字号", "Increase reading text size")} onClick={() => resizeText(readingSize + 1)}><Plus size={14}/></CapsuleButton>
+                      </div>}
+                      {record && onAction && !managed && <CapsuleButton type="button" className="secondary reader-edit" disabled={running} onClick={() => readingAction({ kind: "edit", record })}><Pencil size={14}/>{t("编辑", "Edit")}</CapsuleButton>}
+                      {tab === "body" && hasSummary && canProcess && <CapsuleButton type="button" className="text-button reader-regenerate" disabled={running || processingDisabled}
+                        aria-label={t("重新生成这篇摘要", "Regenerate this summary")} onClick={() => readingAction({ kind: "process", mode: "summarize", ids: [selected!] })}><Sparkles size={14}/>{t("重新生成", "Regenerate")}</CapsuleButton>}
+                    </div>
+                  </details>}
+                  {!compact && tab === "body" && <div className="reader-type-controls" role="group" aria-label={t("阅读字号", "Reading text size")}>
                     <CapsuleButton type="button" className="reader-type-step" disabled={readingSize === 0} aria-label={t("减小阅读字号", "Decrease reading text size")} onClick={() => resizeText(readingSize - 1)}><Minus size={14}/></CapsuleButton>
                     <CapsuleButton type="button" className="reader-type-reset" aria-label={t("恢复默认阅读字号", "Reset reading text size")} title={t("点击恢复默认字号", "Reset text size")} onClick={() => resizeText(1)}>{Math.round(scales[readingSize] * 100)}%</CapsuleButton>
                     <CapsuleButton type="button" className="reader-type-step" disabled={readingSize === scales.length - 1} aria-label={t("增大阅读字号", "Increase reading text size")} onClick={() => resizeText(readingSize + 1)}><Plus size={14}/></CapsuleButton>
                   </div>}
-                  {record && onAction && !managed && <CapsuleButton className="secondary reader-edit" disabled={running} onClick={() => onAction({ kind: "edit", record })}><Pencil size={14}/>{t("编辑", "Edit")}</CapsuleButton>}
+                  {!compact && record && onAction && !managed && <CapsuleButton className="secondary reader-edit" disabled={running} onClick={() => onAction({ kind: "edit", record })}><Pencil size={14}/>{t("编辑", "Edit")}</CapsuleButton>}
                   </div>
                 </div>
                 <div

@@ -45,6 +45,30 @@ async function begin(page: Page) {
   await page.getByRole("combobox", { name: /^(检索方式|Search mode)$/, exact: true }).selectOption("semantic");
 }
 
+test("narrow semantic results retain keyboard layout controls and their current selection", async ({ page, request }) => {
+  const records = await prepare(page, request), requests: Record<string, unknown>[] = [];
+  await page.addInitScript(() => localStorage.setItem("fm-collection-layout", "grid"));
+  await page.route("**/quick?**", route => route.fulfill({ json: result(records) }));
+  await page.route("**/search", route => { requests.push(route.request().postDataJSON()); return route.fulfill({ json: result(records) }); });
+  await page.setViewportSize({ width: 320, height: 640 }); await begin(page);
+  await expect(page.locator(".result-title").first()).toHaveText(title(records[0]));
+  await expect(page.locator(".result-list")).toHaveAttribute("aria-busy", "false");
+  await expect(page.locator(".collection-tools")).toHaveCount(0);
+  await page.locator(`.result-row[data-bookmark-id="${records[0].bookmark_id}"] .bookmark-check`).check();
+  const layout = page.locator(".collection-view-switch.has-semantic-results");
+  const list = layout.getByRole("button", { name: "列表视图", exact: true });
+  await expect(list).toBeInViewport({ ratio: 1 }); await list.focus(); await list.press("Space");
+  await expect(page.locator(".main-workspace")).toHaveClass(/list-mode/);
+  await expect(page.locator(".library-selection-count")).toHaveText("已选 1");
+  await layout.getByRole("button", { name: "卡片视图", exact: true }).press("Enter");
+  await expect(page.locator(".main-workspace")).not.toHaveClass(/list-mode/);
+  await expect(page.locator(".library-selection-count")).toHaveText("已选 1");
+  await expect(page.getByRole("combobox", { name: "检索方式", exact: true })).toHaveValue("semantic");
+  expect(requests).toEqual([{ q: "synthetic staged retrieval", offset: 0, limit: 30, depth: 120 }]);
+  await settleVisualLayout(page);
+  await page.screenshot({ path: "screenshots/collection-review/quality-collection-semantic-320.png" });
+});
+
 test("keyword first paint remains usable while paging waits for the same ranked result", async ({ page, request }) => {
   const records = await prepare(page, request), ranked = [...records].reverse();
   let release!: () => void, arrived!: () => void;

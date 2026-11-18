@@ -1214,9 +1214,10 @@ function Workbench({
                         : semanticSelection ? { ids: items.map(item => item.bookmark_id), reprocess: false }
                           : { scope: collectionScope }) })}
                 />}
-                {showCollectionControls && !(search.trim() && searchMode === "semantic" && semantic) && <CollectionTools scope={collectionScope} page={page} display={summaryDisplay} onDisplay={setSummaryDisplay}
+                {showCollectionControls && !semanticSelection && <CollectionTools scope={collectionScope} page={page} display={summaryDisplay} onDisplay={setSummaryDisplay}
                   sort={collectionSort} onSort={value => { setCollectionSort(value); setOffset(0); }}
                   onStatus={value => { setSummaryStatus(value); setOffset(0); }} disabled={scopePending}
+                  layout={collectionLayout} onLayout={value => { setCollectionLayout(value); remember("fm-collection-layout", value); }}
                   job={job} onTask={taskOperations.run} taskBusy={processingBusy} admin={adminAvailable}/>}
                 <div className="search-controls">
                   <div className="search-meta">
@@ -1234,18 +1235,18 @@ function Workbench({
                           : t("全部关键词匹配", "All keyword matches")
                         : t("直接打开原网页 · 摘要就地浏览", "Open original pages · Read summaries here")}
                     </span>
-                    {showCollectionControls && <div className="collection-view-switch" role="group" aria-label={t("收藏显示方式", "Collection layout")}>
+                    {showCollectionControls && <div className={`collection-view-switch${semanticSelection ? " has-semantic-results" : ""}`} role="group" aria-label={t("收藏显示方式", "Collection layout")}>
                       {[{ value: "grid", label: t("卡片视图", "Card view"), Icon: LayoutGrid },
                         { value: "list", label: t("列表视图", "List view"), Icon: List }].map(({ value, label, Icon }) =>
                         <CapsuleButton key={value} type="button" aria-label={label} title={label} aria-pressed={collectionLayout === value}
                           onClick={() => { setCollectionLayout(value); remember("fm-collection-layout", value); }}><SelectionPill active={collectionLayout === value} group="collection-layout" /><Icon size={16} /></CapsuleButton>)}
-                      <CapsuleButton className="collection-view-toggle" type="button"
+                      {semanticSelection && <CapsuleButton className="collection-view-toggle" type="button"
                         aria-label={collectionLayout === "grid" ? t("列表视图", "List view") : t("卡片视图", "Card view")}
                         title={collectionLayout === "grid" ? t("列表视图", "List view") : t("卡片视图", "Card view")}
                         onClick={() => {
                           const value = collectionLayout === "grid" ? "list" : "grid";
                           setCollectionLayout(value); remember("fm-collection-layout", value);
-                        }}>{collectionLayout === "grid" ? <List size={16} /> : <LayoutGrid size={16} />}</CapsuleButton>
+                        }}>{collectionLayout === "grid" ? <List size={16} /> : <LayoutGrid size={16} />}</CapsuleButton>}
                     </div>}
                   </div>
                 </div>
