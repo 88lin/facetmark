@@ -77,7 +77,9 @@
 .results-footer > div { display: flex; align-items: center; gap: 5px; }
 .results-footer .icon-button { width: 34px; height: 34px; border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--canvas); }
 .page-jump { display: flex; align-items: center; gap: 6px; }
-.page-jump input { width: 46px; min-height: 32px; padding: 3px; border: 1px solid var(--rule); border-radius: var(--radius-pill); text-align: center; background: var(--canvas); color: var(--ink); font-size: .75rem; }
+.page-jump input { width: 46px; min-height: 32px; padding: 3px; border: 1px solid var(--rule); border-radius: var(--radius-pill); text-align: center; background: var(--canvas); color: var(--ink); font-size: .75rem; appearance: textfield; }
+.page-jump input::-webkit-inner-spin-button,
+.page-jump input::-webkit-outer-spin-button { appearance: none; display: none; margin: 0; }
 .page-jump .fm-button { min-height: 32px; padding: 4px 7px; font-size: .75rem; }
 .result-list > .empty { min-height: 260px; padding: 48px 20px; }
 .skeleton-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 12px; }

@@ -47,7 +47,7 @@ test("200k actual records stay paginated and all matching selection survives dee
   await page.screenshot({ path: "screenshots/collection-200k.png", animations: "disabled" });
 });
 
-test("200k actual records keep full English counts and keyboard paging in narrow windows", async ({ page }) => {
+test("200k actual records keep full English counts and readable keyboard paging across window sizes", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("fm-language", "en"); localStorage.setItem("fm-theme", "dark");
   });
@@ -100,7 +100,8 @@ test("200k actual records keep full English counts and keyboard paging in narrow
     }
     for (const control of geometry.controls) {
       expect(control.left).toBeGreaterThanOrEqual(0); expect(control.right).toBeLessThanOrEqual(geometry.viewport);
-      expect(control.width).toBeGreaterThanOrEqual(44); expect(control.height).toBeGreaterThanOrEqual(44);
+      const minimum = geometry.viewport < 720 ? 44 : 32;
+      expect(control.width).toBeGreaterThanOrEqual(minimum); expect(control.height).toBeGreaterThanOrEqual(minimum);
     }
     const focused = geometry.controls.find(control => control.focused)!;
     expect(focused).toBeDefined(); expect(focused.outlineStyle).toBe("solid"); expect(focused.outlineWidth).toBeGreaterThanOrEqual(2);
@@ -128,11 +129,15 @@ test("200k actual records keep full English counts and keyboard paging in narrow
   await expect(page.locator(".result-row")).toHaveCount(20);
   await expect(jump).toHaveValue("6667"); await expect(jump).toBeEnabled();
   await expect(footer.getByRole("button", { name: "Next page", exact: true })).toBeDisabled();
-  await jump.focus(); await jump.press("End");
+  await jump.focus(); await jump.press("ArrowDown"); await expect(jump).toHaveValue("6666");
+  await jump.press("ArrowUp"); await expect(jump).toHaveValue("6667"); await jump.press("End");
   await checkLayout("last-en-dark-320");
   await page.setViewportSize({ width: 390, height: 640 });
   await footer.getByRole("button", { name: "Go", exact: true }).focus(); await page.keyboard.press("ArrowRight");
   await checkLayout("last-en-dark-390");
+  await page.setViewportSize({ width: 1280, height: 850 });
+  await jump.focus(); await jump.press("End"); await checkLayout("last-en-dark-1280");
+  await page.setViewportSize({ width: 390, height: 640 });
   await footer.getByRole("button", { name: "Previous page", exact: true }).press("Space");
   await expect(jump).toHaveValue("6666"); await expect(jump).toBeEnabled();
   await expect(page.locator(".result-row")).toHaveCount(30);

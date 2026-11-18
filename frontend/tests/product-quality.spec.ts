@@ -295,6 +295,8 @@ for (const [language, theme, width, height, total] of [
       expect(fragment.left).toBeGreaterThanOrEqual(textLayout.left - 1);
       expect(fragment.right).toBeLessThanOrEqual(textLayout.right + 1);
     }
+    await jump.press("ArrowDown"); await expect(jump).toHaveValue("6666");
+    await jump.press("ArrowUp"); await expect(jump).toHaveValue("6667");
     await jump.fill("1");
   }
   const focusPaints: unknown[] = [];
