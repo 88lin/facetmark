@@ -3,6 +3,7 @@
 .reader-section-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
 .reader-section-heading h2 { display:flex; align-items:center; gap:8px; margin:0; font-size:var(--type-ui); font-weight:600; color:var(--accent); }
 .reader-section-heading button { min-height:36px; font-size:var(--type-meta); flex-shrink:0; }
+.reader-summary > .reader-section-heading { flex-wrap: wrap; }
 .reader-section-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .reader-source-jump { display: inline-flex; align-items: center; gap: 4px; }
 .reader-source .reader-section-heading h2:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }

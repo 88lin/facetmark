@@ -233,6 +233,36 @@ test("an empty note stays compact while source navigation and retained drafts re
   expect(saves).toBe(0);
 });
 
+for (const language of ["zh", "en"] as const)
+test(`overview actions and saved source remain reachable in a narrow reader ${language}`, async ({ page }) => {
+  await page.addInitScript(language => localStorage.setItem("fm-language", language), language);
+  await page.setViewportSize({ width: 320, height: 760 });
+  await page.route("**/bookmark/*?body=true", async route => {
+    const response = await route.fetch(), record = await response.json();
+    await route.fulfill({ json: { ...record, summary: "A concise overview of the saved source.",
+      key_points: ["Keep the full source reachable."], body_text: "Saved source text.\n\n" + "Readable content. ".repeat(80) } });
+  });
+  await collection(page); await page.locator(".bookmark-preview").first().click();
+  const header = page.locator(".reader-summary > .reader-section-heading");
+  await expect(header).toBeVisible(); await settleVisualLayout(page);
+  const bounds = await header.evaluate(element => {
+    const parent = element.getBoundingClientRect();
+    return Array.from(element.querySelectorAll("h2, button"), child => {
+      const box = child.getBoundingClientRect();
+      return { left: box.left, right: box.right, parentLeft: parent.left, parentRight: parent.right };
+    });
+  });
+  for (const control of bounds) {
+    expect(control.left).toBeGreaterThanOrEqual(control.parentLeft - 1);
+    expect(control.right).toBeLessThanOrEqual(control.parentRight + 1);
+  }
+  await page.screenshot({ path: `screenshots/collection-review/quality-reader-actions-${language}-320.png` });
+  await page.getByRole("button", { name: language === "zh" ? "跳到保存的原文" : "Jump to saved source text", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".reader-source h2")).toBeFocused();
+  await expect(page.locator(".reader-source h2")).toBeInViewport({ ratio: 1 });
+});
+
 for (const tags of [
   ["需要保留完整文字的长标签".repeat(5), "标签二", "标签三", "标签四", "标签五", "标签六"],
   ["宽".repeat(23)],

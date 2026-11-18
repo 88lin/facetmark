@@ -66,8 +66,11 @@ also identified narrow collection density, empty-note prominence, unbounded impo
 rows, hidden settings categories and excess chat status height. Repairs retain the
 existing capsule/material system with component-owned styles: page/category history,
 in-memory form continuity, visibility-aware polling, deliberate search focus,
-compact reading entry and full-content disclosures. New source-matched rendering,
-interaction and installed checks are pending. The baseline detector returned no
+compact reading entry and full-content disclosures. Source 3809060 passed the
+focused navigation/settings regression; narrow reader action wrapping and tested
+draft continuity checks then extended the final scope. Final source-matched
+rendering, interaction and installed results are recorded in PR #70's Actions and
+acceptance description. The baseline detector returned no
 findings despite the usability defects; no local browser/overlay ran, per the user
 restriction. Work and evidence boundaries are in
 docs/product-quality-review-2026-11-18.md. Passing checks will not imply user
