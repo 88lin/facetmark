@@ -5,6 +5,7 @@
 .reader-section-heading button { min-height:36px; font-size:var(--type-meta); flex-shrink:0; }
 .reader-summary > .reader-section-heading { flex-wrap: wrap; }
 .reader-section-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.article-options > .reader-notes.is-empty { flex: none; margin: 0; }
 .reader-source-jump { display: inline-flex; align-items: center; gap: 4px; }
 .reader-source .reader-section-heading h2:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
 .reader-summary-basis { margin:0 0 14px; font-size:var(--type-meta); line-height:1.6; color:var(--muted); }

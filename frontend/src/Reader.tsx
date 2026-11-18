@@ -106,6 +106,7 @@ export default function Reader({
 }) {
   const t = useText();
   const reduced = useReducedMotion();
+  const [noteToolbar, setNoteToolbar] = useState<HTMLDivElement | null>(null);
   const scales = [.88, 1, 1.12, 1.24, 1.36];
   const [readingSize, setReadingSize] = useState(() => {
     try {
@@ -480,7 +481,7 @@ export default function Reader({
                       visibleRecord?.url ||
                       t("正在读取收藏…", "Loading bookmark…")}
                   </h1>
-                  <div className="article-options">
+                  <div className="article-options" ref={setNoteToolbar}>
                   <details className="article-details">
                     <summary>
                       {t("收藏信息与检索线索", "Saved details & search context")}
@@ -535,7 +536,7 @@ export default function Reader({
                   aria-labelledby={`preview-tab-${tab}`}
                   tabIndex={0}
                 >
-                  {tab === "body" && !pending && !error && record && <ReaderNotes key={record.bookmark_id} record={record}/>}
+                  {tab === "body" && !pending && !error && record && <ReaderNotes key={record.bookmark_id} record={record} emptyToolbar={noteToolbar}/>}
                   {content}
                 </div>
                 {record?.privacy_skipped && (

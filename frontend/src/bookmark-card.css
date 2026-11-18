@@ -39,6 +39,7 @@
 .result-row .summary-expand[aria-expanded="true"] svg { transform: rotate(180deg); }
 .result-row .bookmark-metadata { display: flex; align-items: center; flex-wrap: wrap; gap: 5px 9px; min-width: 0; }
 .result-row .bookmark-status { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; min-height: 24px; color: var(--secondary-ink); font-size: .8125rem; line-height: 1.5; }
+.result-row .bookmark-status-short { display: none; }
 .result-row .bookmark-status[data-summary-status="done"] { color: var(--success); }
 .result-row .bookmark-status[data-summary-status="failed"] { color: var(--danger); }
 .result-row .bookmark-retry { min-width: 0; min-height: 28px; margin-left: 2px; padding: 3px 9px; border: 0; border-radius: var(--radius-pill); color: var(--danger); background: var(--danger-soft); font-size: .75rem; }
@@ -91,6 +92,11 @@
   .result-row .result-title { font-size: 1.0625rem; line-height: 1.65; }
   .result-row .result-summary { -webkit-line-clamp: 2; font-size: .875rem; }
   .result-row .bookmark-date { display: none; }
+  .result-row .bookmark-metadata { gap: 4px 6px; }
+  .result-row .bookmark-status-full { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+  .result-row .bookmark-status-short { display: inline; }
+  .result-row .bookmark-tags { flex: 1 1 170px; }
+  .result-row .bookmark-tags.expanded { flex-basis: 100%; }
   .result-row .source-symbol { width: 30px; height: 32px; border-radius: 10px; font-size: 1rem; }
   .result-row .result-meta { align-items: center; flex-wrap: nowrap; border: 0; padding-top: 0; gap: 6px; }
   .result-row .result-folder { flex: 1; min-width: 0; }

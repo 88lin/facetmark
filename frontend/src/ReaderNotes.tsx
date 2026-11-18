@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Pencil, StickyNote } from "lucide-react";
 import { api, ApiError, type Bookmark } from "./api";
 import { useText } from "./locale";
@@ -13,7 +14,7 @@ function fromRecord(record: Bookmark): SavedNote {
 }
 const message = (error: unknown) => error instanceof Error ? error.message : String(error);
 
-export default function ReaderNotes({ record }: { record: Bookmark }) {
+export default function ReaderNotes({ record, emptyToolbar }: { record: Bookmark; emptyToolbar?: HTMLElement | null }) {
   const t = useText();
   const [state, render] = useState<State>(() => {
     const saved = fromRecord(record);
@@ -122,7 +123,7 @@ export default function ReaderNotes({ record }: { record: Bookmark }) {
   const dirty = state.local.draft !== state.saved.note;
   const empty = !state.editing && !state.saved.note && !dirty && !state.local.pending
     && !state.conflict && !state.error && !state.message && !state.saved.legacy_text;
-  return <section className={`reader-notes${empty ? " is-empty" : ""}`} data-bookmark-id={record.bookmark_id} aria-label={t("我的笔记", "My note")}>
+  const section = <section className={`reader-notes${empty ? " is-empty" : ""}`} data-bookmark-id={record.bookmark_id} aria-label={t("我的笔记", "My note")}>
     <div className="reader-notes-heading">{!empty && <h2><StickyNote size={16} aria-hidden="true"/>{t("我的笔记", "My note")}</h2>}
       {!state.editing && <CapsuleButton type="button" className="text-button" onClick={start}>
         <Pencil size={14} aria-hidden="true"/>{dirty || state.local.pending ? t("继续编辑笔记", "Continue note draft") : state.saved.note ? t("编辑笔记", "Edit note") : t("写笔记", "Write a note")}
@@ -162,4 +163,7 @@ export default function ReaderNotes({ record }: { record: Bookmark }) {
     {state.error && <div className="reader-note-error" role="alert"><p>{state.error}</p><CapsuleButton type="button" className="secondary" disabled={busy} onClick={() => void reread()}>{t("重读笔记，保留草稿", "Reload note, keep draft")}</CapsuleButton></div>}
     {state.message && <p className="reader-note-message" role="status">{state.message}</p>}
   </section>;
+  // Only the truly empty entry shares the reader toolbar. The editor, saved
+  // text and recovery states retain their original place in the reading flow.
+  return empty && emptyToolbar ? createPortal(section, emptyToolbar) : section;
 }

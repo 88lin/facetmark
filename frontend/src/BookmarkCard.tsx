@@ -84,6 +84,9 @@ export function BookmarkCard({ record, selected, indexVisible, checked, disabled
   const statusLabel = record.privacy_skipped ? t("已跳过摘要", "Summary skipped")
     : status === "failed" ? t("上次生成失败", "Last attempt failed")
       : status === "done" ? t("摘要已生成", "Summary ready") : t("待生成摘要", "Awaiting summary");
+  const compactStatusLabel = record.privacy_skipped ? t("已跳过", "Skipped")
+    : status === "failed" ? t("生成失败", "Failed")
+      : status === "done" ? t("已生成", "Ready") : t("待生成", "Pending");
 
   const sourceLetter = (record.domain || "F").replace(/^www\./, "").slice(0, 1).toUpperCase();
   const sourceTone = [...(record.domain || "")].reduce((sum, letter) => sum + letter.charCodeAt(0), 0) % 4;
@@ -166,7 +169,8 @@ export function BookmarkCard({ record, selected, indexVisible, checked, disabled
 
     <div className="bookmark-metadata">
       <div className={`bookmark-status ${status === "failed" ? "summary-failure" : ""}`} data-summary-status={status}>
-        <StatusIcon size={14} aria-hidden="true"/><span>{statusLabel}</span>
+        <StatusIcon size={14} aria-hidden="true"/><span className="bookmark-status-full">{statusLabel}</span>
+        <span className="bookmark-status-short" aria-hidden="true">{compactStatusLabel}</span>
         {status === "failed" && onSummarize && <Button type="button" className="bookmark-retry" disabled={disabled || processingDisabled}
           onClick={onSummarize}>{t("重试", "Retry")}</Button>}
       </div>

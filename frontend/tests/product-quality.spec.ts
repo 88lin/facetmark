@@ -154,6 +154,7 @@ for (const [language, theme, width, height] of [
     expect(control.height).toBeGreaterThanOrEqual(44);
   }
   await expect(page.locator(".result-row").first()).toBeInViewport({ ratio: 1 });
+  expect((await page.locator(".result-row").first().boundingBox())!.height).toBeLessThan(300);
   if (height >= 760) await expect(page.locator(".bookmark-heading").nth(1)).toBeInViewport({ ratio: 1 });
   await page.locator(".library-manage > summary").focus(); await page.keyboard.press("Space");
   await expect(page.locator(".library-manage-menu")).toBeVisible();
@@ -214,6 +215,9 @@ test("an empty note stays compact while source navigation and retained drafts re
   const notes = page.getByRole("region", { name: "我的笔记", exact: true });
   await expect(notes).toBeVisible();
   expect((await notes.boundingBox())!.height).toBeLessThanOrEqual(56);
+  expect(await notes.evaluate(element => Boolean(element.closest(".article-options")))).toBe(true);
+  const noteBox = (await notes.boundingBox())!, sizeBox = (await page.locator(".reader-type-controls").boundingBox())!;
+  expect(Math.abs(noteBox.top - sizeBox.top)).toBeLessThanOrEqual(4);
   await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/collection-review/quality-reader-content-first.png" });
   await page.getByRole("button", { name: "跳到保存的原文", exact: true }).focus(); await page.keyboard.press("Enter");
@@ -222,6 +226,7 @@ test("an empty note stays compact while source navigation and retained drafts re
   await page.getByRole("button", { name: "回到顶部", exact: true }).click();
   await expect(notes).toBeInViewport({ ratio: 1 });
   await notes.getByRole("button", { name: "写笔记", exact: true }).click();
+  expect(await notes.evaluate(element => Boolean(element.closest(".reading")))).toBe(true);
   const editor = notes.getByRole("textbox", { name: "个人阅读笔记", exact: true });
   await expect(editor).toBeFocused(); await editor.fill("继续浏览后仍保留的本机阅读草稿。");
   await notes.getByRole("button", { name: "收起编辑，保留草稿", exact: true }).click();

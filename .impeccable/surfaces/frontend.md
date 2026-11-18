@@ -66,7 +66,11 @@ also identified narrow collection density, empty-note prominence, unbounded impo
 rows, hidden settings categories and excess chat status height. Repairs retain the
 existing capsule/material system with component-owned styles: page/category history,
 in-memory form continuity, visibility-aware polling, deliberate search focus,
-compact reading entry and full-content disclosures. Source 3809060 passed the
+compact reading entry and full-content disclosures. Intermediate visual review
+also tightened the remaining metadata rows: narrow summary status uses compact
+visible copy with its complete accessible text, and only the truly empty note
+entry shares the reader toolbar through its own Portal. The note editor, saved
+content and recovery stay in the reading flow. Source 3809060 passed the
 focused navigation/settings regression; narrow reader action wrapping and tested
 draft continuity checks then extended the final scope. Final source-matched
 rendering, interaction and installed results are recorded in PR #70's Actions and
