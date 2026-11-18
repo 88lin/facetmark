@@ -40,7 +40,7 @@ export async function numberInputTextLayout(page: Page, selector: string) {
     const { root } = await cdp.send("DOM.getDocument", { depth: 0, pierce: true });
     const { nodeId } = await cdp.send("DOM.querySelector", { nodeId: root.nodeId, selector });
     const { node } = await cdp.send("DOM.describeNode", { nodeId, depth: -1, pierce: true });
-    type NativeNode = { backendNodeId: number; attributes?: string[]; children?: NativeNode[]; shadowRoots?: NativeNode[] };
+    type NativeNode = { backendNodeId: number; nodeType?: number; nodeValue?: string; attributes?: string[]; children?: NativeNode[]; shadowRoots?: NativeNode[] };
     const findViewport = (current: NativeNode): NativeNode | undefined => {
       const attributes = current.attributes || [];
       if (attributes.some((name, index) => index % 2 === 0 && name === "id" && attributes[index + 1] === "editing-view-port")) return current;
@@ -50,21 +50,26 @@ export async function numberInputTextLayout(page: Page, selector: string) {
     };
     const viewport = findViewport(node);
     if (!viewport) throw new Error("Number input's native text viewport was not found");
-    const { object } = await cdp.send("DOM.resolveNode", { backendNodeId: viewport.backendNodeId });
-    const { result, exceptionDetails } = await cdp.send("Runtime.callFunctionOn", {
-      objectId: object.objectId, returnByValue: true,
-      functionDeclaration: `function () {
-        const editor = this.querySelector('#inner-editor');
-        if (!editor) throw new Error('Number input native editor was not found');
-        const rect = this.getBoundingClientRect();
-        const range = document.createRange(); range.selectNodeContents(editor);
-        return { text: editor.textContent, left: rect.left, right: rect.right, width: rect.width,
-          fragments: [...range.getClientRects()].filter(fragment => fragment.width > 0 && fragment.height > 0)
-            .map(fragment => ({ left: fragment.left, right: fragment.right, width: fragment.width })) };
-      }`,
-    });
-    if (exceptionDetails) throw new Error("Could not read number input's native text layout");
-    return result.value as { text: string; left: number; right: number; width: number; fragments: { left: number; right: number; width: number }[] };
+    const textNodes: NativeNode[] = [];
+    const collectText = (current: NativeNode) => {
+      if (current.nodeType === 3 && current.nodeValue) textNodes.push(current);
+      for (const child of current.children || []) collectText(child);
+    };
+    collectText(viewport);
+    if (!textNodes.length) throw new Error("Number input's native text was not found");
+    const { model } = await cdp.send("DOM.getBoxModel", { backendNodeId: viewport.backendNodeId });
+    const x = model.content.filter((_value: number, index: number) => index % 2 === 0);
+    const left = Math.min(...x), right = Math.max(...x);
+    const fragments: { left: number; right: number; width: number }[] = [];
+    for (const text of textNodes) {
+      const { quads } = await cdp.send("DOM.getContentQuads", { backendNodeId: text.backendNodeId });
+      for (const quad of quads) {
+        const points = quad.filter((_value: number, index: number) => index % 2 === 0);
+        const start = Math.min(...points), end = Math.max(...points);
+        if (end > start) fragments.push({ left: start, right: end, width: end - start });
+      }
+    }
+    return { text: textNodes.map(text => text.nodeValue).join(""), left, right, width: right - left, fragments };
   } finally { await cdp.detach(); }
 }
 
