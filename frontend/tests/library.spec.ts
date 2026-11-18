@@ -562,6 +562,8 @@ test("fetch needs no model and tested chat generates directly from the reading p
 
   chatReady = true;
   await page.reload();
+  await expect(page.locator(".tasks")).toBeVisible();
+  await page.locator(".header-navigation").getByRole("button", { name: "全部书签", exact: true }).click();
   await search(page, token, 1);
   await row(page, record.bookmark_id).locator(".bookmark-preview").click();
   await page.getByRole("button", { name: "生成这篇摘要", exact: true }).click();

@@ -234,6 +234,8 @@ for (const [language, theme, width, height] of [
   }, [language, theme]);
   await page.setViewportSize({ width, height });
   await collection(page); await settleVisualLayout(page);
+  const count = page.locator(".library-selection-count");
+  await expect(count).toHaveText((await count.getAttribute("aria-label"))!);
   const bounds = await page.locator(".library-tools").evaluate(element => {
     const controls = [".library-add", ".library-manage > summary", ".library-summary-selection", ".library-summarize"];
     return controls.map(selector => {
@@ -364,6 +366,7 @@ test(`overview actions and saved source remain reachable in a narrow reader ${la
 for (const tags of [
   ["需要保留完整文字的长标签".repeat(5), "标签二", "标签三", "标签四", "标签五", "标签六"],
   ["宽".repeat(23)],
+  ["第一个完整长标签".repeat(5), "第二个完整长标签".repeat(5)],
 ]) test(`many or clipped tags can be inspected without expanding the initial card (${tags.length} tags)`, async ({ page }) => {
   await page.route("**/bookmarks?**", async route => {
     const response = await route.fetch(), data = await response.json();
@@ -374,11 +377,56 @@ for (const tags of [
   await collection(page); await settleVisualLayout(page);
   const row = page.locator(".result-row").first(), items = row.locator(".bookmark-tags li:not(.bookmark-tags-more)");
   await expect(items).toHaveCount(Math.min(3, tags.length));
+  if (tags.length > 2) await expect(items.nth(2)).toBeHidden();
+  await expect(row.getByRole("button", { name: "展开全部标签", exact: true })).not.toContainText("+0");
   await page.screenshot({ path: `screenshots/collection-review/quality-collection-long-tags-${tags.length}-390.png` });
-  await row.getByRole("button", { name: "展开全部标签", exact: true }).click();
+  await row.getByRole("button", { name: "展开全部标签", exact: true }).focus(); await page.keyboard.press("Enter");
   await expect(items).toHaveCount(tags.length); await expect(items.last()).toHaveText(tags[tags.length - 1]);
   await expect(items.first()).toHaveText(tags[0]);
-  await row.getByRole("button", { name: "收起标签", exact: true }).click();
+  await expect(items.last()).toBeVisible();
+  await row.getByRole("button", { name: "收起标签", exact: true }).focus(); await page.keyboard.press("Space");
   await expect(items).toHaveCount(Math.min(3, tags.length));
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("three short tags keep full text and keyboard disclosure across narrow and desktop layouts", async ({ page }) => {
+  const tags = ["设计", "阅读", "笔记"];
+  await page.route("**/bookmarks?**", async route => {
+    const response = await route.fetch(), data = await response.json();
+    data.items[0].tags = tags;
+    await route.fulfill({ response, json: data });
+  });
+  await collection(page); await settleVisualLayout(page);
+  const row = page.locator(".result-row").first(), list = row.getByRole("list", { name: "标签", exact: true });
+  const items = list.locator("li:not(.bookmark-tags-more)"), disclosure = list.locator(".bookmark-tags-more button");
+  await expect(items).toHaveText(tags); await expect(items.nth(2)).toBeVisible();
+  await expect(disclosure).toBeHidden();
+  expect(await items.evaluateAll(elements => elements.some(element => element.scrollWidth > element.clientWidth + 1))).toBe(false);
+  await page.screenshot({ path: "screenshots/collection-review/quality-collection-three-tags-1280.png" });
+
+  for (const width of [719, 720, 390]) {
+    await page.setViewportSize({ width, height: 760 }); await settleVisualLayout(page);
+    if (width > 719) {
+      await expect(items.nth(2)).toBeVisible(); await expect(disclosure).toBeHidden();
+    } else {
+      await expect(items.nth(2)).toBeHidden(); await expect(disclosure).toBeVisible();
+      await expect(disclosure.locator(".bookmark-tags-label-short")).toHaveText("+1");
+    }
+  }
+  const firstTag = (await items.first().boundingBox())!, button = (await disclosure.boundingBox())!;
+  expect(await items.evaluateAll(elements => elements.slice(0, 2).some(element => element.scrollWidth > element.clientWidth + 1))).toBe(false);
+  expect(button.width).toBeGreaterThanOrEqual(44); expect(button.height).toBeGreaterThanOrEqual(44);
+  expect(firstTag.height).toBeLessThan(button.height - 4);
+  expect(Math.abs(firstTag.y + firstTag.height / 2 - button.y - button.height / 2)).toBeLessThanOrEqual(1);
+  await page.screenshot({ path: "screenshots/collection-review/quality-collection-three-tags-390.png" });
+  await disclosure.focus(); await page.keyboard.press("Enter");
+  await expect(disclosure).toHaveAttribute("aria-expanded", "true");
+  await expect(items).toHaveText(tags); await expect(items.nth(2)).toBeVisible();
+  await page.setViewportSize({ width: 1280, height: 850 }); await settleVisualLayout(page);
+  await expect(items.nth(2)).toBeVisible(); await expect(disclosure).toBeVisible();
+  await expect(disclosure).toHaveAccessibleName("收起标签");
+  await disclosure.focus(); await page.keyboard.press("Space");
+  await expect(disclosure).toHaveAttribute("aria-expanded", "false");
+  await expect(disclosure).toBeHidden(); await expect(items).toHaveText(tags); await expect(items.nth(2)).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });

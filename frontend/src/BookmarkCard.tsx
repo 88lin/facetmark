@@ -55,7 +55,7 @@ export function BookmarkCard({ record, selected, indexVisible, checked, disabled
   };
   const text = display === "summary" ? record.summary || record.snippet : record.snippet;
   const tags = record.tags || [];
-  const discloseTags = tags.length > 3 || clippedTags;
+  const discloseTags = tags.length > 2 || clippedTags;
   useEffect(() => {
     const element = tagList.current;
     if (!element || expandedTags) return;
@@ -176,11 +176,14 @@ export function BookmarkCard({ record, selected, indexVisible, checked, disabled
       </div>
       {!!tags.length && <ul ref={tagList} id={`${id}-tags`} className={`bookmark-tags${expandedTags ? " expanded" : ""}`} aria-label={t("标签", "Tags")}>
         {(expandedTags ? tags : tags.slice(0, 3)).map((tag, index) => <li key={`${tag}-${index}`} title={tag}>{tag}</li>)}
-        {discloseTags && <li className="bookmark-tags-more"><Button type="button" className="text-button"
+        {discloseTags && <li className={`bookmark-tags-more${tags.length === 3 && !clippedTags && !expandedTags ? " is-mobile-disclosure" : ""}`}><Button type="button" className="text-button"
           aria-expanded={expandedTags} aria-controls={`${id}-tags`}
           aria-label={expandedTags ? t("收起标签", "Collapse tags") : t("展开全部标签", "Show all tags")}
-          onClick={() => setExpandedTags(value => !value)}>{expandedTags ? t("收起", "Less")
-            : tags.length > 3 ? t("+" + (tags.length - 3) + " 个标签", "+" + (tags.length - 3) + " tags") : t("全部标签", "Full tags")}</Button></li>}
+          onClick={() => setExpandedTags(value => !value)}>{expandedTags ? t("收起", "Less") : <>
+            <span className="bookmark-tags-label-long" aria-hidden="true">{tags.length > 3
+              ? t("+" + (tags.length - 3) + " 个标签", "+" + (tags.length - 3) + " tags") : t("全部标签", "Full tags")}</span>
+            <span className="bookmark-tags-label-short" aria-hidden="true">{tags.length > 2 ? "+" + (tags.length - 2) : t("全部标签", "Full tags")}</span>
+          </>}</Button></li>}
       </ul>}
     </div>
 

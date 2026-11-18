@@ -83,8 +83,8 @@ export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch
       <span className="library-selection-mark" aria-hidden="true">{allSelected ? <Check size={14}/> : selectedCount > 0 ? <Minus size={14}/> : null}</span>
       <span><span className="action-full">{t("全选", "Select all")}</span><span className="action-short" aria-hidden="true">{t("全选", "All")}</span></span>
       <span className="library-selection-count" role="status" aria-label={countLabel} title={countLabel}>
-        <span className="sr-only">{countLabel}</span>
-        <span className="action-full" aria-hidden="true">{countLabel}</span><span className="action-short" aria-hidden="true">{compactCount}</span>
+        <span className="library-count-full">{countLabel}</span>
+        <span className="library-count-compact" aria-hidden="true" data-count={compactCount}/>
       </span>
     </label>
     <CapsuleButton className="primary library-summarize" aria-label={t("生成摘要", "Summarize")} disabled={disabled || processingDisabled || pending || !pageIds.length} onClick={onSummarize}><Sparkles size={15}/><span className="action-full">{t("生成摘要", "Summarize")}</span><span className="action-short" aria-hidden="true">{t("生成", "Summarize")}</span></CapsuleButton>
