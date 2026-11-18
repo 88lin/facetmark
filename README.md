@@ -26,7 +26,7 @@
   <br>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white&labelColor=2D5F8B" alt="Python"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-22C55E?style=for-the-badge&logo=opensourceinitiative&logoColor=white&labelColor=16A34A" alt="License"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/Tests-1619-06B6D4?style=for-the-badge&logoColor=white&labelColor=0891B2" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/Tests-regression-06B6D4?style=for-the-badge&logoColor=white&labelColor=0891B2" alt="Tests"></a>
 </p>
 
 > [!NOTE]
@@ -34,30 +34,31 @@
 > written to. Keyword search needs no AI. When you confirm indexing with cloud models,
 > eligible titles, URLs and extracted text are sent to the services you configure.
 
-### Windows desktop (v2.1.1)
+### Windows desktop (v2.2.0)
 
 Facetmark provides a Tauri 2 desktop app and a
 shared React workbench: browse bookmarks, search and read side by side, import through
 a guided flow, configure chat and embeddings separately, and follow background tasks.
 Light/dark themes, Chinese/English and narrow-window reading are included.
 
-The v2.1.1 release includes generated titles and
-editable summary instructions, durable cited chat (library or selected pages),
-optional HTTP MCP, actual concurrency/retry settings, timeline and link maintenance,
-bounded site import, detailed import results and v2 reading/chat restoration.
-See the [feature comparison and current verification](docs/desktop-completion-2026-10-25.md).
-Version 2.1.1 also repairs saved connection reuse, selectable high/xhigh/max reasoning,
-select-all feedback, long saving-session titles, ordinary mouse scrolling and retry behavior.
+Version 2.2.0 adds reusable named connections, per-conversation model access,
+batch URL preview/import, and local reading notes with draft and revision recovery.
+It also improves recovery across imports, collection management, chat, generation tasks,
+sync, extensions and MCP; settings and navigation retain drafts and tested connections.
+Narrow-window collection and reading controls, full labels, keyboard focus, large-library
+paging and native startup/tray behavior have been reviewed and repaired.
+See the [full repair record](docs/full-product-repair-2026-11-16.md) and
+[product review](docs/product-quality-review-2026-11-18.md).
 Frozen desktop builds use HTTP embedding endpoints; in-process SentenceTransformer
 remains optional for Python installations.
 
-Download the [Windows x64 installer](https://github.com/88lin/facetmark/releases/download/v2.1.1/facetmark-2.1.1-windows-x64-setup.exe)
-from [Releases](https://github.com/88lin/facetmark/releases/tag/v2.1.1).
+Download the [Windows x64 installer](https://github.com/88lin/facetmark/releases/download/v2.2.0/facetmark-2.2.0-windows-x64-setup.exe)
+from [Releases](https://github.com/88lin/facetmark/releases/tag/v2.2.0).
 The installer is **unsigned**; Windows may show SmartScreen.
 The package includes the Python sidecar and offline WebView2 installer;
 it does not include large AI models. No Python, Node or Rust installation is needed by
 desktop users. The same Release also provides the extension ZIP, Python wheel/source
-distribution and SHA256 checksums. See [release notes and validation boundaries](docs/releases/v2.1.1.md).
+distribution and SHA256 checksums. See [release notes and validation boundaries](docs/releases/v2.2.0.md).
 
 The same React assets ship in CI-built Python wheels and Docker images. Source
 contributors build `frontend/` before packaging; Python end users do not run Node.

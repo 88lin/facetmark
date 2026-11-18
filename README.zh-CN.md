@@ -26,32 +26,33 @@
   <br>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white&labelColor=2D5F8B" alt="Python"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-22C55E?style=for-the-badge&logo=opensourceinitiative&logoColor=white&labelColor=16A34A" alt="License"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/Tests-1619-06B6D4?style=for-the-badge&logoColor=white&labelColor=0891B2" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/Tests-regression-06B6D4?style=for-the-badge&logoColor=white&labelColor=0891B2" alt="Tests"></a>
 </p>
 
 > [!NOTE]
 > 书库保存在本机 SQLite 文件中，**从不写回**浏览器原始书签。关键词检索不需要 AI；
 > 确认使用云端模型索引后，允许处理的标题、网址和已提取正文会发送至你配置的服务。
 
-### Windows 桌面版（v2.1.1）
+### Windows 桌面版（v2.2.0）
 
 Facetmark 提供 Tauri 2 桌面应用与共享 React 工作台：
 三栏检索和阅读、真实书签分页、导入向导、聊天与向量独立配置、后台任务、
 明暗主题、中英文和窄窗口预览抽屉。
 
-v2.1.1 包含目标语言的 AI 标题与摘要、
-可编辑内置提示词、带引用的持久对话（全库或所选）、HTTP MCP、实际并发与重试设置、
-收藏时间轴、链接维护、网站导入、完整导入反馈和 v2 阅读/聊天恢复。
-2.1.1 另修复已保存连接复用、high/xhigh/max 自选、全选反馈、批次长标题、普通鼠标滚动
-和失败重试。详见 [本轮功能对照](docs/githubstarsmanager-gap-audit-2026-10-26.md)。冻结桌面包使用
+v2.2.0 新增可复用的命名连接、对话独立连接、批量网址预览导入，以及可保留草稿、
+检查修订冲突的本机阅读笔记。导入、收藏管理、对话、生成任务、同步、扩展和 MCP
+保留原操作并提供恢复入口；设置和导航保留草稿与已测试连接。
+同时修复窄屏收藏和阅读控件、完整标签、键盘焦点、大库分页，以及原生启动与托盘行为。
+详见 [全端修复记录](docs/full-product-repair-2026-11-16.md) 与
+[全产品复查](docs/product-quality-review-2026-11-18.md)。冻结桌面包使用
 HTTP 向量端点；Python 可选安装进程内 SentenceTransformer。
 
-从 [Releases](https://github.com/88lin/facetmark/releases/tag/v2.1.1)
-下载 [Windows x64 安装包](https://github.com/88lin/facetmark/releases/download/v2.1.1/facetmark-2.1.1-windows-x64-setup.exe)。
+从 [Releases](https://github.com/88lin/facetmark/releases/tag/v2.2.0)
+下载 [Windows x64 安装包](https://github.com/88lin/facetmark/releases/download/v2.2.0/facetmark-2.2.0-windows-x64-setup.exe)。
 安装包**未签名**，Windows 可能显示 SmartScreen。安装包携带 Python 后端和 WebView2 离线安装器，
 不包含大型 AI 模型；桌面用户无需安装 Python、Node 或 Rust。
 同一 Release 提供扩展 ZIP、Python wheel、源码分发包和 SHA256 校验文件。
-详见[发行说明与验证边界](docs/releases/v2.1.1.md)。
+详见[发行说明与验证边界](docs/releases/v2.2.0.md)。
 
 CI 构建的 Python wheel 与 Docker 镜像共享同一套 React 静态资源。
 源码开发者在打包前构建 `frontend/`；Python 包用户无需自行运行 Node。
