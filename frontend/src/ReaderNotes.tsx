@@ -120,12 +120,14 @@ export default function ReaderNotes({ record }: { record: Bookmark }) {
   };
   const start = () => { update({ ...current.current, editing: true, message: "" }); };
   const dirty = state.local.draft !== state.saved.note;
-  return <section className="reader-notes" data-bookmark-id={record.bookmark_id} aria-label={t("我的笔记", "My note")}>
-    <div className="reader-notes-heading"><h2><StickyNote size={16} aria-hidden="true"/>{t("我的笔记", "My note")}</h2>
+  const empty = !state.editing && !state.saved.note && !dirty && !state.local.pending
+    && !state.conflict && !state.error && !state.message && !state.saved.legacy_text;
+  return <section className={`reader-notes${empty ? " is-empty" : ""}`} data-bookmark-id={record.bookmark_id} aria-label={t("我的笔记", "My note")}>
+    <div className="reader-notes-heading">{!empty && <h2><StickyNote size={16} aria-hidden="true"/>{t("我的笔记", "My note")}</h2>}
       {!state.editing && <CapsuleButton type="button" className="text-button" onClick={start}>
         <Pencil size={14} aria-hidden="true"/>{dirty || state.local.pending ? t("继续编辑笔记", "Continue note draft") : state.saved.note ? t("编辑笔记", "Edit note") : t("写笔记", "Write a note")}
       </CapsuleButton>}</div>
-    {!state.editing && (state.saved.note ? <details className="reader-note-saved"><summary>{t("阅读完整笔记", "Read full note")}</summary>
+    {!state.editing && !empty && (state.saved.note ? <details className="reader-note-saved"><summary>{t("阅读完整笔记", "Read full note")}</summary>
       <p className="reader-note-text">{state.saved.note}</p></details> : <p className="reader-note-invitation">{t("记下收藏的原因，或自己的想法。", "Remember why you saved this page, or add your own thoughts.")}</p>)}
     {!state.editing && dirty && <p className="reader-note-help" role="status">{t("未保存的草稿已保留。", "Your unsaved draft is retained.")}</p>}
     {state.editing && <form className="reader-note-editor" onSubmit={event => { event.preventDefault(); void save(); }}>

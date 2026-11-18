@@ -44,6 +44,9 @@
 .result-row .bookmark-retry { min-width: 0; min-height: 28px; margin-left: 2px; padding: 3px 9px; border: 0; border-radius: var(--radius-pill); color: var(--danger); background: var(--danger-soft); font-size: .75rem; }
 .result-row .bookmark-tags { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; margin: 0; padding: 0; list-style: none; }
 .result-row .bookmark-tags li { max-width: 100%; padding: 3px 8px; border-radius: 7px; background: var(--inset); color: var(--secondary-ink); font-size: .8125rem; line-height: 1.5; overflow-wrap: anywhere; }
+.result-row .bookmark-tags:not(.expanded) li:not(.bookmark-tags-more) { max-width: min(24ch, 100%); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result-row .bookmark-tags .bookmark-tags-more { padding: 0; background: transparent; }
+.result-row .bookmark-tags-more .fm-button { min-height: 28px; padding: 3px 7px; border: 0; color: var(--accent); font-size: .8125rem; }
 .result-row .result-meta { display: flex; align-items: center; gap: 8px; min-width: 0; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--rule); }
 .result-row .result-folder { display: flex; align-items: center; flex: 1; gap: 6px; min-width: 0; color: var(--secondary-ink); font-size: .8125rem; line-height: 1.5; }
 .result-row .result-folder > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -84,20 +87,21 @@
 .has-reader-index .result-row .bookmark-preview > span { display: none; }
 .has-reader-index .result-row .source-symbol { width: 28px; height: 28px; border-radius: 10px; font-size: .875rem; }
 @media (max-width: 719px) {
-  .result-row, .list-mode .result-row { padding: 16px; gap: 10px; border-radius: 20px; }
+  .result-row, .list-mode .result-row { padding: 14px; gap: 7px; border-radius: 20px; }
   .result-row .result-title { font-size: 1.0625rem; line-height: 1.65; }
   .result-row .result-summary { -webkit-line-clamp: 2; font-size: .875rem; }
   .result-row .bookmark-date { display: none; }
   .result-row .source-symbol { width: 30px; height: 32px; border-radius: 10px; font-size: 1rem; }
-  .result-row .result-meta { align-items: stretch; flex-wrap: wrap; border: 0; padding-top: 0; gap: 5px; }
-  .result-row .result-folder { flex-basis: 100%; }
-  .result-row .bookmark-actions { width: 100%; }
+  .result-row .result-meta { align-items: center; flex-wrap: nowrap; border: 0; padding-top: 0; gap: 6px; }
+  .result-row .result-folder { flex: 1; min-width: 0; }
+  .result-row .bookmark-actions { flex: none; width: auto; gap: 2px; }
   .result-row .bookmark-preview { margin-left: auto; }
   .result-row :is(.bookmark-external, .bookmark-select, .bookmark-action, .bookmark-preview) { min-width: 40px; min-height: 44px; }
   .result-row .bookmark-select { width: 40px; height: 44px; }
   .result-row .bookmark-check-frame { width: 19px; height: 19px; }
   .result-row .summary-expand { min-height: 44px; }
   .result-row .bookmark-retry { min-height: 36px; }
+  .result-row .bookmark-tags-more .fm-button { min-height: 44px; }
 }
 @media (max-height: 650px) and (min-width: 960px) {
   .result-row { padding: 16px; gap: 8px; }

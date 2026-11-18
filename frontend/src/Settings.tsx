@@ -26,7 +26,7 @@ type ModelSetting = Setting & { active_value?: unknown };
 type LocalEmbeddingRuntime = { supported: boolean; packaged: boolean;
   reason: "available" | "desktop-unavailable" | "dependency-missing" };
 
-export function Models({ setup, refresh, showHeading = true, onSummarize }: { setup: Setup | null; refresh: () => Promise<void>; showHeading?: boolean; onSummarize?: () => void }) {
+export function Models({ active = true, setup, refresh, showHeading = true, onSummarize }: { active?: boolean; setup: Setup | null; refresh: () => Promise<void>; showHeading?: boolean; onSummarize?: () => void }) {
   const t = useText();
   const [agents, setAgents] = useState<LocalAgent[]>([]);
   const [detecting, setDetecting] = useState(true);
@@ -55,6 +55,8 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
   const preserveDetectionDraft = useRef(false);
   const lastAgent = useRef<{ preference: string; id: string } | null>(null);
   const hasDraft = Object.keys(draft).length > 0;
+  const settingsLoaded = useRef(false);
+  const settingsRead = useRef(0);
   const connectionField = (key: string, channel: string) =>
     (key.startsWith(`${channel}_`) && key !== "chat_concurrency") || (channel === "embed" && key === "local_embed_path");
   const channelDirty = (channel: string) => Object.keys(draft).some(
@@ -102,30 +104,37 @@ export function Models({ setup, refresh, showHeading = true, onSummarize }: { se
     }
   }
   async function load(suggestAgent = false) {
+    const sequence = ++settingsRead.current;
     setLoadingSettings(true); setLoadError("");
     try {
       const data = await api<{ settings: ModelSetting[]; channels: { chat: { configured: boolean } };
         summary_prompt_defaults?: Record<Language, string>; local_embedding_runtime?: LocalEmbeddingRuntime }>("/admin/settings");
+      if (sequence !== settingsRead.current) return false;
       setRows(data.settings);
       setLocalRuntime(data.local_embedding_runtime || null);
       setSummaryDefaults(data.summary_prompt_defaults || {});
       if (suggestAgent) {
         const found = await detect();
+        if (sequence !== settingsRead.current) return false;
         if (!data.channels.chat.configured && found.some(a => a.installed)
           && data.settings.find(r => r.key === "chat_backend")?.value !== "agent"
           && !data.settings.find(r => r.key === "chat_backend")?.locked)
           setDraft(current => ({ chat_backend: "agent", ...current }));
       }
+      settingsLoaded.current = true;
       return true;
     } catch {
-      setLoadError(t("未能读取已保存的设置，请重试。", "Saved settings could not be loaded. Please retry."));
+      if (sequence === settingsRead.current) setLoadError(t("未能读取已保存的设置，请重试。", "Saved settings could not be loaded. Please retry."));
       return false;
-    } finally { setLoadingSettings(false); }
+    } finally { if (sequence === settingsRead.current) setLoadingSettings(false); }
   }
   useEffect(() => {
-    load(true).catch((e) => { setError(String(e)); setDetecting(false); });
-    return () => detectionAbort.current?.abort();
-  }, []);
+    // Resume reads current saved values without resetting the local draft,
+    // its test results, or repeating the initial Agent suggestion.
+    if (active && !actionGate.current)
+      load(!settingsLoaded.current).catch((e) => { setError(String(e)); setDetecting(false); });
+  }, [active]);
+  useEffect(() => () => { settingsRead.current++; detectionAbort.current?.abort(); }, []);
   const row = (key: string) => rows.find((r) => r.key === key);
   const value = (key: string) =>
     key in draft ? draft[key] : row(key)?.secret ? "" : (row(key)?.value ?? "");

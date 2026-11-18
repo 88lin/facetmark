@@ -106,7 +106,7 @@ function contentRecipe(element: HTMLElement, previous: string, value: string, ax
   };
   if (element.matches(".settings-panel, .setup-panel")) return {
     kind: "section", axis, direction: orderedDirection(previous, value, element.matches(".setup-panel") ?
-      ["0", "1", "2", "3"] : ["models", "sync", "extension", "desktop"]),
+      ["0", "1", "2", "3"] : ["models", "sync", "extension", "mcp", "desktop"]),
     distance: 20, duration: 0.32, opacity: 0.66, blur: 1,
   };
   if (element.matches(".facet-options")) return {

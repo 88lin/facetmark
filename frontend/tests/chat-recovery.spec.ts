@@ -367,6 +367,7 @@ test("chat controls and long connection states remain reachable in both themes a
           connectionHeight: connection.height };
       });
       expect(bounds.messagesHeight).toBeGreaterThan(40); expect(bounds.messagesBottom).toBeLessThanOrEqual(bounds.composerTop);
+      if (size.width === 320 && size.height === 640) expect(bounds.messagesHeight).toBeGreaterThanOrEqual(180);
       expect(bounds.statusBottom).toBeLessThanOrEqual(bounds.composerTop); expect(bounds.composerBottom).toBeLessThanOrEqual(bounds.viewport);
       if (size.width < 720) {
         expect(bounds.choiceHeight).toBeLessThanOrEqual(bounds.connectionHeight + 1);
@@ -375,6 +376,16 @@ test("chat controls and long connection states remain reachable in both themes a
       }
       await expect(page.getByRole("combobox", { name: language === "zh" ? "本段对话的模型连接" : "Connection for this conversation", exact: true })).toBeVisible();
       await page.screenshot({ path: `screenshots/collection-review/chat-connections-${language}-${theme}-${size.width}-${size.height}.png`, animations: "disabled" });
+      if (size.width === 320) {
+        const status = page.getByRole("region", { name: language === "zh" ? "连接与发送状态" : "Connection and send status", exact: true });
+        await status.focus(); await page.keyboard.press("Tab");
+        await expect(page.locator("#chat-connection")).toBeFocused();
+        await page.keyboard.press("Tab");
+        const setup = page.getByRole("button", { name: language === "zh" ? "设置 AI 连接" : "Set up AI connection", exact: true });
+        await expect(setup).toBeFocused(); await expect(setup).toBeInViewport({ ratio: 1 });
+        await page.screenshot({ path: `screenshots/collection-review/quality-chat-state-action-${language}-${theme}-320.png` });
+        await status.evaluate(element => { element.scrollTop = 0; });
+      }
     }
   }
 });

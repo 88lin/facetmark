@@ -516,7 +516,7 @@ export function ChatWorkspace({ active, launch, setup, language, onPreview, onSe
         </article>)}
     </div>
     <div className="chat-composer-area">
-      <div className="chat-composer-status">
+      <div className="chat-composer-status" role="region" aria-label={t("连接与发送状态", "Connection and send status")} tabIndex={0}>
       <div className="chat-model-choice">
         <label htmlFor="chat-connection"><span aria-hidden="true">
           <span className="chat-model-label">{t("本段对话的模型连接", "Connection for this conversation")}</span>
@@ -546,14 +546,14 @@ export function ChatWorkspace({ active, launch, setup, language, onPreview, onSe
         ? profilesBusy ? t("正在读取这段对话的连接，草稿会保留。", "Loading this conversation's connection. Your draft is retained.")
           : profilesError ? t("暂时无法确认这个连接，请重新读取连接后再发送。草稿会保留。", "This connection could not be confirmed. Reload connections before sending; your draft is retained.")
             : !chosenProfile ? t("这段对话的连接已移除，请选择其他连接。已保存的回答和草稿会保留。", "This conversation's connection was removed. Choose another connection; saved answers and your draft are retained.")
-              : t("这个连接尚未通过测试。可以先写问题，再到设置中测试，或选择其他连接。", "This connection needs a test. You can draft a question, then test it in Settings or choose another connection.")
+              : t("此连接需先测试；可以继续写草稿。", "Test this connection before sending; you can keep drafting.")
         : setup === null ? t("正在读取已保存的聊天连接，草稿会保留。", "Loading your saved chat connection. Your draft is retained.")
           : t("可以先写问题，测试并保存聊天连接后再发送。", "Draft a question now, then test and save a chat connection before sending.")}</span>
         {(profileId || setup !== null) && <CapsuleButton type="button" className="text-button" onClick={onSettings}>{t("设置 AI 连接", "Set up AI connection")}</CapsuleButton>}</div>}
       {canRetry && !running && !operation && <div className="chat-retry"><span>{t("继续刚才的问题", "Continue your last question")}</span>
         <CapsuleButton type="button" className="secondary" disabled={!ready || loading || readFailure === currentId} onClick={() => void send("retry")}><RotateCcw size={15}/>{t("重试回答", "Retry answer")}</CapsuleButton></div>}
       {canRegenerate && !running && !operation && <div className="chat-retry chat-regenerate">
-        <span>{t("保留旧回答，重新整理这个问题", "Keep the previous answer and revisit this question")}</span>
+        <span>{t("旧回答会保留。", "The previous answer is kept.")}</span>
         <CapsuleButton type="button" className="secondary" disabled={!ready || loading || readFailure === currentId} onClick={() => void send("regenerate")}><RotateCcw size={15}/>{t("重新回答", "Answer again")}</CapsuleButton>
       </div>}
       {storageWarning && <p className="chat-storage-warning" role="status">{t("草稿暂时无法在本机保存，请保留当前窗口。", "The draft could not be saved on this device. Keep this window open.")}</p>}

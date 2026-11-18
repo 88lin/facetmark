@@ -20,8 +20,11 @@ export function BookmarkCard({ record, selected, indexVisible, checked, disabled
   const reduced = useReducedMotion();
   const id = useId();
   const [expanded, setExpanded] = useState(false);
+  const [expandedTags, setExpandedTags] = useState(false);
+  const [clippedTags, setClippedTags] = useState(false);
   const [clipped, setClipped] = useState(false);
   const summary = useRef<HTMLParagraphElement>(null);
+  const tagList = useRef<HTMLUListElement>(null);
   const previewControl = useRef<HTMLButtonElement>(null);
   const row = useRef<HTMLElement>(null);
   const previewSelected = useRef(selected && indexVisible);
@@ -51,6 +54,18 @@ export function BookmarkCard({ record, selected, indexVisible, checked, disabled
     post("/open", { bookmark_id: record.bookmark_id }).catch(() => {});
   };
   const text = display === "summary" ? record.summary || record.snippet : record.snippet;
+  const tags = record.tags || [];
+  const discloseTags = tags.length > 3 || clippedTags;
+  useEffect(() => {
+    const element = tagList.current;
+    if (!element || expandedTags) return;
+    const measure = () => setClippedTags(Array.from(element.querySelectorAll<HTMLElement>("li:not(.bookmark-tags-more)"))
+      .some(tag => tag.scrollWidth > tag.clientWidth + 1));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [record.tags, expandedTags]);
   const label = display === "summary" && record.summary
     ? record.summary_basis === "title" ? t("标题推断", "Inferred from title") : t("AI 摘要", "AI summary")
     : text ? t("正文摘录", "Page excerpt") : display === "original" ? t("暂无正文", "No page text yet") : t("暂无摘要", "No summary yet");
@@ -155,8 +170,13 @@ export function BookmarkCard({ record, selected, indexVisible, checked, disabled
         {status === "failed" && onSummarize && <Button type="button" className="bookmark-retry" disabled={disabled || processingDisabled}
           onClick={onSummarize}>{t("重试", "Retry")}</Button>}
       </div>
-      {!!record.tags?.length && <ul className="bookmark-tags" aria-label={t("标签", "Tags")}>
-        {record.tags.map((tag, index) => <li key={`${tag}-${index}`}>{tag}</li>)}
+      {!!tags.length && <ul ref={tagList} id={`${id}-tags`} className={`bookmark-tags${expandedTags ? " expanded" : ""}`} aria-label={t("标签", "Tags")}>
+        {(expandedTags ? tags : tags.slice(0, 3)).map((tag, index) => <li key={`${tag}-${index}`} title={tag}>{tag}</li>)}
+        {discloseTags && <li className="bookmark-tags-more"><Button type="button" className="text-button"
+          aria-expanded={expandedTags} aria-controls={`${id}-tags`}
+          aria-label={expandedTags ? t("收起标签", "Collapse tags") : t("展开全部标签", "Show all tags")}
+          onClick={() => setExpandedTags(value => !value)}>{expandedTags ? t("收起", "Less")
+            : tags.length > 3 ? t("+" + (tags.length - 3) + " 个标签", "+" + (tags.length - 3) + " tags") : t("全部标签", "Full tags")}</Button></li>}
       </ul>}
     </div>
 

@@ -25,9 +25,11 @@ import { useText, type Language } from "./locale";
 import { SearchExplanation } from "./SearchTools";
 import { ScrollProgress } from "./components/ui/scroll-progress";
 import { ReaderOutline } from "./components/ui/reader-outline";
+import { scrollToReaderSection } from "./components/ui/reader-section";
 import { useTabIndicator } from "./motion";
 import { type LibraryAction } from "./LibraryTools";
 import ReaderNotes from "./ReaderNotes";
+import { useReducedMotion } from "./useReducedMotion";
 
 export function Skeleton({ rows = false }: { rows?: boolean }) {
   return (
@@ -103,6 +105,7 @@ export default function Reader({
   processingDisabled?: boolean;
 }) {
   const t = useText();
+  const reduced = useReducedMotion();
   const scales = [.88, 1, 1.12, 1.24, 1.36];
   const [readingSize, setReadingSize] = useState(() => {
     try {
@@ -192,11 +195,21 @@ export default function Reader({
       {hasSummary ? <section id="reader-summary" className="reader-summary" aria-label={t("AI 概览", "AI overview")}>
         <div className="reader-section-heading">
           <h2><Sparkles size={16}/>{t("AI 概览", "AI overview")}</h2>
+          <div className="reader-section-actions">
+          {record?.body_text && <CapsuleButton type="button" className="text-button reader-source-jump"
+            aria-label={t("跳到保存的原文", "Jump to saved source text")} onClick={() => {
+              const container = scroller.current;
+              const heading = container?.querySelector<HTMLElement>(".reader-source h2");
+              if (!container || !heading) return;
+              heading.focus({ preventScroll: true });
+              scrollToReaderSection(container, heading, reduced ? "instant" : "smooth");
+            }}><FileText size={15}/>{t("原文", "Source")}</CapsuleButton>}
           {canProcess && <CapsuleButton className="text-button" disabled={running || processingDisabled}
             aria-label={t("重新生成这篇摘要", "Regenerate this summary")}
             onClick={() => onAction?.({ kind: "process", mode: "summarize", ids: [selected!] })}>
             {t("重新生成", "Regenerate")}
           </CapsuleButton>}
+          </div>
         </div>
         <p className="reader-summary-basis">{record?.indexed?.summary_basis === "title"
           ? t("基于标题与网址推断，尚未读取正文", "Inferred from title and URL; page text has not been read")
@@ -216,7 +229,7 @@ export default function Reader({
           : t("摘要生成失败。", "Summary generation failed.")} {record.summary_error}
       </p>}
       <section id="reader-source" className="reader-source" aria-label={t("保存的原文", "Saved source text")}>
-      <div className="reader-section-heading"><h2><FileText size={16}/>{t("保存的原文", "Saved source text")}</h2></div>
+      <div className="reader-section-heading"><h2 tabIndex={-1}><FileText size={16}/>{t("保存的原文", "Saved source text")}</h2></div>
       {fetchFeedback}
       {record?.body_text ? <div className="body-text">
         {paragraphs.map((p, i) =>

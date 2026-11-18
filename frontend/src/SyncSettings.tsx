@@ -46,7 +46,7 @@ function CountTable({ counts }: { counts: Counts }) {
   </div>;
 }
 
-export function SyncSettings({ onChanged }: { onChanged: () => void | Promise<void> }) {
+export function SyncSettings({ active = true, onChanged }: { active?: boolean; onChanged: () => void | Promise<void> }) {
   const t = useText();
   const [restored] = useState(loadSyncWorkspace);
   const [workspace, setWorkspace] = useState<SyncWorkspace>(() => restored ?? {
@@ -124,6 +124,10 @@ export function SyncSettings({ onChanged }: { onChanged: () => void | Promise<vo
 
   useEffect(() => {
     live.current = true;
+    return () => { live.current = false; workController.current?.abort(); };
+  }, []);
+  useEffect(() => {
+    if (!active) return;
     const controller = new AbortController();
     async function refresh(initial = false) {
       if (!initial && (busyRef.current || recovery.isBusy())) return;
@@ -152,10 +156,12 @@ export function SyncSettings({ onChanged }: { onChanged: () => void | Promise<vo
         if (!controller.signal.aborted && initial) setLoading(false);
       }
     }
-    void refresh(true);
+    void refresh(!statusRef.current);
     const timer = window.setInterval(() => { void refresh(); }, 15000);
-    return () => { live.current = false; controller.abort(); workController.current?.abort(); window.clearInterval(timer); };
-  }, []);
+    // Leaving the panel stops status polling; an already submitted operation
+    // keeps its response and recovery state until this component unmounts.
+    return () => { controller.abort(); window.clearInterval(timer); };
+  }, [active]);
 
   useEffect(() => {
     setExpired(false);

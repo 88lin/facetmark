@@ -4,6 +4,7 @@ slug: frontend
 primary_target: frontend
 related_targets:
 - frontend/src/App.tsx
+- frontend/src/navigation.ts
 - frontend/src/Settings.tsx
 - frontend/src/SettingsWorkspace.tsx
 - frontend/src/settings-maintenance.css
@@ -58,6 +59,19 @@ related_targets:
 # Facetmark frontend — Operate
 
 ## Direction status
+
+2026-11-18 product-quality review confirmed five navigation/editing/focus failures
+on unchanged production UI in Actions 44232486636. Two independent assessments
+also identified narrow collection density, empty-note prominence, unbounded import
+rows, hidden settings categories and excess chat status height. Repairs retain the
+existing capsule/material system with component-owned styles: page/category history,
+in-memory form continuity, visibility-aware polling, deliberate search focus,
+compact reading entry and full-content disclosures. New source-matched rendering,
+interaction and installed checks are pending. The baseline detector returned no
+findings despite the usability defects; no local browser/overlay ran, per the user
+restriction. Work and evidence boundaries are in
+docs/product-quality-review-2026-11-18.md. Passing checks will not imply user
+aesthetic approval or a product with no remaining issues.
 
 2026-11-16 continuation follows the personal local-first product. Enrollment is
 reference material only. Current work and source-specific checks are tracked in

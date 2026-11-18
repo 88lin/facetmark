@@ -45,6 +45,11 @@ export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch
     return () => document.removeEventListener("pointerdown", dismiss);
   }, []);
   const pageSelected = pageIds.length > 0 && pageIds.every(id => ids.includes(id));
+  const count = selectedCount || total;
+  const countLabel = selectedCount ? t("已选 " + count.toLocaleString(), count.toLocaleString() + " selected")
+    : t("共 " + count.toLocaleString(), count.toLocaleString() + " total");
+  const compactCount = t(count.toLocaleString("zh-CN", { notation: "compact", maximumFractionDigits: 1 }),
+    count.toLocaleString("en", { notation: "compact", maximumFractionDigits: 1 }));
   return <div className={`library-tools ${batch ? "selecting" : ""}`}>
     {batch ? <>
       <span className="selection-total" role="status">{t(`已选择 ${ids.length} 条`, `${ids.length} selected`)}</span>
@@ -60,7 +65,7 @@ export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch
     </> : <>
       <CapsuleButton className="secondary library-add" aria-label={t("新增收藏", "Add bookmark")} disabled={disabled} onClick={() => onAction({ kind: "create" })}><Plus size={15}/><span className="action-full">{t("新增收藏", "Add bookmark")}</span><span className="action-short" aria-hidden="true">{t("新增", "Add")}</span></CapsuleButton>
       <details ref={manage} className="library-manage" onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }} onKeyDown={event => { if (event.key === "Escape") { event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }}>
-        <summary aria-label={t("管理收藏", "Manage")}><ListChecks className="action-short" size={16}/><span className="action-full">{t("管理收藏", "Manage")}</span><ChevronDown size={14}/></summary>
+        <summary aria-label={t("管理收藏", "Manage")} title={t("管理收藏", "Manage")}><ListChecks className="action-short" size={16}/><span className="action-full">{t("管理收藏", "Manage")}</span><ChevronDown size={14}/></summary>
         <div className="library-manage-menu" onClick={event => { if ((event.target as HTMLElement).closest("button:not(:disabled)")) event.currentTarget.closest("details")!.open = false; }}>
           <CapsuleButton type="button" disabled={!pageIds.length || disabled || pending} onClick={() => onBatch(true)}><ListChecks size={16}/>{t("批量管理", "Select")}</CapsuleButton>
           <CapsuleButton type="button" disabled={disabled} onClick={() => onAction({ kind: "taxonomy" })}><Folder size={16}/>{t("整理分类", "Organize")}</CapsuleButton>
@@ -76,8 +81,10 @@ export function LibraryToolbar({ batch, ids, pageIds, disabled, pending, onBatch
       <input ref={selection} type="checkbox" checked={allSelected} disabled={disabled || pending || !total}
         aria-label={t("全选当前结果", "Select all results")} onChange={event => event.target.checked ? onAll() : onClear()}/>
       <span className="library-selection-mark" aria-hidden="true">{allSelected ? <Check size={14}/> : selectedCount > 0 ? <Minus size={14}/> : null}</span>
-      <span>{t("全选", "Select all")}</span>
-      <span className="library-selection-count" role="status">{selectedCount ? t("已选 " + selectedCount.toLocaleString(), selectedCount.toLocaleString() + " selected") : t("共 " + total.toLocaleString(), total.toLocaleString() + " total")}</span>
+      <span><span className="action-full">{t("全选", "Select all")}</span><span className="action-short" aria-hidden="true">{t("全选", "All")}</span></span>
+      <span className="library-selection-count" role="status" aria-label={countLabel} title={countLabel}>
+        <span className="action-full">{countLabel}</span><span className="action-short" aria-hidden="true">{compactCount}</span>
+      </span>
     </label>
     <CapsuleButton className="primary library-summarize" aria-label={t("生成摘要", "Summarize")} disabled={disabled || processingDisabled || pending || !pageIds.length} onClick={onSummarize}><Sparkles size={15}/><span className="action-full">{t("生成摘要", "Summarize")}</span><span className="action-short" aria-hidden="true">{t("生成", "Summarize")}</span></CapsuleButton>
   </div>;
