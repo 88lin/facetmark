@@ -179,7 +179,7 @@
   .result-list { gap: 12px; padding: 5px 5px 12px; scrollbar-gutter: auto; }
   .results-footer { min-height: 48px; font-size: .6875rem; flex-wrap: wrap; gap: 4px; }
   .results-footer > div { gap: 3px; }
-  .results-footer > .collection-subtitle { flex: 1; min-width: 0; flex-wrap: wrap; gap: 0 3px; }
+  .results-footer > .collection-subtitle { flex: 1; min-width: 0; flex-wrap: wrap; gap: 0 3px; white-space: normal; line-height: 1.4; }
   .results-footer > div:last-child { flex: none; margin-left: auto; }
   .result-range { display: none; }
   .collection-subtitle { font-size: .6875rem; }
@@ -187,6 +187,9 @@
   .page-jump { gap: 4px; }
   .page-jump input { width: 44px; min-height: 44px; }
   .page-jump .fm-button { min-width: 44px; min-height: 44px; padding: 4px; }
+  .results-footer .fm-button.button:focus-visible,
+  .results-footer .fm-button.button[data-focus-visible="true"],
+  .page-jump input:focus-visible { outline-offset: -3px; }
   .page-scroll { padding: 12px 6px 20px; }
   .focus-mode .preview-pane { inset: 8px; }
 }

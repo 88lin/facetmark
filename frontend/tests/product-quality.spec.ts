@@ -270,7 +270,7 @@ for (const [language, theme, width, height, total] of [
     };
     return { footer: box(element), countGroup: box(element.querySelector(".collection-subtitle")!),
       count: element.querySelector(".result-count")!.textContent, countRects: textRects(".result-count"),
-      unitRects: textRects(".collection-count-label"), paging: box(element.lastElementChild!),
+      unitRects: textRects(".collection-count-label"), pageCountRects: textRects(".page-jump > span"), paging: box(element.lastElementChild!),
       controls: [...element.querySelectorAll("input, button")].map(box),
       scrollWidth: element.scrollWidth, clientWidth: element.clientWidth };
   });
@@ -284,6 +284,7 @@ for (const [language, theme, width, height, total] of [
     expect(fragment.right).toBeLessThanOrEqual(footerGeometry.countGroup.right + 1);
     expect(fragment.right).toBeLessThanOrEqual(footerGeometry.paging.left - 1);
   }
+  const focusPaints: unknown[] = [];
   for (const control of [
     footer.getByRole("button", { name: /^(上一页|Previous page)$/, exact: true }),
     footer.getByRole("button", { name: /^(下一页|Next page)$/, exact: true }),
@@ -293,6 +294,30 @@ for (const [language, theme, width, height, total] of [
     await expect(control).toBeInViewport({ ratio: 1 });
     const box = (await control.boundingBox())!;
     expect(box.width).toBeGreaterThanOrEqual(44); expect(box.height).toBeGreaterThanOrEqual(44);
+    if (await control.isEnabled()) {
+      await control.focus(); await page.keyboard.press("ArrowRight");
+      const outline = await control.evaluate(element => {
+        const rect = element.getBoundingClientRect(), style = getComputedStyle(element);
+        const extra = Math.max(0, parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset));
+        return { focused: element.matches(":focus-visible") || element.getAttribute("data-focus-visible") === "true",
+          width: parseFloat(style.outlineWidth), style: style.outlineStyle, extra,
+          left: rect.left - extra, right: rect.right + extra, top: rect.top - extra, bottom: rect.bottom + extra };
+      });
+      focusPaints.push(outline);
+      expect(outline.focused).toBe(true); expect(outline.style).toBe("solid"); expect(outline.width).toBeGreaterThanOrEqual(2);
+      expect(outline.left).toBeGreaterThanOrEqual(footerGeometry.footer.left - 1); expect(outline.right).toBeLessThanOrEqual(footerGeometry.footer.right + 1);
+      expect(outline.top).toBeGreaterThanOrEqual(footerGeometry.footer.top - 1); expect(outline.bottom).toBeLessThanOrEqual(footerGeometry.footer.bottom + 1);
+      for (const neighbor of [...footerGeometry.countRects, ...footerGeometry.unitRects, ...footerGeometry.pageCountRects,
+        ...footerGeometry.controls.filter(other => Math.abs(other.left - box.x) > .1 || Math.abs(other.top - box.y) > .1)]) {
+        const overlapX = Math.min(outline.right, neighbor.right) - Math.max(outline.left, neighbor.left);
+        const overlapY = Math.min(outline.bottom, neighbor.bottom) - Math.max(outline.top, neighbor.top);
+        expect(overlapX <= 0 || overlapY <= 0).toBe(true);
+      }
+    }
+  }
+  if (total !== null) {
+    await writeFile(`screenshots/collection-review/quality-pagination-focus-${language}-${theme}-${width}-${total}.json`, JSON.stringify(focusPaints, null, 2));
+    await page.screenshot({ path: `screenshots/collection-review/quality-pagination-focus-${language}-${theme}-${width}-${total}.png` });
   }
   expect(await footer.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   expect((await footer.boundingBox())!.height).toBeLessThanOrEqual(52);
