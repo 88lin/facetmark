@@ -596,6 +596,8 @@ test("mobile action dialogs trap focus, fit the screen and restore the underlyin
   await row(page, record.bookmark_id).locator(".bookmark-preview").click();
   const preview = page.getByRole("dialog", { name: "书签预览", exact: true });
   await expect(preview).toBeVisible();
+  const tools = preview.locator(".reader-options-menu"), trigger = tools.locator(":scope > summary");
+  await trigger.press("Space");
   const edit = preview.getByRole("button", { name: "编辑", exact: true });
   await edit.click();
   dialog = page.getByRole("dialog", { name: "编辑收藏", exact: true });
@@ -610,7 +612,8 @@ test("mobile action dialogs trap focus, fit the screen and restore the underlyin
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(preview).toBeVisible();
-  await expect(edit).toBeFocused();
+  await expect(tools).toHaveJSProperty("open", false);
+  await expect(trigger).toBeFocused();
   expect((await library.read(record.bookmark_id)).title).toBe(token);
   await page.keyboard.press("Escape");
   await expect(preview).toHaveCount(0);

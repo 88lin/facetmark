@@ -45,6 +45,31 @@ async function begin(page: Page) {
   await page.getByRole("combobox", { name: /^(检索方式|Search mode)$/, exact: true }).selectOption("semantic");
 }
 
+test("keyword collection menus stay within a narrow viewport when semantic search is available", async ({ page, request }) => {
+  const records = await prepare(page, request); let rankedRequests = 0;
+  await page.route("**/search", route => { rankedRequests++; return route.fulfill({ json: result(records) }); });
+  await page.setViewportSize({ width: 320, height: 640 }); await page.goto("/app");
+  await expect(page.locator(".result-row")).toHaveCount(30);
+  await expect(page.getByRole("combobox", { name: "检索方式", exact: true })).toHaveValue("keyword");
+  await page.locator(`.result-row[data-bookmark-id="${records[0].bookmark_id}"] .bookmark-check`).check();
+  const menu = page.locator(".collection-options-menu"), trigger = menu.locator(":scope > summary");
+  await trigger.press("Space");
+  const panel = menu.locator(".collection-options");
+  await expect(panel).toBeInViewport({ ratio: 1 });
+  const bounds = await panel.boundingBox(); expect(bounds).not.toBeNull();
+  expect(bounds!.x).toBeGreaterThanOrEqual(0); expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(320);
+  for (const control of [menu.getByRole("combobox", { name: "排序", exact: true }), menu.getByRole("button", { name: "原文摘录", exact: true }), menu.getByRole("button", { name: "列表视图", exact: true })])
+    await expect(control).toBeInViewport({ ratio: 1 });
+  await settleVisualLayout(page);
+  await page.screenshot({ path: "screenshots/collection-review/quality-collection-vector-keyword-menu-320.png" });
+  await menu.getByRole("button", { name: "列表视图", exact: true }).press("Enter");
+  await expect(menu).toHaveJSProperty("open", false); await expect(trigger).toBeFocused();
+  await expect(page.locator(".main-workspace")).toHaveClass(/list-mode/);
+  await expect(page.locator(".library-selection-count")).toHaveText("已选 1");
+  await expect(page.getByRole("combobox", { name: "检索方式", exact: true })).toHaveValue("keyword");
+  expect(rankedRequests).toBe(0);
+});
+
 test("narrow semantic results retain keyboard layout controls and their current selection", async ({ page, request }) => {
   const records = await prepare(page, request), requests: Record<string, unknown>[] = [];
   await page.addInitScript(() => localStorage.setItem("fm-collection-layout", "grid"));

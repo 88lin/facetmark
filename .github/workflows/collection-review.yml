@@ -62,6 +62,12 @@ jobs:
           FACETMARK_REVIEW_CORPUS: '1'
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report-focused
         run: npx playwright test product-quality.spec.ts workspace-layout.spec.ts settings-maintenance.spec.ts --output=test-results-focused
+      - name: Responsive reading and collection menu journeys
+        working-directory: frontend
+        env:
+          FACETMARK_REVIEW_CORPUS: '1'
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report-menus
+        run: npx playwright test collection.spec.ts library.spec.ts search-recovery.spec.ts --grep 'mobile category errors recover|mobile action dialogs trap focus|narrow semantic results retain|keyword collection menus stay within' --output=test-results-menus
       - name: Original link check closure remains visible until confirmed
         working-directory: frontend
         env:
@@ -86,6 +92,8 @@ jobs:
             frontend/test-results/
             frontend/playwright-report-focused/
             frontend/test-results-focused/
+            frontend/playwright-report-menus/
+            frontend/test-results-menus/
             frontend/playwright-report-health/
             frontend/test-results-health/
           retention-days: 14
