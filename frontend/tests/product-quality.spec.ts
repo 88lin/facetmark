@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import type { SyncWorkspace } from "../src/sync-local-state";
 import type { SyncPreview, SyncStatus } from "../src/sync-types";
 import { settleVisualLayout } from "./visual-layout";
@@ -225,13 +225,22 @@ test("import and setup navigation retain their own pages after refresh and brows
   await expect(page.getByRole("heading", { name: "导入书签", exact: true })).toBeVisible();
 });
 
-for (const [language, theme, width, height] of [
-  ["zh", "light", 320, 760], ["en", "dark", 320, 640], ["zh", "dark", 390, 640],
-] as const) test(`narrow collection keeps its direct actions together and leaves space to scan ${language} ${width}`, async ({ page }) => {
+for (const [language, theme, width, height, total] of [
+  ["zh", "light", 320, 760, null], ["en", "dark", 320, 640, null], ["zh", "dark", 390, 640, null],
+  ["en", "dark", 320, 640, 200000], ["en", "light", 320, 640, 200000],
+  ["zh", "light", 320, 760, 200000], ["en", "dark", 390, 640, 200000],
+] as const) test(`narrow collection keeps its direct actions together and leaves space to scan ${language} ${width}${total === null ? "" : ` ${theme} ${total}`}`, async ({ page }) => {
   await page.addInitScript(([language, theme]) => {
     localStorage.setItem("fm-language", language); localStorage.setItem("fm-theme", theme);
     localStorage.setItem("fm-collection-layout", "grid");
   }, [language, theme]);
+  // Keep the service's actual records; override only the count to isolate the
+  // layout boundary. Deep paging uses the separate real 200k corpus test.
+  if (total !== null) await page.route(url => url.pathname === "/bookmarks", async route => {
+    const response = await route.fetch();
+    const data = await response.json();
+    await route.fulfill({ response, json: { ...data, total } });
+  });
   await page.setViewportSize({ width, height });
   await collection(page); await settleVisualLayout(page);
   const count = page.locator(".library-selection-count");
@@ -249,6 +258,32 @@ for (const [language, theme, width, height] of [
     expect(control.height).toBeGreaterThanOrEqual(44);
   }
   const footer = page.locator(".results-footer");
+  const footerGeometry = await footer.evaluate(element => {
+    const box = (node: Element) => {
+      const rect = node.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: rect.width, height: rect.height };
+    };
+    const textRects = (selector: string) => {
+      const text = document.createRange(); text.selectNodeContents(element.querySelector(selector)!);
+      return [...text.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0)
+        .map(rect => ({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom }));
+    };
+    return { footer: box(element), countGroup: box(element.querySelector(".collection-subtitle")!),
+      count: element.querySelector(".result-count")!.textContent, countRects: textRects(".result-count"),
+      unitRects: textRects(".collection-count-label"), paging: box(element.lastElementChild!),
+      controls: [...element.querySelectorAll("input, button")].map(box),
+      scrollWidth: element.scrollWidth, clientWidth: element.clientWidth };
+  });
+  if (total !== null) {
+    await writeFile(`screenshots/collection-review/quality-pagination-${language}-${theme}-${width}-${total}.json`, JSON.stringify(footerGeometry, null, 2));
+    await page.screenshot({ path: `screenshots/collection-review/quality-pagination-${language}-${theme}-${width}-${total}.png` });
+    await expect(footer.locator(".result-count")).toHaveText(String(total));
+  }
+  for (const fragment of [...footerGeometry.countRects, ...footerGeometry.unitRects]) {
+    expect(fragment.left).toBeGreaterThanOrEqual(footerGeometry.countGroup.left - 1);
+    expect(fragment.right).toBeLessThanOrEqual(footerGeometry.countGroup.right + 1);
+    expect(fragment.right).toBeLessThanOrEqual(footerGeometry.paging.left - 1);
+  }
   for (const control of [
     footer.getByRole("button", { name: /^(上一页|Previous page)$/, exact: true }),
     footer.getByRole("button", { name: /^(下一页|Next page)$/, exact: true }),
