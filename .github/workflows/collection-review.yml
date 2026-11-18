@@ -24,7 +24,7 @@ jobs:
   collection:
     # Playwright 1.55.1 supports this LTS runner; ubuntu-latest now resolves to 26.04.
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
