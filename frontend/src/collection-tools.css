@@ -37,8 +37,8 @@
 @keyframes collection-controls-enter { from { opacity: .6; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 719px) {
   .collection-tools { gap: 8px 4px; }
-  .collection-options-menu { margin-left: auto; }
-  .collection-options { flex-direction:column; align-items:stretch; }
+  .collection-options-menu { position:static; margin-left:auto; }
+  .collection-options { top:auto; min-width:min(230px, 100%); max-width:100%; flex-direction:column; align-items:stretch; }
   .collection-options .collection-sort { margin-left:0; padding:0 7px; }
   .collection-options .collection-sort select { flex:1; width:100%; font-size:.875rem; }
   .collection-options-menu > summary, .collection-status .fm-button, .summary-display .fm-button, .collection-sort select { min-height: 44px; }
