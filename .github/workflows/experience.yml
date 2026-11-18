@@ -30,7 +30,8 @@ jobs:
       - run: npm install --global opencode-ai@1.19.0
       - run: python scripts/check_opencode.py
   web:
-    runs-on: ubuntu-latest
+    # Keep the browser runtime on a distribution supported by pinned Playwright.
+    runs-on: ubuntu-24.04
     # The full browser matrix and 200k corpus consume up to 25 minutes before
     # video evidence and wheel packaging. Leave time for those final checks.
     timeout-minutes: 40
