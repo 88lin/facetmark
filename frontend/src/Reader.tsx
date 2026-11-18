@@ -539,7 +539,7 @@ export default function Reader({
                   </details>
                   {compact && <details ref={readingMenu} className="reader-options-menu"
                     onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}
-                    onKeyDown={event => { if (event.key === "Escape") { event.stopPropagation(); event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }}>
+                    onKeyDown={event => { if (event.key === "Escape" && event.currentTarget.open) { event.preventDefault(); event.stopPropagation(); event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }}>
                     <summary aria-label={t("阅读设置", "Reading tools")}><SlidersHorizontal size={15}/>{t("阅读设置", "Reading")}<ChevronDown size={13} aria-hidden="true"/></summary>
                     <div className="reader-options-panel">
                       {tab === "body" && <div className="reader-type-controls" role="group" aria-label={t("阅读字号", "Reading text size")}>

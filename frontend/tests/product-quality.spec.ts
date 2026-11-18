@@ -413,6 +413,7 @@ test(`overview actions and saved source remain reachable in a narrow reader ${la
   await tools.getByRole("button", { name: language === "zh" ? "恢复默认阅读字号" : "Reset reading text size", exact: true }).press("Space");
   await expect(tools.locator(".reader-type-reset")).toHaveText("100%");
   await page.keyboard.press("Escape"); await expect(trigger).toBeFocused();
+  await expect(tools).toHaveJSProperty("open", false);
   await trigger.press("Enter"); await tools.locator(".reader-edit").press("Space");
   const edit = page.getByRole("dialog", { name: language === "zh" ? "编辑收藏" : "Edit bookmark", exact: true });
   await expect(edit).toBeVisible(); await edit.getByRole("button", { name: language === "zh" ? "取消" : "Cancel", exact: true }).click();
@@ -426,6 +427,9 @@ test(`overview actions and saved source remain reachable in a narrow reader ${la
   await expect.poll(() => previews.length).toBe(1);
   expect(previews[0]).toEqual(expect.objectContaining({ mode: "summarize", bookmark_ids: [readingId], force: true }));
   await expect(page.locator(".summary-generation-feedback")).toContainText("Synthetic reading menu refusal");
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".preview-drawer")).toHaveCount(0);
+  await expect(page.locator(".bookmark-preview").first()).toBeFocused();
 });
 
 for (const tags of [

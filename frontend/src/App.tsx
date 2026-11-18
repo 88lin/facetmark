@@ -1448,6 +1448,12 @@ function Workbench({
                         asChild
                         key="reader"
                         aria-describedby={undefined}
+                        onEscapeKeyDown={(e) => {
+                          // Radix handles Escape in capture, before the reader's
+                          // disclosure can close itself and restore its focus.
+                          if (e.target instanceof Element && e.target.closest(".reader-options-menu[open]"))
+                            e.preventDefault();
+                        }}
                         onCloseAutoFocus={(e) => {
                           e.preventDefault();
                           if (searchFocusIntent.current) searchInput.current?.focus({ preventScroll: true });
