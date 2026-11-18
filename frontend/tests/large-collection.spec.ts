@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
-import { settleVisualLayout } from "./visual-layout";
+import { numberInputTextLayout, settleVisualLayout } from "./visual-layout";
 
 test.skip(process.env.FACETMARK_LARGE_VALIDATION !== "1", "Runs in the separate 200k cloud matrix");
 
@@ -80,9 +80,15 @@ test("200k actual records keep full English counts and keyboard paging in narrow
         pageCountRects: textRects(".page-jump > span"),
         scrollWidth: element.scrollWidth, clientWidth: element.clientWidth };
     });
-    captures.push({ name, ...geometry });
+    const textLayout = await numberInputTextLayout(page, ".page-jump input");
+    captures.push({ name, ...geometry, textLayout });
     await writeFile("screenshots/collection-200k-narrow.json", JSON.stringify(captures, null, 2));
     await page.screenshot({ path: `screenshots/collection-200k-${name}.png` });
+    expect(textLayout.text).toBe(await jump.inputValue()); expect(textLayout.width).toBeGreaterThan(0); expect(textLayout.fragments).not.toHaveLength(0);
+    for (const fragment of textLayout.fragments) {
+      expect(fragment.left).toBeGreaterThanOrEqual(textLayout.left - 1);
+      expect(fragment.right).toBeLessThanOrEqual(textLayout.right + 1);
+    }
     await expect(footer.locator(".result-count")).toHaveText("200000");
     await expect(footer.locator(".collection-count-label")).toHaveText("saved pages");
     expect(geometry.footer.height).toBeLessThanOrEqual(52);

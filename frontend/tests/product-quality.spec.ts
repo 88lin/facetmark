@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 import type { SyncWorkspace } from "../src/sync-local-state";
 import type { SyncPreview, SyncStatus } from "../src/sync-types";
-import { settleVisualLayout } from "./visual-layout";
+import { numberInputTextLayout, settleVisualLayout } from "./visual-layout";
 
 test.beforeEach(async ({ page }) => {
   await mkdir("screenshots/collection-review", { recursive: true });
@@ -283,6 +283,19 @@ for (const [language, theme, width, height, total] of [
     expect(fragment.left).toBeGreaterThanOrEqual(footerGeometry.countGroup.left - 1);
     expect(fragment.right).toBeLessThanOrEqual(footerGeometry.countGroup.right + 1);
     expect(fragment.right).toBeLessThanOrEqual(footerGeometry.paging.left - 1);
+  }
+  if (total !== null) {
+    const jump = footer.getByRole("spinbutton", { name: /^(跳转页码|Page to jump to)$/, exact: true });
+    await jump.fill("6667"); await jump.press("End");
+    const textLayout = await numberInputTextLayout(page, ".page-jump input");
+    await writeFile(`screenshots/collection-review/quality-pagination-digits-${language}-${theme}-${width}-${total}.json`, JSON.stringify(textLayout, null, 2));
+    await page.screenshot({ path: `screenshots/collection-review/quality-pagination-digits-${language}-${theme}-${width}-${total}.png` });
+    expect(textLayout.text).toBe("6667"); expect(textLayout.width).toBeGreaterThan(0); expect(textLayout.fragments).not.toHaveLength(0);
+    for (const fragment of textLayout.fragments) {
+      expect(fragment.left).toBeGreaterThanOrEqual(textLayout.left - 1);
+      expect(fragment.right).toBeLessThanOrEqual(textLayout.right + 1);
+    }
+    await jump.fill("1");
   }
   const focusPaints: unknown[] = [];
   for (const control of [
