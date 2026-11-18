@@ -46,7 +46,7 @@ function CountTable({ counts }: { counts: Counts }) {
   </div>;
 }
 
-export function SyncSettings({ onChanged }: { onChanged: () => void | Promise<void> }) {
+export function SyncSettings({ active = true, onChanged }: { active?: boolean; onChanged: () => void | Promise<void> }) {
   const t = useText();
   const [restored] = useState(loadSyncWorkspace);
   const [workspace, setWorkspace] = useState<SyncWorkspace>(() => restored ?? {
@@ -124,6 +124,10 @@ export function SyncSettings({ onChanged }: { onChanged: () => void | Promise<vo
 
   useEffect(() => {
     live.current = true;
+    return () => { live.current = false; workController.current?.abort(); };
+  }, []);
+  useEffect(() => {
+    if (!active) return;
     const controller = new AbortController();
     async function refresh(initial = false) {
       if (!initial && (busyRef.current || recovery.isBusy())) return;
@@ -136,9 +140,18 @@ export function SyncSettings({ onChanged }: { onChanged: () => void | Promise<vo
         const previous = statusRef.current;
         acceptStatus(next);
         if (!previous && !restored) remember({ draft: draftOf(next), configRevision: next.config_revision });
-        if (initial && workspaceRef.current.previewId) {
-          const original = await readPreview(workspaceRef.current.previewId, controller.signal);
-          if (controller.signal.aborted || generation !== statusGeneration.current) return;
+        // A successful status read does not finish restoring a saved preview.
+        // Resume it after a visibility abort, without replacing a newer draft.
+        const originalId = workspaceRef.current.previewId;
+        if (originalId && !previewRef.current) {
+          let original: Preview;
+          try { original = await readPreview(originalId, controller.signal); }
+          catch (failure) {
+            if (originalId !== workspaceRef.current.previewId) return;
+            throw failure;
+          }
+          if (controller.signal.aborted || generation !== statusGeneration.current
+            || originalId !== workspaceRef.current.previewId) return;
           acceptPreview(original);
           if (original.stale) remember({ confirmed: false });
         }
@@ -149,13 +162,15 @@ export function SyncSettings({ onChanged }: { onChanged: () => void | Promise<vo
       } catch (e) {
         if (!controller.signal.aborted && generation === statusGeneration.current) setError(String(e));
       } finally {
-        if (!controller.signal.aborted && initial) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
-    void refresh(true);
+    void refresh(!statusRef.current);
     const timer = window.setInterval(() => { void refresh(); }, 15000);
-    return () => { live.current = false; controller.abort(); workController.current?.abort(); window.clearInterval(timer); };
-  }, []);
+    // Leaving the panel stops status polling; an already submitted operation
+    // keeps its response and recovery state until this component unmounts.
+    return () => { controller.abort(); window.clearInterval(timer); };
+  }, [active]);
 
   useEffect(() => {
     setExpired(false);

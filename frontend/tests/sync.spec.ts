@@ -253,11 +253,13 @@ test("shared-folder sync reviews actual changes, rejects a stale preview and res
     const status = await (await request.get("/admin/library/sync/status", { headers })).json();
     expect(status).toMatchObject({ enabled: false, auto_sync: false, poll_seconds: 30, needs_review: false });
     await page.reload();
-    await page.getByRole("button", { name: "筛选收藏", exact: true }).click();
-    await page.getByRole("button", { name: "设置", exact: true }).click();
-    await page.getByRole("tab", { name: "设备同步", exact: true }).click();
+    await expect(page).toHaveURL(/#settings\/sync$/);
+    await expect(page.getByRole("tab", { name: "设备同步", exact: true })).toHaveAttribute("aria-selected", "true");
+    await expect(page.locator("#settings-panel-sync")).toBeVisible();
     await expect(page.locator(".sync-settings .sync-state")).toHaveText("未启用");
     await expect(page.getByLabel("共享文件夹完整路径")).toHaveValue(shared);
+    await expect(page.getByLabel("启用共享文件夹同步", { exact: true })).not.toBeChecked();
+    await expect(page.getByLabel("检查间隔（秒）", { exact: true })).toHaveValue("30");
   });
 });
 

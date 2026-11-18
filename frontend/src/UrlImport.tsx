@@ -26,15 +26,25 @@ function UrlItems({ items }: { items: UrlItem[] }) {
   const label: Record<string, string> = { new: t("将导入", "Will import"), existing: t("已在收藏中", "Already saved"),
     duplicate: t("本批重复", "Duplicate in batch"), invalid: t("网址无效", "Invalid URL"), imported: t("已导入", "Imported") };
   return <>
-    <ol className="url-import-items">{items.slice(0, visible).map(item => <li key={item.line} data-status={item.status}>
+    <ol className="url-import-items">{items.slice(0, visible).map(item => {
+      const href = item.status !== "invalid" ? safeUrl(item.url) : undefined;
+      return <li key={item.line} data-status={item.status}>
       <span className="url-import-line">{item.line}</span>
-      <span className="url-import-address">{safeUrl(item.url) && item.status !== "invalid"
-        ? <a href={safeUrl(item.url)} target="_blank" rel="noreferrer">{item.title || item.url}</a>
-        : <span>{item.title || item.url}</span>}
-        {item.title && <small>{item.url}</small>}
-      </span>
       <span className="url-import-state">{item.status === "imported" ? <Check size={15}/> : item.status === "invalid" ? <X size={15}/> : null}{label[item.status] || item.status}</span>
-    </li>)}</ol>
+      <div className="url-import-address">{href
+        ? <a className="url-import-title" href={href} target="_blank" rel="noreferrer">{item.title || item.url}</a>
+        : <span className="url-import-title">{item.title || item.url}</span>}
+        {item.title && <small>{item.url}</small>}
+        <details className="url-import-details">
+          <summary>{t("完整标题与网址", "Full title and URL")}<ChevronDown size={14} aria-hidden="true"/></summary>
+          <dl className="url-import-full">
+            {item.title && <div><dt>{t("标题", "Title")}</dt><dd>{item.title}</dd></div>}
+            <div><dt>{t("网址", "URL")}</dt><dd>{item.url}</dd></div>
+          </dl>
+        </details>
+      </div>
+    </li>;
+    })}</ol>
     {visible < items.length && <CapsuleButton className="text-button" type="button" onClick={() => setVisible(value => value + 50)}>
       {t("显示更多", "Show more")} ({Math.min(visible, items.length)} / {items.length})
     </CapsuleButton>}

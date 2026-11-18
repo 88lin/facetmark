@@ -5,12 +5,14 @@ import type { CollectionScope, Job, Page } from "./api";
 import type { TaskChange } from "./task-local-state";
 import { useText } from "./locale";
 import { SelectionPill } from "./InteractionMotion";
+import { useMediaQuery } from "./useMediaQuery";
 
-export function CollectionTools({ scope, page, display, onDisplay, sort, onSort, onStatus, disabled,
+export function CollectionTools({ scope, page, display, onDisplay, sort, onSort, onStatus, disabled, layout, onLayout,
   job, onTask, taskBusy, admin }: {
   scope: CollectionScope; page: Page | null; display: "summary" | "original";
   onDisplay: (value: "summary" | "original") => void; sort: string; onSort: (value: string) => void;
   onStatus: (value: CollectionScope["status"]) => void; disabled: boolean;
+  layout: string; onLayout: (value: "grid" | "list") => void;
   job: Job; onTask: (change: TaskChange) => Promise<boolean>; taskBusy: boolean; admin: boolean;
 }) {
   const t = useText();
@@ -18,12 +20,33 @@ export function CollectionTools({ scope, page, display, onDisplay, sort, onSort,
   const [busy, setBusy] = useState(false);
   const gate = useRef(false);
   const displayMenu = useRef<HTMLDetailsElement>(null);
+  const statusMenu = useRef<HTMLDetailsElement>(null);
+  const compact = useMediaQuery("(max-width: 719px)");
   useEffect(() => {
-    const dismiss = (event: PointerEvent) => { if (event.target instanceof Node && displayMenu.current && !displayMenu.current.contains(event.target)) displayMenu.current.open = false; };
+    const dismiss = (event: PointerEvent) => {
+      if (!(event.target instanceof Node)) return;
+      for (const menu of [displayMenu.current, statusMenu.current])
+        if (menu && !menu.contains(event.target)) menu.open = false;
+    };
     document.addEventListener("pointerdown", dismiss);
     return () => document.removeEventListener("pointerdown", dismiss);
   }, []);
   const counts = page?.summary_counts;
+  const currentStatus = scope.status || "all";
+  const statusLabels = { all: t("全部", "All"), pending: t("待生成", "Pending"), done: t("有摘要", "Summarized"), failed: t("失败", "Failed") };
+  const statusCount = (status: keyof typeof statusLabels) => disabled || !counts ? "…" : counts[status === "all" ? "total" : status].toLocaleString();
+  const statusControls = <div className="collection-status" role="group" aria-label={t("摘要状态", "Summary status")}>
+    {(["all", "pending", "done", "failed"] as const).map(status => <CapsuleButton key={status} data-status={status} aria-pressed={currentStatus === status}
+      onClick={() => {
+        onStatus(status);
+        if (statusMenu.current) { statusMenu.current.open = false; statusMenu.current.querySelector("summary")?.focus(); }
+      }}><SelectionPill active={currentStatus === status} group="summary-status" />{statusLabels[status]}
+      <span>{statusCount(status)}</span></CapsuleButton>)}
+  </div>;
+  const sortControl = <label className="collection-sort"><ArrowDownWideNarrow size={16} aria-hidden="true"/><span className="sr-only">{t("排序", "Sort")}</span><select aria-label={t("排序", "Sort")} value={sort} onChange={e => onSort(e.target.value)}>
+    <option value="newest">{t("最近收藏", "Newest saved")}</option><option value="oldest">{t("最早收藏", "Oldest saved")}</option>
+    <option value="title">{t("标题顺序", "Title")}</option>
+  </select></label>;
   async function taskAction() {
     if (gate.current || taskBusy || !job.id || (job.state === "running" && !job.run_id)) return;
     gate.current = true;
@@ -34,24 +57,30 @@ export function CollectionTools({ scope, page, display, onDisplay, sort, onSort,
     } catch (e) { setError(String(e)); } finally { gate.current = false; setBusy(false); }
   }
   return <div className="collection-tools">
-    <div className="collection-status" role="group" aria-label={t("摘要状态", "Summary status")}>
-      {(["all", "pending", "done", "failed"] as const).map((status, i) => <CapsuleButton key={status} data-status={status} aria-pressed={(scope.status || "all") === status}
-        onClick={() => onStatus(status)}><SelectionPill active={(scope.status || "all") === status} group="summary-status" />{[t("全部", "All"), t("待生成", "Pending"), t("有摘要", "Summarized"), t("失败", "Failed")][i]}
-        <span>{disabled || !counts ? "…" : counts[status === "all" ? "total" : status].toLocaleString()}</span></CapsuleButton>)}
-    </div>
-    <label className="collection-sort"><ArrowDownWideNarrow size={16} aria-hidden="true"/><span className="sr-only">{t("排序", "Sort")}</span><select aria-label={t("排序", "Sort")} value={sort} onChange={e => onSort(e.target.value)}>
-      <option value="newest">{t("最近收藏", "Newest saved")}</option><option value="oldest">{t("最早收藏", "Oldest saved")}</option>
-      <option value="title">{t("标题顺序", "Title")}</option>
-    </select></label>
+    {compact ? <details ref={statusMenu} className="collection-status-menu"
+      onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}
+      onKeyDown={event => { if (event.key === "Escape") { event.stopPropagation(); event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }}>
+      <summary aria-label={`${t("摘要状态", "Summary status")}: ${statusLabels[currentStatus]} ${statusCount(currentStatus)}`}>
+        <span>{currentStatus === "done" ? t("有摘要", "Ready") : statusLabels[currentStatus]}</span><span className="collection-status-count">{statusCount(currentStatus)}</span><ChevronDown size={14} aria-hidden="true"/>
+      </summary>{statusControls}
+    </details> : statusControls}
+    {!compact && sortControl}
     <details ref={displayMenu} className="collection-options-menu"
       onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}
       onKeyDown={event => { if (event.key === "Escape") { event.stopPropagation(); event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }}>
       <summary aria-label={t("显示内容", "Display content")}><SlidersHorizontal size={15}/><span>{t("显示", "Display")}</span><ChevronDown className="disclosure-chevron" size={14} aria-hidden="true"/></summary>
       <div className="collection-options">
+      {compact && sortControl}
       <div className="summary-display" role="group" aria-label={t("列表内容", "Collection content")}>
         <CapsuleButton aria-pressed={display === "summary"} onClick={() => onDisplay("summary")}>{t("摘要", "Summaries")}</CapsuleButton>
         <CapsuleButton aria-pressed={display === "original"} onClick={() => onDisplay("original")}>{t("原文摘录", "Excerpts")}</CapsuleButton>
       </div>
+      {compact && <div className="summary-display" role="group" aria-label={t("收藏显示方式", "Collection layout")}>
+        {(["grid", "list"] as const).map(value => <CapsuleButton key={value} type="button" aria-pressed={layout === value} onClick={() => {
+          onLayout(value);
+          if (displayMenu.current) { displayMenu.current.open = false; displayMenu.current.querySelector("summary")?.focus(); }
+        }}>{value === "grid" ? t("卡片视图", "Card view") : t("列表视图", "List view")}</CapsuleButton>)}
+      </div>}
       </div>
     </details>
     {admin && job.params?.mode !== "index" && (job.state === "running" || job.resumable) && <div className="collection-job">

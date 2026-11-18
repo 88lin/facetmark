@@ -394,6 +394,7 @@ test("answer again keeps old replies and drafts through cancellation, failed ret
   await expect(page.locator(".chat-message.assistant")).toContainText("保存目标快照");
   await question.fill("我还想接着问这个问题");
   const regenerate = page.getByRole("button", { name: "重新回答", exact: true });
+  expect(await regenerate.evaluate(element => Boolean(element.closest(".chat-messages")))).toBe(true);
   await regenerate.focus(); await regenerate.press("Enter");
   await expect.poll(() => fixture.sent.length).toBe(2);
   expect(fixture.sent[1]).toEqual(expect.objectContaining({ regenerate: true, language: "zh", request_id: expect.any(String) }));

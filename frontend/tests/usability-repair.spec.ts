@@ -50,6 +50,13 @@ test("saved thinking choice remains ready on reopening and can select max outsid
   await expect(save).toBeEnabled();
   expect(tests).toBe(1);
   expect(saves).toBe(0);
+  await page.keyboard.press("Control+k");
+  await expect(page.getByRole("textbox", { name: "搜索书签", exact: true })).toBeFocused();
+  await page.locator(".header-utilities").getByRole("button", { name: "设置", exact: true }).click();
+  await expect(thinking).toHaveValue("max");
+  await expect(panel.locator(".test-result")).toContainText("codex/saved-model");
+  await expect(save).toBeEnabled();
+  expect(tests).toBe(1); expect(saves).toBe(0); expect(catalogs).toBe(1);
   await save.click();
   await expect(panel.locator(".connection-feedback")).toContainText("重试保存，无需再次测试");
   expect(saved.chat_agent_reasoning_effort).toBe("high");

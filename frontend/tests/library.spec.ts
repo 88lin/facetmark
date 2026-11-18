@@ -562,6 +562,8 @@ test("fetch needs no model and tested chat generates directly from the reading p
 
   chatReady = true;
   await page.reload();
+  await expect(page.locator(".tasks")).toBeVisible();
+  await page.locator(".header-navigation").getByRole("button", { name: "全部书签", exact: true }).click();
   await search(page, token, 1);
   await row(page, record.bookmark_id).locator(".bookmark-preview").click();
   await page.getByRole("button", { name: "生成这篇摘要", exact: true }).click();
@@ -594,6 +596,8 @@ test("mobile action dialogs trap focus, fit the screen and restore the underlyin
   await row(page, record.bookmark_id).locator(".bookmark-preview").click();
   const preview = page.getByRole("dialog", { name: "书签预览", exact: true });
   await expect(preview).toBeVisible();
+  const tools = preview.locator(".reader-options-menu"), trigger = tools.locator(":scope > summary");
+  await trigger.press("Space");
   const edit = preview.getByRole("button", { name: "编辑", exact: true });
   await edit.click();
   dialog = page.getByRole("dialog", { name: "编辑收藏", exact: true });
@@ -608,7 +612,8 @@ test("mobile action dialogs trap focus, fit the screen and restore the underlyin
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(preview).toBeVisible();
-  await expect(edit).toBeFocused();
+  await expect(tools).toHaveJSProperty("open", false);
+  await expect(trigger).toBeFocused();
   expect((await library.read(record.bookmark_id)).title).toBe(token);
   await page.keyboard.press("Escape");
   await expect(preview).toHaveCount(0);

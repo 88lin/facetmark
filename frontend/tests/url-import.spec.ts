@@ -219,4 +219,19 @@ for (const [language, theme, width, height] of [
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(await panel.locator('.url-import-items [data-status="invalid"] a').count()).toBe(0);
   await page.screenshot({ path: `screenshots/collection-review/url-import-${language}-${theme}-${width}.png`, animations: "disabled" });
+  const first = panel.locator(".url-import-items > li").first();
+  const bounds = await first.evaluate(element => ({
+    row: element.getBoundingClientRect().height,
+    state: element.querySelector(".url-import-state")!.getBoundingClientRect().top,
+    title: element.querySelector(".url-import-title")!.getBoundingClientRect().top,
+  }));
+  expect(bounds.row).toBeLessThan(200); expect(bounds.state).toBeLessThan(bounds.title);
+  await expect(first.locator("a.url-import-title")).toHaveAttribute("href", items[0].url);
+  const disclosure = first.locator(".url-import-details > summary");
+  await disclosure.focus(); await disclosure.press("Enter");
+  await expect(first.locator(".url-import-full")).toBeVisible();
+  await expect(first.locator(".url-import-full dd").first()).toHaveText(items[0].title);
+  await expect(first.locator(".url-import-full dd").last()).toHaveText(items[0].url);
+  await disclosure.press("Enter");
+  await expect(first.locator(".url-import-full")).toBeHidden();
 });

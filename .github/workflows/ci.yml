@@ -46,7 +46,7 @@ jobs:
         run: python scripts/mcp_e2e.py
 
   extension:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -120,7 +120,7 @@ jobs:
     # It needs no fixtures and no secrets: `facetmark demo` builds a synthetic
     # forty-page library offline in about three seconds, and the landing pages
     # are already committed. The whole job is a couple of minutes.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/workbench

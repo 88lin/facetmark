@@ -379,7 +379,11 @@ test("mobile category errors recover and list view is a persistent alternative",
   await menu.locator(".facet-options").getByRole("button").and(menu.getByTitle("知识管理", { exact: true })).click();
   await expect(menu).toHaveAttribute("inert", "");
   await expect(page.locator(".result-row").first()).toBeVisible();
-  await page.getByRole("button", { name: "列表视图", exact: true }).click();
+  const display = page.locator(".collection-options-menu");
+  await display.locator(":scope > summary").press("Space");
+  await display.getByRole("button", { name: "列表视图", exact: true }).click();
+  await expect(display).toHaveJSProperty("open", false);
+  await expect(display.locator(":scope > summary")).toBeFocused();
   await expect(page.locator(".main-workspace")).toHaveClass(/list-mode/);
   await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/collection-list-390.png", animations: "disabled" });

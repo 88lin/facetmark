@@ -35,7 +35,7 @@ test("keeps an error received during restart, supports keyboard retry, and stops
   await page.addInitScript(() => {
     const state = window as StartupWindow;
     state.__restartCount = 0;
-    state.__facetmarkStartupError = "合成启动失败：" + "服务路径与失败原因需要能完整阅读。".repeat(8);
+    state.__facetmarkStartupError = "合成工作区窗口创建失败：服务已经就绪。" + "路径与失败原因需要能完整阅读。".repeat(8);
     state.__TAURI_INTERNALS__ = { invoke: async command => {
       if (command !== "restart_backend") throw new Error("Unexpected synthetic command");
       state.__restartCount++;
@@ -47,6 +47,8 @@ test("keeps an error received during restart, supports keyboard retry, and stops
   const retry = page.locator("#retry");
   await expect(retry).toBeVisible();
   await expect(retry).toBeInViewport({ ratio: 1 });
+  await expect(page.locator("#status")).toContainText(locale === "zh-CN" ? "工作区" : "workspace");
+  await expect(retry).toHaveAccessibleName(locale === "zh-CN" ? "重试启动" : "Retry startup");
   await page.screenshot({ path: `${output}/polish-native-startup-error${suffix}.png` });
   await retry.press("Enter");
   await expect(retry).toBeEnabled();

@@ -10,12 +10,12 @@ if (english) {
   document.documentElement.lang = 'en';
   status.textContent = idleStatus;
   hint.textContent = 'The first launch may take a moment';
-  retry.textContent = 'Restart service';
+  retry.textContent = 'Retry startup';
 }
 
 function showError(message) {
   document.body.dataset.phase = 'error';
-  status.textContent = english ? 'The local service could not start.' : '本地服务未能启动。';
+  status.textContent = english ? 'The collection workspace is unavailable.' : '收藏工作区暂时不可用。';
   hint.textContent = message;
   track.hidden = true;
   retry.hidden = false;

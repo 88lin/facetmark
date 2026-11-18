@@ -4,6 +4,7 @@ slug: frontend
 primary_target: frontend
 related_targets:
 - frontend/src/App.tsx
+- frontend/src/navigation.ts
 - frontend/src/Settings.tsx
 - frontend/src/SettingsWorkspace.tsx
 - frontend/src/settings-maintenance.css
@@ -58,6 +59,35 @@ related_targets:
 # Facetmark frontend — Operate
 
 ## Direction status
+
+2026-11-18 product-quality review confirmed five navigation/editing/focus failures
+on unchanged production UI in Actions 44232486636. Two independent assessments
+also identified narrow collection density, empty-note prominence, unbounded import
+rows, hidden settings categories and excess chat status height. Repairs retain the
+existing capsule/material system with component-owned styles: page/category history,
+in-memory form continuity, visibility-aware polling, deliberate search focus,
+compact reading entry and full-content disclosures. Intermediate visual review
+also tightened the remaining metadata rows: narrow summary status uses compact
+visible copy with its complete accessible text, and only the truly empty note
+entry shares the reader toolbar through its own Portal. The note editor, saved
+content and recovery stay in the reading flow. Source 3809060 passed the
+focused navigation/settings regression; narrow reader action wrapping and tested
+draft continuity checks then extended the final scope. Final source-matched
+rendering, interaction and installed results are recorded in PR #70's Actions and
+acceptance description. The baseline detector returned no
+findings despite the usability defects; no local browser/overlay ran, per the user
+restriction. Work and evidence boundaries are in
+docs/product-quality-review-2026-11-18.md. Passing checks will not imply user
+aesthetic approval or a product with no remaining issues.
+
+The subsequent review of 02ffcf8 found two small polish items: a source separator
+without a date, and narrow secondary targets. The source separator now follows
+the existing date condition. Narrow paging, reader actions/tabs and reading-top
+targets use 44px controls; the footer's existing groups wrap when they need more
+space, while reader header/tab containers retain their height. Current runtime
+checks must preserve scanning space, complete controls, date/no-date states and
+the original keyboard/focus journeys. These edits need new source-matched Actions
+evidence; the preceding 31/40 assessment does not score the changed version.
 
 2026-11-16 continuation follows the personal local-first product. Enrollment is
 reference material only. Current work and source-specific checks are tracked in

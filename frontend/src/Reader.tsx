@@ -1,5 +1,5 @@
 import { CapsuleButton } from "./ui/controls";
-import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   ArrowDown,
   ArrowLeft,
@@ -17,6 +17,7 @@ import {
   Pencil,
   Plus,
   Sparkles,
+  SlidersHorizontal,
   Tags,
   Trash2,
 } from "lucide-react";
@@ -25,9 +26,12 @@ import { useText, type Language } from "./locale";
 import { SearchExplanation } from "./SearchTools";
 import { ScrollProgress } from "./components/ui/scroll-progress";
 import { ReaderOutline } from "./components/ui/reader-outline";
+import { scrollToReaderSection } from "./components/ui/reader-section";
 import { useTabIndicator } from "./motion";
 import { type LibraryAction } from "./LibraryTools";
 import ReaderNotes from "./ReaderNotes";
+import { useReducedMotion } from "./useReducedMotion";
+import { useMediaQuery } from "./useMediaQuery";
 
 export function Skeleton({ rows = false }: { rows?: boolean }) {
   return (
@@ -103,6 +107,10 @@ export default function Reader({
   processingDisabled?: boolean;
 }) {
   const t = useText();
+  const reduced = useReducedMotion();
+  const compact = useMediaQuery("(max-width: 719px)");
+  const readingMenu = useRef<HTMLDetailsElement>(null);
+  const [noteToolbar, setNoteToolbar] = useState<HTMLDivElement | null>(null);
   const scales = [.88, 1, 1.12, 1.24, 1.36];
   const [readingSize, setReadingSize] = useState(() => {
     try {
@@ -114,6 +122,18 @@ export default function Reader({
     setReadingSize(size);
     try { localStorage.setItem("fm-reading-size", String(size)); } catch { /* Reading remains usable without storage. */ }
   };
+  const readingAction = (action: LibraryAction) => {
+    if (readingMenu.current) { readingMenu.current.open = false; readingMenu.current.querySelector("summary")?.focus(); }
+    onAction?.(action);
+  };
+  useEffect(() => {
+    const dismiss = (event: PointerEvent) => {
+      if (event.target instanceof Node && readingMenu.current && !readingMenu.current.contains(event.target)) readingMenu.current.open = false;
+    };
+    document.addEventListener("pointerdown", dismiss);
+    return () => document.removeEventListener("pointerdown", dismiss);
+  }, []);
+  useLayoutEffect(() => { if (readingMenu.current) readingMenu.current.open = false; }, [selected, tab, compact]);
   const scroller = useRef<HTMLDivElement>(null);
   const scrollPositions = useRef<Record<string, number>>({});
   const tabs = useTabIndicator(`${tab}-${language}`);
@@ -192,11 +212,21 @@ export default function Reader({
       {hasSummary ? <section id="reader-summary" className="reader-summary" aria-label={t("AI 概览", "AI overview")}>
         <div className="reader-section-heading">
           <h2><Sparkles size={16}/>{t("AI 概览", "AI overview")}</h2>
-          {canProcess && <CapsuleButton className="text-button" disabled={running || processingDisabled}
+          <div className="reader-section-actions">
+          {record?.body_text && <CapsuleButton type="button" className="text-button reader-source-jump"
+            aria-label={t("跳到保存的原文", "Jump to saved source text")} onClick={() => {
+              const container = scroller.current;
+              const heading = container?.querySelector<HTMLElement>(".reader-source h2");
+              if (!container || !heading) return;
+              heading.focus({ preventScroll: true });
+              scrollToReaderSection(container, heading, reduced ? "instant" : "smooth");
+            }}><FileText size={15}/>{t("原文", "Source")}</CapsuleButton>}
+          {canProcess && !compact && <CapsuleButton className="text-button" disabled={running || processingDisabled}
             aria-label={t("重新生成这篇摘要", "Regenerate this summary")}
             onClick={() => onAction?.({ kind: "process", mode: "summarize", ids: [selected!] })}>
             {t("重新生成", "Regenerate")}
           </CapsuleButton>}
+          </div>
         </div>
         <p className="reader-summary-basis">{record?.indexed?.summary_basis === "title"
           ? t("基于标题与网址推断，尚未读取正文", "Inferred from title and URL; page text has not been read")
@@ -216,7 +246,7 @@ export default function Reader({
           : t("摘要生成失败。", "Summary generation failed.")} {record.summary_error}
       </p>}
       <section id="reader-source" className="reader-source" aria-label={t("保存的原文", "Saved source text")}>
-      <div className="reader-section-heading"><h2><FileText size={16}/>{t("保存的原文", "Saved source text")}</h2></div>
+      <div className="reader-section-heading"><h2 tabIndex={-1}><FileText size={16}/>{t("保存的原文", "Saved source text")}</h2></div>
       {fetchFeedback}
       {record?.body_text ? <div className="body-text">
         {paragraphs.map((p, i) =>
@@ -452,25 +482,23 @@ export default function Reader({
                     ) : (
                       <span>{visibleRecord?.domain || t("正在读取来源…", "Loading source…")}</span>
                     )}
-                    <span className="source-rule" />
-                    <span>
-                      {visibleRecord?.date_added
-                        ? new Date(visibleRecord.date_added * 1000).toLocaleDateString(
-                            language === "zh" ? "zh-CN" : "en",
-                            { year: "numeric", month: "short", day: "numeric" },
-                          )
-                        : ""}
-                    </span>
+                    {visibleRecord?.date_added ? <>
+                      <span className="source-rule" aria-hidden="true" />
+                      <span>{new Date(visibleRecord.date_added * 1000).toLocaleDateString(
+                        language === "zh" ? "zh-CN" : "en",
+                        { year: "numeric", month: "short", day: "numeric" },
+                      )}</span>
+                    </> : null}
                   </div>
                   <h1>
                     {visibleRecord?.ai_title || visibleRecord?.title ||
                       visibleRecord?.url ||
                       t("正在读取收藏…", "Loading bookmark…")}
                   </h1>
-                  <div className="article-options">
+                  <div className="article-options" ref={setNoteToolbar}>
                   <details className="article-details">
-                    <summary>
-                      {t("收藏信息与检索线索", "Saved details & search context")}
+                    <summary aria-label={t("收藏信息与检索线索", "Saved details & search context")}>
+                      {compact ? t("收藏信息", "Saved details") : t("收藏信息与检索线索", "Saved details & search context")}
                       <ChevronDown size={13} aria-hidden="true" />
                     </summary>
                     {record?.ai_title && record.title && record.ai_title !== record.title && <p className="reader-original-title">
@@ -507,12 +535,27 @@ export default function Reader({
                       {managed && <p className="hint">{t("这条收藏由 Karakeep 管理，请在来源端编辑或删除。", "This bookmark is managed by Karakeep. Edit or delete it there.")}</p>}
                     </div>}
                   </details>
-                  {tab === "body" && <div className="reader-type-controls" role="group" aria-label={t("阅读字号", "Reading text size")}>
+                  {compact && <details ref={readingMenu} className="reader-options-menu"
+                    onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}
+                    onKeyDown={event => { if (event.key === "Escape" && event.currentTarget.open) { event.preventDefault(); event.stopPropagation(); event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }}>
+                    <summary aria-label={t("阅读设置", "Reading tools")}><SlidersHorizontal size={15}/>{t("阅读设置", "Reading")}<ChevronDown size={13} aria-hidden="true"/></summary>
+                    <div className="reader-options-panel">
+                      {tab === "body" && <div className="reader-type-controls" role="group" aria-label={t("阅读字号", "Reading text size")}>
+                        <CapsuleButton type="button" className="reader-type-step" disabled={readingSize === 0} aria-label={t("减小阅读字号", "Decrease reading text size")} onClick={() => resizeText(readingSize - 1)}><Minus size={14}/></CapsuleButton>
+                        <CapsuleButton type="button" className="reader-type-reset" aria-label={t("恢复默认阅读字号", "Reset reading text size")} title={t("点击恢复默认字号", "Reset text size")} onClick={() => resizeText(1)}>{Math.round(scales[readingSize] * 100)}%</CapsuleButton>
+                        <CapsuleButton type="button" className="reader-type-step" disabled={readingSize === scales.length - 1} aria-label={t("增大阅读字号", "Increase reading text size")} onClick={() => resizeText(readingSize + 1)}><Plus size={14}/></CapsuleButton>
+                      </div>}
+                      {record && onAction && !managed && <CapsuleButton type="button" className="secondary reader-edit" disabled={running} onClick={() => readingAction({ kind: "edit", record })}><Pencil size={14}/>{t("编辑", "Edit")}</CapsuleButton>}
+                      {tab === "body" && hasSummary && canProcess && <CapsuleButton type="button" className="text-button reader-regenerate" disabled={running || processingDisabled}
+                        aria-label={t("重新生成这篇摘要", "Regenerate this summary")} onClick={() => readingAction({ kind: "process", mode: "summarize", ids: [selected!] })}><Sparkles size={14}/>{t("重新生成", "Regenerate")}</CapsuleButton>}
+                    </div>
+                  </details>}
+                  {!compact && tab === "body" && <div className="reader-type-controls" role="group" aria-label={t("阅读字号", "Reading text size")}>
                     <CapsuleButton type="button" className="reader-type-step" disabled={readingSize === 0} aria-label={t("减小阅读字号", "Decrease reading text size")} onClick={() => resizeText(readingSize - 1)}><Minus size={14}/></CapsuleButton>
                     <CapsuleButton type="button" className="reader-type-reset" aria-label={t("恢复默认阅读字号", "Reset reading text size")} title={t("点击恢复默认字号", "Reset text size")} onClick={() => resizeText(1)}>{Math.round(scales[readingSize] * 100)}%</CapsuleButton>
                     <CapsuleButton type="button" className="reader-type-step" disabled={readingSize === scales.length - 1} aria-label={t("增大阅读字号", "Increase reading text size")} onClick={() => resizeText(readingSize + 1)}><Plus size={14}/></CapsuleButton>
                   </div>}
-                  {record && onAction && !managed && <CapsuleButton className="secondary reader-edit" disabled={running} onClick={() => onAction({ kind: "edit", record })}><Pencil size={14}/>{t("编辑", "Edit")}</CapsuleButton>}
+                  {!compact && record && onAction && !managed && <CapsuleButton className="secondary reader-edit" disabled={running} onClick={() => onAction({ kind: "edit", record })}><Pencil size={14}/>{t("编辑", "Edit")}</CapsuleButton>}
                   </div>
                 </div>
                 <div
@@ -522,7 +565,7 @@ export default function Reader({
                   aria-labelledby={`preview-tab-${tab}`}
                   tabIndex={0}
                 >
-                  {tab === "body" && !pending && !error && record && <ReaderNotes key={record.bookmark_id} record={record}/>}
+                  {tab === "body" && !pending && !error && record && <ReaderNotes key={record.bookmark_id} record={record} emptyToolbar={noteToolbar}/>}
                   {content}
                 </div>
                 {record?.privacy_skipped && (

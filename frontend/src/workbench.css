@@ -52,7 +52,7 @@
 .filter-trigger { position: relative; display: none; align-items: center; min-height: 44px; gap: 5px; padding: 9px 10px; border: 1px solid var(--rule); border-radius: var(--radius-pill); color: var(--secondary-ink); background: var(--canvas); font-size: .875rem; }
 .filter-indicator { position: absolute; right: -4px; top: -4px; display: grid; place-items: center; min-width: 18px; height: 18px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: .75rem; }
 .results-column { grid-column: 1; grid-row: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 0; }
-.search-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; flex: none; padding-bottom: 8px; }
+.search-header { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; flex: none; padding-bottom: 8px; }
 .search-header .library-tools { grid-column: 1; grid-row: 1; min-width: 0; margin: 0; }
 .search-header .collection-tools { grid-column: 1 / -1; grid-row: 2; }
 .search-controls { grid-column: 2; grid-row: 1; margin-left: auto; }
@@ -63,7 +63,7 @@
 .collection-view-switch .fm-button { display: grid; place-items: center; width: 34px; height: 32px; padding: 0; border-radius: var(--radius-pill); color: var(--muted); }
 .collection-view-switch .fm-button[aria-pressed="true"] { color: var(--accent); }
 .collection-view-switch .selection-pill { background: var(--canvas); box-shadow: 0 3px 6px -3px #294e7833; }
-.collection-view-switch .collection-view-toggle { display: none; }
+.collection-view-switch .collection-view-toggle { display:none; }
 .filter-chips { grid-column: 1 / -1; grid-row: 3; display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
 .filter-chips .fm-button { min-height: 32px; min-width: 0; max-width: 100%; padding: 5px 11px; border: 1px solid var(--selected-edge); border-radius: var(--radius-pill); background: var(--soft); color: var(--accent); font-size: .75rem; }
 .filter-chips .filter-kind { color: var(--secondary-ink); }
@@ -85,6 +85,7 @@
 .list-mode .skeleton-list { grid-template-columns: minmax(0, 1fr); }
 .list-mode .skeleton-group { min-height: 140px; }
 .page-scroll { flex: 1; width: 100%; min-width: 0; min-height: 0; margin: 0; padding: 12px 6px 24px; overflow: auto; scrollbar-gutter: stable; scroll-padding: 12px; }
+.page-scroll[hidden] { display: none; }
 /* Reader geometry only; reader-shell owns its text, layers and scroll behavior. */
 .preview-pane { position: relative; grid-column: 2; grid-row: 1; display: flex; flex-direction: column; min-height: 0; min-width: 0; margin: 0 0 12px; border: 1px solid var(--glass-edge); border-radius: 24px; overflow: hidden; background: var(--canvas); box-shadow: var(--sheet-shadow); }
 /* Keep the hidden index's scroll geometry while the reader covers it. */
@@ -166,23 +167,26 @@
   .search-header { grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; padding-bottom: 8px; }
   .search-header .library-tools { grid-column: 1 / -1; grid-row: 1; }
   .search-header .collection-tools { display: contents; }
-  .search-header .collection-status { grid-column: 1 / -1; grid-row: 2; }
-  .search-header .collection-sort { grid-column: 1; grid-row: 3; }
-  .search-header .collection-options-menu { grid-column: 2; grid-row: 3; }
-  .search-header .search-controls { grid-column: 3; grid-row: 3; }
+  .search-header .collection-status-menu { grid-column:1; grid-row:2; }
+  .search-header .collection-options-menu { grid-column:2; grid-row:2; }
+  .search-header .search-controls { grid-column:3; grid-row:2; }
   .search-header :is(.collection-selection, .collection-job, .filter-chips) { grid-column: 1 / -1; }
-  .collection-view-switch { padding: 0; border: 0; background: transparent; box-shadow: none; }
-  .collection-view-switch .fm-button { display: none; }
-  .collection-view-switch .collection-view-toggle { display: grid; width: 40px; height: 44px; border: 1px solid var(--rule); background: var(--canvas); }
+  .collection-view-switch { display:none; }
+  .collection-view-switch.has-semantic-results { display:inline-flex; padding:0; border:0; background:transparent; box-shadow:none; }
+  .collection-view-switch.has-semantic-results .fm-button { display:none; }
+  .collection-view-switch.has-semantic-results .collection-view-toggle { display:grid; width:44px; height:44px; padding:0; border:1px solid var(--rule); background:var(--canvas); }
+  .search-header .search-controls:not(:has(.search-mode-select)) { display:none; }
   .result-list { gap: 12px; padding: 5px 5px 12px; scrollbar-gutter: auto; }
-  .results-footer { min-height: 48px; font-size: .6875rem; }
+  .results-footer { min-height: 48px; font-size: .6875rem; flex-wrap: wrap; gap: 4px; }
   .results-footer > div { gap: 3px; }
+  .results-footer > .collection-subtitle { flex: 1; min-width: 0; flex-wrap: wrap; gap: 0 3px; }
+  .results-footer > div:last-child { flex: none; margin-left: auto; }
   .result-range { display: none; }
   .collection-subtitle { font-size: .6875rem; }
-  .results-footer .icon-button { width: 32px; height: 36px; }
+  .results-footer .icon-button { width: 44px; min-width: 44px; height: 44px; flex: none; }
   .page-jump { gap: 4px; }
-  .page-jump input { width: 36px; min-height: 32px; }
-  .page-jump .fm-button { min-height: 40px; padding: 4px; }
+  .page-jump input { width: 44px; min-height: 44px; }
+  .page-jump .fm-button { min-width: 44px; min-height: 44px; padding: 4px; }
   .page-scroll { padding: 12px 6px 20px; }
   .focus-mode .preview-pane { inset: 8px; }
 }
@@ -200,7 +204,7 @@
   .search-header { display: flex; flex-wrap: wrap; gap: 6px; }
   .search-header .library-tools { order: 0; flex: 1 1 100%; }
   .search-header .collection-tools { display: contents; }
-  .search-header .collection-status { order: 1; flex: 1 1 220px; }
+  .search-header :is(.collection-status, .collection-status-menu) { order: 1; flex: 1 1 220px; }
   .search-header :is(.collection-sort, .collection-options-menu, .search-controls) { order: 1; }
   .search-header :is(.collection-selection, .collection-job, .filter-chips) { order: 2; flex-basis: 100%; }
 }

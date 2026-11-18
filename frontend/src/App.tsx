@@ -1,5 +1,5 @@
 import { CapsuleButton } from "./ui/controls";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { flushSync } from "react-dom";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
@@ -38,6 +38,7 @@ import {
 import { Locale, useText, type Language } from "./locale";
 import SetupFlow, { Importer } from "./Setup";
 import { SettingsWorkspace } from "./SettingsWorkspace";
+import { sectionFromHash, viewFromHash, viewHash, type SettingsSection, type View } from "./navigation";
 import { Tasks } from "./Tasks";
 import { BookmarkCard } from "./BookmarkCard";
 import { CollectionTools } from "./CollectionTools";
@@ -63,7 +64,6 @@ import { useReducedMotion } from "./useReducedMotion";
 import { SelectionPill, useContentMotion } from "./InteractionMotion";
 import "./startup.css";
 
-type View = "library" | "sessions" | "tasks" | "settings" | "setup" | "import" | "chat";
 type Facet = { value: string; count: number };
 type Filters = { folder?: string; tag?: string; domain?: string; session?: number };
 const remember = (key: string, value?: string) => {
@@ -136,7 +136,9 @@ function Workbench({
   const bootInFlight = useRef(false);
   const connectionRetry = useRef<HTMLButtonElement>(null);
   const [bootBusy, setBootBusy] = useState(false);
-  const [view, setView] = useState<View>("library");
+  const [view, setView] = useState<View>(() => viewFromHash(location.hash));
+  const [settingsSection, setSettingsSection] = useState(() => sectionFromHash(location.hash));
+  const [settingsOpened, setSettingsOpened] = useState(() => viewFromHash(location.hash) === "settings");
   const [chatLaunch, setChatLaunch] = useState<ChatLaunch | null>(null);
   const [chatSelectionBusy, setChatSelectionBusy] = useState(false);
   const chatSelectionRequest = useRef<AbortController | null>(null);
@@ -249,10 +251,13 @@ function Workbench({
   const [sessionsRevision, setSessionsRevision] = useState(0);
   const sidebar = useRef<HTMLElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
+  // Drawer teardown and reader exit must honor the user's deliberate search
+  // destination instead of restoring the control that opened the overlay.
+  const searchFocusIntent = useRef(false);
   const composing = useRef(false);
   const firstRefresh = useRef(true);
   const list = useRef<HTMLDivElement>(null);
-  useContentMotion(workspace, view, view === "library" ? ".results-column" : ".page-scroll", "x");
+  useContentMotion(workspace, view, view === "library" ? ".results-column" : ".page-scroll:not([hidden])", "x");
   useContentMotion(list, loadedContext);
   const browseScroll = useRef(0);
   const lastRow = useRef<HTMLButtonElement | null>(null);
@@ -273,16 +278,23 @@ function Workbench({
   const requestId = useRef(0);
   const previewId = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
-  const openView = (next: View) => {
+  const openView = useCallback((next: View, section?: SettingsSection) => {
+    const hash = viewHash(next, section || settingsSection);
+    if (location.hash !== hash)
+      history.pushState(history.state, "", location.pathname + location.search + hash);
+    if (next === "settings") {
+      setSettingsOpened(true);
+      if (section) setSettingsSection(section);
+    }
     setView(next);
     setNavOpen(false);
-    if ((next === "chat" || next === "sessions") && location.hash !== `#${next}`)
-      history.replaceState(null, "", location.pathname + location.search + `#${next}`);
-    else if (next === "settings" && (location.hash === "#chat" || location.hash === "#sessions"))
-      history.replaceState(null, "", location.pathname + location.search + "#settings");
-    else if (next !== "settings" && next !== "chat" && next !== "sessions"
-      && (location.hash.startsWith("#settings") || location.hash === "#chat" || location.hash === "#sessions"))
-      history.replaceState(null, "", location.pathname + location.search);
+  }, [settingsSection]);
+  const homeLink = (event: ReactMouseEvent<HTMLAnchorElement>) => {
+    if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+    event.preventDefault();
+    setFilters({});
+    changeQuery("", true);
+    openView("library");
   };
   const chatWithBookmark = (record: Bookmark) => {
     setChatLaunch({ nonce: Date.now(), bookmark_ids: [record.bookmark_id], title: record.ai_title || record.title });
@@ -307,7 +319,8 @@ function Workbench({
     setFocusReading(false);
     requestAnimationFrame(() => {
       if (list.current) list.current.scrollTop = browseScroll.current;
-      if (lastRow.current?.isConnected) lastRow.current.focus({ preventScroll: true });
+      if (searchFocusIntent.current) searchInput.current?.focus({ preventScroll: true });
+      else if (lastRow.current?.isConnected) lastRow.current.focus({ preventScroll: true });
       else searchInput.current?.focus();
     });
   }, []);
@@ -342,7 +355,10 @@ function Workbench({
           setAdminAvailable(true);
           if (firstRefresh.current) {
             firstRefresh.current = false;
-            if (!status.bookmarks && !remember("fm-setup-skipped")) setView("setup");
+            if (!status.bookmarks && !remember("fm-setup-skipped") && !location.hash) {
+              history.replaceState(history.state, "", location.pathname + location.search + "#setup");
+              setView("setup");
+            }
           }
         }
       } catch (e) {
@@ -423,17 +439,21 @@ function Workbench({
   }, [boot]);
   useEffect(() => {
     const route = () => {
-      if (location.hash === "#settings" || location.hash.startsWith("#settings/")) {
-        setView("settings"); setNavOpen(false);
-      } else if (location.hash === "#chat") {
-        setView("chat"); setNavOpen(false);
-      } else if (location.hash === "#sessions") {
-        setView("sessions"); setNavOpen(false);
+      const next = viewFromHash(location.hash);
+      if (next === "settings") {
+        setSettingsOpened(true);
+        setSettingsSection(sectionFromHash(location.hash));
       }
+      setView(next);
+      setNavOpen(false);
     };
     route();
     window.addEventListener("hashchange", route);
-    return () => window.removeEventListener("hashchange", route);
+    window.addEventListener("popstate", route);
+    return () => {
+      window.removeEventListener("hashchange", route);
+      window.removeEventListener("popstate", route);
+    };
   }, []);
   useEffect(() => {
     if (!paired) return;
@@ -460,10 +480,14 @@ function Workbench({
       if (event.isComposing || libraryAction) return;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
+        searchFocusIntent.current = true;
+        setSelected(null);
         setFocusReading(false);
-        setView("library");
-        setNavOpen(false);
-        requestAnimationFrame(() => searchInput.current?.focus());
+        openView("library");
+        requestAnimationFrame(() => {
+          searchInput.current?.focus({ preventScroll: true });
+          searchInput.current?.select();
+        });
       }
       if (event.key === "Escape" && selected !== null && !drawer && !event.defaultPrevented) {
         event.preventDefault();
@@ -479,7 +503,7 @@ function Workbench({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [selected, drawer, closePreview, focusReading, libraryAction]);
+  }, [selected, drawer, closePreview, focusReading, libraryAction, openView]);
   useEffect(() => {
     if (!navOpen) return;
     const previous = navOpener.current || document.activeElement as HTMLElement | null;
@@ -514,7 +538,8 @@ function Workbench({
     return () => {
       document.removeEventListener("keydown", trap, true);
       requestAnimationFrame(() => {
-        if (previous?.isConnected && previous.getClientRects().length) previous.focus({ preventScroll: true });
+        if (searchFocusIntent.current) searchInput.current?.focus({ preventScroll: true });
+        else if (previous?.isConnected && previous.getClientRects().length) previous.focus({ preventScroll: true });
         else searchInput.current?.focus({ preventScroll: true });
       });
     };
@@ -686,8 +711,7 @@ function Workbench({
   // its nested scroll ranges stay unchanged until the drawer closes.
   const showCollectionControls = selected === null || drawer;
   function selectFilter(key: keyof Filters, value: string | number | undefined) {
-    setView("library");
-    setNavOpen(false);
+    openView("library");
     setSelected(null);
     setFocusReading(false);
     // Re-selecting a category must not abort the request already loading it.
@@ -727,6 +751,7 @@ function Workbench({
       key === "domain" ? t("站点", "Site") : t("批次", "Session");
   }
   const select = (id: number, button?: HTMLButtonElement) => {
+    searchFocusIntent.current = false;
     if (selected === null) browseScroll.current = list.current?.scrollTop ?? 0;
     if (button) lastRow.current = button;
     setPreview(readerCache.current.get(id) || null);
@@ -791,17 +816,14 @@ function Workbench({
         <CapsuleButton
           className="icon-button nav-trigger"
           aria-label={t("打开导航", "Open navigation")}
-          onClick={event => { navOpener.current = event.currentTarget; setNavOpen(true); }}
+          onClick={event => { searchFocusIntent.current = false; navOpener.current = event.currentTarget; setNavOpen(true); }}
         >
           <Menu />
         </CapsuleButton>
         {(!paired || view !== "library") && <a
           className="brand app-brand"
           href="/app"
-          onClick={(event) => {
-            event.preventDefault();
-            openView("library");
-          }}
+          onClick={homeLink}
         >
           <FacetmarkMark />
           <span>Facetmark</span>
@@ -871,7 +893,7 @@ function Workbench({
               searchInput.current?.focus();
             }} />
           </div>
-          <CapsuleButton className="filter-trigger" onClick={event => { navOpener.current = event.currentTarget; setNavOpen(true); }}
+          <CapsuleButton className="filter-trigger" onClick={event => { searchFocusIntent.current = false; navOpener.current = event.currentTarget; setNavOpen(true); }}
             aria-label={t("筛选收藏", "Filter collection")}
             aria-describedby={activeFilters.length ? "active-filter-count" : undefined}>
             <Folder size={17} /><span>{t("分类", "Categories")}</span>
@@ -947,10 +969,7 @@ function Workbench({
         <a
           className="brand"
           href="/app"
-          onClick={(e) => {
-            e.preventDefault();
-            openView("library");
-          }}
+          onClick={homeLink}
         >
           <FacetmarkMark />
           <span>Facetmark</span>
@@ -1195,9 +1214,10 @@ function Workbench({
                         : semanticSelection ? { ids: items.map(item => item.bookmark_id), reprocess: false }
                           : { scope: collectionScope }) })}
                 />}
-                {showCollectionControls && !(search.trim() && searchMode === "semantic" && semantic) && <CollectionTools scope={collectionScope} page={page} display={summaryDisplay} onDisplay={setSummaryDisplay}
+                {showCollectionControls && !semanticSelection && <CollectionTools scope={collectionScope} page={page} display={summaryDisplay} onDisplay={setSummaryDisplay}
                   sort={collectionSort} onSort={value => { setCollectionSort(value); setOffset(0); }}
                   onStatus={value => { setSummaryStatus(value); setOffset(0); }} disabled={scopePending}
+                  layout={collectionLayout} onLayout={value => { setCollectionLayout(value); remember("fm-collection-layout", value); }}
                   job={job} onTask={taskOperations.run} taskBusy={processingBusy} admin={adminAvailable}/>}
                 <div className="search-controls">
                   <div className="search-meta">
@@ -1215,18 +1235,18 @@ function Workbench({
                           : t("全部关键词匹配", "All keyword matches")
                         : t("直接打开原网页 · 摘要就地浏览", "Open original pages · Read summaries here")}
                     </span>
-                    {showCollectionControls && <div className="collection-view-switch" role="group" aria-label={t("收藏显示方式", "Collection layout")}>
+                    {showCollectionControls && <div className={`collection-view-switch${semanticSelection ? " has-semantic-results" : ""}`} role="group" aria-label={t("收藏显示方式", "Collection layout")}>
                       {[{ value: "grid", label: t("卡片视图", "Card view"), Icon: LayoutGrid },
                         { value: "list", label: t("列表视图", "List view"), Icon: List }].map(({ value, label, Icon }) =>
                         <CapsuleButton key={value} type="button" aria-label={label} title={label} aria-pressed={collectionLayout === value}
                           onClick={() => { setCollectionLayout(value); remember("fm-collection-layout", value); }}><SelectionPill active={collectionLayout === value} group="collection-layout" /><Icon size={16} /></CapsuleButton>)}
-                      <CapsuleButton className="collection-view-toggle" type="button"
+                      {semanticSelection && <CapsuleButton className="collection-view-toggle" type="button"
                         aria-label={collectionLayout === "grid" ? t("列表视图", "List view") : t("卡片视图", "Card view")}
                         title={collectionLayout === "grid" ? t("列表视图", "List view") : t("卡片视图", "Card view")}
                         onClick={() => {
                           const value = collectionLayout === "grid" ? "list" : "grid";
                           setCollectionLayout(value); remember("fm-collection-layout", value);
-                        }}>{collectionLayout === "grid" ? <List size={16} /> : <LayoutGrid size={16} />}</CapsuleButton>
+                        }}>{collectionLayout === "grid" ? <List size={16} /> : <LayoutGrid size={16} />}</CapsuleButton>}
                     </div>}
                   </div>
                 </div>
@@ -1428,9 +1448,16 @@ function Workbench({
                         asChild
                         key="reader"
                         aria-describedby={undefined}
+                        onEscapeKeyDown={(e) => {
+                          // Radix handles Escape in capture, before the reader's
+                          // disclosure can close itself and restore its focus.
+                          if (e.target instanceof Element && e.target.closest(".reader-options-menu[open]"))
+                            e.preventDefault();
+                        }}
                         onCloseAutoFocus={(e) => {
                           e.preventDefault();
-                          lastRow.current?.focus({ preventScroll: true });
+                          if (searchFocusIntent.current) searchInput.current?.focus({ preventScroll: true });
+                          else lastRow.current?.focus({ preventScroll: true });
                         }}
                       >
                         <motion.div
@@ -1455,7 +1482,7 @@ function Workbench({
               </Dialog.Root>
             )}
           </>
-        ) : view === "chat" ? null : (
+        ) : view === "chat" || view === "settings" ? null : (
           <div className="page-scroll">
             {view === "setup" ? (
               <SetupFlow
@@ -1482,8 +1509,6 @@ function Workbench({
                 </header>
                 <Importer refresh={refreshImportedCollection} onDone={() => openView("library")} />
               </>
-            ) : view === "settings" ? (
-              <SettingsWorkspace setup={setup} refresh={refreshSettingsState} onChanged={libraryChanged} onBack={() => openView("library")} onSummarize={() => handleLibraryAction({ kind: "process", mode: "summarize", scope: collectionScope, scopeLabel: t("当前收藏范围", "Current collection scope") })} />
             ) : view === "tasks" ? (
               <>
                 <header className="page-heading">
@@ -1506,9 +1531,14 @@ function Workbench({
             )}
           </div>
         )}
+        {paired && settingsOpened && <div className="page-scroll settings-page" hidden={view !== "settings"}>
+          <SettingsWorkspace active={view === "settings"} section={settingsSection} onSection={section => openView("settings", section)}
+            setup={setup} refresh={refreshSettingsState} onChanged={libraryChanged} onBack={() => openView("library")}
+            onSummarize={() => handleLibraryAction({ kind: "process", mode: "summarize", scope: collectionScope, scopeLabel: t("当前收藏范围", "Current collection scope") })} />
+        </div>}
         {paired && <ChatWorkspace active={view === "chat"} launch={chatLaunch} setup={setup} language={language}
           onPreview={id => { openView("library"); select(id); }}
-          onSettings={() => { openView("settings"); location.hash = "settings/models"; }}
+          onSettings={() => openView("settings", "models")}
           onBack={() => openView("library")} />}
       </main>
       {paired && adminAvailable && taskOperations.showRecovery && <TaskRecovery operations={taskOperations.operations} busy={taskOperations.busy} error={taskOperations.error}

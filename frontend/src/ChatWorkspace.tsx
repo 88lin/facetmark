@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowUpRight, BookOpen, Check, Copy, History, LoaderCircle,
   MessageCircle, Plus, RotateCcw, Search, Send, Square, Trash2, X } from "lucide-react";
 import { api, ApiError, post, safeUrl, type Setup } from "./api";
 import { useText, type Language } from "./locale";
+import { useMediaQuery } from "./useMediaQuery";
 import { CapsuleButton } from "./ui/controls";
 import { useReducedMotion } from "./useReducedMotion";
 import type { ChatLaunch, ChatMessage, ChatSource, Conversation, ConversationSummary } from "./chat-types";
@@ -40,6 +41,7 @@ export function ChatWorkspace({ active, launch, setup, language, onPreview, onSe
   onPreview: (id: number) => void; onSettings: () => void; onBack: () => void;
 }) {
   const t = useText(), reduced = useReducedMotion();
+  const compact = useMediaQuery("(max-width: 719px)");
   const stored = useRef<ChatLocalState | null>(null);
   if (!stored.current) stored.current = loadChatLocalState();
   const [currentId, setCurrentId] = useState<string | null>(() => selectedConversation());
@@ -95,6 +97,13 @@ export function ChatWorkspace({ active, launch, setup, language, onPreview, onSe
   const lastMessage = conversation?.messages.at(-1);
   const canRetry = lastMessage?.role === "assistant" && ["error", "cancelled"].includes(lastMessage.status);
   const canRegenerate = lastMessage?.role === "assistant" && lastMessage.status === "complete";
+  const connectionNotice = profileId
+    ? profilesBusy ? t("正在读取这段对话的连接，草稿会保留。", "Loading this conversation's connection. Your draft is retained.")
+      : profilesError ? t("暂时无法确认这个连接，请重新读取连接后再发送。草稿会保留。", "This connection could not be confirmed. Reload connections before sending; your draft is retained.")
+        : !chosenProfile ? t("这段对话的连接已移除，请选择其他连接。已保存的回答和草稿会保留。", "This conversation's connection was removed. Choose another connection; saved answers and your draft are retained.")
+          : t("此连接需先测试；可以继续写草稿。", "Test this connection before sending; you can keep drafting.")
+    : setup === null ? t("正在读取已保存的聊天连接，草稿会保留。", "Loading your saved chat connection. Your draft is retained.")
+      : t("可以先写问题，测试并保存聊天连接后再发送。", "Draft a question now, then test and save a chat connection before sending.");
   const pinned = currentId ? conversation?.bookmark_ids || [] : scope.bookmark_ids;
 
   const saveLocal = (changes: Partial<ChatLocalState>) => {
@@ -514,9 +523,13 @@ export function ChatWorkspace({ active, launch, setup, language, onPreview, onSe
             {copied === message.id ? <Check size={14}/> : <Copy size={14}/>} {copied === message.id ? t("已复制", "Copied") : t("复制", "Copy")}
           </CapsuleButton>}
         </article>)}
+      {canRegenerate && !running && !operation && <div className="chat-retry chat-regenerate">
+        <span>{t("旧回答会保留。", "The previous answer is kept.")}</span>
+        <CapsuleButton type="button" className="secondary" disabled={!ready || loading || readFailure === currentId} onClick={() => void send("regenerate")}><RotateCcw size={15}/>{t("重新回答", "Answer again")}</CapsuleButton>
+      </div>}
     </div>
     <div className="chat-composer-area">
-      <div className="chat-composer-status">
+      <div className="chat-composer-status" role="region" aria-label={t("连接与发送状态", "Connection and send status")} tabIndex={0}>
       <div className="chat-model-choice">
         <label htmlFor="chat-connection"><span aria-hidden="true">
           <span className="chat-model-label">{t("本段对话的模型连接", "Connection for this conversation")}</span>
@@ -542,20 +555,17 @@ export function ChatWorkspace({ active, launch, setup, language, onPreview, onSe
         <CapsuleButton type="button" className="secondary" disabled={loading} onClick={() => setReadRevision(value => value + 1)}>{t("重新读取对话", "Reload conversation")}</CapsuleButton></div>}
       {currentError && <div className="chat-feedback" role="alert"><span>{currentError}</span><CapsuleButton type="button" className="icon-button" aria-label={t("关闭对话提示", "Dismiss chat message")}
         onClick={() => setErrors(previous => ({ ...previous, [currentKey]: "" }))}><X size={15}/></CapsuleButton></div>}
-      {!ready && <div className="chat-connection-notice"><span>{profileId
-        ? profilesBusy ? t("正在读取这段对话的连接，草稿会保留。", "Loading this conversation's connection. Your draft is retained.")
-          : profilesError ? t("暂时无法确认这个连接，请重新读取连接后再发送。草稿会保留。", "This connection could not be confirmed. Reload connections before sending; your draft is retained.")
-            : !chosenProfile ? t("这段对话的连接已移除，请选择其他连接。已保存的回答和草稿会保留。", "This conversation's connection was removed. Choose another connection; saved answers and your draft are retained.")
-              : t("这个连接尚未通过测试。可以先写问题，再到设置中测试，或选择其他连接。", "This connection needs a test. You can draft a question, then test it in Settings or choose another connection.")
-        : setup === null ? t("正在读取已保存的聊天连接，草稿会保留。", "Loading your saved chat connection. Your draft is retained.")
-          : t("可以先写问题，测试并保存聊天连接后再发送。", "Draft a question now, then test and save a chat connection before sending.")}</span>
-        {(profileId || setup !== null) && <CapsuleButton type="button" className="text-button" onClick={onSettings}>{t("设置 AI 连接", "Set up AI connection")}</CapsuleButton>}</div>}
+      {!ready && <div className="chat-connection-notice">{compact ? <details className="chat-connection-details">
+        <summary>{profileId
+          ? profilesBusy ? t("正在读取连接", "Loading connection")
+            : profilesError ? t("连接需重新读取", "Reload connection")
+              : !chosenProfile ? t("连接已移除", "Connection removed") : t("发送前需测试", "Test before sending")
+          : setup === null ? t("正在读取连接", "Loading connection") : t("请先设置连接", "Set up a connection")}</summary>
+        <p>{connectionNotice}</p>
+      </details> : <span>{connectionNotice}</span>}
+        {(profileId || setup !== null) && <CapsuleButton type="button" className="text-button" aria-label={t("设置 AI 连接", "Set up AI connection")} onClick={onSettings}>{compact ? t("设置", "Settings") : t("设置 AI 连接", "Set up AI connection")}</CapsuleButton>}</div>}
       {canRetry && !running && !operation && <div className="chat-retry"><span>{t("继续刚才的问题", "Continue your last question")}</span>
         <CapsuleButton type="button" className="secondary" disabled={!ready || loading || readFailure === currentId} onClick={() => void send("retry")}><RotateCcw size={15}/>{t("重试回答", "Retry answer")}</CapsuleButton></div>}
-      {canRegenerate && !running && !operation && <div className="chat-retry chat-regenerate">
-        <span>{t("保留旧回答，重新整理这个问题", "Keep the previous answer and revisit this question")}</span>
-        <CapsuleButton type="button" className="secondary" disabled={!ready || loading || readFailure === currentId} onClick={() => void send("regenerate")}><RotateCcw size={15}/>{t("重新回答", "Answer again")}</CapsuleButton>
-      </div>}
       {storageWarning && <p className="chat-storage-warning" role="status">{t("草稿暂时无法在本机保存，请保留当前窗口。", "The draft could not be saved on this device. Keep this window open.")}</p>}
       </div>
       <form className="chat-composer" onSubmit={event => { event.preventDefault(); void send(); }}>

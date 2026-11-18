@@ -62,6 +62,12 @@ async function pending(page: Page) {
   return page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith("fm-mcp-operation:"))
     .map(key => JSON.parse(localStorage.getItem(key)!))) as Promise<McpOperation[]>;
 }
+async function expectOperationCleared(page: Page) {
+  // The recovery panel also disappears while submitting. Only a confirmed or
+  // closed original may disappear from the persistent recovery journal.
+  await expect.poll(() => pending(page)).toEqual([]);
+  await expect(recovery(page)).toHaveCount(0);
+}
 async function open(page: Page) {
   await page.goto("/app#settings/mcp");
   await expect(panel(page).locator(".mcp-service-status")).not.toHaveText(/正在读取状态|Loading status/);
@@ -138,7 +144,7 @@ for (const failure of ["lost", "malformed"] as const) test(`${failure} real rota
   const later = await server.change({ rotate_token: true }); await server.change({ enabled: false });
   control.failReads = false;
   await recovery(page).getByRole("button", { name: /^(重新读取原修改|Read original change)$/ }).press("Enter");
-  await expect(recovery(page)).toHaveCount(0); expect(await pending(page)).toEqual([]);
+  await expectOperationCleared(page);
   await expect(panel(page).getByRole("textbox", { name: /^(MCP 访问令牌|MCP access token)$/ })).toHaveValue(later.token);
   await expect(panel(page).locator(".mcp-service-status")).toHaveText(/^(MCP 已停用|MCP disabled)$/);
   expect(control.writes).toEqual([mcpRequest(original)]); expect((await server.read()).token).toBe(later.token);
@@ -154,7 +160,7 @@ test("an unaccepted request retries only its original ID and revision after an e
   await page.reload(); await expect(recovery(page).getByRole("button", { name: "继续原修改", exact: true })).toBeEnabled();
   expect(control.writes).toEqual([mcpRequest(original)]);
   await recovery(page).getByRole("button", { name: "继续原修改", exact: true }).press("Space");
-  await expect(recovery(page)).toHaveCount(0); expect(await pending(page)).toEqual([]);
+  await expectOperationCleared(page);
   expect(control.writes).toEqual([mcpRequest(original), mcpRequest(original)]); expect(control.accepted).toHaveLength(1);
   expect((await server.read()).token).toBe(control.accepted[0].token); expect(control.accepted[0].token).not.toBe(initial.token);
 });
@@ -168,7 +174,7 @@ for (const acceptedFirst of [false, true]) test(`closing the original request pr
   if (accepted) expect(accepted.ok()).toBeTruthy();
   const current = await server.read();
   await recovery(page).getByRole("button", { name: "返回当前配置", exact: true }).click();
-  await expect(recovery(page)).toHaveCount(0); expect(await pending(page)).toEqual([]); expect(control.closes).toEqual([body]);
+  await expectOperationCleared(page); expect(control.closes).toEqual([body]);
   const late = await server.request.post("/admin/mcp", { headers: server.headers, data: body });
   expect(late.status()).toBe(acceptedFirst ? 200 : 409); expect((await server.read()).token).toBe(current.token);
   if (!acceptedFirst) expect(current.token).toBe(initial.token);
@@ -187,7 +193,7 @@ test("a delayed stale window cannot rotate a newer configuration and closing ret
   await expect(recovery(page)).toContainText("配置已经变化");
   expect(control.accepted).toEqual([]); expect((await server.read()).token).toBe(initial.token);
   await recovery(page).getByRole("button", { name: "返回当前配置", exact: true }).click();
-  await expect(recovery(page)).toHaveCount(0); expect((await server.read()).enabled).toBe(false); expect(control.writes).toHaveLength(1);
+  await expectOperationCleared(page); expect((await server.read()).enabled).toBe(false); expect(control.writes).toHaveLength(1);
 });
 
 test("confirmation from a second window clears the same pending operation in both without resending", async ({ page, context, server }) => {
@@ -199,8 +205,8 @@ test("confirmation from a second window clears the same pending operation in bot
     await expect(panel(second).getByRole("button", { name: "重置令牌", exact: true })).toBeDisabled();
     other.failReads = false;
     await recovery(second).getByRole("button", { name: "重新读取原修改", exact: true }).click();
-    await expect(recovery(second)).toHaveCount(0); await expect(recovery(page)).toHaveCount(0);
-    expect(await pending(page)).toEqual([]); expect(first.writes).toHaveLength(1); expect(other.writes).toEqual([]);
+    await expectOperationCleared(second); await expectOperationCleared(page);
+    expect(first.writes).toHaveLength(1); expect(other.writes).toEqual([]);
     expect(errors.get(second)).toEqual([]);
   } finally { await second.unrouteAll({ behavior: "wait" }); await second.close(); }
 });
@@ -214,7 +220,7 @@ test("a malformed read receipt keeps the accepted original and never offers an u
   expect(await pending(page)).toEqual(originals); await expect(recovery(page).getByRole("button", { name: "继续原修改", exact: true })).toHaveCount(0);
   control.malformedReceipt = false;
   await recovery(page).getByRole("button", { name: "重新读取原修改", exact: true }).click();
-  await expect(recovery(page)).toHaveCount(0); expect(control.writes).toHaveLength(1);
+  await expectOperationCleared(page); expect(control.writes).toHaveLength(1);
 });
 
 test("a slow initial status read survives polling without overlapping reads or accepting a new change", async ({ page, server }) => {
@@ -267,6 +273,6 @@ test("failed local persistence sends no token reset and an explicit retry works 
   expect(control.writes).toEqual([]);
   await page.evaluate(() => (window as unknown as { restoreMcpStorage: () => void }).restoreMcpStorage());
   await panel(page).getByRole("button", { name: "确认重置", exact: true }).click();
-  await expect.poll(() => control.accepted.length).toBe(1); await expect(recovery(page)).toHaveCount(0);
+  await expect.poll(() => control.accepted.length).toBe(1); await expectOperationCleared(page);
   await expect(panel(page).getByRole("alert")).toHaveCount(0);
 });

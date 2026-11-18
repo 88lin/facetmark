@@ -156,6 +156,10 @@ if mode == "startup":
         page = installed_page(playwright, splash=True)
         page.locator("#retry").wait_for(state="visible")
         assert "construction failure" in page.locator("#hint").inner_text()
+        startup_message = page.locator("#status").inner_text()
+        retry_label = page.locator("#retry").inner_text()
+        assert "工作区" in startup_message or "workspace" in startup_message, "Startup mislabels a workspace failure as service startup failure"
+        assert retry_label in {"重试启动", "Retry startup"}, "Startup recovery must name the user action"
         assert running(failure["sidecar_pid"]), "The regression must retry while the failed service is still alive"
         first_spawn = read_json(output / "backend-spawn.json")
         assert first_spawn["process"] == process and first_spawn["generation"] == failure["generation"]
@@ -198,6 +202,7 @@ if mode == "startup":
             health_checks += 1
             time.sleep(.2)
     report("installed-startup-retry.json", {"failure_after_ready": True, "failed_sidecar_stopped": True,
+        "startup_message": startup_message, "retry_label": retry_label,
         "real_keyboard_retry": True, "workspace_recovered": True, "failed_sidecar": failure["sidecar_pid"],
         "immediate_retry_while_old_service_alive": True, "no_new_spawn_before_confirmed_exit": True,
         "replacement_pid": runtime["pid"], "replacement_owned_service": True,
