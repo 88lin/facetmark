@@ -77,8 +77,10 @@
 .results-footer > div { display: flex; align-items: center; gap: 5px; }
 .results-footer .icon-button { width: 34px; height: 34px; border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--canvas); }
 .page-jump { display: flex; align-items: center; gap: 6px; }
-.page-jump input { width: 46px; min-height: 32px; padding: 3px; border: 1px solid var(--rule); border-radius: var(--radius-pill); text-align: center; background: var(--canvas); color: var(--ink); font-size: .75rem; }
-.page-jump .fm-button { min-height: 32px; padding: 4px 7px; font-size: .75rem; }
+.page-jump input { width: 46px; min-height: 32px; padding: 3px; border: 1px solid var(--rule); border-radius: var(--radius-pill); text-align: center; background: var(--canvas); color: var(--ink); font-size: .75rem; appearance: textfield; }
+.page-jump input::-webkit-inner-spin-button,
+.page-jump input::-webkit-outer-spin-button { appearance: none; display: none; margin: 0; }
+.page-jump .fm-button { min-width: 32px; min-height: 32px; padding: 4px 7px; font-size: .75rem; }
 .result-list > .empty { min-height: 260px; padding: 48px 20px; }
 .skeleton-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 12px; }
 .skeleton-list .skeleton-group { min-height: 220px; padding: 24px; border-radius: 24px; background: var(--canvas); box-shadow: var(--card-shadow); }
@@ -179,7 +181,7 @@
   .result-list { gap: 12px; padding: 5px 5px 12px; scrollbar-gutter: auto; }
   .results-footer { min-height: 48px; font-size: .6875rem; flex-wrap: wrap; gap: 4px; }
   .results-footer > div { gap: 3px; }
-  .results-footer > .collection-subtitle { flex: 1; min-width: 0; flex-wrap: wrap; gap: 0 3px; }
+  .results-footer > .collection-subtitle { flex: 1; min-width: 0; flex-wrap: wrap; gap: 0 3px; white-space: normal; line-height: 1.4; }
   .results-footer > div:last-child { flex: none; margin-left: auto; }
   .result-range { display: none; }
   .collection-subtitle { font-size: .6875rem; }
@@ -187,6 +189,9 @@
   .page-jump { gap: 4px; }
   .page-jump input { width: 44px; min-height: 44px; }
   .page-jump .fm-button { min-width: 44px; min-height: 44px; padding: 4px; }
+  .results-footer .fm-button.button:focus-visible,
+  .results-footer .fm-button.button[data-focus-visible="true"],
+  .page-jump input:focus-visible { outline-offset: -3px; }
   .page-scroll { padding: 12px 6px 20px; }
   .focus-mode .preview-pane { inset: 8px; }
 }
