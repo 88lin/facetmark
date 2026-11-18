@@ -248,6 +248,18 @@ for (const [language, theme, width, height] of [
     expect(Math.abs(control.top - bounds[0].top)).toBeLessThan(1);
     expect(control.height).toBeGreaterThanOrEqual(44);
   }
+  const footer = page.locator(".results-footer");
+  for (const control of [
+    footer.getByRole("button", { name: /^(上一页|Previous page)$/, exact: true }),
+    footer.getByRole("button", { name: /^(下一页|Next page)$/, exact: true }),
+    footer.getByRole("button", { name: /^(跳转|Go)$/, exact: true }),
+    footer.getByRole("spinbutton", { name: /^(跳转页码|Page to jump to)$/, exact: true }),
+  ]) {
+    await expect(control).toBeInViewport({ ratio: 1 });
+    const box = (await control.boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(44); expect(box.height).toBeGreaterThanOrEqual(44);
+  }
+  expect(await footer.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   await expect(page.locator(".result-row").first()).toBeInViewport({ ratio: 1 });
   expect((await page.locator(".result-row").first().boundingBox())!.height).toBeLessThan(300);
   expect((await page.locator(".search-header").boundingBox())!.height).toBeLessThan(130);
@@ -343,11 +355,12 @@ test("an empty note stays compact while source navigation and retained drafts re
   page.on("request", request => { if (request.method() === "PATCH" && new URL(request.url()).pathname.endsWith("/note")) saves++; });
   await page.route("**/bookmark/*?body=true", async route => {
     const response = await route.fetch(), record = await response.json();
-    await route.fulfill({ json: { ...record, note: "", note_revision: 0, legacy_note_text: "",
+    await route.fulfill({ json: { ...record, date_added: 0, note: "", note_revision: 0, legacy_note_text: "",
       summary: "内容与来源先进入阅读视野。", key_points: ["完整原文可直接抵达。"],
       body_text: "## 保存的阅读上下文\n\n" + "这是一段保留完整来源的合成阅读内容。".repeat(80) } });
   });
   await collection(page); await page.locator(".bookmark-preview").first().click();
+  await expect(page.locator(".article-source .source-rule")).toHaveCount(0);
   const notes = page.getByRole("region", { name: "我的笔记", exact: true });
   await expect(notes).toBeVisible();
   expect((await notes.boundingBox())!.height).toBeLessThanOrEqual(56);
@@ -386,10 +399,17 @@ test(`overview actions and saved source remain reachable in a narrow reader ${la
   await page.route("**/bookmark/*?body=true", async route => {
     const response = await route.fetch(), record = await response.json();
     readingId = record.bookmark_id;
-    await route.fulfill({ json: { ...record, summary: "A concise overview of the saved source.",
+    await route.fulfill({ json: { ...record, date_added: 1_700_000_000, summary: "A concise overview of the saved source.",
       key_points: ["Keep the full source reachable."], body_text: "Saved source text.\n\n" + "Readable content. ".repeat(80) } });
   });
   await collection(page); await page.locator(".bookmark-preview").first().click();
+  await expect(page.locator(".article-source .source-rule")).toHaveCount(1);
+  await expect(page.locator(".article-source")).toContainText("2023");
+  for (const control of await page.locator(".reader-actions > .icon-button:not(.focus-reading), .preview-tabs > button").all()) {
+    await expect(control).toBeInViewport({ ratio: 1 });
+    const box = (await control.boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(44); expect(box.height).toBeGreaterThanOrEqual(44);
+  }
   const header = page.locator(".reader-summary > .reader-section-heading");
   await expect(header).toBeVisible(); await settleVisualLayout(page);
   const bounds = await header.evaluate(element => {

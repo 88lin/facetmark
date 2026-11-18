@@ -80,6 +80,15 @@ restriction. Work and evidence boundaries are in
 docs/product-quality-review-2026-11-18.md. Passing checks will not imply user
 aesthetic approval or a product with no remaining issues.
 
+The subsequent review of 02ffcf8 found two small polish items: a source separator
+without a date, and narrow secondary targets. The source separator now follows
+the existing date condition. Narrow paging, reader actions/tabs and reading-top
+targets use 44px controls; the footer's existing groups wrap when they need more
+space, while reader header/tab containers retain their height. Current runtime
+checks must preserve scanning space, complete controls, date/no-date states and
+the original keyboard/focus journeys. These edits need new source-matched Actions
+evidence; the preceding 31/40 assessment does not score the changed version.
+
 2026-11-16 continuation follows the personal local-first product. Enrollment is
 reference material only. Current work and source-specific checks are tracked in
 docs/full-product-repair-2026-11-16.md. Import previews and receipts, named model

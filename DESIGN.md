@@ -384,7 +384,7 @@ shows the failure and preserves the last saved overview.
 Only a reading panel with saved body text has a 48px in-flow progress footer.
 Related, pending, failed and empty-text states do not show a placeholder
 “reading preview” box. The footer holds real progress, chapter selection and a
-36px capsule return-to-top button (40px mobile); it does not cover the last paragraph.
+36px capsule return-to-top button (44px mobile); it does not cover the last paragraph.
 Article width is 740px; native source access remains visible.
 
 Cards retain the interruptible layout spring (340/32) and source-owned opacity/

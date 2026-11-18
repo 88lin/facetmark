@@ -177,14 +177,15 @@
   .collection-view-switch.has-semantic-results .collection-view-toggle { display:grid; width:44px; height:44px; padding:0; border:1px solid var(--rule); background:var(--canvas); }
   .search-header .search-controls:not(:has(.search-mode-select)) { display:none; }
   .result-list { gap: 12px; padding: 5px 5px 12px; scrollbar-gutter: auto; }
-  .results-footer { min-height: 48px; font-size: .6875rem; }
+  .results-footer { min-height: 48px; font-size: .6875rem; flex-wrap: wrap; gap: 4px; }
   .results-footer > div { gap: 3px; }
+  .results-footer > div:last-child { margin-left: auto; }
   .result-range { display: none; }
   .collection-subtitle { font-size: .6875rem; }
-  .results-footer .icon-button { width: 32px; height: 36px; }
+  .results-footer .icon-button { width: 44px; min-width: 44px; height: 44px; flex: none; }
   .page-jump { gap: 4px; }
-  .page-jump input { width: 36px; min-height: 32px; }
-  .page-jump .fm-button { min-height: 40px; padding: 4px; }
+  .page-jump input { width: 44px; min-height: 44px; }
+  .page-jump .fm-button { min-width: 44px; min-height: 44px; padding: 4px; }
   .page-scroll { padding: 12px 6px 20px; }
   .focus-mode .preview-pane { inset: 8px; }
 }

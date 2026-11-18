@@ -482,15 +482,13 @@ export default function Reader({
                     ) : (
                       <span>{visibleRecord?.domain || t("正在读取来源…", "Loading source…")}</span>
                     )}
-                    <span className="source-rule" />
-                    <span>
-                      {visibleRecord?.date_added
-                        ? new Date(visibleRecord.date_added * 1000).toLocaleDateString(
-                            language === "zh" ? "zh-CN" : "en",
-                            { year: "numeric", month: "short", day: "numeric" },
-                          )
-                        : ""}
-                    </span>
+                    {visibleRecord?.date_added ? <>
+                      <span className="source-rule" aria-hidden="true" />
+                      <span>{new Date(visibleRecord.date_added * 1000).toLocaleDateString(
+                        language === "zh" ? "zh-CN" : "en",
+                        { year: "numeric", month: "short", day: "numeric" },
+                      )}</span>
+                    </> : null}
                   </div>
                   <h1>
                     {visibleRecord?.ai_title || visibleRecord?.title ||
