@@ -217,7 +217,7 @@ test("an empty note stays compact while source navigation and retained drafts re
   expect((await notes.boundingBox())!.height).toBeLessThanOrEqual(56);
   expect(await notes.evaluate(element => Boolean(element.closest(".article-options")))).toBe(true);
   const noteBox = (await notes.boundingBox())!, sizeBox = (await page.locator(".reader-type-controls").boundingBox())!;
-  expect(Math.abs(noteBox.top - sizeBox.top)).toBeLessThanOrEqual(4);
+  expect(Math.abs(noteBox.y - sizeBox.y)).toBeLessThanOrEqual(4);
   await settleVisualLayout(page);
   await page.screenshot({ path: "screenshots/collection-review/quality-reader-content-first.png" });
   await page.getByRole("button", { name: "跳到保存的原文", exact: true }).focus(); await page.keyboard.press("Enter");
