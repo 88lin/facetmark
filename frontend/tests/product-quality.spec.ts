@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
+import type { SyncWorkspace } from "../src/sync-local-state";
+import type { SyncPreview, SyncStatus } from "../src/sync-types";
 import { settleVisualLayout } from "./visual-layout";
 
 test.beforeEach(async ({ page }) => {
@@ -24,6 +26,21 @@ async function collection(page: Page) {
 async function settings(page: Page) {
   await page.locator(".header-utilities").getByRole("button", { name: "设置", exact: true }).click();
   await expect(page.locator(".settings-workspace")).toBeVisible();
+}
+
+function originalSyncPreview() {
+  const revision = "a".repeat(64);
+  const workspace: SyncWorkspace = { version: 1, configRevision: revision, previewId: "navigation-original-preview",
+    draft: { folder: "/synthetic/shared/draft", enabled: true, auto_sync: false, poll_seconds: "90" },
+    resolutions: {}, confirmed: false };
+  const status: SyncStatus = { folder: "/synthetic/shared/saved", enabled: true, auto_sync: false, poll_seconds: 60,
+    configured: true, config_revision: revision, needs_review: true, last_sync_at: null, last_sync_id: null,
+    last_error: "", pending_conflicts: 0, pending_operations: [] };
+  const preview: SyncPreview = { preview_id: workspace.previewId!, expires_at: Math.floor(Date.now() / 1000) + 3600,
+    counts: { upload_new: 0, upload_update: 0, upload_delete: 0, download_new: 0, download_update: 0,
+      download_delete: 0, unchanged: 1, conflicts: 0 }, conflicts: [], changes: [],
+    excluded_karakeep: 0, excluded_unsupported: 0, stale: false };
+  return { workspace, status, preview };
 }
 
 test("settings opened from the collection remains the current page after refresh", async ({ page }) => {
@@ -86,6 +103,82 @@ test("a local connection draft survives finding a bookmark without a save or a c
   expect(saves).toBe(0);
   expect(probes).toBe(0);
   await page.screenshot({ path: "screenshots/collection-review/quality-settings-draft-retained.png" });
+});
+
+test("returning to sync resumes an interrupted original preview without writing settings or losing the draft", async ({ page }) => {
+  const { workspace, status, preview } = originalSyncPreview();
+  await page.addInitScript(workspace => localStorage.setItem("fm-sync-workspace", JSON.stringify(workspace)), workspace);
+  let writes = 0, previewReads = 0;
+  let releaseFirstRead!: () => void;
+  const firstRead = new Promise<void>(resolve => { releaseFirstRead = resolve; });
+  page.on("request", request => {
+    if (new URL(request.url()).pathname.startsWith("/admin/library/sync/") && request.method() !== "GET") writes++;
+  });
+  await page.route("**/admin/library/sync/status", route => route.fulfill({ json: status }));
+  await page.route("**/admin/library/sync/previews/navigation-original-preview", async route => {
+    const first = ++previewReads === 1;
+    if (first) await firstRead;
+    try { await route.fulfill({ json: preview }); }
+    catch (failure) { if (!first) throw failure; } // The first read was deliberately aborted by navigation.
+  });
+  try {
+    await page.goto("/app#settings/sync");
+    const sync = page.locator(".sync-settings");
+    await expect.poll(() => previewReads).toBe(1);
+    await expect(sync.locator(".sync-state")).toHaveText("等待首次确认");
+    await expect(sync.locator(".sync-loading")).toBeVisible();
+    await expect(sync.getByLabel("共享文件夹完整路径")).toHaveValue(workspace.draft.folder);
+    await page.keyboard.press("Control+k");
+    await expect(sync).toBeHidden();
+    await expect(page.getByRole("textbox", { name: "搜索书签", exact: true })).toBeFocused();
+    releaseFirstRead();
+    await settings(page);
+    await page.getByRole("tab", { name: "设备同步", exact: true }).click();
+    await expect(sync.locator(".sync-preview")).toBeVisible();
+    await expect(sync.locator(".sync-loading")).toBeHidden();
+    await expect(sync.getByLabel("共享文件夹完整路径")).toHaveValue(workspace.draft.folder);
+    await expect(sync.getByLabel("检查间隔（秒）")).toHaveValue("90");
+    expect(previewReads).toBeGreaterThanOrEqual(2);
+    expect(writes).toBe(0);
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fm-sync-workspace")!))).toEqual(workspace);
+    await page.screenshot({ path: "screenshots/collection-review/quality-sync-preview-resumed.png" });
+  } finally { releaseFirstRead(); }
+});
+
+test("a cleared original sync preview cannot put its late read failure onto the edited draft", async ({ page }) => {
+  const { workspace, status } = originalSyncPreview();
+  await page.addInitScript(workspace => localStorage.setItem("fm-sync-workspace", JSON.stringify(workspace)), workspace);
+  let previewReads = 0, writes = 0;
+  let releaseRead!: () => void;
+  const heldRead = new Promise<void>(resolve => { releaseRead = resolve; });
+  page.on("request", request => {
+    if (new URL(request.url()).pathname.startsWith("/admin/library/sync/") && request.method() !== "GET") writes++;
+  });
+  await page.route("**/admin/library/sync/status", route => route.fulfill({ json: status }));
+  await page.route("**/admin/library/sync/previews/navigation-original-preview", async route => {
+    previewReads++;
+    await heldRead;
+    await route.fulfill({ status: 410, json: { detail: "The cleared synthetic preview expired." } });
+  });
+  try {
+    await page.goto("/app#settings/sync");
+    const sync = page.locator(".sync-settings");
+    await expect.poll(() => previewReads).toBe(1);
+    await sync.getByLabel("共享文件夹完整路径").fill("/synthetic/shared/edited");
+    await expect(sync.locator(".sync-preview-read")).toHaveCount(0);
+    const failure = page.waitForResponse(response => new URL(response.url()).pathname.endsWith("/previews/navigation-original-preview"));
+    releaseRead();
+    const response = await failure;
+    expect(response.status()).toBe(410);
+    await response.finished(); await settleVisualLayout(page);
+    await expect(sync.locator(".sync-loading")).toBeHidden();
+    await expect(sync.getByRole("alert")).toHaveCount(0);
+    await expect(sync.locator(".sync-preview")).toHaveCount(0);
+    await expect(sync.getByLabel("共享文件夹完整路径")).toHaveValue("/synthetic/shared/edited");
+    expect(writes).toBe(0);
+    const stored: SyncWorkspace = await page.evaluate(() => JSON.parse(localStorage.getItem("fm-sync-workspace")!));
+    expect(stored.previewId).toBeUndefined(); expect(stored.draft.folder).toBe("/synthetic/shared/edited");
+  } finally { releaseRead(); }
 });
 
 test("search shortcut closes a narrow reader and focuses the usable collection search", async ({ page }) => {
@@ -225,7 +318,7 @@ test("an empty note stays compact while source navigation and retained drafts re
   await expect(source).toBeInViewport({ ratio: 1 }); await expect(source).toBeFocused();
   await page.getByRole("button", { name: "回到顶部", exact: true }).click();
   await expect(notes).toBeInViewport({ ratio: 1 });
-  await notes.getByRole("button", { name: "写笔记", exact: true }).click();
+  await notes.getByRole("button", { name: "写笔记", exact: true }).focus(); await page.keyboard.press("Space");
   expect(await notes.evaluate(element => Boolean(element.closest(".reading")))).toBe(true);
   const editor = notes.getByRole("textbox", { name: "个人阅读笔记", exact: true });
   await expect(editor).toBeFocused(); await editor.fill("继续浏览后仍保留的本机阅读草稿。");

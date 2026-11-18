@@ -140,9 +140,18 @@ export function SyncSettings({ active = true, onChanged }: { active?: boolean; o
         const previous = statusRef.current;
         acceptStatus(next);
         if (!previous && !restored) remember({ draft: draftOf(next), configRevision: next.config_revision });
-        if (initial && workspaceRef.current.previewId) {
-          const original = await readPreview(workspaceRef.current.previewId, controller.signal);
-          if (controller.signal.aborted || generation !== statusGeneration.current) return;
+        // A successful status read does not finish restoring a saved preview.
+        // Resume it after a visibility abort, without replacing a newer draft.
+        const originalId = workspaceRef.current.previewId;
+        if (originalId && !previewRef.current) {
+          let original: Preview;
+          try { original = await readPreview(originalId, controller.signal); }
+          catch (failure) {
+            if (originalId !== workspaceRef.current.previewId) return;
+            throw failure;
+          }
+          if (controller.signal.aborted || generation !== statusGeneration.current
+            || originalId !== workspaceRef.current.previewId) return;
           acceptPreview(original);
           if (original.stale) remember({ confirmed: false });
         }
@@ -153,7 +162,7 @@ export function SyncSettings({ active = true, onChanged }: { active?: boolean; o
       } catch (e) {
         if (!controller.signal.aborted && generation === statusGeneration.current) setError(String(e));
       } finally {
-        if (!controller.signal.aborted && initial) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
     void refresh(!statusRef.current);
