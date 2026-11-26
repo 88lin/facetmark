@@ -107,6 +107,16 @@ describe("advance", () => {
 });
 
 describe("nextRequest", () => {
+  test("a pinned ranking stops after its available results even with more candidates", () => {
+    const first = advance(startCursor("kafka"), response({ n: 20, total: 26, has_more: true, depth_capped: true }));
+    assert.equal(nextRequest(first, 20)?.offset, 20);
+    const last = advance(first, response({ n: 6, offset: 20, total: 26, has_more: true }));
+    assert.equal(nextRequest(last, 20), null);
+    assert.equal(describePage(last), "26 shown (end of current ranking)");
+    const empty = advance(first, response({ n: 0, offset: 20, total: 26, has_more: true }));
+    assert.equal(nextRequest(empty, 20), null);
+  });
+
   test("nothing is requested once the server says the results ran out", () => {
     let cur = startCursor("kafka");
     cur = advance(cur, response({ n: 8, total: 8, has_more: false }));

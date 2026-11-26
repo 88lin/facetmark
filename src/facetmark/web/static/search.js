@@ -634,10 +634,14 @@ export async function run(q, { force = false } = {}) {
   const ac = new AbortController();
   inflight = ac;
 
+  rows = [];
+  neighbours = [];
   cursor = startCursor(q);
   ui.panel.replaceChildren();
   ui.status.textContent = t("results.searching");
   ui.results.replaceChildren(skeleton(5));
+  ui.more.replaceChildren();
+  ui.around.hidden = true;
 
   const slow = setTimeout(() => {
     if (mine !== generation) return;
@@ -693,13 +697,8 @@ async function stages(q, mine, signal) {
     neighbours = [];
     renderResults();
     ui.status.textContent = firstPaintLine(first);
-  } catch (e) {
-    if (mine === generation) {
-      ui.results.replaceChildren();
-      ui.status.textContent = "";
-      failPanel(e, ui.panel);
-    }
-    return;
+  } catch {
+    if (mine !== generation) return;
   }
 
   try {
@@ -739,7 +738,8 @@ async function stages(q, mine, signal) {
     // that way. A query with no lexical hit is precisely the vague one this
     // index exists for, so that is not a corner.
     if (mine === generation) {
-      ui.status.textContent = firstPaintLine(first, { unranked: true });
+      if (!first) ui.results.replaceChildren();
+      ui.status.textContent = first ? firstPaintLine(first, { unranked: true }) : "";
       failPanel(e, ui.panel);
     }
   }

@@ -74,7 +74,8 @@ provider，上游那句注释写的就是 "Order of plugin loading matter"。放
 它原来的搜索插件——**缺 token 不会被当成"不需要鉴权"**。
 
 上面这些路径对应的是 `integrations/karakeep/typecheck/upstream-pins.json` 里钉住的那几个
-上游文件版本。karakeep 挪了目录这段就会过期，`npm run check-drift` 会告诉你。
+上游文件版本。定时检查直接读取 `karakeep-app/karakeep` 的 `main`，文件移动或内容变化都会报告。
+2026-11-27 复核了官方版本 `44e963a` 的四个文件，搜索接口和插件加载顺序仍支持上述步骤。
 
 装完之后在 karakeep 里触发一次「重建索引」，它会把全部书签通过 `addDocuments` 推过来，
 facetmark 这边按批入库并逐批算向量。不需要读 karakeep 的数据库，也不需要知道它的 schema。

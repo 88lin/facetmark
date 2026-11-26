@@ -48,6 +48,8 @@ def main() -> None:
             if path == "/quick" and request.query_params.get("q") == "slow":
                 await asyncio.sleep(0.8)
                 finished_quick += 1
+            if path == "/quick" and flags.get("quick_failure"):
+                return JSONResponse({"detail": "Synthetic keyword read unavailable"}, status_code=503)
             if path == "/search" and flags.get("delay_search"):
                 await asyncio.sleep(0.8)
             if path == "/search" and flags.get("bad_search"):

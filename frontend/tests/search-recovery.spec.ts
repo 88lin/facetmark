@@ -39,18 +39,29 @@ const result = (records: Bookmark[], offset = 0) => ({ hits: records.slice(offse
   total: records.length, offset, limit: 30, depth: 120, has_more: offset + 30 < records.length });
 const title = (record: Bookmark) => record.ai_title || record.title;
 
-test("synthesis sends the displayed page's saved bookmark IDs", async ({ page }) => {
-  await page.goto("/app");
-  const input = page.getByRole("textbox", { name: "搜索书签", exact: true });
-  await input.fill("SQLite");
-  await expect(page.locator(".result-title").first()).toContainText(/SQLite/i);
+test("synthesis sends the displayed page's saved bookmark IDs", async ({ page, request }) => {
+  const records = (await prepare(page, request)).filter(record => !record.privacy_skipped);
+  await page.route("**/quick?**", route => {
+    const offset = Number(new URL(route.request().url()).searchParams.get("offset") || 0);
+    return route.fulfill({ json: result(records, offset) });
+  });
+  await page.route("**/search", route => route.fulfill({ json: result(records, route.request().postDataJSON().offset) }));
+  const firstRanking = page.waitForResponse(value => new URL(value.url()).pathname === "/search"
+    && value.request().postDataJSON()?.q === "synthetic staged retrieval");
+  await begin(page);
+  await firstRanking;
+  await expect(page.locator(".collection-hint")).toHaveText("语义检索结果");
+  await page.getByRole("button", { name: "下一页", exact: true }).click();
+  await expect(page.locator(".result-row").first()).toHaveAttribute("data-bookmark-id", String(records[30].bookmark_id));
   await expect(page.locator(".result-list")).toHaveAttribute("aria-busy", "false");
   const ids = await page.locator(".result-row").evaluateAll(rows => rows.slice(0, 8).map(row => Number(row.getAttribute("data-bookmark-id"))));
-  expect(ids.length).toBeGreaterThan(0);
+  expect(ids).toEqual(records.slice(30, 38).map(record => record.bookmark_id));
   await page.locator(".search-answer > summary").click();
-  const request = page.waitForRequest(value => new URL(value.url()).pathname === "/synthesize");
+  const response = page.waitForResponse(value => new URL(value.url()).pathname === "/synthesize");
   await page.locator(".search-answer").getByRole("button", { name: "确认并生成回答", exact: true }).press("Enter");
-  expect((await request).postDataJSON()).toEqual({ q: "SQLite", limit: 8, bookmark_ids: ids });
+  const synthesis = await response;
+  expect(synthesis.ok()).toBeTruthy();
+  expect(synthesis.request().postDataJSON()).toEqual({ q: "synthetic staged retrieval", limit: 8, bookmark_ids: ids });
 });
 
 async function begin(page: Page) {

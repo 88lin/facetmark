@@ -1,12 +1,9 @@
 /**
  * Hand-translated stub of karakeep's `packages/shared/plugins.ts`.
  *
- * Only the Search branch of `PluginTypeMap` is reproduced faithfully. The three
- * other client types are declared as opaque brands: this plugin never registers
- * a Queue, RateLimit or VectorStore provider, and giving them real shapes would
- * mean vendoring three more upstream modules for no added checking. Branding
- * them (rather than aliasing them to `unknown`) keeps `register()` from silently
- * accepting a Search provider under the wrong `PluginType`.
+ * Only the Search branch of `PluginTypeMap` is reproduced faithfully. The other
+ * client types are declared as opaque brands so `register()` rejects a Search
+ * provider under the wrong `PluginType`.
  *
  * Provenance is pinned in ../../upstream-pins.json by git blob SHA.
  */
@@ -14,12 +11,14 @@
 import type { SearchIndexClient } from "./search";
 
 export declare enum PluginType {
+  AssetStore = "assetstore",
   Search = "search",
   Queue = "queue",
   RateLimit = "ratelimit",
   VectorStore = "vectorstore",
 }
 
+declare const ASSET_STORE: unique symbol;
 declare const QUEUE_CLIENT: unique symbol;
 declare const RATE_LIMIT_CLIENT: unique symbol;
 declare const VECTOR_STORE_CLIENT: unique symbol;
@@ -35,6 +34,7 @@ export interface VectorStoreClient {
 }
 
 interface PluginTypeMap {
+  [PluginType.AssetStore]: { readonly [ASSET_STORE]: never };
   [PluginType.Search]: SearchIndexClient;
   [PluginType.Queue]: QueueClient;
   [PluginType.RateLimit]: RateLimitClient;
