@@ -18,7 +18,10 @@
     </div>
     <div id="save-status" role="status" aria-live="polite" aria-atomic="true"></div>
     <a id="save-recovery" href="options.html#pending-panel" target="_blank" rel="noopener noreferrer" hidden data-i18n="pop.recovery">Confirm the original save in settings</a>
-    <div id="status" role="status" aria-live="polite"></div>
+    <div class="popup-search-status">
+      <div id="status" role="status" aria-live="polite"></div>
+      <button id="search-retry" type="button" class="ext-button" data-i18n="pop.retrySearch" hidden>Retry search</button>
+    </div>
     <ul id="results" data-i18n-attr="aria-label:pop.results" aria-label="Search results"></ul>
     <footer class="extension-footer">
       <span id="queue"></span>
