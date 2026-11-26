@@ -358,6 +358,11 @@ test("compact collection menus retain status, sorting and layout across the brea
   });
   await page.setViewportSize({ width: 320, height: 640 }); await collection(page);
   const status = page.locator(".collection-status-menu"), display = page.locator(".collection-options-menu");
+  const indicator = status.locator(".collection-status-indicator");
+  const label = (await indicator.locator("span").first().boundingBox())!;
+  const count = (await indicator.locator(".collection-status-count").boundingBox())!;
+  expect(count.x).toBeGreaterThanOrEqual(label.x + label.width);
+  expect(Math.abs(count.y - label.y)).toBeLessThanOrEqual(2);
   await status.locator(":scope > summary").focus(); await page.keyboard.press("Space");
   await expect(status.locator(".collection-status .fm-button")).toHaveCount(4);
   await status.locator('[data-status="pending"]').press("Enter");

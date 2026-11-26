@@ -109,7 +109,8 @@ test("a lost creation response retains its exact send and selected page through 
   expect(control.messages).toHaveLength(0);
   const original = control.creations[0];
   expect(original.bookmark_ids).toHaveLength(1);
-  await expect(page.locator("#chat-connection")).toBeDisabled();
+  expect(original.profile_id).toBe("");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "切换语言", exact: true }).click();
   await page.reload();
   await expect(question).toHaveValue("发送期间准备好的下一问");
@@ -126,7 +127,7 @@ test("a lost creation response retains its exact send and selected page through 
   await expect(page.locator(".chat-delivery-recovery")).toHaveCount(0);
   expect(control.creations).toHaveLength(2); expect(control.creations[1]).toEqual(original);
   expect(control.messages).toHaveLength(1);
-  expect(control.messages[0]).toEqual(expect.objectContaining({ text: "先整理这篇收藏的结论", language: "zh" }));
+  expect(control.messages[0]).toEqual(expect.objectContaining({ text: "先整理这篇收藏的结论", language: "zh", profile_id: "" }));
   await expect(question).toHaveValue("发送期间准备好的下一问");
   const saved = await page.request.get(`/chat/conversations/${original.id}`, { headers: owned.headers });
   expect((await saved.json()).bookmark_ids).toEqual(original.bookmark_ids);
@@ -288,7 +289,11 @@ test("a per-conversation connection survives refresh and rejected work can retur
   expect(control.generations).toBe(2); expect(control.messages[1].profile_id).toBe("careful");
   expect(control.messages[2].profile_id).toBe(""); expect(control.globalWrites).toBe(0);
   control.profiles = []; await page.reload();
-  await expect(choice).toHaveValue("");
+  await expect(page.locator(".chat-message.user")).toHaveCount(2);
+  await expect(choice).toHaveCount(0);
+  await question.fill("继续使用摘要连接");
+  await expect(page.getByRole("button", { name: "发送问题", exact: true })).toBeEnabled();
+  expect(control.messages).toHaveLength(3);
 });
 
 test("an accepted older retry is settled even after another window replaces its message request ID", async ({ page }) => {
