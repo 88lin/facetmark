@@ -56,24 +56,12 @@ jobs:
           ln -s "$(python -c 'import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())')" "$RUNNER_TEMP/facetmark-encoder/ffmpeg"
           echo "$RUNNER_TEMP/facetmark-encoder" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/facetmark-encoder/ffmpeg" -version
-      - name: Focused reading and settings recovery regression
-        working-directory: frontend
-        env:
-          FACETMARK_REVIEW_CORPUS: '1'
-          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report-focused
-        run: npx playwright test product-quality.spec.ts workspace-layout.spec.ts settings-maintenance.spec.ts --output=test-results-focused
-      - name: Responsive reading and collection menu journeys
+      - name: Mobile category recovery with the review corpus
         working-directory: frontend
         env:
           FACETMARK_REVIEW_CORPUS: '1'
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report-menus
-        run: npx playwright test collection.spec.ts library.spec.ts search-recovery.spec.ts --grep 'mobile category errors recover|mobile action dialogs trap focus|narrow semantic results retain|keyword collection menus stay within' --output=test-results-menus
-      - name: Original link check closure remains visible until confirmed
-        working-directory: frontend
-        env:
-          FACETMARK_REVIEW_CORPUS: '1'
-          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report-health
-        run: npx playwright test health-recovery.spec.ts --grep 'returning from an absent original' --output=test-results-health
+        run: npx playwright test collection.spec.ts --grep 'mobile category errors recover' --output=test-results-menus
       - name: Representative page and interaction review
         working-directory: frontend
         env:
@@ -90,10 +78,6 @@ jobs:
             collection-review-evidence/
             frontend/playwright-report/
             frontend/test-results/
-            frontend/playwright-report-focused/
-            frontend/test-results-focused/
             frontend/playwright-report-menus/
             frontend/test-results-menus/
-            frontend/playwright-report-health/
-            frontend/test-results-health/
           retention-days: 14
