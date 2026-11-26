@@ -226,7 +226,7 @@ export function SearchAnswer({
 }: {
   terms: string;
   available: boolean;
-  onSelect: (id: number) => void;
+  onSelect: (id: number, opener: HTMLButtonElement) => void;
 }) {
   const t = useText();
   const [answer, setAnswer] = useState<Answer | null>(null);
@@ -294,9 +294,9 @@ export function SearchAnswer({
                   className="citation"
                   key={n}
                   aria-label={t(`查看来源 ${n}`, `Read source ${n}`)}
-                  onClick={() => {
+                  onClick={event => {
                     const source = answer.sources.find((s) => s.n === n);
-                    if (source) onSelect(source.bookmark_id);
+                    if (source) onSelect(source.bookmark_id, event.currentTarget);
                   }}
                 >
                   [{n}]
@@ -308,7 +308,7 @@ export function SearchAnswer({
             <CapsuleButton
               className="related-item"
               key={source.n}
-              onClick={() => onSelect(source.bookmark_id)}
+              onClick={event => onSelect(source.bookmark_id, event.currentTarget)}
             >
               [{source.n}] {source.title}
               {source.basis === "title" && <small>{t("仅基于标题", "Based on title only")}</small>}

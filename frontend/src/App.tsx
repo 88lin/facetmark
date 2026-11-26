@@ -260,7 +260,7 @@ function Workbench({
   useContentMotion(workspace, view, view === "library" ? ".results-column" : ".page-scroll:not([hidden])", "x");
   useContentMotion(list, loadedContext);
   const browseScroll = useRef(0);
-  const lastRow = useRef<HTMLButtonElement | null>(null);
+  const previewOpener = useRef<HTMLButtonElement | null>(null);
   const [requestRevision, setRequestRevision] = useState(0);
   useEffect(() => {
     const folder = filters.folder;
@@ -314,16 +314,20 @@ function Workbench({
     } catch (failure) { if (!request.signal.aborted) setLibraryNotice(String(failure)); }
     finally { chatSelectionGate.current = false; setChatSelectionBusy(false); }
   };
+  const restorePreviewFocus = useCallback(() => {
+    const opener = previewOpener.current;
+    if (!searchFocusIntent.current && opener?.isConnected && opener.getClientRects().length) {
+      opener.focus({ preventScroll: true });
+    } else searchInput.current?.focus({ preventScroll: true });
+  }, []);
   const closePreview = useCallback(() => {
     setSelected(null);
     setFocusReading(false);
     requestAnimationFrame(() => {
       if (list.current) list.current.scrollTop = browseScroll.current;
-      if (searchFocusIntent.current) searchInput.current?.focus({ preventScroll: true });
-      else if (lastRow.current?.isConnected) lastRow.current.focus({ preventScroll: true });
-      else searchInput.current?.focus();
+      restorePreviewFocus();
     });
-  }, []);
+  }, [restorePreviewFocus]);
   const invalidateLibrary = useCallback(() => {
     readerCache.current.clear();
     setRequestRevision((value) => value + 1);
@@ -609,7 +613,7 @@ function Workbench({
     const update = (data: Page, provisional = false) => {
       if (id === requestId.current && !abort.signal.aborted) {
         if (!provisional && offset > 0 && offset >= data.total) {
-          setOffset(Math.max(0, Math.ceil(data.total / 30) - 1) * 30);
+          setOffset(Math.max(0, Math.ceil(data.total / data.limit) - 1) * data.limit);
           return;
         }
         setPage(data);
@@ -707,6 +711,11 @@ function Workbench({
   }, [selected, previewRevision]);
   const items = page?.items || page?.hits || [];
   const semanticSelection = Boolean(search.trim() && searchMode === "semantic" && semantic);
+  // At a pinned ranking depth, has_more can indicate candidates beyond the
+  // ranked pool. Only request pages that can be read at the same depth.
+  const moreRankedRows = page && page.offset + page.limit < page.total;
+  const canPageForward = page?.has_more && (!semanticSelection || moreRankedRows);
+  const rankingLimitReached = semanticSelection && page?.has_more && !moreRankedRows;
   // The modal reader covers the collection. Retain the underlying controls so
   // its nested scroll ranges stay unchanged until the drawer closes.
   const showCollectionControls = selected === null || drawer;
@@ -753,7 +762,7 @@ function Workbench({
   const select = (id: number, button?: HTMLButtonElement) => {
     searchFocusIntent.current = false;
     if (selected === null) browseScroll.current = list.current?.scrollTop ?? 0;
-    if (button) lastRow.current = button;
+    if (button || selected === null) previewOpener.current = button ?? null;
     setPreview(readerCache.current.get(id) || null);
     setPreviewError("");
     setPreviewTab("body");
@@ -878,7 +887,11 @@ function Workbench({
                 composing.current = false;
                 changeQuery(event.currentTarget.value, true);
               }}
-              onBlur={() => { composing.current = false; }}
+              onBlur={event => {
+                if (!composing.current) return;
+                composing.current = false;
+                changeQuery(event.currentTarget.value, true);
+              }}
               onKeyDown={event => {
                 if (event.key === "Enter" && !event.nativeEvent.isComposing && !composing.current)
                   changeQuery(input, true);
@@ -1309,7 +1322,7 @@ function Workbench({
                     available={Boolean(
                       setup?.demo || (semantic && setup?.channels.chat.configured),
                     )}
-                    onSelect={(id) => select(id)}
+                    onSelect={select}
                   />
                 )}
                 {error && !items.length ? null : (loading || ranking || !page) && !items.length ? (
@@ -1376,13 +1389,16 @@ function Workbench({
               </div>
               <footer className="results-footer">
                 <div className="collection-subtitle">
-                  {page && page.total > 0 && <span className="result-range">
+                  {page && items.length > 0 && <span className="result-range">
                     {`${page.offset + 1}–${page.offset + items.length}`}<span aria-hidden="true"> / </span>
                   </span>}
                   <span className="result-count" aria-live="polite">
-                    {loading || !page ? "…" : page.total}{page?.depth_capped ? "+" : ""}
+                    {loading || !page ? "…" : page.total}{page?.depth_capped || rankingLimitReached ? "+" : ""}
                   </span>
                   <span className="collection-count-label">{t("条收藏", "saved pages")}</span>
+                  {rankingLimitReached && !pagingPending && <span className="result-window-limit" role="status">
+                    {t("已到本次排序末尾，可缩小检索条件查找更多。", "End of this ranking. Narrow the search to find more.")}
+                  </span>}
                 </div>
                 <div>
                   {showCollectionControls && pageCount > 1 && !paginationPage?.depth_capped && <form className="page-jump"
@@ -1408,7 +1424,7 @@ function Workbench({
                   </CapsuleButton>
                   <CapsuleButton
                     className="icon-button"
-                    disabled={!page?.has_more || pagingPending || page.depth_capped}
+                    disabled={!canPageForward || pagingPending}
                     aria-label={t("下一页", "Next page")}
                     onClick={() => paginate((page?.offset || 0) + (page?.limit || 30))}
                   >
@@ -1456,8 +1472,7 @@ function Workbench({
                         }}
                         onCloseAutoFocus={(e) => {
                           e.preventDefault();
-                          if (searchFocusIntent.current) searchInput.current?.focus({ preventScroll: true });
-                          else lastRow.current?.focus({ preventScroll: true });
+                          restorePreviewFocus();
                         }}
                       >
                         <motion.div
