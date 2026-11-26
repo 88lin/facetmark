@@ -4,6 +4,7 @@ from __future__ import annotations
 import ctypes
 import json
 import os
+import signal
 import sys
 import time
 from ctypes import wintypes
@@ -208,6 +209,47 @@ if mode == "startup":
         "replacement_pid": runtime["pid"], "replacement_owned_service": True,
         "health_checks_after_recovery": health_checks,
         "injection_scope": "CI holds native shutdown until Enter; actual installed service and its instance lock"})
+elif mode == "interrupted":
+    runtime_path = Path(os.environ["FACETMARK_DATA_DIR"]) / "desktop-runtime.json"
+    original = read_json(runtime_path)
+    spawn = read_json(output / "backend-spawn.json")
+    assert spawn["process"] == process and spawn["sidecar_pid"] == original["pid"] and running(original["pid"])
+    with sync_playwright() as playwright:
+        workspace = installed_page(playwright)
+        workspace.goto(f'http://127.0.0.1:{original["port"]}/app')
+        search = workspace.locator(".workspace-search input")
+        search.fill("Synthetic retained")
+        workspace.locator(".result-title").filter(has_text="Synthetic retained bookmark").wait_for()
+        workspace.evaluate("window.__facetmarkOriginalView = true")
+        os.kill(original["pid"], signal.SIGTERM)
+        splash = installed_page(playwright, splash=True)
+        splash.locator("#retry").wait_for(state="visible")
+        hint = splash.locator("#hint").inner_text()
+        assert "本地服务已停止" in hint or "Local service stopped" in hint
+        for key in [0x11, 0x10, 0x20]:  # Ctrl+Shift+Space, through Windows.
+            user32.keybd_event(key, 0, 0, 0)
+        for key in [0x20, 0x10, 0x11]:
+            user32.keybd_event(key, 0, 2, 0)
+        wait_for(lambda: read_json(output / "activated-window.json") == {"process": process, "window": "loading"},
+                 "The shortcut brought the stale workbench forward instead of startup recovery")
+        splash.screenshot(path=str(output / "installed-interrupted-service.png"))
+        with splash.expect_event("close", timeout=60_000):
+            try:
+                splash.locator("#retry").press("Enter")
+            except Error as error:
+                if "closed" not in str(error).lower():
+                    raise
+        replacement = read_json(runtime_path)
+        assert replacement["pid"] != original["pid"] and running(replacement["pid"])
+        restored = installed_page(playwright)
+        if replacement["port"] == original["port"]:
+            assert restored.evaluate("window.__facetmarkOriginalView === true")
+            assert restored.locator(".workspace-search input").input_value() == "Synthetic retained"
+        else:
+            restored.locator(".workspace-search input").fill("Synthetic retained")
+        restored.locator(".result-title").filter(has_text="Synthetic retained bookmark").wait_for()
+    report("installed-service-interruption.json", {"restarted": True, "restored_bookmark": True,
+        "shortcut_selected_recovery": True, "original_view_retained": replacement["port"] == original["port"]})
 elif mode == "prepare":
     metadata = wait_for(window_metadata, "No current native-window evidence")
     hwnd = wait_for(window_handle, "Installed main window missing")

@@ -222,8 +222,9 @@ fn restore_geometry(window: &tauri::WebviewWindow, saved: Option<Geometry>) -> t
 
 fn focus_main(app: &tauri::AppHandle) {
     tray_menu::hide(app);
-    if let Some(win) = app.get_webview_window("main").or_else(|| app.get_webview_window("loading")) {
+    if let Some(win) = app.get_webview_window("loading").or_else(|| app.get_webview_window("main")) {
         let _ = win.show(); let _ = win.unminimize(); let _ = win.set_focus();
+        ci_record("activated-window.json", serde_json::json!({ "process": std::process::id(), "window": win.label() }));
     }
 }
 fn startup_error(app: &tauri::AppHandle, message: &str) {
@@ -235,6 +236,8 @@ fn startup_error(app: &tauri::AppHandle, message: &str) {
     });
     if let Some(win) = window {
         let _ = win.show();
+        let _ = win.unminimize();
+        let _ = win.set_focus();
         let payload = serde_json::to_string(message).unwrap_or_default();
         // `eval` can beat the splash's script on a cold start. Park the message
         // on the window and let the page pick it up when it is ready.
@@ -248,6 +251,17 @@ fn open_workspace(app: &tauri::AppHandle, port: u16) -> Result<(), String> {
     let url: tauri::Url = format!("http://127.0.0.1:{port}/app").parse().map_err(|e| format!("{e}"))?;
     let prefs = preferences(app);
     let origin = url.origin();
+    if let Some(window) = app.get_webview_window("main") {
+        // Recover a live view's drafts and scroll position when the original
+        // service address is available again.
+        if window.url().is_ok_and(|current| current.origin() == origin) {
+            window.show().and_then(|_| window.unminimize()).map_err(|error| error.to_string())?;
+            let _ = window.set_focus();
+            if let Some(splash) = app.get_webview_window("loading") { let _ = splash.destroy(); }
+            return Ok(());
+        }
+        let _ = window.destroy();
+    }
     let handle = app.clone();
     let new_handle = app.clone();
     let mut builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
@@ -262,8 +276,6 @@ fn open_workspace(app: &tauri::AppHandle, port: u16) -> Result<(), String> {
             open_original(&new_handle, &target, "new_window");
             tauri::webview::NewWindowResponse::Deny
         });
-    // Only a service restart under a live UI needs the label freed first.
-    if let Some(old) = app.get_webview_window("main") { let _ = old.destroy(); }
     if cloud_webview_inspection() { builder = builder.additional_browser_args(CI_BROWSER_ARGS); }
     if cloud_webview_inspection() && std::env::var("FACETMARK_CI_FAIL_WORKSPACE_ONCE").as_deref() == Ok("1")
         && !CI_WORKSPACE_FAILURE_INJECTED.swap(true, Ordering::SeqCst) {
@@ -389,8 +401,9 @@ fn spawn_backend(app: &tauri::AppHandle) -> Result<(), String> {
                     // A specific startup error already explains this exit; the
                     // generic line would replace it with less information.
                     let specific = state.error_shown.swap(false, Ordering::SeqCst);
-                    if !specific && !state.exiting.load(Ordering::SeqCst)
-                        && (!state.ready.load(Ordering::SeqCst) || state.owned.load(Ordering::SeqCst)) {
+                    let service_stopped = !state.ready.load(Ordering::SeqCst) || state.owned.load(Ordering::SeqCst);
+                    if service_stopped { state.ready.store(false, Ordering::SeqCst); }
+                    if service_stopped && !specific && !state.exiting.load(Ordering::SeqCst) {
                         startup_error(&handle, "本地服务已停止。可重新启动；已保存的书签会保留。 / Local service stopped. Restart to continue.");
                     }
                     ci_record("backend-exit-confirmed.json", serde_json::json!({ "process": std::process::id(), "generation": generation }));

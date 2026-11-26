@@ -205,9 +205,11 @@ async def run_service(settings, *, parent_pid: int = 0) -> None:
         port = sock.getsockname()[1]
         settings = settings.model_copy(update={'host': '127.0.0.1', 'port': port})
         app = create_app(settings)
+        # Leave time for FastAPI to persist interrupted work before the shell's
+        # 10-second exit deadline, even if an HTTP connection never drains.
         server = uvicorn.Server(uvicorn.Config(app, host='127.0.0.1', port=port,
                                 loop='asyncio', http='h11', log_level='warning', access_log=False,
-                                timeout_graceful_shutdown=30))
+                                timeout_graceful_shutdown=4))
 
         def control():
             for line in sys.stdin:
