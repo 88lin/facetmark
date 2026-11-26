@@ -335,6 +335,25 @@ test("a restored running conversation retains its request ID and a failed stop k
   await expect(page.locator(".chat-feedback")).toHaveCount(0);
 });
 
+test("a single saved connection leaves the narrow conversation visible and history returns focus", async ({ page }) => {
+  await chatFixture(page, { seed: true });
+  await page.route("**/admin/model-profiles?channel=chat", route => route.fulfill({ json: { profiles: [] } }));
+  await page.addInitScript(() => localStorage.setItem("fm-chat-current", "saved-chat"));
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.goto("/app#chat");
+  await expect(page.locator(".chat-message.assistant")).toContainText("将任务目标保存为快照");
+  await expect(page.locator(".chat-model-choice")).toHaveCount(0);
+  await expect(page.locator(".chat-composer-status")).toBeHidden();
+  await expect(page.getByRole("button", { name: "返回收藏", exact: true })).toBeVisible();
+  const history = page.getByRole("button", { name: "历史", exact: true });
+  await history.press("Enter");
+  await expect(page.getByRole("dialog", { name: "对话历史", exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(history).toBeFocused();
+  await settleVisualLayout(page);
+  await page.screenshot({ path: "screenshots/collection-review/chat-single-connection-320.png", animations: "disabled" });
+});
+
 test("missing models lead to settings and deleting history requires confirmation", async ({ page }) => {
   const fixture = await chatFixture(page, { tested: false, seed: true });
   await page.addInitScript(() => localStorage.setItem("fm-chat-current", "saved-chat"));
