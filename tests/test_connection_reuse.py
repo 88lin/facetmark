@@ -31,6 +31,36 @@ def test_unsaved_model_test_does_not_replace_saved_connection_after_restart(tmp_
         assert not client.get("/admin/setup-status").json()["channels"]["chat"]["tested"]
 
 
+def test_verified_save_checks_the_resulting_connection_before_writing(tmp_path, monkeypatch):
+    monkeypatch.setenv("FACETMARK_DATA_DIR", str(tmp_path))
+    probes = []
+
+    async def probe(settings, channel=None):
+        probes.append(settings.chat_base_url)
+        return {"chat": {"ok": True, "model": settings.chat_model}}
+
+    monkeypatch.setattr(admin, "probe", probe)
+    original = "https://first-connection.invalid/v1"
+    changed = "https://other-window.invalid/v1"
+    settings = Settings(data_dir=tmp_path, chat_base_url=original, chat_api_key="synthetic-key")
+    with TestClient(create_app(settings), client=("127.0.0.1", 40000)) as client:
+        state = client.app.state.fm
+        client.headers["Authorization"] = "Bearer " + state.token
+        draft = {"chat_model": "tested-draft"}
+        assert client.post("/admin/settings/test", json={**draft, "channel": "chat"}).json()["chat"]["ok"]
+        assert client.put("/admin/settings", json={"values": {"chat_base_url": changed}}).status_code == 200
+        response = client.put("/admin/settings", json={"values": draft, "verified_channel": "chat"})
+        assert response.status_code == 409
+        assert response.json()["detail"]["code"] == "connection_proof_changed"
+        assert state.settings.chat_model == settings.chat_model
+        assert state.settings.chat_base_url == changed
+
+        same_connection = {**draft, "chat_base_url": original, "chat_api_key": "synthetic-key"}
+        assert client.put("/admin/settings", json={"values": same_connection, "verified_channel": "chat"}).status_code == 200
+        assert client.get("/admin/setup-status").json()["channels"]["chat"]["tested"]
+        assert probes == [original]
+
+
 def test_explicit_codex_choice_ignores_unused_client_defaults(tmp_path, monkeypatch):
     monkeypatch.setenv("CODEX_HOME", str(tmp_path))
     monkeypatch.setattr(local_agents, "resolve_command", lambda _: ["/synthetic/codex"])

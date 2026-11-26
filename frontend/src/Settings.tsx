@@ -11,7 +11,7 @@ import {
   RefreshCw,
   Save,
 } from "lucide-react";
-import { api, getToken, post, type Probe, type Setting, type Setup } from "./api";
+import { api, ApiError, getToken, post, type Probe, type Setting, type Setup } from "./api";
 import { useText, type Language } from "./locale";
 import { ModelPicker, type Catalog } from "./ModelPicker";
 import { ModelProfiles, type AppliedProfile } from "./ModelProfiles";
@@ -253,8 +253,17 @@ export function Models({ active = true, setup, refresh, showHeading = true, onSu
   }
   async function persistChannel(channel: string, payload: Record<string, unknown>) {
     try {
-      await api("/admin/settings", { method: "PUT", body: JSON.stringify({ values: payload }) });
+      await api("/admin/settings", { method: "PUT", body: JSON.stringify({ values: payload, verified_channel: channel }) });
     } catch (e) {
+      if (e instanceof ApiError && e.details?.code === "connection_proof_changed") {
+        setResults(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== channel)));
+        setChannelFeedback(current => ({ ...current, [channel]: { saved: false, text: t(
+          "连接配置与先前的测试不再匹配。草稿已保留，请核对当前设置后再测试。",
+          "The earlier test no longer matches these settings. Your draft is retained. Review the connection and test again.",
+        ) } }));
+        await reloadSaved();
+        return false;
+      }
       setChannelFeedback(current => ({ ...current, [channel]: { saved: false, text: t("连接测试成功，但配置未保存。请重试保存，无需再次测试。", "Connection passed, but settings were not saved. Retry saving without another test.") + " " + String(e) } }));
       return false;
     }
