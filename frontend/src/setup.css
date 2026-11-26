@@ -15,7 +15,7 @@
 .setup-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 22px; margin-top: 28px; border-top: 1px solid var(--rule); }
 .setup-footer > span { color: var(--secondary-ink); font-size: .8125rem; font-variant-numeric: tabular-nums; }
 .importer { min-width: 0; }
-.importer > h2 { margin: 0 0 8px; font-size: 1.5rem; font-weight: 680; line-height: 1.5; }
+.import-flow > .page-heading { margin-bottom: 12px; }
 .importer > p { max-width: 70ch; margin: 0 0 20px; color: var(--secondary-ink); font-size: .9375rem; line-height: 1.75; }
 .importer .dropzone { position: relative; display: flex; align-items: center; flex-direction: column; gap: 10px; width: 100%; margin: 22px 0 18px; padding: 32px 24px; border: 1px dashed var(--selected-edge); border-radius: 28px; background: linear-gradient(150deg, var(--canvas), var(--soft)); box-shadow: inset 0 1px 0 var(--glass-edge), 0 14px 28px -24px #235fe559; text-align: center; transition: border-color 180ms ease, background-color 180ms ease, box-shadow 240ms var(--ease); }
 .dropzone-symbol { display: grid; place-items: center; width: 64px; height: 64px; margin-bottom: 4px; border: 1px solid var(--glass-edge); border-radius: 22px; background: var(--canvas); color: var(--accent); box-shadow: inset 0 1px 0 var(--glass-edge), 0 8px 18px -12px #235fe566; }
@@ -60,7 +60,6 @@
   .setup-footer { align-items: center; gap: 10px; margin-top: 22px; padding-top: 18px; }
   .setup-footer > span { max-width: 40%; font-size: .75rem; }
   .setup-footer .secondary { padding: 9px 12px; font-size: .875rem; }
-  .importer > h2 { font-size: 1.25rem; }
   .importer .dropzone { padding: 26px 16px; border-radius: 24px; }
   .dropzone-symbol { width: 54px; height: 54px; border-radius: 18px; }
   .source-list .source { gap: 8px; padding-inline: 12px; }

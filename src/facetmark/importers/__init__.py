@@ -14,6 +14,7 @@ import json
 import re
 import sqlite3
 from dataclasses import dataclass, field
+from html.parser import HTMLParser
 from pathlib import Path
 
 from .. import text as textmod
@@ -82,26 +83,28 @@ class ImportStats:
 #: emit GBK. ``cp1252`` is last because it decodes nearly any byte string, so
 #: putting it earlier would hide a real GB18030 file behind mojibake.
 ENCODINGS = ("utf-8-sig", "utf-8", "gb18030", "cp1252")
-_CHARSET = re.compile(
-    rb"charset\s*=\s*(?:[\"']\s*([^\"'\s;>]+)|([^\s\"'>;]+))",
-    re.IGNORECASE,
-)
+_CHARSET = re.compile(r"\bcharset\s*=\s*(?:[\"']\s*)?([^\s\"'>;]+)", re.IGNORECASE)
 
 
-def _declared_encoding(raw: bytes) -> str | None:
-    """Read a charset declaration from the ASCII-compatible HTML prefix."""
-    match = _CHARSET.search(raw[:8192])
-    if not match:
-        return None
-    label = next((part for part in match.groups() if part), b"").decode(
-        "ascii", errors="ignore"
-    )
-    try:
-        encoding = codecs.lookup(label).name
-    except LookupError:
-        return None
-    # Browsers interpret an HTML ISO-8859-1 declaration as Windows-1252.
-    return "cp1252" if encoding == "iso8859-1" else encoding
+class _EncodingMeta(HTMLParser):
+    encoding: str | None = None
+
+    def handle_starttag(self, tag, attrs):
+        if tag != "meta" or self.encoding:
+            return
+        values = dict(attrs)
+        label = values.get("charset")
+        if not label and (values.get("http-equiv") or "").lower() == "content-type":
+            match = _CHARSET.search(values.get("content") or "")
+            label = match[1] if match else None
+        if not label:
+            return
+        try:
+            encoding = codecs.lookup(label.strip()).name
+        except LookupError:
+            return
+        # Browsers interpret an HTML ISO-8859-1 declaration as Windows-1252.
+        self.encoding = "cp1252" if encoding == "iso8859-1" else encoding
 
 
 def decode_bookmark_bytes(raw: bytes) -> str:
@@ -111,12 +114,18 @@ def decode_bookmark_bytes(raw: bytes) -> str:
     the existing ladder; unknown declarations are ignored. The declaration is
     read from raw bytes because decoding first is exactly what loses legacy text.
     """
-    declared = None if raw.startswith(b"\xef\xbb\xbf") else _declared_encoding(raw)
+    declared = None
+    prefix = raw[:8192].lstrip()
+    if prefix.startswith(b"<"):
+        # Titles, URL parameters and JSON strings can contain "charset=".
+        parser = _EncodingMeta()
+        parser.feed(prefix.decode("ascii", errors="replace"))
+        declared = parser.encoding
     encodings = tuple(dict.fromkeys(([declared] if declared else []) + list(ENCODINGS)))
     for enc in encodings:
         try:
             return raw.decode(enc)
-        except UnicodeDecodeError:
+        except (UnicodeDecodeError, LookupError):
             continue
     return raw.decode("utf-8", errors="replace")
 

@@ -106,3 +106,27 @@ test("failed upload supports a single keyboard retry and validates the file befo
   await done.focus(); await done.press("Space");
   await expect(page.locator(".workspace-search")).toBeVisible();
 });
+
+test("file import keeps the original receipt and retry across the guide and collection", async ({ page }) => {
+  const requests: string[] = [];
+  await page.route("**/admin/import", route => {
+    requests.push(route.request().headers()["x-import-id"]);
+    return requests.length === 1
+      ? route.fulfill({ status: 503, json: { detail: "Synthetic import response unavailable" } })
+      : route.fulfill({ json: fullReport });
+  });
+  const panel = await openImporter(page);
+  await upload(page);
+  await expect(panel.locator(".import-error")).toBeVisible();
+  await page.getByRole("button", { name: "打开完整向导", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "设置步骤" })).toBeVisible();
+  await expect(panel.locator(".import-error")).toContainText("Synthetic import response unavailable");
+  await panel.getByRole("button", { name: "重试导入", exact: true }).press("Enter");
+  await expect(panel.locator(".import-result")).toHaveAttribute("data-outcome", "complete");
+  expect(requests).toEqual([expect.any(String), requests[0]]);
+  await panel.getByRole("button", { name: "查看已导入的收藏", exact: true }).click();
+  await expect(page.locator(".workspace-search")).toBeVisible();
+  await expect(panel).toBeHidden();
+  await page.goBack();
+  await expect(panel.locator(".import-result")).toBeVisible();
+});
