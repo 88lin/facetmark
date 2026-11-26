@@ -594,12 +594,6 @@ function Workbench({
       Object.values(filters).some((value) => value !== undefined) ||
       (setup?.bookmarks || 0) > 0,
   );
-  const searchTerms = [
-    search,
-    ...Object.entries(filters)
-      .filter(([, value]) => value !== undefined)
-      .map(([key, value]) => `${key}:${JSON.stringify(value)}`),
-  ].join(" ");
   const semantic = Boolean(
     setup &&
       !setup.demo &&
@@ -637,13 +631,14 @@ function Workbench({
           if (wantsRanking) {
             let fast: Page | undefined;
             try {
-              fast = await api<Page>(`/quick?${query({ q: searchTerms, offset, limit: 30, depth })}`, { signal: abort.signal });
+              fast = await api<Page>(`/quick?${query({ ...filters, q: search, offset, limit: 30, depth })}`, { signal: abort.signal });
               update(fast, true);
             } catch {
               if (abort.signal.aborted || id !== requestId.current) return;
             }
             try {
-              update(await post<Page>("/search", { q: searchTerms, offset, limit: 30, depth: depth ?? fast?.depth }, abort.signal));
+              update(await post<Page>("/search", { q: search, offset, limit: 30, depth: depth ?? fast?.depth,
+                filters: activeFilters.length ? filters : undefined }, abort.signal));
             } catch (failure) {
               if (!fast) throw failure;
               if (id === requestId.current && !abort.signal.aborted) setRankingError(String(failure));
@@ -1320,11 +1315,11 @@ function Workbench({
               >
                 {search.trim() && (
                   <SearchAnswer
-                    key={searchTerms}
-                    terms={searchTerms}
-                    available={Boolean(
-                      setup?.demo || (semantic && setup?.channels.chat.configured),
-                    )}
+                    key={resultContext}
+                    terms={search}
+                    bookmarkIds={items.filter(item => !item.privacy_skipped).slice(0, 8).map(item => item.bookmark_id)}
+                    pending={pagingPending}
+                    available={Boolean(setup?.demo || setup?.channels.chat.tested)}
                     onSelect={select}
                   />
                 )}

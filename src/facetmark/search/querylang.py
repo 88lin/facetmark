@@ -134,6 +134,7 @@ class FieldFilter:
     value: str          # as typed; may carry * wildcards, | alternation, date ops
     negate: bool
     alias: str = ""     # the name the user actually typed, for the echo
+    exact: bool = False  # selected collection filters carry stored values
 
 
 @dataclass(slots=True)
@@ -539,6 +540,13 @@ def _field_sql(f: FieldFilter, *, now: float) -> tuple[str, list[str]] | None:
     would also drop rows that are NULL, and a bookmark with no ``content``
     row is normal.
     """
+    if f.exact:
+        if f.field in ("domain", "folder"):
+            return f"b.{f.field} = ?", [f.value]
+        if f.field == "tag":
+            return "EXISTS (SELECT 1 FROM json_each(b.tags) WHERE value=?)", [f.value]
+        if f.field == "session":
+            return "b.id IN (SELECT bookmark_id FROM bookmark_session WHERE session_id=?)", [f.value]
     if f.field == "domain":
         return _values_sql("domain", _split_value(f.value), wrap="{}")
     if f.field == "host":

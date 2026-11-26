@@ -67,6 +67,34 @@ def seed(client, url: str, title: str, *, body: str = "") -> int:
     return bid
 
 
+@pytest.mark.parametrize("folder", ["Work | Ideas", ""])
+def test_quick_and_ranked_search_keep_the_exact_selected_folder(client, auth, folder):
+    selected = seed(client, "https://inside.example/retained", "Synthetic filter benchmark")
+    other = seed(client, "https://outside.example/related", "Synthetic filter comparison")
+    conn = client.app.state.fm.conn
+    conn.execute("UPDATE bookmark SET folder=? WHERE id=?", (folder, selected))
+    conn.execute("UPDATE bookmark SET folder=? WHERE id=?", (f"{folder}/Archive", other))
+    conn.commit()
+    first = client.get("/quick", params={"q": "Synthetic filter", "folder": folder}, headers=auth)
+    ranked = client.post("/search", json={"q": "Synthetic filter", "filters": {"folder": folder}, "config": "B"}, headers=auth)
+    for response in (first, ranked):
+        assert response.status_code == 200, response.text
+        assert [hit["bookmark_id"] for hit in response.json()["hits"]] == [selected]
+
+
+def test_synthesis_uses_only_the_supplied_existing_eligible_bookmarks(client, auth):
+    common = "Synthetic notes about how to keep citations inside the selected collection."
+    selected = seed(client, "https://visible.example/saved", "Synthetic visible result", body=common)
+    blocked = seed(client, "https://private.example/saved", "Synthetic excluded result", body=common)
+    seed(client, "https://elsewhere.example/saved", "Synthetic unrelated result", body=common)
+    conn = client.app.state.fm.conn
+    conn.execute("UPDATE bookmark SET privacy_skipped=1 WHERE id=?", (blocked,))
+    conn.commit()
+    response = client.post("/synthesize", json={"q": "Synthetic citations", "bookmark_ids": [selected, blocked, selected, 1000]}, headers=auth)
+    assert response.status_code == 200, response.text
+    assert [source["bookmark_id"] for source in response.json()["sources"]] == [selected]
+
+
 # ---------------------------------------------------------------------------
 # auth
 # ---------------------------------------------------------------------------

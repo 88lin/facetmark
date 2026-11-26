@@ -36,6 +36,7 @@ from .decay import cold_bookmark_ids, decay_hits
 from .graph import Expansion, expand
 from .lexical import lexical_lists, lexical_lists_scored
 from .querylang import (
+    FieldFilter,
     ParsedQuery,
     apply_filters,
     browse_pool,
@@ -931,6 +932,7 @@ def quick_search(
     depth: int | None = None,
     k: int = DEFAULT_K,
     settings: Settings | None = None,
+    exact_filters: Sequence[FieldFilter] = (),
 ) -> SearchResponse:
     """Lexical-only first paint. Synchronous, no model call, no network.
 
@@ -942,6 +944,7 @@ def quick_search(
     t0 = time.perf_counter()
     s = settings or get_settings()
     parsed = parse_query(query)
+    parsed.filters.extend(exact_filters)
     # 3x the window, as before: the two lexical lists overlap heavily -- that is
     # the point of running both -- so fusion dedupes a large fraction of what
     # they return, and asking for exactly the window size would hand back a
@@ -1019,6 +1022,7 @@ async def search(
     assist: bool = False,
     now_ts: int | None = None,
     expand_limit: int = 8,
+    exact_filters: Sequence[FieldFilter] = (),
 ) -> SearchResponse:
     """Run the full retrieval pipeline for one query."""
     s = settings or get_settings()
@@ -1040,6 +1044,7 @@ async def search(
             provider_for=provider_for, settings=s, reranker=reranker,
             understanding=understanding, assist=assist, now_ts=now_ts,
             expand_limit=expand_limit,
+            exact_filters=exact_filters,
         )
 
 
@@ -1058,6 +1063,7 @@ async def _search_with_providers(
     assist: bool,
     now_ts: int | None,
     expand_limit: int,
+    exact_filters: Sequence[FieldFilter],
 ) -> SearchResponse:
     s = settings
     config, degraded_from = degrade_for_vector_store(conn, config)
@@ -1067,6 +1073,7 @@ async def _search_with_providers(
     # ranking. A query with no syntax parses to itself and nothing below
     # takes a different branch.
     parsed = parse_query(query)
+    parsed.filters.extend(exact_filters)
     facet_query = parsed.text
     embed_query = parsed.plain_text or parsed.text
     timings: dict[str, float] = {}
