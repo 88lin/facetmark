@@ -81,6 +81,9 @@ try {
     $token = (Get-Content -LiteralPath (Join-Path $dataTarget 'pairing-token.txt') -Raw).Trim()
     $headers = @{ Authorization = "Bearer $token" }
     $saved = Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:$($ready.port)/bookmark" -Headers $headers -ContentType 'application/json' -Body '{"url":"https://ci.example/retained","title":"Synthetic retained bookmark"}'
+    & (Join-Path $repoRoot '.desktop-build/venv/Scripts/python.exe') (Join-Path $repoRoot 'scripts/installed_window_check.py') $evidenceDir interrupted $app.Id
+    if ($LASTEXITCODE -ne 0) { throw 'The installed workbench did not recover from an interrupted service.' }
+    $ready = Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json
     $report = @{ installer_bytes = $installer.Length; installed_path = $installTarget; runtime_absent_before = $true; network_blocked_for_installers = $true; backend_ready = $true; webview_processes = $webviews.Count; signed = ((Get-AuthenticodeSignature -LiteralPath $installer.FullName).Status -eq 'Valid') }
     $report | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidenceDir 'installed-desktop.json') -Encoding utf8
     & (Join-Path $repoRoot '.desktop-build/venv/Scripts/python.exe') (Join-Path $repoRoot 'scripts/installed_window_check.py') $evidenceDir prepare $app.Id

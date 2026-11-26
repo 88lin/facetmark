@@ -172,6 +172,34 @@ test("an empty keyword page never redirects a valid second semantic page back to
   expect(offsets).toEqual([0, 30]);
 });
 
+test("a capped ranking can be read through its final available page", async ({ page, request }) => {
+  const records = await prepare(page, request), offsets: number[] = [];
+  await page.route("**/quick?**", route => route.fulfill({
+    json: result(records, Number(new URL(route.request().url()).searchParams.get("offset"))),
+  }));
+  await page.route("**/search", route => {
+    const { offset } = route.request().postDataJSON(); offsets.push(offset);
+    return route.fulfill({ json: { ...result(records.slice(0, 44), offset), depth_capped: true, has_more: true } });
+  });
+  await begin(page);
+  const next = page.getByRole("button", { name: "下一页", exact: true });
+  await expect(next).toBeEnabled();
+  await next.press("Enter");
+  await expect(page.locator(".result-row")).toHaveCount(14);
+  await expect(page.locator(".result-range")).toContainText("31–44");
+  await expect(page.locator(".result-window-limit")).toBeVisible();
+  await expect(next).toBeDisabled();
+  expect(offsets).toEqual([0, 30]);
+  await page.setViewportSize({ width: 320, height: 640 });
+  await settleVisualLayout(page);
+  const footer = page.locator(".results-footer");
+  expect(await footer.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await page.screenshot({ path: "screenshots/collection-review/ranked-window-320.png", animations: "disabled" });
+  await page.getByRole("button", { name: "上一页", exact: true }).press("Space");
+  await expect(page.locator(".result-title").first()).toHaveText(title(records[0]));
+  await expect(page.locator(".result-window-limit")).toHaveCount(0);
+});
+
 test("a failed full search preserves keyword reading and selection until an explicit retry", async ({ page, request }) => {
   const records = await prepare(page, request); let fail = true, calls = 0;
   await page.route("**/quick?**", route => route.fulfill({ json: result(records) }));

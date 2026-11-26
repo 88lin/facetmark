@@ -132,9 +132,12 @@ test("query suggestions and cited synthesis preserve the query", async ({ page }
   await expect(page.locator(".result-row").first()).toContainText("SQLite");
   await page.locator(".search-answer>summary").click();
   await page.getByRole("button", { name: "确认并生成回答" }).click();
-  await expect(page.getByRole("button", { name: "查看来源 1" }).first()).toBeVisible();
-  await page.getByRole("button", { name: "查看来源 1" }).first().click();
+  const citation = page.getByRole("button", { name: "查看来源 1" }).first();
+  await expect(citation).toBeVisible();
+  await citation.press("Enter");
   await expect(page.locator(".preview-title h1")).toContainText("SQLite");
+  await page.getByRole("button", { name: "返回收藏", exact: true }).press("Enter");
+  await expect(citation).toBeFocused();
   await expect(input).toHaveValue("SQLite");
 });
 
