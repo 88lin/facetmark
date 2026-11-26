@@ -11,6 +11,24 @@ export type ModelProfile = {
 };
 export type AppliedProfile = { profile: ModelProfile; settings: Setting[]; restart_required: string[] };
 
+function ProfileValues({ profile }: { profile: ModelProfile }) {
+  const t = useText();
+  const model = (profile.model || t("Agent 默认模型", "Agent default model"))
+    + (profile.backend === "agent" ? ` · ${profile.agent}` : profile.backend === "local" ? t(" · 本地模型", " · Local model") : "");
+  const endpoint = profile.base_url || "";
+  const values = <><span>{model}</span>{endpoint && <span className="model-profile-endpoint">{endpoint}</span>}</>;
+  if (model.length <= 96 && endpoint.length <= 96) return values;
+  const label = t("完整连接详情", "Full connection details");
+  return <details className="model-profile-detail">
+    <summary aria-label={t(`${profile.name}的完整连接详情`, `Full details for ${profile.name}`)}>
+      <span className="model-profile-values model-profile-values-preview">{values}</span>
+      <span className="model-profile-values-label">{label}</span>
+      <ChevronDown size={15} aria-hidden="true"/>
+    </summary>
+    <div className="model-profile-values model-profile-values-full">{values}</div>
+  </details>;
+}
+
 export function ModelProfiles({ channel, values, revision, hasDraft, disabled, run, onApplied }: {
   channel: "chat" | "embed"; values: Record<string, unknown>; revision: string; hasDraft: boolean; disabled: boolean;
   run: (name: string, work: () => Promise<void>) => Promise<void>;
@@ -131,9 +149,8 @@ export function ModelProfiles({ channel, values, revision, hasDraft, disabled, r
           <CapsuleButton type="submit" className="secondary" disabled={locked || !editName.trim()} aria-label={t("保存连接名称", "Save connection name")}><Save size={16}/></CapsuleButton>
           <CapsuleButton type="button" className="text-button" disabled={locked} onClick={() => setEditing(null)} aria-label={t("取消重命名", "Cancel rename")}><X size={16}/></CapsuleButton>
         </form> : <>
-          <div className="model-profile-info"><strong>{profile.name}</strong><span>{profile.model || t("Agent 默认模型", "Agent default model")}
-            {profile.backend === "agent" ? ` · ${profile.agent}` : profile.backend === "local" ? t(" · 本地模型", " · Local model") : ""}</span>
-            {profile.base_url && <span className="model-profile-endpoint">{profile.base_url}</span>}
+          <div className="model-profile-info"><strong>{profile.name}</strong>
+            <ProfileValues profile={profile}/>
             <span className="model-profile-status">{profile.current && <span><Check size={13} aria-hidden="true"/>{t("当前配置", "Current settings")}</span>}
               {profile.tested ? t("已验证", "Verified") : t("未验证", "Needs test")}</span>
           </div>
