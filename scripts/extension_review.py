@@ -139,6 +139,22 @@ def review(context, worker, report: dict):
     first = next(entry["body"] for entry in calls("/search") if entry["body"].get("offset", 0) == 0)
     assert len(more) == 1 and more[0]["depth"] > 0 and first["q"] == more[0]["q"]
     language(search, "zh")
+    search.locator("li.more button").press("Enter")
+    expect(search.locator("#results a")).to_have_count(45)
+    expect(search.locator("#results a").nth(40)).to_be_focused()
+    expect(search.locator("li.more button")).to_have_count(0)
+
+    server("/_test/flags", {"quick_failure": True})
+    search.locator("#q").fill("bookmark")
+    expect(search.locator("#results a")).to_have_count(20)
+    assert calls("/search")[-1]["body"]["q"] == "bookmark"
+
+    server("/_test/flags", {"bad_search": True})
+    search.locator("#q").fill("Original")
+    expect(search.locator("#status")).to_contain_text("仍可使用关键词结果")
+    expect(search.locator("#results a")).to_have_count(10)
+    capture(search, "extension-popup-keyword-recovery")
+
     server("/_test/flags", {})
     search.locator("#q").fill("slow")
     until(search, lambda: any(entry["query"].startswith("q=slow") for entry in calls("/quick")), "slow request not sent")
@@ -150,6 +166,7 @@ def review(context, worker, report: dict):
     expect(search.locator("#results a").first).to_be_visible()
     capture(search, "extension-popup-results")
     report["scenarios"].append("real search, two-stage paging, double click, language switch, IME Enter and clear during a late response")
+    report["scenarios"].append("both independent read failures, retained keyword results, final page and focus on the first added bookmark")
     first_url = search.locator("#results a").first.get_attribute("href")
     opened = len(calls("/open"))
     with context.expect_page() as opened_page:

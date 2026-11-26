@@ -423,10 +423,11 @@ export interface PageCursor {
   more: boolean;
   /** `total` was cut by the server's depth ceiling, not by the library ending. */
   capped: boolean;
+  windowEnded: boolean;
 }
 
 export function startCursor(query: string): PageCursor {
-  return { query, seen: 0, depth: 0, total: 0, more: false, capped: false };
+  return { query, seen: 0, depth: 0, total: 0, more: false, capped: false, windowEnded: false };
 }
 
 /** Fold one response into the cursor. */
@@ -436,13 +437,17 @@ export function advance(cur: PageCursor, r: SearchResponse): PageCursor {
   // double-count the first page and then skip a page's worth of results; it
   // would also strand the cursor above the row count whenever the second
   // ranking is shorter than the first.
+  const seen = (r.offset ?? 0) + r.hits.length;
+  const total = r.total ?? 0;
   return {
     query: cur.query,
-    seen: (r.offset ?? 0) + r.hits.length,
+    seen,
     depth: r.depth || cur.depth,
-    total: r.total ?? 0,
+    total,
     more: Boolean(r.has_more),
     capped: Boolean(r.depth_capped),
+    // has_more can refer to more candidates outside this pinned ranking.
+    windowEnded: Boolean(r.has_more && (!r.hits.length || (total > 0 && seen >= total))),
   };
 }
 
@@ -451,12 +456,13 @@ export function nextRequest(
   cur: PageCursor,
   size: number,
 ): { offset: number; limit: number; depth: number } | null {
-  if (!cur.more || !cur.query) return null;
+  if (!cur.more || !cur.query || cur.windowEnded) return null;
   return { offset: cur.seen, limit: size, depth: cur.depth };
 }
 
 /** The counter above the list. Never states a total the server called a floor. */
 export function describePage(cur: PageCursor): string {
+  if (cur.windowEnded) return `${cur.seen} shown (end of current ranking)`;
   if (!cur.seen) return "no results";
   if (cur.more) {
     return cur.capped

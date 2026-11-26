@@ -67,19 +67,22 @@ function invalidate(): void {
   if (!input.value.trim()) empty(t("pop.start"));
 }
 
-input.addEventListener("input", (event) => {
+function scheduleSearch(eventComposing = false): void {
   const value = input.value.trim();
   invalidate();
-  if (composing || (event as InputEvent).isComposing || !value) return;
+  if (composing || eventComposing || !value) return;
   timer = window.setTimeout(() => void run(value), DEBOUNCE_MS);
-});
-input.addEventListener("compositionstart", () => { composing = true; invalidate(); });
-input.addEventListener("compositionend", () => {
+}
+
+function finishComposition(): void {
   composing = false;
-  const value = input.value.trim();
-  invalidate();
-  if (value) timer = window.setTimeout(() => void run(value), DEBOUNCE_MS);
-});
+  scheduleSearch();
+}
+
+input.addEventListener("input", event => scheduleSearch((event as InputEvent).isComposing));
+input.addEventListener("compositionstart", () => { composing = true; invalidate(); });
+input.addEventListener("compositionend", finishComposition);
+input.addEventListener("blur", () => { if (composing) finishComposition(); });
 
 input.addEventListener("keydown", (e) => {
   if (e.isComposing || composing || e.keyCode === 229) return;
@@ -110,42 +113,33 @@ async function run(q: string): Promise<void> {
   }
   lastQuery = q;
   cursor = startCursor(q);
+  let keywordLoaded = false;
   try {
     context.settings = await loadSettings();
     if (mine !== generation) return;
     searchSettings = context.settings;
-    const quick = await api.quick(q, 10, 0, undefined, context);
-    if (mine === generation) {
-      rows = quick.hits;
-      neighbours = [];
-      // The cursor deliberately does not follow the lexical pass. It is a
-      // different ranking from the full pipeline -- different facets, its own
-      // depth -- so paging from it would continue a list that is about to be
-      // replaced.
-      render(() => withFilters(
-        `${quick.hits.length} · ${ms(quick.took_ms)} ms · ${t("pop.lexical")}`,
-        quick.filters,
-      ));
+    try {
+      const quick = await api.quick(q, 10, 0, undefined, context);
+      if (mine !== generation) return;
+      keywordLoaded = true;
+      rows = quick.hits; neighbours = [];
+      // Paging starts from the ranked result, whose depth can differ.
+      render(() => withFilters(`${quick.hits.length} · ${t("pop.lexical")}`, quick.filters));
+    } catch {
+      if (controller.signal.aborted || mine !== generation) return;
     }
-  } catch (e) {
-    if (mine === generation) fail(e);
-    return;
-  }
-  if (mine !== generation || controller.signal.aborted) return;
-  try {
     const full = await api.search(q, PAGE, 0, undefined, context);
     if (mine === generation) {
       rows = full.hits;
       neighbours = full.expanded ?? [];
       cursor = advance(cursor, full);
-      const labels = full.understanding?.labels?.join(" + ") ?? "";
-      render(() => withFilters(
-        `${pageText(cursor)} · ${ms(full.took_ms)} ms · ${labels || t("pop.ranked")}`,
-        full.filters,
-      ));
+      render(() => withFilters(pageText(cursor), full.filters));
     }
   } catch (e) {
-    if (mine === generation) { lastNote = () => describe(e); status.textContent = lastNote(); }
+    if (mine !== generation) return;
+    if (!keywordLoaded) { fail(e); return; }
+    lastNote = () => `${t(rows.length ? "pop.keywordRetained" : "pop.keywordEmpty")} · ${describe(e)}`;
+    status.textContent = lastNote();
   }
 }
 
@@ -153,6 +147,8 @@ async function loadMore(button: HTMLButtonElement): Promise<void> {
   const req = nextRequest(cursor, PAGE);
   if (!req || paging) return;
   const mine = generation;
+  const previousSize = rows.length;
+  const hadFocus = document.activeElement === button;
   paging = true;
   button.disabled = true;
   button.textContent = t("pop.loading");
@@ -166,24 +162,25 @@ async function loadMore(button: HTMLButtonElement): Promise<void> {
     rows = rows.concat(more.hits.filter((h) => !known.has(h.bookmark_id)));
     cursor = advance(cursor, more);
     paging = false;
-    render(() => `${pageText(cursor)} · ${ms(more.took_ms)} ms`);
+    render(() => withFilters(pageText(cursor), more.filters));
+    if (hadFocus && document.activeElement === document.body) {
+      const next = rows.length > previousSize ? list.querySelectorAll<HTMLAnchorElement>("a[data-id]")[previousSize] : undefined;
+      (next ?? input).focus();
+    }
   } catch (e) {
     if (mine === generation) {
       lastNote = () => describe(e);
       paging = false;
       render(lastNote);
+      if (hadFocus && document.activeElement === document.body)
+        list.querySelector<HTMLButtonElement>(".more button")?.focus();
     }
   } finally { if (mine === generation) paging = false; }
 }
 
 function pageText(value: PageCursor): string {
+  if (value.windowEnded) return t("pop.windowEnded", value.seen);
   return value.more ? t(value.capped ? "pop.pageCapped" : "pop.page", value.seen, value.total) : t("pop.resultCount", value.seen);
-}
-
-/** `took_ms` is a per-stage breakdown. Printing the object gives "[object Object]". */
-function ms(took: Record<string, number> | undefined): string {
-  const total = took?.total ?? Object.values(took ?? {}).reduce((a, b) => a + b, 0);
-  return String(Math.round(total));
 }
 
 /**
