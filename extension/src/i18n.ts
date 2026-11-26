@@ -87,6 +87,7 @@ const STRINGS: Record<string, { en: string; zh: string }> = {
   "pop.connectionChanged": { en: "The saved connection changed. Press Enter to search it again.", zh: "已保存连接发生变化。按 Enter 可重新检索。" },
   "pop.page": { en: "%1 of %2", zh: "已显示 %1 / %2 项" },
   "pop.pageCapped": { en: "%1 of %2+ · candidate limit", zh: "已显示 %1 / %2+ 项 · 候选范围有上限" },
+  "pop.windowEnded": { en: "%1 shown · Narrow the search to find more", zh: "已显示 %1 项 · 可缩小条件查找更多" },
   "pop.resultCount": { en: "%1 result(s)", zh: "%1 项结果" },
   "pop.settings": { en: "settings", zh: "设置" },
   "pop.empty": { en: "nothing in your library matches that yet", zh: "你的库里还没有匹配项" },
@@ -101,8 +102,9 @@ const STRINGS: Record<string, { en: string; zh: string }> = {
   "pop.cold": { en: "Text not indexed", zh: "正文尚未索引" },
   "pop.tokenRejected": { en: "pairing token rejected - open options", zh: "配对令牌被拒绝 - 打开设置" },
   "pop.serverUnreachable": { en: "Cannot reach Facetmark. Start the app or facetmark serve, then check the saved address in settings.", zh: "无法连接 Facetmark。启动应用或 facetmark serve，并在扩展设置中核对已保存地址。" },
-  "pop.lexical": { en: "lexical", zh: "词法" },
-  "pop.ranked": { en: "ranked", zh: "已排序" },
+  "pop.lexical": { en: "keyword matches", zh: "关键词匹配" },
+  "pop.keywordRetained": { en: "Keyword matches are still available", zh: "仍可使用关键词结果" },
+  "pop.keywordEmpty": { en: "No keyword matches", zh: "暂无关键词匹配" },
   // The server answered the rest of the query and dropped this token. Marked
   // rather than worded, because the status line has room for the token itself
   // and that is the part the user needs to see.

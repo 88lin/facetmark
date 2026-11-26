@@ -53,6 +53,7 @@ describe("startCursor", () => {
       total: 0,
       more: false,
       capped: false,
+      windowEnded: false,
     });
   });
 });
@@ -97,11 +98,19 @@ describe("advance", () => {
 
   test("survives a response missing every optional field", () => {
     const c = advance(startCursor("q"), {});
-    assert.deepEqual(c, { query: "q", seen: 0, depth: 0, total: 0, more: false, capped: false });
+    assert.deepEqual(c, startCursor("q"));
   });
 });
 
 describe("nextRequest", () => {
+  test("a capped result remains pageable through the last ranked bookmark", () => {
+    const first = advance(startCursor("q"), page({ hits: hits(0, 20), total: 26, has_more: true, depth_capped: true }));
+    assert.equal(nextRequest(first, 20)?.offset, 20);
+    const last = advance(first, page({ offset: 20, hits: hits(20, 6), total: 26, has_more: true }));
+    assert.equal(nextRequest(last, 20), null);
+    assert.deepEqual(pageLabel(last), { key: "results.window_ended", vars: { n: 26 } });
+  });
+
   test("is null when the server said there is no more", () => {
     const c = advance(startCursor("q"), page({ hits: hits(0, 3), total: 3 }));
     assert.equal(nextRequest(c, 20), null);
@@ -193,6 +202,7 @@ describe("the labels and the strings agree", () => {
     { key: "results.none", vars: {} },
     { key: "results.window", vars: { from: 1, to: 20, total: 77 } },
     { key: "results.window_capped", vars: { from: 1, to: 20, total: 200 } },
+    { key: "results.window_ended", vars: { n: 26 } },
     { key: "results.all", vars: { n: 77 } },
   ];
 

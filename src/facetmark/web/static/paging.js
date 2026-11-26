@@ -6,11 +6,11 @@
 // same way, and the rules below are not obvious enough to be re-derived
 // independently twice.
 
-/** @typedef {{query: string, seen: number, depth: number, total: number, more: boolean, capped: boolean}} Cursor */
+/** @typedef {{query: string, seen: number, depth: number, total: number, more: boolean, capped: boolean, windowEnded: boolean}} Cursor */
 
 /** @returns {Cursor} */
 export function startCursor(query) {
-  return { query, seen: 0, depth: 0, total: 0, more: false, capped: false };
+  return { query, seen: 0, depth: 0, total: 0, more: false, capped: false, windowEnded: false };
 }
 
 /**
@@ -33,13 +33,17 @@ export function startCursor(query) {
  * @returns {Cursor}
  */
 export function advance(cur, r) {
+  const hits = r.hits?.length ?? 0;
+  const seen = (r.offset ?? 0) + hits;
+  const total = r.total ?? 0;
   return {
     query: cur.query,
-    seen: (r.offset ?? 0) + (r.hits?.length ?? 0),
+    seen,
     depth: r.depth || cur.depth,
-    total: r.total ?? 0,
+    total,
     more: Boolean(r.has_more),
     capped: Boolean(r.depth_capped),
+    windowEnded: Boolean(r.has_more && (!hits || (total > 0 && seen >= total))),
   };
 }
 
@@ -49,7 +53,7 @@ export function advance(cur, r) {
  * @returns {{offset: number, limit: number, depth: number} | null}
  */
 export function nextRequest(cur, size) {
-  if (!cur.more || !cur.query) return null;
+  if (!cur.more || !cur.query || cur.windowEnded) return null;
   return { offset: cur.seen, limit: size, depth: cur.depth };
 }
 
@@ -81,6 +85,7 @@ export function mergePage(rows, incoming) {
  */
 export function pageLabel(cur) {
   if (!cur.seen) return { key: "results.none", vars: {} };
+  if (cur.windowEnded) return { key: "results.window_ended", vars: { n: cur.seen } };
   // Always 1: the list accumulates from offset 0 rather than replacing itself
   // page by page, so the reader is looking at the whole window, not the last
   // slice of it.
