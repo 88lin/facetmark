@@ -75,6 +75,8 @@
 .results-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: none; min-height: 44px; color: var(--secondary-ink); font-size: .75rem; font-variant-numeric: tabular-nums; }
 .has-reader-index .collection-count-label { display: none; }
 .results-footer > div { display: flex; align-items: center; gap: 5px; }
+.results-footer > .collection-subtitle:has(.result-window-limit) { flex-wrap: wrap; white-space: normal; }
+.result-window-limit { flex-basis: 100%; line-height: 1.4; }
 .results-footer .icon-button { width: 34px; height: 34px; border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--canvas); }
 .page-jump { display: flex; align-items: center; gap: 6px; }
 .page-jump input { width: 46px; min-height: 32px; padding: 3px; border: 1px solid var(--rule); border-radius: var(--radius-pill); text-align: center; background: var(--canvas); color: var(--ink); font-size: .75rem; appearance: textfield; }

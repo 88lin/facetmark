@@ -333,6 +333,12 @@ test("repeated Enter and unchanged IME completion always settle the current sear
   await expect(page.locator(".result-list")).toHaveAttribute("aria-busy", "false");
   await expect(input).toHaveValue("SQLite");
   await expect(page.locator(".result-title").first()).toContainText("SQLite");
+  await input.dispatchEvent("compositionstart");
+  await input.fill("合成");
+  await input.blur();
+  await expect.poll(() => calls).toBe(5);
+  await expect(page.locator(".result-list")).toHaveAttribute("aria-busy", "false");
+  await expect(input).toHaveValue("合成");
 });
 
 test("changing a category closes the old reader and fails closed until the new scope loads", async ({ page }) => {
