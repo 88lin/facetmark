@@ -229,9 +229,9 @@ export function LibraryDialog({ action, onClose, onChanged, onTask, onPending, o
     : mode === "fetch" ? t("提取网页正文", "Fetch page text") : t("生成 AI 摘要", "Generate AI summaries");
   const actionDescription = pendingWrite
     ? pendingWrite.confirmed
-      ? t("操作已保存。重新读取收藏状态即可查看结果。", "This operation was saved. Reload the collection to see the result.")
+      ? t("这次操作已经保存。重新读取收藏状态即可查看结果。", "This operation was saved. Reload the collection to see the result.")
       : rejectedWrite
-        ? t("保存未完成。恢复原内容和选择后，可修改再提交。", "The save failed. Restore the original content and selection to edit and submit again.")
+        ? t("这次操作未保存。恢复原内容和选择后，可修改再提交。", "The save failed. Restore the original content and selection to edit and submit again.")
         : t("结果待确认。可读取保存结果，或用原内容和选择重试。", "Result awaiting confirmation. Read the saved result or retry with the original content and selection.")
     : action.kind === "export"
       ? t("JSON 副本保留分类、标签、正文、AI 阅读内容和所选范围内的对话，导入时补齐缺失内容；已有本地副本优先。模型密钥和向量不在副本内。", "JSON copies preserve folders, tags, page text, AI reading content and conversations wholly within the export scope. Import fills missing content and keeps existing local copies. Model keys and vectors are excluded.")
