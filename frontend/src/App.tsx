@@ -36,7 +36,7 @@ import {
   type Setup,
 } from "./api";
 import { Locale, useText, type Language } from "./locale";
-import SetupFlow, { Importer } from "./Setup";
+import SetupFlow from "./Setup";
 import { SettingsWorkspace } from "./SettingsWorkspace";
 import { sectionFromHash, viewFromHash, viewHash, type SettingsSection, type View } from "./navigation";
 import { Tasks } from "./Tasks";
@@ -137,6 +137,9 @@ function Workbench({
   const connectionRetry = useRef<HTMLButtonElement>(null);
   const [bootBusy, setBootBusy] = useState(false);
   const [view, setView] = useState<View>(() => viewFromHash(location.hash));
+  const importVisible = view === "setup" || view === "import";
+  const [importOpened, setImportOpened] = useState(importVisible);
+  useEffect(() => { if (importVisible) setImportOpened(true); }, [importVisible]);
   const [settingsSection, setSettingsSection] = useState(() => sectionFromHash(location.hash));
   const [settingsOpened, setSettingsOpened] = useState(() => viewFromHash(location.hash) === "settings");
   const [chatLaunch, setChatLaunch] = useState<ChatLaunch | null>(null);
@@ -1482,34 +1485,9 @@ function Workbench({
               </Dialog.Root>
             )}
           </>
-        ) : view === "chat" || view === "settings" ? null : (
+        ) : view === "chat" || view === "settings" || importVisible ? null : (
           <div className="page-scroll">
-            {view === "setup" ? (
-              <SetupFlow
-                setup={setup}
-                job={job}
-                refresh={refreshImportedCollection}
-                onTask={taskOperations.run}
-                taskBusy={processingBusy}
-                cancelBusy={taskCancelBusy}
-                onProcess={(mode) => handleLibraryAction({ kind: "process", mode })}
-                onDone={() => {
-                  remember("fm-setup-skipped", "1");
-                  openView("library");
-                }}
-              />
-            ) : view === "import" ? (
-              <>
-                <header className="page-heading">
-                  <h1>{t("导入书签", "Import bookmarks")}</h1>
-                  <CapsuleButton className="text-button" onClick={() => openView("setup")}>
-                    {t("打开完整向导", "Open setup guide")}
-                    <ArrowRight size={14} />
-                  </CapsuleButton>
-                </header>
-                <Importer refresh={refreshImportedCollection} onDone={() => openView("library")} />
-              </>
-            ) : view === "tasks" ? (
+            {view === "tasks" ? (
               <>
                 <header className="page-heading">
                   <div><h1>{t("任务与诊断", "Tasks and diagnostics")}</h1><p>{t("查看进度，继续处理未完成的收藏。", "Follow progress and resume unfinished work.")}</p></div>
@@ -1531,6 +1509,15 @@ function Workbench({
             )}
           </div>
         )}
+        {paired && (importVisible || importOpened) && <div className="page-scroll" hidden={!importVisible}>
+          <SetupFlow active={importVisible} importOnly={view === "import"} setup={setup} job={job}
+            refresh={refreshImportedCollection} onTask={taskOperations.run} taskBusy={processingBusy}
+            cancelBusy={taskCancelBusy} onProcess={mode => handleLibraryAction({ kind: "process", mode })}
+            onGuide={() => openView("setup")} onDone={() => {
+              if (view === "setup") remember("fm-setup-skipped", "1");
+              openView("library");
+            }} />
+        </div>}
         {paired && settingsOpened && <div className="page-scroll settings-page" hidden={view !== "settings"}>
           <SettingsWorkspace active={view === "settings"} section={settingsSection} onSection={section => openView("settings", section)}
             setup={setup} refresh={refreshSettingsState} onChanged={libraryChanged} onBack={() => openView("library")}

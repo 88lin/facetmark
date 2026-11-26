@@ -314,6 +314,15 @@ class TestReadText:
         p.write_bytes(raw)
         assert read_text(p) == decode_bookmark_bytes(raw)
 
+    @pytest.mark.parametrize("content", [
+        '{"roots":{"bookmarks":{"name":"中文标题 charset=windows-1252"}}}',
+        '<DT><A HREF="https://e.example/?charset=windows-1252">中文标题</A>',
+        '<!-- <meta charset="windows-1252"> --><DT><A HREF="https://e.example">中文标题</A>',
+        '<meta charset="base64"><DT><A HREF="https://e.example">中文标题</A>',
+    ])
+    def test_only_real_html_text_encoding_can_override_utf8(self, content):
+        assert decode_bookmark_bytes(content.encode("utf-8")) == content
+
 
 class TestFolderPathsMeasuredOnRealData:
     """Two properties the 1697-entry calibration export made visible.

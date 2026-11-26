@@ -19,7 +19,7 @@ type ImportReport = {
 };
 const importCount = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0;
 
-export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; onDone?: () => void }) {
+function Importer({ refresh, onDone }: { refresh: () => Promise<void>; onDone: () => void }) {
   const t = useText();
   const input = useRef<HTMLInputElement>(null);
   const inFlight = useRef(false);
@@ -66,7 +66,7 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
       return;
     }
     if (file.size > 64 * 1024 * 1024) {
-      setError(t("请选择不超过 64 MB 的导出文件。", "Choose an export up to 64 MB."));
+      setError(t("请选择不超过 64 MB 的导出文件。大文件可用 facetmark import 命令导入。", "Choose an export up to 64 MB. Use the facetmark import command for larger files."));
       return;
     }
     const importId = crypto.randomUUID();
@@ -113,7 +113,6 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
   ] as const;
   return (
     <section className="importer">
-      <h2>{t("把收藏带回来", "Bring your bookmarks together")}</h2>
       <p>
         {t(
           "从浏览器导出的 HTML 或 JSON 开始。只读取副本，原书签保持原样。",
@@ -155,7 +154,7 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
         type="button"
         className="text-button"
         disabled={blocked}
-        onClick={async () => {
+          onClick={async () => {
           if (inFlight.current || findingInFlight.current || urlActive || siteActive) return;
           findingInFlight.current = true;
           setError(""); setReport(null); setNeedsRefresh(false); lastWork.current = null; setSources(null); setDragging(false);
@@ -220,7 +219,7 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
             <ul>{warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></details>}
           {outcome === "empty" ? <p>{t("没有可新增的有效内容。请检查导出范围，或选择另一个文件。", "There was no new content to add. Check the export scope or choose another file.")}</p>
             : <p>{t("已保存的收藏可以继续搜索和整理；隐私排除与不支持检索的条目不会发送给 AI。", "Saved bookmarks can be searched and organized. Privacy-excluded and non-indexable entries are not sent to AI.")}</p>}
-          {onDone && outcome !== "empty" && <CapsuleButton type="button" className="primary" disabled={busy || needsRefresh} onClick={onDone}>{t("查看已导入的收藏", "View imported bookmarks")}<ArrowRight size={16}/></CapsuleButton>}
+          {outcome !== "empty" && <CapsuleButton type="button" className="primary" disabled={busy || needsRefresh} onClick={onDone}>{t("查看已导入的收藏", "View imported bookmarks")}<ArrowRight size={16}/></CapsuleButton>}
         </div>
       )}
       {error && <div className="import-error" role="alert"><p className="error">{error}</p>
@@ -236,6 +235,8 @@ export function Importer({ refresh, onDone }: { refresh: () => Promise<void>; on
 }
 
 export default function SetupFlow({
+  active,
+  importOnly,
   setup,
   job,
   refresh,
@@ -243,8 +244,11 @@ export default function SetupFlow({
   taskBusy,
   cancelBusy,
   onDone,
+  onGuide,
   onProcess,
 }: {
+  active: boolean;
+  importOnly: boolean;
   setup: Setup | null;
   job: Job;
   refresh: () => Promise<void>;
@@ -252,13 +256,14 @@ export default function SetupFlow({
   taskBusy: boolean;
   cancelBusy: boolean;
   onDone: () => void;
+  onGuide: () => void;
   onProcess: (mode: "fetch" | "summarize") => void;
 }) {
   const t = useText();
   const [step, setStep] = useState(0);
   const [visited, setVisited] = useState(() => new Set([0]));
   const root = useRef<HTMLDivElement>(null);
-  useContentMotion(root, String(step), ".setup-panel:not([hidden])", "x");
+  useContentMotion(root, importOnly ? "import" : String(step), ".setup-panel:not([hidden])", "x");
   const completed = [Boolean(setup?.bookmarks),
     Boolean(setup?.channels.chat.configured && setup.channels.chat.tested && !setup.pending_apply),
     Boolean(setup?.has_vectors && setup.vector_compatible && !setup.pending_apply), false];
@@ -270,8 +275,13 @@ export default function SetupFlow({
     t("开始检索", "Search"),
   ];
   return (
-    <div className="setup-flow" ref={root}>
-      <header className="page-heading">
+    <div className={importOnly ? "setup-flow import-flow" : "setup-flow"} ref={root}>
+      {importOnly ? <header className="page-heading">
+        <h1>{t("导入书签", "Import bookmarks")}</h1>
+        <CapsuleButton type="button" className="text-button" onClick={onGuide}>
+          {t("打开完整向导", "Open setup guide")}<ArrowRight size={14} />
+        </CapsuleButton>
+      </header> : <header className="page-heading">
         <div>
           <h1>{t("让收藏，再次有用", "Make your saved pages useful again")}</h1>
           <p>
@@ -281,8 +291,8 @@ export default function SetupFlow({
         <CapsuleButton type="button" className="text-button" onClick={onDone}>
           {t("先用关键词检索", "Use keyword search for now")}
         </CapsuleButton>
-      </header>
-      <nav className="setup-steps" aria-label={t("设置步骤", "Setup steps")}>
+      </header>}
+      {!importOnly && <nav className="setup-steps" aria-label={t("设置步骤", "Setup steps")}>
         {labels.map((label, index) => (
           <CapsuleButton
             type="button"
@@ -296,15 +306,15 @@ export default function SetupFlow({
             <span className="setup-step-label">{label}</span>
           </CapsuleButton>
         ))}
-      </nav>
-      {visited.has(0) && <div className="setup-panel" hidden={step !== 0}><Importer refresh={refresh} onDone={onDone} /></div>}
-      {visited.has(1) && <div className="setup-panel" hidden={step !== 1}>
-        <Models setup={setup} refresh={refresh} onSummarize={() => onProcess("summarize")} />
+      </nav>}
+      <div className="setup-panel" hidden={!importOnly && step !== 0}><Importer refresh={refresh} onDone={onDone} /></div>
+      {visited.has(1) && <div className="setup-panel" hidden={importOnly || step !== 1}>
+        <Models active={active && !importOnly && step === 1} setup={setup} refresh={refresh} onSummarize={() => onProcess("summarize")} />
       </div>}
-      {visited.has(2) && <div className="setup-panel" hidden={step !== 2}>
+      {visited.has(2) && <div className="setup-panel" hidden={importOnly || step !== 2}>
         <Tasks setup={setup} job={job} onTask={onTask} taskBusy={taskBusy} cancelBusy={cancelBusy} onProcess={onProcess} onBack={onDone} />
       </div>}
-      {visited.has(3) && <div className="setup-panel" hidden={step !== 3}>
+      {visited.has(3) && <div className="setup-panel" hidden={importOnly || step !== 3}>
         <section className="ready">
           <Check size={32} />
           <h2>{t("从你记得的一点开始", "Start with the detail you remember")}</h2>
@@ -320,7 +330,7 @@ export default function SetupFlow({
           </CapsuleButton>
         </section>
       </div>}
-      {step < 3 && (
+      {!importOnly && step < 3 && (
         <footer className="setup-footer">
           <span>
             {setup?.bookmarks ?? 0} {t("条书签已在库中", "bookmarks in your library")}
