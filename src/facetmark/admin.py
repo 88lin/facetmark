@@ -693,6 +693,7 @@ class TaskControl(BaseModel):
 class SettingsPatch(BaseModel):
     values: dict[str, Any] = Field(default_factory=dict)
     """Keys from :data:`WRITABLE`. ``null`` clears one back to its default."""
+    verified_channel: Literal["chat", "embed"] | None = None
 
 
 class ProbeRequest(BaseModel):
@@ -1366,6 +1367,10 @@ def register(app: FastAPI, auth: list) -> None:
         except Exception as exc:  # noqa: BLE001
             # Validation exceptions can echo entire input dictionaries, keys included.
             raise HTTPException(400, f"invalid settings ({type(exc).__name__}); check field types and endpoint URLs") from None
+
+        if body.verified_channel and not matching_probe(validated, body.verified_channel, state.probe_results):
+            raise HTTPException(409, {"code": "connection_proof_changed",
+                                     "message": "The current connection settings need a matching successful test"})
 
         # Persist and apply the validated representation, not raw JSON strings.
         persisted = {

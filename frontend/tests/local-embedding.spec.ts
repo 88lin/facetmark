@@ -46,6 +46,7 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("fm-language", "zh"));
   await page.route("**/*", route => new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort());
 });
+test.afterEach(async ({ page }) => { await page.unrouteAll({ behavior: "wait" }); });
 
 test("desktop local embeddings explain runtime support and switch through fresh test, save and confirmed rebuild", async ({ page }) => {
   const control = await fixture(page);

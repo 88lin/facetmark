@@ -34,6 +34,7 @@ const $ = <T extends HTMLElement>(sel: string): T =>
 const input = $<HTMLInputElement>("#q");
 const list = $<HTMLUListElement>("#results");
 const status = $<HTMLDivElement>("#status");
+const retrySearch = $<HTMLButtonElement>("#search-retry");
 const saveBtn = $<HTMLButtonElement>("#save");
 
 let timer: number | undefined;
@@ -62,6 +63,7 @@ function invalidate(): void {
   searchSettings = undefined;
   cursor = startCursor("");
   list.replaceChildren();
+  retrySearch.hidden = true;
   lastNote = () => input.value.trim() ? t("pop.searching") : "";
   status.textContent = lastNote();
   if (!input.value.trim()) empty(t("pop.start"));
@@ -83,6 +85,11 @@ input.addEventListener("input", event => scheduleSearch((event as InputEvent).is
 input.addEventListener("compositionstart", () => { composing = true; invalidate(); });
 input.addEventListener("compositionend", finishComposition);
 input.addEventListener("blur", () => { if (composing) finishComposition(); });
+retrySearch.addEventListener("click", () => {
+  input.focus();
+  invalidate();
+  void run(input.value.trim());
+});
 
 input.addEventListener("keydown", (e) => {
   if (e.isComposing || composing || e.keyCode === 229) return;
@@ -96,6 +103,7 @@ input.addEventListener("keydown", (e) => {
 });
 
 async function run(q: string): Promise<void> {
+  retrySearch.hidden = true;
   const mine = ++generation;
   reading?.abort();
   const controller = reading = new AbortController();
@@ -137,8 +145,9 @@ async function run(q: string): Promise<void> {
     }
   } catch (e) {
     if (mine !== generation) return;
+    retrySearch.hidden = false;
     if (!keywordLoaded) { fail(e); return; }
-    lastNote = () => `${t(rows.length ? "pop.keywordRetained" : "pop.keywordEmpty")} · ${describe(e)}`;
+    lastNote = () => `${t(rows.length ? "pop.keywordRetained" : "pop.keywordEmpty")} · ${describeSearchError(e)}`;
     status.textContent = lastNote();
   }
 }
@@ -169,7 +178,7 @@ async function loadMore(button: HTMLButtonElement): Promise<void> {
     }
   } catch (e) {
     if (mine === generation) {
-      lastNote = () => describe(e);
+      lastNote = () => describeSearchError(e);
       paging = false;
       render(lastNote);
       if (hadFocus && document.activeElement === document.body)
@@ -220,11 +229,13 @@ const FACET_KEY: Record<string, string> = {
 function render(note: () => string): void {
   const hits = rows;
   const expanded = neighbours;
+  const focusedId = list.querySelector<HTMLAnchorElement>("a[data-id]:focus")?.dataset.id;
   lastNote = note;
   status.textContent = note();
   list.innerHTML = "";
   if (!hits.length && !expanded.length) {
     empty(t("pop.empty"));
+    if (focusedId) input.focus();
     return;
   }
   for (const h of hits) list.appendChild(row(h));
@@ -239,6 +250,9 @@ function render(note: () => string): void {
     head.textContent = `${t("pop.group")} · ${expanded.length}`;
     list.appendChild(head);
     for (const h of expanded) list.appendChild(row(h, true));
+  }
+  if (focusedId) {
+    (list.querySelector<HTMLAnchorElement>(`a[data-id="${CSS.escape(focusedId)}"]`) ?? input).focus();
   }
 }
 
@@ -291,7 +305,8 @@ function row(h: Hit, neighbour = false): HTMLLIElement {
 
   const title = document.createElement("div");
   title.className = "title";
-  title.textContent = h.title || h.url;
+  title.title = h.title || h.url;
+  title.textContent = title.title;
   a.appendChild(title);
 
   const meta = document.createElement("div");
@@ -343,17 +358,19 @@ function row(h: Hit, neighbour = false): HTMLLIElement {
     const query = lastQuery;
     void workerRequest({ type: "open-page", url: h.url, bookmark_id: h.bookmark_id, query, settings: searchSettings }).then(() => {
       window.close();
-    }).catch(error => { status.textContent = describe(error); });
+    }).catch(error => { status.textContent = describeError(error); });
   });
   li.appendChild(a);
   return li;
 }
 
-const describe = describeError;
+function describeSearchError(error: unknown): string {
+  return error instanceof ApiError && error.code === "invalid" ? t("pop.badSearchResponse") : describeError(error);
+}
 
 function fail(e: unknown): void {
   list.innerHTML = "";
-  lastNote = () => describe(e);
+  lastNote = () => describeSearchError(e);
   status.textContent = lastNote();
 }
 
@@ -388,7 +405,7 @@ saveBtn.addEventListener("click", async () => {
 function renderSave(): void {
   saveBtn.textContent = t(saving ? "pop.saving" : "pop.save");
   const message = $("#save-status");
-  message.textContent = saveError ? describe(saveError) : saveNote ? t(saveNote) : "";
+  message.textContent = saveError ? describeError(saveError) : saveNote ? t(saveNote) : "";
   message.className = saveError ? "bad" : saveNote && !saving ? "ok" : "";
 }
 

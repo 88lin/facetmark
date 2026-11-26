@@ -84,6 +84,8 @@ const STRINGS: Record<string, { en: string; zh: string }> = {
   "pop.recovery": { en: "Confirm or continue the original save in settings", zh: "在设置中确认或继续原保存" },
   "pop.start": { en: "Search by title, tag or a few remembered words.", zh: "输入标题、标签或印象中的几个词。" },
   "pop.searching": { en: "Searching…", zh: "正在检索…" },
+  "pop.retrySearch": { en: "Retry search", zh: "重试检索" },
+  "pop.badSearchResponse": { en: "The search response was incomplete.", zh: "检索结果不完整。" },
   "pop.connectionChanged": { en: "The saved connection changed. Press Enter to search it again.", zh: "已保存连接发生变化。按 Enter 可重新检索。" },
   "pop.page": { en: "%1 of %2", zh: "已显示 %1 / %2 项" },
   "pop.pageCapped": { en: "%1 of %2+ · candidate limit", zh: "已显示 %1 / %2+ 项 · 候选范围有上限" },

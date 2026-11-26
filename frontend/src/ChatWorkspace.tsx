@@ -83,6 +83,7 @@ export function ChatWorkspace({ active, launch, setup, language, onPreview, onSe
   const historyMoreRequest = useRef<AbortController | null>(null);
   const recoveryRead = useRef<AbortController | null>(null);
   const editor = useRef<HTMLTextAreaElement>(null), messages = useRef<HTMLDivElement>(null);
+  const historyButton = useRef<HTMLButtonElement>(null);
   const nearBottom = useRef(true);
   const currentKey = currentId || "draft:" + scope.nonce;
   const draft = Object.hasOwn(drafts, currentKey) ? drafts[currentKey] : "";
@@ -466,12 +467,11 @@ export function ChatWorkspace({ active, launch, setup, language, onPreview, onSe
 
   return <section className="chat-workspace" hidden={!active} aria-labelledby="chat-heading">
     <header className="chat-heading">
-      <div><h1 id="chat-heading"><MessageCircle size={23}/>{t("AI 对话", "AI chat")}</h1>
-        <p>{t("从保存的内容提问，沿着来源继续阅读。", "Ask about saved content and follow its sources.")}</p></div>
+      <h1 id="chat-heading"><MessageCircle size={23}/>{t("AI 对话", "AI chat")}</h1>
       <div className="chat-heading-actions">
         <CapsuleButton type="button" className="secondary" onClick={() => newConversation()}><Plus size={16}/>{t("新对话", "New chat")}</CapsuleButton>
-        <CapsuleButton type="button" className="secondary" onClick={() => { setHistoryOpen(true); setHistoryRevision(previous => previous + 1); }}><History size={16}/>{t("历史", "History")}</CapsuleButton>
-        <CapsuleButton type="button" className="text-button chat-back" onClick={onBack}><ArrowLeft size={16}/><span>{t("返回收藏", "Back to collection")}</span></CapsuleButton>
+        <CapsuleButton ref={historyButton} type="button" className="secondary" onClick={() => { setHistoryOpen(true); setHistoryRevision(previous => previous + 1); }}><History size={16}/>{t("历史", "History")}</CapsuleButton>
+        <CapsuleButton type="button" className="text-button chat-back" aria-label={t("返回收藏", "Back to collection")} onClick={onBack}><ArrowLeft size={16}/><span>{t("返回收藏", "Back to collection")}</span></CapsuleButton>
       </div>
     </header>
     <div className="chat-context" role="status"><BookOpen size={14}/>
@@ -530,7 +530,7 @@ export function ChatWorkspace({ active, launch, setup, language, onPreview, onSe
     </div>
     <div className="chat-composer-area">
       <div className="chat-composer-status" role="region" aria-label={t("连接与发送状态", "Connection and send status")} tabIndex={0}>
-      <div className="chat-model-choice">
+      {(profiles.length > 0 || profileId) && <div className="chat-model-choice">
         <label htmlFor="chat-connection"><span aria-hidden="true">
           <span className="chat-model-label">{t("本段对话的模型连接", "Connection for this conversation")}</span>
           <span className="chat-model-label-compact">{t("模型连接", "Connection")}</span>
@@ -544,7 +544,7 @@ export function ChatWorkspace({ active, launch, setup, language, onPreview, onSe
           </select>
         </label>
         <span className="chat-model-help">{chosenProfile ? chosenProfile.model || chosenProfile.agent : t("可在设置中保存其他连接", "Save other connections in Settings")}</span>
-      </div>
+      </div>}
       {profilesError && <div className="chat-feedback" role="alert"><span>{profilesError}</span><CapsuleButton type="button" className="text-button" disabled={profilesBusy} onClick={() => setProfilesRevision(value => value + 1)}>{t("重读连接", "Reload connections")}</CapsuleButton></div>}
       {operation && !operation.confirmed && !localRequest && <div className="chat-delivery-recovery" role="status">
         <p>{t("上次发送的结果暂时无法确认。重新读取对话，或继续同一次发送。", "The last send could not be confirmed. Reload the conversation or resume the same send.")}</p>
@@ -589,7 +589,10 @@ export function ChatWorkspace({ active, launch, setup, language, onPreview, onSe
     </div>
     <Dialog.Root open={historyOpen} onOpenChange={setHistoryOpen}><Dialog.Portal>
       <Dialog.Overlay className="chat-history-overlay"/>
-      <Dialog.Content className="chat-history-panel" aria-describedby="chat-history-description">
+      <Dialog.Content className="chat-history-panel" aria-describedby="chat-history-description" onCloseAutoFocus={event => {
+        event.preventDefault();
+        if (active && document.activeElement === document.body) historyButton.current?.focus({ preventScroll: true });
+      }}>
         <div className="chat-history-heading"><Dialog.Title>{t("对话历史", "Chat history")}</Dialog.Title><Dialog.Close asChild><CapsuleButton type="button" className="icon-button" aria-label={t("关闭对话历史", "Close chat history")}><X size={18}/></CapsuleButton></Dialog.Close></div>
         <Dialog.Description id="chat-history-description">{t("继续之前的问题，历史保存在你的书库中。", "Continue a previous conversation. History is saved in your library.")}</Dialog.Description>
         <label className="chat-history-search"><Search size={16}/><input value={historyFilter} onChange={event => setHistoryFilter(event.target.value)} aria-label={t("搜索已加载对话", "Search loaded conversations")} placeholder={t("搜索已加载对话", "Search loaded conversations")}/></label>

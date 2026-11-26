@@ -76,7 +76,7 @@ async function fixture(page: Page) {
 async function enter(page: Page) {
   await page.goto("/app#settings");
   const panel = page.locator(".model-chat"), profiles = panel.locator(".model-profiles");
-  await profiles.locator("summary").click();
+  await profiles.locator(":scope > summary").click();
   await expect(profiles.getByLabel("连接名称", { exact: true })).toBeEnabled();
   return { panel, profiles };
 }
@@ -161,8 +161,20 @@ for (const [language, theme, width, height] of [
   await page.setViewportSize({ width, height }); await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/app#settings");
   const profiles = page.locator(".model-chat .model-profiles");
-  await profiles.locator("summary").focus(); await profiles.locator("summary").press("Enter");
+  const summary = profiles.locator(":scope > summary");
+  await summary.focus(); await summary.press("Enter");
   await expect(profiles.locator(".model-profile-info > strong")).toHaveCount(2);
+  const longProfile = profiles.locator(".model-profile-list > li").first();
+  const details = longProfile.locator(".model-profile-detail");
+  const expand = details.locator(":scope > summary");
+  await expect(expand).toBeVisible();
+  if (width <= 390) expect((await longProfile.boundingBox())!.height).toBeLessThan(240);
+  await expand.press("Enter");
+  await expect(details.locator(".model-profile-values-full")).toBeVisible();
+  await expect(details.locator(".model-profile-values-full > span").first()).toHaveText(control.profiles[0].model);
+  await expect(details.locator(".model-profile-values-full .model-profile-endpoint")).toHaveText(control.profiles[0].base_url);
+  await expand.press("Space");
+  await expect(details.locator(".model-profile-values-full")).toBeHidden();
   await profiles.locator(".model-profile-list").scrollIntoViewIfNeeded(); await settleVisualLayout(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: `screenshots/collection-review/model-profiles-${language}-${theme}-${width}.png`, animations: "disabled" });

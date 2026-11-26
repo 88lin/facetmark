@@ -1550,7 +1550,7 @@ function Workbench({
       {summaryGeneration.error && <div className="summary-generation-feedback" role="alert">
         <span>{summaryGeneration.error}</span>
         {summaryGeneration.needsConnection && <CapsuleButton className="text-button" onClick={() => {
-          openView("settings"); summaryGeneration.clearError();
+          openView("settings", "models"); summaryGeneration.clearError();
         }}>{t("打开 AI 连接", "Open AI settings")}</CapsuleButton>}
         <CapsuleButton className="icon-button" aria-label={t("关闭摘要提示", "Dismiss summary message")}
           onClick={summaryGeneration.clearError}><X size={16}/></CapsuleButton>

@@ -61,7 +61,11 @@ export function CollectionTools({ scope, page, display, onDisplay, sort, onSort,
       onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}
       onKeyDown={event => { if (event.key === "Escape") { event.stopPropagation(); event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }}>
       <summary aria-label={`${t("摘要状态", "Summary status")}: ${statusLabels[currentStatus]} ${statusCount(currentStatus)}`}>
-        <span>{currentStatus === "done" ? t("有摘要", "Ready") : statusLabels[currentStatus]}</span><span className="collection-status-count">{statusCount(currentStatus)}</span><ChevronDown size={14} aria-hidden="true"/>
+        <span className="collection-status-indicator">
+          <span>{currentStatus === "done" ? t("有摘要", "Ready") : statusLabels[currentStatus]}</span>
+          <span className="collection-status-count">{statusCount(currentStatus)}</span>
+        </span>
+        <ChevronDown size={14} aria-hidden="true"/>
       </summary>{statusControls}
     </details> : statusControls}
     {!compact && sortControl}

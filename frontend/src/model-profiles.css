@@ -17,8 +17,21 @@
 .model-profile-list > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 20px; padding: 15px 0; border-top: 1px solid var(--rule); align-items: center; }
 .model-profile-info { display: grid; gap: 3px; min-width: 0; overflow-wrap: anywhere; }
 .model-profile-info > strong { color: var(--ink); font-size: var(--type-ui); font-weight: 650; line-height: 1.5; }
-.model-profile-info > span { font-size: var(--type-meta); line-height: 1.6; color: var(--secondary-ink); }
+.model-profile-info > span, .model-profile-values { font-size: var(--type-meta); line-height: 1.6; color: var(--secondary-ink); }
 .model-profile-info .model-profile-endpoint { font-size: var(--type-caption); }
+.model-profile-values { display: grid; min-width: 0; }
+.model-profile-detail > summary {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 44px;
+  padding: 4px; margin-inline: -4px; color: var(--accent); cursor: pointer; list-style: none;
+}
+.model-profile-detail > summary::-webkit-details-marker { display: none; }
+.model-profile-detail > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 8px; }
+.model-profile-detail summary svg { flex-shrink: 0; }
+.model-profile-detail[open] summary svg { rotate: 180deg; }
+.model-profile-values-preview > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.model-profile-values-label { display: none; font-size: var(--type-meta); }
+.model-profile-detail[open] .model-profile-values-preview { display: none; }
+.model-profile-detail[open] .model-profile-values-label { display: inline; }
 .model-profile-info .model-profile-status { display: flex; flex-wrap: wrap; gap: 6px 12px; color: var(--secondary-ink); }
 .model-profile-status > span { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); }
 .model-profile-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
