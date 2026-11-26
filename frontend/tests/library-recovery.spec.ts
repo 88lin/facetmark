@@ -339,9 +339,11 @@ test("long recovered content stays complete while keyboard controls remain reach
           horizontal: element.scrollWidth > element.clientWidth,
           buttons: [...footer.querySelectorAll("button")].map(button => ({ height: button.getBoundingClientRect().height, bottom: button.getBoundingClientRect().bottom })) };
       });
-      expect(bounds.bodyHeight).toBeGreaterThan(24); expect(bounds.bodyBottom).toBeLessThanOrEqual(bounds.footerTop);
+      expect(bounds.bodyHeight).toBeGreaterThan(size.width === 320 ? 136 : 24);
+      expect(bounds.bodyBottom).toBeLessThanOrEqual(bounds.footerTop);
       const state = dialog.locator(".library-write-recovery");
       await expect(state).toBeInViewport({ ratio: 1 });
+      await expect(dialog).toHaveAttribute("aria-describedby", (await state.getAttribute("id"))!);
       expect(await state.evaluate(element => Boolean(element.closest(".library-dialog-body")))).toBe(false);
       const stateBox = (await state.boundingBox())!;
       expect(stateBox.y + stateBox.height).toBeLessThanOrEqual((await dialog.locator(".library-dialog-body").boundingBox())!.y);
