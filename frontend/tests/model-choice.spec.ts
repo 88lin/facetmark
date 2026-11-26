@@ -152,6 +152,43 @@ test("test transport errors and save failures replace stale success beside the a
   saveFails = false;
 });
 
+test("an outdated connection test retains the draft and asks for a fresh test", async ({ page }) => {
+  let probes = 0, saves = 0;
+  await page.route("**/admin/settings/test", route => {
+    probes++;
+    return route.fulfill({ json: { chat: { ok: true, model: "my-draft", ms: 10 } } });
+  });
+  await page.route("**/admin/settings", route => {
+    if (route.request().method() !== "PUT") return route.continue();
+    saves++;
+    expect(route.request().postDataJSON()).toMatchObject({ verified_channel: "chat", values: { chat_model: "my-draft" } });
+    return route.fulfill({ status: 409, json: { detail: { code: "connection_proof_changed" } } });
+  });
+  await page.goto("/app#settings");
+  const panel = page.locator(".model-chat");
+  await page.getByRole("combobox", { name: "摘要来源", exact: true }).selectOption("endpoint");
+  await panel.locator('input[name="chat_model"]').fill("my-draft");
+  await panel.getByRole("button", { name: "测试并保存", exact: true }).click();
+  await expect(panel.locator(".connection-feedback")).toContainText("草稿已保留");
+  await expect(panel.locator('input[name="chat_model"]')).toHaveValue("my-draft");
+  await expect(panel.getByRole("button", { name: "测试并保存", exact: true })).toBeEnabled();
+  expect([probes, saves]).toEqual([1, 1]);
+});
+
+test("summary setup opens AI connections after visiting desktop settings", async ({ page }) => {
+  await page.route("**/admin/setup-status", async route => {
+    const response = await route.fetch(), setup = await response.json();
+    await route.fulfill({ response, json: { ...setup, demo: false,
+      channels: { ...setup.channels, chat: { configured: false, tested: false } } } });
+  });
+  await page.goto("/app#settings/desktop");
+  await page.getByRole("button", { name: "返回收藏", exact: true }).click();
+  await page.getByRole("button", { name: "生成摘要", exact: true }).click();
+  await page.getByRole("button", { name: "打开 AI 连接", exact: true }).click();
+  await expect(page.getByRole("tab", { name: "AI 连接", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page).toHaveURL(/#settings\/models$/);
+});
+
 test("settings load failure can recover without editing a blank configuration", async ({ page }) => {
   let failed = true;
   await page.route("**/admin/settings", route => failed ? route.fulfill({ status: 503, json: { detail: "unavailable" } }) : route.continue());
