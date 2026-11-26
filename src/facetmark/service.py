@@ -218,6 +218,7 @@ def bookmark_record(
             "summary_basis": row["enrich_basis"] or "",
         },
         "privacy_skipped": bool(row["privacy_skipped"]),
+        "indexable": bool(row["indexable"]),
         "health": state.as_dict(),
         "badge": state.badge,
         "in_graveyard": state.show_in_graveyard,
@@ -610,6 +611,7 @@ async def synthesize(
     provider: Provider | None = None,
     settings: Settings | None = None,
     response: SearchResponse | None = None,
+    bookmark_ids: list[int] | None = None,
 ) -> Synthesis:
     """Answer a question over the library, with per-claim provenance.
 
@@ -619,28 +621,28 @@ async def synthesize(
     and says so, rather than inventing a synthesis or raising.
     """
     st = settings or get_settings()
-    resp = response
-    if resp is None:
-        resp = await search(conn, query, limit=limit, settings=st, provider=provider)
+    if bookmark_ids is None:
+        resp = response or await search(conn, query, limit=limit, settings=st, provider=provider)
+        candidates = [(hit.bookmark_id, hit.snippet) for hit in resp.hits]
+    else:
+        resp = SearchResponse(query=query)
+        candidates = [(bid, "") for bid in dict.fromkeys(bookmark_ids)]
 
     sources: list[dict] = []
-    for hit in resp.hits[:limit]:
-        rec = bookmark_record(conn, hit.bookmark_id, settings=st)
-        if rec and rec["privacy_skipped"]:
+    for bid, snippet in candidates[:limit]:
+        rec = bookmark_record(conn, bid, settings=st)
+        if rec is None or rec["privacy_skipped"] or not rec["indexable"]:
             continue
         n = len(sources) + 1
-        excerpt = ""
-        if rec:
-            excerpt = rec["summary"] or _clip(hit.snippet, SNIPPET_CHARS)
         sources.append({
-            "n": n, "bookmark_id": hit.bookmark_id, "url": hit.url,
-            "title": hit.title, "excerpt": excerpt or _clip(hit.snippet, SNIPPET_CHARS),
-            "health": (rec or {}).get("health", {}).get("status", "unknown"),
-            "badge": (rec or {}).get("badge", ""),
+            "n": n, "bookmark_id": bid, "url": rec["url"],
+            "title": rec["title"], "excerpt": rec["summary"] or _clip(snippet, SNIPPET_CHARS),
+            "health": rec["health"].get("status", "unknown"),
+            "badge": rec["badge"],
             # 'title' means the excerpt is a model's inference from the page's
             # title, not text read off the page -- a weaker basis the reader
             # and the synthesising model are both entitled to know about.
-            "basis": (rec or {}).get("indexed", {}).get("summary_basis", ""),
+            "basis": rec["indexed"]["summary_basis"],
         })
 
     gaps = _deterministic_gaps(resp, sources)

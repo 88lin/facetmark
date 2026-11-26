@@ -7,16 +7,23 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .search.querylang import _field_sql, parse_query
+from .search.querylang import FieldFilter, _field_sql, parse_query
 from .text import build_fts_query
 
 
-class CollectionScope(BaseModel):
+class CollectionFilters(BaseModel):
     model_config = ConfigDict(extra="forbid")
     folder: str | None = None
     tag: str | None = None
     domain: str | None = None
     session: int | None = None
+
+    def search_filters(self) -> list[FieldFilter]:
+        return [FieldFilter(name, str(value), False, exact=True)
+                for name, value in self.model_dump(include={"folder", "domain", "tag", "session"}, exclude_none=True).items()]
+
+
+class CollectionScope(CollectionFilters):
     q: str = Field(default="", max_length=4096)
     status: Literal["all", "pending", "done", "failed"] = "all"
     exclude_ids: list[int] = Field(default_factory=list, max_length=10000)

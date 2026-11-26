@@ -221,10 +221,14 @@ export function QuerySuggestions({
 
 export function SearchAnswer({
   terms,
+  bookmarkIds,
+  pending,
   available,
   onSelect,
 }: {
   terms: string;
+  bookmarkIds: number[];
+  pending: boolean;
   available: boolean;
   onSelect: (id: number) => void;
 }) {
@@ -242,20 +246,20 @@ export function SearchAnswer({
       </summary>
       <p>
         {t(
-          "确认生成后，会把问题与最多 8 条命中的标题、网址和摘要发给已配置的模型。回答附带来源，可回到原文核对。",
-          "Generating sends your question and up to 8 matching titles, URLs and excerpts to your configured models. Follow citations to check the source.",
+          "生成时会把问题与当前页最多 8 条收藏的标题、网址和摘录发给聊天模型。可通过引用核对来源。",
+          "Generating sends your question and up to eight titles, URLs and excerpts from this results page to the chat model. Follow citations to check the sources.",
         )}
       </p>
       <CapsuleButton
         className="secondary"
-        disabled={!available || busy}
+        disabled={!available || pending || busy || !bookmarkIds.length}
         onClick={async () => {
           const abort = new AbortController();
           setRequest(abort);
           setBusy(true);
           setError("");
           try {
-            setAnswer(await post<Answer>("/synthesize", { q: terms, limit: 8 }, abort.signal));
+            setAnswer(await post<Answer>("/synthesize", { q: terms, limit: 8, bookmark_ids: bookmarkIds }, abort.signal));
           } catch (e) {
             if (!abort.signal.aborted) setError(String(e));
           } finally {
@@ -268,9 +272,12 @@ export function SearchAnswer({
       </CapsuleButton>
       {!available && (
         <p className="hint">
-          {t("请先在设置中配置模型并完成索引。", "Configure models and index your library first.")}
+          {t("请先在 AI 连接中测试并保存聊天模型。", "Test and save a chat connection first.")}
         </p>
       )}
+      {available && !pending && bookmarkIds.length === 0 && <p className="hint">
+        {t("当前页没有可引用的收藏。", "This page has no bookmarks to cite.")}
+      </p>}
       {error && (
         <p className="error" role="alert">
           {error}

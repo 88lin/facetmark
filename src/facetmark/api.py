@@ -29,7 +29,7 @@ import hmac
 import sqlite3
 import time
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi import Path as ApiPath
@@ -41,6 +41,7 @@ from pydantic import BaseModel, Field, field_validator
 from . import __version__, admin, client_operations, service
 from . import health as healthmod
 from .bridges import karakeep as kkbridge
+from .collection import CollectionFilters
 from .config import Settings, get_settings
 from .db import SchemaMismatch, open_db
 from .fetch import store as fetchstore
@@ -252,6 +253,7 @@ class SearchRequest(BaseModel):
     #: derived from the window.
     depth: int | None = Field(default=None, ge=1)
     config: str = "full"
+    filters: CollectionFilters | None = None
     assist: bool = False
     expand: int = Field(default=8, ge=0, le=50)
 
@@ -311,6 +313,7 @@ class SuggestQueryRequest(BaseModel):
 class SynthesizeRequest(BaseModel):
     q: str
     limit: int = Field(default=8, ge=1, le=20)
+    bookmark_ids: list[Annotated[int, Field(strict=True, gt=0, le=2**63 - 1)]] | None = Field(default=None, max_length=20)
 
 
 class KarakeepAddRequest(BaseModel):
@@ -488,12 +491,13 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
         limit: int = Query(default=20, ge=1),
         offset: int = Query(default=0, ge=0),
         depth: int | None = Query(default=None, ge=1),
+        filters: CollectionFilters = Depends(),
         state: AppState = Depends(get_state),
     ) -> dict:
         """First paint. Lexical only, no model call, no await on anything."""
         return service.quick_search(
             state.conn, q, limit=limit, offset=offset, depth=depth,
-            settings=state.settings,
+            settings=state.settings, exact_filters=filters.search_filters(),
         ).as_dict()
 
     @app.post("/search", dependencies=auth)
@@ -507,6 +511,7 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
                 depth=req.depth, config=cfg,
                 provider=provider, settings=settings,
                 assist=req.assist, expand_limit=req.expand,
+                exact_filters=req.filters.search_filters() if req.filters else (),
             )
         return resp.as_dict()
 
@@ -519,7 +524,7 @@ def _register(app: FastAPI) -> None:  # noqa: C901 - a route table, not a branch
         async with state.model_operation(needs_provider=False) as (conn, provider, settings):
             out = await service.synthesize(
                 conn, req.q, limit=req.limit,
-                provider=provider, settings=settings,
+                provider=provider, settings=settings, bookmark_ids=req.bookmark_ids,
             )
         return out.as_dict()
 
