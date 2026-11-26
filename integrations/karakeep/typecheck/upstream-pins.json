@@ -9,24 +9,24 @@
     "not mean the plugin is broken -- it means nobody has checked since the file",
     "moved, and `npm run typecheck` is now checking against a stale contract."
   ],
-  "repo": "88lin/karakeep",
+  "repo": "karakeep-app/karakeep",
   "ref": "main",
-  "fetched": "2026-08-04",
+  "fetched": "2026-11-27",
   "files": {
     "packages/shared/search.ts": {
       "blob": "651b524508ef0a662184ee9aff92ba0dcae8dca8",
       "why": "source of vendor/karakeep-shared/search.d.ts"
     },
     "packages/shared/plugins.ts": {
-      "blob": "974b9215913517ed3444a248f039925a64783bdb",
+      "blob": "efe8853f4e571d8fc7f56171ae216eee54ad565b",
       "why": "source of vendor/karakeep-shared/plugins.d.ts"
     },
     "packages/plugins/package.json": {
-      "blob": "8475d067404e32d9e0aad1f6589604fcd61fb200",
+      "blob": "0e0d0a6e86b62c02b0c8d73c5093331cc0c92831",
       "why": "install step 2 edits its `exports` map"
     },
     "packages/shared-server/src/plugins.ts": {
-      "blob": "dc9fa547585f30a8537e74f13172726c48d3a555",
+      "blob": "057ad16c0b37e6e26aaa9a5cfa28f318e7ab1339",
       "why": "install step 3 adds an import to loadAllPlugins(); order decides which Search plugin wins"
     }
   }
