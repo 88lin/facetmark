@@ -122,8 +122,10 @@ body {
 .popup-search { display: flex; }
 .popup #q { padding-left: 17px; }
 .popup #save { padding-inline: 13px; min-height: 38px; }
+.popup-search-status { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .popup #status, .popup #save-status { min-width: 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 .popup #status { min-height: 18px; padding: 0 3px; }
+.popup #search-retry { flex: none; min-height: 36px; font-size: 12px; }
 .popup #save-status:empty { display: none; }
 .popup #save-status.bad { color: var(--danger); }
 .popup #save-status.ok { color: var(--success); }
@@ -150,7 +152,16 @@ body {
 }
 .hit:hover, .hit:focus-visible { background: var(--accent-soft); border-color: var(--field-edge); }
 .hit:focus-visible { outline-offset: -2px; }
-.hit .title { font-size: 14px; font-weight: 650; overflow-wrap: anywhere; line-height: 1.55; }
+.hit .title {
+  font-size: 14px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 .hit .meta { color: var(--muted); font-size: 11px; margin-top: 3px; display: flex; gap: 4px; flex-wrap: wrap; overflow-wrap: anywhere; }
 .hit .snippet { color: var(--muted); font-size: 12px; margin-top: 5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .chip, .badge { padding: 1px 6px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 10px; }

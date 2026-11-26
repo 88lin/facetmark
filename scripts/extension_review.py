@@ -123,9 +123,17 @@ def review(context, worker, report: dict):
         return page
 
     search = popup()
+    held_ranked = []
+    search.route(BASE + "/search", lambda route: held_ranked.append(route), times=1)
     search.locator("#q").fill("Original")
-    expect(search.locator("#results a").first).to_be_visible()
+    first_hit = search.locator("#results a").first
+    expect(first_hit).to_be_visible()
+    first_hit.focus()
+    focused_id = first_hit.get_attribute("data-id")
+    ranked = until(search, lambda: held_ranked, "ranked request did not start")[0]
+    ranked.continue_()
     expect(search.locator("li.more button")).to_be_visible()
+    expect(search.locator(f'#results a[data-id="{focused_id}"]')).to_be_focused()
     opened = len(calls("/open"))
     pages = len(context.pages)
     search.locator("#q").evaluate("el => el.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter',isComposing:true,bubbles:true}))")
@@ -152,10 +160,17 @@ def review(context, worker, report: dict):
     server("/_test/flags", {"bad_search": True})
     search.locator("#q").fill("Original")
     expect(search.locator("#status")).to_contain_text("仍可使用关键词结果")
+    expect(search.locator("#status")).to_contain_text("检索结果不完整")
     expect(search.locator("#results a")).to_have_count(10)
     capture(search, "extension-popup-keyword-recovery")
 
     server("/_test/flags", {})
+    search.locator("#search-retry").press("Enter")
+    expect(search.locator("#results a")).to_have_count(20)
+    expect(search.locator("#search-retry")).to_be_hidden()
+    expect(search.locator("#q")).to_be_focused()
+    assert calls("/search")[-1]["body"]["q"] == "Original"
+
     search.locator("#q").fill("slow")
     until(search, lambda: any(entry["query"].startswith("q=slow") for entry in calls("/quick")), "slow request not sent")
     search.locator("#q").fill("")
@@ -166,7 +181,7 @@ def review(context, worker, report: dict):
     expect(search.locator("#results a").first).to_be_visible()
     capture(search, "extension-popup-results")
     report["scenarios"].append("real search, two-stage paging, double click, language switch, IME Enter and clear during a late response")
-    report["scenarios"].append("both independent read failures, retained keyword results, final page and focus on the first added bookmark")
+    report["scenarios"].append("both independent read failures, retained keyword results and exact search retry, focus through ranking and paging")
     first_url = search.locator("#results a").first.get_attribute("href")
     opened = len(calls("/open"))
     with context.expect_page() as opened_page:
@@ -323,7 +338,10 @@ def review(context, worker, report: dict):
     search.emulate_media(color_scheme="dark", reduced_motion="reduce")
     language(search, "zh")
     search.locator("#q").fill("Original")
-    expect(search.locator("#results a").first).to_be_visible()
+    title = search.locator('#results a[href$="/99"] .title')
+    expect(title).to_have_attribute("title", "原保存内容与长标题 Original saved content " * 10)
+    assert title.evaluate("el => el.scrollHeight > el.clientHeight && el.clientHeight <= 2 * parseFloat(getComputedStyle(el).lineHeight) + 1")
+    expect(search.locator("#results a").nth(1)).to_be_in_viewport(ratio=0.5)
     capture(search, "extension-popup-zh-dark-320")
     report["scenarios"].append("source-matched light/dark, Chinese/English, 320px/short window, long original payload, keyboard focus and reduced-motion captures")
     report["requests"] = server()["requests"]
