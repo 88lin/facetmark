@@ -34,16 +34,19 @@
 > written to. Keyword search needs no AI. When you confirm indexing with cloud models,
 > eligible titles, URLs and extracted text are sent to the services you configure.
 
-### Windows desktop (v2.2.0)
+### Windows desktop (v2.2.1)
 
 Facetmark provides a Tauri 2 desktop app and a
 shared React workbench: browse bookmarks, search and read side by side, import through
 a guided flow, configure chat and embeddings separately, and follow background tasks.
 Light/dark themes, Chinese/English and narrow-window reading are included.
 
-Version 2.2.0 adds reusable named connections, per-conversation model access,
+Version 2.2.1 fixes scoped search and citations, import recovery, AI connection saves,
+and desktop service recovery. It also makes more room for bookmarks, conversations, and connection details in narrow windows.
+
+Version 2.2.0 introduced reusable named connections, per-conversation model access,
 batch URL preview/import, and local reading notes with draft and revision recovery.
-It also improves recovery across imports, collection management, chat, generation tasks,
+It also improved recovery across imports, collection management, chat, generation tasks,
 sync, extensions and MCP; settings and navigation retain drafts and tested connections.
 Narrow-window collection and reading controls, full labels, keyboard focus, large-library
 paging and native startup/tray behavior have been reviewed and repaired.
@@ -52,13 +55,13 @@ See the [full repair record](docs/full-product-repair-2026-11-16.md) and
 Frozen desktop builds use HTTP embedding endpoints; in-process SentenceTransformer
 remains optional for Python installations.
 
-Download the [Windows x64 installer](https://github.com/88lin/facetmark/releases/download/v2.2.0/facetmark-2.2.0-windows-x64-setup.exe)
-from [Releases](https://github.com/88lin/facetmark/releases/tag/v2.2.0).
+Download the [Windows x64 installer](https://github.com/88lin/facetmark/releases/download/v2.2.1/facetmark-2.2.1-windows-x64-setup.exe)
+from [Releases](https://github.com/88lin/facetmark/releases/tag/v2.2.1).
 The installer is **unsigned**; Windows may show SmartScreen.
 The package includes the Python sidecar and offline WebView2 installer;
 it does not include large AI models. No Python, Node or Rust installation is needed by
 desktop users. The same Release also provides the extension ZIP, Python wheel/source
-distribution and SHA256 checksums. See [release notes and validation boundaries](docs/releases/v2.2.0.md).
+distribution and SHA256 checksums. See [release notes and validation boundaries](docs/releases/v2.2.1.md).
 
 The same React assets ship in CI-built Python wheels and Docker images. Source
 contributors build `frontend/` before packaging; Python end users do not run Node.
