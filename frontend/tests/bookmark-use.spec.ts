@@ -7,6 +7,7 @@ test("titles use native external links and summaries are readable without previe
     const response = await route.fetch();
     const data = await response.json();
     data.items[0].summary = "直接浏览书签摘要，保留上下文，快速决定是否打开原网页。".repeat(12);
+    Object.assign(data.items[1], { summary: "", snippet: "", summary_status: "pending" });
     await route.fulfill({ response, json: data });
   });
   await page.goto("/app");
@@ -16,6 +17,10 @@ test("titles use native external links and summaries are readable without previe
   const url = await title.getAttribute("href");
   expect(url).toMatch(/^https?:\/\//);
   await expect(row.locator(".result-summary")).toBeVisible();
+  const pending = page.locator(".result-row").nth(1);
+  await expect(pending.locator(".result-summary")).toHaveCount(0);
+  await expect(pending.locator(".bookmark-status")).toContainText("待生成摘要");
+  await expect(pending.locator(".bookmark-preview")).toBeEnabled();
   await expect(page.locator(".preview-pane")).toHaveCount(0);
   await row.getByRole("button", { name: "展开全文", exact: true }).click();
   expect(await row.locator(".result-summary").evaluate(el => el.scrollHeight <= el.clientHeight + 1)).toBe(true);

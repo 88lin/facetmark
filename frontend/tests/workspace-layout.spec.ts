@@ -30,12 +30,14 @@ async function savedTextFixture(page: Page, sourceText?: string) {
   });
 }
 
-test("desktop uses its height for the directory and collection, with search in the header", async ({ page }) => {
+test("desktop shares the full header with search and aligns the directory to the collection", async ({ page }) => {
   const evidence = [];
   for (const { width, height } of [{ width: 1440, height: 900 }, { width: 1280, height: 720 }, { width: 1024, height: 768 }]) {
     await page.setViewportSize({ width, height });
     await page.goto("/app");
     await expect(page.locator(".result-row")).toHaveCount(30);
+    await expect(page.getByRole("heading", { name: "我的收藏", exact: true })).toBeInViewport();
+    await expect(page.locator(".app-header .app-brand")).toBeInViewport();
     await settleVisualLayout(page);
     const geometry = await page.evaluate(() => {
       const bounds = (selector: string) => {
@@ -43,18 +45,26 @@ test("desktop uses its height for the directory and collection, with search in t
         return { x: box.x, y: box.y, width: box.width, height: box.height, bottom: box.bottom };
       };
       const list = document.querySelector(".result-list")!.getBoundingClientRect();
-      const visible = [...document.querySelectorAll(".result-row")].filter(row => {
-        const box = row.getBoundingClientRect();
+      const cards = [...document.querySelectorAll(".result-row")].map(row => row.getBoundingClientRect());
+      const visible = cards.filter(box => {
         return box.top >= list.top && box.bottom <= list.bottom + 1;
       }).length;
       return { search: bounds(".search-box"), rail: bounds(".collection-sidebar"), directory: bounds(".collection-sidebar .facet-options"),
-        results: bounds(".result-list"), header: bounds(".app-header"), visible };
+        results: bounds(".result-list"), header: bounds(".app-header"), workspace: bounds(".main-workspace"),
+        columns: new Set(cards.map(box => Math.round(box.x))).size, visible };
     });
     expect(geometry.search.bottom).toBeLessThanOrEqual(geometry.header.bottom + 1);
-    expect(geometry.rail.height).toBeGreaterThan(height * .9);
+    expect(geometry.header.x).toBe(geometry.rail.x);
+    expect(geometry.rail.y).toBe(geometry.workspace.y);
+    expect(geometry.rail.y).toBeGreaterThanOrEqual(geometry.header.bottom - 1);
+    expect(geometry.search.width).toBeGreaterThanOrEqual(350);
+    expect(geometry.rail.height).toBeGreaterThan(height * .85);
     expect(geometry.directory.height).toBeGreaterThan(height * .7);
     expect(geometry.results.height).toBeGreaterThan(height * .62);
-    if (width === 1440) expect(geometry.visible).toBeGreaterThanOrEqual(6);
+    if (width === 1440) {
+      expect(geometry.columns).toBe(4);
+      expect(geometry.visible).toBeGreaterThanOrEqual(8);
+    }
     evidence.push({ width, height, ...geometry });
     await capture(page, `collection-${width}-${height}`);
   }
@@ -63,6 +73,11 @@ test("desktop uses its height for the directory and collection, with search in t
 
 test("card blank areas open the reader while native links, selection and expansion keep their own behavior", async ({ page }) => {
   await savedTextFixture(page);
+  await page.route("**/bookmarks?**", async route => {
+    const response = await route.fetch(), data = await response.json();
+    data.items[0].summary = "保留收藏的上下文，便于回到原文继续阅读。".repeat(8);
+    await route.fulfill({ response, json: data });
+  });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/app");
   await expect(page.locator(".result-row")).toHaveCount(30);
@@ -104,6 +119,7 @@ test("card blank areas open the reader while native links, selection and expansi
   const original = await popupPromise;
   await expect(page.locator(".preview-title")).toHaveCount(0);
   await original.close();
+  await page.unrouteAll({ behavior: "wait" });
 });
 
 test("reader index reveals the whole selection after layout motion and restores collection scroll on close", async ({ page }) => {

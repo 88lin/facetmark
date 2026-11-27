@@ -489,19 +489,6 @@ kbd {
 .reading li {
   margin-bottom: 10px;
 }
-.reading-empty {
-  color: var(--muted);
-  font-size: var(--type-body);
-  padding: 20px 0 40px;
-}
-.reading-empty > svg {
-  margin-bottom: 18px;
-}
-.reading-empty h3 {
-  color: var(--ink);
-  font-size: 1.25rem;
-  margin-top: 0;
-}
 .suggested-query,
 .related-item {
   width: 100%;

@@ -64,7 +64,7 @@ test("representative collection, responsive states, exact scopes, save recovery 
     await page.getByRole("button", { name: "切换主题", exact: true }).first().click();
 
     await page.getByRole("button", { name: "切换语言", exact: true }).first().click();
-    await expect(page.locator(".toolbar-location h1")).toHaveText("Your collection");
+    await expect(page.getByRole("heading", { name: "Your collection", exact: true })).toBeVisible();
     await capture(page, evidence, "desktop-english", "English controls and mixed-language collection content");
     const englishSummary = page.locator(".result-row").first().locator(".bookmark-description");
     await englishSummary.getByRole("button", { name: "Show full text", exact: true }).click();

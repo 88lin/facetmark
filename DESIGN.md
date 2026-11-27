@@ -69,8 +69,8 @@ typography:
     fontFamily: "\"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif"
     fontSize: "1.125rem"
     fontWeight: 680
-    lineHeight: 1.6
-    letterSpacing: "0"
+    lineHeight: 1.48
+    letterSpacing: "-.012em"
   body:
     fontFamily: "\"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif"
     fontSize: "1rem"
@@ -80,7 +80,7 @@ typography:
     fontFamily: "\"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif"
     fontSize: "0.9375rem"
     fontWeight: 400
-    lineHeight: 1.8
+    lineHeight: 1.66
   control:
     fontFamily: "\"Facetmark Latin\", \"Facetmark CJK\", \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif"
     fontSize: "0.9375rem"
@@ -109,7 +109,7 @@ typography:
 rounded:
   control: "999px"
   pill: "999px"
-  card: "22px"
+  card: "20px"
   card-compact: "20px"
   directory: "24px"
   workspace: "28px"
@@ -122,7 +122,7 @@ spacing:
   inline: "8px"
   group: "16px"
   card-gap: "12px"
-  card: "16px"
+  card: "14px"
   workspace: "20px"
   dialog: "30px"
   compact-card: "16px"
@@ -284,8 +284,8 @@ Bundled variable Inter and Noto Sans SC use the `Facetmark Latin` and
 The same offline font files are staged for native startup and tray packaging.
 Smiley Sans is a historical asset, not the active interface font.
 
-- Card titles: 18px/680, 1.6 line height, two lines; 17px on mobile.
-- Card summaries: 15px/1.8, two lines; 14px on mobile. Measured overflow exposes
+- Card titles: 18px/680, 1.48 line height, two lines; 17px on mobile.
+- Card summaries: 15px/1.66, two lines; 14px on mobile. Measured overflow exposes
   expansion in a separate 8px-gapped column. Expanded text has no clamp.
 - Source, status, tags and folder paths: 13px; dates and summary-basis captions: 11px.
 - Reading index: 16px title, 28px source medallion and compact status/actions.
@@ -296,20 +296,21 @@ Smiley Sans is a historical asset, not the active interface font.
 - Shared controls: 15px/600; local navigation/actions retain their own smaller,
   source-defined type and hit areas.
 
-The collection scope h1 remains available to assistive technology without a
-duplicate visible display block. It is not a decorative heading above the results.
+The collection scope heading identifies the currently open folder, tag, session,
+search results, or entire collection. On narrow windows it remains available to
+assistive technology while the compact search and filter controls stay visible.
 
 ## Layout
 
-Desktop shell: 64px header, 252px directory, 16px gap, 10px top and 16px side/bottom
-padding. The directory spans both grid rows. Above the collection, the header
-contains navigation, shared search and utilities; the repeated brand and title/search
-band are removed. The directory has only folder and tag categories in one row; the folders
-entry uses its icon with an accessible name, and the tree scrolls independently.
+The 60px desktop header spans the workspace and contains the brand, navigation,
+shared search and utilities. The 252px directory and results start below it.
+The directory names folders and tags directly and scrolls independently.
 
-The collection uses 12px top / 20px horizontal padding, a compact actions/status
-area, a 280px-minimum grid with 12px gaps and a separate paging footer.
-Card padding is 16px, internal gap 9px and radius 22px.
+The collection uses 12px top and 20px horizontal padding. At 1120px and above the
+scope heading shares the first row with actions; between 960px and 1119px it
+uses the full row. The card grid uses a 260px minimum and 12px gaps, with a
+separate paging footer. Cards use 14px padding, a 7px gap and 20px radius.
+Cards without a summary or excerpt retain their generation state and actions.
 Grid is the unsaved default; list remains a persisted alternative.
 The existing action toolbar contains select-all with its compact count and one
 Generate button. Individual checking leaves the same toolbar in place. Partial
@@ -317,7 +318,7 @@ selection uses the native mixed checkbox state; cross-page selection retains its
 server scope and explicit exclusions. Separate bulk management remains available.
 
 At 1660px the directory/index are 280px/288px, shell sides 20px, workspace sides
-24px and card minimum 320px. Below 1300px the directory/index are 232px/248px;
+24px and card minimum 300px. Below 1300px the directory/index are 232px/248px;
 navigation/utility text compacts. Below 1120px reading uses the full-viewport,
 focus-managed drawer. Below 960px the fixed directory and desktop navigation
 become one drawer opened by the filter control beside search. Below 720px the

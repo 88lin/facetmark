@@ -269,8 +269,7 @@ export default function Reader({
       </>
     ) : (
       <div className="reading-empty">
-        <FileText size={24} />
-        <h3>{t("还没有阅读内容", "No reading content yet")}</h3>
+        <h3><FileText size={21} aria-hidden="true"/>{t("还没有阅读内容", "No reading content yet")}</h3>
         <p>
           {t(
             "提取正文即可在这里阅读，也可以先根据标题与网址生成 AI 概览。",
@@ -280,7 +279,7 @@ export default function Reader({
         {fetchFeedback}
         {record?.summary_error && <p className="error" role="status">{record.summary_error}</p>}
         {canProcess && <div className="reader-empty-actions">
-          {!fetchError && <CapsuleButton className="secondary" disabled={running || processingDisabled} onClick={() => onAction?.({ kind: "process", mode: "fetch", ids: [selected!] })}><FileText size={15}/>{t("提取这篇正文", "Fetch this page")}</CapsuleButton>}
+          {!fetchError && <CapsuleButton className="primary" disabled={running || processingDisabled} onClick={() => onAction?.({ kind: "process", mode: "fetch", ids: [selected!] })}><FileText size={15}/>{t("提取这篇正文", "Fetch this page")}</CapsuleButton>}
           <CapsuleButton className="secondary" disabled={running || processingDisabled} onClick={() => onAction?.({ kind: "process", mode: "summarize", ids: [selected!] })}><Sparkles size={15}/>{t("生成这篇摘要", "Summarize this page")}</CapsuleButton>
         </div>}
       </div>

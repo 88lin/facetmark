@@ -60,6 +60,13 @@ related_targets:
 
 ## Direction status
 
+The 2026-11-27 collection and reader refinement uses a full-width desktop
+header, aligned directory and results, and a visible scope heading beside
+collection actions. Cards use tighter spacing and omit placeholder excerpts.
+The reader groups the AI overview and gives source text retrieval priority
+when reading content is missing. Compare the installed release and new
+Actions captures of the same synthetic library at matching sizes.
+
 2026-11-18 product-quality review confirmed five navigation/editing/focus failures
 on unchanged production UI in Actions 44232486636. Two independent assessments
 also identified narrow collection density, empty-note prominence, unbounded import

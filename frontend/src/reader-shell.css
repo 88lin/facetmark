@@ -1,5 +1,10 @@
 /* Reading surfaces; collection and navigation live in workbench.css. */
-.reader-summary { padding-bottom:24px; border-bottom:1px solid var(--rule); margin-bottom:28px; }
+.reader-summary, .reading-empty { padding: 18px 20px; border: 1px solid var(--rule); border-radius: 20px; background: linear-gradient(135deg, var(--inset), var(--canvas)); }
+.reader-summary { margin-bottom: 28px; }
+.reading-empty { color: var(--secondary-ink); font-size: var(--type-ui); line-height: 1.7; }
+.reading-empty h3 { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--ink); font-size: 1.125rem; }
+.reading-empty h3 > svg { flex: none; color: var(--accent); }
+.reading-empty > p { margin-block: 8px 14px; }
 .reader-section-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
 .reader-section-heading h2 { display:flex; align-items:center; gap:8px; margin:0; font-size:var(--type-ui); font-weight:600; color:var(--accent); }
 .reader-section-heading button { min-height:36px; font-size:var(--type-meta); flex-shrink:0; }
@@ -27,6 +32,7 @@
 .reader-context-queries { margin:16px 0; }
 .reader-context-queries h3 { font-size:var(--type-ui); margin-bottom:8px; }
 @media(max-width:719px) {
+  .reader-summary, .reading-empty { padding: 14px; border-radius: 16px; }
   .article-options .article-details { flex-basis:100%; }
   .reader-section-heading button,.reader-summary-invitation button,.reader-source-missing button,.reader-empty-actions button { min-height:44px; }
   .reader-section-actions { gap: 4px; }
@@ -133,7 +139,6 @@
   background: var(--inset);
   border-radius: var(--radius-pill);
   padding: 4px 10px;
-  margin-left: -10px;
 }
 .source-link:hover {
   background: var(--soft);

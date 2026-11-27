@@ -82,7 +82,8 @@ export function FacetBrowser({ filters, folderPath, enabled = true, revision, on
           if (group === key) return;
           resetList(); setText(""); setGroup(key);
         }}><SelectionPill active={group === key} group={`${groupId}-directory-type`} />
-          {key === "folders" ? <CollectionFolderIcon size={19} active={group === key}/> : <span>{label}</span>}
+          {key === "folders" ? <CollectionFolderIcon size={17} active={group === key}/> : <Tags size={16} aria-hidden="true"/>}
+          <span>{label}</span>
         </CapsuleButton>)}
     </div>
       {onManage && <CapsuleButton type="button" className="facet-manage" onClick={onManage}
