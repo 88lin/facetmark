@@ -827,14 +827,14 @@ function Workbench({
         >
           <Menu />
         </CapsuleButton>
-        {(!paired || view !== "library") && <a
+        <a
           className="brand app-brand"
           href="/app"
           onClick={homeLink}
         >
           <FacetmarkMark />
           <span>Facetmark</span>
-        </a>}
+        </a>
         <nav className="header-navigation" aria-label={t("主要导航", "Main navigation")}>
           <CapsuleButton
             className={view === "library" ? "active" : ""}
@@ -1188,17 +1188,15 @@ function Workbench({
           </section>
         ) : view === "library" ? (
           <>
-            <header className="workspace-toolbar sr-only">
-              <div className="toolbar-location">
-                <h1 title={filters.folder}>
-                  {search.trim() ? t("搜索结果", "Search results") :
-                    filters.folder !== undefined ? selectedFolderParts?.at(-1) || filters.folder || t("未分类", "Unfiled") :
-                    filters.tag || filters.domain || (filters.session !== undefined ? t("浏览批次", "Saving session") : t("我的收藏", "Your collection"))}
-                </h1>
-              </div>
-            </header>
             <section className="results-column" inert={focusReading}>
               <header className="search-header">
+                <div className="workspace-toolbar">
+                  <h1 title={filters.folder || filters.tag || filters.domain}>
+                    {search.trim() ? t("搜索结果", "Search results") :
+                      filters.folder !== undefined ? selectedFolderParts?.at(-1) || filters.folder || t("未分类", "Unfiled") :
+                      filters.tag || filters.domain || (filters.session !== undefined ? t("浏览批次", "Saving session") : t("我的收藏", "Your collection"))}
+                  </h1>
+                </div>
                 {adminAvailable && showCollectionControls && <LibraryRecoveryBanner operations={libraryOperations}
                   onOpen={operation => setLibraryAction({ kind: "recover", operation })}/>}
                 {adminAvailable && showCollectionControls && <LibraryToolbar

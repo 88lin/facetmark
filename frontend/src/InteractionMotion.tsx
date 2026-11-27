@@ -146,25 +146,19 @@ export function useContentMotion<T extends HTMLElement>(ref: RefObject<T | null>
     const recipe = contentRecipe(element, before, value, axis);
     const targets: HTMLElement[] = [element];
     const follow: HTMLElement[] = [];
-    let heading: HTMLElement | null = null;
-    if (recipe.kind === "page") {
-      if (element.matches(".results-column")) {
-        heading = ref.current?.querySelector<HTMLElement>(".workspace-toolbar") || null;
+    if (recipe.kind === "page" && !element.matches(".results-column")) {
+      const settings = element.querySelector<HTMLElement>(":scope > .settings-workspace");
+      if (settings) {
+        // The settings hook owns the panel; this hook owns its inner body.
+        const body = settings.querySelector<HTMLElement>(".settings-panel:not([hidden]) > :first-child");
+        if (body) follow.push(body);
       } else {
-        const settings = element.querySelector<HTMLElement>(":scope > .settings-workspace");
-        if (settings) {
-          // The settings hook owns the panel; this hook owns its inner body.
-          const body = settings.querySelector<HTMLElement>(".settings-panel:not([hidden]) > :first-child");
-          if (body) follow.push(body);
-        } else {
-          follow.push(...[...element.children].filter((child): child is HTMLElement =>
-            child instanceof HTMLElement && !child.matches(".page-heading, [hidden], button"),
-          ).slice(0, 2));
-        }
+        follow.push(...[...element.children].filter((child): child is HTMLElement =>
+          child instanceof HTMLElement && !child.matches(".page-heading, [hidden], button"),
+        ).slice(0, 2));
       }
     }
     targets.push(...follow);
-    if (heading) targets.push(heading);
     const paint = new Map<HTMLElement, MotionPaint>();
     interrupted.current = paint;
     element.dataset.contentMotion = recipe.kind;
@@ -192,9 +186,8 @@ export function useContentMotion<T extends HTMLElement>(ref: RefObject<T | null>
       gsap.set(target, { willChange: "transform,opacity,filter" });
       timeline.fromTo(target, start, { x: 0, y: 0, opacity: 1, filter: "blur(0px)", duration }, position);
     };
-    timeline.addLabel("heading", 0).addLabel("content", 0.04);
-    arrive(element, heading ? 24 : recipe.distance, recipe.duration, heading ? "content" : "heading");
-    if (heading) arrive(heading, 18, 0.28, "heading", 0.82, 0.5);
+    timeline.addLabel("start", 0).addLabel("content", 0.04);
+    arrive(element, recipe.distance, recipe.duration, "start");
     follow.forEach(target => arrive(target, 6, 0.34, "content", 0.78, 0.5));
     return () => { delete element.dataset.contentMotion; };
   }, { scope: ref, dependencies: [value, selector, axis, reduced], revertOnUpdate: true });

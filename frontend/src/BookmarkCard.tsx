@@ -68,7 +68,7 @@ export function BookmarkCard({ record, selected, indexVisible, checked, disabled
   }, [record.tags, expandedTags]);
   const label = display === "summary" && record.summary
     ? record.summary_basis === "title" ? t("标题推断", "Inferred from title") : t("AI 摘要", "AI summary")
-    : text ? t("正文摘录", "Page excerpt") : display === "original" ? t("暂无正文", "No page text yet") : t("暂无摘要", "No summary yet");
+    : t("正文摘录", "Page excerpt");
   useEffect(() => { setExpanded(false); setClipped(false); }, [record.bookmark_id, display, text]);
   useEffect(() => {
     const element = summary.current;
@@ -90,7 +90,7 @@ export function BookmarkCard({ record, selected, indexVisible, checked, disabled
 
   const sourceLetter = (record.domain || "F").replace(/^www\./, "").slice(0, 1).toUpperCase();
   const sourceTone = [...(record.domain || "")].reduce((sum, letter) => sum + letter.charCodeAt(0), 0) % 4;
-  const savedDate = record.date_added ? new Intl.DateTimeFormat("zh-CN", { month: "numeric", day: "numeric" })
+  const savedDate = record.date_added ? new Intl.DateTimeFormat(t("zh-CN", "en"), { month: "numeric", day: "numeric" })
     .format(new Date(record.date_added * 1000)) : "";
 
   return <motion.article ref={row} data-bookmark-id={record.bookmark_id} data-source-tone={sourceTone} aria-labelledby={`${id}-title`}
@@ -152,20 +152,19 @@ export function BookmarkCard({ record, selected, indexVisible, checked, disabled
         : <span className="result-title">{title}</span>}
     </h3>
 
-    <div className={`bookmark-description ${expanded ? "expanded" : ""}`}>
+    {text && <div className={`bookmark-description ${expanded ? "expanded" : ""}`}>
       <div className="bookmark-description-heading">
-        {!!text && (clipped || expanded) && <Button type="button" className="summary-expand" aria-expanded={expanded}
+        {(clipped || expanded) && <Button type="button" className="summary-expand" aria-expanded={expanded}
           aria-controls={`${id}-summary`} aria-label={expanded ? t("收起", "Collapse") : t("展开全文", "Show full text")}
           title={expanded ? t("收起", "Collapse") : t("展开全文", "Show full text")}
           onClick={() => setExpanded(value => !value)}>
           <span>{expanded ? t("收起", "Less") : t("展开", "More")}</span><ChevronDown size={14}/>
         </Button>}
       </div>
-      <p id={`${id}-summary`} ref={summary} className={`result-summary ${text ? "" : "is-empty"}`}>
-        <span className="summary-basis">{label}</span>{" "}
-        {text || (display === "original" ? t("预览中可抓取正文，或直接打开原网页。", "Fetch page text in Preview, or open the original website.") : t("可生成摘要，在收藏中直接浏览。", "Generate a summary to read it here."))}
+      <p id={`${id}-summary`} ref={summary} className="result-summary">
+        <span className="summary-basis">{label}</span>{" "}{text}
       </p>
-    </div>
+    </div>}
 
     <div className="bookmark-metadata">
       <div className={`bookmark-status ${status === "failed" ? "summary-failure" : ""}`} data-summary-status={status}>
