@@ -5,8 +5,10 @@ import ctypes
 import json
 import os
 import signal
+import sqlite3
 import sys
 import time
+from contextlib import closing
 from ctypes import wintypes
 from pathlib import Path
 from urllib.request import urlopen
@@ -291,9 +293,23 @@ elif mode == "restored":
     assert abs(actual["y"] - saved["y"]) <= 2
     with sync_playwright() as playwright:
         page = installed_page(playwright)
-        page.locator(".result-row").first.wait_for(timeout=15000)
+        page.locator(".workspace-search input").fill("Synthetic retained")
+        page.locator(".result-title").filter(has_text="Synthetic retained bookmark").wait_for(timeout=15000)
         page.evaluate("() => document.fonts.ready")
         page.screenshot(path=str(output / "installed-window-restored.png"))
+
+    data_dir = Path(os.environ["FACETMARK_DATA_DIR"])
+    version = read_json(data_dir / "desktop-runtime.json")["version"]
+    assert read_json(data_dir / "desktop-version.json") == {"version": version} and version != "0.0.0"
+    backup, = (data_dir / "backups").glob(f"before-{version}-*.db")
+    assert backup.with_suffix(".toml").read_bytes() == (data_dir / "config.toml").read_bytes()
+    with closing(sqlite3.connect(backup)) as snapshot:
+        assert snapshot.execute("PRAGMA integrity_check").fetchone() == ("ok",)
+        assert snapshot.execute("SELECT title FROM bookmark WHERE url=?", ("https://ci.example/retained",)).fetchone() == (
+            "Synthetic retained bookmark",
+        )
+    report("installed-upgrade.json", {"previous_version_marker": "0.0.0", "version": version,
+        "bookmark_in_workspace": True, "bookmark_in_backup": True, "configuration_backup_matches": True})
     report("installed-window-restored.json", {"actual": actual, "saved": saved, "work_area": area,
         "dpi": user32.GetDpiForWindow(hwnd), "scale_factor": metadata["scale_factor"],
         "physical_outer_size_retained": True, "whole_frame_visible": True,

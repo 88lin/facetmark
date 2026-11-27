@@ -253,7 +253,7 @@ test("both failed reads show a real failure and a late response cannot restore a
     await received;
     await page.getByRole("textbox", { name: "搜索书签", exact: true }).fill("");
     release();
-    await expect(page.locator(".toolbar-location h1")).toHaveText("我的收藏");
+    await expect(page.getByRole("heading", { name: "我的收藏", exact: true })).toBeAttached();
     await expect(page.locator(".result-list")).toHaveAttribute("aria-busy", "false");
     await expect(page.locator(".result-title").first()).toHaveText(title(records[0]));
     await expect(page.locator(".search-error, .search-ranking-recovery")).toHaveCount(0);

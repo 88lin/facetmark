@@ -47,7 +47,7 @@ test("a 683 by 384 window keeps readable results, scrolling controls and reader 
   await page.getByRole("button", { name: "返回收藏", exact: true }).press("Escape");
   await expect(page.locator(".preview-drawer")).toHaveCount(0);
   await page.getByRole("textbox", { name: "搜索书签", exact: true }).fill(searchText);
-  await expect(page.locator(".toolbar-location h1")).toHaveText("搜索结果");
+  await expect(page.getByRole("heading", { name: "搜索结果", exact: true })).toBeAttached();
   await expect(page.locator(".result-count")).not.toHaveText(allCount!);
   await expect(list).toHaveAttribute("aria-busy", "false");
   await expect(page.locator(".result-row").first()).toBeVisible();
@@ -215,7 +215,7 @@ test("nested folders expand independently, retain cached branches, and select th
   expect(label.height).toBeGreaterThan(label.line * 1.5);
   expect(label.height).toBeLessThanOrEqual(label.line * 2 + 1);
   expect(label.overflow).toBe("hidden");
-  await expect(page.locator(".toolbar-location h1")).toHaveText(leaf.split("/").at(-1)!);
+  await expect(page.getByRole("heading", { name: leaf.split("/").at(-1)!, exact: true })).toBeAttached();
   await rail.locator(".facet-location > summary").click();
   await expect(rail.locator(".facet-location p")).toHaveText(leaf.split("/").join(" / "));
   await capture(page, "polish-folders-selected");
@@ -275,7 +275,7 @@ test("a literal slash name remains one exact folder when supplemental path metad
     await option.press("Enter");
     await expect(page.locator(".result-row")).toHaveCount(1);
     await expect(page.locator(".result-count")).toHaveText("1");
-    await expect(page.locator(".toolbar-location h1")).toHaveText(folder);
+    await expect(page.getByRole("heading", { name: folder, exact: true })).toBeAttached();
     await expect(page.locator(".result-folder")).toHaveText(folder);
     await rail.locator(".facet-location > summary").click();
     await expect(rail.locator(".facet-location p")).toHaveText(folder);

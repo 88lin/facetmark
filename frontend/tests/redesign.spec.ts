@@ -251,13 +251,15 @@ test("supporting views and small-window reader share the same system", async ({ 
   await expect(page.locator(".preview-pane")).toHaveCount(0);
   const search = await page.locator(".app-header .workspace-search").boundingBox();
   const collection = await page.locator(".results-column").boundingBox();
+  const workspace = await page.locator(".main-workspace").boundingBox();
   const categories = await page.locator(".collection-sidebar").boundingBox();
   const header = await page.locator(".app-header").boundingBox();
   expect(search!.x).toBeGreaterThanOrEqual(header!.x);
   expect(search!.y).toBeGreaterThanOrEqual(header!.y);
   expect(search!.x + search!.width).toBeLessThanOrEqual(header!.x + header!.width);
   expect(search!.y + search!.height).toBeLessThanOrEqual(header!.y + header!.height);
-  expect(Math.abs(categories!.y - header!.y)).toBeLessThanOrEqual(1);
+  expect(Math.abs(categories!.y - workspace!.y)).toBeLessThanOrEqual(1);
+  expect(categories!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
   expect(categories!.height).toBeGreaterThanOrEqual(960 * .9);
   expect(collection!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
   await expect(page.locator(".app-header .collection-sidebar")).toHaveCount(0);
