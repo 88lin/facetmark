@@ -19,6 +19,7 @@ import sys
 import threading
 import time
 from pathlib import Path
+from urllib.parse import quote_from_bytes
 
 from . import __version__
 
@@ -148,7 +149,8 @@ def backup_on_upgrade(settings) -> None:
         pending_config = Path(staging) / 'config.toml'
         # Backup includes committed WAL pages. Read-only URI also prevents a
         # disappeared source from silently becoming a new empty database.
-        source_uri = settings.db_path.resolve().as_uri() + '?mode=ro'
+        # Encode the native path so a Windows verbatim prefix stays out of the URI authority.
+        source_uri = 'file:' + quote_from_bytes(os.fsencode(settings.db_path.resolve()), safe='') + '?mode=ro'
         with contextlib.closing(sqlite3.connect(source_uri, uri=True)) as source, contextlib.closing(
             sqlite3.connect(pending_db)
         ) as dest:

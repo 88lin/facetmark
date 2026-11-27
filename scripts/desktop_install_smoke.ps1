@@ -93,9 +93,15 @@ try {
     while ((Get-Process -Id $ready.pid -ErrorAction SilentlyContinue) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 300 }
     if (Get-Process -Id $ready.pid -ErrorAction SilentlyContinue) { throw 'Backend survived parent exit' }
     $env:FACETMARK_CI_FAIL_WORKSPACE_ONCE = '0'
+    # Exercise upgrade startup with the pre-existing synthetic library.
+    $config = Join-Path $dataTarget 'config.toml'
+    if (-not (Test-Path -LiteralPath $config)) {
+        'chat_model = "synthetic-upgrade"' | Set-Content -LiteralPath $config -Encoding utf8
+    }
+    '{"version":"0.0.0"}' | Set-Content -LiteralPath (Join-Path $dataTarget 'desktop-version.json') -Encoding utf8
     $app = Start-Process -FilePath $exe -PassThru -WindowStyle Hidden
     & (Join-Path $repoRoot '.desktop-build/venv/Scripts/python.exe') (Join-Path $repoRoot 'scripts/installed_window_check.py') $evidenceDir restored $app.Id
-    if ($LASTEXITCODE -ne 0) { throw 'Native geometry did not restore its physical frame into the monitor work area.' }
+    if ($LASTEXITCODE -ne 0) { throw 'Upgrade startup, library preservation or physical window restoration failed.' }
     $ready = Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json
     & (Join-Path $repoRoot '.desktop-build/venv/Scripts/python.exe') (Join-Path $repoRoot 'scripts/installed_tray_check.py') $evidenceDir $app.Id exit
     if ($LASTEXITCODE -ne 0) { throw 'Tray Quit did not stop the relaunched desktop and its owned service.' }

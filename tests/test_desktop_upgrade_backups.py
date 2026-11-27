@@ -16,7 +16,7 @@ from facetmark.configfile import write_config
 
 @pytest.fixture
 def local_library(tmp_path, monkeypatch):
-    settings = Settings(data_dir=tmp_path / "isolated-library")
+    settings = Settings(data_dir=tmp_path / "isolated 资料库 #100%")
     settings.ensure_dirs()
     write_config({"chat_model": "keep-this-saved-model"}, settings.config_file_path)
     stamp = settings.data_dir / "desktop-version.json"
@@ -42,6 +42,23 @@ def rows(path):
 def backup_bytes(settings):
     directory = settings.data_dir / "backups"
     return {file.name: file.read_bytes() for file in directory.iterdir() if file.is_file()}
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows desktop uses verbatim paths")
+def test_upgrade_reads_the_original_wal_through_the_native_windows_path(local_library):
+    settings, conn = local_library
+    canonical = Path("\\\\?\\" + str(settings.data_dir))
+    settings = settings.model_copy(update={"data_dir": canonical})
+    conn.execute("INSERT INTO saved_text VALUES('committed before restart')")
+    conn.commit()
+    assert settings.db_path.with_name("facetmark.db-wal").stat().st_size > 0
+
+    desktop.backup_on_upgrade(settings)
+
+    saved = next((canonical / "backups").glob("*.db"))
+    assert rows(saved) == [("first committed WAL text",), ("committed before restart",)]
+    assert saved.with_suffix(".toml").read_bytes() == settings.config_file_path.read_bytes()
+    assert rows(settings.db_path) == rows(saved)
 
 
 def test_repeated_desktop_upgrade_attempts_with_the_same_timestamp_retain_both_complete_pairs(local_library):
