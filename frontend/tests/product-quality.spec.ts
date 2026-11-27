@@ -568,13 +568,18 @@ test("three short tags keep full text and keyboard disclosure across narrow and 
     data.items[0].tags = tags;
     await route.fulfill({ response, json: data });
   });
-  await collection(page); await settleVisualLayout(page);
+  await collection(page);
   const row = page.locator(".result-row").first(), list = row.getByRole("list", { name: "标签", exact: true });
   const items = list.locator("li:not(.bookmark-tags-more)"), disclosure = list.locator(".bookmark-tags-more button");
-  await expect(items).toHaveText(tags); await expect(items.nth(2)).toBeVisible();
-  await expect(disclosure).toBeHidden();
-  expect(await items.evaluateAll(elements => elements.some(element => element.scrollWidth > element.clientWidth + 1))).toBe(false);
-  await page.screenshot({ path: "screenshots/collection-review/quality-collection-three-tags-1280.png" });
+  for (const width of [1280, 1440]) {
+    await page.setViewportSize({ width, height: 850 });
+    await settleVisualLayout(page);
+    await expect(items).toHaveText(tags);
+    await expect(items.nth(2)).toBeInViewport();
+    await expect(disclosure).toBeHidden();
+    expect(await items.evaluateAll(elements => elements.some(element => element.scrollWidth > element.clientWidth + 1))).toBe(false);
+    await page.screenshot({ path: `screenshots/collection-review/quality-collection-three-tags-${width}.png` });
+  }
 
   for (const width of [719, 720, 390]) {
     await page.setViewportSize({ width, height: 760 }); await settleVisualLayout(page);

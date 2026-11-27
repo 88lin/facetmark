@@ -64,9 +64,6 @@ test("desktop shares the full header with search and aligns the directory to the
     if (width === 1440) {
       expect(geometry.columns).toBe(4);
       expect(geometry.visible).toBeGreaterThanOrEqual(8);
-      const tag = page.locator(".result-row").first().locator(".bookmark-tags li:not(.bookmark-tags-more)").first();
-      await expect(tag).toBeInViewport();
-      expect(await tag.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
     }
     evidence.push({ width, height, ...geometry });
     await capture(page, `collection-${width}-${height}`);
